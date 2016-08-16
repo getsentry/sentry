@@ -27,7 +27,7 @@ class TestMailgunInboundWebhookView(TestCase):
                 'token': '',
                 'timestamp': '',
             })
-            assert resp.status_code == 403
+            assert resp.status_code == 200
 
     @mock.patch('sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email')
     def test_missing_api_key(self, process_inbound_email):

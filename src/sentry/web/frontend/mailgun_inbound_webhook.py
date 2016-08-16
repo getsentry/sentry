@@ -47,7 +47,7 @@ class MailgunInboundWebhookView(View):
                 'timestamp': timestamp,
                 'signature': signature,
             })
-            return HttpResponse(status=403)
+            return HttpResponse(status=200)
 
         to_email = parseaddr(request.POST['To'])[1]
         from_email = parseaddr(request.POST['From'])[1]
@@ -58,7 +58,7 @@ class MailgunInboundWebhookView(View):
             logger.info('mailgun.invalid-email', extra={
                 'email': to_email,
             })
-            return HttpResponse(status=500)
+            return HttpResponse(status=200)
 
         payload = EmailReplyParser.parse_reply(request.POST['body-plain']).strip()
         if not payload:
