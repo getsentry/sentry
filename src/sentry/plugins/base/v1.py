@@ -17,6 +17,7 @@ from django.http import HttpResponseRedirect
 from threading import local
 
 from sentry.auth import access
+from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.base.configuration import (
@@ -39,7 +40,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin(local, PluggableViewMixin):
+class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -474,6 +475,24 @@ class IPlugin(local, PluggableViewMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
+
+    def get_configure_plugin_fields(self, request, project, **kwargs):
+        form = self.project_conf_form
+        if not form:
+            return []
+
+        config = []
+        for name, field in six.iteritems(form.fields):
+            row = self.field_to_config(name, field)
+            row['default'] = self.get_option(name, project)
+            config.append(row)
+        return config
+
+    def view_configure(self, request, project, **kwargs):
+        if request.method == 'GET':
+            return Response(self.get_configure_plugin_fields(request, project, **kwargs))
+        self.configure(project, request.DATA)
+        return Response({'message': 'Successfully updated configuration.'})
 
 
 @six.add_metaclass(PluginMount)
