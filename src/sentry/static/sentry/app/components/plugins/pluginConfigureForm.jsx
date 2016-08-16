@@ -6,7 +6,7 @@ import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 import {defined} from '../../utils';
 
-const IssuePluginConfigForm = React.createClass({
+const PluginConfigForm = React.createClass({
   propTypes: {
     organization: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
@@ -29,8 +29,9 @@ const IssuePluginConfigForm = React.createClass({
   getPluginConfigureEndpoint() {
     let org = this.props.organization;
     let project = this.props.project;
-    return ('/projects/' + org.slug + '/' + project.slug +
-            '/plugin/' + this.props.plugin.slug + '/configure/');
+    return (
+      `/projects/${org.slug}/${project.slug}/plugin/${this.props.plugin.slug}/configure/`
+    );
   },
 
   fetchData() {
@@ -127,4 +128,4 @@ const IssuePluginConfigForm = React.createClass({
   }
 });
 
-export default IssuePluginConfigForm;
+export default PluginConfigForm;
