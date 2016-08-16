@@ -225,7 +225,7 @@ def prepare_project_issue_list(interval, project):
             ),
             datetime__gte=start,
             datetime__lt=stop,
-        ).order_by('group').distinct('group').values_list('group_id', flat=True)
+        ).order_by('group').distinct().values_list('group_id', flat=True)
     )
 
     rollup = 60 * 60 * 24
