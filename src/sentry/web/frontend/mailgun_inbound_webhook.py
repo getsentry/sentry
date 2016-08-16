@@ -16,6 +16,8 @@ from sentry import options
 from sentry.tasks.email import process_inbound_email
 from sentry.utils.email import email_to_group_id
 
+logger = logging.getLogger('sentry.mailgun')
+
 
 class MailgunInboundWebhookView(View):
     def verify(self, api_key, token, timestamp, signature):
@@ -36,11 +38,15 @@ class MailgunInboundWebhookView(View):
 
         key = options.get('mail.mailgun-api-key')
         if not key:
-            logging.error('mail.mailgun-api-key is not set')
+            logger.error('mailgun.api-key-missing')
             return HttpResponse(status=500)
 
         if not self.verify(key, token, timestamp, signature):
-            logging.info('Unable to verify signature for mailgun request')
+            logger.info('mailgun.invalid-signature', extra={
+                'token': token,
+                'timestamp': timestamp,
+                'signature': signature,
+            })
             return HttpResponse(status=403)
 
         to_email = parseaddr(request.POST['To'])[1]
@@ -49,7 +55,9 @@ class MailgunInboundWebhookView(View):
         try:
             group_id = email_to_group_id(to_email)
         except Exception:
-            logging.info('%r is not a valid email address', to_email)
+            logger.info('mailgun.invalid-email', extra={
+                'email': to_email,
+            })
             return HttpResponse(status=500)
 
         payload = EmailReplyParser.parse_reply(request.POST['body-plain']).strip()
