@@ -16,12 +16,24 @@ const GroupEventDataSection = React.createClass({
     };
   },
 
+  componentDidMount() {
+    if (location.hash) {
+      const scrollToAnchor = () => {
+        const hashParts = location.hash.split('#');
+        const hash = hashParts.slice(-1)[0];
+        let anchorElement = document.querySelector('div#' + hash);
+        if (anchorElement) {anchorElement.scrollIntoView(); }
+      };
+      scrollToAnchor();
+    }
+  },
+
   render: function() {
     return (
       <div className={(this.props.className || '') + ' box'}>
         {this.props.title &&
-          <div className="box-header">
-            <a name={this.props.type} href={'#' + this.props.type} className="permalink">
+          <div className="box-header" id={this.props.type}>
+            <a href={'#' + this.props.type} className="permalink">
               <em className="icon-anchor" />
             </a>
             {this.props.wrapTitle ?
