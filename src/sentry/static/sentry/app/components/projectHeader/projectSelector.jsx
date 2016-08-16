@@ -95,7 +95,7 @@ const ProjectSelector = React.createClass({
 
   close() {
     this.setState({
-      filter: '', 
+      filter: '',
       currentIndex: -1,
       ...this.getProjectState({filter: ''})
     });
