@@ -9,7 +9,6 @@ from collections import namedtuple
 from datetime import timedelta
 from six.moves import reduce
 
-from django.db.models import Q
 from django.utils import dateformat, timezone
 
 from sentry import features
@@ -194,11 +193,39 @@ def trim_issue_list(value):
 def prepare_project_issue_list(interval, project):
     start, stop = interval
 
-    issue_ids = list(
-        project.group_set.exclude(status=GroupStatus.MUTED).filter(
-            Q(first_seen__gte=start, first_seen__lt=stop) |
-            Q(status=GroupStatus.UNRESOLVED, resolved_at__gte=start, resolved_at__lt=stop)
+    queryset = project.group_set.exclude(status=GroupStatus.MUTED)
+
+    issue_ids = set()
+
+    # Fetch all new issues.
+    issue_ids.update(
+        queryset.filter(
+            first_seen__gte=start,
+            first_seen__lt=stop,
         ).values_list('id', flat=True)
+    )
+
+    # Fetch all regressions. This is a little weird, since there's no way to
+    # tell *when* a group regressed using the Group model. Instead, we query
+    # all groups that have been seen in the last week and have ever regressed
+    # and query the Activity model to find out if they regressed within the
+    # past week. (In theory, the activity table *could* be used to answer this
+    # query without the subselect, but there's no suitable indexes to make it's
+    # performance predictable.)
+    issue_ids.update(
+        Activity.objects.filter(
+            group__in=queryset.filter(
+                last_seen__gte=start,
+                last_seen__lt=stop,
+                resolved_at__isnull=False,  # signals this has *ever* been resolved
+            ),
+            type__in=(
+                Activity.SET_REGRESSION,
+                Activity.SET_UNRESOLVED,
+            ),
+            datetime__gte=start,
+            datetime__lt=stop,
+        ).order_by('group_id').distinct('group_id').values_list('group_id', flat=True)
     )
 
     rollup = 60 * 60 * 24
