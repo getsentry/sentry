@@ -85,16 +85,15 @@ argument.
 
 Interaction
 ===========
-Writing a Log Record
-````````````````````
+
 Getting a Logger
-================
+````````````````
 Any logger can be easily instantiated by including: ``logger = logging.getLogger(__name__)``.
 The ``__name__`` structure should be sufficient for most loggers, mainly excluding anything
 defined in utilities.
 
 Creating Context
-================
+````````````````
 As stated prior, the ``extra`` keyword argument can be supplied with a dictionary so that
 important key-value pairs can be passed along with an event. These context keys should be
 identifying information that can be used to either properly search for a specific event, or
@@ -102,7 +101,7 @@ associate the event in question with similar events. A good example for context 
 the ``organization_id``.
 
 Binding Context
-===============
+```````````````
 In rare cases, it is unfeasible to pass a context dictionary throughout a code path.
 For this case, there is a small utility defined as ``sentry.logging.bind``. calling ``bind``
 with the name of the desired logger, along with any keyword arguments, will bind said
@@ -111,7 +110,7 @@ keyword arguments to the logger with that name. For example, calling
 context is passed in the next time the ``sentry.auth`` logger records an event.
 
 Event Definition
-================
+````````````````
 Sentry does not follow the practice of logging a natural language statement like
 `"Something happened because reason."`. Instead, it logs a statement as an event. Events
 are structured as ``Object.Action.Reason``, so the prior statement would become
@@ -128,7 +127,7 @@ in either the developmental cycle or when an actual human is trying to gain insi
 production system.
 
 Choosing a Level
-================
+````````````````
 Here is a handy little guide towards choosing a logging level for an event:
 
 **DEBUG**
