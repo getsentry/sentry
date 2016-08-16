@@ -174,25 +174,27 @@ const OrganizationAuditLog = React.createClass({
 
           <p>{t('Sentry keeps track of important events within your organization.')}</p>
 
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('Member')}</th>
-                <th>{t('Action')}</th>
-                <th>{t('IP')}</th>
-                <th>{t('Time')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(this.state.loading ?
-                <tr><td colSpan="4"><LoadingIndicator /></td></tr>
-              : (this.state.error ?
-                <tr><td colSpan="4"><LoadingError onRetry={this.fetchData} /></td></tr>
-              :
-                this.renderResults()
-              ))}
-            </tbody>
-          </table>
+          <div className="panel panel-default">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('Member')}</th>
+                  <th>{t('Action')}</th>
+                  <th>{t('IP')}</th>
+                  <th>{t('Time')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(this.state.loading ?
+                  <tr><td colSpan="4"><LoadingIndicator /></td></tr>
+                : (this.state.error ?
+                  <tr><td colSpan="4"><LoadingError onRetry={this.fetchData} /></td></tr>
+                :
+                  this.renderResults()
+                ))}
+              </tbody>
+            </table>
+          </div>
           {this.state.pageLinks &&
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />
           }

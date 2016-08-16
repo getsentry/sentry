@@ -45,7 +45,7 @@ const ProjectChooser = React.createClass({
               <h3>{team.name}</h3>
             </div>
             <div className="box-content">
-              <table className="table project-list">
+              <table className="table">
                 <tbody>
                   {projectList}
                 </tbody>

@@ -93,7 +93,7 @@ const ExpandedTeamList = React.createClass({
           <h3>{team.name}</h3>
         </div>
         <div className="box-content">
-          <table className="table project-list">
+          <table className="table table-no-top-border m-b-0">
             {team.projects.length ?
               this.renderProjectList(team)
             :
