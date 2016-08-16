@@ -59,9 +59,6 @@ const ProjectSelector = React.createClass({
     // XXX(dcramer): fix odd dedraw issue as of Chrome 45.0.2454.15 dev (64-bit)
     let node = jQuery(ReactDOM.findDOMNode(this.refs.container));
     node.hide().show(0);
-    if (prevState.filter !== this.state.filter) {
-      this.setProjectState();
-    }
   },
 
   componentWillUnmount() {
@@ -73,7 +70,8 @@ const ProjectSelector = React.createClass({
   onFilterChange(evt) {
     this.setState({
       filter: evt.target.value,
-      currentIndex: -1
+      currentIndex: -1,
+      ...this.getProjectState({filter: evt.target.value})
     });
   },
 
@@ -96,7 +94,11 @@ const ProjectSelector = React.createClass({
   },
 
   close() {
-    this.setState({filter: '', currentIndex: -1});
+    this.setState({
+      filter: '', 
+      currentIndex: -1,
+      ...this.getProjectState({filter: ''})
+    });
     // dropdownLink might not exist because we try to close within
     // onFilterBlur above after a timeout. My hunch is that sometimes
     // this DOM element is removed within the 200ms, so we error out.
@@ -221,7 +223,8 @@ const ProjectSelector = React.createClass({
   onClose() {
     this.setState({
       filter: '',
-      currentIndex: -1
+      currentIndex: -1,
+      ...this.getProjectState({filter: ''})
     });
   },
 
@@ -281,12 +284,8 @@ const ProjectSelector = React.createClass({
     };
   },
 
-  setProjectState() {
-    this.setState(this.getProjectState());
-  },
-
   render() {
-    let org = this.props.organization;    
+    let org = this.props.organization;
     let hasSingleTeam = org.teams.length === 1;
 
     let projectList = sortArray(this.state.projectList, ([team, project]) => {
