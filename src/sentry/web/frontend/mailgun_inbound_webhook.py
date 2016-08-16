@@ -10,7 +10,6 @@ from django.views.generic import View
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from email_reply_parser import EmailReplyParser
-from email.utils import parseaddr
 
 from sentry import options
 from sentry.tasks.email import process_inbound_email
@@ -49,8 +48,8 @@ class MailgunInboundWebhookView(View):
             })
             return HttpResponse(status=200)
 
-        to_email = parseaddr(request.POST['To'])[1]
-        from_email = parseaddr(request.POST['From'])[1]
+        to_email = request.POST['recipient']
+        from_email = request.POST['sender']
 
         try:
             group_id = email_to_group_id(to_email)
