@@ -29,11 +29,13 @@ const AllTeamsList = React.createClass({
 
     if (teamNodes.length !== 0) {
       return (
-        <table className="table">
-          <tbody>
-            {teamNodes}
-          </tbody>
-        </table>
+        <div className="panel panel-default">
+          <table className="table">
+            <tbody>
+              {teamNodes}
+            </tbody>
+          </table>
+        </div>
       );
     }
 

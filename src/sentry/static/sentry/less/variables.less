@@ -1,0 +1,26 @@
+//
+// Start with Bootstrap variables
+//
+
+@import (reference) "~bootstrap/less/variables.less";
+
+//
+// Import Sentry palette, override bootstrap colors
+//
+
+@import "./palette.less";
+
+// Tables
+//
+// Overrides Bootstrap defaults
+
+@table-cell-padding:      15px 20px;
+@table-border-color:      lighten(@trim, 6);
+@table-bg-hover:          @white-dark;
+
+// Panels
+//
+// Overrides Bootstrap defaults
+
+@panel-default-border:    @trim;
+@panel-inner-border:      @trim;
