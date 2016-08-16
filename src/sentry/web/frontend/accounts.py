@@ -28,7 +28,7 @@ from sentry.web.forms.accounts import (
     AccountSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
 )
-from sentry.web.helpers import render_to_response
+from sentry.web.helpers import render_to_response, get_login_url
 from sentry.utils.auth import get_auth_providers, get_login_redirect
 
 
@@ -287,7 +287,7 @@ def email_unsubscribe_project(request, project_id):
         if 'cancel' not in request.POST:
             UserOption.objects.set_value(
                 request.user, project, 'mail:alert', 0)
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(get_login_url())
 
     context = csrf(request)
     context['project'] = project

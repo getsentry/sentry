@@ -27,7 +27,7 @@ class AcceptOrganizationInviteView(BaseView):
         return AcceptInviteForm()
 
     def handle(self, request, member_id, token):
-        assert request.method in ['POST', 'GET']
+        assert request.method in ('POST', 'GET')
 
         try:
             om = OrganizationMember.objects.get(pk=member_id)
