@@ -45,6 +45,15 @@
 
     <div class="box">
       <div class="box-header">
+        <h3>{% trans "Email" %}</h3>
+      </div>
+      <div class="box-content with-padding">
+        {{ form.mail_subject_prefix|as_crispy_field }}
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="box-header">
         <h3>{% trans "Event Settings" %}</h3>
       </div>
       <div class="box-content with-padding">
@@ -170,17 +179,14 @@
     <li{% if page == 'details' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "General" %}</a>
     </li>
-    <li{% if page == 'notifications' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
+    <li{% if page == 'alerts' %} class="active"{% endif %}>
+        <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{% trans "Alerts" %}</a>
     </li>
     {% feature projects:quotas project %}
     <li{% if page == 'quotas' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-quotas' project.organization.slug project.slug %}">{% trans "Rate Limits" %}</a>
     </li>
     {% endfeature %}
-    <li{% if page == 'rules' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-project-rules' project.organization.slug project.slug %}">{% trans "Rules" %}</a>
-    </li>
     <li{% if page == 'tags' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-tags' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
     </li>

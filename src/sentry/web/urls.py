@@ -64,8 +64,6 @@ from sentry.web.frontend.project_quotas import ProjectQuotasView
 from sentry.web.frontend.project_release_tracking import \
     ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
-from sentry.web.frontend.project_rule_remove import ProjectRuleRemoveView
-from sentry.web.frontend.project_rules import ProjectRulesView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
@@ -414,18 +412,12 @@ urlpatterns += patterns(
         ProjectNotificationsView.as_view(),
         name='sentry-project-notifications'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/$',
-        ProjectRulesView.as_view(),
-        name='sentry-project-rules'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/edit/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-edit-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/remove/$',
-        ProjectRuleRemoveView.as_view(),
-        name='sentry-remove-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/new/$',
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/new/$',
         ProjectRuleEditView.as_view(),
         name='sentry-new-project-rule'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/(?P<rule_id>\d+)/$',
+        ProjectRuleEditView.as_view(),
+        name='sentry-edit-project-rule'),
 
     url(r'^avatar/(?P<avatar_id>[^\/]+)/$',
         UserAvatarPhotoView.as_view(),

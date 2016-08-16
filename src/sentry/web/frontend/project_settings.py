@@ -8,6 +8,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
+from sentry import options
 from sentry.models import AuditLogEntryEvent, Project, Team
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
@@ -77,6 +78,9 @@ class EditProjectForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': _('e.g. production')}),
         required=False,
     )
+    mail_subject_prefix = forms.CharField(
+        label=_('Subject Prefix'), required=False,
+        help_text=_('Choose a custom prefix for emails from this project.'))
 
     class Meta:
         fields = ('name', 'team', 'slug')
@@ -199,6 +203,8 @@ class ProjectSettingsView(ProjectView):
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
                 'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
                 'default_environment': project.get_option('sentry:default_environment'),
+                'mail_subject_prefix': project.get_option(
+                    'mail:subject_prefix', options.get('mail.subject-prefix')),
             },
         )
 
@@ -224,11 +230,15 @@ class ProjectSettingsView(ProjectView):
                 # Value can't be overridden if set on the org level
                 if opt in form.org_overrides and organization.get_option(opt_key, False):
                     continue
+                if opt == 'mail_subject_prefix':
+                    key = 'mail:subject_prefix'
+                else:
+                    key = 'sentry:%s' % (opt,)
                 value = form.cleaned_data.get(opt)
                 if value is None:
-                    project.delete_option(opt_key)
+                    project.delete_option(key)
                 else:
-                    project.update_option(opt_key, value)
+                    project.update_option(key, value)
 
             project.update_option('sentry:reviewed-callsign', True)
 

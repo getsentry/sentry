@@ -40,6 +40,7 @@ class WebHooksOptionsForm(notify.NotificationConfigurationForm):
         return validate_urls(value)
 
 
+
 class WebHooksPlugin(notify.NotificationPlugin):
     author = 'Sentry Team'
     author_url = 'https://github.com/getsentry/sentry'
