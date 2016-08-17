@@ -33,19 +33,19 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     )
 
     if not (from_object_id and to_object_id):
-        logger.error('merge_group called with missing params')
+        logger.error('merge_group.malformed.missing_params')
         return
 
     try:
         group = Group.objects.get(id=from_object_id)
     except Group.DoesNotExist:
-        logger.warn('merge_group called with invalid from_object_id: %s', from_object_id)
+        logger.warn('merge_group.malformed.invalid_id', extra={'object_id': from_object_id})
         return
 
     try:
         new_group = Group.objects.get(id=to_object_id)
     except Group.DoesNotExist:
-        logger.warn('merge_group called with invalid to_object_id: %s', to_object_id)
+        logger.warn('merge_group.malformed.invalid_id', extra={'object_id': from_object_id})
         return
 
     model_list = (
@@ -167,8 +167,10 @@ def merge_objects(models, group, new_group, limit=1000,
     has_more = False
     for model in models:
         if logger is not None:
-            logger.info('Merging %r objects where %r into %r', model, group,
-                        new_group)
+            logger.info('%s.merge', model.__name__.lower(), extra={
+                'group_id': group.id,
+                'new_group_id': new_group.id
+            })
         all_fields = model._meta.get_all_field_names()
         has_group = 'group' in all_fields
         if has_group:
