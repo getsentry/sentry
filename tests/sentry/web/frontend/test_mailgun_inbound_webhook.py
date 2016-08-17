@@ -20,8 +20,8 @@ class TestMailgunInboundWebhookView(TestCase):
     def test_invalid_signature(self, process_inbound_email):
         with self.options({'mail.mailgun-api-key': 'a' * 32}):
             resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
-                'To': 'Sentry <%s>' % (self.mailto,),
-                'From': 'David <%s>' % (self.user.email,),
+                'recipient': self.mailto,
+                'sender': self.user.email,
                 'body-plain': body_plain,
                 'signature': '',
                 'token': '',
@@ -32,8 +32,8 @@ class TestMailgunInboundWebhookView(TestCase):
     @mock.patch('sentry.web.frontend.mailgun_inbound_webhook.process_inbound_email')
     def test_missing_api_key(self, process_inbound_email):
         resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
-            'To': 'Sentry <%s>' % (self.mailto,),
-            'From': 'David <%s>' % (self.user.email,),
+            'recipient': self.mailto,
+            'sender': self.user.email,
             'body-plain': body_plain,
             'signature': '',
             'token': '',
@@ -49,8 +49,8 @@ class TestMailgunInboundWebhookView(TestCase):
 
         with self.options({'mail.mailgun-api-key': 'a' * 32}):
             resp = self.client.post(reverse('sentry-mailgun-inbound-hook'), {
-                'To': 'Sentry <%s>' % (self.mailto,),
-                'From': 'David <%s>' % (self.user.email,),
+                'recipient': self.mailto,
+                'sender': self.user.email,
                 'body-plain': body_plain,
                 'signature': signature,
                 'token': token,
