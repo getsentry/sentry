@@ -1,9 +1,8 @@
 import React from 'react';
-
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
-
 import Breadcrumb from './breadcrumbs/breadcrumb';
+import {t} from '../../../locale';
 
 function Collapsed(props) {
   return (
@@ -52,7 +51,8 @@ const BreadcrumbsInterface = React.createClass({
 
   getInitialState() {
     return {
-      collapsed: true
+      collapsed: true,
+      queryValue: ''
     };
   },
 
@@ -68,6 +68,14 @@ const BreadcrumbsInterface = React.createClass({
     return crumbs.reverse().map((item, idx) => {
       return <Breadcrumb key={idx} crumb={item} />;
     }).reverse(); // un-reverse rendered result
+  },
+
+  renderNoMatch() {
+    return (
+      <li className="crumb-empty">
+        <p><span className="icon icon-exclamation" /> {t('Sorry, no breadcrumbs match your search query.')}</p>
+      </li>
+    );
   },
 
   getVirtualCrumb() {
@@ -87,7 +95,7 @@ const BreadcrumbsInterface = React.createClass({
         }
       };
     } else if (evt.message) {
-      let levelTag = (evt.tags || []).find(t => t.key === 'level');
+      let levelTag = (evt.tags || []).find(tag => tag.key === 'level');
       let level = levelTag && levelTag.value;
       crumb = {
         type: 'message',
@@ -107,6 +115,50 @@ const BreadcrumbsInterface = React.createClass({
     return crumb;
   },
 
+  setQuery(evt) {
+    this.setState({
+      queryValue: evt.target.value
+    });
+  },
+
+  filterCrumbs(crumbs, queryValue) {
+    return crumbs.filter(item => {
+      // return true if any of category, message, or level contain queryValue
+      return !!['category', 'message', 'level'].find(prop => {
+        let propValue = (item[prop] || '').toLowerCase();
+        return propValue.includes(queryValue);
+      });
+    });
+  },
+
+  clearSearch() {
+    this.setState({
+      queryValue: '',
+      collapsed: true
+    });
+  },
+
+  getSearchField() {
+    return (
+      <div className="breadcrumb-filter">
+        <input type="text" className="search-input form-control"
+          placeholder={t('Search breadcrumbs...')}
+          autoComplete="off"
+          value={this.state.queryValue}
+          onChange={this.setQuery}
+          />
+        <span className="icon-search" />
+        {this.state.queryValue &&
+          <div>
+            <a className="search-clear-form" onClick={this.clearSearch}>
+              <span className="icon-circle-cross" />
+            </a>
+          </div>
+        }
+      </div>
+    );
+  },
+
   render() {
     let group = this.props.group;
     let evt = this.props.event;
@@ -117,6 +169,7 @@ const BreadcrumbsInterface = React.createClass({
         <h3>
           <strong>{'Breadcrumbs'}</strong>
         </h3>
+        {this.getSearchField()}
       </div>
     );
 
@@ -129,15 +182,27 @@ const BreadcrumbsInterface = React.createClass({
       all = all.slice(0).concat([virtualCrumb]);
     }
 
+    // filter breadcrumbs on text input
+    let {queryValue} = this.state;
+    let filtered = queryValue
+      ? this.filterCrumbs(all, queryValue.toLowerCase())
+        : all;
+
     // cap max number of breadcrumbs to show
-    let crumbs = all;
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
-    if (this.state.collapsed && crumbs.length > MAX) {
-      crumbs = all.slice(-MAX);
+    let crumbs = filtered;
+    if (this.state.collapsed && filtered.length > MAX) {
+      crumbs = filtered.slice(-MAX);
     }
 
-    let numCollapsed = all.length - crumbs.length;
+    let numCollapsed = filtered.length - crumbs.length;
 
+    let crumbContent;
+    if (crumbs.length) {
+      crumbContent = this.renderBreadcrumbs(crumbs);
+    } else if (all.length) {
+      crumbContent = this.renderNoMatch();
+    }
     return (
       <GroupEventDataSection
           className="breadcrumb-box"
@@ -148,7 +213,7 @@ const BreadcrumbsInterface = React.createClass({
           wrapTitle={false}>
         <ul className="crumbs">
           {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-          {this.renderBreadcrumbs(crumbs)}
+          {crumbContent}
         </ul>
       </GroupEventDataSection>
     );
