@@ -22,7 +22,7 @@ from sudo.decorators import sudo_required
 from sentry.models import (
     UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
-from sentry.signals import email_verified
+from sentry.signals import email_verified, email_modified
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, AppearanceSettingsForm,
@@ -149,7 +149,7 @@ def confirm_email(request, user_id, hash):
         email.is_verified = True
         email.validation_hash = ''
         email.save()
-        email_verified.send(email=email.email, sender=email)
+        email_verified.send(useremail=email, sender=email)
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse('sentry-account-settings'))
 
@@ -191,6 +191,8 @@ def settings(request):
             else:
                 user_email.set_hash()
                 user_email.save()
+                email_modified.send(useremail=user_email, sender=request)
+
             user.send_confirm_emails()
 
         messages.add_message(
