@@ -50,7 +50,8 @@ class UserDetailsTest(APITestCase):
         assert resp.data['id'] == six.text_type(user.id)
         assert 'identities' in resp.data
         assert len(resp.data['identities']) == 1
-        assert resp.data['identities'][0]['id'] == auth_identity.ident
+        assert resp.data['identities'][0]['id'] == auth_identity.id
+        assert resp.data['identities'][0]['name'] == auth_identity.ident
 
     def test_superuser(self):
         user = self.create_user(email='a@example.com')
