@@ -19,7 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.db.models import BaseManager, BaseModel, BoundedAutoField
 from sentry.utils.http import absolute_uri
 
-audit_logger = logging.getLogger('sentry.audit')
+audit_logger = logging.getLogger('sentry.audit.user')
 
 
 class UserManager(BaseManager, UserManager):

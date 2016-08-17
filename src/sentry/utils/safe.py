@@ -26,7 +26,7 @@ def safe_execute(func, *args, **kwargs):
                 result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)
-    except Exception as exc:
+    except Exception as e:
         if hasattr(func, 'im_class'):
             cls = func.im_class
         else:
@@ -35,11 +35,8 @@ def safe_execute(func, *args, **kwargs):
         func_name = getattr(func, '__name__', six.text_type(func))
         cls_name = cls.__name__
 
-        logger = logging.getLogger('sentry.safe')
-        logger.error(
-            'Error processing %r on %r: %s', func_name, cls_name, exc,
-            exc_info=True,
-        )
+        logger = logging.getLogger('sentry.safe.%s' % (cls_name.lower(),))
+        logger.error('%s.process_error', func_name, exc_info=True, extra={'exception': e})
     else:
         return result
 
