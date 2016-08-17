@@ -18,13 +18,9 @@ const GroupEventDataSection = React.createClass({
 
   componentDidMount() {
     if (location.hash) {
-      const scrollToAnchor = () => {
-        const hashParts = location.hash.split('#');
-        const hash = hashParts.slice(-1)[0];
-        let anchorElement = document.querySelector('div#' + hash);
+        let [, hash] = location.hash.split('#');
+        let anchorElement = hash && document.querySelector('div#' + hash);
         if (anchorElement) {anchorElement.scrollIntoView(); }
-      };
-      scrollToAnchor();
     }
   },
 
