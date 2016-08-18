@@ -175,7 +175,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2],
         'featureLocation': 'absolute',
-        'location': 'https://docs.getsentry.com/hosted/learn/context/#capturing-the-user',
+        'location': 'https://docs.sentry.io/hosted/learn/context/#capturing-the-user',
       },
       {
         'task': 6,
@@ -193,7 +193,7 @@ const TodoList = React.createClass({
         'skippable': true,
         'prereq': [1, 2], // Is one of the platforms javascript?
         'featureLocation': 'absolute',
-        'location': 'https://docs.getsentry.com/hosted/clients/javascript/sourcemaps/'
+        'location': 'https://docs.sentry.io/hosted/clients/javascript/sourcemaps/'
       },
       // {
       //   'task': 8,

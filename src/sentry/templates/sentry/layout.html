@@ -107,7 +107,7 @@
 
         <ul class="global-nav pull-right">
           {% block global_nav %}
-          <li><a href="https://docs.getsentry.com">{% trans "Docs" %}</a></li>
+          <li><a href="https://docs.sentry.io">{% trans "Docs" %}</a></li>
           {% endblock %}
         </ul>
 
@@ -187,8 +187,8 @@
         {% block footer %}
         <div class="pull-right">
           {% block support_link %}{% endblock %}
-          <a href="https://docs.getsentry.com/hosted/api/">{% trans "API" %}</a>
-          <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
+          <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
+          <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>

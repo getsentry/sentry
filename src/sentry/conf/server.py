@@ -1031,9 +1031,9 @@ SDK_VERSIONS = {
 }
 
 SDK_URLS = {
-    'raven-js': 'https://docs.getsentry.com/hosted/clients/javascript/',
-    'raven-python': 'https://docs.getsentry.com/hosted/clients/python/',
-    'raven-swift': 'https://docs.getsentry.com/hosted/clients/cocoa/',
+    'raven-js': 'https://docs.sentry.io/hosted/clients/javascript/',
+    'raven-python': 'https://docs.sentry.io/hosted/clients/python/',
+    'raven-swift': 'https://docs.sentry.io/hosted/clients/cocoa/',
 }
 
 DEPRECATED_SDKS = {

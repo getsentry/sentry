@@ -11,7 +11,7 @@ import sentry
 
 from six.moves.urllib.request import urlopen
 
-BASE_URL = 'https://docs.getsentry.com/hosted/_platforms/{}'
+BASE_URL = 'https://docs.sentry.io/hosted/_platforms/{}'
 
 # Also see INTEGRATION_DOC_FOLDER in setup.py
 DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__),

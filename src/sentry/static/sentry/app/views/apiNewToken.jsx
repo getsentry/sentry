@@ -160,7 +160,7 @@ const ApiNewToken = React.createClass({
 
           <p>{t('Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.')}</p>
           <p>{tct('For more information on how to use the web API, see our [link:documentation].', {
-            link: <a href="https://docs.getsentry.com/hosted/api/" />
+            link: <a href="https://docs.sentry.io/hosted/api/" />
           })}</p>
 
           <TokenForm
