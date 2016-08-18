@@ -565,7 +565,7 @@ class EventManager(object):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
-            self.logger.info('duplicate.found', extra={'event_id': event_id}, exc_info=True)
+            self.logger.info('duplicate.found', extra={'event_id': event.id}, exc_info=True)
             return event
 
         environment = Environment.get_or_create(
@@ -631,7 +631,7 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info('duplicate.found', extra={'event_id': event_id}, exc_info=True)
+                self.logger.info('duplicate.found', extra={'event_id': event.id}, exc_info=True)
                 return event
 
             index_event_tags.delay(
@@ -668,7 +668,7 @@ class EventManager(object):
                 is_regression=is_regression,
             )
         else:
-            self.logger.info('post_process.skip.raw_event', extra={'event_id': event_id})
+            self.logger.info('post_process.skip.raw_event', extra={'event_id': event.id})
 
         # TODO: move this to the queue
         if is_regression and not raw:
