@@ -58,7 +58,7 @@ const GroupTags = React.createClass({
   },
 
   getTagsDocsUrl() {
-    return 'https://docs.getsentry.com/hosted/learn/context/';
+    return 'https://docs.sentry.io/hosted/learn/context/';
   },
 
   render() {
