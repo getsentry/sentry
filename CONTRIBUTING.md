@@ -2,4 +2,4 @@
 
 Want to contribute towards this repository? Follow the server
 development documentation
-[here](https://docs.getsentry.com/hosted/serverdev/).
+[here](https://docs.sentry.io/hosted/serverdev/).

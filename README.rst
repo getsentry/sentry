@@ -19,7 +19,7 @@ any application.
 Resources
 ---------
 
-* `Documentation <https://docs.getsentry.com/>`_
+* `Documentation <https://docs.sentry.io/>`_
 * `Bug Tracker <https://github.com/getsentry/sentry/issues>`_
 * `Code <https://github.com/getsentry/sentry>`_
 * `Ask on Stack Overflow <https://stackoverflow.com/questions/ask?tags=sentry>`_

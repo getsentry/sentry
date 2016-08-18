@@ -310,10 +310,10 @@ urlpatterns += patterns(
 
     # Legacy Redirects
     url(r'^docs/?$',
-        RedirectView.as_view(url='https://docs.getsentry.com/hosted/', permanent=False),
+        RedirectView.as_view(url='https://docs.sentry.io/hosted/', permanent=False),
         name='sentry-docs-redirect'),
     url(r'^docs/api/?$',
-        RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
+        RedirectView.as_view(url='https://docs.sentry.io/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'),
 
     url(r'^api/$', react_page_view, name='sentry-api'),
