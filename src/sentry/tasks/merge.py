@@ -167,7 +167,8 @@ def merge_objects(models, group, new_group, limit=1000,
     has_more = False
     for model in models:
         if logger is not None:
-            logger.info('%s.merge', model.__name__.lower(), extra={
+            logger.info('model.merge', extra={
+                'model': model.__name__,
                 'group_id': group.id,
                 'new_group_id': new_group.id
             })
