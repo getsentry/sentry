@@ -18,6 +18,18 @@ DOC_FOLDER = os.path.abspath(os.path.join(os.path.dirname(sentry.__file__),
                                           'integration-docs'))
 
 
+"""
+Looking to add a new framework/language to /settings/install?
+
+In the appropriate client SDK repository (e.g. raven-js), edit docs/sentry-doc-config.json.
+Add the new language/framework.
+
+Example: https://github.com/getsentry/raven-js/blob/master/docs/sentry-doc-config.json
+
+Once the docs have been deployed, you can run `sentry repair --with-docs` to pull down
+the latest list of integrations and serve them in your local Sentry install.
+"""
+
 logger = logging.getLogger('sentry')
 
 
