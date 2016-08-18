@@ -11,7 +11,6 @@ const UserNav = React.createClass({
   },
 
   render() {
-    let urlPrefix = ConfigStore.get('urlPrefix');
     let user = ConfigStore.get('user');
 
     if (!user) {
@@ -28,12 +27,12 @@ const UserNav = React.createClass({
           topLevelClasses={this.props.className}
           menuClasses="dropdown-menu-right"
           title={title}>
-        <MenuItem href={urlPrefix + '/account/settings/'}>{t('Account')}</MenuItem>
+        <MenuItem href="/account/settings/">{t('Account')}</MenuItem>
         <MenuItem to="/api/">{t('API')}</MenuItem>
         {user.isSuperuser &&
           <MenuItem to="/manage/">{t('Admin')}</MenuItem>
         }
-        <MenuItem href={urlPrefix + '/auth/logout/'}>{t('Sign out')}</MenuItem>
+        <MenuItem href="/auth/logout/">{t('Sign out')}</MenuItem>
       </DropdownLink>
     );
   }

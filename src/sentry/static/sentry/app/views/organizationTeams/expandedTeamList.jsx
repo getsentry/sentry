@@ -6,7 +6,6 @@ import ApiMixin from '../../mixins/apiMixin';
 import {update as projectUpdate} from '../../actionCreators/projects';
 import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
-import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
@@ -44,7 +43,7 @@ const ExpandedTeamList = React.createClass({
 
   urlPrefix() {
     let org = this.props.organization;
-    return ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
+    return `/organizations/${org.slug}`;
   },
 
   renderProjectList(team) {

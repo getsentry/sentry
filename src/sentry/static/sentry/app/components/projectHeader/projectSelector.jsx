@@ -4,7 +4,6 @@ import {History} from 'react-router';
 import {Link} from 'react-router';
 import jQuery from 'jquery';
 
-import ConfigStore from '../../stores/configStore';
 import {update as projectUpdate} from '../../actionCreators/projects';
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -188,7 +187,7 @@ const ProjectSelector = React.createClass({
     if (this.context.location) {
       return {to: path};
     } else {
-      return {href: ConfigStore.get('urlPrefix') + path};
+      return {href: path};
     }
   },
 
