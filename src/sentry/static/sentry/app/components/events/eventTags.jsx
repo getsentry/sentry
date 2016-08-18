@@ -18,6 +18,29 @@ const EventTags = React.createClass({
 
   render() {
     let tags = this.props.event.tags;
+
+    // aggregate values with the same key
+    // from [{key: foo, value: bar}, {key: foo, value: bar2}] into [{key: foo, values: [bar, bar2]}]
+
+    let results = [];
+    for (var ti in tags) {
+      var tag = tags[ti];
+      var found = false;
+      for (var r in results) {
+        var result = results[r];
+        if (result.key == tag.key) {
+          // we found the key in result. Simply append to the values
+          result.values.push(tag.value);
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        // need to create a new key in result
+        results.push({key: tag.key, values: [tag.value]});
+      }
+    }
+
     if (_.isEmpty(tags))
       return null;
 
@@ -29,19 +52,26 @@ const EventTags = React.createClass({
           title={t('Tags')}
           type="tags">
         <ul className="mini-tag-list">
-          {tags.map((tag) => {
+          {results.map((tag) => {
             return (
               <li key={tag.key}>
-                {tag.key} = <Link
-                  to={`/${orgId}/${projectId}/`}
-                  query={{query: `${tag.key}:"${tag.value}"`}}>
-                  {tag.value}
-                </Link>
-                {isUrl(tag.value) &&
-                  <a href={tag.value} className="external-icon">
-                    <em className="icon-open" />
-                  </a>
-                }
+                {tag.key} = {tag.values.map((value) => {
+                  return (
+                    <span>
+                      <Link
+                        to={`/${orgId}/${projectId}/`}
+                        query={{query: `${tag.key}:"${value}"`}}>
+                        {value}
+                      </Link>
+                      {isUrl(value) &&
+                        <a href={value} className="external-icon">
+                          <em className="icon-open" />
+                        </a>
+                      }
+                      <span>&nbsp;&nbsp;</span>
+                    </span>
+                  );
+                })}
               </li>
             );
           })}
