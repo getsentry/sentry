@@ -1,7 +1,6 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
-import ConfigStore from '../../stores/configStore';
 import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -72,9 +71,8 @@ const ProjectSettings = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    let urlPrefix = ConfigStore.get('urlPrefix');
     let {orgId, projectId} = this.props.params;
-    let settingsUrlRoot = `${urlPrefix}/${orgId}/${projectId}/settings`;
+    let settingsUrlRoot = `/${orgId}/${projectId}/settings`;
     let project = this.state.project;
     let features = new Set(project.features);
     let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
