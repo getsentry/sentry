@@ -588,10 +588,15 @@ class EventManager(object):
                 datetime=date,
             )
 
-        tsdb.incr_multi([
+        counters = [
             (tsdb.models.group, group.id),
             (tsdb.models.project, project.id),
-        ], timestamp=event.datetime)
+        ]
+
+        if release:
+            counters.append((tsdb.models.release, release.id))
+
+        tsdb.incr_multi(counters, timestamp=event.datetime)
 
         frequencies = [
             # (tsdb.models.frequent_projects_by_organization, {
@@ -610,6 +615,7 @@ class EventManager(object):
                 },
             })
         ]
+
         if release:
             frequencies.append(
                 (tsdb.models.frequent_releases_by_group, {

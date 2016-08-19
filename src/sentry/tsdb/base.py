@@ -31,6 +31,7 @@ class TSDBModel(Enum):
     group = 4
     group_tag_key = 5
     group_tag_value = 6
+    release = 7
 
     # the number of events sent to the server
     project_total_received = 100
