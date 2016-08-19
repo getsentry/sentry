@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
-from django.middleware.csrf import get_token as get_csrf_token
+from django.conf import settings
 from django.http import HttpResponse
+from django.middleware.csrf import get_token as get_csrf_token
 from django.template import loader, Context
 
 from sentry.models import Project
@@ -12,7 +13,10 @@ from sentry.web.frontend.base import BaseView, OrganizationView
 class ReactMixin(object):
     def get_context(self, request):
         # this hook is utilized by getsentry
-        return {'request': request}
+        return {
+            'request': request,
+            'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
+        }
 
     def handle_react(self, request):
         context = Context(self.get_context(request))

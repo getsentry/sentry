@@ -1,5 +1,7 @@
 import jQuery from 'jquery';
 
+const csrfCookieName = window.csrfCookieName || 'sc';
+
 // setup jquery for CSRF tokens
 function getCookie(name) {
   let cookieValue = null;
@@ -21,10 +23,11 @@ function csrfSafeMethod(method) {
   // these HTTP methods do not require CSRF protection
   return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
 }
+
 jQuery.ajaxSetup({
   beforeSend: function(xhr, settings) {
     if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader('X-CSRFToken', getCookie('sc'));
+      xhr.setRequestHeader('X-CSRFToken', getCookie(csrfCookieName));
     }
   }
 });

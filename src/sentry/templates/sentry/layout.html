@@ -32,6 +32,11 @@
 
   <title>{% block title %}Sentry{% endblock %}</title>
 
+  <script>
+  window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+  </script>
+
+
   {% block scripts %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
