@@ -48,7 +48,7 @@ class AcceptOrganizationInviteView(BaseView):
 
             return self.redirect(reverse('sentry'))
 
-        if not constant_time_compare(om.token or om.get_legacy_token, token):
+        if not constant_time_compare(om.token or om.legacy_token, token):
             messages.add_message(
                 request, messages.ERROR,
                 ERR_INVITE_INVALID,
