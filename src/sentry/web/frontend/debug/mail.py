@@ -34,6 +34,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     Project,
+    Release,
     Rule,
     Team,
 )
@@ -415,9 +416,8 @@ def report(request):
                 results[id] = instance
         return results
 
-    group_generator = make_group_generator(random, project)
-
     def make_group_id_generator():
+        group_generator = make_group_generator(random, project)
         while True:
             group = next(group_generator)
             if random.random() < 0.95:
@@ -425,6 +425,36 @@ def report(request):
             yield group.id
 
     group_id_sequence = make_group_id_generator()
+
+    def make_release_generator():
+        id_sequence = itertools.count(1)
+        while True:
+            dt = to_datetime(
+                random.randint(
+                    timestamp - (30 * 24 * 60 * 60),
+                    timestamp,
+                ),
+            )
+            yield Release(
+                id=next(id_sequence),
+                project=project,
+                version=''.join([
+                    random.choice('0123456789abcdef') for _ in range(40)
+                ]),
+                date_added=dt,
+                date_started=dt,
+            )
+
+    release_instances = {}
+
+    def make_release_id_generator():
+        release_generator = make_release_generator()
+        while True:
+            release = next(release_generator)
+            release_instances[release.id] = release
+            yield release.id
+
+    release_id_generator = make_release_id_generator()
 
     def build_issue_list():
         count = random.randint(0, int(random.paretovariate(0.4)))
@@ -435,6 +465,14 @@ def report(request):
                 int(random.paretovariate(0.3)),
             ),
         ) for _ in xrange(0, min(count, 5))]
+
+    def build_release_list():
+        return reports.trim_release_list([
+            (
+                next(release_id_generator),
+                max(1, int(random.weibullvariate(20, 0.15))),
+            ) for _ in range(random.randint(0, 10))
+        ])
 
     def build_report():
         daily_maximum = random.randint(1000, 10000)
@@ -449,7 +487,7 @@ def report(request):
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
         ]
 
-        return series, aggregates, build_issue_list()
+        return series, aggregates, build_issue_list(), build_release_list()
 
     report = reduce(
         reports.merge_reports,
