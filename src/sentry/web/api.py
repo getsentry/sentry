@@ -345,6 +345,9 @@ class StoreView(APIView):
             sdk = helper.parse_client_as_sdk(auth.client)
             if sdk:
                 data['sdk'] = sdk
+            else:
+                data['sdk'] = {}
+        data['sdk']['client_ip'] = remote_addr
 
         # mutates data
         manager = EventManager(data, version=auth.version)
