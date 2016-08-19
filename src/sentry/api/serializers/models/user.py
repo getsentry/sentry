@@ -93,7 +93,8 @@ class UserSerializer(Serializer):
 
         if attrs['identities'] is not None:
             d['identities'] = [{
-                'id': i.ident,
+                'id': i.id,
+                'name': i.ident,
                 'organization': {
                     'slug': i.auth_provider.organization.slug,
                     'name': i.auth_provider.organization.name,
