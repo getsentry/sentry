@@ -44,7 +44,7 @@
               <label>{% trans "Status" %}</label>
               <div class="controls">
                 {% if member.is_pending %}
-                  Invited
+                  <em>Invitation Pending</em>
                 {% else %}
                   Active
                 {% endif %}
@@ -60,6 +60,21 @@
             </div>
           </div>
         </div>
+        {% if invite_link %}
+          <div class="form-actions">
+            <div class="control-group">
+              <label>{% trans "Invite Link" %}</label>
+              <div class="controls">
+                <code class="auto-select form-control" style="overflow: auto">{{ invite_link }}</code>
+              </div>
+              <p class="help-block">This unique invite link may only be used by this member.</p>
+            </div>
+            <div class="align-right">
+              <button type="submit" name="op" value="regenerate" class="btn btn-default">{% trans "Generate New Invite" %}</button>
+              <button type="submit" name="op" value="reinvite" class="btn btn-default">{% trans "Resend Invite" %}</button>
+            </div>
+          </div>
+        {% endif %}
       </div>
     </div>
 
@@ -106,9 +121,6 @@
     </div>
 
     <div class="form-actions">
-      {% if organizationmember.is_pending %}
-        <button type="submit" name="op" value="reinvite" class="btn btn-default">{% trans "Resend Invite" %}</button>
-      {% endif %}
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </div>
   </form>
