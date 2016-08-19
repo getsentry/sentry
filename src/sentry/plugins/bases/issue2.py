@@ -12,8 +12,7 @@ from django.utils.html import format_html
 
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
-from sentry.plugins.endpoints import PluginGroupEndpoint, PluginProjectEndpoint
-from sentry.plugins.base.configuration import default_issue_plugin_config
+from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
@@ -39,6 +38,9 @@ class PluginError(Exception):
 class IssueTrackingPlugin2(Plugin):
     auth_provider = None
     allowed_actions = ('create', 'link', 'unlink')
+
+    def get_plugin_type(self):
+        return 'issue-tracking'
 
     def has_project_conf(self):
         return True
@@ -78,21 +80,6 @@ class IssueTrackingPlugin2(Plugin):
             _urls.append(
                 url(r'^%s/' % action,
                     PluginGroupEndpoint.as_view(
-                        view=getattr(self, view_method_name),
-                    ),
-                )
-            )
-        return _urls
-
-    def get_project_urls(self):
-        _urls = []
-        # TODO: add enable here when moved to api
-        for action in ('configure', 'disable'):
-            view_method_name = 'view_%s' % action
-
-            _urls.append(
-                url(r'^%s/' % action,
-                    PluginProjectEndpoint.as_view(
                         view=getattr(self, view_method_name),
                     ),
                 )
@@ -144,12 +131,6 @@ class IssueTrackingPlugin2(Plugin):
 
     def get_link_existing_issue_fields(self, request, group, event, **kwargs):
         return []
-
-    def get_configure_plugin_fields(self, request, project, **kwargs):
-        """
-        Must be overridden by plugins that require configuration.
-        """
-        raise NotImplementedError
 
     def get_issue_url(self, group, issue_id, **kwargs):
         """
@@ -309,21 +290,12 @@ class IssueTrackingPlugin2(Plugin):
         )
         return Response({'message': 'Successfully linked issue.'})
 
-    def view_configure(self, request, project, **kwargs):
-        if request.method == 'GET':
-            return Response(self.get_configure_plugin_fields(request, project, **kwargs))
-        self.configure(project, request.DATA)
-        return Response({'message': 'Successfully updated configuration.'})
-
-    def configure(self, project, form_data):
-        """Configures the plugin"""
-        default_issue_plugin_config(self, project, form_data)
-
-    def view_disable(self, request, project, **kwargs):
-        if self.can_disable:
-            self.disable(project)
-            return Response({'message': 'Successfully disabled plugin'})
-        return Response({'message': 'Plugin cannot be disabled'}, status=400)
+    def get_config(self, *args, **kwargs):
+        # TODO(dcramer): update existing plugins to just use get_config
+        # TODO(dcramer): remove request kwarg after sentry-plugins has been
+        # updated
+        kwargs.setdefault('request', None)
+        return self.get_configure_plugin_fields(*args, **kwargs)
 
     def check_config_and_auth(self, request, group):
         has_auth_configured = self.has_auth_configured()

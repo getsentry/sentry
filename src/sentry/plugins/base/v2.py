@@ -80,6 +80,9 @@ class IPlugin2(local, PluginConfigMixin):
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
 
+    def get_plugin_type(self):
+        return 'default'
+
     def is_enabled(self, project=None):
         """
         Returns a boolean representing if this plugin is enabled.
