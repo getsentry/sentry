@@ -282,7 +282,7 @@ LOCALE_PATHS = (
 )
 
 CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
-CSRF_COOKIE_NAME = 'csrf'
+CSRF_COOKIE_NAME = 'sc'
 
 # Auth configuration
 
