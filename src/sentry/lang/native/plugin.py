@@ -440,7 +440,7 @@ def resolve_frame_symbols(data):
     # Pad out addresses to be of the same length
     for frame in processed_frames:
         for key in 'symbol_addr', 'instruction_addr':
-            frame[key] = frame[key].rjust(longest_addr, '0')
+            frame[key] = '0x' + frame[key][2:].rjust(longest_addr - 2, '0')
 
     if errors:
         data.setdefault('errors', []).extend(errors)
