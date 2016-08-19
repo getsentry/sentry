@@ -22,6 +22,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
     def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
+        om.token = om.generate_token()
 
         try:
             existing = OrganizationMember.objects.filter(

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
+from django.utils.crypto import constant_time_compare
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import (
@@ -47,7 +48,7 @@ class AcceptOrganizationInviteView(BaseView):
 
             return self.redirect(reverse('sentry'))
 
-        if om.token != token:
+        if not constant_time_compare(om.token or om.get_legacy_token, token):
             messages.add_message(
                 request, messages.ERROR,
                 ERR_INVITE_INVALID,
