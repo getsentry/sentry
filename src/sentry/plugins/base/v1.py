@@ -86,6 +86,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
 
+    def get_plugin_type(self):
+        return 'default'
+
     def is_enabled(self, project=None):
         """
         Returns a boolean representing if this plugin is enabled.
@@ -475,18 +478,6 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
 
     def get_url_module(self):
         """Allows a plugin to return the import path to a URL module."""
-
-    def get_configure_plugin_fields(self, request, project, **kwargs):
-        form = self.project_conf_form
-        if not form:
-            return []
-
-        config = []
-        for name, field in six.iteritems(form.fields):
-            row = self.field_to_config(name, field)
-            row['default'] = self.get_option(name, project)
-            config.append(row)
-        return config
 
     def view_configure(self, request, project, **kwargs):
         if request.method == 'GET':

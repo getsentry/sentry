@@ -1,7 +1,17 @@
 import React from 'react';
-import AlertActions from '../../actions/alertActions';
+import underscore from 'underscore';
+
 import ApiMixin from '../../mixins/apiMixin';
-import {Form, Select2Field, Select2FieldAutocomplete, TextareaField, TextField} from '../forms';
+import {
+  Form,
+  FormState,
+  PasswordField,
+  Select2Field,
+  Select2FieldAutocomplete,
+  TextField,
+  TextareaField,
+} from '../forms';
+import IndicatorStore from '../../stores/indicatorStore';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 import {defined} from '../../utils';
@@ -10,7 +20,7 @@ const PluginConfigForm = React.createClass({
   propTypes: {
     organization: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
-    plugin: React.PropTypes.object
+    plugin: React.PropTypes.object.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -18,7 +28,10 @@ const PluginConfigForm = React.createClass({
   getInitialState() {
     return {
       fieldList: null,
-      formData: null
+      initialData: null,
+      formData: null,
+      errors: {},
+      state: FormState.READY,
     };
   },
 
@@ -26,32 +39,31 @@ const PluginConfigForm = React.createClass({
     this.fetchData();
   },
 
-  getPluginConfigureEndpoint() {
+  getPluginEndpoint() {
     let org = this.props.organization;
     let project = this.props.project;
     return (
-      `/projects/${org.slug}/${project.slug}/plugin/${this.props.plugin.slug}/configure/`
+      `/projects/${org.slug}/${project.slug}/plugins/${this.props.plugin.id}/`
     );
   },
 
   fetchData() {
-    this.api.request(this.getPluginConfigureEndpoint(), {
+    this.api.request(this.getPluginEndpoint(), {
       success: (data) => {
         let formData = {};
-        data.forEach((field) => {
-          formData[field.name] = field.default;
+        data.config.forEach((field) => {
+          formData[field.name] = field.value || field.defaultValue;
         });
         this.setState({
-          fieldList: data,
-          error: false,
-          loading: false,
-          formData: formData
+          fieldList: data.config,
+          state: FormState.LOADING,
+          formData: formData,
+          initialData: Object.assign({}, formData)
         });
       },
       error: (error) => {
         this.setState({
-          error: true,
-          loading: false
+          state: FormState.ERROR,
         });
       }
     });
@@ -72,10 +84,16 @@ const PluginConfigForm = React.createClass({
       label: field.label + (required ? '*' : ''),
       placeholder: field.placeholder,
       name: field.name,
+      error: this.state.errors[field.name],
       disabled: field.readonly,
+      key: field.name,
       help: <span dangerouslySetInnerHTML={{__html: field.help}}/>
     };
+
     switch (field.type) {
+      case 'secret':
+        el = <PasswordField {...props} />;
+        break;
       case 'text':
         el = <TextField {...props} />;
         break;
@@ -97,20 +115,35 @@ const PluginConfigForm = React.createClass({
   },
 
   onSubmit() {
-    this.api.request(this.getPluginConfigureEndpoint(), {
-      data: this.state.formData,
-      success: (data) => {
-        AlertActions.addAlert({
-          message: t('Successfully saved plugin settings.'),
-          type: 'success'
-        });
-      },
-      error: (error) => {
-        AlertActions.addAlert({
-          message: t('There was an error saving the plugin configuration.'),
-          type: 'error'
-        });
-      }
+    if (this.state.state == FormState.SAVING) {
+      return;
+    }
+    this.setState({
+      state: FormState.SAVING,
+    }, () => {
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      this.api.request(this.getPluginEndpoint(), {
+        data: this.state.formData,
+        method: 'PUT',
+        success: (data) => {
+          this.setState({
+            formData: data,
+            initialData: Object.assign({}, data),
+            state: FormState.READY,
+            errors: {},
+          });
+        },
+        error: (error) => {
+          this.setState({
+            state: FormState.ERROR,
+            errors: error.responseJSON.errors || {},
+          });
+          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+        },
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
     });
   },
 
@@ -118,11 +151,11 @@ const PluginConfigForm = React.createClass({
     if (!this.state.fieldList) {
       return <LoadingIndicator />;
     }
+    let isSaving = this.state.state === FormState.SAVING;
+    let hasChanges = !underscore.isEqual(this.state.initialData, this.state.formData);
     return (
-      <Form onSubmit={this.onSubmit}>
-        {this.state.fieldList.map((field) => {
-          return <div key={field.name}>{this.renderField(field)}</div>;
-        })}
+      <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
+        {this.state.fieldList.map(f => this.renderField(f))}
       </Form>
     );
   }

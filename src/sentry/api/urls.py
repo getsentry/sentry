@@ -56,6 +56,7 @@ from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
@@ -295,8 +296,12 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
         name='sentry-api-0-project-user-reports'),
+
     # Load plugin project urls
-    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugin/',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$',
+        ProjectPluginDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-plugin-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/',
         include('sentry.plugins.base.project_api_urls')),
 
     # Groups
@@ -343,7 +348,7 @@ urlpatterns = patterns(
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
     # Load plugin group urls
-    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugin/',
+    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugins?/',
         include('sentry.plugins.base.group_api_urls')),
 
     url(r'^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$',

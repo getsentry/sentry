@@ -122,16 +122,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :auth: required
         """
-        active_plugins = [
-            {
-                'name': plugin.get_title(),
-                'id': plugin.slug,
-            }
-            for plugin in plugins.configurable_for_project(project, version=None)
-            if plugin.is_enabled(project)
-            and plugin.has_project_conf()
-        ]
-
         data = serialize(project, request.user)
         data['options'] = {
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
@@ -144,7 +134,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:default_environment': project.get_option('sentry:default_environment'),
             'feedback:branding': project.get_option('feedback:branding', '1') == '1',
         }
-        data['activePlugins'] = active_plugins
+        data['plugins'] = [
+            {
+                'id': plugin.slug,
+                'name': plugin.get_title(),
+                'enabled': plugin.is_enabled(project),
+                'type': plugin.get_plugin_type(),
+                'canDisable': plugin.can_disable,
+            } for plugin in plugins.configurable_for_project(project, version=None)
+            if plugin.has_project_conf()
+        ]
         data['team'] = serialize(project.team, request.user)
         data['organization'] = serialize(project.organization, request.user)
 
@@ -265,6 +264,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
         }
+
         return Response(data)
 
     @attach_scenarios([delete_project_scenario])

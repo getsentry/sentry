@@ -76,9 +76,9 @@ class ProjectIssueTrackingView(ProjectView):
             'other_plugins': other_plugins,
             'issue_v2_plugins': [{
                 'title': p.get_title(),
-                'slug': p.slug,
-                'can_disable': p.can_disable,
-                'is_enabled': True
+                'id': p.slug,
+                'canDisable': p.can_disable,
+                'enabled': True
             } for p in issue_v2_plugins]
         }
 
