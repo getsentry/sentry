@@ -15,7 +15,7 @@ from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
-    Team, User, UserOption,
+    Release, TagValue, Team, User, UserOption,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
@@ -259,11 +259,42 @@ def merge_issue_lists(target, other):
     )
 
 
+def trim_release_list(value):
+    return sorted(
+        value,
+        key=lambda (id, count): count,
+        reverse=True,
+    )[:5]
+
+
+def prepare_project_release_list((start, stop), project):
+    return trim_release_list(
+        filter(
+            lambda item: item[1] > 0,
+            tsdb.get_sums(
+                tsdb.models.release,
+                Release.objects.filter(
+                    project=project,
+                    version__in=TagValue.objects.filter(
+                        project=project,
+                        key='sentry:release',
+                        last_seen__gte=start,  # lack of upper bound is intentional
+                    ).values_list('value', flat=True),
+                ).values_list('id', flat=True),
+                start,
+                stop,
+                rollup=60 * 60 * 24,
+            ).items(),
+        )
+    )
+
+
 def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
         prepare_project_issue_list(interval, project),
+        prepare_project_release_list(interval, project),
     )
 
 
@@ -388,6 +419,7 @@ def merge_reports(target, other):
             target[2],
             other[2],
         ),
+        trim_release_list(target[3] + other[3]),
     )
 
 
@@ -597,7 +629,7 @@ Point = namedtuple('Point', 'resolved unresolved')
 
 
 def to_context(report, fetch_groups=None):
-    series, aggregates, issue_list = report
+    series, aggregates, issue_list, release_list = report
     series = [(timestamp, Point(*values)) for timestamp, values in series]
 
     return {
