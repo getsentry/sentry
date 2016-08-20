@@ -669,9 +669,9 @@ def to_context(report, fetch_groups=None):
             'types': list(
                 zip(
                     (
-                        DistributionType('New Issues', '#ccc'),
-                        DistributionType('Reopened Issues', '#aaa'),
-                        DistributionType('Existing Issues', '#888'),
+                        DistributionType('New', '#c9c2e1'),
+                        DistributionType('Reopened', '#9990ab'),
+                        DistributionType('Existing', '#675f76'),
                     ),
                     map(
                         lambda value: IssueListSummary(*value),

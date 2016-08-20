@@ -87,31 +87,34 @@
     </tr>
   </table>
 
-  <table>
-    {% with report.distribution.totals as totals %}
+  <table class="issue-breakdown">
     <tr>
-      {% for type, value in report.distribution.types %}
-        <td width="{% widthratio value.events totals.events 100 %}%" title="{{ type.label }}: {{ value.events }}" style="background-color: {{ type.color }}">
-          &nbsp;
-        </td>
-      {% endfor %}
+      <td>
+        <h4>Issue Breakdown</h4>
+      </td>
+      <td class="legend">
+        {% with report.distribution.totals as totals %}
+          {% for type, value in report.distribution.types %}
+            <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent value.events totals.events "0.1f" %}%
+          {% endfor %}
+        {% endwith %}
+      </td>
     </tr>
-    {% endwith %}
-  </table>
-
-  <table>
-    {% with report.distribution.totals as totals %}
     <tr>
-      {% for type, value in report.distribution.types %}
-        <td>
-          <strong style="color: {{ type.color }}">{{ type.label }}</strong>
-          {% percent value.events totals.events "0.1f" %}%
-          <br/>
-          {{ value.events }} events in {{ value.groups }} issues
-        </td>
-      {% endfor %}
+      <td colspan="2">
+        <table>
+          {% with report.distribution.totals as totals %}
+          <tr>
+            {% for type, value in report.distribution.types %}
+              <td width="{% widthratio value.events totals.events 100 %}%" title="{{ type.label }}: {{ value.events }} events in {{ value.groups }} issues" style="background-color: {{ type.color }}">
+                &nbsp;
+              </td>
+            {% endfor %}
+          </tr>
+          {% endwith %}
+        </table>
+      </td>
     </tr>
-    {% endwith %}
   </table>
 
   <table class="issue-table">
