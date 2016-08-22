@@ -96,7 +96,7 @@ const GroupEvents = React.createClass({
       case 'error':
         if (event.metadata.type && event.metadata.value)
           return `${event.metadata.type}: ${event.metadata.value}`;
-        return event.metadata.type || event.metadata.value;
+        return event.metadata.type || event.metadata.value || event.metadata.title;
       case 'csp':
         return event.metadata.message;
       case 'default':
@@ -153,7 +153,7 @@ const GroupEvents = React.createClass({
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
               </Link>
-              <small>{this.getEventTitle(event).substr(0, 100)}</small>
+              <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
             </h5>
           </td>
           {tagList.map((tag) => {
