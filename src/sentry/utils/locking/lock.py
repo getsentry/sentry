@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import six
 
 from contextlib import contextmanager
 
@@ -32,7 +33,7 @@ class Lock(object):
         try:
             self.backend.acquire(self.key, self.duration, self.routing_key)
         except Exception as error:
-            raise UnableToAcquireLock('Unable to acquire {!r} due to error: {}'.format(self, error))
+            six.raise_from(UnableToAcquireLock('Unable to acquire {!r} due to error: {}'.format(self, error)), error)
 
         @contextmanager
         def releaser():

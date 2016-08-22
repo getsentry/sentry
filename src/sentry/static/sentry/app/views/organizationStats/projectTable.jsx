@@ -40,7 +40,7 @@ const ProjectTable = React.createClass({
     });
 
     return (
-      <table className="table simple-list project-list">
+      <table className="table m-b-0">
         <thead>
           <tr>
             <th>{t('Project')}</th>

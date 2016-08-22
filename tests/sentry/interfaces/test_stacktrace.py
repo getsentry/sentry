@@ -344,6 +344,27 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         assert result != []
 
+    def test_get_hash_excludes_single_frame_urls(self):
+        """
+        Browser JS will often throw errors (from inlined code in an HTML page)
+        which contain only a single frame, no function name, and have the HTML
+        document as the filename.
+
+        In this case the hash is often not usable as the context cannot be
+        trusted and the URL is dynamic.
+        """
+        interface = Stacktrace.to_python({
+            'frames': [{
+                'context_line': 'hello world',
+                'abs_path': 'http://foo.com/bar/',
+                'lineno': 107,
+                'filename': '/bar/',
+                'module': '<unknown module>',
+            }],
+        })
+        result = interface.get_hash()
+        assert result == []
+
     def test_cocoa_culprit(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
             {

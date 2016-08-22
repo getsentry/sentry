@@ -1,6 +1,5 @@
 import React from 'react';
 import {Link} from 'react-router';
-import ConfigStore from '../../stores/configStore';
 
 import ProjectSelector from './projectSelector';
 import {t} from '../../locale';
@@ -14,7 +13,6 @@ const ProjectHeader = React.createClass({
 
   render() {
     let navSection = this.props.activeSection;
-    let urlPrefix = ConfigStore.get('urlPrefix');
     let project = this.props.project;
     let org = this.props.organization;
     let features = new Set(project.features);
@@ -24,12 +22,6 @@ const ProjectHeader = React.createClass({
       <div>
         <div className="sub-header">
           <div className="container">
-            {/* <div className="org-name">
-              <Link to={`/${org.slug}/`}>
-                {org.name}
-              </Link>
-            </div>
-            */}
             <ProjectSelector
                 organization={org}
                 projectId={project.slug}/>
@@ -38,7 +30,7 @@ const ProjectHeader = React.createClass({
               <a className=""><span className="icon icon-star-solid" /> Star</a>
               <a className=""><span className="icon icon-signal" /> Subscribe</a>
                 {access.has('project:write') &&
-                  <a className="  {navSection == 'settings' ? 'active' : ''}" href={urlPrefix + `/${org.slug}/${project.slug}/settings/`}>
+                  <a className={navSection == 'settings' ? 'active' : ''} href={`/${org.slug}/${project.slug}/settings/`}>
                     <span className="icon icon-settings" /> {t('Settings')}
                   </a>
                 }

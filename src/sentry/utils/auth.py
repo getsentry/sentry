@@ -17,6 +17,7 @@ from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse
 
 from sentry.models import User, Authenticator
+from sentry.web.helpers import get_login_url
 
 logger = logging.getLogger('sentry.auth')
 
@@ -67,7 +68,7 @@ def has_pending_2fa(request):
 
 def get_login_redirect(request, default=None):
     if default is None:
-        default = reverse('sentry')
+        default = get_login_url()
 
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
@@ -83,7 +84,7 @@ def get_login_redirect(request, default=None):
     login_url = request.session.pop('_next', None) or default
     if login_url.startswith(('http://', 'https://')):
         login_url = default
-    elif login_url.startswith(reverse('sentry-login')):
+    elif login_url.startswith(get_login_url()):
         login_url = default
     return login_url
 

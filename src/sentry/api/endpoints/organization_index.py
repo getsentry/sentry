@@ -29,8 +29,9 @@ def list_your_organizations_scenario(runner):
 
 
 class OrganizationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.CharField(max_length=200, required=False)
+    name = serializers.CharField(max_length=64, required=True)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
+                                  required=False)
 
 
 class OrganizationIndexEndpoint(Endpoint):

@@ -78,6 +78,11 @@ function routes() {
     hooksAdminRoutes.push(cb());
   });
 
+  let hooksOrgRoutes = [];
+  HookStore.get('routes:organization').forEach((cb) => {
+    hooksOrgRoutes.push(cb());
+  });
+
   return (
     <Route path="/" component={errorHandler(App)}>
       <Route path="/api/" component={errorHandler(ApiDashboard)} />
@@ -115,6 +120,8 @@ function routes() {
           <Route path="members/" component={errorHandler(TeamMembers)} />
         </Route>
         <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
+
+        {hooksOrgRoutes}
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
           <IndexRoute component={errorHandler(Stream)} />

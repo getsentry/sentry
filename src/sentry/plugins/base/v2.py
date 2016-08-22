@@ -15,6 +15,7 @@ import six
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.configuration import (
     default_plugin_config, default_plugin_options,
@@ -36,7 +37,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin2(local):
+class IPlugin2(local, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -273,7 +274,7 @@ class IPlugin2(local):
 
         >>> def get_resource_links(self):
         >>>     return [
-        >>>         ('Documentation', 'https://docs.getsentry.com'),
+        >>>         ('Documentation', 'https://docs.sentry.io'),
         >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
         >>>         ('Source', 'https://github.com/getsentry/sentry'),
         >>>     ]

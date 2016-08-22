@@ -73,13 +73,16 @@ MAX_CULPRIT_LENGTH = 200
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_ORGANIZATION_SLUGS = (
+RESERVED_ORGANIZATION_SLUGS = frozenset((
     'admin', 'manage', 'login', 'account', 'register', 'api',
     'accept', 'organizations', 'teams', 'projects', 'help',
-    'docs', 'logout', '404', '500', '_static', 'out',
-)
-
-RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
+    'docs', 'logout', '404', '500', '_static', 'out', 'debug',
+    'remote', 'get-cli', 'blog', 'welcome', 'features',
+    'customers', 'integrations', 'signup', 'pricing',
+    'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide',
+    'privacy', 'security', 'terms', 'from', 'sponsorship', 'for',
+    'at', 'platforms', 'branding', 'vs', 'answers', '_admin',
+))
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
@@ -128,6 +131,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
     'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+    'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
     'sentry.rules.conditions.event_attribute.EventAttributeCondition',
     'sentry.rules.conditions.level.LevelCondition',
 )

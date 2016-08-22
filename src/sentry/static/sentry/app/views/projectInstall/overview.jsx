@@ -105,7 +105,7 @@ const ProjectInstallOverview = React.createClass({
              For a complete list of
              client integrations, please visit see [docLink:our in-depth documentation].
           `, {
-            docLink: <a href="https://docs.getsentry.com" />
+            docLink: <a href="https://docs.sentry.io" />
           })}
         </p>
       </div>

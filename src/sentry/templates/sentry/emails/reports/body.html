@@ -24,6 +24,10 @@
 {% block content %}
 
 <div class="container">
+  <p class="info-box">
+    You're seeing a preview release of our Weekly Reports. Have feedback? Let us know by sending an email to <a href="mailto:support@getsentry.com">support@getsentry.com</a>.
+  </p>
+
   <table style="margin-bottom: 10px">
     <tr>
       <td>
@@ -45,7 +49,7 @@
           {% for timestamp, metrics in report.series.points %}
             <td valign="bottom" style="padding-right: 5px;">
               <table class="issue-graph-bar">
-                {% if metrics.resolved and metrics.unresolved %}
+                {% if metrics.resolved or metrics.unresolved %}
                   <tr>
                     <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
                   </tr>

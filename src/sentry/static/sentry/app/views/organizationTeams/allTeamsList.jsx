@@ -1,6 +1,5 @@
 import React from 'react';
 
-import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 
 import AllTeamsRow from './allTeamsRow';
@@ -29,18 +28,19 @@ const AllTeamsList = React.createClass({
 
     if (teamNodes.length !== 0) {
       return (
-        <table className="table">
-          <tbody>
-            {teamNodes}
-          </tbody>
-        </table>
+        <div className="panel panel-default">
+          <table className="table">
+            <tbody>
+              {teamNodes}
+            </tbody>
+          </table>
+        </div>
       );
     }
 
-    let urlPrefix = `${ConfigStore.get('urlPrefix')}/organizations/${organization.slug}`;
     return tct('You don\'t have any teams for this organization yet. Get started by [link:creating your first team].', {
       root: <p />,
-      link: <a href={`${urlPrefix}/teams/new/`} />
+      link: <a href={`/organizations/${organization.slug}/teams/new/`} />
     });
   }
 });
