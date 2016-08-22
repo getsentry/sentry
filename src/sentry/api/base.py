@@ -137,14 +137,15 @@ class Endpoint(APIView):
             time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
         origin = request.META.get('HTTP_ORIGIN')
-        if origin and request.auth:
-            allowed_origins = request.auth.get_allowed_origins()
-            if not is_valid_origin(origin, allowed=allowed_origins):
-                response = Response('Invalid origin: %s' % (origin,), status=400)
-                self.response = self.finalize_response(request, response, *args, **kwargs)
-                return self.response
 
         try:
+            if origin and request.auth:
+                allowed_origins = request.auth.get_allowed_origins()
+                if not is_valid_origin(origin, allowed=allowed_origins):
+                    response = Response('Invalid origin: %s' % (origin,), status=400)
+                    self.response = self.finalize_response(request, response, *args, **kwargs)
+                    return self.response
+
             self.initial(request, *args, **kwargs)
 
             # Get the appropriate handler method

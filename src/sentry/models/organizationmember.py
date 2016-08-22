@@ -13,11 +13,11 @@ from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
-from django.db.models import F
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from hashlib import md5
 from structlog import get_logger
+from uuid import uuid4
 
 from sentry import roles
 from sentry.db.models import (
@@ -77,9 +77,10 @@ class OrganizationMember(Model):
         ('sso:linked', 'sso:linked'),
         ('sso:invalid', 'sso:invalid'),
     ), default=0)
+    token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
-    counter = BoundedPositiveIntegerField(null=True, blank=True)
+    # counter = BoundedPositiveIntegerField(null=True, blank=True)
     teams = models.ManyToManyField('sentry.Team', blank=True,
                                    through='sentry.OrganizationMemberTeam')
 
@@ -102,45 +103,28 @@ class OrganizationMember(Model):
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
 
-        if not self.counter:
-            self._set_counter()
-
-    @transaction.atomic
-    def delete(self, *args, **kwargs):
-        super(OrganizationMember, self).delete(*args, **kwargs)
-        if self.counter:
-            self._unshift_counter()
-
-    def _unshift_counter(self):
-        assert self.counter
-        OrganizationMember.objects.filter(
-            organization=self.organization,
-            counter__gt=self.counter,
-        ).update(
-            counter=F('counter') - 1,
-        )
-
-    def _set_counter(self):
-        assert self.id and not self.counter
-        # XXX(dcramer): this isnt atomic, but unfortunately MySQL doesnt support
-        # the subquery pattern we'd need
-        self.update(
-            counter=OrganizationMember.objects.filter(
-                organization=self.organization,
-            ).count(),
-        )
-
     @property
     def is_pending(self):
         return self.user_id is None
 
     @property
-    def token(self):
+    def legacy_token(self):
         checksum = md5()
         checksum.update(six.text_type(self.organization_id).encode('utf-8'))
         checksum.update(self.get_email().encode('utf-8'))
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
+
+    def generate_token(self):
+        return uuid4().hex + uuid4().hex
+
+    def get_invite_link(self):
+        if not self.is_pending:
+            return None
+        return absolute_uri(reverse('sentry-accept-invite', kwargs={
+            'member_id': self.id,
+            'token': self.token or self.legacy_token,
+        }))
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder
@@ -148,10 +132,7 @@ class OrganizationMember(Model):
         context = {
             'email': self.email,
             'organization': self.organization,
-            'url': absolute_uri(reverse('sentry-accept-invite', kwargs={
-                'member_id': self.id,
-                'token': self.token,
-            })),
+            'url': self.get_invite_link(),
         }
 
         msg = MessageBuilder(

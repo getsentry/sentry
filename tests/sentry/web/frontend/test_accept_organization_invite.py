@@ -21,6 +21,7 @@ class AcceptInviteTest(TestCase):
     def test_invalid_token(self):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[om.id, 2]))
@@ -29,6 +30,7 @@ class AcceptInviteTest(TestCase):
     def test_renders_unauthenticated_template(self):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[om.id, om.token]))
@@ -41,6 +43,7 @@ class AcceptInviteTest(TestCase):
 
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[om.id, om.token]))
@@ -54,6 +57,7 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
             role='member',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
@@ -77,6 +81,7 @@ class AcceptInviteTest(TestCase):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
             role='member',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))

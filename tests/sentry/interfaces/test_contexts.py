@@ -108,6 +108,8 @@ class ContextsTest(TestCase):
             'whatever': {
                 'foo': 'bar',
                 'blub': 'blah',
+                'biz': [1, 2, 3],
+                'baz': {'foo': 'bar'},
             },
         })
         assert sorted(ctx.iter_tags()) == []
@@ -116,6 +118,8 @@ class ContextsTest(TestCase):
                 'type': 'default',
                 'foo': 'bar',
                 'blub': 'blah',
+                'biz': [1, 2, 3],
+                'baz': {'foo': 'bar'},
             }
         }
 

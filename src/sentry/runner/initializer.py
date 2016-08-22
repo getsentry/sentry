@@ -231,18 +231,24 @@ def initialize_app(config, skip_backend_validation=False):
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
         warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
                       'This is not recommended within production environments. '
-                      'See https://docs.getsentry.com/on-premise/server/queue/ for more information.')
+                      'See https://docs.sentry.io/on-premise/server/queue/ for more information.')
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES['organizations:create'] = False
 
-    settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
-    settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
-    settings.SUDO_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
+    if not hasattr(settings, 'SUDO_COOKIE_SECURE'):
+        settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    if not hasattr(settings, 'SUDO_COOKIE_DOMAIN'):
+        settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+    if not hasattr(settings, 'SUDO_COOKIE_PATH'):
+        settings.SUDO_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
 
-    settings.CSRF_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
-    settings.CSRF_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
-    settings.CSRF_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
+    if not hasattr(settings, 'CSRF_COOKIE_SECURE'):
+        settings.CSRF_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    if not hasattr(settings, 'CSRF_COOKIE_DOMAIN'):
+        settings.CSRF_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+    if not hasattr(settings, 'CSRF_COOKIE_PATH'):
+        settings.CSRF_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
 
     settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
 
@@ -336,7 +342,7 @@ def apply_legacy_settings(settings):
             DeprecatedSettingWarning(
                 'SENTRY_USE_QUEUE',
                 'CELERY_ALWAYS_EAGER',
-                'https://docs.getsentry.com/on-premise/server/queue/',
+                'https://docs.sentry.io/on-premise/server/queue/',
             )
         )
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)

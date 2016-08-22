@@ -4,20 +4,21 @@ import functools
 import itertools
 import logging
 import operator
+import zlib
 from collections import namedtuple
 from datetime import timedelta
 from six.moves import reduce
 
-from django.db.models import Q
 from django.utils import dateformat, timezone
 
 from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
-    Team, User, UserOption,
+    Release, TagValue, Team, User, UserOption,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
@@ -192,11 +193,39 @@ def trim_issue_list(value):
 def prepare_project_issue_list(interval, project):
     start, stop = interval
 
-    issue_ids = list(
-        project.group_set.exclude(status=GroupStatus.MUTED).filter(
-            Q(first_seen__gte=start, first_seen__lt=stop) |
-            Q(status=GroupStatus.UNRESOLVED, resolved_at__gte=start, resolved_at__lt=stop)
+    queryset = project.group_set.exclude(status=GroupStatus.MUTED)
+
+    issue_ids = set()
+
+    # Fetch all new issues.
+    issue_ids.update(
+        queryset.filter(
+            first_seen__gte=start,
+            first_seen__lt=stop,
         ).values_list('id', flat=True)
+    )
+
+    # Fetch all regressions. This is a little weird, since there's no way to
+    # tell *when* a group regressed using the Group model. Instead, we query
+    # all groups that have been seen in the last week and have ever regressed
+    # and query the Activity model to find out if they regressed within the
+    # past week. (In theory, the activity table *could* be used to answer this
+    # query without the subselect, but there's no suitable indexes to make it's
+    # performance predictable.)
+    issue_ids.update(
+        Activity.objects.filter(
+            group__in=queryset.filter(
+                last_seen__gte=start,
+                last_seen__lt=stop,
+                resolved_at__isnull=False,  # signals this has *ever* been resolved
+            ),
+            type__in=(
+                Activity.SET_REGRESSION,
+                Activity.SET_UNRESOLVED,
+            ),
+            datetime__gte=start,
+            datetime__lt=stop,
+        ).distinct().values_list('group_id', flat=True)
     )
 
     rollup = 60 * 60 * 24
@@ -230,12 +259,137 @@ def merge_issue_lists(target, other):
     )
 
 
+def trim_release_list(value):
+    return sorted(
+        value,
+        key=lambda (id, count): count,
+        reverse=True,
+    )[:5]
+
+
+def prepare_project_release_list((start, stop), project):
+    return trim_release_list(
+        filter(
+            lambda item: item[1] > 0,
+            tsdb.get_sums(
+                tsdb.models.release,
+                Release.objects.filter(
+                    project=project,
+                    version__in=TagValue.objects.filter(
+                        project=project,
+                        key='sentry:release',
+                        last_seen__gte=start,  # lack of upper bound is intentional
+                    ).values_list('value', flat=True),
+                ).values_list('id', flat=True),
+                start,
+                stop,
+                rollup=60 * 60 * 24,
+            ).items(),
+        )
+    )
+
+
 def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
         prepare_project_issue_list(interval, project),
+        prepare_project_release_list(interval, project),
     )
+
+
+class ReportBackend(object):
+    def build(self, timestamp, duration, project):
+        return prepare_project_report(
+            _to_interval(timestamp, duration),
+            project,
+        )
+
+    def prepare(self, timestamp, duration, organization):
+        """
+        Build and store reports for all projects in the organization.
+        """
+        raise NotImplementedError
+
+    def fetch(self, timestamp, duration, organization, projects):
+        """
+        Fetch reports for a set of projects in the organization, returning
+        reports in the order that they were requested.
+        """
+        raise NotImplementedError
+
+
+class DummyReportBackend(ReportBackend):
+    def prepare(self, timestamp, duration, organization):
+        pass
+
+    def fetch(self, timestamp, duration, organization, projects):
+        assert all(project.organization_id == organization.id for project in projects)
+        return map(
+            functools.partial(
+                self.build,
+                timestamp,
+                duration,
+            ),
+            projects,
+        )
+
+
+class RedisReportBackend(ReportBackend):
+    version = 0
+
+    def __init__(self, cluster, ttl, namespace='r'):
+        self.cluster = cluster
+        self.ttl = ttl
+        self.namespace = namespace
+
+    def __make_key(self, timestamp, duration, organization):
+        return '{}:{}:{}:{}:{}'.format(
+            self.namespace,
+            self.version,
+            organization.id,
+            int(timestamp),
+            int(duration),
+        )
+
+    def __encode(self, report):
+        return zlib.compress(json.dumps(report))
+
+    def __decode(self, value):
+        return json.loads(zlib.decompress(value))
+
+    def prepare(self, timestamp, duration, organization):
+        reports = {}
+        for project in organization.project_set.all():
+            reports[project.id] = self.__encode(
+                self.build(timestamp, duration, project),
+            )
+
+        if not reports:
+            # XXX: HMSET requires at least one key/value pair, so we need to
+            # protect ourselves here against organizations that were created
+            # but haven't set up any projects yet.
+            return
+
+        with self.cluster.map() as client:
+            key = self.__make_key(timestamp, duration, organization)
+            client.hmset(key, reports)
+            client.expire(key, self.ttl)
+
+    def fetch(self, timestamp, duration, organization, projects):
+        with self.cluster.map() as client:
+            result = client.hmget(
+                self.__make_key(timestamp, duration, organization),
+                [project.id for project in projects],
+            )
+
+        return list(map(self.__decode, result.value))
+
+
+backend = RedisReportBackend(
+    redis.clusters.get('default'),
+    60 * 60 * 3,
+)
 
 
 def safe_add(x, y):
@@ -265,6 +419,7 @@ def merge_reports(target, other):
             target[2],
             other[2],
         ),
+        trim_release_list(target[3] + other[3]),
     )
 
 
@@ -288,9 +443,16 @@ def prepare_organization_report(timestamp, duration, organization_id):
     if not features.has('organizations:reports:prepare', organization):
         return
 
-    # TODO: Build and store project reports here.
+    backend.prepare(timestamp, duration, organization)
 
-    for user_id in organization.member_set.values_list('user_id', flat=True):
+    # If an OrganizationMember row doesn't have an associated user, this is
+    # actually a pending invitation, so no report should be delivered.
+    member_set = organization.member_set.filter(
+        user_id__isnull=False,
+        user__is_active=True,
+    )
+
+    for user_id in member_set.values_list('user_id', flat=True):
         deliver_organization_user_report.delay(
             timestamp,
             duration,
@@ -310,7 +472,7 @@ def fetch_personal_statistics((start, stop), organization, user):
         datetime__gte=start,
         datetime__lt=stop,
         group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
-    ).values_list('group_id', flat=True)
+    ).distinct().values_list('group_id', flat=True)
     return {
         'resolved': len(resolved_issue_ids),
         'users': tsdb.get_distinct_counts_union(
@@ -419,24 +581,21 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         )
         return Skipped.NoProjects
 
-    interval = _to_interval(timestamp, duration)
-
-    def fetch_report(project):
-        # TODO: Fetch reports from storage, rather than building on demand.
-        return prepare_project_report(
-            interval,
-            project,
+    message = build_message(
+        timestamp,
+        duration,
+        organization,
+        user,
+        reduce(
+            merge_reports,
+            backend.fetch(  # TODO: This should handle missing data gracefully, maybe?
+                timestamp,
+                duration,
+                organization,
+                projects,
+            ),
         )
-
-    report = reduce(
-        merge_reports,
-        map(
-            fetch_report,
-            projects,
-        ),
     )
-
-    message = build_message(timestamp, duration, organization, user, report)
 
     if features.has('organizations:reports:deliver', organization):
         message.send()
@@ -470,7 +629,7 @@ Point = namedtuple('Point', 'resolved unresolved')
 
 
 def to_context(report, fetch_groups=None):
-    series, aggregates, issue_list = report
+    series, aggregates, issue_list, release_list = report
     series = [(timestamp, Point(*values)) for timestamp, values in series]
 
     return {

@@ -23,4 +23,4 @@ class CspEvent(BaseEvent):
         }
 
     def to_string(self, data):
-        return u'{}: {}'.format(data['directive'], data['uri'])
+        return data['message']

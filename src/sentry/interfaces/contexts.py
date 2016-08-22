@@ -19,8 +19,6 @@ from sentry.interfaces.base import Interface
 
 __all__ = ('Contexts',)
 
-EMPTY_VALUES = frozenset(('', None))
-
 context_types = {}
 
 
@@ -52,7 +50,9 @@ class ContextType(object):
         self.alias = alias
         ctx_data = {}
         for key, value in six.iteritems(trim(data)):
-            if value not in EMPTY_VALUES:
+            # we use simple checks here, rathern than ' in set()' to avoid
+            # issues with maps/lists
+            if value is not None and value != '':
                 ctx_data[force_text(key)] = value
         self.data = ctx_data
 

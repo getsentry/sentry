@@ -215,30 +215,32 @@ const ProjectSavedSearches = React.createClass({
   renderResults() {
     let {orgId, projectId} = this.props.params;
     return (
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Search</th>
-            <th style={{textAlign: 'center', width: 140}}>My Default</th>
-            <th style={{textAlign: 'center', width: 140}}>Team Default</th>
-            <th style={{width: 120}}/>
-          </tr>
-        </thead>
-        <tbody>
-          {this.state.savedSearchList.map((search) => {
-            return (
-              <SavedSearchRow
-                key={search.id}
-                orgId={orgId}
-                projectId={projectId}
-                data={search}
-                onUserDefault={this.handleUserDefaultSearch.bind(this, search)}
-                onDefault={this.handleDefaultSearch.bind(this, search)}
-                onRemove={this.handleRemovedSearch.bind(this, search)} />
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="panel panel-default">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Search</th>
+              <th style={{textAlign: 'center', width: 140}}>My Default</th>
+              <th style={{textAlign: 'center', width: 140}}>Team Default</th>
+              <th style={{width: 120}}/>
+            </tr>
+          </thead>
+          <tbody>
+            {this.state.savedSearchList.map((search) => {
+              return (
+                <SavedSearchRow
+                  key={search.id}
+                  orgId={orgId}
+                  projectId={projectId}
+                  data={search}
+                  onUserDefault={this.handleUserDefaultSearch.bind(this, search)}
+                  onDefault={this.handleDefaultSearch.bind(this, search)}
+                  onRemove={this.handleRemovedSearch.bind(this, search)} />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     );
   },
 

@@ -3,7 +3,6 @@ import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
 import TooltipMixin from '../../mixins/tooltip';
-import ConfigStore from '../../stores/configStore';
 import {Link} from 'react-router';
 import {t} from '../../locale';
 
@@ -18,7 +17,6 @@ const HomeContainer = React.createClass({
   render() {
     let org = this.getOrganization();
     let access = this.getAccess();
-    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     return (
       <div className="organization-home">
@@ -26,7 +24,7 @@ const HomeContainer = React.createClass({
           <div className="container">
             <div className="pull-right">
               {access.has('project:write') ?
-                <a href={urlPrefix + '/projects/new/'} className="btn btn-primary"
+                <a href={`/organizations/${org.slug}/projects/new/`} className="btn btn-primary"
                    style={{marginRight: 5}}>
                   {t('New Project')}
                 </a>
@@ -38,7 +36,7 @@ const HomeContainer = React.createClass({
                 </a>
               }
               {access.has('team:write') ?
-                <a href={urlPrefix + '/teams/new/'} className="btn btn-primary">
+                <a href={`/organizations/${org.slug}/teams/new/`} className="btn btn-primary">
                   {t('New Team')}
                 </a>
               :

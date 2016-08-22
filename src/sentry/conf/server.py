@@ -282,7 +282,7 @@ LOCALE_PATHS = (
 )
 
 CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
-CSRF_COOKIE_NAME = 'csrf'
+CSRF_COOKIE_NAME = 'sc'
 
 # Auth configuration
 
@@ -430,6 +430,8 @@ def create_partitioned_queues(name):
 create_partitioned_queues('counters')
 create_partitioned_queues('triggers')
 
+from celery.schedules import crontab
+
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), 'sentry-celerybeat')
 CELERYBEAT_SCHEDULE = {
     'check-auth': {
@@ -504,6 +506,17 @@ CELERYBEAT_SCHEDULE = {
         'schedule': timedelta(minutes=15),
         'options': {
             'expires': 60 * 25,
+        },
+    },
+    'schedule-weekly-organization-reports': {
+        'task': 'sentry.tasks.reports.prepare_reports',
+        'schedule': crontab(
+            minute=0,
+            hour=12,  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+            day_of_week='monday',
+        ),
+        'options': {
+            'expires': 60 * 60 * 3,
         },
     },
 }
@@ -1018,9 +1031,9 @@ SDK_VERSIONS = {
 }
 
 SDK_URLS = {
-    'raven-js': 'https://docs.getsentry.com/hosted/clients/javascript/',
-    'raven-python': 'https://docs.getsentry.com/hosted/clients/python/',
-    'raven-swift': 'https://docs.getsentry.com/hosted/clients/cocoa/',
+    'raven-js': 'https://docs.sentry.io/hosted/clients/javascript/',
+    'raven-python': 'https://docs.sentry.io/hosted/clients/python/',
+    'raven-swift': 'https://docs.sentry.io/hosted/clients/cocoa/',
 }
 
 DEPRECATED_SDKS = {

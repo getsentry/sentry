@@ -31,6 +31,7 @@ class Sdk(Interface):
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
+            'client_ip': data.get('client_ip'),
         }
         return cls(**kwargs)
 
@@ -54,6 +55,7 @@ class Sdk(Interface):
         return {
             'name': self.name,
             'version': self.version,
+            'clientIP': self.client_ip,
             'upstream': {
                 'name': newest_name,
                 # when this is correct we can make it available

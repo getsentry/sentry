@@ -47,6 +47,8 @@ def update_organization_scenario(runner):
 
 class OrganizationSerializer(serializers.ModelSerializer):
     projectRateLimit = serializers.IntegerField(min_value=1, max_value=100)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
+                                  required=False)
 
     class Meta:
         model = Organization
@@ -168,7 +170,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if updated:
             delete_organization.delay(
                 object_id=organization.id,
-                countdown=3600,
+                countdown=86400,
             )
 
             self.create_audit_entry(

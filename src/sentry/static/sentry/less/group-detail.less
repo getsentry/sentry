@@ -1917,6 +1917,38 @@ pre.val, span.val {
   .box-content {
     padding: 0 !important;
   }
+
+  h3 {
+    display: inline;
+    float: left;
+  }
+
+  .breadcrumb-filter {
+    float: right;
+    position: relative;
+
+    input {
+      width:  100%;
+      height: 28px;
+      display: inline;
+      padding: 8px 26px;
+    }
+
+    .icon-search {
+      position: absolute;
+      color: #9ba5b5;
+      font-size: 14px;
+      top: 7px;
+      left: 8px;
+    }
+
+    .search-clear-form {
+      position: absolute;
+      color: #c7cdd5;
+      top: 6px;
+      right: 6px;
+    }
+  }
 }
 
 ul.crumbs {
@@ -2304,6 +2336,20 @@ ul.crumbs {
       }
     }
 
+    &.crumb-empty {
+      text-align: center;
+      padding: 14px 0;
+
+      &:before {
+        display: none;
+      }
+
+      .icon {
+        opacity: .4;
+        margin-right: 4px;
+        vertical-align: text-bottom;
+      }
+    }
 
     &.crumb-last {
       border-radius: 0 0 3px 3px;

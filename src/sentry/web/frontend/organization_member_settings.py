@@ -9,6 +9,7 @@ from sentry import roles
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
+from sentry.web.helpers import get_login_url
 
 
 class OrganizationMemberSettingsView(OrganizationView):
@@ -27,11 +28,18 @@ class OrganizationMemberSettingsView(OrganizationView):
             }
         )
 
-    def resend_invite(self, request, organization, member):
-        messages.success(request, ugettext('An invitation to join %(organization)s has been sent to %(email)s') % {
-            'organization': organization.name,
-            'email': member.email,
-        })
+    def resend_invite(self, request, organization, member, regen=False):
+        if regen:
+            member.update(token=member.generate_token())
+            messages.success(request, ugettext('A new invitation has been generated and sent to %(email)s') % {
+                'organization': organization.name,
+                'email': member.email,
+            })
+        else:
+            messages.success(request, ugettext('An invitation to join %(organization)s has been sent to %(email)s') % {
+                'organization': organization.name,
+                'email': member.email,
+            })
 
         member.send_invite_email()
 
@@ -60,10 +68,12 @@ class OrganizationMemberSettingsView(OrganizationView):
                 id=member_id,
             )
         except OrganizationMember.DoesNotExist:
-            return self.redirect(reverse('sentry'))
+            return self.redirect(get_login_url())
 
         if request.POST.get('op') == 'reinvite' and member.is_pending:
             return self.resend_invite(request, organization, member)
+        elif request.POST.get('op') == 'regenerate' and member.is_pending:
+            return self.resend_invite(request, organization, member, regen=True)
 
         can_admin = request.access.has_scope('member:delete')
 
@@ -101,6 +111,7 @@ class OrganizationMemberSettingsView(OrganizationView):
         context = {
             'member': member,
             'form': form,
+            'invite_link': member.get_invite_link(),
             'role_list': [
                 (r, r in allowed_roles)
                 for r in roles.get_all()

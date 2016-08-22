@@ -29,7 +29,7 @@ def process_pending():
         with lock.acquire():
             app.buffer.process_pending()
     except UnableToAcquireLock as error:
-        logger.warning('Failed to process pending buffers due to error: %s', error)
+        logger.warning('process_pending.fail', extra={'error': error})
 
 
 @instrumented_task(

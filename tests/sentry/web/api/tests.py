@@ -294,6 +294,7 @@ class StoreViewTest(TestCase):
         assert call_data['sdk'] == {
             'name': '_postWithHeader',
             'version': '0.0.0',
+            'client_ip': '127.0.0.1',
         }
 
 
