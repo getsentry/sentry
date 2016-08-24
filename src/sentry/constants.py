@@ -70,6 +70,7 @@ MINUTE_NORMALIZATION = 15
 MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
+MAX_EMAIL_FIELD_LENGTH = 75
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.

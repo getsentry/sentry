@@ -15,6 +15,7 @@ from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 from sentry.utils.validators import validate_ip
+from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
 
 def validate_email(value, required=True):
@@ -59,7 +60,7 @@ class User(Interface):
         if ident:
             ident = six.text_type(ident)
         try:
-            email = trim(validate_email(data.pop('email', None), False), 128)
+            email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'email'")
         username = trim(data.pop('username', None), 128)
