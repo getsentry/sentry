@@ -126,8 +126,9 @@ const Frame = React.createClass({
 
     if (defined(data.filename || data.module)) {
       // prioritize module name for Java as filename is often only basename
+      let shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
       let pathName = (
-        this.shouldPrioritizeModuleName() ?
+        this.shouldPrioritizeModuleName ?
         (data.module || data.filename) :
         (data.filename || data.module));
 
@@ -136,6 +137,17 @@ const Frame = React.createClass({
           <Truncate value={pathName} maxLength={100} leftTrim={true} />
         </code>
       ));
+
+      // in case we prioritized the module name but we also have a filename info
+      // we want to show a litle (?) icon that on hover shows the actual filename
+      if (shouldPrioritizeModuleName && data.filename) {
+        title.push(
+          <a key="real-filename" className="in-at tip real-filename" data-title={_.escape(data.filename)}>
+            <span className="icon-question" />
+          </a>
+        );
+      }
+
       if (isUrl(data.absPath)) {
         title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" onClick={this.preventCollapse}/>);
       }
