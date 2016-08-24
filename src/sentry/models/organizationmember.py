@@ -80,7 +80,6 @@ class OrganizationMember(Model):
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
-    # counter = BoundedPositiveIntegerField(null=True, blank=True)
     teams = models.ManyToManyField('sentry.Team', blank=True,
                                    through='sentry.OrganizationMemberTeam')
 
