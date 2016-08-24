@@ -52,7 +52,9 @@ DISALLOWED_SOURCES = (
     'savingsslider-a.akamaihd.net',
     'injections.adguard.com',
     'icontent.us',
-    'amiok.org'
+    'amiok.org',
+    'connectionstrenth.com',
+    'siteheart.net',
 )
 
 ALLOWED_DIRECTIVES = frozenset((
