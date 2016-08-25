@@ -174,9 +174,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             status=OrganizationStatus.VISIBLE,
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
-            delete_organization.delay(
-                object_id=organization.id,
-                transaction_id=transaction_id,
+            delete_organization.apply_async(
+                kwargs={
+                    'object_id': organization.id,
+                    'transaction_id': transaction_id,
+                },
                 countdown=86400,
             )
 
