@@ -51,9 +51,10 @@ class RemoveAccountView(BaseView):
                 if result['single_owner']:
                     orgs_to_remove.add(result['organization'].slug)
 
-            logging.getLogger('sentry.deletions').info(
-                'User (id=%s) removal requested by self',
-                request.user.id)
+            logging.getLogger('sentry.deletions.ui').info('user.deactivate', extra={
+                'actor_id': request.user.id,
+                'ip_address': request.META['REMOTE_ADDR'],
+            })
 
             for org_slug in orgs_to_remove:
                 client.delete('/organizations/{}/'.format(org_slug),

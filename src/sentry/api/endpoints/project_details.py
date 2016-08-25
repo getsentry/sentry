@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
 from datetime import timedelta
 from django.db import IntegrityError, transaction
@@ -286,9 +287,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)
 
-        logging.getLogger('sentry.deletions').info(
-            'Project %s/%s (id=%s) removal requested by user (id=%s)',
-            project.organization.slug, project.slug, project.id, request.user.id)
+        transaction_id = uuid4().hex
+        logging.getLogger('sentry.deletions.api').info('project.remove.queued', extra={
+            'organization_id': project.organization.id,
+            'organization_slug': project.organization.slug,
+            'project_id': project.id,
+            'project_slug': project.slug,
+            'actor_id': request.user.id,
+            'transaction_id': transaction_id,
+            'ip_address': request.META['REMOTE_ADDR'],
+        })
 
         updated = Project.objects.filter(
             id=project.id,
@@ -296,7 +304,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         ).update(status=ProjectStatus.PENDING_DELETION)
         if updated:
             delete_project.apply_async(
-                kwargs={'object_id': project.id},
+                kwargs={
+                    'object_id': project.id,
+                    'transaction_id': transaction_id,
+                },
                 countdown=3600,
             )
 
@@ -306,6 +317,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_REMOVE,
                 data=project.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
 
         return Response(status=204)
