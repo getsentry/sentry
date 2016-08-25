@@ -47,7 +47,10 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, transaction_id=transaction_id, continuous=False)
         if continuous:
-            delete_organization.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+            delete_organization.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
 
     model_list = (OrganizationMember,)
@@ -55,7 +58,10 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
     has_more = delete_objects(model_list, transaction_id=transaction_id, relation={'organization': o}, logger=logger)
     if has_more:
         if continuous:
-            delete_organization.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+            delete_organization.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
     o.delete()
 
@@ -88,7 +94,10 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, transaction_id=transaction_id, continuous=False)
         if continuous:
-            delete_team.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+            delete_team.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
 
     t.delete()
@@ -133,7 +142,10 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
         if has_more:
             if continuous:
-                delete_project.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+                delete_project.apply_async(
+                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                    countdown=15,
+                )
             return
 
     # TODO(dcramer): no project relation so we cant easily bulk
@@ -144,13 +156,19 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
                               logger=logger)
     if has_more:
         if continuous:
-            delete_project.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+            delete_project.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
 
     has_more = delete_events(relation={'project_id': p.id}, transaction_id=transaction_id, logger=logger)
     if has_more:
         if continuous:
-            delete_project.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+            delete_project.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
 
     # Release needs to handle deletes after Group is cleaned up as the foreign
@@ -160,7 +178,10 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
         if has_more:
             if continuous:
-                delete_project.delay(object_id=object_id, transaction_id=transaction_id, countdown=15)
+                delete_project.apply_async(
+                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                    countdown=15,
+                )
             return
 
     p.delete()
@@ -196,13 +217,19 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
         if has_more:
             if continuous:
-                delete_group.delay(object_id=object_id, countdown=15)
+                delete_group.apply_async(
+                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                    countdown=15,
+                )
             return
 
     has_more = delete_events(relation={'group_id': object_id}, logger=logger)
     if has_more:
         if continuous:
-            delete_group.delay(object_id=object_id, countdown=15)
+            delete_group.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
     group.delete()
 
@@ -231,14 +258,20 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
                                        key=tagkey.key, logger=logger)
         if has_more:
             if continuous:
-                delete_tag_key.delay(object_id=object_id, countdown=15)
+                delete_tag_key.apply_async(
+                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                    countdown=15,
+                )
             return
 
     has_more = bulk_delete_objects(EventTag, project_id=tagkey.project_id,
                                    key_id=tagkey.id, logger=logger)
     if has_more:
         if continuous:
-            delete_tag_key.delay(object_id=object_id, countdown=15)
+            delete_tag_key.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
         return
 
     tagkey.delete()

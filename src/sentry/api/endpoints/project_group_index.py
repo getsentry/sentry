@@ -649,6 +649,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         # TODO(dcramer): set status to pending deletion
         for group in group_list:
-            delete_group.delay(object_id=group.id, countdown=3600)
+            delete_group.apply_async(
+                kwargs={'object_id': group.id},
+                countdown=3600,
+            )
 
         return Response(status=204)
