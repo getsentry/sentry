@@ -38,7 +38,7 @@ def delete_organization(object_id, continuous=True, **kwargs):
         o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
         pending_delete.send(sender=Organization, instance=o)
 
-    for team in Team.objects.filter(organization=o).order_by('id')[:1]:
+    for team in Team.objects.filter(organization=o).exclude(status=TeamStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
         logger.info('remove.team', extra={'team_id': team.id, 'organization_id': o.id})
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, continuous=False)
@@ -75,7 +75,7 @@ def delete_team(object_id, continuous=True, **kwargs):
         t.update(status=TeamStatus.DELETION_IN_PROGRESS)
 
     # Delete 1 project at a time since this is expensive by itself
-    for project in Project.objects.filter(team=t).order_by('id')[:1]:
+    for project in Project.objects.filter(team=t).exclude(status=ProjectStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
         logger.info('remove.project', extra={'project_id': project.id, 'team_id': t.id})
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, continuous=False)
