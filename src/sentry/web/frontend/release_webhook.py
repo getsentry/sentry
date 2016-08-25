@@ -64,7 +64,7 @@ class ReleaseWebhookView(View):
         except client.ApiError as exc:
             return HttpResponse(
                 status=exc.status_code,
-                content=exc.body,
+                content=json.dumps(exc.body),
                 content_type='application/json',
             )
         return HttpResponse(
