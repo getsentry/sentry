@@ -226,8 +226,10 @@ class Frame(Interface):
         filename = data.get('filename')
         function = data.get('function')
         module = data.get('module')
+        package = data.get('package')
 
-        for name in ('abs_path', 'filename', 'function', 'module'):
+        for name in ('abs_path', 'filename', 'function', 'module',
+                     'package'):
             v = data.get(name)
             if v is not None and not isinstance(v, six.string_types):
                 raise InterfaceValidationError("Invalid value for '%s'" % name)
@@ -248,8 +250,8 @@ class Frame(Interface):
             else:
                 filename = abs_path
 
-        if not (filename or function or module):
-            raise InterfaceValidationError("No 'filename' or 'function' or 'module'")
+        if not (filename or function or module or package):
+            raise InterfaceValidationError("No 'filename' or 'function' or 'module' or 'package'")
 
         if function == '?':
             function = None
@@ -300,7 +302,7 @@ class Frame(Interface):
             'platform': platform,
             'module': trim(module, 256),
             'function': trim(function, 256),
-            'package': trim(data.get('package'), 256),
+            'package': package,
             'image_addr': to_hex_addr(trim(data.get('image_addr'), 16)),
             'symbol_addr': to_hex_addr(trim(data.get('symbol_addr'), 16)),
             'instruction_addr': to_hex_addr(trim(data.get('instruction_addr'), 16)),
