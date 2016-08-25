@@ -66,7 +66,6 @@ class OrganizationMixin(object):
                 except Organization.DoesNotExist:
                     logger.info('Active organization [%s] not found',
                         organization_slug)
-                    return None
 
         if active_organization is None:
             organizations = Organization.objects.get_for_user(
