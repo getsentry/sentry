@@ -65,8 +65,14 @@ class OrganizationUpdateTest(APITestCase):
 
 
 class OrganizationDeleteTest(APITestCase):
+    @patch('sentry.api.endpoints.organization_details.uuid4')
     @patch('sentry.api.endpoints.organization_details.delete_organization')
-    def test_can_remove_as_owner(self, mock_delete_organization):
+    def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
+
         org = self.create_organization()
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
@@ -93,6 +99,7 @@ class OrganizationDeleteTest(APITestCase):
 
         mock_delete_organization.delay.assert_called_once_with(
             object_id=org.id,
+            transaction_id='abc123',
             countdown=86400,
         )
 

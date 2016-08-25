@@ -99,7 +99,7 @@ class Endpoint(APIView):
             }
             return Response(context, status=500)
 
-    def create_audit_entry(self, request, **kwargs):
+    def create_audit_entry(self, request, transaction_id=None, **kwargs):
         user = request.user if request.user.is_authenticated() else None
         api_key = request.auth if isinstance(request.auth, ApiKey) else None
 
@@ -118,6 +118,8 @@ class Endpoint(APIView):
             extra['actor_id'] = entry.actor_id
         if entry.actor_key_id:
             extra['actor_key_id'] = entry.actor_key_id
+        if transaction_id is not None:
+            extra['transaction_id'] = transaction_id
 
         audit_logger.info(entry.get_event_display(), extra=extra)
 
