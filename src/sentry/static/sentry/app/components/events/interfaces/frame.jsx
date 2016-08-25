@@ -128,7 +128,7 @@ const Frame = React.createClass({
       // prioritize module name for Java as filename is often only basename
       let shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
       let pathName = (
-        this.shouldPrioritizeModuleName ?
+        shouldPrioritizeModuleName ?
         (data.module || data.filename) :
         (data.filename || data.module));
 
