@@ -224,3 +224,14 @@ class User(BaseModel, AbstractBaseUser):
         super(User, self).set_password(raw_password)
         self.last_password_change = timezone.now()
         self.is_password_expired = False
+
+    def get_orgs(self):
+        from sentry.models import (
+            Organization, OrganizationMember, OrganizationStatus
+        )
+        return Organization.objects.filter(
+            status=OrganizationStatus.VISIBLE,
+            id__in=OrganizationMember.objects.filter(
+                user=self,
+            ).values('organization'),
+        )
