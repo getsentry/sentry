@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
+import logging
+from uuid import uuid4
+
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import OrganizationStatus
+from sentry.models import OrganizationStatus, Organization
 from sentry.tasks.deletion import delete_organization
 from sentry.web.frontend.base import OrganizationView
 
@@ -36,12 +39,25 @@ class RemoveOrganizationView(OrganizationView):
 
         form = self.get_form(request, organization)
         if form.is_valid():
-            if organization.status != OrganizationStatus.PENDING_DELETION:
-                organization.update(status=OrganizationStatus.PENDING_DELETION)
+            transaction_id = uuid4().hex
+            logging.getLogger('sentry.deletions').info('remove.organization', extra={
+                'organization_id': organization.id,
+                'organization_slug': organization.slug,
+                'actor_id': request.user.id,
+                'transaction_id': transaction_id,
+                'ip_address': request.META['REMOTE_ADDR'],
+            })
 
-                delete_organization.apply_async(kwargs={
-                    'object_id': organization.id,
-                }, countdown=60 * 5)
+            updated = Organization.objects.filter(
+                id=organization.id,
+                status=OrganizationStatus.VISIBLE,
+            ).update(status=OrganizationStatus.PENDING_DELETION)
+            if updated:
+                delete_organization.delay(
+                    object_id=organization.id,
+                    transaction_id=transaction_id,
+                    countdown=86400,
+                )
 
             messages.add_message(request, messages.SUCCESS,
                 MSG_REMOVE_SUCCESS % (organization.name,))
