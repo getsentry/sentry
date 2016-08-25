@@ -266,7 +266,7 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
                 post_save.send(created=True, **signal_kwargs)
 
 
-def bulk_delete_objects(model, limit=10000, logger=None, **filters):
+def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **filters):
     connection = connections[router.db_for_write(model)]
     quote_name = connection.ops.quote_name
 
@@ -277,7 +277,10 @@ def bulk_delete_objects(model, limit=10000, logger=None, **filters):
         params.append(value)
 
     if logger is not None:
-        logger.info('remove.%s' % model.__name__.lower(), extra={column: value})
+        logger.info('remove.%s' % model.__name__.lower(), extra={
+            column: value,
+            'transaction_id': transaction_id,
+        })
 
     if db.is_postgres():
         query = """
