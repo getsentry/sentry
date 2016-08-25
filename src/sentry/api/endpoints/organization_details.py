@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -159,9 +160,14 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
 
-        logging.getLogger('sentry.deletions').info(
-            'Organization %s (id=%s) removal requested by user (id=%s)',
-            organization.slug, organization.id, request.user.id)
+        transaction_id = uuid4().hex
+        logging.getLogger('sentry.deletions').info('remove.organization', extra={
+            'organization_id': organization.id,
+            'organization_slug': organization.slug,
+            'actor_id': request.user.id,
+            'transaction_id': transaction_id,
+            'ip_address': request.META['REMOTE_ADDR'],
+        })
 
         updated = Organization.objects.filter(
             id=organization.id,
@@ -170,6 +176,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if updated:
             delete_organization.delay(
                 object_id=organization.id,
+                transaction_id=transaction_id,
                 countdown=86400,
             )
 
@@ -179,6 +186,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_REMOVE,
                 data=organization.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
 
         return Response(status=204)
