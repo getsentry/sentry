@@ -127,6 +127,35 @@ class BasicResolvingIntegrationTest(TestCase):
                     "build": "13F69",
                     "name": "iOS"
                 }
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 39,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "in_app": False,
+                                    "platform": "apple",
+                                    "package": "\/usr\/lib\/system\/libsystem_pthread.dylib",
+                                    "symbol_addr": "0x00000001843a102c",
+                                    "image_addr": "0x00000001843a0000",
+                                    "instruction_addr": "0x00000001843a1530"
+                                },
+                                {
+                                    "in_app": False,
+                                    "platform": "apple",
+                                    "package": "\/usr\/lib\/system\/libsystem_kernel.dylib",
+                                    "symbol_addr": "0x00000001842d8b40",
+                                    "image_addr": "0x00000001842bc000",
+                                    "instruction_addr": "0x00000001842d8b48"
+                                }
+                            ]
+                        },
+                        "crashed": False,
+                        "current": False
+                    }
+                ]
             }
         }
 
@@ -159,6 +188,8 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[2].filename == '../../sentry/scripts/views.js'
         assert frames[2].instruction_offset is None
         assert frames[2].in_app
+
+        assert len(event.interfaces['threads'].values) == 1
 
     def sym_app_frame(self, frame):
         object_name = (
