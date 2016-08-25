@@ -87,9 +87,7 @@ const ProjectUserReports = React.createClass({
 
     this.api.request(this.getEndpoint(), {
       success: (data, _, jqXHR) => {
-        let issues = data.map(r => {
-          return r.issue;
-        });
+        let issues = data.map(r => r.issue);
         GroupStore.add(issues);
         this.setState({
           error: false,
