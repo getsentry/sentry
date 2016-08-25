@@ -97,9 +97,11 @@ class OrganizationDeleteTest(APITestCase):
 
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        mock_delete_organization.delay.assert_called_once_with(
-            object_id=org.id,
-            transaction_id='abc123',
+        mock_delete_organization.apply_async.assert_called_once_with(
+            kwargs={
+                'object_id': org.id,
+                'transaction_id': 'abc123',
+            },
             countdown=86400,
         )
 

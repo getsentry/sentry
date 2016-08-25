@@ -198,8 +198,8 @@ class ProjectDeleteTest(APITestCase):
 
         assert response.status_code == 204
 
-        mock_delete_project.delay.assert_called_once_with(
-            object_id=project.id,
+        mock_delete_project.apply_async.assert_called_once_with(
+            kwargs={'object_id': project.id},
             countdown=3600,
         )
 
