@@ -111,6 +111,9 @@ class Endpoint(APIView):
         )
 
         extra = {
+            'ip_address': entry.ip_address,
+            'organization_id': entry.organization_id,
+            'object_id': entry.target_object,
             'entry_id': entry.id,
             'actor_label': entry.actor_label
         }
