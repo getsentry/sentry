@@ -80,7 +80,8 @@ class ProjectSettingsTest(TestCase):
             'slug': self.project.slug,
             'team': self.team.id,
             'scrub_data': '1',
-            'token': 'foobar',
+            'token': 'Basic Zm9vOmJhcg==',
+            'token_header': 'Authorization'
         })
         assert resp.status_code == 302
         self.assertEquals(resp['Location'], 'http://testserver' + self.path)
