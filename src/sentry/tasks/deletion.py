@@ -139,10 +139,9 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
 
     # Immediately revoke keys
-    project_keys = ProjectKey.objects.filter(project_id=object_id)
-    deleted_keys = [pk.id for pk in project_keys]
-    project_keys.delete()
-    for key_id in deleted_keys:
+    project_keys = list(ProjectKey.objects.filter(project_id=object_id).values_list('id', flat=True))
+    ProjectKey.objects.filter(id__in=project_keys).delete()
+    for key_id in project_keys:
         logger.info('projectkey.remove.deleted', extra={
             'projectkey_id': key_id,
             'transaction_id': transaction_id,
