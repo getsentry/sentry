@@ -22,6 +22,8 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
 
+delete_logger = logging.getLogger('sentry.deletions.api')
+
 
 @scenario('RetrieveOrganization')
 def retrieve_organization_scenario(runner):
@@ -160,20 +162,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
 
-        transaction_id = uuid4().hex
-        logging.getLogger('sentry.deletions.api').info('organization.remove.queued', extra={
-            'organization_id': organization.id,
-            'organization_slug': organization.slug,
-            'actor_id': request.user.id,
-            'transaction_id': transaction_id,
-            'ip_address': request.META['REMOTE_ADDR'],
-        })
-
         updated = Organization.objects.filter(
             id=organization.id,
             status=OrganizationStatus.VISIBLE,
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
+            transaction_id = uuid4().hex
+
             delete_organization.apply_async(
                 kwargs={
                     'object_id': organization.id,
@@ -190,5 +185,11 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 data=organization.get_audit_log_data(),
                 transaction_id=transaction_id,
             )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': organization.id,
+                'transaction_id': transaction_id,
+                'model': type(organization).__name__,
+            })
 
         return Response(status=204)
