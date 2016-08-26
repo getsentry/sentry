@@ -142,11 +142,21 @@ body.auth {
     line-height: 40px;
   }
 
-  .org-switcher {
+  .org-selector {
     padding: 15px 0;
+    position: relative;
     .active-org {
       display: block;
       .square(32px);
+      &:before {
+        display: block;
+        position: absolute;
+        content: "";
+        top: 0;
+        left: -15px;
+        right: -15px;
+        bottom: -5px;
+      }
 
       img {
         border-radius: 3px;
