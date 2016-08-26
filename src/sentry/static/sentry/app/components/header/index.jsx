@@ -107,8 +107,8 @@ const Header = React.createClass({
       showPanel: true,
       currentPanel: panel
     });
-    console.log(this.state.showPanel);
-    console.log(this.state.currentPanel);
+    // console.log(this.state.showPanel);
+    // console.log(this.state.currentPanel);
   },
 
   render() {
@@ -139,11 +139,14 @@ const Header = React.createClass({
       <nav className="navbar">
         <div className="container">
           <div className="anchor-top">
-            <div className="org-switcher divider-bottom">
-              <a className="active-org" href="/">
-                <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
-              </a>
-            </div>
+            {org &&
+              <OrganizationSelector
+                organization={org}
+                showPanel={this.state.showPanel}
+                currentPanel={this.state.currentPanel}
+                onShowPanel={()=>this.showPanel('org-selector')}
+                hidePanel={()=>this.hidePanel()}/>
+            }
             <ul className="navbar-nav divider-bottom">
               <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
                 <a><span className="icon-user" onClick={()=>this.showPanel('assigned')} /></a>
@@ -195,7 +198,12 @@ const Header = React.createClass({
             :
             <a href="/" className="logo">{logo}</a>
           */}
-          { /* <OrganizationSelector organization={org} /> */ }
+          { /* <OrganizationSelector
+            organization={org}
+            showPanel={this.state.showPanel}
+            currentPanel={this.state.currentPanel}
+            onShowPanel={()=>this.showPanel('broadcasts')}
+            hidePanel={()=>this.hidePanel()}/> */ }
 
           { /* <StatusPage className="pull-right" /> */}
           { /*  {actionMessage ?
