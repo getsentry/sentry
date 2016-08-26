@@ -161,7 +161,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
 
         transaction_id = uuid4().hex
-        logging.getLogger('sentry.deletions').info('remove.organization', extra={
+        logging.getLogger('sentry.deletions.api').info('organization.remove.queued', extra={
             'organization_id': organization.id,
             'organization_slug': organization.slug,
             'actor_id': request.user.id,
