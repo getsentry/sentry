@@ -637,7 +637,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         """
         group_ids = request.GET.getlist('id')
         if group_ids:
-            group_list = Group.objects.filter(project=project, id__in=group_ids)
+            group_list = list(Group.objects.filter(project=project, id__in=set(group_ids), status=GroupStatus.VISIBLE))
             # filter down group ids to only valid matches
             group_ids = [g.id for g in group_list]
         else:
@@ -647,7 +647,14 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if not group_ids:
             return Response(status=204)
 
-        # TODO(dcramer): set status to pending deletion
+        Group.objects.filter(
+            id__in=group_ids,
+        ).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+            ]
+        ).update(status=GroupStatus.PENDING_DELETION)
         for group in group_list:
             delete_group.apply_async(
                 kwargs={'object_id': group.id},
