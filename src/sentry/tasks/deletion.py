@@ -140,7 +140,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
 
     # Immediately revoke keys
     project_keys = list(ProjectKey.objects.filter(project_id=object_id).values_list('id', flat=True))
-    ProjectKey.objects.filter(id__in=project_keys).delete()
+    ProjectKey.objects.filter(project_id=object_id).delete()
     for key_id in project_keys:
         logger.info('projectkey.remove.deleted', extra={
             'projectkey_id': key_id,
