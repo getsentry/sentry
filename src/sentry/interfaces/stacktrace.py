@@ -56,7 +56,7 @@ def to_hex_addr(addr):
         return '0x%x' % addr
     elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
-            return addr
+            addr = int(addr[2:], 16)
         return '0x%x' % int(addr)
     raise ValueError('Unsupported address format %r' % (addr,))
 
