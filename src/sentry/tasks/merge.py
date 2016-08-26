@@ -168,7 +168,8 @@ def merge_objects(models, group, new_group, limit=1000,
     for model in models:
         if logger is not None:
             logger.info('%s.merge' % model.__name__.lower(), extra={
-                'group_id': new_group.id
+                'new_group_id': new_group.id,
+                'old_group_id': group.id,
             })
         all_fields = model._meta.get_all_field_names()
         has_group = 'group' in all_fields
