@@ -21,6 +21,8 @@ from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
+delete_logger = logging.getLogger('sentry.deletions.api')
+
 
 @scenario('GetProject')
 def get_project_scenario(runner):
@@ -287,22 +289,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)
 
-        transaction_id = uuid4().hex
-        logging.getLogger('sentry.deletions.api').info('project.remove.queued', extra={
-            'organization_id': project.organization.id,
-            'organization_slug': project.organization.slug,
-            'project_id': project.id,
-            'project_slug': project.slug,
-            'actor_id': request.user.id,
-            'transaction_id': transaction_id,
-            'ip_address': request.META['REMOTE_ADDR'],
-        })
-
         updated = Project.objects.filter(
             id=project.id,
             status=ProjectStatus.VISIBLE,
         ).update(status=ProjectStatus.PENDING_DELETION)
         if updated:
+            transaction_id = uuid4().hex
+
             delete_project.apply_async(
                 kwargs={
                     'object_id': project.id,
@@ -319,5 +312,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 data=project.get_audit_log_data(),
                 transaction_id=transaction_id,
             )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': project.id,
+                'transaction_id': transaction_id,
+                'model': type(project).__name__,
+            })
 
         return Response(status=204)

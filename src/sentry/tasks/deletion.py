@@ -39,11 +39,6 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         pending_delete.send(sender=Organization, instance=o)
 
     for team in Team.objects.filter(organization=o).exclude(status=TeamStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
-        logger.info('team.remove.queued', extra={
-            'team_id': team.id,
-            'organization_id': o.id,
-            'transaction_id': transaction_id,
-        })
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, transaction_id=transaction_id, continuous=False)
         if continuous:
@@ -65,9 +60,10 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         return
     o_id = o.id
     o.delete()
-    logger.info('organization.remove.deleted', extra={
-        'organization_id': o_id,
+    logger.info('object.delete.executed', extra={
+        'object_id': o_id,
         'transaction_id': transaction_id,
+        'model': Organization.__name__,
     })
 
 
@@ -91,11 +87,6 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
 
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t).exclude(status=ProjectStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
-        logger.info('project.remove.queued', extra={
-            'project_id': project.id,
-            'team_id': t.id,
-            'transaction_id': transaction_id,
-        })
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, transaction_id=transaction_id, continuous=False)
         if continuous:
@@ -107,9 +98,10 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
 
     t_id = t.id
     t.delete()
-    logger.info('team.remove.deleted', extra={
-        'team_id': t_id,
+    logger.info('object.delete.executed', extra={
+        'object_id': t_id,
         'transaction_id': transaction_id,
+        'model': Team.__name__,
     })
 
 
@@ -142,9 +134,10 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
     project_keys = list(ProjectKey.objects.filter(project_id=object_id).values_list('id', flat=True))
     ProjectKey.objects.filter(project_id=object_id).delete()
     for key_id in project_keys:
-        logger.info('projectkey.remove.deleted', extra={
-            'projectkey_id': key_id,
+        logger.info('object.delete.executed', extra={
+            'object_id': key_id,
             'transaction_id': transaction_id,
+            'model': ProjectKey.__name__,
         })
 
     model_list = (
@@ -202,9 +195,10 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
 
     p_id = p.id
     p.delete()
-    logger.info('project.remove.deleted', extra={
-        'project_id': p_id,
+    logger.info('object.delete.queued', extra={
+        'object_id': p_id,
         'transaction_id': transaction_id,
+        'model': Project.__name__,
     })
 
 
@@ -254,9 +248,10 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
         return
     g_id = group.id
     group.delete()
-    logger.info('group.remove.deleted', extra={
-        'group_id': g_id,
+    logger.info('object.delete.queued', extra={
+        'object_id': g_id,
         'transaction_id': transaction_id,
+        'model': Group.__name__,
     })
 
 
@@ -302,9 +297,10 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
 
     tagkey_id = tagkey.id
     tagkey.delete()
-    logger.info('tagkey.remove.deleted', extra={
-        'tagkey_id': tagkey_id,
+    logger.info('object.delete.executed', extra={
+        'object_id': tagkey_id,
         'transaction_id': transaction_id,
+        'model': TagKey.__name__,
     })
 
 
@@ -316,7 +312,7 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
     if logger is not None:
         # The only reason this is a different log statement is that logging every
         # single event that gets deleted in the relation will destroy disks.
-        logger.info('event.remove.deleted', extra=dict(
+        logger.info('object.delete.bulk_executed', extra=dict(
             relation.items() + [('transaction_id', transaction_id)],
         ))
 
@@ -342,12 +338,13 @@ def delete_objects(models, relation, transaction_id=None, limit=100, logger=None
     for model in models:
         for obj in model.objects.filter(**relation)[:limit]:
             obj_id = obj.id
-            model_name = type(obj).__name__.lower()
+            model_name = type(obj).__name__
             obj.delete()
             if logger is not None:
-                logger.info('%s.remove.deleted' % model_name, extra={
+                logger.info('object.delete.executed', extra={
+                    'object_id': obj_id,
                     'transaction_id': transaction_id,
-                    '%s_id' % model_name: obj_id,
+                    'model': model_name,
                 })
             has_more = True
 
