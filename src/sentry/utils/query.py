@@ -313,9 +313,9 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
     cursor.execute(query, params)
 
     if logger is not None:
-        logger.info('object.delete.bulk_executed', extra={filters.items() + [
+        logger.info('object.delete.bulk_executed', extra=dict(filters.items() + [
             ('model', model.__name__),
             ('transaction_id', transaction_id),
-        ]})
+        ]))
 
     return cursor.rowcount > 0
