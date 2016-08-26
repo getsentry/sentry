@@ -277,7 +277,7 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
         params.append(value)
 
     if logger is not None:
-        logger.info('remove.%s' % model.__name__.lower(), extra={
+        logger.info('%s.remove.deleted' % model.__name__.lower(), extra={
             column: value,
             'transaction_id': transaction_id,
         })

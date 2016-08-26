@@ -18,7 +18,7 @@ from sentry.tasks.deletion import delete_group
 
 # TODO(dcramer): probably should have a new logger for this, but it removes data
 # so lets bundle under deletions
-logger = logging.getLogger('sentry.deletions')
+logger = logging.getLogger('sentry.deletions.merge')
 
 
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
@@ -167,10 +167,9 @@ def merge_objects(models, group, new_group, limit=1000,
     has_more = False
     for model in models:
         if logger is not None:
-            logger.info('model.merge', extra={
-                'model': model.__name__,
-                'group_id': group.id,
-                'new_group_id': new_group.id
+            logger.info('%s.merge' % model.__name__.lower(), extra={
+                'group_id.old': group.id,
+                'group_id.new': new_group.id
             })
         all_fields = model._meta.get_all_field_names()
         has_group = 'group' in all_fields

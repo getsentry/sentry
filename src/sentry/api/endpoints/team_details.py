@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -120,9 +121,16 @@ class TeamDetailsEndpoint(TeamEndpoint):
         immediate.  However once deletion has begun the state of a project
         changes and will be hidden from most public views.
         """
-        logging.getLogger('sentry.deletions').info(
-            'Team %s/%s (id=%s) removal requested by user (id=%s)',
-            team.organization.slug, team.slug, team.id, request.user.id)
+        transaction_id = uuid4().hex
+        logging.getLogger('sentry.deletions.api').info('team.remove.queued', extra={
+            'organization_id': team.organization.id,
+            'organization_slug': team.organization.slug,
+            'team_id': team.id,
+            'team_slug': team.slug,
+            'actor_id': request.user.id,
+            'transaction_id': transaction_id,
+            'ip_address': request.META['REMOTE_ADDR'],
+        })
 
         updated = Team.objects.filter(
             id=team.id,
@@ -130,7 +138,10 @@ class TeamDetailsEndpoint(TeamEndpoint):
         ).update(status=TeamStatus.PENDING_DELETION)
         if updated:
             delete_team.apply_async(
-                kwargs={'object_id': team.id},
+                kwargs={
+                    'object_id': team.id,
+                    'transaction_id': transaction_id,
+                },
                 countdown=3600,
             )
 
@@ -140,6 +151,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
 
         return Response(status=204)

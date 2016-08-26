@@ -182,8 +182,13 @@ class ProjectUpdateTest(APITestCase):
 
 
 class ProjectDeleteTest(APITestCase):
+    @mock.patch('sentry.api.endpoints.project_details.uuid4')
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
-    def test_simple(self, mock_delete_project):
+    def test_simple(self, mock_delete_project, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -199,7 +204,10 @@ class ProjectDeleteTest(APITestCase):
         assert response.status_code == 204
 
         mock_delete_project.apply_async.assert_called_once_with(
-            kwargs={'object_id': project.id},
+            kwargs={
+                'object_id': project.id,
+                'transaction_id': 'abc123',
+            },
             countdown=3600,
         )
 

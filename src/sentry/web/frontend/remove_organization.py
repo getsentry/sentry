@@ -40,7 +40,7 @@ class RemoveOrganizationView(OrganizationView):
         form = self.get_form(request, organization)
         if form.is_valid():
             transaction_id = uuid4().hex
-            logging.getLogger('sentry.deletions').info('remove.organization', extra={
+            logging.getLogger('sentry.deletions.ui').info('organization.remove.queued', extra={
                 'organization_id': organization.id,
                 'organization_slug': organization.slug,
                 'actor_id': request.user.id,
