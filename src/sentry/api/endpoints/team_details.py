@@ -14,6 +14,8 @@ from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 from sentry.utils.apidocs import scenario, attach_scenarios
 
+delete_logger = logging.getLogger('sentry.deletions.api')
+
 
 @scenario('GetTeam')
 def get_team_scenario(runner):
@@ -121,22 +123,12 @@ class TeamDetailsEndpoint(TeamEndpoint):
         immediate.  However once deletion has begun the state of a project
         changes and will be hidden from most public views.
         """
-        transaction_id = uuid4().hex
-        logging.getLogger('sentry.deletions.api').info('team.remove.queued', extra={
-            'organization_id': team.organization.id,
-            'organization_slug': team.organization.slug,
-            'team_id': team.id,
-            'team_slug': team.slug,
-            'actor_id': request.user.id,
-            'transaction_id': transaction_id,
-            'ip_address': request.META['REMOTE_ADDR'],
-        })
-
         updated = Team.objects.filter(
             id=team.id,
             status=TeamStatus.VISIBLE,
         ).update(status=TeamStatus.PENDING_DELETION)
         if updated:
+            transaction_id = uuid4().hex
             delete_team.apply_async(
                 kwargs={
                     'object_id': team.id,
@@ -153,5 +145,11 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 data=team.get_audit_log_data(),
                 transaction_id=transaction_id,
             )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': team.id,
+                'transaction_id': transaction_id,
+                'model': type(team).__name__,
+            })
 
         return Response(status=204)
