@@ -732,7 +732,6 @@ class CspApiHelper(ClientApiHelper):
             'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
-            'tags': inst.get_tags(),
             'release': meta.get('release'),
             inst.get_path(): inst.to_json(),
             # This is a bit weird, since we don't have nearly enough
@@ -759,6 +758,30 @@ class CspApiHelper(ClientApiHelper):
                     'value': data['release'],
                 })
                 del data['release']
+
+        tags = []
+        for k, v in inst.get_tags():
+            if len(v) > MAX_TAG_VALUE_LENGTH:
+                self.log.debug('Discarded invalid tag: %s=%s', k, v)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'tags',
+                    'value': (k, v),
+                })
+                continue
+            if not TagValue.is_valid_value(v):
+                self.log.debug('Discard invalid tag value: %s', v)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'tags',
+                    'value': (k, v),
+                })
+                continue
+            tags.append((k, v))
+
+        if tags:
+            data['tags'] = tags
+
         return data
 
 

@@ -129,7 +129,10 @@ class TeamDetailsEndpoint(TeamEndpoint):
             status=TeamStatus.VISIBLE,
         ).update(status=TeamStatus.PENDING_DELETION)
         if updated:
-            delete_team.delay(object_id=team.id, countdown=3600)
+            delete_team.apply_async(
+                kwargs={'object_id': team.id},
+                countdown=3600,
+            )
 
             self.create_audit_entry(
                 request=request,
