@@ -342,12 +342,12 @@ def delete_objects(models, relation, transaction_id=None, limit=100, logger=None
     for model in models:
         for obj in model.objects.filter(**relation)[:limit]:
             obj_id = obj.id
-            slug = type(obj).__name__.lower()
+            model_name = type(obj).__name__.lower()
             obj.delete()
             if logger is not None:
-                logger.info('%s.remove.deleted' % slug, extra={
+                logger.info('%s.remove.deleted' % model_name, extra={
                     'transaction_id': transaction_id,
-                    '%s_id' % slug: obj_id,
+                    '%s_id' % model_name: obj_id,
                 })
             has_more = True
 
