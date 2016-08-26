@@ -189,7 +189,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             delete_logger.info('object.delete.queued', extra={
                 'object_id': organization.id,
                 'transaction_id': transaction_id,
-                'model': type(organization).__name__,
+                'model': Organization.__name__,
             })
 
         return Response(status=204)
