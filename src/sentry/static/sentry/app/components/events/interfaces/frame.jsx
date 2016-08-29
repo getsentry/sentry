@@ -71,7 +71,7 @@ const Frame = React.createClass({
 
   isExpandable() {
     return (
-      this.props.emptySourceNotation
+      !this.props.emptySourceNotation
       || this.hasContextSource()
       || this.hasContextVars()
     );
