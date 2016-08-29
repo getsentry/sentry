@@ -22,7 +22,6 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
     LazyData
 )
-from sentry.event_manager import EventManager
 from sentry.models import Project, OrganizationOption
 from sentry.signals import event_accepted, event_received
 from sentry.quotas.base import RateLimit
@@ -290,13 +289,17 @@ class StoreView(APIView):
         if not data:
             raise APIError('No JSON data was found')
 
+        remote_addr = request.META['REMOTE_ADDR']
+
         data = LazyData(
             data=data,
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
             helper=helper,
+            project=project,
+            auth=auth,
+            client_ip=remote_addr,
         )
 
-        remote_addr = request.META['REMOTE_ADDR']
         event_received.send_robust(
             ip=remote_addr,
             sender=type(self),
@@ -338,33 +341,12 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
             ])
 
-        # mutates data
-        data = helper.validate_data(project, data)
-
-        if 'sdk' not in data:
-            sdk = helper.parse_client_as_sdk(auth.client)
-            if sdk:
-                data['sdk'] = sdk
-            else:
-                data['sdk'] = {}
-        data['sdk']['client_ip'] = remote_addr
-
-        # mutates data
-        manager = EventManager(data, version=auth.version)
-        manager.normalize()
-
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
 
         if org_options.get('sentry:require_scrub_ip_address', False):
             scrub_ip_address = True
         else:
             scrub_ip_address = project.get_option('sentry:scrub_ip_address', False)
-
-        # insert IP address if not available and wanted
-        if not scrub_ip_address:
-            helper.ensure_has_ip(
-                data, remote_addr, set_if_missing=auth.is_public or
-                data.get('platform') in ('javascript', 'cocoa', 'objc'))
 
         event_id = data['event_id']
 

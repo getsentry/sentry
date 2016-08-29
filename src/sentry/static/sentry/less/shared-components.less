@@ -732,6 +732,87 @@ table.integrations {
 }
 
 /**
+* Switch
+* ============================================================================
+*/
+
+@switch-sm-height: 16px;
+@switch-lg-height: 24px;
+
+.switch {
+  display: inline-block;
+  border: 1px solid @trim;
+  position: relative;
+  box-shadow: inset 0 1px 1px rgba(0,0,0, .04);
+  cursor: pointer;
+  .transition(border .15s ease);
+
+  &:hover {
+    border-color: darken(@trim, 10);
+  }
+
+  .switch-toggle {
+    display: block;
+    position: absolute;
+    border-radius: 50%;
+    background: @gray-lighter;
+    .transition(all .25s ease);
+  }
+
+  &.switch-on {
+    border-color: darken(@trim, 10);
+    .switch-toggle {
+      background: @green;
+    }
+  }
+
+  &.switch-disabled {
+    cursor: not-allowed;
+    pointer-events: none
+  }
+}
+
+// To replace checkboxes
+
+.switch-sm {
+  height: @switch-sm-height;
+  width: @switch-sm-height * 2;
+  border-radius: @switch-sm-height;
+
+  .switch-toggle {
+    top: 2px;
+    left: 2px;
+    .square(@switch-sm-height - 6); // (3*2) Room for border and padding on top and bottom
+  }
+
+  &.switch-on {
+    .switch-toggle{
+      left: @switch-sm-height + 2;
+    }
+  }
+}
+
+// When you need to go slightly bigger
+
+.switch-lg {
+  height: @switch-lg-height;
+  width: @switch-lg-height * 2;
+  border-radius: @switch-lg-height;
+
+  .switch-toggle {
+    top: 4px;
+    left: 4px;
+    .square(@switch-lg-height - 10); // (10*2) Room for border and padding on top and bottom
+  }
+
+  &.switch-on {
+    .switch-toggle{
+      left: @switch-lg-height + 4;
+    }
+  }
+}
+
+/**
 * Auth providers
 * ============================================================================
 */
