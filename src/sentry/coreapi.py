@@ -711,7 +711,7 @@ class CspApiHelper(ClientApiHelper):
         return auth
 
     def should_filter(self, project, data, ip_address=None):
-        if not is_valid_csp_report(data, project):
+        if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
             return True
         return super(CspApiHelper, self).should_filter(project, data, ip_address)
 
@@ -771,6 +771,8 @@ class CspApiHelper(ClientApiHelper):
 
         tags = []
         for k, v in inst.get_tags():
+            if not v:
+                continue
             if len(v) > MAX_TAG_VALUE_LENGTH:
                 self.log.debug('Discarded invalid tag: %s=%s', k, v)
                 data['errors'].append({
