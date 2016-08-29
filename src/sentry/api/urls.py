@@ -48,6 +48,8 @@ from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
+from .endpoints.project_filters import ProjectFiltersEndpoint
+from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
@@ -224,6 +226,12 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/$',
+        ProjectFiltersEndpoint.as_view(),
+        name='sentry-api-0-project-filters'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$',
+        ProjectFilterDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-filters'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:issues|groups)/$',
         ProjectGroupIndexEndpoint.as_view(),
         name='sentry-api-0-project-group-index'),

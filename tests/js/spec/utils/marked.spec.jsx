@@ -1,21 +1,12 @@
 /*eslint no-script-url:0*/
 
-import marked from 'marked';
-import Renderer from 'app/utils/marked';
+import marked from 'app/utils/marked';
 
 function expectMarkdown(test) {
   expect(marked(test[0])).to.eql('<p>' + test[1] + '</p>\n');
 }
 
 describe('marked', function () {
-  beforeEach(function () {
-    marked.options = marked.defaults;
-    marked.setOptions({
-      sanitize: true,
-      renderer: new Renderer()
-    });
-  });
-
   it('normal links get rendered as html', function () {
     for (let test of [
       ['[x](http://example.com)', '<a href="http://example.com">x</a>'],

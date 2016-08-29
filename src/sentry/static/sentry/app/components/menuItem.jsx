@@ -17,7 +17,7 @@ const MenuItem = React.createClass({
     to: React.PropTypes.string,
     query: React.PropTypes.object,
     linkClassName: React.PropTypes.string,
-    onClick: React.PropTypes.function,
+    onClick: React.PropTypes.func,
   },
 
   handleClick(e) {

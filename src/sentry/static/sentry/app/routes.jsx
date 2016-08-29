@@ -36,6 +36,7 @@ import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
+import ProjectFilters from './views/projectFilters';
 import ProjectInstall from './views/projectInstall';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
@@ -140,6 +141,7 @@ function routes() {
               <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
               <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
             </Route>
+            <Route path="filters/" component={errorHandler(ProjectFilters)} />
             <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
             <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
             <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
