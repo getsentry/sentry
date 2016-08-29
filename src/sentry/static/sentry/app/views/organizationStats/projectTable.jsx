@@ -46,7 +46,7 @@ const ProjectTable = React.createClass({
             <th>{t('Project')}</th>
             <th className="align-right">{t('Accepted')}</th>
             <th className="align-right">{t('Dropped')}<br/>{t('(Rate Limit)')}</th>
-            <th className="align-right">{t('Dropped')}<br/>{t('(Blacklist)')}</th>
+            <th className="align-right">{t('Dropped')}<br/>{t('(Filters)')}</th>
             <th className="align-right">{t('Total')}</th>
           </tr>
         </thead>
