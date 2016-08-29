@@ -49,7 +49,12 @@ class LegacyBrowsersFilter(Filter):
         except KeyError:
             return False
 
-        if minimum_version > int(browser['major']):
+        try:
+            major_browser_version = int(browser['major'])
+        except TypeError:
+            return False
+
+        if minimum_version > major_browser_version:
             return True
 
         return False
