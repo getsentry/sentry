@@ -51,7 +51,7 @@ class LegacyBrowsersFilter(Filter):
 
         try:
             major_browser_version = int(browser['major'])
-        except TypeError:
+        except (TypeError, ValueError):
             return False
 
         if minimum_version > major_browser_version:
