@@ -276,12 +276,6 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
         query.append('%s = %%s' % (quote_name(column),))
         params.append(value)
 
-    if logger is not None:
-        logger.info('remove.%s' % model.__name__.lower(), extra={
-            column: value,
-            'transaction_id': transaction_id,
-        })
-
     if db.is_postgres():
         query = """
             delete from %(table)s
@@ -317,4 +311,11 @@ def bulk_delete_objects(model, limit=10000, transaction_id=None, logger=None, **
 
     cursor = connection.cursor()
     cursor.execute(query, params)
+
+    if logger is not None:
+        logger.info('object.delete.bulk_executed', extra=dict(filters.items() + [
+            ('model', model.__name__),
+            ('transaction_id', transaction_id),
+        ]))
+
     return cursor.rowcount > 0

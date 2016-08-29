@@ -15,7 +15,7 @@ from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.query import bulk_delete_objects
 
-logger = logging.getLogger('sentry.deletions')
+logger = logging.getLogger('sentry.deletions.async')
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
@@ -39,11 +39,6 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         pending_delete.send(sender=Organization, instance=o)
 
     for team in Team.objects.filter(organization=o).exclude(status=TeamStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
-        logger.info('remove.team', extra={
-            'team_id': team.id,
-            'organization_id': o.id,
-            'transaction_id': transaction_id,
-        })
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, transaction_id=transaction_id, continuous=False)
         if continuous:
@@ -63,7 +58,13 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
                 countdown=15,
             )
         return
+    o_id = o.id
     o.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': o_id,
+        'transaction_id': transaction_id,
+        'model': Organization.__name__,
+    })
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
@@ -86,11 +87,6 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
 
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t).exclude(status=ProjectStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
-        logger.info('remove.project', extra={
-            'project_id': project.id,
-            'team_id': t.id,
-            'transaction_id': transaction_id,
-        })
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, transaction_id=transaction_id, continuous=False)
         if continuous:
@@ -100,7 +96,13 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
             )
         return
 
+    t_id = t.id
     t.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': t_id,
+        'transaction_id': transaction_id,
+        'model': Team.__name__,
+    })
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
@@ -129,7 +131,14 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
 
     # Immediately revoke keys
+    project_keys = list(ProjectKey.objects.filter(project_id=object_id).values_list('id', flat=True))
     ProjectKey.objects.filter(project_id=object_id).delete()
+    for key_id in project_keys:
+        logger.info('object.delete.executed', extra={
+            'object_id': key_id,
+            'transaction_id': transaction_id,
+            'model': ProjectKey.__name__,
+        })
 
     model_list = (
         Activity, EventMapping, EventUser, GroupAssignee, GroupBookmark,
@@ -184,7 +193,13 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
                 )
             return
 
+    p_id = p.id
     p.delete()
+    logger.info('object.delete.queued', extra={
+        'object_id': p_id,
+        'transaction_id': transaction_id,
+        'model': Project.__name__,
+    })
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
@@ -231,7 +246,13 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
                 countdown=15,
             )
         return
+    g_id = group.id
     group.delete()
+    logger.info('object.delete.queued', extra={
+        'object_id': g_id,
+        'transaction_id': transaction_id,
+        'model': Group.__name__,
+    })
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
@@ -274,7 +295,13 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
             )
         return
 
+    tagkey_id = tagkey.id
     tagkey.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': tagkey_id,
+        'transaction_id': transaction_id,
+        'model': TagKey.__name__,
+    })
 
 
 def delete_events(relation, transaction_id=None, limit=100, logger=None):
@@ -283,7 +310,9 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
 
     has_more = False
     if logger is not None:
-        logger.info('remove.event', extra=dict(
+        # The only reason this is a different log statement is that logging every
+        # single event that gets deleted in the relation will destroy disks.
+        logger.info('object.delete.bulk_executed', extra=dict(
             relation.items() + [('transaction_id', transaction_id)],
         ))
 
@@ -307,12 +336,16 @@ def delete_objects(models, relation, transaction_id=None, limit=100, logger=None
     # This handles cascades properly
     has_more = False
     for model in models:
-        if logger is not None:
-            logger.info('remove.%s' % model.__name__.lower(), extra=dict(
-                relation.items() + [('transaction_id', transaction_id)],
-            ))
         for obj in model.objects.filter(**relation)[:limit]:
+            obj_id = obj.id
+            model_name = type(obj).__name__
             obj.delete()
+            if logger is not None:
+                logger.info('object.delete.executed', extra={
+                    'object_id': obj_id,
+                    'transaction_id': transaction_id,
+                    'model': model_name,
+                })
             has_more = True
 
         if has_more:

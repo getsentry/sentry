@@ -3,6 +3,7 @@ import React from 'react';
 import {History, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
+import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
@@ -86,6 +87,8 @@ const ProjectUserReports = React.createClass({
 
     this.api.request(this.getEndpoint(), {
       success: (data, _, jqXHR) => {
+        let issues = data.map(r => r.issue);
+        GroupStore.add(issues);
         this.setState({
           error: false,
           loading: false,

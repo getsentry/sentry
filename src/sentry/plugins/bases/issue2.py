@@ -208,7 +208,13 @@ class IssueTrackingPlugin2(Plugin):
 
         event = group.get_latest_event()
         Event.objects.bind_nodes([event], 'data')
-        fields = self.get_new_issue_fields(request, group, event, **kwargs)
+        try:
+            fields = self.get_new_issue_fields(request, group, event, **kwargs)
+        except PluginError as e:
+            return Response({
+                'error_type': 'validation',
+                'errors': {'__all__': e.message}
+            }, status=400)
         if request.method == 'GET':
             return Response(fields)
 
@@ -228,7 +234,7 @@ class IssueTrackingPlugin2(Plugin):
         except PluginError as e:
             return Response({
                 'error_type': 'validation',
-                'errors': [{'__all__': e.message}]
+                'errors': {'__all__': e.message}
             }, status=400)
         GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
 
@@ -283,7 +289,7 @@ class IssueTrackingPlugin2(Plugin):
         except PluginError as e:
             return Response({
                 'error_type': 'validation',
-                'errors': [{'__all__': e.message}]
+                'errors': {'__all__': e.message}
             }, status=400)
 
         issue_id = int(request.DATA['issue_id'])

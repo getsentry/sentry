@@ -249,18 +249,25 @@ class BaseView(View, OrganizationMixin):
             with_projects=True,
         )
 
-    def create_audit_entry(self, request, **kwargs):
+    def create_audit_entry(self, request, transaction_id=None, **kwargs):
         entry = AuditLogEntry.objects.create(
             actor=request.user if request.user.is_authenticated() else None,
             # TODO(jtcunning): assert that REMOTE_ADDR is a real IP.
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
-        audit_logger.info(entry.get_event_display(), extra={
+        extra = {
+            'ip_address': entry.ip_address,
+            'organization_id': entry.organization_id,
+            'object_id': entry.target_object,
             'entry_id': entry.id,
-            'actor_id': entry.actor_id,
-            'actor_label': entry.actor_label,
-        })
+            'actor_label': entry.actor_label
+        }
+
+        if transaction_id is not None:
+            extra['transaction_id'] = transaction_id
+
+        audit_logger.info(entry.get_event_display(), extra=extra)
 
 
 class OrganizationView(BaseView):

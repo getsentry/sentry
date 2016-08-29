@@ -277,8 +277,18 @@ class ConnectionManager(object):
 
             # timeout has expired, so move from dead to alive pool
             with self._lock:
-                self.connections.append(conn)
-                self.dead_connections.remove((conn, timeout))
+                try:
+                    # Attempt to remove the connection from dead_connections
+                    # pool, but it's possible that it was already removed in
+                    # another thread.
+                    self.dead_connections.remove((conn, timeout))
+                except ValueError:
+                    # In which case, we don't care and we just carry on.
+                    pass
+                else:
+                    # Only add the connection back into the live pool
+                    # if we've successfully removed from dead pool.
+                    self.connections.append(conn)
 
     def close(self):
         """
