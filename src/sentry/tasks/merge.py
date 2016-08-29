@@ -16,9 +16,7 @@ from django.db.models import F
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion import delete_group
 
-# TODO(dcramer): probably should have a new logger for this, but it removes data
-# so lets bundle under deletions
-logger = logging.getLogger('sentry.deletions')
+logger = logging.getLogger('sentry.group.merge')
 
 
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
@@ -39,13 +37,17 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     try:
         group = Group.objects.get(id=from_object_id)
     except Group.DoesNotExist:
-        logger.warn('merge_group.malformed.invalid_id', extra={'object_id': from_object_id})
+        logger.warn('merge_group.malformed.invalid_id', extra={
+            'old_object_id': from_object_id,
+        })
         return
 
     try:
         new_group = Group.objects.get(id=to_object_id)
     except Group.DoesNotExist:
-        logger.warn('merge_group.malformed.invalid_id', extra={'object_id': from_object_id})
+        logger.warn('merge_group.malformed.invalid_id', extra={
+            'old_object_id': from_object_id,
+        })
         return
 
     model_list = (
@@ -167,10 +169,10 @@ def merge_objects(models, group, new_group, limit=1000,
     has_more = False
     for model in models:
         if logger is not None:
-            logger.info('model.merge', extra={
+            logger.info('group.merge', extra={
+                'new_group_id': new_group.id,
+                'old_group_id': group.id,
                 'model': model.__name__,
-                'group_id': group.id,
-                'new_group_id': new_group.id
             })
         all_fields = model._meta.get_all_field_names()
         has_group = 'group' in all_fields

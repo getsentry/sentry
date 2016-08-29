@@ -41,8 +41,14 @@ class TeamUpdateTest(APITestCase):
 
 
 class TeamDeleteTest(APITestCase):
+    @patch('sentry.api.endpoints.team_details.uuid4')
     @patch('sentry.api.endpoints.team_details.delete_team')
-    def test_can_remove_as_team_admin(self, delete_team):
+    def test_can_remove_as_team_admin(self, delete_team, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
+
         org = self.create_organization()
         team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
@@ -73,7 +79,10 @@ class TeamDeleteTest(APITestCase):
         assert team.status == TeamStatus.PENDING_DELETION
 
         delete_team.apply_async.assert_called_once_with(
-            kwargs={'object_id': team.id},
+            kwargs={
+                'object_id': team.id,
+                'transaction_id': 'abc123',
+            },
             countdown=3600,
         )
 
