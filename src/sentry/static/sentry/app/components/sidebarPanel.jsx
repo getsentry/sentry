@@ -10,7 +10,7 @@ const SidebarPanel = React.createClass({
 
   render() {
     return (
-      <div className="sidebar-panel">
+      <div className="sidebar-panel" data-top={this.props.top}>
         <div className="sidebar-panel-header">
           <a className="close pull-right" onClick={this.props.hidePanel}><span className="icon-x" /></a>
           <h2>{this.props.title}</h2>

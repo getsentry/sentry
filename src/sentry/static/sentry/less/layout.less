@@ -138,6 +138,37 @@ body.auth {
     padding: 15px 0;
     position: relative;
 
+    .hover-bar-container {
+      position: absolute;
+      width: 32px;
+      height: 3px;
+      bottom: -2px;
+      border-radius: 2px;
+      overflow: hidden;
+
+      .hover-bar {
+        width: 0;
+        height: 3px;
+        background: rgba(255,255,255, .35);
+        -webkit-transition: width 500ms ease;
+      }
+    }
+
+    &:hover {
+      .hover-bar-container {
+        background: #625c69;
+      }
+      .hover-bar {
+        width: 100%;
+      }
+    }
+
+    &.active:hover {
+      .hover-bar-container {
+        display: none;
+      }
+    }
+
     .org-list {
       > li {
         padding: 15px 20px 10px 68px;
@@ -208,7 +239,7 @@ body.auth {
         text-align: center;
         line-height: 36px;
         color: #fff;
-        
+
         &:hover, &:active, &:focus {
           color: #fff;
         }
@@ -507,6 +538,17 @@ body.auth {
     top: 50%;
     padding: 0 50px;
     margin-top: (-62px + -16px) / 2; // offset for sidebar-panel-header + font-size
+  }
+
+  &:before {
+    position: absolute;
+    display: block;
+    content: "";
+    left: -7px;
+    top: 24px;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 7px solid #fff;
   }
 }
 
