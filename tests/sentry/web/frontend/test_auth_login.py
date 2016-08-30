@@ -84,3 +84,16 @@ class AuthLoginTest(TestCase):
 
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
+
+    def test_register_prefills_invite_email(self):
+        self.session['invite_email'] = 'foo@example.com'
+        self.session['can_register'] = True
+        self.save_session()
+
+        register_path = reverse('sentry-register')
+        resp = self.client.get(register_path)
+
+        assert resp.status_code == 200
+        assert resp.context['op'] == 'register'
+        assert resp.context['register_form'].initial['username'] == 'foo@example.com'
+        self.assertTemplateUsed('sentry/login.html')
