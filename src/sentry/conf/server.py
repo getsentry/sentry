@@ -1024,7 +1024,7 @@ EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
 
-# TODO(dcramer): move this to getsentry.com so it can be automated
+# TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
     'raven-js': '3.3.0',
     'raven-python': '5.23.0',
