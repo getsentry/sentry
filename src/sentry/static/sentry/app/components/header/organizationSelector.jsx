@@ -25,7 +25,7 @@ const OrganizationSelector = React.createClass({
   //   return (nextProps.organization || {}).id !== (this.props.organization || {}).id;
   // },
 
-  getInitial(orgName) {
+  getOrgInitial(orgName) {
     // TODO: Generate proper letter avatar
 
     let initial = orgName.charAt(0);
@@ -49,11 +49,16 @@ const OrganizationSelector = React.createClass({
     }
 
     let hoverIntent;
+    let hoverTime = 500;
 
     return (
       <div className={classNames}
-        onMouseEnter={()=> {hoverIntent = setTimeout(this.props.onShowPanel, 300);}}
+        onMouseEnter={()=> {hoverIntent = setTimeout(this.props.onShowPanel, hoverTime);}}
         onMouseLeave={()=> {this.props.hidePanel(); clearTimeout(hoverIntent); }}>
+
+        <div className="hover-bar-container">
+          <div className="hover-bar"/>
+        </div>
 
         <a className="active-org" href="/">
           <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
@@ -68,7 +73,7 @@ const OrganizationSelector = React.createClass({
                 return (
                   <li className={activeOrg.id === org.id ? "org active" : "org"} key={org.slug}>
                     <Link className="org-avatar" to={`/${org.slug}/`}>
-                      {this.getInitial(org.name)}
+                      {this.getOrgInitial(org.name)}
                     </Link>
                     <h5><Link to={`/${org.slug}/`}>{org.name}</Link></h5>
                     <p>
