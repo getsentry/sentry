@@ -42,6 +42,16 @@ from sentry.utils.http import is_valid_ip
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
+try:
+    # Attempt to load ujson if it's installed.
+    # It's adventageous to leverage here because this is
+    # our primary data ingestion endpoint, and it's a
+    # simple win. ujson differs from simplejson a bunch
+    # so it's not worth utilizing it anywhere else.
+    import ujson as json  # noqa
+except ImportError:
+    from sentry.utils import json
+
 
 class APIError(Exception):
     http_status = 400
