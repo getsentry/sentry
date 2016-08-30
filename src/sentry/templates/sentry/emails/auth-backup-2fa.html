@@ -1,0 +1,15 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+  <p>Your authentication device was removed by customer support.  As a fallback
+  you can confirm your sign in with this email.  Provide the following
+  authentication code for sign in:</p>
+
+  <p><strong>{{ code }}</strong></p>
+
+  {% if ip %}
+    <p><small>The login was requested from the following IP: {{ ip }}</small></p>
+  {% endif %}
+{% endblock %}
