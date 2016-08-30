@@ -6,6 +6,7 @@ install-python:
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
+	pip install ujson
 	pip install "file://`pwd`#egg=sentry[dev,dsym]"
 
 install-npm:
