@@ -44,10 +44,10 @@
     <tr>
       <td class="issues-resolved-column issues-resolved-column-left">
         <table class="issue-graph">
-          <tr>
+          <tr class="graph">
           {% with report.series.maximum as max %}
           {% for timestamp, metrics in report.series.points %}
-            <td valign="bottom" style="padding-right: 5px;">
+            <td valign="bottom">
               <table class="issue-graph-bar">
                 {% if metrics.resolved or metrics.unresolved %}
                   <tr>
@@ -64,6 +64,11 @@
             </td>
           {% endfor %}
           {% endwith %}
+          </tr>
+          <tr class="labels">
+            {% for timestamp, metrics in report.series.points %}
+              <td title="{{ timestamp }}">{{ timestamp|date:duration.date_format }}</td>
+            {% endfor %}
           </tr>
         </table>
       </td>
