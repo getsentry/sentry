@@ -47,11 +47,11 @@ class AuthLoginView(BaseView):
             captcha=bool(request.session.get('needs_captcha')),
         )
 
-    def get_register_form(self, request):
+    def get_register_form(self, request, initial=None):
         op = request.POST.get('op')
         return RegistrationForm(
             request.POST if op == 'register' else None,
-            captcha=bool(request.session.get('needs_captcha')),
+            captcha=bool(request.session.get('needs_captcha')), initial=initial,
         )
 
     def handle_basic_auth(self, request):
@@ -66,7 +66,9 @@ class AuthLoginView(BaseView):
 
         login_form = self.get_login_form(request)
         if can_register:
-            register_form = self.get_register_form(request)
+            register_form = self.get_register_form(request, initial={
+                'username': request.session.get('invite_email', '')
+            })
         else:
             register_form = None
 
@@ -81,7 +83,7 @@ class AuthLoginView(BaseView):
 
             # can_register should only allow a single registration
             request.session.pop('can_register', None)
-
+            request.session.pop('invite_email', None)
             request.session.pop('needs_captcha', None)
 
             return self.redirect(auth.get_login_redirect(request))
