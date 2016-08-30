@@ -10,6 +10,7 @@ import signal
 from datetime import datetime
 from django.conf import settings
 from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from six.moves.urllib.parse import quote, urlparse
@@ -49,6 +50,13 @@ class Browser(object):
     def delete(self, path, *args, **kwargs):
         self.driver.delete(self.route(path), *args, **kwargs)
         return self
+
+    def element_exists(self, selector):
+        try:
+            self.driver.find_elements_by_css_selector(selector)
+        except NoSuchElementException:
+            return False
+        return True
 
     def wait_until(self, selector, timeout=3):
         """

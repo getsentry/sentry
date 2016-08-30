@@ -4,7 +4,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
-import {RangeInput} from '../../components/forms';
+import {RangeField} from '../../components/forms';
 import {t, tct} from '../../locale';
 
 const RateLimitEditor = React.createClass({
@@ -65,7 +65,7 @@ const RateLimitEditor = React.createClass({
     let canSave = savedProjectLimit === currentProjectLimit && !saving;
 
     return (
-      <form onSubmit={this.onSubmit}>
+      <form onSubmit={this.onSubmit} className="ref-rate-limit-editor">
           <p>
             {/* This may not translate well to all languages since maxRate may affect plural form of "events per minute" */}
             {tct('Your organization is limited to [strong:[maxRate] events per minute]. When this rate is exceeded the system will begin discarding data until the next interval.',
@@ -78,7 +78,7 @@ const RateLimitEditor = React.createClass({
 
         <p>{t('You may set a limit to the maximum amount a single project may send:')}</p>
 
-        <RangeInput
+        <RangeField
             defaultValue={savedProjectLimit}
             onChange={this.onProjectLimitChange}
             formatLabel={(value) => { return `${value}%`; }} />
@@ -117,7 +117,7 @@ const OrganizationRateLimits = React.createClass({
             {maxRate !== 0 ?
               <RateLimitEditor organization={org} />
             :
-              <p>{t('There are no rate limits configured for your organization.')}</p>
+              <p className="ref-no-rate-limits">{t('There are no rate limits configured for your organization.')}</p>
             }
           </div>
         </div>
