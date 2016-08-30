@@ -25,6 +25,13 @@ const OrganizationSelector = React.createClass({
   //   return (nextProps.organization || {}).id !== (this.props.organization || {}).id;
   // },
 
+  getInitial(orgName) {
+    // TODO: Generate proper letter avatar
+
+    let initial = orgName.charAt(0);
+    return initial.toUpperCase();
+  },
+
   render() {
     let singleOrganization = ConfigStore.get('singleOrganization');
     let activeOrg = this.props.organization;
@@ -54,18 +61,30 @@ const OrganizationSelector = React.createClass({
           <SidebarPanel
             title={t('Organizations')}
             hidePanel={this.props.hidePanel}>
-            <ul class="org-list">
-              <li>
+            <ul className="org-list list-unstyled">
               {OrganizationStore.getAll().map((org) => {
                 return (
-                  <Link className={activeOrg.id === org.id && "active"} key={org.slug} to={`/${org.slug}/`}>
-                    {org.name}
-                  </Link>
+                  <li className={activeOrg.id === org.id ? "org active" : "org"} key={org.slug}>
+                    <Link className="org-avatar" to={`/${org.slug}/`}>
+                      {this.getInitial(org.name)}
+                    </Link>
+                    <h5><Link to={`/${org.slug}/`}>{org.name}</Link></h5>
+                    <p>
+                      <a href={`/organizations/${org.slug}/settings/`}>
+                        <span className="icon-settings"/> {t("Settings")}
+                      </a>
+                      <a href={`/organizations/${org.slug}/members/`}>
+                        <span className="icon-users"/> {t("Members")}
+                      </a>
+                    </p>
+                  </li>
                 );
               })}
-              </li>
+
               {features.has('organizations:create') &&
-                <li><a href="/organizations/new/">{t('New Organization')}</a></li>
+                <li className="org-create">
+                  <a href="/organizations/new/" className="btn btn-default btn-block">{t('New Organization')}</a>
+                </li>
               }
             </ul>
           </SidebarPanel>
