@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 import logging
 
+from celery.task import current
+
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
@@ -48,6 +50,10 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
             )
         return
 
+    # Wait until all Teams have actually been deleted before continuing
+    if Team.objects.filter(organization=o).exists():
+        current.retry(exc=Exception('waiting a bit'), countdown=15)
+
     model_list = (OrganizationMember,)
 
     has_more = delete_objects(model_list, transaction_id=transaction_id, relation={'organization': o}, logger=logger)
@@ -58,6 +64,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
                 countdown=15,
             )
         return
+
     o_id = o.id
     o.delete()
     logger.info('object.delete.executed', extra={
@@ -95,6 +102,10 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
                 countdown=15,
             )
         return
+
+    # Wait until all Projects have actually been deleted before continuing
+    if Project.objects.filter(team=t).exists():
+        current.retry(exc=Exception('waiting a bit'), countdown=15)
 
     t_id = t.id
     t.delete()
