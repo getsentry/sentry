@@ -48,10 +48,12 @@ const OrganizationSelector = React.createClass({
       classNames += " active";
     }
 
+    let hoverIntent;
+
     return (
       <div className={classNames}
-        onMouseEnter={this.props.onShowPanel}
-        onMouseLeave={this.props.hidePanel}>
+        onMouseEnter={()=> {hoverIntent = setTimeout(this.props.onShowPanel, 300);}}
+        onMouseLeave={()=> {this.props.hidePanel(); clearTimeout(hoverIntent); }}>
 
         <a className="active-org" href="/">
           <img src="https://pbs.twimg.com/profile_images/497432038492733440/eW6tXeq3_400x400.png" />
