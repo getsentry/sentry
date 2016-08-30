@@ -30,7 +30,7 @@ except ImportError:
     class ZeroReturnError(Exception):
         pass
 
-USER_AGENT = 'sentry/{version} (https://getsentry.com)'.format(
+USER_AGENT = 'sentry/{version} (https://sentry.io)'.format(
     version=sentry.VERSION,
 )
 

@@ -173,7 +173,7 @@ class BaseTestCase(Fixtures, Exam):
                 **extra
             )
 
-    def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+    def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 
@@ -195,7 +195,7 @@ class BaseTestCase(Fixtures, Exam):
             )
         return resp
 
-    def _postWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+    def _postWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 

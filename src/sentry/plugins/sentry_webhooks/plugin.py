@@ -31,7 +31,7 @@ class WebHooksOptionsForm(notify.NotificationConfigurationForm):
     urls = forms.CharField(
         label=_('Callback URLs'),
         widget=forms.Textarea(attrs={
-            'class': 'span6', 'placeholder': 'https://getsentry.com/callback/url'}),
+            'class': 'span6', 'placeholder': 'https://sentry.io/callback/url'}),
         help_text=_('Enter callback URLs to POST new events to (one per line).'))
 
     def clean_url(self):
@@ -68,7 +68,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'label': 'Callback URLs',
             'type': 'textarea',
             'help': 'Enter callback URLs to POST new events to (one per line).',
-            'placeholder': 'https://getsentry.com/callback/url',
+            'placeholder': 'https://sentry.io/callback/url',
             'validators': [validate_urls],
         }]
 
