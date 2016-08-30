@@ -1,7 +1,7 @@
 import React from 'react';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
-import IssuePluginConfigForm from '../components/plugins/pluginConfigureForm';
+import PluginConfigForm from '../components/plugins/pluginConfigureForm';
 import {t} from '../locale';
 
 const IssuePluginConfiguration = React.createClass({
@@ -13,15 +13,17 @@ const IssuePluginConfiguration = React.createClass({
 
   mixins: [ApiMixin],
 
-  getPluginDisableEndpoint(plugin) {
+  getPluginEndpoint(plugin) {
     let org = this.props.organization;
     let project = this.props.project;
-    return ('/projects/' + org.slug + '/' + project.slug +
-            '/plugin/' + plugin.slug + '/disable/');
+    return (
+      `/projects/${org.slug}/${project.slug}/plugins/${plugin.id}/`
+    );
   },
 
   disablePlugin(plugin) {
-    this.api.request(this.getPluginDisableEndpoint(plugin), {
+    this.api.request(this.getPluginEndpoint(plugin), {
+      method: 'DELETE',
       success: () => {
         // When this whole page is a react view, this won't be necessary
         window.location.reload();
@@ -43,15 +45,15 @@ const IssuePluginConfiguration = React.createClass({
       <div>
         {this.props.plugins.map((plugin) => {
           return (
-            <div className="box" key={plugin.slug}>
+            <div className="box" key={plugin.id}>
               <div className="box-header">
-                {plugin.can_disable && plugin.is_enabled &&
+                {plugin.canDisable && plugin.enabled &&
                   <button className="btn btn-sm btn-default pull-right"
                           onClick={this.disablePlugin.bind(this, plugin)}>{t('Disable')}</button>}
                 <h3>{plugin.title}</h3>
               </div>
               <div className="box-content with-padding">
-                <IssuePluginConfigForm plugin={plugin} key={plugin.slug} {...this.props}/>
+                <PluginConfigForm plugin={plugin} {...this.props}/>
               </div>
             </div>
           );

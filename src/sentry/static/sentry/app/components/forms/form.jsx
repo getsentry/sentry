@@ -14,7 +14,7 @@ const Form = React.createClass({
     return {
       submitLabel: t('Save Changes'),
       submitDisabled: false,
-      footerClass: 'form-actions'
+      footerClass: 'form-actions align-right'
     };
   },
 

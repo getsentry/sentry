@@ -55,6 +55,9 @@ class NotificationPlugin(Plugin):
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
 
+    def get_plugin_type(self):
+        return 'notification'
+
     def notify(self, notification):
         self.logger.info('notification.dispatched', extra={
             'event_id': notification.event.id,

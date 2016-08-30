@@ -113,7 +113,7 @@ const ProjectSettings = React.createClass({
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
             <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
-            {project.activePlugins.map((plugin) => {
+            {project.plugins.filter(p => p.enabled).map((plugin) => {
               return <li key={plugin.id}><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
             })}
           </ul>

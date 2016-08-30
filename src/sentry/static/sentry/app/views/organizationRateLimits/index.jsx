@@ -1,77 +1,11 @@
-import jQuery from 'jquery';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
-import {t,tct} from '../../locale';
-
-const RangeInput = React.createClass({
-  propTypes: {
-    min: React.PropTypes.number.isRequired,
-    max: React.PropTypes.number.isRequired,
-    step: React.PropTypes.number.isRequired,
-    defaultValue: React.PropTypes.number,
-    formatLabel: React.PropTypes.func.isRequired,
-    onChange: React.PropTypes.func.isRequired
-  },
-
-  getDefaultProps() {
-    return {
-      min: 1,
-      max: 100,
-      step: 1,
-      formatLabel: function(value) {
-        return value;
-      },
-      onChange: function(e, value) {
-
-      },
-    };
-  },
-
-  getInitialState() {
-    return {
-      value: this.props.defaultValue,
-    };
-  },
-
-  componentDidMount() {
-    let {min, max, step} = this.props;
-    let $value = jQuery('<span class="value" />');
-    jQuery(this.refs.input).on('slider:ready', (e, data) => {
-      $value.appendTo(data.el);
-      $value.text(this.props.formatLabel(data.value));
-      this.setState({
-        value: data.value,
-      });
-    }).on('slider:changed', (e, data) => {
-      $value.text(this.props.formatLabel(data.value));
-      this.setState({
-        value: data.value,
-      });
-      this.props.onChange(e, data.value);
-    }).simpleSlider({
-      range: [min, max],
-      step: step,
-      snap: true
-    });
-  },
-
-  render() {
-    let {min, max, step} = this.props;
-    let {value} = this.state;
-    return (
-      <input type="range"
-          min={min}
-          max={max}
-          step={step}
-          defaultValue={value}
-          ref="input" />
-    );
-  },
-});
+import {RangeInput} from '../../components/forms';
+import {t, tct} from '../../locale';
 
 const RateLimitEditor = React.createClass({
   propTypes: {
