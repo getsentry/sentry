@@ -2,7 +2,7 @@
 
 <style type="text/css">
   body {
-    background-image: url("{% absolute_asset_url 'sentry' 'images/email/sentry-pattern.png' %}");
+    background-image: url("{% data_uri 'sentry' 'images/email/sentry-pattern.png' %}");
   }
   body, .main {
     width: 100%;
@@ -728,7 +728,7 @@
     font-size: 32px;
     color: #836CC2;
     background-size: 90px 90px;
-    background-image: url("{% absolute_asset_url 'sentry' 'images/email/circle-bg.png' %}");
+    background-image: url("{% data_uri 'sentry' 'images/email/circle-bg.png' %}");
   }
 
   .weekly-report .user-impact-text {

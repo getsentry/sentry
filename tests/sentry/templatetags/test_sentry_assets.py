@@ -39,3 +39,11 @@ class AssetsTest(TestCase):
         }))
 
         assert result.strip() == ''
+
+    def test_data_uri(self):
+        result = Template("""
+            {% load sentry_assets %}
+            {% data_uri 'sentry' 'images/favicon.ico' %}
+        """).render(Context())
+
+        assert result.strip().startswith('data:image/x-icon;base64,')

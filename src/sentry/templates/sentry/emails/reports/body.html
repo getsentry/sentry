@@ -10,7 +10,7 @@
     <tr>
       <td width="125px">
         <h1>
-          <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+          <a href="{% absolute_uri %}"><img src="{% data_uri 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
         </h1>
       </td>
       <td class="align-right">
@@ -72,9 +72,9 @@
           {% if change %}
             <div class="stat">
             {% if change >= 0 %}
-                <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
+                <img src="{% data_uri 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
             {% else %}
-                <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
+                <img src="{% data_uri 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
             {% endif %}
             {{ change|multiply:"100"|absolute_value|floatformat:"-1" }}%
             </div>

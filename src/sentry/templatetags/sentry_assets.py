@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
+import os
+import mimetypes
+from base64 import b64encode
+
 from django.conf import settings
 from django.template import Library
 
 from sentry import options
-from sentry.utils.assets import get_asset_url
+from sentry.utils.assets import get_asset_url, resolve
 from sentry.utils.http import absolute_uri
 
 register = Library()
@@ -58,3 +62,15 @@ def locale_js_include(context):
 
     href = get_asset_url("sentry", "dist/locale/" + lang_code + ".js")
     return "<script src=\"{0}\"{1}></script>".format(href, crossorigin())
+
+
+@register.simple_tag
+def data_uri(module, path):
+    document_root, path = resolve(os.path.join(module, path))
+    with open(os.path.join(document_root, path), 'rb') as fp:
+        data = fp.read()
+
+    return 'data:%s;base64,%s' % (
+        mimetypes.guess_type(path)[0],
+        b64encode(data),
+    )
