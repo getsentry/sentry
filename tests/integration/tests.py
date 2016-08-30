@@ -203,7 +203,7 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_get(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs)
@@ -211,7 +211,7 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_get_without_referer(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
@@ -225,7 +225,7 @@ class SentryRemoteTest(TestCase):
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
         assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_post_referer(self):
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs)
@@ -233,7 +233,7 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_post_without_referer(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}

@@ -24,7 +24,7 @@ class ProjectPluginDetailsTest(APITestCase):
         assert response.data['config'] == [{
             'readonly': False,
             'choices': None,
-            'placeholder': 'https://getsentry.com/callback/url',
+            'placeholder': 'https://sentry.io/callback/url',
             'name': 'urls',
             'help': 'Enter callback URLs to POST new events to (one per line).',
             'defaultValue': None,

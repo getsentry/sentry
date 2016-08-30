@@ -467,7 +467,7 @@ setup(
     version=VERSION,
     author='Sentry',
     author_email='hello@getsentry.com',
-    url='https://getsentry.com',
+    url='https://sentry.io',
     description='A realtime logging and aggregation server.',
     long_description=open(os.path.join(ROOT, 'README.rst')).read(),
     package_dir={'': 'src'},

@@ -6,7 +6,7 @@
                     "frames": [
                         {
                             "function": "member",
-                            "abs_path": "https://app.getsentry.com/_static/sentry/scripts/views.js",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
                             "pre_context": [
                                 "        removeMember: function(member){",
                                 "            this.collection.remove(member);",
@@ -28,8 +28,8 @@
                             "in_app": true,
                             "data": {
                                 "orig_filename": "/_static/sentry/scripts/global.min.js",
-                                "orig_abs_path": "https://app.getsentry.com/_static/sentry/scripts/global.min.js",
-                                "sourcemap": "https://app.getsentry.com/_static/sentry/scripts/global.min.map.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
                                 "orig_lineno": 1,
                                 "orig_function": "app.OrderedElementsView.Backbone.View.extend.updateMember",
                                 "orig_colno": 14930
@@ -39,7 +39,7 @@
                         },
                         {
                             "function": "merge",
-                            "abs_path": "https://app.getsentry.com/_static/sentry/scripts/views.js",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
                             "pre_context": [
                                 "            var existing = this.collection.get(member.id);",
                                 "            if (existing.get('version') > member.get('version'))",
@@ -61,8 +61,8 @@
                             "in_app": true,
                             "data": {
                                 "orig_filename": "/_static/sentry/scripts/global.min.js",
-                                "orig_abs_path": "https://app.getsentry.com/_static/sentry/scripts/global.min.js",
-                                "sourcemap": "https://app.getsentry.com/_static/sentry/scripts/global.min.map.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
                                 "orig_lineno": 1,
                                 "orig_function": "app.OrderedElementsView.Backbone.View.extend.addMember",
                                 "orig_colno": 14663
@@ -72,7 +72,7 @@
                         },
                         {
                             "function": "poll",
-                            "abs_path": "https://app.getsentry.com/_static/sentry/scripts/views.js",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
                             "pre_context": [
                                 "",
                                 "        poll: function(){",
@@ -94,8 +94,8 @@
                             "in_app": true,
                             "data": {
                                 "orig_filename": "/_static/sentry/scripts/global.min.js",
-                                "orig_abs_path": "https://app.getsentry.com/_static/sentry/scripts/global.min.js",
-                                "sourcemap": "https://app.getsentry.com/_static/sentry/scripts/global.min.map.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
                                 "orig_lineno": 1,
                                 "orig_function": "app.GroupListView.app.OrderedElementsView.extend.tick",
                                 "orig_colno": 16467

@@ -17,4 +17,4 @@ class OutView(View):
             query = '?install_id=' + install_id
         else:
             query = ''
-        return HttpResponseRedirect('https://getsentry.com/from/self-hosted/' + query)
+        return HttpResponseRedirect('https://sentry.io/from/self-hosted/' + query)
