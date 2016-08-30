@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from collections import defaultdict
 from django.conf import settings
 
 from sentry.app import env
@@ -93,7 +94,7 @@ class UserSerializer(Serializer):
 
         if attrs['identities'] is not None:
             d['identities'] = [{
-                'id': i.id,
+                'id': six.text_type(i.id),
                 'name': i.ident,
                 'organization': {
                     'slug': i.auth_provider.organization.slug,
@@ -107,4 +108,31 @@ class UserSerializer(Serializer):
                 'dateVerified': i.last_verified,
             } for i in attrs['identities']]
 
+        return d
+
+
+class DetailedUserSerializer(UserSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(DetailedUserSerializer, self).get_attrs(item_list, user)
+
+        authenticators = defaultdict(list)
+        queryset = Authenticator.objects.filter(
+            user__in=item_list,
+        )
+        for auth in queryset:
+            authenticators[auth.user_id].append(auth)
+
+        for item in item_list:
+            attrs[item]['authenticators'] = authenticators[item.id]
+
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        d = super(DetailedUserSerializer, self).serialize(obj, attrs, user)
+        d['authenticators'] = [{
+            'id': six.text_type(a.id),
+            'type': a.type,
+            'dateCreated': a.created_at,
+            'dateUsed': a.last_used_at,
+        } for a in attrs['authenticators']]
         return d
