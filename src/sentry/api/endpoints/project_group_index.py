@@ -666,7 +666,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         for group in group_list:
             delete_group.apply_async(
                 kwargs={'object_id': group.id},
-                countdown=3600,
             )
 
         return Response(status=204)

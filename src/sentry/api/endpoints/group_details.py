@@ -331,7 +331,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if updated:
             delete_group.apply_async(
                 kwargs={'object_id': group.id},
-                countdown=3600,
             )
 
         return Response(status=202)
