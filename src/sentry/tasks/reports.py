@@ -7,7 +7,6 @@ import operator
 import zlib
 from collections import namedtuple
 from datetime import timedelta
-from six.moves import reduce
 
 from django.utils import dateformat, timezone
 
@@ -15,14 +14,14 @@ from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
-    Release, TagValue, Team, User, UserOption,
+    Release, TagValue, Team, User, UserOption
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
-
+from six.moves import reduce
 
 date_format = functools.partial(
     dateformat.format,
@@ -195,10 +194,8 @@ def prepare_project_issue_list(interval, project):
 
     queryset = project.group_set.exclude(status=GroupStatus.MUTED)
 
-    issue_ids = set()
-
     # Fetch all new issues.
-    issue_ids.update(
+    new_issue_ids = set(
         queryset.filter(
             first_seen__gte=start,
             first_seen__lt=stop,
@@ -212,7 +209,7 @@ def prepare_project_issue_list(interval, project):
     # past week. (In theory, the activity table *could* be used to answer this
     # query without the subselect, but there's no suitable indexes to make it's
     # performance predictable.)
-    issue_ids.update(
+    reopened_issue_ids = set(
         Activity.objects.filter(
             group__in=queryset.filter(
                 last_seen__gte=start,
@@ -228,33 +225,52 @@ def prepare_project_issue_list(interval, project):
         ).distinct().values_list('group_id', flat=True)
     )
 
+    issue_list_candidates = new_issue_ids | reopened_issue_ids
+
     rollup = 60 * 60 * 24
 
-    events = tsdb.get_sums(
+    event_counts = tsdb.get_sums(
         tsdb.models.group,
-        issue_ids,
+        issue_list_candidates,
         start,
         stop,
         rollup=rollup,
     )
 
-    users = tsdb.get_distinct_counts_totals(
+    user_counts = tsdb.get_distinct_counts_totals(
         tsdb.models.users_affected_by_group,
-        issue_ids,
+        issue_list_candidates,
         start,
         stop,
         rollup=rollup,
+    )
+
+    new_issue_count = sum(event_counts[id] for id in new_issue_ids)
+    reopened_issue_count = sum(event_counts[id] for id in reopened_issue_ids)
+    existing_issue_count = max(
+        tsdb.get_sums(
+            tsdb.models.project,
+            [project.id],
+            start,
+            stop,
+            rollup=rollup,
+        )[project.id] - new_issue_count - reopened_issue_count,
+        0,
     )
 
     return (
-        len(issue_ids),
-        trim_issue_list([(id, (events[id], users[id])) for id in issue_ids]),
+        [
+            new_issue_count,
+            reopened_issue_count,
+            existing_issue_count,
+        ],
+        trim_issue_list([(id, (event_counts[id], user_counts[id])) for id in issue_list_candidates]),
     )
 
 
 def merge_issue_lists(target, other):
     return (
-        target[0] + other[0],
+        merge_sequences(target[0], other[0]),
         trim_issue_list(target[1] + other[1]),
     )
 
@@ -336,7 +352,7 @@ class DummyReportBackend(ReportBackend):
 
 
 class RedisReportBackend(ReportBackend):
-    version = 0
+    version = 1
 
     def __init__(self, cluster, ttl, namespace='r'):
         self.cluster = cluster
@@ -626,6 +642,7 @@ def rewrite_issue_list((count, issues), fetch_groups=None):
 
 
 Point = namedtuple('Point', 'resolved unresolved')
+DistributionType = namedtuple('DistributionType', 'label color')
 
 
 def to_context(report, fetch_groups=None):
@@ -638,6 +655,19 @@ def to_context(report, fetch_groups=None):
             'maximum': max(sum(point) for timestamp, point in series),
             'all': sum([sum(point) for timestamp, point in series]),
             'resolved': sum([point.resolved for timestamp, point in series]),
+        },
+        'distribution': {
+            'types': list(
+                zip(
+                    (
+                        DistributionType('New', '#c9c2e1'),
+                        DistributionType('Reopened', '#9990ab'),
+                        DistributionType('Existing', '#675f76'),
+                    ),
+                    issue_list[0],
+                ),
+            ),
+            'total': sum(issue_list[0]),
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),
