@@ -16,9 +16,9 @@ from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
+    Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
     GroupSubscription, GroupSubscriptionReason, GroupSnooze, GroupStatus,
-    Release, TagKey
+    Release, TagKey,
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
@@ -663,6 +663,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 GroupStatus.DELETION_IN_PROGRESS,
             ]
         ).update(status=GroupStatus.PENDING_DELETION)
+        GroupHash.objects.filter(group__id__in=group_ids).delete()
         for group in group_list:
             delete_group.apply_async(
                 kwargs={'object_id': group.id},

@@ -6,9 +6,10 @@ from datetime import timedelta
 from django.utils import timezone
 from exam import fixture
 from mock import patch
+from uuid import uuid4
 
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
+    Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
     GroupSnooze, GroupSubscription, GroupStatus, Release
 )
 from sentry.testutils import APITestCase
@@ -692,6 +693,13 @@ class GroupDeleteTest(APITestCase):
             project=self.create_project(slug='foo'),
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)
 
+        for g in group1, group2, group3, group4:
+            GroupHash.objects.create(
+                project=g.project,
+                hash=uuid4().hex,
+                group=g,
+            )
+
         self.login_as(user=self.user)
         url = '{url}?id={group1.id}&id={group2.id}&group4={group4.id}'.format(
             url=self.path,
@@ -700,19 +708,37 @@ class GroupDeleteTest(APITestCase):
             group4=group4,
         )
 
+        response = self.client.delete(url, format='json')
+
+        assert response.status_code == 204
+
+        assert Group.objects.get(id=group1.id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=group1.id).exists()
+
+        assert Group.objects.get(id=group2.id).status == GroupStatus.PENDING_DELETION
+        assert not GroupHash.objects.filter(group_id=group2.id).exists()
+
+        assert Group.objects.get(id=group3.id).status != GroupStatus.PENDING_DELETION
+        assert GroupHash.objects.filter(group_id=group3.id).exists()
+
+        assert Group.objects.get(id=group4.id).status != GroupStatus.PENDING_DELETION
+        assert GroupHash.objects.filter(group_id=group4.id).exists()
+
+        Group.objects.filter(id__in=(group1.id, group2.id)).update(status=GroupStatus.UNRESOLVED)
+
         with self.tasks():
             response = self.client.delete(url, format='json')
 
         assert response.status_code == 204
 
-        new_group1 = Group.objects.filter(id=group1.id)
-        assert not new_group1.exists()
+        assert not Group.objects.filter(id=group1.id).exists()
+        assert not GroupHash.objects.filter(group_id=group1.id).exists()
 
-        new_group2 = Group.objects.filter(id=group2.id)
-        assert not new_group2.exists()
+        assert not Group.objects.filter(id=group2.id).exists()
+        assert not GroupHash.objects.filter(group_id=group2.id).exists()
 
-        new_group3 = Group.objects.filter(id=group3.id)
-        assert new_group3.exists()
+        assert Group.objects.filter(id=group3.id).exists()
+        assert GroupHash.objects.filter(group_id=group3.id).exists()
 
-        new_group4 = Group.objects.filter(id=group4.id)
-        assert new_group4.exists()
+        assert Group.objects.filter(id=group4.id).exists()
+        assert GroupHash.objects.filter(group_id=group4.id).exists()
