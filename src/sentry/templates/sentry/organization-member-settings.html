@@ -109,7 +109,7 @@
             <div class="control-group col-md-4">
               <div class="controls">
                 <label class="checkbox">
-                  <input type="checkbox" name="teams" value="{{ team_id }}"
+                  <input type="checkbox" name="teams" value="{{ team.id }}"
                          class="checkboxinput"{% if team.id in form.teams.value %} checked="checked"{% endif %}>
                     {{ team.name }}
                     <span class="team-slug">{{ team.slug }}</span>
