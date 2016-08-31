@@ -4,10 +4,9 @@ import underscore from 'underscore';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
-import PluginConfigForm from '../components/plugins/pluginConfigureForm';
+import {DefaultPlugin} from '../plugin';
 import {FormState, RangeField} from '../components/forms';
 import {t} from '../locale';
-
 
 const ProjectDigestSettings = React.createClass({
   propTypes: {
@@ -246,6 +245,10 @@ const ProjectAlertSettings = React.createClass({
           onSave={this.onDigestsChange} />
 
         {plugins.filter(p => p.enabled).map((plugin) => {
+          // TODO(dcramer): switch window.SentryPlugins out with a plugin registry/cache
+          let pluginCls = (window.SentryPlugins[plugin.id] || DefaultPlugin);
+          console.log('[plugins] Loading ' + plugin.id + ' from ' + pluginCls.name);
+          let pluginObj = new (pluginCls)();
           return (
             <div className="box" key={plugin.id}>
               <div className="box-header">
@@ -258,10 +261,11 @@ const ProjectAlertSettings = React.createClass({
                 <h3>{plugin.name}</h3>
               </div>
               <div className="box-content with-padding">
-                <PluginConfigForm
-                  organization={organization}
-                  project={project}
-                  plugin={plugin} />
+                {pluginObj.renderSettings({
+                  organization: organization,
+                  project: project,
+                  plugin: plugin,
+                })}
               </div>
             </div>
           );
