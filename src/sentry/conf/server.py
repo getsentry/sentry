@@ -244,7 +244,6 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
-    'captcha',
     'crispy_forms',
     'debug_toolbar',
     'raven.contrib.django.raven_compat',
@@ -616,14 +615,6 @@ REST_FRAMEWORK = {
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
-
-# django-recaptcha
-
-RECAPTCHA_PUBLIC_KEY = None
-RECAPTCHA_PRIVATE_KEY = None
-NOCAPTCHA = True
-
-CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
 # Percy config for visual regression testing.
 
