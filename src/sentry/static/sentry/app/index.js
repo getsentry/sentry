@@ -46,6 +46,8 @@ export default {
   Sentry: {
     api: require('./api'),
     routes: require('./routes'),
+    Plugin: require('./plugin').default,
+
     createHistory: require('history/lib/createBrowserHistory'),
     Alerts: require('./components/alerts'),
     AlertActions: require('./actions/alertActions'),
@@ -62,7 +64,6 @@ export default {
     FlotChart: require('./components/flotChart'),
     HookStore: require('./stores/hookStore'),
     Indicators: require('./components/indicators'),
-    IssuePluginConfigForm: require('./components/plugins/pluginConfigureForm'),
     IssuePluginConfiguration: require('./views/projectIssueTracking'),
     LoadingError: require('./components/loadingError'),
     LoadingIndicator: require('./components/loadingIndicator'),
