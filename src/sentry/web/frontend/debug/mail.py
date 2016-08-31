@@ -459,13 +459,9 @@ def report(request):
     def build_issue_list():
         summaries = []
         for i in range(3):
-            issues = int(random.weibullvariate(10, 1))
-            summaries.append((
-                issues,
-                int(issues * random.paretovariate(0.5)),
-            ))
-
-        count = sum(s[1] for s in summaries)
+            summaries.append(
+                int(random.weibullvariate(10, 1) * random.paretovariate(0.5))
+            )
 
         return summaries, [(
             next(group_id_sequence),
@@ -473,7 +469,7 @@ def report(request):
                 int(random.paretovariate(0.3)),
                 int(random.paretovariate(0.3)),
             ),
-        ) for _ in xrange(0, min(count, 5))]
+        ) for _ in xrange(0, random.randint(1, 5))]
 
     def build_release_list():
         return reports.trim_release_list([
