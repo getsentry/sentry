@@ -503,14 +503,16 @@ def fetch_personal_statistics((start, stop), organization, user):
 
 Duration = namedtuple(
     'Duration', (
-        'adjective',  # e.g. "daily" or "weekly",
-        'noun',       # relative to today, e.g. "yesterday" or "this week"
+        'adjective',    # e.g. "daily" or "weekly",
+        'noun',         # relative to today, e.g. "yesterday" or "this week"
+        'date_format',  # date format used for series x axis labeling
     ))
 
 durations = {
     (60 * 60 * 24 * 7): Duration(
         'weekly',
         'this week',
+        'D',
     ),
 }
 
@@ -647,7 +649,7 @@ DistributionType = namedtuple('DistributionType', 'label color')
 
 def to_context(report, fetch_groups=None):
     series, aggregates, issue_list, release_list = report
-    series = [(timestamp, Point(*values)) for timestamp, values in series]
+    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in series]
 
     return {
         'series': {

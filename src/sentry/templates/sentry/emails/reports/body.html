@@ -44,17 +44,17 @@
     <tr>
       <td class="issues-resolved-column issues-resolved-column-left">
         <table class="issue-graph">
-          <tr>
+          <tr class="graph">
           {% with report.series.maximum as max %}
           {% for timestamp, metrics in report.series.points %}
-            <td valign="bottom" style="padding-right: 5px;">
+            <td valign="bottom" style="width: {% widthratio 1 report.series.points|length 100 %}%">
               <table class="issue-graph-bar">
                 {% if metrics.resolved or metrics.unresolved %}
                   <tr>
-                    <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
+                    <td class="all" height="{% widthratio metrics.unresolved max 52 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
                   </tr>
                   <tr>
-                    <td class="resolved" height="{% widthratio metrics.resolved max 56 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
+                    <td class="resolved" height="{% widthratio metrics.resolved max 52 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
                   </tr>
                 {% else %}
                   <tr><td></td></tr>
@@ -64,6 +64,11 @@
             </td>
           {% endfor %}
           {% endwith %}
+          </tr>
+          <tr class="labels">
+            {% for timestamp, metrics in report.series.points %}
+              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format }}</td>
+            {% endfor %}
           </tr>
         </table>
       </td>
