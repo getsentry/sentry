@@ -83,7 +83,8 @@
     {% if issue_v2_plugin %}
         <script>
         $(function(){
-            ReactDOM.render(React.createFactory(Sentry.IssuePluginConfigForm)({
+            // TODO(dcramer): this needs to render the Plugin settings)
+            ReactDOM.render(React.createFactory(Sentry.Plugin.DefaultSettingsComponent)({
                 project: {% serialize project %},
                 organization: {% serialize organization %},
                 plugin: {% serialize issue_v2_plugin %}

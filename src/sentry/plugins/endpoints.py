@@ -14,6 +14,8 @@ class PluginProjectEndpoint(ProjectEndpoint):
     view = None
 
     def _handle(self, request, project, *args, **kwargs):
+        if self.view is None:
+            return Response(status=405)
         return self.view(request, project, *args, **kwargs)
 
     def get(self, request, project, *args, **kwargs):
@@ -31,6 +33,9 @@ class PluginGroupEndpoint(GroupEndpoint):
     view = None
 
     def _handle(self, request, group, *args, **kwargs):
+        if self.view is None:
+            return Response(status=405)
+
         GroupMeta.objects.populate_cache([group])
 
         return self.view(request, group, *args, **kwargs)

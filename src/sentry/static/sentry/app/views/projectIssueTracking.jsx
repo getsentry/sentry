@@ -1,7 +1,7 @@
 import React from 'react';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
-import PluginConfigForm from '../components/plugins/pluginConfigureForm';
+import {DefaultPlugin} from '../plugin';
 import {t} from '../locale';
 
 const IssuePluginConfiguration = React.createClass({
@@ -44,6 +44,9 @@ const IssuePluginConfiguration = React.createClass({
     return (
       <div>
         {this.props.plugins.map((plugin) => {
+          let pluginCls = (window.SentryPlugins[plugin.id] || DefaultPlugin);
+          console.log('[plugins] Loading ' + plugin.id + ' as ' + pluginCls.name);
+          let pluginObj = new (pluginCls)();
           return (
             <div className="box" key={plugin.id}>
               <div className="box-header">
@@ -53,12 +56,15 @@ const IssuePluginConfiguration = React.createClass({
                 <h3>{plugin.title}</h3>
               </div>
               <div className="box-content with-padding">
-                <PluginConfigForm plugin={plugin} {...this.props}/>
+                {pluginObj.renderSettings(Object.assign({
+                  plugin: plugin,
+                }, this.props))}
               </div>
             </div>
           );
         })}
-      </div>);
+      </div>
+    );
   }
 });
 
