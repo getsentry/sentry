@@ -9,15 +9,11 @@ from __future__ import absolute_import
 
 import functools
 import os.path
-import pytz
-import six
-
 from collections import namedtuple
 from datetime import timedelta
-from pkg_resources import parse_version as Version
-from six.moves import range
-from six.moves.urllib.parse import quote, urlencode
 
+import pytz
+import six
 from django import template
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -26,25 +22,22 @@ from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+from pkg_resources import parse_version as Version
+from templatetag_sugar.parser import Constant, Name, Optional, Variable
+from templatetag_sugar.register import tag
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.models import UserAvatar, Organization
+from sentry.models import Organization, UserAvatar
 from sentry.utils import json
-from sentry.utils.strings import to_unicode
 from sentry.utils.avatar import (
-    get_gravatar_url,
-    get_email_avatar,
-    get_letter_avatar
+    get_email_avatar, get_gravatar_url, get_letter_avatar
 )
 from sentry.utils.javascript import to_json
-from sentry.utils.strings import (
-    soft_break as _soft_break,
-    soft_hyphenate,
-    truncatechars,
-)
-from templatetag_sugar.register import tag
-from templatetag_sugar.parser import Name, Variable, Constant, Optional
+from sentry.utils.strings import soft_break as _soft_break
+from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
+from six.moves import range
+from six.moves.urllib.parse import quote, urlencode
 
 SentryVersion = namedtuple('SentryVersion', [
     'current', 'latest', 'update_available', 'build',

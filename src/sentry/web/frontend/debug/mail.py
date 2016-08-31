@@ -2,47 +2,33 @@ from __future__ import absolute_import, print_function
 
 import itertools
 import logging
-import six
 import time
 import traceback
 import uuid
+from datetime import datetime, timedelta
+from random import Random
 
-from datetime import (
-    datetime,
-    timedelta,
-)
+import six
 from django.contrib.webdesign.lorem_ipsum import WORDS
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
-from random import Random
 
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
-from sentry.digests.notifications import (
-    Notification,
-    build_digest,
-)
+from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
 from sentry.http import get_server_hostname
 from sentry.models import (
-    Activity,
-    Event,
-    Group,
-    GroupStatus,
-    Organization,
-    OrganizationMember,
-    Project,
-    Release,
-    Rule,
-    Team,
+    Activity, Event, Group, GroupStatus, Organization, OrganizationMember,
+    Project, Release, Rule, Team
 )
 from sentry.plugins.sentry_mail.activity import emails
 from sentry.utils.dates import to_datetime, to_timestamp
-from sentry.utils.samples import load_data
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
+from sentry.utils.samples import load_data
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
