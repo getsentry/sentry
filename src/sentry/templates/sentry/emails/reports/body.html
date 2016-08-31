@@ -87,6 +87,34 @@
     </tr>
   </table>
 
+  {% with report.distribution.total as total %}
+  <table class="issue-breakdown">
+    <tr>
+      <td>
+        <h4>Issue Breakdown</h4>
+      </td>
+      <td class="legend">
+        {% for type, count in report.distribution.types %}
+          <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent count total "0.1f" %}%
+        {% endfor %}
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <table>
+          <tr>
+            {% for type, count in report.distribution.types %}
+              <td width="{% widthratio count total 100 %}%" title="{{ type.label }}: {{ count }} events" style="background-color: {{ type.color }}">
+                &nbsp;
+              </td>
+            {% endfor %}
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% endwith %}
+
   <table class="issue-table">
     <thead>
       <tr>

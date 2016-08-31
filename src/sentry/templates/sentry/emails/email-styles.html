@@ -11,7 +11,8 @@
     padding: 0;
     margin: 0;
     background-color: #fff;
-    color: #3D4649;
+    color: #342c3e;
+    -webkit-font-smoothing: antialiased;
   }
   .main {
     max-width: 700px;
@@ -26,7 +27,7 @@
     font-weight: 300;
   }
   a {
-    color: #15A7F6;
+    color: #5688bf;
     font-weight: 500;
     text-decoration: none;
   }
@@ -147,8 +148,8 @@
   }
 
   .info-box {
-    background-color: #FDFDFE;
-    border: 1px solid #D6DBE4;
+    background-color: #f7f5fa;
+    border: 1px solid #dbd3e9;
     border-radius: 3px;
     padding: 15px;
     text-align: center;
@@ -668,15 +669,12 @@
 
   .weekly-report .legend .all,
   .weekly-report .issue-graph-bar .all {
-    background-color: #D6DBE4;
+    background-color: #e9e6ec;
   }
 
   .weekly-report .legend .resolved,
   .weekly-report .issue-graph-bar .resolved {
-    background-color: #A290D1;
-  }
-  .weekly-report .issues-resolved {
-    margin-bottom: 30px;
+    background-color: #675f76;
   }
 
   .weekly-report .issues-resolved .issues-resolved-column {
@@ -718,6 +716,15 @@
     font-size: 0;
   }
 
+  .weekly-report .issue-breakdown {
+    border-bottom: 1px solid #D6DBE4;
+    margin-bottom: 30px;
+  }
+
+  .weekly-report .issue-breakdown table {
+    margin-bottom: 40px;
+  }
+
   .weekly-report .user-impact {}
 
   .weekly-report .user-impact-stat {
@@ -726,7 +733,7 @@
     vertical-align: middle;
     text-align: center;
     font-size: 32px;
-    color: #836CC2;
+    color: #675f76;
     background-size: 90px 90px;
     background-image: url("{% absolute_asset_url 'sentry' 'images/email/circle-bg.png' %}");
   }
