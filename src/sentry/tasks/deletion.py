@@ -40,7 +40,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
 
     for team in Team.objects.filter(organization=o).exclude(status=TeamStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
-        delete_team(team.id, transaction_id=transaction_id, continuous=False)
+        delete_team(team.id, transaction_id=transaction_id)
         if continuous:
             delete_organization.apply_async(
                 kwargs={'object_id': object_id, 'transaction_id': transaction_id},
@@ -88,7 +88,7 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
     # Delete 1 project at a time since this is expensive by itself
     for project in Project.objects.filter(team=t).exclude(status=ProjectStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
-        delete_project(project.id, transaction_id=transaction_id, continuous=False)
+        delete_project(project.id, transaction_id=transaction_id)
         if continuous:
             delete_team.apply_async(
                 kwargs={'object_id': object_id, 'transaction_id': transaction_id},
