@@ -27,6 +27,7 @@ const Frame = React.createClass({
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
     emptySourceNotation: React.PropTypes.bool,
+    isOnlyFrame: React.PropTypes.bool,
   },
 
   mixins: [
@@ -71,7 +72,7 @@ const Frame = React.createClass({
 
   isExpandable() {
     return (
-      this.props.emptySourceNotation
+      (!this.props.isOnlyFrame && this.props.emptySourceNotation)
       || this.hasContextSource()
       || this.hasContextVars()
     );
@@ -322,7 +323,6 @@ const Frame = React.createClass({
 
   render() {
     let data = this.props.data;
-
     let className = classNames({
       'frame': true,
       'is-expandable': this.isExpandable(),
