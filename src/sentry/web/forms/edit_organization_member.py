@@ -32,7 +32,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
         )
 
         self.fields['teams'].queryset = (
-            (t.id, repr(t.name))
+            (t.id, t.name)
             for t in all_teams
         )
 

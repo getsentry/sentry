@@ -99,7 +99,7 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         all_teams = Team.objects.filter(
             organization=organization,
-        ).values()
+        )
 
         form = self.get_form(request, member, all_teams, allowed_roles)
         if form.is_valid():
