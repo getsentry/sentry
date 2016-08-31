@@ -31,10 +31,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
             for r in allowed_roles
         )
 
-        self.fields['teams'].queryset = (
-            (t.id, t.name)
-            for t in all_teams
-        )
+        self.fields['teams'].queryset = all_teams
 
     def save(self, actor, organization, ip_address=None):
         om = super(EditOrganizationMemberForm, self).save()
