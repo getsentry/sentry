@@ -223,6 +223,17 @@ class ClientApiHelper(object):
 
         return Project.objects.get_from_cache(id=pk.project_id)
 
+    def decode_data(self, encoded_data):
+        try:
+            return encoded_data.decode('utf-8')
+        except UnicodeDecodeError as e:
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            self.log.debug(six.text_type(e), exc_info=True)
+            raise APIError('Bad data decoding request (%s, %s)' % (
+                type(e).__name__, e
+            ))
+
     def decompress_deflate(self, encoded_data):
         try:
             return zlib.decompress(encoded_data).decode('utf-8')
@@ -825,7 +836,7 @@ class LazyData(MutableMapping):
             elif data[0] != b'{':
                 data = helper.decode_and_decompress_data(data)
             else:
-                data = data.decode('utf-8')
+                data = helper.decode_data(data)
         if isinstance(data, six.text_type):
             data = helper.safely_load_json_string(data)
 
