@@ -13,10 +13,11 @@ from sentry.web.helpers import get_login_url
 
 
 class OrganizationMemberSettingsView(OrganizationView):
-    def get_form(self, request, member, allowed_roles):
+    def get_form(self, request, member, all_teams, allowed_roles):
         return EditOrganizationMemberForm(
             data=request.POST or None,
             instance=member,
+            all_teams=all_teams,
             allowed_roles=allowed_roles,
             initial={
                 'role': member.role,
@@ -25,7 +26,7 @@ class OrganizationMemberSettingsView(OrganizationView):
                         organizationmember=member,
                     ).values('team'),
                 ),
-            }
+            },
         )
 
     def resend_invite(self, request, organization, member, regen=False):
@@ -96,7 +97,11 @@ class OrganizationMemberSettingsView(OrganizationView):
         if member.user == request.user or not can_admin:
             return self.view_member(request, organization, member)
 
-        form = self.get_form(request, member, allowed_roles)
+        all_teams = Team.objects.filter(
+            organization=organization,
+        ).values()
+
+        form = self.get_form(request, member, all_teams, allowed_roles)
         if form.is_valid():
             member = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
@@ -115,7 +120,8 @@ class OrganizationMemberSettingsView(OrganizationView):
             'role_list': [
                 (r, r in allowed_roles)
                 for r in roles.get_all()
-            ]
+            ],
+            'all_teams': all_teams
         }
 
         return self.respond('sentry/organization-member-settings.html', context)

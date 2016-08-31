@@ -105,13 +105,14 @@
       </div>
       <div class="box-content with-padding">
         <fieldset class="team-choices row">
-          {% for team_id, team_name in form.teams.field.choices %}
+          {% for team in all_teams %}
             <div class="control-group col-md-4">
               <div class="controls">
                 <label class="checkbox">
                   <input type="checkbox" name="teams" value="{{ team_id }}"
-                         class="checkboxinput"{% if team_id in form.teams.value %} checked="checked"{% endif %}>
-                    {{ team_name }}
+                         class="checkboxinput"{% if team.id in form.teams.value %} checked="checked"{% endif %}>
+                    {{ team.name }}
+                    <span class="team-slug">{{ team.slug }}</span>
                   </label>
               </div>
             </div>
