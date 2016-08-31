@@ -51,10 +51,10 @@
               <table class="issue-graph-bar">
                 {% if metrics.resolved or metrics.unresolved %}
                   <tr>
-                    <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
+                    <td class="all" height="{% widthratio metrics.unresolved max 52 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
                   </tr>
                   <tr>
-                    <td class="resolved" height="{% widthratio metrics.resolved max 56 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
+                    <td class="resolved" height="{% widthratio metrics.resolved max 52 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
                   </tr>
                 {% else %}
                   <tr><td></td></tr>
