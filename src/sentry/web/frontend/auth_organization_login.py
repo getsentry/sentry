@@ -23,14 +23,12 @@ class AuthOrganizationLoginView(BaseView):
         op = request.POST.get('op')
         return AuthenticationForm(
             request, request.POST if op == 'login' else None,
-            captcha=bool(request.session.get('needs_captcha')),
         )
 
     def get_register_form(self, request):
         op = request.POST.get('op')
         return RegistrationForm(
             request.POST if op == 'register' else None,
-            captcha=bool(request.session.get('needs_captcha')),
         )
 
     def handle_basic_auth(self, request, organization):
@@ -64,32 +62,12 @@ class AuthOrganizationLoginView(BaseView):
             # can_register should only allow a single registration
             request.session.pop('can_register', None)
 
-            request.session.pop('needs_captcha', None)
-
             return self.redirect(auth.get_login_redirect(request))
 
         elif login_form.is_valid():
             auth.login(request, login_form.get_user())
 
-            request.session.pop('needs_captcha', None)
-
             return self.redirect(auth.get_login_redirect(request))
-
-        elif request.POST and not request.session.get('needs_captcha'):
-            auth.log_auth_failure(request, request.POST.get('username'))
-            request.session['needs_captcha'] = 1
-            login_form = self.get_login_form(request)
-            login_form.errors.pop('captcha', None)
-            if can_register:
-                register_form = self.get_register_form(request)
-                register_form.errors.pop('captcha', None)
-
-        # When the captcha fails, hide any other errors
-        # to prevent brute force attempts.
-        if 'captcha' in login_form.errors:
-            for k in login_form.errors.keys():
-                if k != 'captcha':
-                    login_form.errors.pop(k)
 
         request.session.set_test_cookie()
 

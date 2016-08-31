@@ -399,13 +399,6 @@ def format_userinfo(user):
     ))
 
 
-@register.inclusion_tag('sentry/includes/captcha.html')
-def load_captcha():
-    return {
-        'api_key': settings.RECAPTCHA_PUBLIC_KEY,
-    }
-
-
 @register.filter
 def soft_break(value, length):
     return _soft_break(
