@@ -1,5 +1,7 @@
 import jQuery from 'jquery';
 
+import plugin from './plugin';
+
 const csrfCookieName = window.csrfCookieName || 'sc';
 
 // setup jquery for CSRF tokens
@@ -34,6 +36,7 @@ jQuery.ajaxSetup({
 
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
+
 export default {
   jQuery: jQuery,
   moment: require('moment'),
@@ -46,7 +49,11 @@ export default {
   Sentry: {
     api: require('./api'),
     routes: require('./routes'),
-    Plugin: require('./plugin').default,
+    plugin: {
+      get: plugin.get,
+      add: plugin.add,
+      BasePlugin: plugin.BasePlugin
+    },
 
     createHistory: require('history/lib/createBrowserHistory'),
     Alerts: require('./components/alerts'),

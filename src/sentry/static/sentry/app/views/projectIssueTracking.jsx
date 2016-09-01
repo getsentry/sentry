@@ -1,7 +1,7 @@
 import React from 'react';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
-import {DefaultPlugin} from '../plugin';
+import plugin from '../plugin';
 import {t} from '../locale';
 
 const IssuePluginConfiguration = React.createClass({
@@ -13,16 +13,16 @@ const IssuePluginConfiguration = React.createClass({
 
   mixins: [ApiMixin],
 
-  getPluginEndpoint(plugin) {
+  getPluginEndpoint(pluginData) {
     let org = this.props.organization;
     let project = this.props.project;
     return (
-      `/projects/${org.slug}/${project.slug}/plugins/${plugin.id}/`
+      `/projects/${org.slug}/${project.slug}/plugins/${pluginData.id}/`
     );
   },
 
-  disablePlugin(plugin) {
-    this.api.request(this.getPluginEndpoint(plugin), {
+  disablePlugin(pluginData) {
+    this.api.request(this.getPluginEndpoint(pluginData), {
       method: 'DELETE',
       success: () => {
         // When this whole page is a react view, this won't be necessary
@@ -43,21 +43,19 @@ const IssuePluginConfiguration = React.createClass({
     }
     return (
       <div>
-        {this.props.plugins.map((plugin) => {
-          let pluginCls = (window.SentryPlugins[plugin.id] || DefaultPlugin);
-          console.log('[plugins] Loading ' + plugin.id + ' as ' + pluginCls.name);
-          let pluginObj = new (pluginCls)();
+        {this.props.plugins.map((p) => {
+          let pluginObj = plugin.get(p.id);
           return (
-            <div className="box" key={plugin.id}>
+            <div className="box" key={p.id}>
               <div className="box-header">
-                {plugin.canDisable && plugin.enabled &&
+                {p.canDisable && p.enabled &&
                   <button className="btn btn-sm btn-default pull-right"
                           onClick={this.disablePlugin.bind(this, plugin)}>{t('Disable')}</button>}
-                <h3>{plugin.title}</h3>
+                <h3>{p.title}</h3>
               </div>
               <div className="box-content with-padding">
                 {pluginObj.renderSettings(Object.assign({
-                  plugin: plugin,
+                  plugin: p,
                 }, this.props))}
               </div>
             </div>

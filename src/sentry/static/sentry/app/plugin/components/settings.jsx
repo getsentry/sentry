@@ -9,12 +9,12 @@ import {
   Select2FieldAutocomplete,
   TextField,
   TextareaField,
-} from '../components/forms';
-import {Client} from '../api';
-import IndicatorStore from '../stores/indicatorStore';
-import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
-import {defined} from '../utils';
+} from '../../components/forms';
+import {Client} from '../../api';
+import IndicatorStore from '../../stores/indicatorStore';
+import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from '../../locale';
+import {defined} from '../../utils';
 
 
 class PluginSettings extends React.Component {
