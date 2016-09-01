@@ -35,7 +35,7 @@ const OnboardingStatus = React.createClass({
     };
 
     return (
-      <li className={this.props.currentPanel == 'todos' ? 'active' : null }>
+      <li className={this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding' }>
         <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
           <div className="slider" style={style} />
         </div>
