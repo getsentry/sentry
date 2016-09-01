@@ -13,7 +13,7 @@ from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
 
 
-def validate_urls(value):
+def validate_urls(value, **kwargs):
     output = []
     for url in value.split('\n'):
         url = url.strip()

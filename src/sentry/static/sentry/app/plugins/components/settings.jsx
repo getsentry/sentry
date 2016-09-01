@@ -122,7 +122,9 @@ class PluginSettings extends React.Component {
             state: FormState.ERROR,
             errors: error.responseJSON.errors || {},
           });
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
+            duration: 3000
+          });
         },
         complete: () => {
           IndicatorStore.remove(loadingIndicator);
