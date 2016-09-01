@@ -21,9 +21,6 @@ export default class Registry {
     });
   }
 
-  // TODO(dcramer): it'd be good to possibly call this ``load`` and have it
-  // take the API response. Then it can have all the mechanisms for things like
-  // "get title of plugin" etc
   load(data, callback) {
     // TODO(dcramer): we should probably register all valid plugins
     let remainingAssets = data.assets.length;
