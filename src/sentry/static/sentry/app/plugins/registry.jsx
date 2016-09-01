@@ -28,7 +28,7 @@ export default class Registry {
       if (!defined(this.plugins[data.id])) {
         this.plugins[data.id] = DefaultPlugin;
       }
-      console.log('[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}');
+      console.info('[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}');
       callback(this.get(data));
     }.bind(this);
 
@@ -46,6 +46,7 @@ export default class Registry {
 
     let onAssetFailed = function(asset) {
       remainingAssets--;
+      console.error('[plugins] Failed to load asset ' + asset.url);
       if (remainingAssets === 0) {
         finishLoad();
       }
@@ -53,8 +54,8 @@ export default class Registry {
 
     // TODO(dcramer): what do we do on failed asset loading?
     data.assets.forEach((asset) => {
-      console.log('[plugins] Loading asset for ' + data.id + ': ' + asset.url);
       if (!defined(this.assetCache[asset.url])) {
+        console.info('[plugins] Loading asset for ' + data.id + ': ' + asset.url);
         let s = document.createElement('script');
         s.src = asset.url;
         s.onload = onAssetLoaded.bind(this, asset);
