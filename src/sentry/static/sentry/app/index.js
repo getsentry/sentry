@@ -50,7 +50,6 @@ export default {
     api: require('./api'),
     routes: require('./routes'),
     plugins: {
-      load: plugins.load,
       add: plugins.add,
       BasePlugin: plugins.BasePlugin
     },

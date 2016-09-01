@@ -8,6 +8,9 @@ from django import forms
 
 
 class PluginConfigMixin(object):
+    asset_key = None
+    assets = []
+
     def field_to_config(self, name, field):
         config = {
             'name': name,
@@ -27,6 +30,9 @@ class PluginConfigMixin(object):
             config['type'] = 'select'
             config['choices'] = field.choices
         return config
+
+    def get_assets(self):
+        return self.assets
 
     def get_metadata(self):
         """

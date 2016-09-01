@@ -23,7 +23,7 @@ class BasePlugin {
     }
 
     renderSettings(props) {
-        return <Settings {... props} />;
+        return <Settings plugin={this} {...props} />;
     }
 }
 
