@@ -22,6 +22,7 @@ class EditOrganizationMemberForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         allowed_roles = kwargs.pop('allowed_roles')
+        all_teams = kwargs.pop('all_teams')
 
         super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
 
@@ -29,9 +30,8 @@ class EditOrganizationMemberForm(forms.ModelForm):
             (r.id, r.name)
             for r in allowed_roles
         )
-        self.fields['teams'].queryset = Team.objects.filter(
-            organization=self.instance.organization,
-        )
+
+        self.fields['teams'].queryset = all_teams
 
     def save(self, actor, organization, ip_address=None):
         om = super(EditOrganizationMemberForm, self).save()
