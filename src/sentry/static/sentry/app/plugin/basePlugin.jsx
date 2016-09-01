@@ -1,8 +1,8 @@
 import React from 'react';
 
-import Settings from './plugin/settings';
+import Settings from './components/settings';
 
-class Plugin {
+class BasePlugin {
     /**
      * Return a list of hooks which should be registered.
      *
@@ -20,7 +20,6 @@ class Plugin {
     }
 }
 
-Plugin.DefaultSettings = Settings;
+BasePlugin.DefaultSettings = Settings;
 
-export class DefaultPlugin extends Plugin {}
-export default Plugin;
+export default BasePlugin;
