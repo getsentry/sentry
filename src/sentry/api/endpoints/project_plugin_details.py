@@ -77,7 +77,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
 
             for validator in field.get('validators', ()):
                 try:
-                    value = validator(value)
+                    value = validator(value, project=project, actor=request.user)
                 except (forms.ValidationError, serializers.ValidationError) as e:
                     errors[key] = e.message
 
