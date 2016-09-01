@@ -6,7 +6,7 @@ const registry = new Registry();
 export {BasePlugin, registry};
 
 export default {
-    get: registry.get.bind(registry),
+    load: registry.load.bind(registry),
     add: registry.add.bind(registry),
     BasePlugin: BasePlugin,
 };

@@ -1,7 +1,7 @@
 import React from 'react';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
-import plugin from '../plugin';
+import plugins from '../plugins';
 import {t} from '../locale';
 
 const IssuePluginConfiguration = React.createClass({
@@ -13,16 +13,16 @@ const IssuePluginConfiguration = React.createClass({
 
   mixins: [ApiMixin],
 
-  getPluginEndpoint(pluginData) {
+  getPluginEndpoint(data) {
     let org = this.props.organization;
     let project = this.props.project;
     return (
-      `/projects/${org.slug}/${project.slug}/plugins/${pluginData.id}/`
+      `/projects/${org.slug}/${project.slug}/plugins/${data.id}/`
     );
   },
 
-  disablePlugin(pluginData) {
-    this.api.request(this.getPluginEndpoint(pluginData), {
+  disablePlugin(data) {
+    this.api.request(this.getPluginEndpoint(data), {
       method: 'DELETE',
       success: () => {
         // When this whole page is a react view, this won't be necessary
@@ -43,19 +43,19 @@ const IssuePluginConfiguration = React.createClass({
     }
     return (
       <div>
-        {this.props.plugins.map((p) => {
-          let pluginObj = plugin.get(p.id);
+        {this.props.plugins.map((data) => {
+          let plugin = plugins.load(data);
           return (
-            <div className="box" key={p.id}>
+            <div className="box" key={data.id}>
               <div className="box-header">
-                {p.canDisable && p.enabled &&
+                {data.canDisable && data.enabled &&
                   <button className="btn btn-sm btn-default pull-right"
-                          onClick={this.disablePlugin.bind(this, plugin)}>{t('Disable')}</button>}
-                <h3>{p.title}</h3>
+                          onClick={this.disablePlugin.bind(this, data)}>{t('Disable')}</button>}
+                <h3>{data.title}</h3>
               </div>
               <div className="box-content with-padding">
-                {pluginObj.renderSettings(Object.assign({
-                  plugin: p,
+                {plugin.renderSettings(Object.assign({
+                  plugin: data,
                 }, this.props))}
               </div>
             </div>

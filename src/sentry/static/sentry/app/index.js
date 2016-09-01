@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 
-import plugin from './plugin';
+import plugins from './plugins';
 
 const csrfCookieName = window.csrfCookieName || 'sc';
 
@@ -49,10 +49,10 @@ export default {
   Sentry: {
     api: require('./api'),
     routes: require('./routes'),
-    plugin: {
-      get: plugin.get,
-      add: plugin.add,
-      BasePlugin: plugin.BasePlugin
+    plugins: {
+      load: plugins.load,
+      add: plugins.add,
+      BasePlugin: plugins.BasePlugin
     },
 
     createHistory: require('history/lib/createBrowserHistory'),
