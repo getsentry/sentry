@@ -3,6 +3,13 @@ import React from 'react';
 import Settings from './components/settings';
 
 class BasePlugin {
+    constructor(data) {
+        this.id = data.id;
+        this.name = data.name;
+        this.config = data.config;
+        this.metadata = data.metdata;
+    }
+
     /**
      * Return a list of hooks which should be registered.
      *
