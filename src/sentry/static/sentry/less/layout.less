@@ -281,12 +281,14 @@ body.auth {
 
   .navbar-nav {
     .list-unstyled;
-    padding: 20px 0 10px;
+    padding: 10px 0 5px;
 
     > li {
-      text-align: center;
-      line-height: 36px;
       position: relative;
+      text-align: center;
+      line-height: 32px;
+      max-height: 32px;
+      margin: 5px 0;
       .clearfix;
 
       > a {
@@ -308,12 +310,17 @@ body.auth {
           content: "";
           right: -14px;
           top: 50%;
-          margin-top: -9px;
+          margin-top: -8px;
           border-top: 7px solid transparent;
           border-bottom: 7px solid transparent;
           border-right: 7px solid #F7F8F9;
         }
       }
+    }
+
+    > li.onboarding {
+      max-height: 9999em;
+      margin: 12px 0;
     }
 
     .icon-user, .icon-star-solid {
@@ -323,6 +330,7 @@ body.auth {
     .icon-av_timer {
       padding-top: 2px;
       font-size: 25px;
+      line-height: 32px;
     }
 
     .icon-globe {
@@ -359,7 +367,7 @@ body.auth {
   }
 
   .onboarding-progress-bar {
-    margin: 0 8px 20px;
+    margin: 0 8px;
   }
 
   .dropdown {
