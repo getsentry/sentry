@@ -13,9 +13,9 @@ from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupSeen, GroupSubscription,
+    Activity, Group, GroupHash, GroupAssignee, GroupSeen, GroupSubscription,
     GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
-    User, UserReport
+    User, UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
@@ -329,6 +329,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             ]
         ).update(status=GroupStatus.PENDING_DELETION)
         if updated:
+            GroupHash.objects.filter(group=group).delete()
             delete_group.apply_async(
                 kwargs={'object_id': group.id},
                 countdown=3600,
