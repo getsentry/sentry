@@ -28,6 +28,7 @@ export default class Registry {
       if (!defined(this.plugins[data.id])) {
         this.plugins[data.id] = DefaultPlugin;
       }
+      console.log('[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}');
       callback(this.get(data));
     }.bind(this);
 
@@ -71,7 +72,6 @@ export default class Registry {
     if (!defined(cls)) {
       throw new Error('Attempted to ``get`` an unloaded plugin: ' + data.id);
     }
-    console.log('[plugins] Loading ' + data.id + ' as {' + cls.name + '}');
     return new cls(data);
   }
 
