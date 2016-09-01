@@ -163,9 +163,22 @@ body.auth {
       }
     }
 
-    &.active:hover {
-      .hover-bar-container {
-        display: none;
+    &.active{
+      &:before {
+        position: absolute;
+        display: block;
+        content: "";
+        right: -14px;
+        top: 50%;
+        margin-top: -6px;
+        border-top: 7px solid transparent;
+        border-bottom: 7px solid transparent;
+        border-right: 7px solid #F7F8F9;
+      }
+      &:hover {
+        .hover-bar-container {
+          display: none;
+        }
       }
     }
 
@@ -273,6 +286,8 @@ body.auth {
     > li {
       text-align: center;
       line-height: 36px;
+      position: relative;
+      .clearfix;
 
       > a {
         color: @40;
@@ -282,8 +297,22 @@ body.auth {
         }
       }
 
-      &.active > a {
-        color: #fff;
+      &.active {
+        > a {
+          color: #fff;
+        }
+
+        &:before {
+          position: absolute;
+          display: block;
+          content: "";
+          right: -14px;
+          top: 50%;
+          margin-top: -9px;
+          border-top: 7px solid transparent;
+          border-bottom: 7px solid transparent;
+          border-right: 7px solid #F7F8F9;
+        }
       }
     }
 
@@ -538,17 +567,6 @@ body.auth {
     top: 50%;
     padding: 0 50px;
     margin-top: (-62px + -16px) / 2; // offset for sidebar-panel-header + font-size
-  }
-
-  &:before {
-    position: absolute;
-    display: block;
-    content: "";
-    left: -7px;
-    top: 24px;
-    border-top: 7px solid transparent;
-    border-bottom: 7px solid transparent;
-    border-right: 7px solid #fff;
   }
 }
 

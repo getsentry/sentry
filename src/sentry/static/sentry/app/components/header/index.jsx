@@ -35,9 +35,9 @@ const OnboardingStatus = React.createClass({
     };
 
     return (
-      <div className="onboarding">
+      <li className={this.props.currentPanel == 'todos' ? 'active' : null }>
         <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
-          <div className="slider" style={style} ></div>
+          <div className="slider" style={style} />
         </div>
         {this.props.showPanel && this.props.currentPanel == 'todos' &&
           <SidebarPanel
@@ -46,7 +46,7 @@ const OnboardingStatus = React.createClass({
             <TodoList />
           </SidebarPanel>
         }
-      </div>
+      </li>
     );
   }
 });
@@ -174,14 +174,12 @@ const Header = React.createClass({
 
           <ul className="navbar-nav anchor-bottom">
             {org &&
-              <li>
-                <OnboardingStatus
-                  org={org}
-                  showPanel={this.state.showPanel}
-                  currentPanel={this.state.currentPanel}
-                  onShowPanel={()=>this.showPanel('todos')}
-                  hidePanel={()=>this.hidePanel()} />
-              </li>
+              <OnboardingStatus
+                org={org}
+                showPanel={this.state.showPanel}
+                currentPanel={this.state.currentPanel}
+                onShowPanel={()=>this.showPanel('todos')}
+                hidePanel={()=>this.hidePanel()} />
             }
             <Broadcasts
               showPanel={this.state.showPanel}
