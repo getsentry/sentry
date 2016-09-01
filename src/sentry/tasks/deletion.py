@@ -309,12 +309,6 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
     from sentry.models import Event, EventTag
 
     has_more = False
-    if logger is not None:
-        # The only reason this is a different log statement is that logging every
-        # single event that gets deleted in the relation will destroy disks.
-        logger.info('object.delete.bulk_executed', extra=dict(
-            relation.items() + [('transaction_id', transaction_id)],
-        ))
 
     result_set = list(Event.objects.filter(**relation)[:limit])
     has_more = bool(result_set)
@@ -328,7 +322,27 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
 
         # bulk delete by id
         EventTag.objects.filter(event_id__in=event_ids).delete()
+        if logger is not None:
+            # The only reason this is a different log statement is that logging every
+            # single event that gets deleted in the relation will destroy disks.
+            logger.info('object.delete.bulk_executed', extra=dict(
+                relation.items() + [
+                    ('transaction_id', transaction_id),
+                    ('model', 'EventTag'),
+                ],
+            ))
+
+        # bulk delete by id
         Event.objects.filter(id__in=event_ids).delete()
+        if logger is not None:
+            # The only reason this is a different log statement is that logging every
+            # single event that gets deleted in the relation will destroy disks.
+            logger.info('object.delete.bulk_executed', extra=dict(
+                relation.items() + [
+                    ('transaction_id', transaction_id),
+                    ('model', 'Event'),
+                ],
+            ))
     return has_more
 
 
