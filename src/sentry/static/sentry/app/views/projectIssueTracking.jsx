@@ -1,6 +1,7 @@
 import React from 'react';
 import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
+import LoadingIndicator from '../components/loadingIndicator';
 import plugins from '../plugins';
 import {t} from '../locale';
 
@@ -12,6 +13,26 @@ const IssuePluginConfiguration = React.createClass({
   },
 
   mixins: [ApiMixin],
+
+  componentWillMount() {
+    this.setState({
+      loading: true,
+    }, () => {
+      plugins.loadAll(this.props.plugins, () => {
+        this.setState({loading: false});
+      });
+    });
+  },
+
+  componentWillReceiveProps(nextProps) {
+    this.setState({
+      loading: true,
+    }, () => {
+      plugins.loadAll(nextProps.plugins, () => {
+        this.setState({loading: false});
+      });
+    });
+  },
 
   getPluginEndpoint(data) {
     let org = this.props.organization;
@@ -41,22 +62,23 @@ const IssuePluginConfiguration = React.createClass({
     if (!this.props.plugins.length) {
       return null;
     }
+    if (this.state.loading)
+      return <LoadingIndicator />;
+
     return (
       <div>
         {this.props.plugins.map((data) => {
-          let plugin = plugins.load(data);
+          let plugin = plugins.get(data);
           return (
             <div className="box" key={data.id}>
               <div className="box-header">
                 {data.canDisable && data.enabled &&
                   <button className="btn btn-sm btn-default pull-right"
                           onClick={this.disablePlugin.bind(this, data)}>{t('Disable')}</button>}
-                <h3>{data.title}</h3>
+                <h3>{plugin.name}</h3>
               </div>
               <div className="box-content with-padding">
-                {plugin.renderSettings(Object.assign({
-                  plugin: data,
-                }, this.props))}
+                {plugin.renderSettings(this.props)}
               </div>
             </div>
           );

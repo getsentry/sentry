@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
+from sentry.api.serializers import Serializer
+from sentry.utils.assets import get_asset_url
+from sentry.utils.http import absolute_uri
 
-from sentry.api.serializers import Serializer, register
-from sentry.plugins.config import PluginConfigMixin
 
-
-@register(PluginConfigMixin)
 class PluginSerializer(Serializer):
     def __init__(self, project=None):
         self.project = project
@@ -18,6 +17,12 @@ class PluginSerializer(Serializer):
             'canDisable': obj.can_disable,
             'isTestable': obj.is_testable(),
             'metadata': obj.get_metadata(),
+            'assets': [
+                {
+                    'url': absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset)),
+                }
+                for asset in obj.get_assets()
+            ],
         }
         if self.project:
             d['enabled'] = obj.is_enabled(self.project)
