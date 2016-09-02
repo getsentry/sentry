@@ -10,6 +10,7 @@ from sentry.models import GroupMeta
 
 
 class PluginProjectEndpoint(ProjectEndpoint):
+    plugin = None
     view = None
 
     def _handle(self, request, project, *args, **kwargs):
@@ -26,6 +27,7 @@ class PluginProjectEndpoint(ProjectEndpoint):
 
 
 class PluginGroupEndpoint(GroupEndpoint):
+    plugin = None
     view = None
 
     def _handle(self, request, group, *args, **kwargs):
