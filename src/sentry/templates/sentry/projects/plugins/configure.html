@@ -86,7 +86,7 @@
             ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
                 project: {% serialize project %},
                 organization: {% serialize organization %},
-                plugin: {% serialize issue_v2_plugin %}
+                data: {% serialize issue_v2_plugin %}
             }), document.getElementById('issue_plugins'));
         });
         </script>
