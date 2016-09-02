@@ -83,7 +83,6 @@ tests_require = [
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
     'responses',
-    'percy>=0.2.5',
 ]
 
 
@@ -113,6 +112,7 @@ install_requires = [
     'ipaddress>=1.0.16,<1.1.0',
     'mock>=0.8.0,<1.1',
     'oauth2>=1.5.167',
+    'percy>=0.2.5',
     'petname>=1.7,<1.8',
     'Pillow>=3.2.0,<3.3.0',
     'progressbar2>=3.10,<3.11',
