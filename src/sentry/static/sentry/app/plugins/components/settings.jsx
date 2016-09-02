@@ -56,7 +56,10 @@ class PluginSettings extends React.Component {
   changeField(name, value) {
     let formData = this.state.formData;
     formData[name] = value;
-    this.setState({formData: formData});
+    // upon changing a field, remove errors
+    let errors = this.state.errors;
+    delete errors[name];
+    this.setState({formData: formData, errors: errors});
   }
 
   renderField(field) {
