@@ -83,7 +83,7 @@
     {% if issue_v2_plugin %}
         <script>
         $(function(){
-            ReactDOM.render(React.createFactory(Sentry.Plugin.DefaultSettingsComponent)({
+            ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
                 project: {% serialize project %},
                 organization: {% serialize organization %},
                 plugin: {% serialize issue_v2_plugin %}
