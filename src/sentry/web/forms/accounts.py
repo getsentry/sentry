@@ -531,3 +531,18 @@ class TwoFactorForm(forms.Form):
                    'autofocus': True,
         }),
     )
+    password = forms.CharField(
+        label=_('Sentry account password'),
+        widget=forms.PasswordInput(),
+        help_text='You will need to enter your current Sentry account password to make changes.',
+        required=True,
+    )
+
+
+class ConfirmPasswordForm(forms.Form):
+    password = forms.CharField(
+        label=_('Sentry account password'),
+        widget=forms.PasswordInput(),
+        help_text='You will need to enter your current Sentry account password to make changes.',
+        required=True,
+    )
