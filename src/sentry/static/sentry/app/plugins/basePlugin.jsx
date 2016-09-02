@@ -4,9 +4,7 @@ import Settings from './components/settings';
 
 class BasePlugin {
     constructor(data) {
-        Object.keys(data).forEach((key) => {
-            this[key] = data[key];
-        });
+        Object.assign(this, data);
     }
 
     renderSettings(props) {
