@@ -48,6 +48,14 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
             )
         return
 
+    # Wait until all Teams have actually been deleted before continuing
+    if Team.objects.filter(organization=o).exists():
+        delete_organization.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=30,
+        )
+        return
+
     model_list = (OrganizationMember,)
 
     has_more = delete_objects(model_list, transaction_id=transaction_id, relation={'organization': o}, logger=logger)
@@ -58,6 +66,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
                 countdown=15,
             )
         return
+
     o_id = o.id
     o.delete()
     logger.info('object.delete.executed', extra={
@@ -94,6 +103,14 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
                 kwargs={'object_id': object_id, 'transaction_id': transaction_id},
                 countdown=15,
             )
+        return
+
+    # Wait until all Projects have actually been deleted before continuing
+    if Project.objects.filter(team=t).exists():
+        delete_team.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=30,
+        )
         return
 
     t_id = t.id
