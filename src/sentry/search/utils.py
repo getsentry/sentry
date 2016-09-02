@@ -9,13 +9,22 @@ from django.utils import timezone
 from six.moves import reduce
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, User
+from sentry.models import EventUser, Release, User
 from sentry.search.base import ANY
 from sentry.utils.auth import find_users
 
 
 class InvalidQuery(Exception):
     pass
+
+
+def parse_release(project, value):
+    # TODO(dcramer): add environment support
+    if value == 'latest':
+        return Release.objects.extra(select={
+            'sort': 'COALESCE(date_released, date_added)',
+        }).order_by('-sort').values_list('version', flat=True).first()
+    return value
 
 
 def get_user_tag(project, key, value):
@@ -223,9 +232,9 @@ def parse_query(project, query, user):
                         # an invalid user is entered
                         results['bookmarked_by'] = User(id=0)
             elif key == 'first-release':
-                results['first_release'] = value
+                results['first_release'] = parse_release(project, value)
             elif key == 'release':
-                results['tags']['sentry:release'] = value
+                results['tags']['sentry:release'] = parse_release(project, value)
             elif key == 'user':
                 if ':' in value:
                     comp, value = value.split(':', 1)

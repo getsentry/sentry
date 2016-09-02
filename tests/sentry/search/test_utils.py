@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime, timedelta
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus
+from sentry.models import EventUser, GroupStatus, Release
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
 from sentry.search.utils import parse_query
@@ -77,9 +77,29 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('first-release:bar')
         assert result == {'first_release': 'bar', 'tags': {}, 'query': ''}
 
+    def test_first_release_latest(self):
+        old = Release.objects.create(project=self.project, version='a')
+        new = Release.objects.create(
+            project=self.project, version='b',
+            date_released=old.date_added + timedelta(minutes=1),
+        )
+
+        result = self.parse_query('first-release:latest')
+        assert result == {'tags': {}, 'first_release': new.version, 'query': ''}
+
     def test_release(self):
         result = self.parse_query('release:bar')
         assert result == {'tags': {'sentry:release': 'bar'}, 'query': ''}
+
+    def test_release_latest(self):
+        old = Release.objects.create(project=self.project, version='a')
+        new = Release.objects.create(
+            project=self.project, version='b',
+            date_released=old.date_added + timedelta(minutes=1),
+        )
+
+        result = self.parse_query('release:latest')
+        assert result == {'tags': {'sentry:release': new.version}, 'query': ''}
 
     def test_padded_spacing(self):
         result = self.parse_query('release:bar  foo   bar')
