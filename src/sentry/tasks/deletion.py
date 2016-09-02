@@ -176,7 +176,6 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         if continuous:
             delete_project.apply_async(
                 kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
             )
         return
 
@@ -243,7 +242,6 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
         if continuous:
             delete_group.apply_async(
                 kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
             )
         return
     g_id = group.id
@@ -304,15 +302,15 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
     })
 
 
-def delete_events(relation, transaction_id=None, limit=100, logger=None):
+def delete_events(relation, transaction_id=None, limit=10000, chunk_limit=100, logger=None):
     from sentry.app import nodestore
     from sentry.models import Event, EventTag
 
-    has_more = False
+    while limit > 0:
+        result_set = list(Event.objects.filter(**relation)[:chunk_limit])
+        if not bool(result_set):
+            return False
 
-    result_set = list(Event.objects.filter(**relation)[:limit])
-    has_more = bool(result_set)
-    if has_more:
         # delete objects from nodestore first
         node_ids = set(r.data.id for r in result_set if r.data.id)
         if node_ids:
@@ -343,7 +341,10 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
                     ('model', 'Event'),
                 ],
             ))
-    return has_more
+
+        limit -= chunk_limit
+
+    return True
 
 
 def delete_objects(models, relation, transaction_id=None, limit=100, logger=None):
