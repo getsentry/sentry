@@ -37,3 +37,7 @@ class DeleteAborted(Exception):
 
 class RestrictedIPAddress(SuspiciousOperation):
     pass
+
+
+class PluginError(Exception):
+    pass

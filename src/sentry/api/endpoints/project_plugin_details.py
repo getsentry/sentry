@@ -6,6 +6,7 @@ from django import forms
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry.exceptions import PluginError
 from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -78,7 +79,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             for validator in field.get('validators', ()):
                 try:
                     value = validator(value, project=project, actor=request.user)
-                except (forms.ValidationError, serializers.ValidationError) as e:
+                except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
                     errors[key] = e.message
 
             if not errors.get(key):
