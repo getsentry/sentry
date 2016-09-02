@@ -25,7 +25,6 @@ const UserNav = React.createClass({
     return (
       <DropdownLink
           topLevelClasses={this.props.className}
-          menuClasses="dropdown-menu-right"
           title={title}
           caret={false}
           >
