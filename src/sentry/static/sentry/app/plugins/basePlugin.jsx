@@ -4,22 +4,9 @@ import Settings from './components/settings';
 
 class BasePlugin {
     constructor(data) {
-        this.id = data.id;
-        this.name = data.name;
-        this.config = data.config;
-        this.metadata = data.metdata;
-    }
-
-    /**
-     * Return a list of hooks which should be registered.
-     *
-     * Sentry will automatically wire these up safely upon
-     * instantiation of this plugin.
-     */
-    getHooks() {
-        return [
-            // [hook name, callback]
-        ];
+        Object.keys(data).forEach((key) => {
+            this[key] = data[key];
+        });
     }
 
     renderSettings(props) {
