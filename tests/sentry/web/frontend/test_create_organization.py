@@ -34,9 +34,9 @@ class CreateOrganizationTest(TestCase):
             role='owner',
         ).exists()
 
-        team = org.team_set.get()
+        assert org.team_set.exists()
 
         redirect_uri = reverse('sentry-create-project', args=[org.slug])
-        assert resp['Location'] == 'http://testserver%s?team=%s' % (
-            redirect_uri, team.slug,
+        assert resp['Location'] == 'http://testserver%s' % (
+            redirect_uri,
         )
