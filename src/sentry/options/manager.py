@@ -194,6 +194,9 @@ class OptionsManager(object):
                  ttl=DEFAULT_KEY_TTL, grace=DEFAULT_KEY_GRACE):
         assert key not in self.registry, 'Option already registered: %r' % key
 
+        if len(key) > 64:
+            raise ValueError('Option key has max length of 64 characters')
+
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
         if not callable(default):
