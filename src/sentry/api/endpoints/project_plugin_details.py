@@ -90,10 +90,16 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             }, status=400)
 
         for key, value in six.iteritems(cleaned):
-            plugin.set_option(
-                project=project,
-                key=key,
-                value=value,
-            )
+            if not value:
+                plugin.unset_option(
+                    project=project,
+                    key=key,
+                )
+            else:
+                plugin.set_option(
+                    project=project,
+                    key=key,
+                    value=value,
+                )
 
         return Response({'message': OK_UPDATED})
