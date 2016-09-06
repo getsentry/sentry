@@ -81,7 +81,9 @@
             {% else %}
                 <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
             {% endif %}
-            {{ change|multiply:"100"|absolute_value|floatformat:"-1" }}%
+            {% with change|multiply:"100"|absolute_value as percentage %}
+                {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
+            {% endwith %}
             </div>
             <small>{% if change >= 0 %}more{% else %}fewer{% endif %} events than {{ label }}</small>
           {% else %}
@@ -100,7 +102,7 @@
       </td>
       <td class="legend">
         {% for type, count in report.distribution.types %}
-          <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent count total "0.1f" %}%
+          <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent count total "0.0f" %}%
         {% endfor %}
       </td>
     </tr>
