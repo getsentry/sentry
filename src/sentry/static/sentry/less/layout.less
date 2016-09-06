@@ -333,7 +333,7 @@ body.auth {
       line-height: 32px;
     }
 
-    .icon-globe {
+    .icon-globe, .icon-alert {
       font-size: 20px;
     }
 
@@ -343,6 +343,15 @@ body.auth {
       width: 32px;
     }
 
+    .activity-indicator {
+      position: absolute;
+      top: 2px;
+      right: 3px;
+      .square(8px);
+      background: @red;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px @header-bg-color;
+    }
   }
 
   .divider-top {
@@ -362,7 +371,7 @@ body.auth {
   .user-settings {
     .avatar {
       .square(32px);
-      box-shadow: 0 1px 1px rgba(0,0,0, .3);
+      box-shadow: 0 1px 1px rggba(0,0,0, .3);
     }
 
     .dropdown-toggle {
@@ -428,6 +437,12 @@ body.auth {
       background: rgba(0,0,0, .3);
     }
   }
+}
+
+// Status update
+
+.navbar .icon-alert {
+  color: @yellow-orange;
 }
 
 .sub-header {

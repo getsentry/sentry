@@ -109,7 +109,10 @@ const Broadcasts = React.createClass({
     let title = <span className="icon-globe" />;
     return (
       <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
-        <a className="broadcasts-toggle" onClick={this.props.onShowPanel}><span className="icon-globe"/></a>
+        <a className="broadcasts-toggle" onClick={this.props.onShowPanel}>
+          <span className="icon-globe"/>
+          <span className="activity-indicator" />
+        </a>
         {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&
           <SidebarPanel title={t('Recent updates from Sentry')}
                         hidePanel={this.props.hidePanel}>
