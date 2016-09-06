@@ -5,17 +5,17 @@ const ProjectIssueTracking = React.createClass({
   propTypes: {
     organization: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
-    plugins: React.PropTypes.array.isRequired
+    dataList: React.PropTypes.array.isRequired
   },
 
   render() {
-    if (!this.props.plugins.length) {
+    if (!this.props.dataList.length) {
       return null;
     }
 
     return (
       <div>
-        {this.props.plugins.map((data) => {
+        {this.props.dataList.map((data) => {
           return <PluginConfig data={data} {...this.props} key={data.id} />;
         })}
       </div>
