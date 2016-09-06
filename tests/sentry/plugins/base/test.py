@@ -16,20 +16,36 @@ def test_json_response_with_status_kwarg():
 
 def test_load_plugin_urls():
     class BadPluginA(object):
+        slug = 'a'
+
         def get_project_urls(self):
             assert False
 
     class BadPluginB(object):
+        slug = 'b'
+
         def get_project_urls(self):
             return 'lol'
 
     class BadPluginC(object):
+        slug = 'c'
+
         def get_project_urls(self):
             return None
 
     class BadPluginD(object):
+        slug = 'd'
+
         def get_project_urls(self):
             return [('foo', 'bar')]
+
+    class BadPluginE(object):
+        slug = None
+
+        def get_project_urls(self):
+            return [
+                url('', None),
+            ]
 
     class GoodPlugin(object):
         slug = 'thing'
@@ -44,6 +60,7 @@ def test_load_plugin_urls():
         BadPluginB(),
         BadPluginC(),
         BadPluginD(),
+        BadPluginE(),
         GoodPlugin(),
     ))
 

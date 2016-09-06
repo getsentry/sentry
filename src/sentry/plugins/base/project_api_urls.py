@@ -16,6 +16,8 @@ def load_plugin_urls(plugins):
 
     for _plugin in plugins:
         try:
+            if not _plugin.slug:
+                raise ValueError('Must declare slug value, got %r' % _plugin.slug)
             _plugin_project_urls = _plugin.get_project_urls()
             # We're definitely allowed to not have any urls
             if not _plugin_project_urls:
