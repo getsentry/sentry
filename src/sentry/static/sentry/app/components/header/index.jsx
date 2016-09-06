@@ -149,13 +149,22 @@ const Header = React.createClass({
             }
             <ul className="navbar-nav divider-bottom">
               <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
-                <a><span className="icon-user" onClick={()=>this.showPanel('assigned')} /></a>
+                <a>
+                  <span className="icon-user" onClick={()=>this.showPanel('assigned')} />
+                  <span className="activity-indicator" />
+                </a>
               </li>
               <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
-                <a><span className="icon-star-solid" onClick={()=>this.showPanel('bookmarks')} /></a>
+                <a>
+                  <span className="icon-star-solid" onClick={()=>this.showPanel('bookmarks')} />
+                  <span className="activity-indicator" />
+                </a>
               </li>
               <li className={this.state.currentPanel == 'history' ? 'active' : null }>
-                <a><span className="icon-av_timer" onClick={()=>this.showPanel('history')} /></a>
+                <a>
+                  <span className="icon-av_timer" onClick={()=>this.showPanel('history')} />
+                  <span className="activity-indicator" />
+                </a>
               </li>
             </ul>
             {this.state.showPanel && this.state.currentPanel == 'assigned' &&
@@ -186,7 +195,12 @@ const Header = React.createClass({
               currentPanel={this.state.currentPanel}
               onShowPanel={()=>this.showPanel('broadcasts')}
               hidePanel={()=>this.hidePanel()} />
-            <li><UserNav className="user-settings" /></li>
+            <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
+              <a><span className="icon-alert" /></a>
+            </li>
+            <li>
+              <UserNav className="user-settings" />
+            </li>
           </ul>
 
 
