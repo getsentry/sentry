@@ -55,6 +55,16 @@ class PluginConfigMixin(object):
             config.append(row)
         return config
 
+    def validate_config(self, project, config):
+        """
+        ```
+        if config['foo'] and not config['bar']:
+            raise PluginError('You cannot configure foo with bar')
+        return config
+        ```
+        """
+        return config
+
     def get_group_urls(self):
         return []
 
