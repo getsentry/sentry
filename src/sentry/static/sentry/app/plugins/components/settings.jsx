@@ -82,6 +82,7 @@ class PluginSettings extends React.Component {
         el = <PasswordField {...props} />;
         break;
       case 'text':
+      case 'url':
         el = <TextField {...props} />;
         break;
       case 'textarea':
