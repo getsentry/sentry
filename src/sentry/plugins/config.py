@@ -6,6 +6,8 @@ import six
 
 from django import forms
 
+from .validators import DEFAULT_VALIDATORS
+
 
 class PluginConfigMixin(object):
     asset_key = None
@@ -19,7 +21,9 @@ class PluginConfigMixin(object):
             'help': field.help_text,
             'required': field.required,
         }
-        if isinstance(field, forms.CharField):
+        if isinstance(field, forms.URLField):
+            config['type'] = 'url'
+        elif isinstance(field, forms.CharField):
             if isinstance(field.widget, forms.PasswordInput):
                 config['type'] = 'secret'
             elif isinstance(field.widget, forms.Textarea):
@@ -55,7 +59,27 @@ class PluginConfigMixin(object):
             config.append(row)
         return config
 
-    def validate_config(self, project, config):
+    def validate_config_field(self, project, name, value, actor=None):
+        """
+        ```
+        if name == 'foo' and value != 'bar':
+            raise PluginError('foo must be bar')
+        return value
+        ```
+        """
+        for config in self.get_config(project):
+            if config['name'] != name:
+                continue
+
+            for validator in DEFAULT_VALIDATORS.get(config['type'], ()):
+                value = validator(project=project, value=value, actor=actor)
+
+            for validator in config.get('validators', ()):
+                value = validator(value, project=project, actor=actor)
+            return value
+        return value
+
+    def validate_config(self, project, config, actor=None):
         """
         ```
         if config['foo'] and not config['bar']:
