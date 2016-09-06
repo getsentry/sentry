@@ -85,6 +85,11 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             if not errors.get(key):
                 cleaned[key] = value
 
+        try:
+            cleaned = plugin.validate_config(project, cleaned)
+        except PluginError as e:
+            errors['__all__'] = e.message
+
         if errors:
             return Response({
                 'errors': errors,
