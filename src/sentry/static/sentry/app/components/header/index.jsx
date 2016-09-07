@@ -18,19 +18,20 @@ import {t} from '../../locale';
 const INCIDENTS = [
   {
     id: 1,
-    timestamp : "2 hours ago",
     title: "Issues delivering mail to FastMail customers",
     url: "http://example.com",
     updates: [
         {
           id: 1,
           status: "Resolved",
-          message: "FastMail has addressed the issue, and we are delivering email again."
+          message: "FastMail has addressed the issue, and we are delivering email again.",
+          timestamp : "1 hour ago"
         },
         {
           id: 2,
           status: "Identified",
-          message: "FastMail customers are not getting emails. Our outbound IPs are being rate limited by FastMail. We have an open ticket with them to try and alleviate the issue. In the meantime, you may want to switch your Sentry email to something not backed by FastMail."
+          message: "FastMail customers are not getting emails. Our outbound IPs are being rate limited by FastMail. We have an open ticket with them to try and alleviate the issue. In the meantime, you may want to switch your Sentry email to something not backed by FastMail.",
+          timestamp : "2 hours ago",
         }
     ]
   }
@@ -217,7 +218,8 @@ const Header = React.createClass({
                                 <li className="status-item">
                                   <p>
                                     <strong>{update.status}</strong> - &nbsp;
-                                    {update.message}
+                                    {update.message}<br/>
+                                    <small>{update.timestamp}</small>
                                   </p>
                                 </li>
                               )}
