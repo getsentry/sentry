@@ -15,20 +15,18 @@ const PluginConfig = React.createClass({
   mixins: [ApiMixin],
 
   componentWillMount() {
-    this.setState({
-      loading: true,
-    }, () => {
-      plugins.load(this.props.data, () => {
-        this.setState({loading: false});
-      });
-    });
+    this.loadPlugin(this.props.data);
   },
 
   componentWillReceiveProps(nextProps) {
+    this.loadPlugin(nextProps.data);
+  },
+
+  loadPlugin(data) {
     this.setState({
       loading: true,
     }, () => {
-      plugins.load(nextProps.data, () => {
+      plugins.load(data, () => {
         this.setState({loading: false});
       });
     });

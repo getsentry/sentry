@@ -60,6 +60,7 @@ export default class Registry {
         s.src = asset.url;
         s.onload = onAssetLoaded.bind(this, asset);
         s.onerror = onAssetFailed.bind(this, asset);
+        s.async = true;
         document.body.appendChild(s);
         this.assetCache[asset.url] = s;
       } else {
