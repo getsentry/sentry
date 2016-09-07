@@ -22,7 +22,11 @@
 
     {{ form|as_crispy_errors }}
 
-    {{ form.email|as_crispy_field }}
+    {% if is_invite %}
+      {{ form.email|as_crispy_field }}
+    {% else %}
+      {{ form.user|as_crispy_field }}
+    {% endif %}
 
     {% include "sentry/partial/members/_roles.html" %}
     {% include "sentry/partial/members/_teams.html" %}
