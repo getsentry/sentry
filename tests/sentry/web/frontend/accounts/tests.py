@@ -273,7 +273,7 @@ class ConfirmEmailSendTest(TestCase):
     def test_valid(self, send_confirm_email):
         self.login_as(self.user)
         resp = self.client.get(reverse('sentry-account-confirm-email-send'))
-        self.assertRedirects(resp, reverse('sentry-account-settings'), status_code=302)
+        self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         send_confirm_email.assert_called_once_with()
 
 
@@ -294,6 +294,6 @@ class ConfirmEmailTest(TestCase):
         email = self.user.emails.first()
         resp = self.client.get(reverse('sentry-account-confirm-email',
                                        args=[self.user.id, email.validation_hash]))
-        self.assertRedirects(resp, reverse('sentry-account-settings'), status_code=302)
+        self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         email = self.user.emails.first()
         assert email.is_verified

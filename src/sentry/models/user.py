@@ -95,8 +95,14 @@ class User(BaseModel, AbstractBaseUser):
         warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
         return self.is_superuser
 
+    def get_unverified_emails(self):
+        return self.emails.filter(is_verified=False)
+
+    def get_verified_emails(self):
+        return self.emails.filter(is_verified=True)
+
     def has_unverified_emails(self):
-        return self.emails.filter(is_verified=False).exists()
+        return self.get_unverified_emails().exists()
 
     def get_label(self):
         return self.email or self.username or self.id
@@ -120,7 +126,8 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import options
         from sentry.utils.email import MessageBuilder
 
-        for email in self.emails.filter(is_verified=False):
+        email_list = self.get_unverified_emails()
+        for email in email_list:
             if not email.hash_is_valid():
                 email.set_hash()
                 email.save()

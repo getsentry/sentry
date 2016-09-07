@@ -27,6 +27,7 @@ from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
+    EmailForm
 )
 from sentry.web.helpers import render_to_response, get_login_url
 from sentry.utils.auth import get_auth_providers, get_login_redirect
@@ -119,11 +120,12 @@ def start_confirm_email(request):
     has_unverified_emails = request.user.has_unverified_emails()
     if has_unverified_emails:
         request.user.send_confirm_emails()
-        msg = _('A verification email has been sent to %s.') % request.user.email
+        unverified_emails = [e.email for e in request.user.get_unverified_emails()]
+        msg = _('A verification email has been sent to %s.') % (', ').join(unverified_emails)
     else:
         msg = _('Your email (%s) has already been verified.') % request.user.email
     messages.add_message(request, messages.SUCCESS, msg)
-    return HttpResponseRedirect(reverse('sentry-account-settings'))
+    return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
 
 def confirm_email(request, user_id, hash):
@@ -144,7 +146,7 @@ def confirm_email(request, user_id, hash):
         email.save()
         email_verified.send(email=email.email, sender=email)
     messages.add_message(request, level, msg)
-    return HttpResponseRedirect(reverse('sentry-account-settings'))
+    return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
 
 @csrf_protect
@@ -305,3 +307,79 @@ def list_identities(request):
         'AUTH_PROVIDERS': AUTH_PROVIDERS,
     })
     return render_to_response('sentry/account/identities.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+def show_emails(request):
+    user = request.user
+    primary_email = user.emails.get(email=user.email)
+    alt_emails = user.emails.all().exclude(email=primary_email.email)
+
+    email_form = EmailForm(user, request.POST or None,
+        initial={
+            'primary_email': primary_email.email,
+        },
+    )
+
+    if 'remove' in request.POST:
+        email = request.POST.get('email')
+        del_email = UserEmail.objects.filter(user=user, email=email)
+        del_email.delete()
+        return HttpResponseRedirect(request.path)
+
+    if email_form.is_valid():
+        old_email = user.email
+
+        email_form.save()
+
+        if user.email != old_email:
+            useroptions = UserOption.objects.filter(user=user, value=old_email)
+            for option in useroptions:
+                option.value = user.email
+                option.save()
+            UserEmail.objects.filter(user=user, email=old_email).delete()
+            try:
+                with transaction.atomic():
+                    user_email = UserEmail.objects.create(
+                        user=user,
+                        email=user.email,
+                    )
+            except IntegrityError:
+                pass
+            else:
+                user_email.set_hash()
+                user_email.save()
+            user.send_confirm_emails()
+        alternative_email = email_form.cleaned_data['alt_email']
+        # check if this alternative email already exists for user
+        if alternative_email and not UserEmail.objects.filter(user=user, email=alternative_email):
+            # create alternative email for user
+            try:
+                with transaction.atomic():
+                    new_email = UserEmail.objects.create(
+                        user=user,
+                        email=alternative_email
+                    )
+            except IntegrityError:
+                pass
+            else:
+                new_email.set_hash()
+                new_email.save()
+            # send confirmation emails to any non verified emails
+            user.send_confirm_emails()
+
+        messages.add_message(
+            request, messages.SUCCESS, 'Your settings were saved.')
+        return HttpResponseRedirect(request.path)
+
+    context = csrf(request)
+    context.update({
+        'email_form': email_form,
+        'primary_email': primary_email,
+        'alt_emails': alt_emails,
+        'page': 'emails',
+        'AUTH_PROVIDERS': get_auth_providers(),
+    })
+    return render_to_response('sentry/account/emails.html', context, request)
