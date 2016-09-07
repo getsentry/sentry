@@ -39,6 +39,9 @@ _java_enhancer_re = re.compile(r'''
 (\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
 ''', re.X)
 
+# file:///var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
+_react_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.]+(\.app|CodePush)\/')
+
 
 def trim_package(pkg):
     if not pkg:
@@ -219,6 +222,11 @@ def handle_nan(value):
     return value
 
 
+def strip_react_native_components(value):
+    # we maintain the leading prefix for compat
+    return _react_path_re.sub('/', value)
+
+
 class Frame(Interface):
     @classmethod
     def to_python(cls, data):
@@ -233,6 +241,10 @@ class Frame(Interface):
             v = data.get(name)
             if v is not None and not isinstance(v, six.string_types):
                 raise InterfaceValidationError("Invalid value for '%s'" % name)
+
+        # JS sdk only sends filename
+        if filename and filename.startswith('file://'):
+            filename = strip_react_native_components(filename)
 
         # absolute path takes priority over filename
         # (in the end both will get set)
