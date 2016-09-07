@@ -362,6 +362,7 @@ class OrganizationView(BaseView):
     def get_allowed_roles(self, request, organization, member=None):
         can_admin = request.access.has_scope('member:delete')
 
+        allowed_roles = []
         if can_admin and not request.is_superuser():
             acting_member = OrganizationMember.objects.get(
                 user=request.user,
