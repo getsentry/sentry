@@ -143,7 +143,7 @@ class BaseBuildCommand(Command):
         # if we were invoked from sdist, we need to inform sdist about
         # which files we just generated.  Otherwise they will be missing
         # in the manifest.  This adds the files for what webpack generates
-        # plus our own sentry-package.json file.
+        # plus our own assets.json file.
         sdist = self.distribution.get_command_obj('sdist')
         if not sdist.finalized:
             return

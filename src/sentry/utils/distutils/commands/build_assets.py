@@ -14,7 +14,24 @@ from .base import BaseBuildCommand
 
 
 class BuildAssetsCommand(BaseBuildCommand):
+    user_options = BaseBuildCommand.user_options + [
+        ('asset-json-path=', None,
+         'Relative path for JSON manifest. Defaults to {dist_name}/assets.json'),
+        ('inplace', 'i',
+         "ignore build-lib and put compiled javascript files into the source " +
+         "directory alongside your pure Python modules"),
+        ('force', 'f',
+         "Force rebuilding of static content. Defaults to rebuilding on version "
+         "change detection."),
+    ]
+
     description = 'build static media assets'
+
+    def initialize_options(self):
+        self.asset_json_path = '{}/assets.json'.format(
+            self.distribution.get_name(),
+        )
+        BaseBuildCommand.initialize_options(self)
 
     def get_paths(self):
         return [
@@ -23,8 +40,7 @@ class BuildAssetsCommand(BaseBuildCommand):
 
     def get_manifest_additions(self):
         return (
-            'src/sentry/sentry-package.json',
-            'src/sentry/static/version',
+            'src/' + self.asset_json_path,
         )
 
     def _get_package_version(self):
@@ -49,12 +65,14 @@ class BuildAssetsCommand(BaseBuildCommand):
 
         if not (version and build):
             try:
-                with open(self.sentry_package_json_path) as fp:
+                with open(self.get_asset_json_path()) as fp:
                     data = json.loads(fp.read())
             except Exception:
                 pass
             else:
-                log.info('pulled version information from \'sentry-package.json\'')
+                log.info('pulled version information from \'{}\''.format(
+                    self.package_path,
+                ))
                 version, build = data['version'], data['build']
 
         return {
@@ -63,7 +81,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         }
 
     def _needs_static(self, version_info):
-        json_path = self.sentry_package_json_path
+        json_path = self.get_asset_json_path()
         if not os.path.exists(json_path):
             return True
 
@@ -123,10 +141,8 @@ class BuildAssetsCommand(BaseBuildCommand):
             'version': version_info['version'],
             'build': version_info['build'],
         }
-        with open(self.sentry_package_json_path, 'w') as fp:
+        with open(self.get_asset_json_path(), 'w') as fp:
             json.dump(manifest, fp)
-        with open(self.sentry_static_version_path, 'w') as fp:
-            fp.write(version_info['build'])
         return manifest
 
     @property
@@ -134,12 +150,6 @@ class BuildAssetsCommand(BaseBuildCommand):
         return os.path.abspath(os.path.join(
             self.build_lib, 'sentry/static/sentry/dist'))
 
-    @property
-    def sentry_package_json_path(self):
+    def get_asset_json_path(self):
         return os.path.abspath(os.path.join(
-            self.build_lib, 'sentry/sentry-package.json'))
-
-    @property
-    def sentry_static_version_path(self):
-        return os.path.abspath(os.path.join(
-            self.build_lib, 'sentry/static/version'))
+            self.build_lib, self.asset_json_path))

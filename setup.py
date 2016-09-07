@@ -30,23 +30,25 @@ from __future__ import absolute_import
 
 import os
 import os.path
+import sys
+
 from distutils.command.build import build as BuildCommand
+from setuptools import setup, find_packages
+from setuptools.command.sdist import sdist as SDistCommand
+from setuptools.command.develop import develop as DevelopCommand
+
+ROOT = os.path.realpath(os.path.join(os.path.dirname(
+    sys.modules['__main__'].__file__)))
+
+# Add Sentry to path so we can import distutils
+sys.path.insert(0, os.path.join(ROOT, 'src'))
 
 from sentry.utils.distutils import (
     BuildAssetsCommand, BuildIntegrationDocsCommand
 )
 
-from setuptools import setup, find_packages
-from setuptools.command.sdist import sdist as SDistCommand
-from setuptools.command.develop import develop as DevelopCommand
-
 # The version of sentry
 VERSION = '8.9.0.dev0'
-
-# Also see sentry.utils.integrationdocs.DOC_FOLDER
-INTEGRATION_DOC_FOLDER = os.path.join(os.path.abspath(
-    os.path.dirname(__file__)), 'src', 'sentry', 'integration-docs')
-
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -58,7 +60,6 @@ for m in ('multiprocessing', 'billiard'):
     except ImportError:
         pass
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__)))
 IS_LIGHT_BUILD = os.environ.get('SENTRY_LIGHT_BUILD') == '1'
 
 dev_requires = [
