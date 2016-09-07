@@ -64,10 +64,10 @@
 
   <script>
   $(function(){
-    ReactDOM.render(React.createFactory(Sentry.IssuePluginConfiguration)({
+    ReactDOM.render(React.createFactory(Sentry.ProjectIssueTracking)({
       project: {% serialize project %},
       organization: {% serialize organization %},
-      plugins: {% serialize issue_v2_plugins %}
+      dataList: {% serialize issue_v2_plugins %}
     }), document.getElementById('issue_plugins'));
   });
   </script>

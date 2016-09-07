@@ -1,5 +1,8 @@
 from __future__ import absolute_import
+
 from django.conf.urls import url
+
+from sentry.plugins import Plugin2
 from sentry.plugins.base.project_api_urls import load_plugin_urls
 from sentry.plugins.base.response import JSONResponse
 
@@ -15,36 +18,32 @@ def test_json_response_with_status_kwarg():
 
 
 def test_load_plugin_urls():
-    class BadPluginA(object):
+    class BadPluginA(Plugin2):
         def get_project_urls(self):
             assert False
 
-    class BadPluginB(object):
+    class BadPluginB(Plugin2):
         def get_project_urls(self):
             return 'lol'
 
-    class BadPluginC(object):
+    class BadPluginC(Plugin2):
         def get_project_urls(self):
             return None
 
-    class BadPluginD(object):
+    class GoodPluginA(Plugin2):
+        def get_project_urls(self):
+            return [url('', None)]
+
+    class GoodPluginB(Plugin2):
         def get_project_urls(self):
             return [('foo', 'bar')]
-
-    class GoodPlugin(object):
-        slug = 'thing'
-
-        def get_project_urls(self):
-            return [
-                url('', None),
-            ]
 
     patterns = load_plugin_urls((
         BadPluginA(),
         BadPluginB(),
         BadPluginC(),
-        BadPluginD(),
-        GoodPlugin(),
+        GoodPluginA(),
+        GoodPluginB(),
     ))
 
-    assert len(patterns) == 1
+    assert len(patterns) == 2

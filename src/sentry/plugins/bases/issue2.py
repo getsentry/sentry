@@ -10,6 +10,7 @@ from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
+from sentry.exceptions import PluginError
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
@@ -29,10 +30,6 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 
         return getattr(self.plugin, self.view_method_name)(
             request, group, *args, **kwargs)
-
-
-class PluginError(Exception):
-    pass
 
 
 class IssueTrackingPlugin2(Plugin):
