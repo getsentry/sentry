@@ -204,18 +204,18 @@ const Header = React.createClass({
                               hidePanel={()=>this.hidePanel()}/>
             }
             {this.state.showPanel && this.state.currentPanel == 'statusupdate' &&
-                <SidebarPanel title={t('Active Incidents')}
+                <SidebarPanel title={t('Recent status updates')}
                               hidePanel={()=>this.hidePanel()}>
                   <ul className="incident-list list-unstyled">
                     {incidents.map((incident) =>
-                      <li className="incident-item">
+                      <li className="incident-item" key={incident.id}>
                         <h4>{incident.title}</h4>
                         {incident.updates ?
                           <div>
                             <h6>Latest updates:</h6>
                             <ul className="status-list list-unstyled">
                               {incident.updates.map((update) =>
-                                <li className="status-item">
+                                <li className="status-item" key={update.id}>
                                   <p>
                                     <strong>{update.status}</strong> - &nbsp;
                                     {update.message}<br/>
