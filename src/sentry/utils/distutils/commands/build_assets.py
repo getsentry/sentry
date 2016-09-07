@@ -83,7 +83,8 @@ class BuildAssetsCommand(BaseBuildCommand):
 
     def _build(self):
         version_info = self._get_package_version()
-        log.info('building assets for Sentry v{} (build {})'.format(
+        log.info('building assets for {} v{} (build {})'.format(
+            self.distribution.get_name(),
             version_info['version'] or 'UNKNOWN',
             version_info['build'] or 'UNKNOWN',
         ))
