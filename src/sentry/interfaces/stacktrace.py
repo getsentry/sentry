@@ -39,8 +39,11 @@ _java_enhancer_re = re.compile(r'''
 (\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
 ''', re.X)
 
-# file:///var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
-_react_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.]+(\.app|CodePush)\/')
+# React-Native:
+#  file:///var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
+# Electron:
+#   file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js
+_js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.]+(\.app|CodePush)\/')
 
 
 def trim_package(pkg):
@@ -222,9 +225,9 @@ def handle_nan(value):
     return value
 
 
-def strip_react_native_components(value):
+def strip_js_native_components(value):
     # we maintain the leading prefix for compat
-    return _react_path_re.sub('/', value)
+    return _js_native_path_re.sub('/', value)
 
 
 class Frame(Interface):
@@ -244,7 +247,7 @@ class Frame(Interface):
 
         # JS sdk only sends filename
         if filename and filename.startswith('file://'):
-            filename = strip_react_native_components(filename)
+            filename = strip_js_native_components(filename)
 
         # absolute path takes priority over filename
         # (in the end both will get set)

@@ -111,6 +111,14 @@ class StacktraceTest(TestCase):
         frame = interface.frames[0]
         assert frame.filename == '/main.jsbundle'
 
+    def test_normalizes_electron_filename(self):
+        interface = Stacktrace.to_python(dict(frames=[{
+            'lineno': 1,
+            'filename': 'file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js',
+        }]))
+        frame = interface.frames[0]
+        assert frame.filename == '/file1.js'
+
     def test_serialize_returns_frames(self):
         interface = Stacktrace.to_python(dict(frames=[{
             'lineno': 1,
