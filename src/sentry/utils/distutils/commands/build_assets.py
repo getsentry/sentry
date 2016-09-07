@@ -94,6 +94,8 @@ class BuildAssetsCommand(BaseBuildCommand):
         return False
 
     def _needs_built(self):
+        if BaseBuildCommand._needs_built(self):
+            return True
         version_info = self._get_package_version()
         return self._needs_static(version_info)
 
