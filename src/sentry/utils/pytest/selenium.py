@@ -127,6 +127,9 @@ def pytest_addoption(parser):
     group._addoption('--selenium-driver',
                      dest='selenium_driver',
                      help='selenium driver (phantomjs or firefox)')
+    group._addoption('--phantomjs-path',
+                     dest='phantomjs_path',
+                     help='path to phantomjs driver')
 
 
 def pytest_configure(config):
@@ -161,12 +164,14 @@ def browser(request, percy, live_server):
     if driver_type == 'firefox':
         driver = webdriver.Firefox()
     elif driver_type == 'phantomjs':
-        phantomjs_path = os.path.join(
-            settings.NODE_MODULES_ROOT,
-            'phantomjs-prebuilt',
-            'bin',
-            'phantomjs',
-        )
+        phantomjs_path = request.config.getoption('phantomjs_path')
+        if not phantomjs_path:
+            phantomjs_path = os.path.join(
+                'node_modules',
+                'phantomjs-prebuilt',
+                'bin',
+                'phantomjs',
+            )
         driver = webdriver.PhantomJS(executable_path=phantomjs_path)
         driver.set_window_size(1280, 800)
     else:
