@@ -15,6 +15,27 @@ import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
 import {t} from '../../locale';
 
+const INCIDENTS = [
+  {
+    id: 1,
+    timestamp : "2 hours ago",
+    title: "Issues delivering mail to FastMail customers",
+    url: "http://example.com",
+    updates: [
+        {
+          id: 1,
+          status: "Resolved",
+          message: "FastMail has addressed the issue, and we are delivering email again."
+        },
+        {
+          id: 2,
+          status: "Identified",
+          message: "FastMail customers are not getting emails. Our outbound IPs are being rate limited by FastMail. We have an open ticket with them to try and alleviate the issue. In the meantime, you may want to switch your Sentry email to something not backed by FastMail."
+        }
+    ]
+  }
+];
+
 const OnboardingStatus = React.createClass({
   propTypes: {
     org: React.PropTypes.object.isRequired
@@ -134,6 +155,8 @@ const Header = React.createClass({
       );
     }
 
+    let incidents = INCIDENTS;
+
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <nav className="navbar">
@@ -179,6 +202,38 @@ const Header = React.createClass({
                 <SidebarPanel title={t('Recently Viewed')}
                               hidePanel={()=>this.hidePanel()}/>
             }
+            {this.state.showPanel && this.state.currentPanel == 'statusupdate' &&
+                <SidebarPanel title={t('Active Incidents')}
+                              hidePanel={()=>this.hidePanel()}>
+                  <ul className="incident-list list-unstyled">
+                    {incidents.map((incident) =>
+                      <li className="incident-item">
+                        <h4>{incident.title}</h4>
+                        {incident.updates ?
+                          <div>
+                            <h6>Latest updates:</h6>
+                            <ul className="status-list list-unstyled">
+                              {incident.updates.map((update) =>
+                                <li className="status-item">
+                                  <p>
+                                    <strong>{update.status}</strong> - &nbsp;
+                                    {update.message}
+                                  </p>
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+                          :
+                          null
+                        }
+                        <p>
+                          <a href={incident.url} className="btn btn-default btn-sm">Learn more</a>
+                        </p>
+                      </li>
+                    )}
+                  </ul>
+                </SidebarPanel>
+            }
           </div>
 
           <ul className="navbar-nav anchor-bottom">
@@ -196,7 +251,7 @@ const Header = React.createClass({
               onShowPanel={()=>this.showPanel('broadcasts')}
               hidePanel={()=>this.hidePanel()} />
             <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
-              <a><span className="icon-alert" /></a>
+              <a onClick={()=>this.showPanel('statusupdate')} ><span className="icon-alert" /></a>
             </li>
             <li>
               <UserNav className="user-settings" />
