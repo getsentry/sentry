@@ -20,9 +20,12 @@
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
-    {% for field in form %}
-      {{ field|as_crispy_field }}
-    {% endfor %}
+    {{ form|as_crispy_errors }}
+
+    {{ form.email|as_crispy_field }}
+
+    {% include "sentry/partial/members/_roles.html" %}
+    {% include "sentry/partial/members/_teams.html" %}
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Add Member" %}</button>

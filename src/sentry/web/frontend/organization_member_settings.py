@@ -76,23 +76,7 @@ class OrganizationMemberSettingsView(OrganizationView):
         elif request.POST.get('op') == 'regenerate' and member.is_pending:
             return self.resend_invite(request, organization, member, regen=True)
 
-        can_admin = request.access.has_scope('member:delete')
-
-        if can_admin and not request.is_superuser():
-            acting_member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
-            if roles.get(acting_member.role).priority < roles.get(member.role).priority:
-                can_admin = False
-            else:
-                allowed_roles = [
-                    r for r in roles.get_all()
-                    if r.priority <= roles.get(acting_member.role).priority
-                ]
-                can_admin = bool(allowed_roles)
-        elif request.is_superuser():
-            allowed_roles = roles.get_all()
+        can_admin, allowed_roles = self.get_allowed_roles(request, organization, member)
 
         if member.user == request.user or not can_admin:
             return self.view_member(request, organization, member)

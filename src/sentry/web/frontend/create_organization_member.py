@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
+from sentry.models import Team
 from sentry.signals import member_invited
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.invite_organization_member import InviteOrganizationMemberForm
@@ -16,9 +17,10 @@ from sentry.web.forms.add_organization_member import AddOrganizationMemberForm
 class CreateOrganizationMemberView(OrganizationView):
     required_scope = 'org:write'
 
-    def get_form(self, request, organization):
+    def get_form(self, request, organization, all_teams, allowed_roles):
         initial = {
             'role': organization.default_role,
+            'teams': [],
         }
 
         if settings.SENTRY_ENABLE_INVITES:
@@ -26,10 +28,23 @@ class CreateOrganizationMemberView(OrganizationView):
         else:
             form_cls = AddOrganizationMemberForm
 
-        return form_cls(request.POST or None, initial=initial)
+        return form_cls(
+            data=request.POST or None,
+            all_teams=all_teams,
+            allowed_roles=allowed_roles,
+            initial=initial,
+        )
 
     def handle(self, request, organization):
-        form = self.get_form(request, organization)
+        can_admin, allowed_roles = self.get_allowed_roles(request, organization)
+
+        all_teams = Team.objects.filter(
+            organization=organization,
+        )
+
+        # TODO if not can admim
+
+        form = self.get_form(request, organization, all_teams, allowed_roles)
         if form.is_valid():
             om, created = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
@@ -51,7 +66,11 @@ class CreateOrganizationMemberView(OrganizationView):
         context = {
             'form': form,
             'is_invite': settings.SENTRY_ENABLE_INVITES,
-            'role_list': roles.get_all(),
+            'role_list': [
+                (r, r in allowed_roles)
+                for r in roles.get_all()
+            ],
+            'all_teams': all_teams
         }
 
         return self.respond('sentry/create-organization-member.html', context)
