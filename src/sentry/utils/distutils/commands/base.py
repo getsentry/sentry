@@ -84,8 +84,6 @@ class BaseBuildCommand(Command):
         if self.inplace is None:
             self.inplace = (build_ext.inplace or sdist.finalized) and 1 or 0
 
-        log.info('Building integration docs')
-
         # If we're coming from sdist, clear the hell out of the dist
         # folder first.
         if sdist.finalized:
