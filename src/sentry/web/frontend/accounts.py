@@ -20,13 +20,14 @@ from django.utils.translation import ugettext as _
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, Project, UserOption, Authenticator
+    UserEmail, LostPasswordHash, Project, UserOption, Authenticator, SecondaryUserEmail
 )
 from sentry.signals import email_verified
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
+    EmailForm
 )
 from sentry.web.helpers import render_to_response, get_login_url
 from sentry.utils.auth import get_auth_providers, get_login_redirect
@@ -119,11 +120,12 @@ def start_confirm_email(request):
     has_unverified_emails = request.user.has_unverified_emails()
     if has_unverified_emails:
         request.user.send_confirm_emails()
-        msg = _('A verification email has been sent to %s.') % request.user.email
+        unverified_emails = request.user.get_unverified_emails()
+        msg = _('A verification email has been sent to %s.') % (', ').join([email.email for email in unverified_emails])
     else:
         msg = _('Your email (%s) has already been verified.') % request.user.email
     messages.add_message(request, messages.SUCCESS, msg)
-    return HttpResponseRedirect(reverse('sentry-account-settings'))
+    return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
 
 def confirm_email(request, user_id, hash):
@@ -144,7 +146,7 @@ def confirm_email(request, user_id, hash):
         email.save()
         email_verified.send(email=email.email, sender=email)
     messages.add_message(request, level, msg)
-    return HttpResponseRedirect(reverse('sentry-account-settings'))
+    return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
 
 @csrf_protect
@@ -305,3 +307,79 @@ def list_identities(request):
         'AUTH_PROVIDERS': AUTH_PROVIDERS,
     })
     return render_to_response('sentry/account/identities.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+def show_emails(request):
+    user = request.user
+    alt_emails = user.secondary_emails.all()
+
+    primary_email = user.emails.first()
+    # do we want to dynamically generate  emails here so that users can have unlimited email addresses associated with account?
+    email_form = EmailForm(user, request.POST or None,
+        initial={
+            'primary_email': user.email,
+        },
+    )
+
+    if 'remove' in request.POST:
+        email = request.POST.get('email')
+        del_email = SecondaryUserEmail.objects.filter(user=user, email=email)
+        del_email.delete()
+        return HttpResponseRedirect(request.path)
+
+    if email_form.is_valid():
+        if user.check_password(email_form.cleaned_data['password']):
+            old_email = user.email
+
+            email_form.save()
+
+            if user.email != old_email:
+                UserEmail.objects.filter(user=user, email=old_email).delete()
+                try:
+                    with transaction.atomic():
+                        user_email = UserEmail.objects.create(
+                            user=user,
+                            email=user.email,
+                        )
+                except IntegrityError:
+                    pass
+                else:
+                    user_email.set_hash()
+                    user_email.save()
+                user.send_confirm_emails()
+            alternative_email = email_form.cleaned_data['alt_email']
+            # check if this alternative email already exists for user
+            if not SecondaryUserEmail.objects.filter(user=user, email=alternative_email):
+                # create alternative email for user
+                try:
+                    with transaction.atomic():
+                        new_email = SecondaryUserEmail.objects.create(
+                            user=user,
+                            email=alternative_email
+                        )
+                except IntegrityError:
+                    pass
+                else:
+                    new_email.set_hash()
+                    new_email.save()
+                # send confirmation emails to any non verified emails
+                user.send_confirm_emails()
+
+            messages.add_message(
+                request, messages.SUCCESS, 'Your settings were saved.')
+            return HttpResponseRedirect(request.path)
+        else:
+            email_form.errors['__all__'] = ['Invalid password.']
+
+    context = csrf(request)
+    context.update({
+        'email_form': email_form,
+        'primary_email': primary_email,
+        'alt_emails': alt_emails,
+        'page': 'emails',
+        'AUTH_PROVIDERS': get_auth_providers(),
+    })
+    return render_to_response('sentry/account/emails.html', context, request)
