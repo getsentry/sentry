@@ -95,13 +95,13 @@ class BaseBuildCommand(Command):
 
         # In place means build_lib is src.  We also log this.
         if self.inplace:
-            log.info('In-place js building enabled')
+            log.debug('in-place js building enabled')
             self.build_lib = 'src'
         # Otherwise we fetch build_lib from the build command.
         else:
             self.set_undefined_options('build',
                                        ('build_lib', 'build_lib'))
-            log.info('regular js build: build path is %s' %
+            log.debug('regular js build: build path is %s' %
                      self.build_lib)
 
         if self.work_path is None:
@@ -156,8 +156,8 @@ class BaseBuildCommand(Command):
         # We need to split off the local parts of the files relative to
         # the current folder.  This will chop off the right path for the
         # manifest.
-        for root in self.get_dist_paths():
-            for dirname, _, filenames in os.walk(root):
+        for path in self.get_dist_paths():
+            for dirname, _, filenames in os.walk(os.path.abspath(path)):
                 for filename in filenames:
                     filename = os.path.join(dirname, filename)
                     files.append(filename[len(base):].lstrip(os.path.sep))
