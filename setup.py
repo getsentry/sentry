@@ -26,9 +26,9 @@ from __future__ import absolute_import
 
 import sys
 
-# if sys.version_info[:2] != (2, 7):
-#     print 'Error: Sentry requires Python 2.7'
-#     sys.exit(1)
+if sys.version_info[:2] != (2, 7):
+    print 'Error: Sentry requires Python 2.7'
+    sys.exit(1)
 
 import os
 import json
