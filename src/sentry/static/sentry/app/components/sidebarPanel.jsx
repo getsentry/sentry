@@ -15,14 +15,16 @@ const SidebarPanel = React.createClass({
           <a className="close pull-right" onClick={this.props.hidePanel}><span className="icon-x" /></a>
           <h2>{this.props.title}</h2>
         </div>
-        {!this.props.children &&
-          <div className="sidebar-panel-items">
-            <SidebarPanelItem />
-          </div>
-        }
-        {this.props.children &&
-          this.props.children
-        }
+        <div className="sidebar-panel-body">
+          {!this.props.children &&
+            <div className="sidebar-panel-items">
+              <SidebarPanelItem />
+            </div>
+          }
+          {this.props.children &&
+            this.props.children
+          }
+        </div>
       </div>
     );
   }
