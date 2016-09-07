@@ -43,7 +43,7 @@ _java_enhancer_re = re.compile(r'''
 #  file:///var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
 # Electron:
 #   file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js
-_js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.]+(\.app|CodePush)\/')
+_js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app|CodePush)\/')
 
 
 def trim_package(pkg):
