@@ -33,7 +33,7 @@ class BuildAssetsCommand(BaseBuildCommand):
         )
         BaseBuildCommand.initialize_options(self)
 
-    def get_paths(self):
+    def get_dist_paths(self):
         return [
             'src/sentry/static/sentry/dist',
         ]

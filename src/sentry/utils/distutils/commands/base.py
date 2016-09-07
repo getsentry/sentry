@@ -35,7 +35,7 @@ class BaseBuildCommand(Command):
     def get_root_path(self):
         return os.path.abspath(os.path.dirname(sys.modules['__main__'].__file__))
 
-    def get_paths(self):
+    def get_dist_paths(self):
         return []
 
     def get_manifest_additions(self):
@@ -87,7 +87,7 @@ class BaseBuildCommand(Command):
         # If we're coming from sdist, clear the hell out of the dist
         # folder first.
         if sdist.finalized:
-            for path in self.get_paths():
+            for path in self.get_dist_paths():
                 try:
                     shutil.rmtree(path)
                 except (OSError, IOError):
@@ -108,7 +108,7 @@ class BaseBuildCommand(Command):
             self.work_path = self.get_root_path()
 
     def _needs_built(self):
-        for path in self.get_paths():
+        for path in self.get_dist_paths():
             if not os.path.isdir(path):
                 return True
         return False
@@ -156,7 +156,7 @@ class BaseBuildCommand(Command):
         # We need to split off the local parts of the files relative to
         # the current folder.  This will chop off the right path for the
         # manifest.
-        for root in self.get_paths():
+        for root in self.get_dist_paths():
             for dirname, _, filenames in os.walk(root):
                 for filename in filenames:
                     filename = os.path.join(dirname, filename)
