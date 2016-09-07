@@ -117,7 +117,7 @@ class StacktraceTest(TestCase):
             'filename': 'file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js',
         }]))
         frame = interface.frames[0]
-        assert frame.filename == '/file1.js'
+        assert frame.filename == '/Contents/app.asar/file1.js'
 
     def test_serialize_returns_frames(self):
         interface = Stacktrace.to_python(dict(frames=[{
