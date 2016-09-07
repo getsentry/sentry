@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.core import mail
 from django.core.urlresolvers import reverse
 
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import PermissionTestCase, TestCase
 
 
@@ -35,12 +35,16 @@ class CreateOrganizationMemberTest(TestCase):
 
     def test_valid_for_invites(self):
         organization = self.create_organization(name='Default')
+        team = self.create_team(name='foo', organization=organization)
+
         path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
 
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             resp = self.client.post(path, {
                 'email': 'foo@example.com',
+                'role': 'member',
+                'teams': [team.id, ]
             })
         assert resp.status_code == 302
 
@@ -50,6 +54,14 @@ class CreateOrganizationMemberTest(TestCase):
         )
 
         assert member.user is None
+        assert member.role == 'member'
+
+        om_teams = OrganizationMemberTeam.objects.filter(
+            organizationmember=member
+        )
+
+        assert len(om_teams) == 1
+        assert om_teams[0].team_id == team.id
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri
@@ -74,6 +86,7 @@ class CreateOrganizationMemberTest(TestCase):
         with self.settings(SENTRY_ENABLE_INVITES=True):
             resp = self.client.post(path, {
                 'email': 'foo@example.com',
+                'role': 'member'
             })
 
         assert resp.status_code == 302
@@ -81,6 +94,7 @@ class CreateOrganizationMemberTest(TestCase):
         member = OrganizationMember.objects.get(id=member.id)
 
         assert member.email is None
+        assert member.role == 'member'
 
         redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
         assert resp['Location'] == 'http://testserver' + redirect_uri
@@ -95,6 +109,7 @@ class CreateOrganizationMemberTest(TestCase):
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
                 'user': 'foo@example.com',
+                'role': 'member'
             })
         assert resp.status_code == 302
 
@@ -116,6 +131,7 @@ class CreateOrganizationMemberTest(TestCase):
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
                 'user': 'bar@example.com',
+                'role': 'member'
             })
 
         assert resp.status_code == 200

@@ -43,7 +43,6 @@ class CreateOrganizationMemberView(OrganizationView):
         )
 
         # TODO if not can admim
-
         form = self.get_form(request, organization, all_teams, allowed_roles)
         if form.is_valid():
             om, created = form.save(request.user, organization, request.META['REMOTE_ADDR'])
