@@ -13,8 +13,8 @@
     };
    */
 
-  var GENERIC_ERROR = '<p class="message-error">An unknown error occurred while submitting your report. Please try again.</p>';
-  var FORM_ERROR = '<p class="message-error">Some fields were invalid. Please correct the errors and try again.</p>';
+  var GENERIC_ERROR = '<p class="message-error">' + gettext('An unknown error occurred while submitting your report. Please try again.') + '</p>';
+  var FORM_ERROR = '<p class="message-error">' + gettext('Some fields were invalid. Please correct the errors and try again.') + '</p>';
 
   // XMLHttpRequest.DONE does not exist in all browsers
   var XHR_DONE = 4;
@@ -128,7 +128,7 @@
 
   SentryErrorEmbed.prototype.onSuccess = function() {
     this._errorWrapper.innerHTML = '';
-    this._formContent.innerHTML = '<p class="message-success">Your feedback has been sent. Thank you!</p>';
+    this._formContent.innerHTML = '<p class="message-success">' + gettext('Your feedback has been sent. Thank you!') + '</p>';
     this._submitBtn.parentNode.removeChild(this._submitBtn);
   };
 
