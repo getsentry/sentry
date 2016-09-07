@@ -5,7 +5,10 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
-from sentry.models import EventUser, Group, GroupTagValue, Project
+from sentry.models import (
+    EventUser, Group, GroupTagValue, OrganizationMember,
+    OrganizationMemberTeam, Project, Team
+)
 
 
 class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
@@ -18,13 +21,22 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
 
         limit = request.GET.get('limit', 100)
 
-        team_list = list(request.access.teams)
+        # limit to only teams user has opted into
+        member = OrganizationMember.objects.get(user=request.user,
+                                                organization=organization)
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=member,
+                is_active=True,
+            ).values('team')
+        )
+
         projects = Project.objects.filter(
-            team__in=team_list,
+            team__in=list(teams),
         )
 
         event_users = EventUser.objects.filter(email=email,
-                                               project_id__in=[p.id for p in projects])
+                                               project_id__in=[p.id for p in projects])[:1000]
 
         projects = list(set([e.project_id for e in event_users]))
 
