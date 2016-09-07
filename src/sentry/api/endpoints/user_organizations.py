@@ -5,19 +5,11 @@ from django.db.models import Q
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import (
-    Organization, OrganizationMember, OrganizationStatus
-)
 
 
 class UserOrganizationsEndpoint(UserEndpoint):
     def get(self, request, user):
-        queryset = Organization.objects.filter(
-            status=OrganizationStatus.VISIBLE,
-            id__in=OrganizationMember.objects.filter(
-                user=user,
-            ).values('organization'),
-        )
+        queryset = user.get_orgs()
 
         query = request.GET.get('query')
         if query:
