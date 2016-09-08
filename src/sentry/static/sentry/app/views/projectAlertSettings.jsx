@@ -174,8 +174,11 @@ const InactivePlugins = React.createClass({
 
 const ProjectAlertSettings = React.createClass({
   propTypes: {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
+    // these are not declared as required of issues with cloned elements
+    // not initially defining them (though they are bound before) ever
+    // rendered
+    organization: React.PropTypes.object,
+    project: React.PropTypes.object,
   },
 
   mixins: [ApiMixin],
