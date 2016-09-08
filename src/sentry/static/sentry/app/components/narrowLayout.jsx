@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import React from 'react';
 
 import Footer from '../components/footer';
-import Header from '../components/header';
+import Sidebar from '../components/sidebar';
 
 const NarryLayout = React.createClass({
   componentWillMount() {
@@ -16,7 +16,7 @@ const NarryLayout = React.createClass({
   render() {
     return (
       <div className="app">
-        <Header />
+        <Sidebar />
         <div className="container">
           <div className="box">
             <div className="box-content with-padding">
@@ -31,4 +31,3 @@ const NarryLayout = React.createClass({
 });
 
 export default NarryLayout;
-

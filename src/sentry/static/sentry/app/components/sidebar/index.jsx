@@ -83,7 +83,7 @@ function getFirstRequiredAdminAction(org) {
   return null;
 }
 
-const Header = React.createClass({
+const Sidebar = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string
   },
@@ -285,4 +285,4 @@ const Header = React.createClass({
   }
 });
 
-export default Header;
+export default Sidebar;
