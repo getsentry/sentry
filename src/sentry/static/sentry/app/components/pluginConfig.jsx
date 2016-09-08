@@ -23,6 +23,12 @@ const PluginConfig = React.createClass({
     };
   },
 
+  getInitialState() {
+    return {
+      loading: !plugins.isLoaded(this.props.data)
+    };
+  },
+
   componentWillMount() {
     this.loadPlugin(this.props.data);
   },
@@ -41,6 +47,9 @@ const PluginConfig = React.createClass({
   },
 
   loadPlugin(data) {
+    if (plugins.isLoaded(data))
+      return;
+
     this.setState({
       loading: true,
     }, () => {
