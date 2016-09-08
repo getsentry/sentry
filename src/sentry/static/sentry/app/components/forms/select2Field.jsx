@@ -3,14 +3,16 @@ import React from 'react';
 
 import InputField from './inputField';
 
-export default class Select2Field extends InputField {
+class Select2Field extends InputField {
   getField() {
     return (
       <select id={this.getId()}
           className="form-control"
           ref="input"
+          placeholder={this.props.placeholder}
           onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
+          required={this.props.required}
           value={this.state.value}>
         {this.props.choices.map((choice) => {
           return (
@@ -35,5 +37,10 @@ export default class Select2Field extends InputField {
   componentWillUnmount() {
     jQuery(this.refs.select).select2('destroy');
   }
-
 }
+
+Select2Field.propTypes = Object.assign({
+  choices: React.PropTypes.array.isRequired,
+}, InputField.propTypes);
+
+export default Select2Field;
