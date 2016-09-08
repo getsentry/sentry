@@ -27,7 +27,9 @@
 
         <legend>Membership</legend>
 
-        {{ form.default_role|as_crispy_field }}
+        {% if form.default_role %}
+          {{ form.default_role|as_crispy_field }}
+        {% endif %}
         {{ form.allow_joinleave|as_crispy_field }}
 
         <legend>Security &amp; Privacy</legend>
