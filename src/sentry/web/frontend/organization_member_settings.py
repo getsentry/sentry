@@ -6,7 +6,8 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, ugettext
 
 from sentry import roles
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, \
+    Team, TeamStatus
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
 from sentry.web.helpers import get_login_url
@@ -49,12 +50,13 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         return self.redirect(redirect)
 
-    def view_member(self, request, organization, member):
+    def view_member(self, request, organization, member, all_teams):
         context = {
             'member': member,
             'enabled_teams': set(member.teams.all()),
             'all_teams': Team.objects.filter(
                 organization=organization,
+                status=TeamStatus.VISIBLE
             ),
             'role_list': roles.get_all(),
         }
@@ -78,12 +80,13 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         can_admin, allowed_roles = self.get_allowed_roles(request, organization, member)
 
-        if member.user == request.user or not can_admin:
-            return self.view_member(request, organization, member)
-
         all_teams = Team.objects.filter(
             organization=organization,
+            status=TeamStatus.VISIBLE
         )
+
+        if member.user == request.user or not can_admin:
+            return self.view_member(request, organization, member, all_teams)
 
         form = self.get_form(request, member, all_teams, allowed_roles)
         if form.is_valid():

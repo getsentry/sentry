@@ -7,7 +7,7 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
-from sentry.models import Team
+from sentry.models import Team, TeamStatus
 from sentry.signals import member_invited
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.invite_organization_member import InviteOrganizationMemberForm
@@ -40,9 +40,9 @@ class CreateOrganizationMemberView(OrganizationView):
 
         all_teams = Team.objects.filter(
             organization=organization,
+            status=TeamStatus.VISIBLE
         )
 
-        # TODO if not can admim
         form = self.get_form(request, organization, all_teams, allowed_roles)
         if form.is_valid():
             om, created = form.save(request.user, organization, request.META['REMOTE_ADDR'])
