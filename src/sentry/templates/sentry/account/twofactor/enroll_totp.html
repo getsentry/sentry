@@ -30,6 +30,10 @@
       {% for field in otp_form %}
         {{ field|as_crispy_field }}
       {% endfor %}
+      {% if password_form.password %}
+        {{ password_form|as_crispy_errors }}
+        {{ password_form.password|as_crispy_field }}
+      {% endif %}
 
       <input type="hidden" name="enroll">
       <input type="hidden" name="totp_secret" value="{{ auth.secret }}">
