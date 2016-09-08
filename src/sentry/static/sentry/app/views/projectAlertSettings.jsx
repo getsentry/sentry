@@ -4,7 +4,7 @@ import underscore from 'underscore';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
-import {DefaultPlugin} from '../plugin';
+import PluginConfig from '../components/pluginConfig';
 import {FormState, RangeField} from '../components/forms';
 import {t} from '../locale';
 
@@ -194,16 +194,16 @@ const ProjectAlertSettings = React.createClass({
     this.setState({project: project});
   },
 
-  togglePlugin(plugin, enable) {
+  enablePlugin(plugin) {
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/plugins/${plugin.id}/`, {
-      method: enable !== false ? 'POST' : 'DELETE',
+      method: 'POST',
       data: this.state.formData,
       success: (data) => {
         // TODO(dcramer): propagate this in a more correct way
         plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-        plugin.enabled = enable;
+        plugin.enabled = true;
         this.setState({project: this.state.project});
       },
       error: (error) => {
@@ -213,6 +213,13 @@ const ProjectAlertSettings = React.createClass({
         IndicatorStore.remove(loadingIndicator);
       }
     });
+  },
+
+  onDisablePlugin(plugin) {
+    // TODO(dcramer): propagate this in a more correct way
+    plugin = this.state.project.plugins.find(p => p.id === plugin.id);
+    plugin.enabled = false;
+    this.setState({project: this.state.project});
   },
 
   render() {
@@ -244,36 +251,20 @@ const ProjectAlertSettings = React.createClass({
           }}
           onSave={this.onDigestsChange} />
 
-        {plugins.filter(p => p.enabled).map((plugin) => {
-          // TODO(dcramer): switch window.SentryPlugins out with a plugin registry/cache
-          let pluginCls = (window.SentryPlugins[plugin.id] || DefaultPlugin);
-          console.log('[plugins] Loading ' + plugin.id + ' from ' + pluginCls.name);
-          let pluginObj = new (pluginCls)();
+        {plugins.filter(p => p.enabled).map((data) => {
           return (
-            <div className="box" key={plugin.id}>
-              <div className="box-header">
-                {plugin.canDisable &&
-                  <div className="pull-right">
-                    <a className="btn btn-sm btn-default"
-                       onClick={this.togglePlugin.bind(this, plugin, false)}>{t('Disable')}</a>
-                  </div>
-                }
-                <h3>{plugin.name}</h3>
-              </div>
-              <div className="box-content with-padding">
-                {pluginObj.renderSettings({
-                  organization: organization,
-                  project: project,
-                  plugin: plugin,
-                })}
-              </div>
-            </div>
+            <PluginConfig
+              data={data}
+              organization={organization}
+              project={project}
+              key={data.id}
+              onDisablePlugin={this.onDisablePlugin.bind(this, data)} />
           );
         })}
 
         <InactivePlugins
-            plugins={plugins.filter(p => !p.enabled)}
-            onEnablePlugin={this.togglePlugin} />
+          plugins={plugins.filter(p => !p.enabled)}
+          onEnablePlugin={this.enablePlugin} />
 
       </div>
     );
