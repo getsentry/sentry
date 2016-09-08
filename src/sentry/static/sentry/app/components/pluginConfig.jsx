@@ -1,4 +1,6 @@
 import React from 'react';
+import _ from 'underscore';
+
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -27,6 +29,10 @@ const PluginConfig = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     this.loadPlugin(nextProps.data);
+  },
+
+  shouldComponentUpdate(nextProps, nextState) {
+    return !_.isEqual(nextProps.data, this.props.data);
   },
 
   loadPlugin(data) {
