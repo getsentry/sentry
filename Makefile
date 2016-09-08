@@ -51,7 +51,7 @@ clean:
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ sentry-package.json
+	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
 build-js-po:
