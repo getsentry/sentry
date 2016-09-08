@@ -54,10 +54,7 @@ class OrganizationMemberSettingsView(OrganizationView):
         context = {
             'member': member,
             'enabled_teams': set(member.teams.all()),
-            'all_teams': Team.objects.filter(
-                organization=organization,
-                status=TeamStatus.VISIBLE
-            ),
+            'all_teams': all_teams,
             'role_list': roles.get_all(),
         }
 
