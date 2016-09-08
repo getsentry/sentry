@@ -17,7 +17,7 @@ from sentry.models import Authenticator
 from sentry.web.frontend.base import BaseView
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
-from sentry.web.forms.accounts import TwoFactorForm
+from sentry.web.forms.accounts import TwoFactorForm, ConfirmPasswordForm
 from sentry.utils import json
 
 
@@ -78,12 +78,19 @@ class TwoFactorSettingsView(BaseView):
                 iface.authenticator.delete()
 
     def remove(self, request, interface):
+        form = ConfirmPasswordForm
+
         if 'no' in request.POST or \
            not interface.is_enrolled:
             return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
         elif 'yes' in request.POST:
-            self.delete_authenticator(interface)
-            return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+            form = ConfirmPasswordForm(request.POST)
+            if form.is_valid():
+                if request.user.check_password(form.cleaned_data['password']):
+                    self.delete_authenticator(interface)
+                    return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+                else:
+                    form.errors['__all__'] = ['Invalid password.']
 
         all_interfaces = Authenticator.objects.all_interfaces_for_user(
             request.user)
@@ -94,6 +101,7 @@ class TwoFactorSettingsView(BaseView):
             len(backup_interfaces) == len(other_interfaces)
 
         context = self.make_context(request, interface)
+        context['password_form'] = form
         context['removes_backups'] = removes_backups
         return render_to_response('sentry/account/twofactor/remove.html',
                                   context, request)
@@ -151,11 +159,15 @@ class TotpSettingsView(TwoFactorSettingsView):
 
         if 'otp' in request.POST:
             form = TwoFactorForm(request.POST)
-            if form.is_valid() and interface.validate_otp(
-                    form.cleaned_data['otp']):
-                return TwoFactorSettingsView.enroll(self, request, interface)
-            else:
-                form.errors['__all__'] = ['Invalid confirmation code.']
+            if form.is_valid():
+                if request.user.check_password(form.cleaned_data['password']):
+                    if form.is_valid() and interface.validate_otp(
+                            form.cleaned_data['otp']):
+                        return TwoFactorSettingsView.enroll(self, request, interface)
+                    else:
+                        form.errors['__all__'] = ['Invalid confirmation code.']
+                else:
+                    form.errors['__all__'] = ['Invalid password.']
         else:
             form = TwoFactorForm()
 
