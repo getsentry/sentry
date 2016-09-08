@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-from sentry.api.base import StatsMixin
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -13,9 +12,10 @@ from sentry.api.serializers.models.grouprelease import (
     GroupReleaseWithStatsSerializer
 )
 from sentry.models import Environment, GroupRelease, ReleaseEnvironment
+from sentry.utils.dates import to_datetime
 
 
-class GroupEnvironmentDetailsEndpoint(GroupEndpoint, StatsMixin):
+class GroupEnvironmentDetailsEndpoint(GroupEndpoint):
     def get(self, request, group, environment):
         try:
             environment = Environment.objects.get(
@@ -52,22 +52,22 @@ class GroupEnvironmentDetailsEndpoint(GroupEndpoint, StatsMixin):
             environment=environment.name,
         ).order_by('-last_seen').values_list('last_seen', flat=True).first()
 
-        stats_args = self._parse_args(request)
+        until = request.GET.get('until')
+        if until:
+            until = to_datetime(float(until))
 
         context = {
             'environment': serialize(
                 environment, request.user, GroupEnvironmentWithStatsSerializer(
                     group=group,
-                    since=stats_args['start'],
-                    until=stats_args['end'],
+                    until=until,
                 )
             ),
             'firstRelease': serialize(first_release, request.user),
             'lastRelease': serialize(last_release, request.user),
             'currentRelease': serialize(
                 current_release, request.user, GroupReleaseWithStatsSerializer(
-                    since=stats_args['start'],
-                    until=stats_args['end'],
+                    until=until,
                 )
             ),
             'lastSeen': last_seen,
