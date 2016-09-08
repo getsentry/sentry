@@ -53,7 +53,6 @@ from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_keys import ProjectKeysView
-from sentry.web.frontend.project_notifications import ProjectNotificationsView
 from sentry.web.frontend.project_plugin_configure import \
     ProjectPluginConfigureView
 from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
@@ -407,10 +406,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/quotas/$',
         ProjectQuotasView.as_view(),
         name='sentry-manage-project-quotas'),
-
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/notifications/$',
-        ProjectNotificationsView.as_view(),
-        name='sentry-project-notifications'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/new/$',
         ProjectRuleEditView.as_view(),
