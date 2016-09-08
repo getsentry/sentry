@@ -7,39 +7,18 @@ from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
     OrganizationMember,
-    OrganizationMemberTeam,
-    Team,
 )
 from sentry.signals import member_invited
+from sentry.web.forms.base_organization_member import BaseOrganizationMember
 
 
-class InviteOrganizationMemberForm(forms.ModelForm):
+class InviteOrganizationMemberForm(BaseOrganizationMember):
     # override this to ensure the field is required
     email = forms.EmailField()
-
-    teams = forms.ModelMultipleChoiceField(
-        queryset=Team.objects.none(),
-        widget=forms.CheckboxSelectMultiple(),
-        required=False,
-    )
-    role = forms.ChoiceField()
 
     class Meta:
         fields = ('email',)
         model = OrganizationMember
-
-    def __init__(self, *args, **kwargs):
-        allowed_roles = kwargs.pop('allowed_roles')
-        all_teams = kwargs.pop('all_teams')
-
-        super(InviteOrganizationMemberForm, self).__init__(*args, **kwargs)
-
-        self.fields['role'].choices = (
-            (r.id, r.name)
-            for r in allowed_roles
-        )
-
-        self.fields['teams'].queryset = all_teams
 
     def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
@@ -68,15 +47,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             ), False
         transaction.savepoint_commit(sid, using='default')
 
-        for team in self.cleaned_data['teams']:
-            OrganizationMemberTeam.objects.create_or_update(
-                team=team,
-                organizationmember=om,
-            )
-
-        OrganizationMemberTeam.objects.filter(
-            organizationmember=om,
-        ).exclude(team__in=self.cleaned_data['teams']).delete()
+        self.save_team_assignments(om)
 
         AuditLogEntry.objects.create(
             organization=organization,
