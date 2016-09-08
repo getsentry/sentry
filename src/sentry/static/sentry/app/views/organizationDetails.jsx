@@ -2,7 +2,7 @@ import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import Footer from '../components/footer';
-import Header from '../components/header';
+import Sidebar from '../components/sidebar';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -155,7 +155,7 @@ const OrganizationDetails = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          <Header orgId={params.orgId}/>
+          <Sidebar orgId={params.orgId}/>
           {this.props.children}
           <Footer />
         </div>
