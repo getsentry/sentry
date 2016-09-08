@@ -28,11 +28,16 @@ const PluginConfig = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    this.loadPlugin(nextProps.data);
+    if (!_.isEqual(nextProps.data, this.props.data)) {
+      this.loadPlugin(nextProps.data);
+    }
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return !_.isEqual(nextProps.data, this.props.data);
+    return (
+      !_.isEqual(nextState, this.state) ||
+      !_.isEqual(nextProps.data, this.props.data)
+    );
   },
 
   loadPlugin(data) {
