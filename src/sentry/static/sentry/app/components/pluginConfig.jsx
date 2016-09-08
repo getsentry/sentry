@@ -1,6 +1,6 @@
 import React from 'react';
-import AlertActions from '../actions/alertActions';
 import ApiMixin from '../mixins/apiMixin';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import plugins from '../plugins';
 import {t} from '../locale';
@@ -9,10 +9,17 @@ const PluginConfig = React.createClass({
   propTypes: {
     organization: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
-    data: React.PropTypes.object.isRequired
+    data: React.PropTypes.object.isRequired,
+    onDisablePlugin: React.PropTypes.func,
   },
 
   mixins: [ApiMixin],
+
+  getDefaultProps() {
+    return {
+      onDisablePlugin: window.location.reload
+    };
+  },
 
   componentWillMount() {
     this.loadPlugin(this.props.data);
@@ -32,26 +39,23 @@ const PluginConfig = React.createClass({
     });
   },
 
-  getPluginEndpoint(data) {
-    let org = this.props.organization;
-    let project = this.props.project;
+  getPluginEndpoint() {
+    let {organization, project, data} = this.props;
     return (
-      `/projects/${org.slug}/${project.slug}/plugins/${data.id}/`
+      `/projects/${organization.slug}/${project.slug}/plugins/${data.id}/`
     );
   },
 
-  disablePlugin(data) {
-    this.api.request(this.getPluginEndpoint(data), {
+  disablePlugin() {
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    this.api.request(this.getPluginEndpoint(), {
       method: 'DELETE',
       success: () => {
-        // When this whole page is a react view, this won't be necessary
-        window.location.reload();
+        this.props.onDisablePlugin();
+        IndicatorStore.remove(loadingIndicator);
       },
       error: (error) => {
-        AlertActions.addAlert({
-          message: t('There was an error disabling the plugin'),
-          type: 'error'
-        });
+        IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
       }
     });
   },
@@ -59,12 +63,17 @@ const PluginConfig = React.createClass({
   render() {
     let data = this.props.data;
 
+            // <button className="btn btn-sm btn-default pull-right"
+            //         onClick={this.disablePlugin.bind(this, data)}>{t('Disable')}</button>}
     return (
       <div className="box">
         <div className="box-header">
           {data.canDisable && data.enabled &&
-            <button className="btn btn-sm btn-default pull-right"
-                    onClick={this.disablePlugin.bind(this, data)}>{t('Disable')}</button>}
+            <div className="pull-right">
+              <a className="btn btn-sm btn-default"
+                 onClick={this.disablePlugin}>{t('Disable')}</a>
+            </div>
+          }
           <h3>{data.name}</h3>
         </div>
         <div className="box-content with-padding">
