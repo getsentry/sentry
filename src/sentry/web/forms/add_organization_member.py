@@ -8,10 +8,10 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.web.forms.fields import UserField
-from sentry.web.forms.base_organization_member import BaseOrganizationMember
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class AddOrganizationMemberForm(BaseOrganizationMember):
+class AddOrganizationMemberForm(BaseOrganizationMemberForm):
     user = UserField()
 
     class Meta:

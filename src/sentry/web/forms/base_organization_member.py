@@ -9,7 +9,7 @@ from sentry.models import (
 )
 
 
-class BaseOrganizationMember(forms.ModelForm):
+class BaseOrganizationMemberForm(forms.ModelForm):
     """
     Base form used by AddOrganizationMemberForm, InviteOrganizationMemberForm,
     and EditOrganizationMemberForm
@@ -29,7 +29,7 @@ class BaseOrganizationMember(forms.ModelForm):
         allowed_roles = kwargs.pop('allowed_roles')
         all_teams = kwargs.pop('all_teams')
 
-        super(BaseOrganizationMember, self).__init__(*args, **kwargs)
+        super(BaseOrganizationMemberForm, self).__init__(*args, **kwargs)
 
         self.fields['role'].choices = (
             (r.id, r.name)

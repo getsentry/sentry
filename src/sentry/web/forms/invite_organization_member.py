@@ -9,10 +9,10 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.signals import member_invited
-from sentry.web.forms.base_organization_member import BaseOrganizationMember
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class InviteOrganizationMemberForm(BaseOrganizationMember):
+class InviteOrganizationMemberForm(BaseOrganizationMemberForm):
     # override this to ensure the field is required
     email = forms.EmailField()
 

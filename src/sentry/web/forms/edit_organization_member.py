@@ -4,10 +4,10 @@ from sentry.models import (
     AuditLogEntry,
     AuditLogEntryEvent,
 )
-from sentry.web.forms.base_organization_member import BaseOrganizationMember
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class EditOrganizationMemberForm(BaseOrganizationMember):
+class EditOrganizationMemberForm(BaseOrganizationMemberForm):
     def save(self, actor, organization, ip_address=None):
         om = super(EditOrganizationMemberForm, self).save()
 
