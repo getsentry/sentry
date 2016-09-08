@@ -5,7 +5,7 @@ import FormField from './formField';
 
 import {defined} from '../../utils';
 
-export default class InputField extends FormField {
+class InputField extends FormField {
   constructor(props) {
     super(props);
 
@@ -57,6 +57,7 @@ export default class InputField extends FormField {
           onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
           ref="input"
+          required={this.props.required}
           value={this.state.value} />
     );
   }
@@ -87,3 +88,9 @@ export default class InputField extends FormField {
     );
   }
 }
+
+InputField.propTypes = Object.assign({
+  placeholder: React.PropTypes.string,
+}, FormField.propTypes);
+
+export default InputField;
