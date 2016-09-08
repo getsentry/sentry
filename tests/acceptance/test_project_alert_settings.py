@@ -29,14 +29,24 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
             teams=[self.team],
         )
         self.login_as(self.user)
-        self.path = '/{}/{}/settings/alerts/'.format(self.org.slug, self.project.slug)
+        self.path1 = '/{}/{}/settings/alerts/'.format(self.org.slug, self.project.slug)
+        self.path2 = '/{}/{}/settings/alerts/rules/'.format(self.org.slug, self.project.slug)
 
-    def test_simple(self):
+    def test_settings_load(self):
         self.project.update(first_event=timezone.now())
-        self.browser.get(self.path)
+        self.browser.get(self.path1)
+        # dashboard is a bit complex to load since it has many subcomponents
+        # so we bank on the core container and the activity container being
+        # enough of a check
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.snapshot('project alert settings')
+
+    def test_rules_load(self):
+        self.project.update(first_event=timezone.now())
+        self.browser.get(self.path1)
         # dashboard is a bit complex to load since it has many subcomponents
         # so we bank on the core container and the activity container being
         # enough of a check
         self.browser.wait_until('.rules-list')
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('project alert settings')
+        self.browser.snapshot('project alert rules')
