@@ -1,0 +1,11 @@
+This is to let you know that ({{ organization.name }}) has been scheduled for deletion by:
+
+User: {{ audit_log_entry.actor.get_display_name }}
+IP: {{ audit_log_entry.ip_address }}
+Date: {{ audit_log_entry.datetime }}
+
+If this was a mistake and you'd like to cancel this process, please visit the following url. Otherwise, the deletion will complete at {{ eta }}.
+
+{{ url }}
+
+Note: this process is irreversible after deletion has begun.

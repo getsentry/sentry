@@ -31,6 +31,7 @@ class OrganizationMixin(object):
     # TODO(dcramer): move the implicit organization logic into its own class
     # as it's only used in a single location and over complicates the rest of
     # the code
+
     def get_active_organization(self, request, organization_slug=None):
         """
         Returns the currently active organization for the request or None
@@ -269,6 +270,8 @@ class BaseView(View, OrganizationMixin):
             extra['transaction_id'] = transaction_id
 
         audit_logger.info(entry.get_event_display(), extra=extra)
+
+        return entry
 
 
 class OrganizationView(BaseView):

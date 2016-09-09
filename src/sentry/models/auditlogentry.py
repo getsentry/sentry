@@ -28,6 +28,7 @@ class AuditLogEntryEvent(object):
     ORG_ADD = 10
     ORG_EDIT = 11
     ORG_REMOVE = 12
+    ORG_RESTORE = 13
 
     TEAM_ADD = 20
     TEAM_EDIT = 21

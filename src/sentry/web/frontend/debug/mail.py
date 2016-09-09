@@ -632,3 +632,29 @@ def recover_account(request):
             'domain': get_server_hostname(),
         },
     ).render(request)
+
+
+@login_required
+def org_delete_confirm(request):
+    from sentry.models import AuditLogEntry
+
+    org = Organization.get_default()
+    entry = AuditLogEntry(
+        organization=org,
+        actor=request.user,
+        ip_address=request.META['REMOTE_ADDR'],
+    )
+
+    return MailPreview(
+        html_template='sentry/emails/org_delete_confirm.html',
+        text_template='sentry/emails/org_delete_confirm.txt',
+        context={
+            'organization': org,
+            'audit_log_entry': entry,
+            'eta': timezone.now() + timedelta(days=1),
+            'url': absolute_uri(reverse(
+                'sentry-restore-organization',
+                args=[org.slug],
+            )),
+        },
+    ).render(request)

@@ -1,0 +1,14 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Organization Queued for Deletion</h3>
+    <p>This is to let you know that (<strong>{{ organization.name }}</strong>) has been scheduled for deletion by:</p>
+    <p><pre>User: {{ audit_log_entry.actor.get_display_name }}
+IP: {{ audit_log_entry.ip_address }}
+Date: {{ audit_log_entry.datetime }}</pre></p>
+    <p><a href="{{ url }}">If this was a mistake and you'd like to cancel this process, click here.</a> Otherwise, the deletion will complete at {{ eta }}.
+    <p>Note: this process is irreversible after deletion has begun.</p>
+    <p><a href="{{ url }}" class="btn">Cancel Deletion</a></p>
+{% endblock %}
