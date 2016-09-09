@@ -61,7 +61,8 @@ class NotificationPlugin(Plugin):
     def notify(self, notification):
         self.logger.info('notification.dispatched', extra={
             'event_id': notification.event.id,
-            'plugin': self.slug
+            'plugin': self.slug,
+            'rule_ids': [rule.id for rule in notification.rules],
         })
         event = notification.event
         return self.notify_users(event.group, event)
