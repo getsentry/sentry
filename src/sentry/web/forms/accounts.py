@@ -531,14 +531,16 @@ class ProjectEmailOptionsForm(forms.Form):
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
         has_workflow = project.is_user_subscribed_to_workflow(user)
 
+        # This allows users who have entered an alert_email value or have specified an email
+        # for notifications to keep their settings
         alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=user.email,) or user.email
         alert_email_choice = (alert_email, alert_email)
-        spec_email = UserOption.objects.get_value(user, project, 'mail:email', None)
-        spec_email_choice = (spec_email, spec_email)
+        specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
+        specified_email_choice = (specified_email, specified_email)
         choices = [(email.email, email.email) for email in user.get_verified_emails()]
 
-        if (spec_email_choice not in choices) and (spec_email_choice != (None, None)):
-            choices.append(spec_email_choice)
+        if (specified_email_choice not in choices) and (specified_email_choice != (None, None)):
+            choices.append(specified_email_choice)
         if (alert_email_choice not in choices) and (alert_email_choice != (None, None)):
             choices.append(alert_email_choice)
         if (user.email, user.email) not in choices:
