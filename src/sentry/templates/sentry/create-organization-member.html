@@ -11,6 +11,8 @@
     <h2>{% trans "Add Member to Organization" %}</h2>
   </div>
 
+  {% block new_member_form_template_hook %}{% endblock %}
+
   {% if is_invite %}
     <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
   {% else %}
