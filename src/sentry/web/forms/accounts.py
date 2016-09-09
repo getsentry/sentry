@@ -455,7 +455,7 @@ class NotificationSettingsForm(forms.Form):
 
     alert_email = forms.ChoiceField(
         label=_('Email'),
-        help_text=_('Designate an email address to send email notifications to.'),
+        help_text=_('Designate an email address to send notifications to.'),
         choices=(), required=False,
         widget=forms.Select()
     )
@@ -473,7 +473,7 @@ class NotificationSettingsForm(forms.Form):
         super(NotificationSettingsForm, self).__init__(*args, **kwargs)
 
         choices = [(email.email, email.email) for email in user.get_verified_emails()]
-        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=user.email,)
+        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=user.email,) or user.email
         alert_email_choice = (alert_email, alert_email) or None
         if (alert_email_choice not in choices) and (alert_email_choice != (None, None)):
             choices.append(alert_email_choice)
@@ -553,7 +553,7 @@ class ProjectEmailOptionsForm(forms.Form):
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
         has_workflow = project.is_user_subscribed_to_workflow(user)
 
-        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=user.email,)
+        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=user.email,) or user.email
         alert_email_choice = (alert_email, alert_email)
         spec_email = UserOption.objects.get_value(user, project, 'mail:email', None)
         spec_email_choice = (spec_email, spec_email)
