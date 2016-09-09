@@ -439,20 +439,12 @@ class NotificationReportSettingsForm(forms.Form):
 
 
 class NotificationSettingsForm(forms.Form):
-    # CHANGE THIS TO A CHOICEFIELD OF VERIFIED EMAILS TO MATCH OTHER DROPDOWN
-    # MAKE SURE THE PRPJECTEMAILOPTIONSFORM USES THIS ALERT_EMAIL AS DEFAULTL FOR DROPOWN
-    # alert_email = forms.EmailField(
-    #     label=_('Email'),
-    #     help_text=_('Designate an alternative email address to send email notifications to.'),
-    #     required=False
-    # )
-
-    alert_email = forms.ChoiceField(
+    alert_email = forms.EmailField(
         label=_('Email'),
-        help_text=_('Designate an email address to send notifications to.'),
-        choices=(), required=False,
-        widget=forms.Select()
+        help_text=_('Designate an alternative email address to send email notifications to.'),
+        required=False
     )
+
     subscribe_by_default = forms.BooleanField(
         label=_('Subscribe to alerts for projects by default'),
         required=False,
@@ -465,14 +457,6 @@ class NotificationSettingsForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(NotificationSettingsForm, self).__init__(*args, **kwargs)
-
-        choices = [(email.email, email.email) for email in user.get_verified_emails()]
-        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=user.email,) or user.email
-        alert_email_choice = (alert_email, alert_email) or None
-        if (alert_email_choice not in choices) and (alert_email_choice != (None, None)):
-            choices.append(alert_email_choice)
-
-        self.fields['alert_email'].choices = choices
 
         self.fields['alert_email'].initial = UserOption.objects.get_value(
             user=self.user,
@@ -552,13 +536,14 @@ class ProjectEmailOptionsForm(forms.Form):
         spec_email = UserOption.objects.get_value(user, project, 'mail:email', None)
         spec_email_choice = (spec_email, spec_email)
         choices = [(email.email, email.email) for email in user.get_verified_emails()]
-        print alert_email_choice
-        print spec_email_choice
+
         if (spec_email_choice not in choices) and (spec_email_choice != (None, None)):
             choices.append(spec_email_choice)
         if (alert_email_choice not in choices) and (alert_email_choice != (None, None)):
             choices.append(alert_email_choice)
-        print choices
+        if (user.email, user.email) not in choices:
+            choices.append((user.email, user.email))
+
         self.fields['email'].choices = choices
 
         self.fields['alert'].initial = has_alerts

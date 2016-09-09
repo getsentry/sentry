@@ -317,7 +317,7 @@ def show_emails(request):
     alt_emails = user.secondary_emails.all()
 
     primary_email = user.emails.first()
-    # do we want to dynamically generate  emails here so that users can have unlimited email addresses associated with account?
+
     email_form = EmailForm(user, request.POST or None,
         initial={
             'primary_email': user.email,
