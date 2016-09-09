@@ -59,11 +59,6 @@ class NotificationPlugin(Plugin):
         return 'notification'
 
     def notify(self, notification):
-        self.logger.info('notification.dispatched', extra={
-            'event_id': notification.event.id,
-            'plugin': self.slug,
-            'rule_ids': [rule.id for rule in notification.rules],
-        })
         event = notification.event
         return self.notify_users(event.group, event)
 
@@ -97,6 +92,11 @@ class NotificationPlugin(Plugin):
                 rules=rules,
             )
             self.notify(notification)
+            self.logger.info('notification.dispatched', extra={
+                'event_id': event.id,
+                'plugin': self.slug,
+                'rule_id': rules[0] if any(rules) else None,
+            })
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
