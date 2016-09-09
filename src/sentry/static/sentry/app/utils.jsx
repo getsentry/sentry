@@ -49,6 +49,14 @@ const valueIsEqual = function(value, other, deep) {
 const objectMatchesSubset = function(obj, other, deep){
   let k;
 
+  if (obj === other) {
+    return true;
+  }
+
+  if (!obj || !other) {
+    return false;
+  }
+
   if (deep !== true) {
     for (k in other) {
       if (obj[k] != other[k]) {
