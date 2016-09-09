@@ -331,48 +331,49 @@ def show_emails(request):
         return HttpResponseRedirect(request.path)
 
     if email_form.is_valid():
-        if user.check_password(email_form.cleaned_data['password']):
-            old_email = user.email
+        old_email = user.email
 
-            email_form.save()
+        email_form.save()
 
-            if user.email != old_email:
-                UserEmail.objects.filter(user=user, email=old_email).delete()
-                try:
-                    with transaction.atomic():
-                        user_email = UserEmail.objects.create(
-                            user=user,
-                            email=user.email,
-                        )
-                except IntegrityError:
-                    pass
-                else:
-                    user_email.set_hash()
-                    user_email.save()
-                user.send_confirm_emails()
-            alternative_email = email_form.cleaned_data['alt_email']
-            # check if this alternative email already exists for user
-            if not SecondaryUserEmail.objects.filter(user=user, email=alternative_email):
-                # create alternative email for user
-                try:
-                    with transaction.atomic():
-                        new_email = SecondaryUserEmail.objects.create(
-                            user=user,
-                            email=alternative_email
-                        )
-                except IntegrityError:
-                    pass
-                else:
-                    new_email.set_hash()
-                    new_email.save()
-                # send confirmation emails to any non verified emails
-                user.send_confirm_emails()
+        if user.email != old_email:
+            useroptions = UserOption.objects.filter(user=user, value=old_email)
+            for option in useroptions:
+                option.value = user.email
+                option.save()
+            UserEmail.objects.filter(user=user, email=old_email).delete()
+            try:
+                with transaction.atomic():
+                    user_email = UserEmail.objects.create(
+                        user=user,
+                        email=user.email,
+                    )
+            except IntegrityError:
+                pass
+            else:
+                user_email.set_hash()
+                user_email.save()
+            user.send_confirm_emails()
+        alternative_email = email_form.cleaned_data['alt_email']
+        # check if this alternative email already exists for user
+        if alternative_email and not SecondaryUserEmail.objects.filter(user=user, email=alternative_email):
+            # create alternative email for user
+            try:
+                with transaction.atomic():
+                    new_email = SecondaryUserEmail.objects.create(
+                        user=user,
+                        email=alternative_email
+                    )
+            except IntegrityError:
+                pass
+            else:
+                new_email.set_hash()
+                new_email.save()
+            # send confirmation emails to any non verified emails
+            user.send_confirm_emails()
 
-            messages.add_message(
-                request, messages.SUCCESS, 'Your settings were saved.')
-            return HttpResponseRedirect(request.path)
-        else:
-            email_form.errors['__all__'] = ['Invalid password.']
+        messages.add_message(
+            request, messages.SUCCESS, 'Your settings were saved.')
+        return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({

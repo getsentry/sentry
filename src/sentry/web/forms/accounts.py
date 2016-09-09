@@ -216,12 +216,6 @@ class EmailForm(forms.Form):
         help_text='Designate an alternative email for this account',
     )
 
-    password = forms.CharField(
-        label=_('Current password'),
-        widget=forms.PasswordInput(),
-        help_text='You will need to enter your current account password to make changes.',
-    )
-
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(EmailForm, self).__init__(*args, **kwargs)
