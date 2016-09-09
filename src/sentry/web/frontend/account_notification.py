@@ -36,7 +36,8 @@ class AccountNotificationView(BaseView):
     @method_decorator(sudo_required)
     @method_decorator(transaction.atomic)
     def handle(self, request):
-        verified_emails = list(itertools.chain(request.user.emails.filter(is_verified=True), request.user.secondary_emails.filter(is_verified=True)))
+        # emails = list(itertools.chain(request.user.emails.all(), request.user.secondary_emails.all()))
+        # verified_emails = list(itertools.chain(request.user.emails.filter(is_verified=True), request.user.secondary_emails.filter(is_verified=True)))
         settings_form = self.notification_settings_form(
             request.user, request.POST or None)
         reports_form = NotificationReportSettingsForm(
@@ -88,6 +89,5 @@ class AccountNotificationView(BaseView):
             'ext_forms': ext_forms,
             'page': 'notifications',
             'AUTH_PROVIDERS': get_auth_providers(),
-            'verified_emails': verified_emails
         })
         return render_to_response('sentry/account/notifications.html', context, request)

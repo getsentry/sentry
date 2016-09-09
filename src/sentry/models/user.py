@@ -97,6 +97,10 @@ class User(BaseModel, AbstractBaseUser):
         warnings.warn('User.has_module_perms is deprecated', DeprecationWarning)
         return self.is_superuser
 
+    def get_all_emails(self):
+        emails = list(chain(self.emails.all(), self.secondary_emails.all()))
+        return emails
+
     def get_unverified_emails(self):
         unverified_emails = list(chain(self.emails.filter(is_verified=False), self.secondary_emails.filter(is_verified=False)))
         return unverified_emails

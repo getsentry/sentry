@@ -83,7 +83,7 @@
                             <th style="width:50px;text-align:center">
                               <a data-toggle="workflow">Workflow</a>
                             </th>
-                            <th style="width:150px;overflow:hidden;text-align:right">
+                            <th style="width:300px;overflow:hidden;text-align:center">
                               {% trans "Email Address" %}
                             </th>
                         </tr>
@@ -96,7 +96,7 @@
               </td>
               <td style="text-align:center">{{ form.alert }}</td>
               <td style="text-align:center">{{ form.workflow }}</td>
-              <td style="text-align:right">
+              <td style="text-align:center">
               {% with form.email as field %}
                 {{ field|as_crispy_field }}
               {% endwith %}
