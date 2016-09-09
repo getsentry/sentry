@@ -448,7 +448,7 @@ class PreviewBackend(BaseEmailBackend):
     """
     def send_messages(self, email_messages):
         for message in email_messages:
-            content = six.text_type(message.message())
+            content = six.binary_type(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False,
                 prefix='sentry-email-preview-',
