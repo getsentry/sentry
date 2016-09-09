@@ -27,7 +27,7 @@
 
         <h4>{% trans "General" %}</h4>
 
-        {{ settings_form.alert_email|as_crispy_field }}
+        <!-- {{ settings_form.alert_email|as_crispy_field }} -->
 
         <hr />
 
@@ -59,7 +59,7 @@
 
         <h4>{% trans "Fine Tuning" %}</h4>
 
-        <p>Use the settings below to fine tune notification settings per-project.</p>
+        <p>Use the settings below to fine tune notification settings per-project.<br>Add or verify emails in the <a href="{% url "sentry-account-settings-emails" %}">Emails</a> Tab.</p>
 
         {% for project, form in project_forms %}
             {{ form|as_crispy_errors }}
