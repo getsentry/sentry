@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 
 from django.core.urlresolvers import reverse
+from django.core import mail
 from mock import patch
 
 from sentry.models import Organization, OrganizationOption, OrganizationStatus
@@ -89,7 +90,11 @@ class OrganizationDeleteTest(APITestCase):
             'organization_slug': org.slug,
         })
 
-        response = self.client.delete(url)
+        owners = org.get_owners()
+        assert len(owners) > 0
+
+        with self.tasks():
+            response = self.client.delete(url)
 
         org = Organization.objects.get(id=org.id)
 
@@ -104,6 +109,16 @@ class OrganizationDeleteTest(APITestCase):
             },
             countdown=86400,
         )
+
+        # Make sure we've emailed all owners
+        assert len(mail.outbox) == len(owners)
+        owner_emails = set(o.email for o in owners)
+        for msg in mail.outbox:
+            assert 'Deletion' in msg.subject
+            assert len(msg.to) == 1
+            owner_emails.remove(msg.to[0])
+        # No owners should be remaining
+        assert len(owner_emails) == 0
 
     def test_cannot_remove_as_admin(self):
         org = self.create_organization(owner=self.user)
