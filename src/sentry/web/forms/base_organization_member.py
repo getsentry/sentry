@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django import forms
+from django.db import transaction
 
 from sentry.models import (
     OrganizationMember,
@@ -38,13 +39,11 @@ class BaseOrganizationMemberForm(forms.ModelForm):
 
         self.fields['teams'].queryset = all_teams
 
+    @transaction.atomic
     def save_team_assignments(self, organization_member):
-        for team in self.cleaned_data['teams']:
-            OrganizationMemberTeam.objects.create_or_update(
-                team=team,
-                organizationmember=organization_member,
-            )
-
-        OrganizationMemberTeam.objects.filter(
-            organizationmember=organization_member,
-        ).exclude(team__in=self.cleaned_data['teams']).delete()
+        OrganizationMemberTeam.objects.filter(organizationmember=organization_member).delete()
+        OrganizationMemberTeam.objects.bulk_create([
+            OrganizationMemberTeam(team=team,
+                                   organizationmember=organization_member)
+            for team in self.cleaned_data['teams']
+        ])
