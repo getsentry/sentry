@@ -95,7 +95,7 @@ class NotificationPlugin(Plugin):
             self.logger.info('notification.dispatched', extra={
                 'event_id': event.id,
                 'plugin': self.slug,
-                'rule_id': rules[0] if rules else None,
+                'rule_id': rules[0].id if rules else None,
             })
 
     def notify_users(self, group, event, fail_silently=False):
