@@ -30,12 +30,16 @@
       {% for field in otp_form %}
         {{ field|as_crispy_field }}
       {% endfor %}
+      {% if password_form.password %}
+        {{ password_form|as_crispy_errors }}
+        {{ password_form.password|as_crispy_field }}
+      {% endif %}
 
       <input type="hidden" name="enroll">
       <input type="hidden" name="totp_secret" value="{{ auth.secret }}">
       <div>
         <a href="{% url 'sentry-account-settings-2fa-totp' %}" class="btn btn-default">{% trans "Cancel" %}</a>
-        <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button> 
+        <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button>
       </div>
     </form>
   </fieldset>

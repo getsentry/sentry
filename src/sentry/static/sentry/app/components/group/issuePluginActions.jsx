@@ -268,9 +268,14 @@ const IssuePlugin = React.createClass({
     }
     if (error.error_type === 'auth') {
       return (
-        <div className="alert alert-block">
-          <p>You still need to <a href={error.auth_url}>associate an identity</a>
-           {' with ' + error.title + ' before you can create issues with this service.'}</p>
+        <div>
+          <div className="alert alert-warning m-b-1">
+            {'You need to associate an identity with ' + error.title +
+             ' before you can create issues with this service.'}
+          </div>
+          <a className="btn btn-primary" href={error.auth_url}>
+            Associate Identity
+          </a>
         </div>
       );
     } else if (error.error_type === 'config') {

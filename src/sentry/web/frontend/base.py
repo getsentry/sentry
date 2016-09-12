@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
 from sudo.views import redirect_to_sudo
 
+from sentry import roles
 from sentry.auth import access
 from sentry.models import (
     AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project,
@@ -357,6 +358,27 @@ class OrganizationView(BaseView):
         kwargs['organization'] = active_organization
 
         return (args, kwargs)
+
+    def get_allowed_roles(self, request, organization, member=None):
+        can_admin = request.access.has_scope('member:delete')
+
+        allowed_roles = []
+        if can_admin and not request.is_superuser():
+            acting_member = OrganizationMember.objects.get(
+                user=request.user,
+                organization=organization,
+            )
+            if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
+                can_admin = False
+            else:
+                allowed_roles = [
+                    r for r in roles.get_all()
+                    if r.priority <= roles.get(acting_member.role).priority
+                ]
+                can_admin = bool(allowed_roles)
+        elif request.is_superuser():
+            allowed_roles = roles.get_all()
+        return (can_admin, allowed_roles,)
 
 
 class TeamView(OrganizationView):

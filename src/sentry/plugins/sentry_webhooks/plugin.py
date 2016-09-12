@@ -8,21 +8,22 @@ from django import forms
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.exceptions import PluginError
 from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
 
 
-def validate_urls(value):
+def validate_urls(value, **kwargs):
     output = []
     for url in value.split('\n'):
         url = url.strip()
         if not url:
             continue
         if not url.startswith(('http://', 'https://')):
-            raise forms.ValidationError('Not a valid URL.')
+            raise PluginError('Not a valid URL.')
         if not is_valid_url(url):
-            raise forms.ValidationError('Not a valid URL.')
+            raise PluginError('Not a valid URL.')
         output.append(url)
     return '\n'.join(output)
 

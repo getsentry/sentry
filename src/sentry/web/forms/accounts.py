@@ -531,3 +531,21 @@ class TwoFactorForm(forms.Form):
                    'autofocus': True,
         }),
     )
+
+
+class ConfirmPasswordForm(forms.Form):
+    password = forms.CharField(
+        label=_('Sentry account password'),
+        widget=forms.PasswordInput(),
+        help_text='You will need to enter your current Sentry account password to make changes.',
+        required=True,
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(ConfirmPasswordForm, self).__init__(*args, **kwargs)
+
+        needs_password = user.has_usable_password()
+
+        if not needs_password:
+            del self.fields['password']

@@ -1,6 +1,20 @@
-Version 8.8 (Unreleased)
+Version 8.9 (Unreleased)
 ------------------------
 
+Version 8.8
+-----------
+
+- Added unique user frequency rule condition.
+- Fixed a major performance regression from 8.7 on the ``GroupTagValue`` model.
+- Various security fixes related to CSRF and XSS.
+- Server side filtering of event ingest.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Removed ``HelpPage`` model.
+- Added ``OrganizationMember.token`` column.
+- Removed ``OrganizationMember.counter`` column.
 Version 8.7
 -----------
 

@@ -683,12 +683,14 @@ table.integrations {
 
   &.success {
     background: @green;
+    color: @white;
     .icon:before {
       content: "\e60a"; // checkmark
     }
   }
   &.error {
     background: @red;
+    color: @white;
     .icon:before {
       content: "\e615"; // exclamation
     }
@@ -2783,11 +2785,15 @@ ul.radio-inputs {
   }
 
   .modal-body {
-    padding: 0 0 15px;
+    padding: 0;
     font-size: 15px;
 
     p:last-child {
       margin-bottom: 0;
+    }
+
+    .alert {
+      border-radius: @border-radius-base;
     }
   }
 

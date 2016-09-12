@@ -44,7 +44,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
 
         for key, (segments, interval) in six.iteritems(self.STATS_PERIODS):
             until = self.until or timezone.now()
-            since = self.since or until - ((segments - 1) * interval)
+            since = self.since or until - (segments * interval)
 
             try:
                 stats = tsdb.get_frequency_series(
