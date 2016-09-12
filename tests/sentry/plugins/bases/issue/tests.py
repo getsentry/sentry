@@ -79,7 +79,7 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_get_create(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/create/' % self.group.id
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/create/' % self.group.id
         response = self.client.get(url, format='json')
         content = json.loads(response.content)
         field_names = [field['name'] for field in content]
@@ -91,7 +91,7 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_post_create_invalid(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/create/' % self.group.id
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/create/' % self.group.id
         response = self.client.post(url, data={
             'title': '',
             'description': ''
@@ -105,7 +105,7 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.get_issue_url', return_value='')
     def test_post_create_valid(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/create/' % self.group.id
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/create/' % self.group.id
         response = self.client.post(url, data={
             'title': 'test',
             'description': 'test'
@@ -117,14 +117,14 @@ class IssuePlugin2GroupAction(TestCase):
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_get_link(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/link/' % self.group.id
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/link/' % self.group.id
         response = self.client.get(url, format='json')
         assert response.status_code == 200
 
     @mock.patch('sentry.plugins.IssueTrackingPlugin2.is_configured', return_value=True)
     def test_get_unlink_invalid(self, *args):
         self.login_as(user=self.user)
-        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/unlink/' % self.group.id
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/unlink/' % self.group.id
         response = self.client.get(url, format='json')
         assert response.status_code == 400
 
@@ -133,33 +133,8 @@ class IssuePlugin2GroupAction(TestCase):
         self.login_as(user=self.user)
         id_ = '%s:tid' % self.plugin_instance.get_conf_key()
         GroupMeta.objects.set_value(self.group, id_, 4)
-        url = '/api/0/issues/%s/plugin/issuetrackingplugin2/unlink/' % self.group.id
+        url = '/api/0/issues/%s/plugins/issuetrackingplugin2/unlink/' % self.group.id
         response = self.client.get(url, format='json')
         assert response.status_code == 200
         GroupMeta.objects.populate_cache([self.group])
         assert GroupMeta.objects.get_value(self.group, id_, None) is None
-
-
-class IssuePlugin2ProjectAction(TestCase):
-
-    def setUp(self):
-        super(IssuePlugin2ProjectAction, self).setUp()
-        self.project = self.create_project()
-        self.plugin_instance = plugins.get(slug='issuetrackingplugin2')
-
-    @mock.patch('sentry.plugins.IssueTrackingPlugin2.get_configure_plugin_fields', return_value={})
-    def test_get_configure(self, *args):
-        self.login_as(user=self.user)
-        url = ('/api/0/projects/%s/%s/plugin/'
-               'issuetrackingplugin2/configure/') % (self.project.organization.slug,
-                                                     self.project.slug)
-        response = self.client.get(url, format='json')
-        assert response.status_code == 200
-
-    def test_get_disable(self, *args):
-        self.login_as(user=self.user)
-        url = ('/api/0/projects/%s/%s/plugin/'
-               'issuetrackingplugin2/disable/') % (self.project.organization.slug,
-                                                   self.project.slug)
-        response = self.client.get(url, format='json')
-        assert response.status_code == 200

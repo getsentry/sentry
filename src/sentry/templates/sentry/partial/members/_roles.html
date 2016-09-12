@@ -1,0 +1,22 @@
+{% load i18n %}
+
+<div class="box">
+  <div class="box-header">
+    <h3>{% trans "Role" %}</h3>
+  </div>
+  <div class="box-content with-padding">
+    <ul class="radio-inputs">
+      {% for role, allowed in role_list %}
+        <li class="radio">
+          <label>
+            <input type="radio" name="role" value="{{ role.id }}"
+                   {% if role.id == form.role.value %} checked{% endif %}
+                   {% if not allowed %} disabled="disabled"{% endif %}/>
+            {{ role.name }}
+            <div class="help-block">{{ role.desc|linebreaksbr }}</div>
+          </label>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>

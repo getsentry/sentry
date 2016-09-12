@@ -23,7 +23,7 @@
         <ul>
           {% for project in project_list|slice:"5" %}
             <li>
-              {{ project.get_full_name }}
+              {{ project.team.name }} &#47; {{ project.name }}
             </li>
           {% endfor %}
         </ul>

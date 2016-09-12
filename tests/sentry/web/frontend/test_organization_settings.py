@@ -58,3 +58,26 @@ class OrganizationSettingsTest(TestCase):
         assert organization.name == 'bar'
         assert organization.slug == 'bar'
         assert organization.default_role == 'admin'
+
+    def test_manager_cannot_change_default_role(self):
+        user = self.create_user('foo@example.com', is_superuser=False)
+        organization = self.create_organization(name='foo')
+        self.create_member(organization=organization, user=user, role='manager')
+
+        path = reverse('sentry-organization-settings', args=[organization.slug])
+
+        self.login_as(user)
+
+        resp = self.client.post(path, {
+            'name': 'bar',
+            'slug': 'bar',
+            'default_role': 'owner',
+        })
+
+        assert resp.status_code == 302
+
+        organization = Organization.objects.get(id=organization.id)
+
+        assert organization.name == 'bar'
+        assert organization.slug == 'bar'
+        assert organization.default_role == 'member'

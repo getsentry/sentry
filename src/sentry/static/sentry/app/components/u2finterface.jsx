@@ -1,7 +1,8 @@
 import React from 'react';
 import u2f from 'u2f-api';
+import ConfigStore from '../stores/configStore';
 
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 const U2fInterface = React.createClass({
   propTypes: {
@@ -120,19 +121,37 @@ const U2fInterface = React.createClass({
     );
   },
 
+  canTryAgain() {
+    return this.state.deviceFailure !== 'BAD_APPID';
+  },
+
   renderFailure() {
     let {deviceFailure} = this.state;
+    let supportMail = ConfigStore.get('supportEmail');
+    let support = supportMail
+      ? <a href={'mailto:' + supportMail}>{supportMail}</a>
+      : <span>{t('Support')}</span>;
     return (
       <div className="failure-message">
         <p><strong>{t('Error: ')}</strong> {{
           'DEVICE_ERROR': t('Your U2F device reported an error.'),
           'DUPLICATE_DEVICE': t('This device is already in use.'),
           'UNKNOWN_DEVICE': t('The device you used for sign-in is unknown.'),
-          'BAD_APPID': t('The Sentry server administrator modified the ' +
-                         'device registrations. You need to remove and ' +
-                         're-add the device to continue.'),
+          'BAD_APPID': tct(
+            '[p1:The Sentry server administrator modified the ' +
+            'device registrations.]' + 
+            '[p2:You need to remove and re-add the device to continue ' +
+            'using your U2F device. Use a different sign-in method or ' +
+            'contact [support] for assistance.]',
+            {
+              p1: <p/>,
+              p2: <p/>,
+              support: support,
+            }
+          ),
         }[deviceFailure]}</p>
-        <p><a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a></p>
+        {this.canTryAgain() &&
+          <p><a onClick={this.onTryAgain} className="btn btn-primary">{t('Try Again')}</a></p>}
       </div>
     );
   },

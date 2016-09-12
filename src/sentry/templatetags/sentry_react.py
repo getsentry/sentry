@@ -15,6 +15,7 @@ from sentry.utils import json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
+from sentry.utils.support import get_support_mail
 
 register = template.Library()
 
@@ -111,6 +112,7 @@ def get_react_config(context):
 
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
+        'supportEmail': get_support_mail(),
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,

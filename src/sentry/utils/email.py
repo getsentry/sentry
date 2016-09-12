@@ -370,6 +370,10 @@ class MessageBuilder(object):
         extra = {
             'message_type': self.type
         }
+        loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, 'id')]
+        for context in loggable:
+            extra['%s_id' % type(context).__name__.lower()] = context.id
+
         log_mail_queued = partial(logger.info, 'mail.queued', extra=extra)
         for message in messages:
             safe_execute(
@@ -448,7 +452,7 @@ class PreviewBackend(BaseEmailBackend):
     """
     def send_messages(self, email_messages):
         for message in email_messages:
-            content = six.text_type(message.message())
+            content = six.binary_type(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False,
                 prefix='sentry-email-preview-',

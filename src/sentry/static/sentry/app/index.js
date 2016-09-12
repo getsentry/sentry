@@ -1,5 +1,7 @@
 import jQuery from 'jquery';
 
+import plugins from './plugins';
+
 const csrfCookieName = window.csrfCookieName || 'sc';
 
 // setup jquery for CSRF tokens
@@ -34,6 +36,7 @@ jQuery.ajaxSetup({
 
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
+
 export default {
   jQuery: jQuery,
   moment: require('moment'),
@@ -46,6 +49,11 @@ export default {
   Sentry: {
     api: require('./api'),
     routes: require('./routes'),
+    plugins: {
+      add: plugins.add,
+      BasePlugin: plugins.BasePlugin
+    },
+
     createHistory: require('history/lib/createBrowserHistory'),
     Alerts: require('./components/alerts'),
     AlertActions: require('./actions/alertActions'),
@@ -62,14 +70,14 @@ export default {
     FlotChart: require('./components/flotChart'),
     HookStore: require('./stores/hookStore'),
     Indicators: require('./components/indicators'),
-    IssuePluginConfigForm: require('./components/plugins/pluginConfigureForm'),
-    IssuePluginConfiguration: require('./views/projectIssueTracking'),
     LoadingError: require('./components/loadingError'),
     LoadingIndicator: require('./components/loadingIndicator'),
     ListLink: require('./components/listLink'),
     MenuItem: require('./components/menuItem'),
     OrganizationHomeContainer: require('./components/organizations/homeContainer'),
     Pagination: require('./components/pagination'),
+    PluginConfig: require('./components/pluginConfig'),
+    ProjectIssueTracking: require('./views/projectIssueTracking'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
     RuleEditor: require('./views/ruleEditor'),
     StackedBarChart: require('./components/stackedBarChart'),

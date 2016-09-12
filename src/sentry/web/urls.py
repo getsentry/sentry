@@ -223,12 +223,12 @@ urlpatterns += patterns(
         name='sentry-logout'),
     url(r'^auth/reactivate/$', ReactivateAccountView.as_view(),
         name='sentry-reactivate-account'),
+    url(r'^auth/register/$', AuthLoginView.as_view(),
+        name='sentry-register'),
 
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,
         name='sentry-login-redirect'),
-    url(r'^register/$', AuthLoginView.as_view(),
-        name='sentry-register'),
     url(r'^account/sudo/$', SudoView.as_view(), name='sentry-sudo'),
     url(r'^account/confirm-email/$', accounts.start_confirm_email,
         name='sentry-account-confirm-email-send'),

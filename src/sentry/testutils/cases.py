@@ -44,6 +44,8 @@ from sentry.utils import json
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
 
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
+
 
 class BaseTestCase(Fixtures, Exam):
     urls = 'sentry.web.urls'
@@ -167,11 +169,11 @@ class BaseTestCase(Fixtures, Exam):
             return self.client.post(
                 path, data=body,
                 content_type='application/csp-report',
-                HTTP_USER_AGENT='awesome',
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
                 **extra
             )
 
-    def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+    def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 
@@ -193,7 +195,7 @@ class BaseTestCase(Fixtures, Exam):
             )
         return resp
 
-    def _postWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+    def _postWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 

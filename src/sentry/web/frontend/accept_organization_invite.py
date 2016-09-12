@@ -74,6 +74,7 @@ class AcceptOrganizationInviteView(BaseView):
             # Show login or register form
             request.session['_next'] = request.get_full_path()
             request.session['can_register'] = True
+            request.session['invite_email'] = om.email
 
             return self.respond('sentry/accept-organization-invite.html', context)
 

@@ -244,7 +244,6 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
-    'captcha',
     'crispy_forms',
     'debug_toolbar',
     'raven.contrib.django.raven_compat',
@@ -616,14 +615,6 @@ REST_FRAMEWORK = {
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
-
-# django-recaptcha
-
-RECAPTCHA_PUBLIC_KEY = None
-RECAPTCHA_PRIVATE_KEY = None
-NOCAPTCHA = True
-
-CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
 # Percy config for visual regression testing.
 
@@ -1024,7 +1015,7 @@ EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
 
-# TODO(dcramer): move this to getsentry.com so it can be automated
+# TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
     'raven-js': '3.3.0',
     'raven-python': '5.23.0',

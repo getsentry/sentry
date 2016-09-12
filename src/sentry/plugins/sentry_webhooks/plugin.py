@@ -4,27 +4,40 @@ import logging
 import six
 import sentry
 
-from django.conf import settings
 from django import forms
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.exceptions import PluginError
 from sentry.plugins.bases import notify
 from sentry.http import is_valid_url, safe_urlopen
 from sentry.utils.safe import safe_execute
+
+
+def validate_urls(value, **kwargs):
+    output = []
+    for url in value.split('\n'):
+        url = url.strip()
+        if not url:
+            continue
+        if not url.startswith(('http://', 'https://')):
+            raise PluginError('Not a valid URL.')
+        if not is_valid_url(url):
+            raise PluginError('Not a valid URL.')
+        output.append(url)
+    return '\n'.join(output)
 
 
 class WebHooksOptionsForm(notify.NotificationConfigurationForm):
     urls = forms.CharField(
         label=_('Callback URLs'),
         widget=forms.Textarea(attrs={
-            'class': 'span6', 'placeholder': 'https://getsentry.com/callback/url'}),
+            'class': 'span6', 'placeholder': 'https://sentry.io/callback/url'}),
         help_text=_('Enter callback URLs to POST new events to (one per line).'))
 
     def clean_url(self):
         value = self.cleaned_data.get('url')
-        if not is_valid_url(value):
-            raise forms.ValidationError('Invalid hostname')
-        return value
+        return validate_urls(value)
 
 
 class WebHooksPlugin(notify.NotificationPlugin):
@@ -41,6 +54,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
     title = 'WebHooks'
     conf_title = title
     conf_key = 'webhooks'
+    # TODO(dcramer): remove when this is migrated to React
     project_conf_form = WebHooksOptionsForm
     timeout = getattr(settings, 'SENTRY_WEBHOOK_TIMEOUT', 3)
     logger = logging.getLogger('sentry.plugins.webhooks')
@@ -48,6 +62,16 @@ class WebHooksPlugin(notify.NotificationPlugin):
 
     def is_configured(self, project, **kwargs):
         return bool(self.get_option('urls', project))
+
+    def get_config(self, project, **kwargs):
+        return [{
+            'name': 'urls',
+            'label': 'Callback URLs',
+            'type': 'textarea',
+            'help': 'Enter callback URLs to POST new events to (one per line).',
+            'placeholder': 'https://sentry.io/callback/url',
+            'validators': [validate_urls],
+        }]
 
     def get_group_data(self, group, event):
         data = {

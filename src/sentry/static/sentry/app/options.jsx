@@ -52,6 +52,12 @@ const definitions = [
     help: t('The maximum number of times an authentication attempt may be made against a single account in a 60 second window.'),
   },
   {
+    key: 'api.rate-limit.org-create',
+    label: 'Organization Creation Rate Limit',
+    placeholder: 'e.g. 5',
+    help: t('The maximum number of organizations which may be created by a single account in a one hour window.'),
+  },
+  {
     key: 'mail.from',
     label: t('Email From'),
     component: EmailField,
