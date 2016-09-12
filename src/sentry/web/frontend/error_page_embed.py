@@ -7,6 +7,7 @@ from django.views.generic import View
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.models import (
@@ -17,17 +18,21 @@ from sentry.utils import json
 from sentry.utils.http import is_valid_origin
 from sentry.utils.validators import is_event_id
 
+GENERIC_ERROR = _('An unknown error occurred while submitting your report. Please try again.')
+FORM_ERROR = _('Some fields were invalid. Please correct the errors and try again.')
+SENT_MESSAGE = ('Your feedback has been sent. Thank you!')
+
 
 class UserReportForm(forms.ModelForm):
     name = forms.CharField(max_length=128, widget=forms.TextInput(attrs={
-        'placeholder': 'Jane Doe',
+        'placeholder': _('Jane Doe'),
     }))
     email = forms.EmailField(max_length=75, widget=forms.TextInput(attrs={
-        'placeholder': 'jane@example.com',
+        'placeholder': _('jane@example.com'),
         'type': 'email',
     }))
     comments = forms.CharField(widget=forms.Textarea(attrs={
-        'placeholder': "I clicked on 'X' and then hit 'Confirm'",
+        'placeholder': _("I clicked on 'X' and then hit 'Confirm'"),
     }))
 
     class Meta:
@@ -152,6 +157,13 @@ class ErrorPageEmbedView(View):
         context = {
             'endpoint': mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
             'template': mark_safe('*/' + json.dumps(template) + ';/*'),
+            'errors': {
+                'generic': GENERIC_ERROR,
+                'form': FORM_ERROR
+            },
+            'messages': {
+                'sent': SENT_MESSAGE
+            }
         }
 
         return render_to_response('sentry/error-page-embed.js', context, request,
