@@ -14,7 +14,7 @@ from django.db import router
 from django.db.models import Q
 
 from sentry.api.paginator import DateTimePaginator, Paginator
-from sentry.search.base import ANY, SearchBackend
+from sentry.search.base import ANY, EMPTY, SearchBackend
 from sentry.search.django.constants import (
     SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
     MSSQL_ENGINES, ORACLE_SORT_CLAUSES
@@ -38,12 +38,16 @@ class DjangoSearchBackend(SearchBackend):
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
         for k, v in tag_lookups:
-            if v != ANY:
+            if v is EMPTY:
+                return None
+
+            elif v != ANY:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
                     value=v,
                     project=project,
                 )
+
             else:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
@@ -58,14 +62,14 @@ class DjangoSearchBackend(SearchBackend):
                 return None
         return matches
 
-    def query(self, project, query=None, status=None, tags=None,
-              bookmarked_by=None, assigned_to=None, first_release=None,
-              sort_by='date', unassigned=None,
-              age_from=None, age_from_inclusive=True,
-              age_to=None, age_to_inclusive=True,
-              date_from=None, date_from_inclusive=True,
-              date_to=None, date_to_inclusive=True,
-              cursor=None, limit=100):
+    def _build_queryset(self, project, query=None, status=None, tags=None,
+                        bookmarked_by=None, assigned_to=None, first_release=None,
+                        sort_by='date', unassigned=None,
+                        age_from=None, age_from_inclusive=True,
+                        age_to=None, age_to_inclusive=True,
+                        date_from=None, date_from_inclusive=True,
+                        date_to=None, date_to_inclusive=True,
+                        cursor=None, limit=None):
         from sentry.models import Event, Group, GroupStatus
 
         engine = get_db_engine('default')
@@ -109,6 +113,8 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if first_release:
+            if first_release is EMPTY:
+                return queryset.none()
             queryset = queryset.filter(
                 first_release__project=project,
                 first_release__version=first_release,
@@ -116,12 +122,11 @@ class DjangoSearchBackend(SearchBackend):
 
         if tags:
             matches = self._tags_to_filter(project, tags)
-            if matches:
-                queryset = queryset.filter(
-                    id__in=matches,
-                )
-            else:
-                queryset = queryset.none()
+            if not matches:
+                return queryset.none()
+            queryset = queryset.filter(
+                id__in=matches,
+            )
 
         if age_from or age_to:
             params = {}
@@ -185,6 +190,14 @@ class DjangoSearchBackend(SearchBackend):
         queryset = queryset.extra(
             select={'sort_value': score_clause},
         )
+        return queryset
+
+    def query(self, project, **kwargs):
+        queryset = self._build_queryset(project=project, **kwargs)
+
+        sort_by = kwargs.get('sort_by', 'date')
+        limit = kwargs.get('limit', 100)
+        cursor = kwargs.get('cursor')
 
         # HACK: don't sort by the same column twice
         if sort_by == 'date':
