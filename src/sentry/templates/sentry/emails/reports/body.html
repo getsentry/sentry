@@ -163,7 +163,43 @@
         <td width="50%">
           <table>
             <tr>
-              <td class="user-impact-stat">{{ personal.resolved|small_count:0 }}</td>
+              <td class="user-impact-stat">
+                <table>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td>
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
+                    </td>
+                    <td>
+                      {{ personal.resolved|small_count:0 }}
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td>
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                </table>
+              </td>
               <td class="user-impact-text">Issue{{ personal.resolved|pluralize }} resolved this week by you.</td>
             </tr>
           </table>
@@ -171,7 +207,43 @@
         <td width="50%">
           <table>
             <tr>
-              <td class="user-impact-stat">{{ personal.users|small_count:0 }}</td>
+              <td class="user-impact-stat">
+                <table>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td>
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
+                    </td>
+                    <td>
+                      {{ personal.users|small_count:0 }}
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td>
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                </table>
+              </td>
               <td class="user-impact-text">User{{ personal.users|pluralize }} rejoicing because of it.</td>
             </tr>
           </table>

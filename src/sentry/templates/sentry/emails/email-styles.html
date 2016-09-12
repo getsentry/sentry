@@ -738,23 +738,25 @@
     margin-bottom: 40px;
   }
 
-  .weekly-report .user-impact {}
-
-  .weekly-report .user-impact-stat {
+  .weekly-report .user-impact-stat table {
     width: 90px;
     height: 90px;
-    vertical-align: middle;
+    margin: 0 18px 0 0;
+  }
+
+  .weekly-report .user-impact-stat td {
+    margin: 0;
+    padding: 0;
     text-align: center;
+    line-height: 1;
     font-size: 32px;
-    color: #675f76;
-    background-size: 90px 90px;
-    background-image: url("{% absolute_asset_url 'sentry' 'images/email/circle-bg.png' %}");
+    vertical-align: middle;
+    color: #6C5FC7;
   }
 
   .weekly-report .user-impact-text {
     font-size: 18px;
-    padding-left: 12px;
-    padding-right: 15px;
+    font-weight: 500;
   }
 
   @media only screen and (max-device-width: 480px) {
