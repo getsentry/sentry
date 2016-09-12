@@ -204,7 +204,12 @@ def merge_objects(models, group, new_group, limit=1000,
                             model.objects.filter(
                                 group=new_group,
                                 key=obj.key,
-                            ).update(values_seen=F('values_seen') + obj.values_seen)
+                            ).update(
+                                values_seen=GroupTagValue.objects.filter(
+                                    group=new_group,
+                                    key=obj.key,
+                                ).count()
+                            )
                     elif model == GroupTagValue:
                         with transaction.atomic(using=router.db_for_write(model)):
                             model.objects.filter(
