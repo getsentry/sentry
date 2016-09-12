@@ -662,9 +662,9 @@ def to_context(report, fetch_groups=None):
             'types': list(
                 zip(
                     (
-                        DistributionType('New', '#c9c2e1'),
-                        DistributionType('Reopened', '#9990ab'),
-                        DistributionType('Existing', '#675f76'),
+                        DistributionType('New', '#8477e0'),
+                        DistributionType('Reopened', '#6C5FC7'),
+                        DistributionType('Existing', '#534a92'),
                     ),
                     issue_list[0],
                 ),
