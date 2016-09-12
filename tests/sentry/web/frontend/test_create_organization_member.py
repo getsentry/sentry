@@ -80,7 +80,7 @@ class CreateOrganizationMemberTest(TestCase):
         assert len(om_teams) == 1
         assert om_teams[0].team_id == team.id
 
-        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
+        redirect_uri = reverse('sentry-organization-members', args=[organization.slug])
         assert resp['Location'] == 'http://testserver' + redirect_uri
 
         assert len(mail.outbox) == 1
@@ -113,7 +113,7 @@ class CreateOrganizationMemberTest(TestCase):
         assert member.email is None
         assert member.role == 'member'
 
-        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
+        redirect_uri = reverse('sentry-organization-members', args=[organization.slug])
         assert resp['Location'] == 'http://testserver' + redirect_uri
 
     def test_valid_for_direct_add(self):
@@ -137,7 +137,7 @@ class CreateOrganizationMemberTest(TestCase):
 
         assert member.email is None
 
-        redirect_uri = reverse('sentry-organization-member-settings', args=[organization.slug, member.id])
+        redirect_uri = reverse('sentry-organization-members', args=[organization.slug])
         assert resp['Location'] == 'http://testserver' + redirect_uri
 
     def test_invalid_user_for_direct_add(self):
