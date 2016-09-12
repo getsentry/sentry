@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
 import functools
+from datetime import datetime, timedelta
 
 import mock
 import pytest
+import pytz
 from django.core import mail
 
 from sentry.models import Project, UserOption
@@ -14,7 +16,7 @@ from sentry.tasks.reports import (
     user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
-from sentry.utils.dates import to_datetime
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 def test_change():
@@ -161,6 +163,8 @@ class ReportTestCase(TestCase):
     def test_integration(self, has_feature):
         Project.objects.all().delete()
 
+        now = datetime(2016, 9, 12, tzinfo=pytz.utc)
+
         has_feature.side_effect = lambda name, *a, **k: {
             'organizations:reports:deliver': True,
             'organizations:reports:prepare': True,
@@ -169,12 +173,13 @@ class ReportTestCase(TestCase):
         project = self.create_project(
             organization=self.organization,
             team=self.team,
+            first_event=now - timedelta(days=1),
         )
 
         member_set = set(project.team.member_set.all())
 
         with self.tasks():
-            prepare_reports()
+            prepare_reports(timestamp=to_timestamp(now))
             assert len(mail.outbox) == len(member_set) == 1
 
             message = mail.outbox[0]
