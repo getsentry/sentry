@@ -74,6 +74,11 @@ class OrganizationSettingsForm(forms.ModelForm):
         fields = ('name', 'slug', 'default_role')
         model = Organization
 
+    def __init__(self, has_delete, *args, **kwargs):
+        super(OrganizationSettingsForm, self).__init__(*args, **kwargs)
+        if not has_delete:
+            del self.fields['default_role']
+
     def clean_sensitive_fields(self):
         value = self.cleaned_data.get('sensitive_fields')
         if not value:
@@ -86,8 +91,11 @@ class OrganizationSettingsView(OrganizationView):
     required_scope = 'org:write'
 
     def get_form(self, request, organization):
+        has_delete = request.access.has_scope('org:delete')
+
         return OrganizationSettingsForm(
-            request.POST or None,
+            has_delete=has_delete,
+            data=request.POST or None,
             instance=organization,
             initial={
                 'default_role': organization.default_role,
