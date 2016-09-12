@@ -44,17 +44,17 @@ const IssuePlugin = React.createClass({
 
   getPluginCreateEndpoint() {
     return ('/issues/' + this.getGroup().id +
-            '/plugin/' + this.props.plugin.slug + '/create/');
+            '/plugins/' + this.props.plugin.slug + '/create/');
   },
 
   getPluginLinkEndpoint() {
     return ('/issues/' + this.getGroup().id +
-            '/plugin/' + this.props.plugin.slug + '/link/');
+            '/plugins/' + this.props.plugin.slug + '/link/');
   },
 
   getPluginUnlinkEndpoint() {
     return ('/issues/' + this.getGroup().id +
-            '/plugin/' + this.props.plugin.slug + '/unlink/');
+            '/plugins/' + this.props.plugin.slug + '/unlink/');
   },
 
   setError(error, defaultMessage) {
@@ -199,7 +199,7 @@ const IssuePlugin = React.createClass({
       case 'select':
         if (field.has_autocomplete) {
           props.url = ('/api/0/issues/' + this.getGroup().id +
-                       '/plugin/' + this.props.plugin.slug + '/autocomplete');
+                       '/plugins/' + this.props.plugin.slug + '/autocomplete');
           el = <Select2FieldAutocomplete {...props} />;
         } else {
           props.choices = field.choices;
@@ -268,9 +268,14 @@ const IssuePlugin = React.createClass({
     }
     if (error.error_type === 'auth') {
       return (
-        <div className="alert alert-block">
-          <p>You still need to <a href={error.auth_url}>associate an identity</a>
-           {' with ' + error.title + ' before you can create issues with this service.'}</p>
+        <div>
+          <div className="alert alert-warning m-b-1">
+            {'You need to associate an identity with ' + error.title +
+             ' before you can create issues with this service.'}
+          </div>
+          <a className="btn btn-primary" href={error.auth_url}>
+            Associate Identity
+          </a>
         </div>
       );
     } else if (error.error_type === 'config') {
@@ -412,9 +417,11 @@ const IssuePluginActions = React.createClass({
             <Modal.Title>{plugin.title + ' Issue'}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <IssuePlugin plugin={this.props.plugin}
-                         actionType={this.state.actionType}
-                         onSuccess={this.closeModal}/>
+            {this.state.actionType &&
+              <IssuePlugin plugin={this.props.plugin}
+                           actionType={this.state.actionType}
+                           onSuccess={this.closeModal}/>
+            }
           </Modal.Body>
         </Modal>
       </span>

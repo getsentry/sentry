@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 import pytz
 
-from captcha.fields import ReCaptchaField
 from datetime import datetime
 from django import forms
 from django.conf import settings
@@ -43,31 +42,7 @@ def _get_timezone_choices():
 TIMEZONE_CHOICES = _get_timezone_choices()
 
 
-class CaptchaForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        has_captcha = bool(settings.RECAPTCHA_PUBLIC_KEY)
-        if has_captcha:
-            captcha = kwargs.pop('captcha', True)
-        else:
-            captcha = kwargs.pop('captcha', None)
-        super(CaptchaForm, self).__init__(*args, **kwargs)
-        if has_captcha and captcha:
-            self.fields['captcha'] = ReCaptchaField()
-
-
-class CaptchaModelForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        has_captcha = bool(settings.RECAPTCHA_PUBLIC_KEY)
-        if has_captcha:
-            captcha = kwargs.pop('captcha', True)
-        else:
-            captcha = kwargs.pop('captcha', None)
-        super(CaptchaModelForm, self).__init__(*args, **kwargs)
-        if has_captcha and captcha:
-            self.fields['captcha'] = ReCaptchaField()
-
-
-class AuthenticationForm(CaptchaForm):
+class AuthenticationForm(forms.Form):
     username = forms.CharField(
         label=_('Account'), max_length=128, widget=forms.TextInput(
             attrs={'placeholder': _('username or email'),
@@ -180,7 +155,7 @@ class AuthenticationForm(CaptchaForm):
         return self.user_cache
 
 
-class RegistrationForm(CaptchaModelForm):
+class RegistrationForm(forms.ModelForm):
     username = forms.EmailField(
         label=_('Email'), max_length=128,
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
@@ -208,7 +183,7 @@ class RegistrationForm(CaptchaModelForm):
         return user
 
 
-class RecoverPasswordForm(CaptchaForm):
+class RecoverPasswordForm(forms.Form):
     user = forms.CharField(label=_('Username or email'))
 
     def clean_user(self):
@@ -556,3 +531,21 @@ class TwoFactorForm(forms.Form):
                    'autofocus': True,
         }),
     )
+
+
+class ConfirmPasswordForm(forms.Form):
+    password = forms.CharField(
+        label=_('Sentry account password'),
+        widget=forms.PasswordInput(),
+        help_text='You will need to enter your current Sentry account password to make changes.',
+        required=True,
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(ConfirmPasswordForm, self).__init__(*args, **kwargs)
+
+        needs_password = user.has_usable_password()
+
+        if not needs_password:
+            del self.fields['password']

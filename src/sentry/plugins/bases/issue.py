@@ -43,6 +43,9 @@ class IssueTrackingPlugin(Plugin):
     can_unlink_issues = False
     can_link_existing_issues = False
 
+    def get_plugin_type(self):
+        return 'issue-tracking'
+
     def _get_group_body(self, request, group, event, **kwargs):
         result = []
         for interface in six.itervalues(event.interfaces):

@@ -113,10 +113,6 @@ const SavedSearchRow = React.createClass({
 });
 
 const ProjectSavedSearches = React.createClass({
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
-  },
-
   mixins: [ApiMixin],
 
   getInitialState() {

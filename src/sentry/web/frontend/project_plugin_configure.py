@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 
+from sentry.api import client
 from sentry.plugins import plugins, IssueTrackingPlugin2
 from sentry.web.frontend.base import ProjectView
 
@@ -23,12 +24,12 @@ class ProjectPluginConfigureView(ProjectView):
         is_enabled = plugin.is_enabled(project)
         if isinstance(plugin, IssueTrackingPlugin2):
             view = None
-            issue_v2_plugin = {
-                'title': plugin.get_title(),
-                'slug': plugin.slug,
-                'can_disable': plugin.can_disable,
-                'is_enabled': is_enabled
-            }
+            response = client.get('/projects/{}/{}/plugins/{}/'.format(
+                organization.slug,
+                project.slug,
+                slug,
+            ), request=request)
+            issue_v2_plugin = response.data
         else:
             view = plugin.configure(request=request, project=project)
             if isinstance(view, HttpResponse):

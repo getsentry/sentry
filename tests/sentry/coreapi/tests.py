@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import six
 import mock
 
 from datetime import datetime
@@ -379,6 +380,17 @@ class SafelyLoadJSONStringTest(BaseAPITest):
     def test_unexpected_type(self):
         with self.assertRaises(APIError):
             self.helper.safely_load_json_string('1')
+
+
+class DecodeDataTest(BaseAPITest):
+    def test_valid_data(self):
+        data = self.helper.decode_data('foo')
+        assert data == u'foo'
+        assert type(data) == six.text_type
+
+    def test_invalid_data(self):
+        with self.assertRaises(APIError):
+            self.helper.decode_data('\x99')
 
 
 class GetInterfaceTest(TestCase):

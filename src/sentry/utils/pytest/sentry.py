@@ -10,7 +10,6 @@ def pytest_configure(config):
     # HACK: Only needed for testing!
     os.environ.setdefault('_SENTRY_SKIP_CONFIGURATION', '1')
 
-    os.environ.setdefault('RECAPTCHA_TESTING', 'True')
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'sentry.conf.server')
 
     if not settings.configured:
@@ -79,9 +78,6 @@ def pytest_configure(config):
 
     settings.SENTRY_TSDB = 'sentry.tsdb.inmemory.InMemoryTSDB'
     settings.SENTRY_TSDB_OPTIONS = {}
-
-    settings.RECAPTCHA_PUBLIC_KEY = 'a' * 40
-    settings.RECAPTCHA_PRIVATE_KEY = 'b' * 40
 
     settings.BROKER_BACKEND = 'memory'
     settings.BROKER_URL = None

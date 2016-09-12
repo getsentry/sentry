@@ -7,9 +7,9 @@ utilized for a couple of things, primarily:
 - Getting information about the current version of Sentry
 - Retrieving important system notices
 
-The remote server is operated by the Sentry team (getsentry.com), and the
+The remote server is operated by the Sentry team (sentry.io), and the
 information reported follows the company's `privacy policy
-<https://getsentry.com/privacy/>`_.
+<https://sentry.io/privacy/>`_.
 
 The following information is reported:
 

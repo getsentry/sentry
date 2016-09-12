@@ -75,6 +75,7 @@ const StacktraceContent = React.createClass({
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
+            isOnlyFrame={this.props.data.frames.length === 1}
             nextFrameInApp={nextFrame && nextFrame.inApp}
             platform={this.props.platform} />
         );
@@ -84,11 +85,9 @@ const StacktraceContent = React.createClass({
           firstFrameOmitted, lastFrameOmitted));
       }
     });
-
     if (this.props.newestFirst) {
       frames.reverse();
     }
-
     let className = this.props.className || '';
     className += ' traceback';
 

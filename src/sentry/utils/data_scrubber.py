@@ -76,8 +76,15 @@ class SensitiveDataFilter(object):
         if 'sentry.interfaces.Http' in data:
             self.filter_http(data['sentry.interfaces.Http'])
 
+        if 'sentry.interfaces.User' in data:
+            self.filter_user(data['sentry.interfaces.User'])
+
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
+
+        if 'contexts' in data:
+            for key, value in six.iteritems(data['contexts']):
+                data['contexts'][key] = varmap(self.sanitize, value)
 
     def sanitize(self, key, value):
         if value is None:
@@ -136,6 +143,11 @@ class SensitiveDataFilter(object):
                 data[n] = '&'.join('='.join(k) for k in querybits)
             else:
                 data[n] = varmap(self.sanitize, data[n])
+
+    def filter_user(self, data):
+        if 'data' not in data:
+            return
+        data['data'] = varmap(self.sanitize, data['data'])
 
     def filter_crumb(self, data):
         for key in 'data', 'message':

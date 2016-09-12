@@ -3,6 +3,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import FormField from './formField';
 
+import {defined} from '../../utils';
+
 export default class InputField extends FormField {
   constructor(props) {
     super(props);
@@ -11,7 +13,7 @@ export default class InputField extends FormField {
   }
 
   valueFromProps(props) {
-    return props.value !== '' ? props.value : (props.defaultValue || '');
+    return defined(props.value) ? props.value : (props.defaultValue || '');
   }
 
   // XXX(dcramer): this comes from TooltipMixin
@@ -54,6 +56,7 @@ export default class InputField extends FormField {
           placeholder={this.props.placeholder}
           onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
+          ref="input"
           value={this.state.value} />
     );
   }

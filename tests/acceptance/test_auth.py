@@ -5,13 +5,10 @@ from sentry.testutils import AcceptanceTestCase
 
 class AuthTest(AcceptanceTestCase):
     def enter_auth(self, username, password):
-        # disable captcha as it makes these tests flakey (and requires waiting
-        # on external resources)
-        with self.settings(RECAPTCHA_PUBLIC_KEY=None):
-            self.browser.get('/auth/login/')
-            self.browser.find_element_by_id('id_username').send_keys(username)
-            self.browser.find_element_by_id('id_password').send_keys(password)
-            self.browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
+        self.browser.get('/auth/login/')
+        self.browser.find_element_by_id('id_username').send_keys(username)
+        self.browser.find_element_by_id('id_password').send_keys(password)
+        self.browser.find_element_by_xpath("//button[contains(text(), 'Login')]").click()
 
     def test_renders(self):
         self.browser.get('/auth/login/')

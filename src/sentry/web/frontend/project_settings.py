@@ -58,12 +58,14 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Prevent IP addresses from being stored for new events.'),
         required=False
     )
+
+    # JavaScript options
     scrape_javascript = forms.BooleanField(
         label=_('Enable JavaScript source fetching'),
         help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
         required=False,
     )
-    blacklisted_ips = IPNetworksField(label=_('Blacklisted IP Addresses'), required=False,
+    blacklisted_ips = IPNetworksField(label=_('Filtered IP Addresses'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
 
     # Options that are overridden by Organization level settings
@@ -206,24 +208,27 @@ class ProjectSettingsView(ProjectView):
         if form.is_valid():
             project = form.save()
             for opt in (
-                    'origins',
-                    'token',
-                    'resolve_age',
-                    'scrub_data',
-                    'scrub_defaults',
-                    'sensitive_fields',
-                    'scrub_ip_address',
-                    'scrape_javascript',
-                    'blacklisted_ips',
-                    'default_environment'):
+                'origins',
+                'token',
+                'resolve_age',
+                'scrub_data',
+                'scrub_defaults',
+                'sensitive_fields',
+                'scrub_ip_address',
+                'scrape_javascript',
+                'blacklisted_ips',
+                'default_environment',
+            ):
+                opt_key = 'sentry:{}'.format(opt)
+
                 # Value can't be overridden if set on the org level
-                if opt in form.org_overrides and organization.get_option('sentry:%s' % (opt,), False):
+                if opt in form.org_overrides and organization.get_option(opt_key, False):
                     continue
                 value = form.cleaned_data.get(opt)
                 if value is None:
-                    project.delete_option('sentry:%s' % (opt,))
+                    project.delete_option(opt_key)
                 else:
-                    project.update_option('sentry:%s' % (opt,), value)
+                    project.update_option(opt_key, value)
 
             project.update_option('sentry:reviewed-callsign', True)
 

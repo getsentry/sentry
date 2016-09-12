@@ -50,4 +50,10 @@ Renderer.prototype.image = function(href, title, text) {
   return out;
 };
 
-export default Renderer;
+marked.setOptions({
+  renderer: new Renderer(),
+  // Disable all HTML input and only accept Markdown
+  sanitize: true
+});
+
+export default marked;

@@ -7,14 +7,15 @@ from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import features, options, roles
+from sentry.app import ratelimiter
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus,
-    ProjectPlatform
+    AuditLogEntryEvent, Organization, OrganizationMember,
+    OrganizationMemberTeam, OrganizationStatus, ProjectPlatform
 )
 from sentry.search.utils import tokenize_query, in_iexact
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -32,6 +33,7 @@ class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
+    defaultTeam = serializers.BooleanField(required=False)
 
 
 class OrganizationIndexEndpoint(Endpoint):
@@ -154,6 +156,20 @@ class OrganizationIndexEndpoint(Endpoint):
             return Response({'detail': 'This endpoint requires user info'},
                             status=401)
 
+        if not features.has('organizations:create', actor=request.user):
+            return Response({
+                'detail': 'Organizations are not allowed to be created by this user.'
+            }, status=401)
+
+        limit = options.get('api.rate-limit.org-create')
+        if limit and ratelimiter.is_limited(
+            u'org-create:{}'.format(request.user.id),
+            limit=5, window=3600,
+        ):
+            return Response({
+                'detail': 'You are attempting to create too many organizations too quickly.'
+            }, status=429)
+
         serializer = OrganizationSerializer(data=request.DATA)
 
         if serializer.is_valid():
@@ -171,11 +187,22 @@ class OrganizationIndexEndpoint(Endpoint):
                     status=409,
                 )
 
-            OrganizationMember.objects.create(
-                user=request.user,
+            om = OrganizationMember.objects.create(
                 organization=org,
+                user=request.user,
                 role=roles.get_top_dog().id,
             )
+
+            if result.get('defaultTeam'):
+                team = org.team_set.create(
+                    name=org.name,
+                )
+
+                OrganizationMemberTeam.objects.create(
+                    team=team,
+                    organizationmember=om,
+                    is_active=True
+                )
 
             self.create_audit_entry(
                 request=request,

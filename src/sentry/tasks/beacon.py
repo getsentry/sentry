@@ -23,7 +23,7 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
 from sentry.debug.utils.packages import get_all_package_versions
 
-BEACON_URL = 'https://getsentry.com/remote/beacon/'
+BEACON_URL = 'https://sentry.io/remote/beacon/'
 
 logger = logging.getLogger('beacon')
 

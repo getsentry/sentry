@@ -38,7 +38,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
         pending_delete.send(sender=Organization, instance=o)
 
-    for team in Team.objects.filter(organization=o).exclude(status=TeamStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
+    for team in Team.objects.filter(organization=o).order_by('id')[:1]:
         team.update(status=TeamStatus.DELETION_IN_PROGRESS)
         delete_team(team.id, transaction_id=transaction_id, continuous=False)
         if continuous:
@@ -86,7 +86,7 @@ def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
         t.update(status=TeamStatus.DELETION_IN_PROGRESS)
 
     # Delete 1 project at a time since this is expensive by itself
-    for project in Project.objects.filter(team=t).exclude(status=ProjectStatus.DELETION_IN_PROGRESS).order_by('id')[:1]:
+    for project in Project.objects.filter(team=t).order_by('id')[:1]:
         project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
         delete_project(project.id, transaction_id=transaction_id, continuous=False)
         if continuous:
@@ -309,12 +309,6 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
     from sentry.models import Event, EventTag
 
     has_more = False
-    if logger is not None:
-        # The only reason this is a different log statement is that logging every
-        # single event that gets deleted in the relation will destroy disks.
-        logger.info('object.delete.bulk_executed', extra=dict(
-            relation.items() + [('transaction_id', transaction_id)],
-        ))
 
     result_set = list(Event.objects.filter(**relation)[:limit])
     has_more = bool(result_set)
@@ -328,7 +322,27 @@ def delete_events(relation, transaction_id=None, limit=100, logger=None):
 
         # bulk delete by id
         EventTag.objects.filter(event_id__in=event_ids).delete()
+        if logger is not None:
+            # The only reason this is a different log statement is that logging every
+            # single event that gets deleted in the relation will destroy disks.
+            logger.info('object.delete.bulk_executed', extra=dict(
+                relation.items() + [
+                    ('transaction_id', transaction_id),
+                    ('model', 'EventTag'),
+                ],
+            ))
+
+        # bulk delete by id
         Event.objects.filter(id__in=event_ids).delete()
+        if logger is not None:
+            # The only reason this is a different log statement is that logging every
+            # single event that gets deleted in the relation will destroy disks.
+            logger.info('object.delete.bulk_executed', extra=dict(
+                relation.items() + [
+                    ('transaction_id', transaction_id),
+                    ('model', 'Event'),
+                ],
+            ))
     return has_more
 
 

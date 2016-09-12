@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from django.db import models
+from datetime import timedelta
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
 from sentry.utils.cache import cache
@@ -31,7 +32,7 @@ class GroupRelease(Model):
     def get_cache_key(cls, group_id, release_id, environment):
         return 'grouprelease:1:{}:{}'.format(
             group_id,
-            md5_text('{}:{}'.format(release_id, environment)).hexdigest(),
+            md5_text(u'{}:{}'.format(release_id, environment)).hexdigest(),
         )
 
     @classmethod
@@ -40,21 +41,36 @@ class GroupRelease(Model):
 
         instance = cache.get(cache_key)
         if instance is None:
-            instance, created = cls.objects.get_or_create(
-                release_id=release.id,
-                group_id=group.id,
-                environment=environment.name,
-                defaults={
-                    'project_id': group.project_id,
-                    'first_seen': datetime,
-                    'last_seen': datetime,
-                },
-            )
+            try:
+                with transaction.atomic():
+                    instance, created = cls.objects.create(
+                        release_id=release.id,
+                        group_id=group.id,
+                        environment=environment.name,
+                        project_id=group.project_id,
+                        first_seen=datetime,
+                        last_seen=datetime,
+                    ), True
+            except IntegrityError:
+                instance, created = cls.objects.get(
+                    release_id=release.id,
+                    group_id=group.id,
+                    environment=environment.name,
+                ), False
             cache.set(cache_key, instance, 3600)
         else:
             created = False
 
-        # TODO(dcramer): this would be good to buffer
-        if not created:
-            instance.update(last_seen=datetime)
+        # TODO(dcramer): this would be good to buffer, but until then we minimize
+        # updates to once a minute, and allow Postgres to optimistically skip
+        # it even if we can't
+        if not created and instance.last_seen < datetime - timedelta(seconds=60):
+            cls.objects.filter(
+                id=instance.id,
+                last_seen__lt=datetime - timedelta(seconds=60),
+            ).update(
+                last_seen=datetime,
+            )
+            instance.last_seen = datetime
+            cache.set(cache_key, instance, 3600)
         return instance

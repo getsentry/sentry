@@ -6,4 +6,4 @@ Join your team by visiting the following url:
 
     {{ url }}
 
-If you'd like to learn more about Sentry before diving head-first, check out our website, https://getsentry.com/
+If you'd like to learn more about Sentry before diving head-first, check out our website, https://sentry.io/

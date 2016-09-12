@@ -383,7 +383,6 @@ class AuthHelper(object):
             initial={
                 'username': existing_user.username if existing_user else None,
             },
-            captcha=bool(request.session.get('needs_captcha')),
         )
 
     def _get_display_name(self, identity):
@@ -471,10 +470,8 @@ class AuthHelper(object):
                                   after_2fa=request.build_absolute_uri()):
                     return HttpResponseRedirect(auth.get_login_redirect(
                         self.request))
-                request.session.pop('needs_captcha', None)
             else:
                 auth.log_auth_failure(request, request.POST.get('username'))
-                request.session['needs_captcha'] = 1
         else:
             op = None
 

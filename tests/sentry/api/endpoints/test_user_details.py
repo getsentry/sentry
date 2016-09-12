@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import AuthIdentity, AuthProvider, User
+from sentry.models import Authenticator, AuthIdentity, AuthProvider, User
 from sentry.testutils import APITestCase
 
 
@@ -38,6 +38,10 @@ class UserDetailsTest(APITestCase):
             ident=user.email,
             user=user,
         )
+        auth = Authenticator.objects.create(
+            type=3,  # u2f
+            user=user,
+        )
 
         self.login_as(user=user)
 
@@ -50,8 +54,11 @@ class UserDetailsTest(APITestCase):
         assert resp.data['id'] == six.text_type(user.id)
         assert 'identities' in resp.data
         assert len(resp.data['identities']) == 1
-        assert resp.data['identities'][0]['id'] == auth_identity.id
+        assert resp.data['identities'][0]['id'] == six.text_type(auth_identity.id)
         assert resp.data['identities'][0]['name'] == auth_identity.ident
+        assert 'authenticators' in resp.data
+        assert len(resp.data['authenticators']) == 1
+        assert resp.data['authenticators'][0]['id'] == six.text_type(auth.id)
 
     def test_superuser(self):
         user = self.create_user(email='a@example.com')

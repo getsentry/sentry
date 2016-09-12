@@ -107,12 +107,13 @@ const ProjectSettings = React.createClass({
               <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>{t('CSP Reports')}</ListLink>
             }
             <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>{t('User Feedback')}</ListLink>
+            <ListLink to={`/${orgId}/${projectId}/settings/filters/`}>{t('Inbound Filters')}</ListLink>
             <li><a href={`${settingsUrlRoot}/keys/`}>{t('Client Keys')} (DSN)</a></li>
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
             <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
-            {project.activePlugins.map((plugin) => {
+            {project.plugins.filter(p => p.enabled).map((plugin) => {
               return <li key={plugin.id}><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
             })}
           </ul>

@@ -5,6 +5,8 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.safestring import mark_safe
 
 from sentry import constants
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.plugins import plugins, IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.signals import plugin_enabled
 from sentry.web.frontend.base import ProjectView
@@ -74,12 +76,11 @@ class ProjectIssueTrackingView(ProjectView):
             'page': 'issue-tracking',
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
-            'issue_v2_plugins': [{
-                'title': p.get_title(),
-                'slug': p.slug,
-                'can_disable': p.can_disable,
-                'is_enabled': True
-            } for p in issue_v2_plugins]
+            'issue_v2_plugins': serialize(
+                issue_v2_plugins, request.user, PluginSerializer(
+                    project=project
+                )
+            ),
         }
 
         return self.respond('sentry/project-issue-tracking.html', context)

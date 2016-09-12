@@ -456,7 +456,7 @@ class Runner(object):
                 body = data
 
         req_headers = dict(headers)
-        req_headers['Host'] = 'app.getsentry.com'
+        req_headers['Host'] = 'sentry.io'
         req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
             api_key.key.encode('utf-8')))
 

@@ -6,6 +6,7 @@ install-python:
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
+	pip install ujson
 	pip install "file://`pwd`#egg=sentry[dev,dsym]"
 
 install-npm:
@@ -50,7 +51,7 @@ clean:
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ sentry-package.json
+	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
 build-js-po:

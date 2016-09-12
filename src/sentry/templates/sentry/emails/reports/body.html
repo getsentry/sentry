@@ -44,17 +44,17 @@
     <tr>
       <td class="issues-resolved-column issues-resolved-column-left">
         <table class="issue-graph">
-          <tr>
+          <tr class="graph">
           {% with report.series.maximum as max %}
           {% for timestamp, metrics in report.series.points %}
-            <td valign="bottom" style="padding-right: 5px;">
+            <td valign="bottom" style="width: {% widthratio 1 report.series.points|length 100 %}%">
               <table class="issue-graph-bar">
                 {% if metrics.resolved or metrics.unresolved %}
                   <tr>
-                    <td class="all" height="{% widthratio metrics.unresolved max 56 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
+                    <td class="all" height="{% widthratio metrics.unresolved max 52 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
                   </tr>
                   <tr>
-                    <td class="resolved" height="{% widthratio metrics.resolved max 56 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
+                    <td class="resolved" height="{% widthratio metrics.resolved max 52 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
                   </tr>
                 {% else %}
                   <tr><td></td></tr>
@@ -64,6 +64,11 @@
             </td>
           {% endfor %}
           {% endwith %}
+          </tr>
+          <tr class="labels">
+            {% for timestamp, metrics in report.series.points %}
+              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format }}</td>
+            {% endfor %}
           </tr>
         </table>
       </td>
@@ -76,7 +81,9 @@
             {% else %}
                 <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
             {% endif %}
-            {{ change|multiply:"100"|absolute_value|floatformat:"-1" }}%
+            {% with change|multiply:"100"|absolute_value as percentage %}
+                {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
+            {% endwith %}
             </div>
             <small>{% if change >= 0 %}more{% else %}fewer{% endif %} events than {{ label }}</small>
           {% else %}
@@ -86,6 +93,34 @@
       {% endfor %}
     </tr>
   </table>
+
+  {% with report.distribution.total as total %}
+  <table class="issue-breakdown">
+    <tr>
+      <td>
+        <h4>Issue Breakdown</h4>
+      </td>
+      <td class="legend">
+        {% for type, count in report.distribution.types %}
+          <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent count total "0.0f" %}%
+        {% endfor %}
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2">
+        <table>
+          <tr>
+            {% for type, count in report.distribution.types %}
+              <td width="{% widthratio count total 100 %}%" title="{{ type.label }}: {{ count }} events" style="background-color: {{ type.color }}">
+                &nbsp;
+              </td>
+            {% endfor %}
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+  {% endwith %}
 
   <table class="issue-table">
     <thead>

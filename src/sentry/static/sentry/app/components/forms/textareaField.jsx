@@ -6,6 +6,7 @@ export default class TextareaField extends InputField {
     return (
       <textarea {...this.props}
           id={this.getId()}
+          ref="input"
           className="form-control"
           value={this.state.value}
           onChange={this.onChange.bind(this)} />

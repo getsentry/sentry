@@ -21,6 +21,7 @@ from rest_framework.views import APIView
 from sentry.app import raven, tsdb
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
+from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
 
 from .authentication import ApiKeyAuthentication, TokenAuthentication
@@ -220,13 +221,13 @@ class StatsMixin(object):
 
         end = request.GET.get('until')
         if end:
-            end = datetime.fromtimestamp(float(end)).replace(tzinfo=utc)
+            end = to_datetime(float(end))
         else:
             end = datetime.utcnow().replace(tzinfo=utc)
 
         start = request.GET.get('since')
         if start:
-            start = datetime.fromtimestamp(float(start)).replace(tzinfo=utc)
+            start = to_datetime(float(start))
             assert start <= end, 'start must be before or equal to end'
         else:
             start = end - timedelta(days=1, seconds=-1)

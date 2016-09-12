@@ -58,20 +58,13 @@ def expired(request, user):
 
 
 def recover(request):
-    form = RecoverPasswordForm(request.POST or None,
-                               captcha=bool(request.session.get('needs_captcha')))
+    form = RecoverPasswordForm(request.POST or None)
     if form.is_valid():
         password_hash = send_password_recovery_mail(form.cleaned_data['user'])
-        request.session.pop('needs_captcha', None)
 
         return render_to_response('sentry/account/recover/sent.html', {
             'email': password_hash.user.email,
         }, request)
-
-    elif request.POST and not request.session.get('needs_captcha'):
-        request.session['needs_captcha'] = 1
-        form = RecoverPasswordForm(request.POST or None, captcha=True)
-        form.errors.pop('captcha', None)
 
     context = {
         'form': form,

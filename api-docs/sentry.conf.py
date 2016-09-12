@@ -8,7 +8,7 @@ import getpass
 SENTRY_APIDOCS_REDIS_PORT = 12355
 SENTRY_APIDOCS_WEB_PORT = 12356
 
-SENTRY_URL_PREFIX = 'https://app.getsentry.com'
+SENTRY_URL_PREFIX = 'https://sentry.io'
 
 # Unsupported here
 SENTRY_SINGLE_ORGANIZATION = False

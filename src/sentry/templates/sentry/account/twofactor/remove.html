@@ -1,5 +1,6 @@
 {% extends "sentry/bases/twofactor_settings.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -21,6 +22,10 @@
 
   <form action="" method="post" class="form-stacked">
     {% csrf_token %}
+    {% if password_form.password %}
+      {{ password_form|as_crispy_errors }}
+      {{ password_form.password|as_crispy_field }}
+    {% endif %}
     <input type="hidden" name="remove" value="1">
     <fieldset class="form-actions">
       <button type="submit" name="yes" class="btn btn-default btn-primary">{% trans "Yes" %}</button>

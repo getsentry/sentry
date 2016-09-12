@@ -29,7 +29,7 @@ DEFAULT_EVENT_DATA = {
         'sys.argv': [
             '/Users/dcramer/.virtualenvs/sentry/bin/raven',
             'test',
-            'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@app.getsentry.com/1'
+            'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1'
         ],
         'user': 'dcramer'
     },
@@ -273,7 +273,7 @@ class Fixtures(object):
                     ["browser", "Chrome 48.0"],
                     ["device", "Other"],
                     ["os", "Windows 10"],
-                    ["url", "https://app.getsentry.com/katon-direct/localhost/issues/112734598/"],
+                    ["url", "https://sentry.io/katon-direct/localhost/issues/112734598/"],
                     ["sentry:user", "id:41656"]
                 ],
                 "errors": [{
@@ -299,8 +299,8 @@ class Fixtures(object):
                                 "in_app": false,
                                 "data": {
                                     "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "orig_abs_path": "https://media.getsentry.com/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "sourcemap": "https://media.getsentry.com/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
+                                    "orig_abs_path": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
                                     "orig_lineno": 37,
                                     "orig_function": "Object.s [as enqueueUpdate]",
                                     "orig_colno": 16101
@@ -316,9 +316,9 @@ class Fixtures(object):
                     }]
                 },
                 "sentry.interfaces.Http": {
-                    "url": "https://app.getsentry.com/katon-direct/localhost/issues/112734598/",
+                    "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
-                        ["Referer", "https://getsentry.com/welcome/"],
+                        ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },

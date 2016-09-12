@@ -24,7 +24,7 @@ const ListLink = React.createClass({
   getDefaultProps() {
     return {
       activeClassName: 'active',
-      onlyActiveOnIndex: false,
+      index: false,
     };
   },
 
@@ -47,7 +47,7 @@ const ListLink = React.createClass({
   },
 
   render() {
-    let carriedProps = _.omit(this.props, 'activeClassName', 'isActive');
+    let carriedProps = _.omit(this.props, 'activeClassName', 'isActive', 'index');
     return (
       <li className={this.getClassName()}>
         <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>{this.props.children}</Link>
