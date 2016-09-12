@@ -26,7 +26,7 @@
 	        </div>
 	        <div class='verified-status'>
 		        {% if primary_email.is_verified %}
-		        <span class='btn btn-success'>Verified</span>{% else %}<a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-danger'>Unverified</a>
+		        <span class='btn btn-success'>Verified</span>{% else %}<a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-warning'>Unverified</a>
 		        {% endif %}
 	        </div>
 	      </div>
