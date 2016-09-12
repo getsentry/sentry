@@ -64,19 +64,28 @@ class NotificationPlugin(Plugin):
 
     def rule_notify(self, event, futures):
         rules = []
+        extra = {
+            'event_id': event.id,
+            'group_id': event.group_id,
+            'plugin': self.slug,
+        }
+        log_event = 'dispatched'
         for future in futures:
             rules.append(future.rule)
+            extra['rule_id'] = future.rule.id
             if not future.kwargs:
                 continue
             raise NotImplementedError('The default behavior for notification de-duplication does not support args')
 
         project = event.group.project
+        extra['project_id'] = project.id
         if hasattr(self, 'notify_digest') and digests.enabled(project):
             get_digest_option = lambda key: ProjectOption.objects.get_value(
                 project,
                 get_digest_option_key(self.get_conf_key(), key),
             )
             digest_key = unsplit_key(self, event.group.project)
+            extra['digest_key'] = digest_key
             immediate_delivery = digests.add(
                 digest_key,
                 event_to_record(event, rules),
@@ -85,6 +94,8 @@ class NotificationPlugin(Plugin):
             )
             if immediate_delivery:
                 deliver_digest.delay(digest_key)
+            else:
+                log_event = 'digested'
 
         else:
             notification = Notification(
@@ -92,11 +103,8 @@ class NotificationPlugin(Plugin):
                 rules=rules,
             )
             self.notify(notification)
-            self.logger.info('notification.dispatched', extra={
-                'event_id': event.id,
-                'plugin': self.slug,
-                'rule_id': rules[0].id if rules else None,
-            })
+
+        self.logger.info('notification.%s' % log_event, extra=extra)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
