@@ -10,9 +10,9 @@ from django.core import mail
 
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
-    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change, clean_series,
-    deliver_organization_user_report, merge_mappings, merge_sequences,
-    merge_series, prepare_reports, safe_add,
+    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change,
+    check_project_validity, clean_series, deliver_organization_user_report,
+    merge_mappings, merge_sequences, merge_series, prepare_reports, safe_add,
     user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
@@ -156,6 +156,29 @@ def test_clean_series_rejects_offset_timestamp():
             rollup,
             series,
         )
+
+
+def test_check_project_validity():
+    timestamp = to_timestamp(datetime(2016, 9, 12, tzinfo=pytz.utc))
+    duration = 7 * 24 * 60 * 60
+
+    assert check_project_validity(
+        timestamp,
+        duration,
+        Project(first_event=None),
+    ) is False
+
+    assert check_project_validity(
+        timestamp,
+        duration,
+        Project(first_event=to_datetime(timestamp + 1)),
+    ) is False
+
+    assert check_project_validity(
+        timestamp,
+        duration,
+        Project(first_event=to_datetime(timestamp)),
+    ) is True
 
 
 class ReportTestCase(TestCase):
