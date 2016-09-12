@@ -47,16 +47,19 @@ class CreateOrganizationMemberView(OrganizationView):
         if form.is_valid():
             om, created = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
-            user_email = form.cleaned_data['email']
+            user_display = form.cleaned_data.get('email', None)
+            if not user_display:
+                user_display = form.cleaned_data['user']
+
             if created:
                 messages.add_message(request, messages.SUCCESS,
-                    _('The organization member %s was added.') % user_email)
+                    _('The organization member %s was added.') % user_display)
 
                 member_invited.send(member=om, user=request.user, sender=self)
 
             else:
                 messages.add_message(request, messages.INFO,
-                    _('The organization member %s already exists.') % user_email)
+                    _('The organization member %s already exists.') % user_display)
 
             redirect = reverse('sentry-organization-members', args=[organization.slug])
 
