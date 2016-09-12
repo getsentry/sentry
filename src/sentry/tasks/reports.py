@@ -570,6 +570,20 @@ class Skipped(object):
     NoProjects = object()
 
 
+def check_project_validity(timestamp, duration, project):
+    """
+    Check if a project should be contained within an organization report.
+    """
+    # If the project has never seen an event, it shouldn't be included.
+    if project.first_event is None:
+        return False
+
+    # The project must have recieved at least one event prior to the end of the
+    # reporting period to be included.
+    _, stop = _to_interval(timestamp, duration)
+    return stop >= project.first_event
+
+
 @instrumented_task(
     name='sentry.tasks.reports.deliver_organization_user_report',
     queue='reports.deliver')
@@ -588,7 +602,10 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = set()
     for team in Team.objects.get_for_user(organization, user):
         projects.update(
-            Project.objects.get_for_user(team, user, _skip_team_check=True),
+            filter(
+                functools.partial(check_project_validity, timestamp, duration),
+                Project.objects.get_for_user(team, user, _skip_team_check=True),
+            )
         )
 
     if not projects:
