@@ -68,7 +68,7 @@ class NotificationPlugin(Plugin):
             'event_id': event.id,
             'plugin': self.slug,
         }
-        dispatched = False
+        log_event = 'dispatched'
         for future in futures:
             rules.append(future.rule)
             extra['rule_id'] = future.rule.id
@@ -93,7 +93,8 @@ class NotificationPlugin(Plugin):
             )
             if immediate_delivery:
                 deliver_digest.delay(digest_key)
-                dispatched = True
+            else:
+                log_event = 'digested'
 
         else:
             notification = Notification(
@@ -101,10 +102,8 @@ class NotificationPlugin(Plugin):
                 rules=rules,
             )
             self.notify(notification)
-            dispatched = True
 
-        if dispatched:
-            self.logger.info('notification.dispatched', extra=extra)
+        self.logger.info('notification.%s' % log_event, extra=extra)
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
