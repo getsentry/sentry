@@ -18,9 +18,15 @@ class CreateOrganizationMemberView(OrganizationView):
     required_scope = 'org:write'
 
     def get_form(self, request, organization, all_teams, allowed_roles):
+
+        # If there is only one possible team to join, select it by default
+        initial_teams = []
+        if len(all_teams) == 1:
+            initial_teams = all_teams
+
         initial = {
             'role': organization.default_role,
-            'teams': [],
+            'teams': initial_teams
         }
 
         if settings.SENTRY_ENABLE_INVITES:

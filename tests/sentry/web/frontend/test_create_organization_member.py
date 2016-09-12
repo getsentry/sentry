@@ -23,8 +23,10 @@ class CreateOrganizationMemberPermissionTest(PermissionTestCase):
 
 
 class CreateOrganizationMemberTest(TestCase):
-    def test_renders_with_context(self):
+    def test_renders_with_team_preselected(self):
+        # If org has just one team, it is selected by default
         organization = self.create_organization()
+        team = self.create_team(name='foo', organization=organization)
         path = reverse('sentry-create-organization-member', args=[organization.slug])
         self.login_as(self.user)
         resp = self.client.get(path)
@@ -32,6 +34,21 @@ class CreateOrganizationMemberTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/create-organization-member.html')
         assert resp.context['organization'] == organization
         assert resp.context['form']
+        assert resp.context['form'].initial['teams'][0] == team
+
+    def test_renders_no_teams_seleced(self):
+        # With multiple teams, *no* teams are selected by default
+        organization = self.create_organization()
+        self.create_team(name='one', organization=organization)
+        self.create_team(name='two', organization=organization)
+        path = reverse('sentry-create-organization-member', args=[organization.slug])
+        self.login_as(self.user)
+        resp = self.client.get(path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/create-organization-member.html')
+        assert resp.context['organization'] == organization
+        assert resp.context['form']
+        assert len(resp.context['form'].initial['teams']) == 0
 
     def test_valid_for_invites(self):
         organization = self.create_organization(name='Default')
