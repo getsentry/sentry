@@ -302,7 +302,7 @@ footer {
     overflow-x: hidden;
     zoom: .85;
   }
-  
+
   .container {
     padding: 0 14px;
   }
@@ -312,8 +312,23 @@ footer {
   }
 
   .sub-header {
+    h3 {
+      margin: 0;
+    }
+
     .pull-right {
       display: none;
+    }
+
+    .nav-tabs {
+      > li {
+        text-transform: capitalize;
+        margin-right: 11px;
+
+        a {
+          font-size: 14px;
+        }
+      }
     }
   }
 }
