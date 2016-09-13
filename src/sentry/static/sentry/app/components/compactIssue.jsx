@@ -91,7 +91,8 @@ const CompactIssue = React.createClass({
     data: React.PropTypes.object,
     id: React.PropTypes.string,
     orgId: React.PropTypes.string,
-    statsPeriod: React.PropTypes.string
+    statsPeriod: React.PropTypes.string,
+    showActions: React.PropTypes.bool
   },
 
   mixins: [
@@ -186,34 +187,36 @@ const CompactIssue = React.createClass({
             <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
           </div>
         }
-        <div className="more-menu-container align-right">
-          <DropdownLink
-            topLevelClasses="more-menu"
-            className="more-menu-toggle"
-            caret={false}
-            title={title}>
-            <li>
-              <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
-                <span className="icon-checkmark" />
-              </a>
-            </li>
-            <li>
-              <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
-                <span className="icon-star-solid" />
-              </a>
-            </li>
-            <li>
-              <SnoozeAction
-                orgId={orgId}
-                projectId={projectId}
-                groupId={id}
-                onSnooze={this.onSnooze} />
-            </li>
-            {false &&
-              <li><a href="#"><span className="icon-user" /></a></li>
-            }
-          </DropdownLink>
-        </div>
+        {this.props.showActions &&
+          <div className="more-menu-container align-right">
+            <DropdownLink
+              topLevelClasses="more-menu"
+              className="more-menu-toggle"
+              caret={false}
+              title={title}>
+              <li>
+                <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
+                  <span className="icon-checkmark"/>
+                </a>
+              </li>
+              <li>
+                <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                  <span className="icon-star-solid"/>
+                </a>
+              </li>
+              <li>
+                <SnoozeAction
+                  orgId={orgId}
+                  projectId={projectId}
+                  groupId={id}
+                  onSnooze={this.onSnooze}/>
+              </li>
+              {false &&
+              <li><a href="#"><span className="icon-user"/></a></li>
+              }
+            </DropdownLink>
+          </div>
+        }
         {this.props.children}
       </li>
     );

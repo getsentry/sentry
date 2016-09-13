@@ -4,15 +4,16 @@ import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
 import OrganizationState from '../../mixins/organizationState';
-import {Link} from 'react-router';
+// import {Link} from 'react-router';
 
 import Broadcasts from './broadcasts';
-import StatusPage from './statuspage';
+// import StatusPage from './statuspage';
 import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
+import IssueList from '../issueList';
 import {t} from '../../locale';
 
 const INCIDENTS = [
@@ -193,15 +194,54 @@ const Sidebar = React.createClass({
             </ul>
             {this.state.showPanel && this.state.currentPanel == 'assigned' &&
                 <SidebarPanel title={t('Assigned to me')}
-                              hidePanel={()=>this.hidePanel()}/>
+                              hidePanel={()=>this.hidePanel()}>
+                  <IssueList
+                    endpoint={`/organizations/${this.props.orgId}/members/me/issues/assigned/`}
+                    query={{
+                      statsPeriod: '24h',
+                      per_page: 10,
+                      status: 'unresolved',
+                    }}
+                    pagination={false}
+                    renderEmpty={() => <div>{t('No issues have been assigned to you.')}</div>}
+                    ref="issueList"
+                    showActions={false}
+                    params={{orgId:this.props.orgId}} />
+                </SidebarPanel>
             }
             {this.state.showPanel && this.state.currentPanel == 'bookmarks' &&
                 <SidebarPanel title={t('My Bookmarks')}
-                              hidePanel={()=>this.hidePanel()}/>
+                              hidePanel={()=>this.hidePanel()}>
+                  <IssueList
+                    endpoint={`/organizations/${this.props.orgId}/members/me/issues/bookmarked/`}
+                    query={{
+                      statsPeriod: '24h',
+                      per_page: 10,
+                      status: 'unresolved',
+                    }}
+                    pagination={false}
+                    renderEmpty={() => <div>{t('No new issues have been seen in the last week.')}</div>}
+                    ref="issueList"
+                    showActions={false}
+                    params={{orgId:this.props.orgId}} />
+                </SidebarPanel>
             }
             {this.state.showPanel && this.state.currentPanel == 'history' &&
                 <SidebarPanel title={t('Recently Viewed')}
-                              hidePanel={()=>this.hidePanel()}/>
+                              hidePanel={()=>this.hidePanel()}>
+                  <IssueList
+                    endpoint={`/organizations/${this.props.orgId}/members/me/issues/viewed/`}
+                    query={{
+                      statsPeriod: '24h',
+                      per_page: 10,
+                      status: 'unresolved',
+                    }}
+                    pagination={false}
+                    renderEmpty={() => <div>{t('No recently viewed issues.')}</div>}
+                    ref="issueList"
+                    showActions={false}
+                    params={{orgId:this.props.orgId}} />
+                </SidebarPanel>
             }
             {this.state.showPanel && this.state.currentPanel == 'statusupdate' &&
                 <SidebarPanel title={t('Recent status updates')}
