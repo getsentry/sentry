@@ -12,8 +12,7 @@ from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
     DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change,
-    clean_series, deliver_organization_user_report,
-    has_received_first_event, has_valid_aggregates,
+    clean_series, deliver_organization_user_report, has_valid_aggregates,
     merge_mappings, merge_sequences, merge_series, prepare_reports, safe_add,
     user_subscribed_to_organization_reports
 )
@@ -166,26 +165,6 @@ def test_clean_series_rejects_offset_timestamp():
         )
 
 
-def test_has_received_first_event(interval):
-    _, stop = interval
-    report = None  # parameter is unused
-
-    assert has_received_first_event(
-        interval,
-        (Project(first_event=None), report),
-    ) is False
-
-    assert has_received_first_event(
-        interval,
-        (Project(first_event=stop), None),
-    ) is False
-
-    assert has_received_first_event(
-        interval,
-        (Project(first_event=stop - timedelta(seconds=1)), report),
-    ) is True
-
-
 def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
@@ -223,7 +202,6 @@ class ReportTestCase(TestCase):
         project = self.create_project(
             organization=self.organization,
             team=self.team,
-            first_event=now - timedelta(days=1),
         )
 
         tsdb.incr(

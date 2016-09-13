@@ -571,17 +571,6 @@ class Skipped(object):
     NoReports = object()
 
 
-def has_received_first_event(interval, (project, report)):
-    # If the project has never seen an event, it shouldn't be included.
-    if project.first_event is None:
-        return False
-
-    # The project must have recieved at least one event prior to the end of the
-    # reporting period to be included.
-    _, stop = interval
-    return stop > project.first_event
-
-
 def has_valid_aggregates(interval, (project, report)):
     _, aggregates, _, _ = report
     return any(bool(value) for value in aggregates)
@@ -618,7 +607,6 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = list(projects)
 
     inclusion_predicates = [
-        has_received_first_event,
         has_valid_aggregates,
     ]
 
