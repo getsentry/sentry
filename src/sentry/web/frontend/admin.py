@@ -91,7 +91,7 @@ def create_new_user(request):
                 logger = logging.getLogger('sentry.mail.errors')
                 logger.exception(e)
 
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     context = {
         'form': form,
