@@ -86,7 +86,7 @@ const AssigneeSelector = React.createClass({
     if (nextState.loading !== this.state.loading) {
       return true;
     }
-    return valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
+    return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
   },
 
   componentDidUpdate(prevProps, prevState) {
