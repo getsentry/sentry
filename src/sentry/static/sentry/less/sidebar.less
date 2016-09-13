@@ -6,7 +6,6 @@
 .navbar {
   background-color: @header-bg-color;
   color: #fff;
-  .clearfix();
   font-size: 15px;
   position: fixed;
   top: 0;
@@ -14,11 +13,22 @@
   bottom: 0;
   width: @sidebar-width;
   z-index: 100;
+  padding: 0 14px;
+  .clearfix();
+  display: flex;
+  flex-direction: column;
 
-  .container {
-    padding-left: 14px;
-    padding-right: 14px;
-    position: static;
+  .anchor-top {
+    flex: 1;
+    align-self: flex-start;
+  }
+
+  .anchor-bottom {
+
+  }
+
+  .icon-sentry-logo, .icon-sentry-logo-full {
+    line-height: 40px;
   }
 
   .admin-action-message {
@@ -57,10 +67,6 @@
         line-height: 42px;
       }
     }
-  }
-
-  .icon-sentry-logo, .icon-sentry-logo-full {
-    line-height: 40px;
   }
 
   .org-selector {
@@ -209,19 +215,29 @@
   }
 
   .navbar-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
     .list-unstyled;
-    padding: 10px 0 5px;
+    padding: 14px 0 6px;
+    margin: 0;
 
     > li {
       position: relative;
       text-align: center;
-      line-height: 32px;
-      max-height: 32px;
-      margin: 5px 0;
-      .clearfix;
+      margin: 0 0 5px;
 
       > a {
         color: @40;
+        display: block;
+        width: 32px;
+        line-height: 32px;
+
+        .icon {
+          display: block;
+          line-height: 30px;
+        }
 
         &:hover, &:focus, &:active {
           color: #fff;
@@ -239,7 +255,7 @@
           content: "";
           right: -14px;
           top: 50%;
-          margin-top: -8px;
+          margin-top: -7px;
           border-top: 7px solid transparent;
           border-bottom: 7px solid transparent;
           border-right: 7px solid #F7F8F9;
@@ -257,19 +273,11 @@
     }
 
     .icon-av_timer {
-      padding-top: 2px;
       font-size: 25px;
-      line-height: 32px;
     }
 
     .icon-globe, .icon-alert {
       font-size: 20px;
-    }
-
-    &.anchor-bottom {
-      position: absolute;
-      bottom: -20px;
-      width: 32px;
     }
 
     .activity-indicator {
@@ -354,9 +362,7 @@
 
     .avatar {
       border-radius: 2px;
-      margin-right: 6px;
       position: relative;
-      top: -1px;
     }
   }
 
@@ -595,4 +601,85 @@
       margin-left: 4px;
     }
   }
+}
+
+/**
+* Print
+* ============================================================================
+*/
+
+@media print {
+  .navbar {
+      display: none;
+  }
+}
+
+/**
+* Responsive Desktop
+* ============================================================================
+*/
+
+@media(max-width:1200px) {
+  .container {
+    width: 100% !important;
+  }
+}
+
+/**
+* Responsive small screens
+* ============================================================================
+*/
+
+@media(max-width:400px) {
+  body {
+    padding-left: 0;
+  }
+
+  .navbar {
+    flex-direction: row;
+    position: static;
+    width: 100%;
+    max-height: 54px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+
+    .navbar-nav {
+      flex-direction: row;
+      padding: 0 6px 0 10px;
+
+      > li {
+        margin: 0 5px 0 0;
+      }
+    }
+
+    .divider-bottom {
+      border: 0;
+      border-right: 1px solid @gray;
+    }
+
+    .anchor-top {
+      display: flex;
+
+      .org-selector {
+        padding: 0;
+        padding-right: 14px;
+      }
+    }
+
+    .anchor-bottom {
+      display: flex;
+
+      .navbar-nav {
+        padding-right: 0;
+
+        > li:last-child {
+          margin: 0;
+        }
+      }
+    }
+  }
+}
+
+@media(max-width:767px) {
+
 }

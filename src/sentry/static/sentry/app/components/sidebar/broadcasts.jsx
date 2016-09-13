@@ -110,7 +110,7 @@ const Broadcasts = React.createClass({
     return (
       <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
         <a className="broadcasts-toggle" onClick={this.props.onShowPanel}>
-          <span className="icon-globe"/>
+          <span className="icon icon-globe"/>
           <span className="activity-indicator" />
         </a>
         {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&

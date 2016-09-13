@@ -161,8 +161,7 @@ const Sidebar = React.createClass({
 
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
-      <nav className="navbar">
-        <div className="container">
+      <nav className="navbar" role="navigation">
           <div className="anchor-top">
             {org &&
               <OrganizationSelector
@@ -175,19 +174,19 @@ const Sidebar = React.createClass({
             <ul className="navbar-nav divider-bottom">
               <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
                 <a>
-                  <span className="icon-user" onClick={()=>this.showPanel('assigned')} />
+                  <span className="icon icon-user" onClick={()=>this.showPanel('assigned')} />
                   <span className="activity-indicator" />
                 </a>
               </li>
               <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
                 <a>
-                  <span className="icon-star-solid" onClick={()=>this.showPanel('bookmarks')} />
+                  <span className="icon icon-star-solid" onClick={()=>this.showPanel('bookmarks')} />
                   <span className="activity-indicator" />
                 </a>
               </li>
               <li className={this.state.currentPanel == 'history' ? 'active' : null }>
                 <a>
-                  <span className="icon-av_timer" onClick={()=>this.showPanel('history')} />
+                  <span className="icon icon-av_timer" onClick={()=>this.showPanel('history')} />
                   <span className="activity-indicator" />
                 </a>
               </li>
@@ -278,27 +277,29 @@ const Sidebar = React.createClass({
             }
           </div>
 
-          <ul className="navbar-nav anchor-bottom">
-            {org &&
-              <OnboardingStatus
-                org={org}
+          <div className="anchor-bottom">
+            <ul className="navbar-nav">
+              {org &&
+                <OnboardingStatus
+                  org={org}
+                  showPanel={this.state.showPanel}
+                  currentPanel={this.state.currentPanel}
+                  onShowPanel={()=>this.showPanel('todos')}
+                  hidePanel={()=>this.hidePanel()} />
+              }
+              <Broadcasts
                 showPanel={this.state.showPanel}
                 currentPanel={this.state.currentPanel}
-                onShowPanel={()=>this.showPanel('todos')}
+                onShowPanel={()=>this.showPanel('broadcasts')}
                 hidePanel={()=>this.hidePanel()} />
-            }
-            <Broadcasts
-              showPanel={this.state.showPanel}
-              currentPanel={this.state.currentPanel}
-              onShowPanel={()=>this.showPanel('broadcasts')}
-              hidePanel={()=>this.hidePanel()} />
-            <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
-              <a onClick={()=>this.showPanel('statusupdate')} ><span className="icon-alert" /></a>
-            </li>
-            <li>
-              <UserNav className="user-settings" />
-            </li>
-          </ul>
+              <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
+                <a onClick={()=>this.showPanel('statusupdate')} ><span className="icon icon-alert" /></a>
+              </li>
+              <li>
+                <UserNav className="user-settings" />
+              </li>
+            </ul>
+          </div>
 
 
 
@@ -319,7 +320,6 @@ const Sidebar = React.createClass({
           <span className="admin-action-message">{actionMessage}</span>
           : null}
           */ }
-        </div>
       </nav>
     );
   }
