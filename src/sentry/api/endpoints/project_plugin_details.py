@@ -116,4 +116,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                 )
 
-        return Response({'message': OK_UPDATED})
+        context = serialize(
+            plugin, request.user, PluginWithConfigSerializer(project))
+
+        return Response(context)
