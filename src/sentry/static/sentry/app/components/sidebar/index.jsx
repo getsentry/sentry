@@ -43,7 +43,7 @@ const OnboardingStatus = React.createClass({
     org: React.PropTypes.object.isRequired,
     currentPanel: React.PropTypes.string,
     onShowPanel: React.PropTypes.func,
-    showPanel: React.PropTypes.func,
+    showPanel: React.PropTypes.bool,
     hidePanel: React.PropTypes.func
   },
 
