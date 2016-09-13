@@ -19,20 +19,20 @@ import {t} from '../../locale';
 const INCIDENTS = [
   {
     id: 1,
-    title: "Issues delivering mail to FastMail customers",
-    url: "http://example.com",
+    title: 'Issues delivering mail to FastMail customers',
+    url: 'http://example.com',
     updates: [
         {
           id: 1,
-          status: "Resolved",
-          message: "FastMail has addressed the issue, and we are delivering email again.",
-          timestamp : "1 hour ago"
+          status: 'Resolved',
+          message: 'FastMail has addressed the issue, and we are delivering email again.',
+          timestamp : '1 hour ago'
         },
         {
           id: 2,
-          status: "Identified",
-          message: "FastMail customers are not getting emails. Our outbound IPs are being rate limited by FastMail. We have an open ticket with them to try and alleviate the issue. In the meantime, you may want to switch your Sentry email to something not backed by FastMail.",
-          timestamp : "2 hours ago",
+          status: 'Identified',
+          message: 'FastMail customers are not getting emails. Our outbound IPs are being rate limited by FastMail. We have an open ticket with them to try and alleviate the issue. In the meantime, you may want to switch your Sentry email to something not backed by FastMail.',
+          timestamp : '2 hours ago',
         }
     ]
   }
@@ -40,7 +40,11 @@ const INCIDENTS = [
 
 const OnboardingStatus = React.createClass({
   propTypes: {
-    org: React.PropTypes.object.isRequired
+    org: React.PropTypes.object.isRequired,
+    currentPanel: React.PropTypes.string,
+    onShowPanel: React.PropTypes.func,
+    showPanel: React.PropTypes.func,
+    hidePanel: React.PropTypes.func
   },
 
   render() {
@@ -120,9 +124,8 @@ const Sidebar = React.createClass({
   hidePanel() {
     this.setState({
       showPanel: false,
-      currentPanel: ""
+      currentPanel: ''
     });
-    console.log("Panel Hidden.");
   },
 
   showPanel(panel) {
@@ -130,8 +133,6 @@ const Sidebar = React.createClass({
       showPanel: true,
       currentPanel: panel
     });
-    // console.log(this.state.showPanel);
-    // console.log(this.state.currentPanel);
   },
 
   render() {
@@ -146,7 +147,6 @@ const Sidebar = React.createClass({
     }
 
     let requiredAction = org && getFirstRequiredAdminAction(org);
-    let actionMessage = null;
 
     if (org && requiredAction !== null) {
       let slugId = requiredAction.ID.toLowerCase().replace(/_/g, '-');
@@ -202,7 +202,7 @@ const Sidebar = React.createClass({
                       status: 'unresolved',
                     }}
                     pagination={false}
-                    renderEmpty={() => <div>{t('No issues have been assigned to you.')}</div>}
+                    renderEmpty={() => <div key="none">{t('No issues have been assigned to you.')}</div>}
                     ref="issueList"
                     showActions={false}
                     params={{orgId:this.props.orgId}} />
@@ -219,7 +219,7 @@ const Sidebar = React.createClass({
                       status: 'unresolved',
                     }}
                     pagination={false}
-                    renderEmpty={() => <div>{t('No new issues have been seen in the last week.')}</div>}
+                    renderEmpty={() => <div key="no">{t('No new issues have been seen in the last week.')}</div>}
                     ref="issueList"
                     showActions={false}
                     params={{orgId:this.props.orgId}} />
@@ -236,7 +236,7 @@ const Sidebar = React.createClass({
                       status: 'unresolved',
                     }}
                     pagination={false}
-                    renderEmpty={() => <div>{t('No recently viewed issues.')}</div>}
+                    renderEmpty={() => <div key="none">{t('No recently viewed issues.')}</div>}
                     ref="issueList"
                     showActions={false}
                     params={{orgId:this.props.orgId}} />
