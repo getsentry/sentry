@@ -27,7 +27,7 @@
     font-weight: 300;
   }
   a {
-    color: #5688bf;
+    color: #4e83dc;
     font-weight: 500;
     text-decoration: none;
   }
@@ -148,8 +148,8 @@
   }
 
   .info-box {
-    background-color: #f7f5fa;
-    border: 1px solid #dbd3e9;
+    background-color: #f8fbff;
+    border: 1px solid #cce3f3;
     border-radius: 3px;
     padding: 15px;
     text-align: center;
@@ -617,8 +617,12 @@
     padding: 12px 0;
   }
 
+  .weekly-report .issue-table .issue a {
+    color: #6c5fc7;
+  }
+
   .weekly-report .issue-table .issue small a {
-    color: #687276;
+    color: #848296;
   }
 
   .weekly-report .issue-table .issue-meta {
@@ -643,7 +647,7 @@
   .weekly-report .issue-table th.narrow-column {
     text-transform: uppercase;
     font-size: 14px;
-    color: #8794A8;
+    color: #88859a;
     padding-bottom: 15px;
     font-weight: 500;
   }
@@ -676,17 +680,17 @@
     padding-top: 3px;
     font-size: 10px;
     text-align: center;
-    color: #838c99;
+    color: #848296;
   }
 
   .weekly-report .legend .all,
   .weekly-report .issue-graph-bar .all {
-    background-color: #e9e6ec;
+    background-color: #ebe9f7;
   }
 
   .weekly-report .legend .resolved,
   .weekly-report .issue-graph-bar .resolved {
-    background-color: #675f76;
+    background-color: #6C5FC7;
   }
 
   .weekly-report .issues-resolved .issues-resolved-column {
@@ -738,23 +742,31 @@
     margin-bottom: 40px;
   }
 
-  .weekly-report .user-impact {}
-
-  .weekly-report .user-impact-stat {
+  .weekly-report .user-impact-stat table {
     width: 90px;
     height: 90px;
-    vertical-align: middle;
+    margin: 0 18px 0 0;
+  }
+
+  .weekly-report .user-impact-stat td {
+    margin: 0;
+    padding: 0;
+  }
+
+  .weekly-report .user-impact-stat td.count {
     text-align: center;
+    line-height: 1;
     font-size: 32px;
-    color: #675f76;
-    background-size: 90px 90px;
-    background-image: url("{% absolute_asset_url 'sentry' 'images/email/circle-bg.png' %}");
+    vertical-align: middle;
+    color: #6C5FC7;
+    width: 64px;
+    max-width: 64px;
+    overflow: hidden;
   }
 
   .weekly-report .user-impact-text {
     font-size: 18px;
-    padding-left: 12px;
-    padding-right: 15px;
+    font-weight: 500;
   }
 
   @media only screen and (max-device-width: 480px) {
