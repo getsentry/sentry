@@ -2381,7 +2381,6 @@ ul.crumbs {
 
 @media(max-width:767px) {
   .group-detail {
-
     h3 {
       white-space: normal;
       font-size: 20px;
@@ -2425,6 +2424,21 @@ ul.crumbs {
 
     .is-assigned {
       padding-top: 0;
+    }
+  }
+
+  // Event detail columns
+
+  .event-details-container {
+    flex-direction: column;
+
+    .primary {
+      order: 2;
+    }
+
+    .secondary {
+      order: 1;
+      width: auto;
     }
   }
 

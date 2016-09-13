@@ -66,6 +66,93 @@ body.auth {
   width: 100% !important;
 }
 
+/**
+* Project level subheader
+* ============================================================================
+*/
+
+.sub-header {
+  color: @gray-dark;
+  border-bottom: 1px solid @trim;
+  position: relative;
+  padding: 20px 0 0;
+  margin: 0 0 20px;
+  line-height: 1;
+  font-size: 16px;
+
+  .container {
+    .clearfix;
+  }
+
+  .org-name {
+    float: left;
+    font-weight: bold;
+    color: @gray-darker;
+
+    a {
+      color: @gray-darker;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+
+  .project-select {
+    position: relative;
+
+    h3 {
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+
+    .project-selected {
+      background-color: lighten(@blue-light, 30);
+    }
+  }
+
+  .logo-logged-in {
+    position: relative;
+    padding-left: 38px;
+    .icon-sentry-logo {
+      position: absolute;
+      left: 0;
+    }
+  }
+
+  a {
+    color: @gray-darker;
+
+    &:hover, &:active, &:focus {
+      color: @gray-darkest;
+      text-decoration: none;
+    }
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .nav-tabs {
+    position: relative;
+    margin-top: -3px;
+    z-index: 2;
+    margin-bottom: -20px;
+
+    li {
+      position: relative;
+      z-index: 2;
+
+      a {
+        padding-bottom: 13px;
+      }
+    }
+  }
+}
+
 
 /**
 * Content sidebar
@@ -121,7 +208,7 @@ footer {
 .project-actions {
   margin-top: -5px;
   position: relative;
-  z-index: 100;
+  z-index: 50;
 
   a {
     padding-left: 30px;
