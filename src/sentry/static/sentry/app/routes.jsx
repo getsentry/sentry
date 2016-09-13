@@ -1,5 +1,5 @@
 import React from 'react';
-import {Redirect, Route, IndexRoute} from 'react-router';
+import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 
 import HookStore from './stores/hookStore';
 
@@ -117,6 +117,7 @@ function routes() {
         <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
         <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
         <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
+          <IndexRedirect to="settings/" />
           <Route path="settings/" component={errorHandler(TeamSettings)} />
           <Route path="members/" component={errorHandler(TeamMembers)} />
         </Route>
