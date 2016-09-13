@@ -16,13 +16,15 @@ from django.db.models import F
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion import delete_group
 
-logger = logging.getLogger('sentry.group.merge')
+logger = logging.getLogger('sentry.merge')
+delete_logger = logging.getLogger('sentry.deletions.async')
 
 
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
-def merge_group(from_object_id=None, to_object_id=None, **kwargs):
+def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
+                first_pass=True, **kwargs):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus,
@@ -31,13 +33,16 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     )
 
     if not (from_object_id and to_object_id):
-        logger.error('merge_group.malformed.missing_params')
+        logger.error('group.malformed.missing_params', extra={
+            'transaction_id': transaction_id,
+        })
         return
 
     try:
         group = Group.objects.get(id=from_object_id)
     except Group.DoesNotExist:
-        logger.warn('merge_group.malformed.invalid_id', extra={
+        logger.warn('group.malformed.invalid_id', extra={
+            'transaction_id': transaction_id,
             'old_object_id': from_object_id,
         })
         return
@@ -45,7 +50,8 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
     try:
         new_group = Group.objects.get(id=to_object_id)
     except Group.DoesNotExist:
-        logger.warn('merge_group.malformed.invalid_id', extra={
+        logger.warn('group.malformed.invalid_id', extra={
+            'transaction_id': transaction_id,
             'old_object_id': from_object_id,
         })
         return
@@ -56,18 +62,32 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
         GroupRedirect, GroupMeta,
     )
 
-    has_more = merge_objects(model_list, group, new_group, logger=logger)
+    has_more = merge_objects(
+        model_list,
+        group,
+        new_group,
+        logger=logger,
+        first_pass=first_pass,
+        transaction_id=transaction_id,
+    )
 
     if has_more:
         merge_group.delay(
             from_object_id=from_object_id,
             to_object_id=to_object_id,
+            first_pass=False,
+            transaction_id=transaction_id,
         )
         return
 
     previous_group_id = group.id
 
     group.delete()
+    delete_logger.info('object.delete.executed', extra={
+        'object_id': previous_group_id,
+        'transaction_id': transaction_id,
+        'model': Group.__name__,
+    })
 
     try:
         with transaction.atomic():
@@ -96,7 +116,7 @@ def merge_group(from_object_id=None, to_object_id=None, **kwargs):
 @instrumented_task(name='sentry.tasks.merge.rehash_group_events', queue='merge',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
-def rehash_group_events(group_id, **kwargs):
+def rehash_group_events(group_id, transaction_id=None, **kwargs):
     from sentry.models import Group, GroupHash
 
     group = Group.objects.get(id=group_id)
@@ -105,14 +125,20 @@ def rehash_group_events(group_id, **kwargs):
     # This can cause the new groups to be created before we get to them, but
     # its a tradeoff we're willing to take
     GroupHash.objects.filter(group=group).delete()
-
     has_more = _rehash_group_events(group)
 
     if has_more:
         rehash_group_events.delay(
-            group_id=group.id
+            group_id=group.id,
+            transaction_id=transaction_id,
         )
         return
+
+    delete_logger.info('object.delete.bulk_executed', extra={
+        'group_id': group.id,
+        'transaction_id': transaction_id,
+        'model': GroupHash.__name__,
+    })
 
     delete_group.delay(group.id)
 
@@ -163,17 +189,17 @@ def _rehash_group_events(group, limit=100):
 
 
 def merge_objects(models, group, new_group, limit=1000,
-                  logger=None):
+                  logger=None, first_pass=True, transaction_id=None):
     from sentry.models import GroupTagKey, GroupTagValue
 
     has_more = False
+    if first_pass:
+        logger.info('objects.merge.executed', extra={
+            'transaction_id': transaction_id,
+            'new_group_id': new_group.id,
+            'old_group_id': group.id,
+        })
     for model in models:
-        if logger is not None:
-            logger.info('group.merge', extra={
-                'new_group_id': new_group.id,
-                'old_group_id': group.id,
-                'model': model.__name__,
-            })
         all_fields = model._meta.get_all_field_names()
         has_group = 'group' in all_fields
         if has_group:
@@ -220,7 +246,14 @@ def merge_objects(models, group, new_group, limit=1000,
                 except DataError:
                     # it's possible to hit an out of range value for counters
                     pass
+                obj_id = obj.id
                 obj.delete()
+                if logger is not None:
+                    delete_logger.debug('object.delete.executed', extra={
+                        'object_id': obj_id,
+                        'transaction_id': transaction_id,
+                        'model': model.__name__,
+                    })
             has_more = True
 
         if has_more:

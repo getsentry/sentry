@@ -7,6 +7,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
+from uuid import uuid4
 
 from sentry.app import search
 from sentry.api.base import DocSection
@@ -593,6 +594,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 merge_group.delay(
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
+                    transaction_id=uuid4().hex,
                 )
 
             Activity.objects.create(
