@@ -412,10 +412,10 @@ urlpatterns += patterns(
         ProjectQuotasView.as_view(),
         name='sentry-manage-project-quotas'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/new/$',
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
         ProjectRuleEditView.as_view(),
         name='sentry-new-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/(?P<rule_id>\d+)/$',
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/(?P<rule_id>\d+)/$',
         ProjectRuleEditView.as_view(),
         name='sentry-edit-project-rule'),
 
