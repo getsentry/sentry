@@ -641,8 +641,13 @@ class GroupUpdateTest(APITestCase):
         r4 = GroupSeen.objects.filter(group=group4, user=self.user)
         assert not r4.exists()
 
+    @patch('sentry.api.endpoints.project_group_index.uuid4')
     @patch('sentry.api.endpoints.project_group_index.merge_group')
-    def test_merge(self, merge_group):
+    def test_merge(self, merge_group, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
         group1 = self.create_group(checksum='a' * 32, times_seen=1)
         group2 = self.create_group(checksum='b' * 32, times_seen=50)
         group3 = self.create_group(checksum='c' * 32, times_seen=2)
@@ -666,8 +671,16 @@ class GroupUpdateTest(APITestCase):
         ])
 
         assert len(merge_group.mock_calls) == 2
-        merge_group.delay.assert_any_call(from_object_id=group1.id, to_object_id=group2.id)
-        merge_group.delay.assert_any_call(from_object_id=group3.id, to_object_id=group2.id)
+        merge_group.delay.assert_any_call(
+            from_object_id=group1.id,
+            to_object_id=group2.id,
+            transaction_id='abc123',
+        )
+        merge_group.delay.assert_any_call(
+            from_object_id=group3.id,
+            to_object_id=group2.id,
+            transaction_id='abc123',
+        )
 
 
 class GroupDeleteTest(APITestCase):
