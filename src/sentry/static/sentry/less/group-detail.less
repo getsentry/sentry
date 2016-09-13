@@ -2480,11 +2480,19 @@ ul.crumbs {
   .context-summary {
     flex-direction: column;
     margin-top: 0;
+    padding: 0;
 
     .context-item {
       border: 0;
       border-top: 1px solid @trim;
       max-width: 100%;
+      padding-top: 14px;
+      padding-bottom: 14px;
+      min-height: 67px;
+
+      .context-item-icon {
+        top: 9px;
+      }
     }
   }
 
