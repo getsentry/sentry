@@ -114,9 +114,13 @@ class PluginSettings extends React.Component {
         data: this.state.formData,
         method: 'PUT',
         success: (data) => {
+          let formData = {};
+          data.config.forEach((field) => {
+            formData[field.name] = field.value || field.defaultValue;
+          });
           this.setState({
-            formData: data,
-            initialData: Object.assign({}, data),
+            formData: formData,
+            initialData: Object.assign({}, formData),
             state: FormState.READY,
             errors: {},
           });
