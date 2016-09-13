@@ -23,8 +23,7 @@ delete_logger = logging.getLogger('sentry.deletions.async')
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
-def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
-                first_pass=True, **kwargs):
+def merge_group(from_object_id=None, to_object_id=None, transaction_id=None, **kwargs):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus,
@@ -56,6 +55,12 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
         })
         return
 
+    logger.info('merge.queued', extra={
+        'transaction_id': transaction_id,
+        'new_group_id': new_group.id,
+        'old_group_id': group.id,
+    })
+
     model_list = (
         Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription,
         GroupTagValue, GroupTagKey, EventMapping, Event, UserReport,
@@ -67,7 +72,6 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
         group,
         new_group,
         logger=logger,
-        first_pass=first_pass,
         transaction_id=transaction_id,
     )
 
@@ -75,7 +79,6 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
         merge_group.delay(
             from_object_id=from_object_id,
             to_object_id=to_object_id,
-            first_pass=False,
             transaction_id=transaction_id,
         )
         return
@@ -189,16 +192,10 @@ def _rehash_group_events(group, limit=100):
 
 
 def merge_objects(models, group, new_group, limit=1000,
-                  logger=None, first_pass=True, transaction_id=None):
+                  logger=None, transaction_id=None):
     from sentry.models import GroupTagKey, GroupTagValue
 
     has_more = False
-    if first_pass:
-        logger.info('objects.merge.executed', extra={
-            'transaction_id': transaction_id,
-            'new_group_id': new_group.id,
-            'old_group_id': group.id,
-        })
     for model in models:
         all_fields = model._meta.get_all_field_names()
         has_group = 'group' in all_fields
