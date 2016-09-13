@@ -193,19 +193,16 @@ const Sidebar = React.createClass({
               <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
                 <a>
                   <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
-                  <span className="activity-indicator" />
                 </a>
               </li>
               <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
                 <a>
                   <span className="icon icon-star-solid" onClick={()=>this.togglePanel('bookmarks')} />
-                  <span className="activity-indicator" />
                 </a>
               </li>
               <li className={this.state.currentPanel == 'history' ? 'active' : null }>
                 <a>
                   <span className="icon icon-av_timer" onClick={()=>this.togglePanel('history')} />
-                  <span className="activity-indicator" />
                 </a>
               </li>
             </ul>
