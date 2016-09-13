@@ -8,15 +8,23 @@ import pytest
 import pytz
 from django.core import mail
 
+from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
     DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change,
-    check_project_validity, clean_series, deliver_organization_user_report,
+    clean_series, deliver_organization_user_report,
+    has_received_first_event, has_valid_aggregates,
     merge_mappings, merge_sequences, merge_series, prepare_reports, safe_add,
     user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp
+
+
+@pytest.yield_fixture(scope="module")
+def interval():
+    stop = datetime(2016, 9, 12, tzinfo=pytz.utc)
+    yield stop - timedelta(days=7), stop
 
 
 def test_change():
@@ -158,26 +166,45 @@ def test_clean_series_rejects_offset_timestamp():
         )
 
 
-def test_check_project_validity():
-    timestamp = to_timestamp(datetime(2016, 9, 12, tzinfo=pytz.utc))
-    duration = 7 * 24 * 60 * 60
+def test_has_received_first_event(interval):
+    _, stop = interval
+    report = None  # parameter is unused
 
-    assert check_project_validity(
-        timestamp,
-        duration,
-        Project(first_event=None),
+    assert has_received_first_event(
+        interval,
+        (Project(first_event=None), report),
     ) is False
 
-    assert check_project_validity(
-        timestamp,
-        duration,
-        Project(first_event=to_datetime(timestamp + 1)),
+    assert has_received_first_event(
+        interval,
+        (Project(first_event=stop), None),
     ) is False
 
-    assert check_project_validity(
-        timestamp,
-        duration,
-        Project(first_event=to_datetime(timestamp)),
+    assert has_received_first_event(
+        interval,
+        (Project(first_event=stop - timedelta(seconds=1)), report),
+    ) is True
+
+
+def test_has_valid_aggregates(interval):
+    project = None  # parameter is unused
+
+    def make_report(aggregates):
+        return None, aggregates, None, None
+
+    assert has_valid_aggregates(
+        interval,
+        (project, make_report([None] * 4)),
+    ) is False
+
+    assert has_valid_aggregates(
+        interval,
+        (project, make_report([0] * 4)),
+    ) is False
+
+    assert has_valid_aggregates(
+        interval,
+        (project, make_report([1, 0, 0, 0])),
     ) is True
 
 
@@ -197,6 +224,12 @@ class ReportTestCase(TestCase):
             organization=self.organization,
             team=self.team,
             first_event=now - timedelta(days=1),
+        )
+
+        tsdb.incr(
+            tsdb.models.project,
+            project.id,
+            now - timedelta(days=1),
         )
 
         member_set = set(project.team.member_set.all())
