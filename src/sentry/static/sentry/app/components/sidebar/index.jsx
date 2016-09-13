@@ -12,7 +12,6 @@ import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
-import SidebarPanelItem from '../sidebarPanelItem';
 import TodoList from '../todos';
 import IssueList from '../issueList';
 import {t} from '../../locale';
@@ -217,7 +216,7 @@ const Sidebar = React.createClass({
                       status: 'unresolved',
                     }}
                     pagination={false}
-                    renderEmpty={() => <SidebarPanelItem key="none" message={t('No issues have been assigned to you.')}/>}
+                    renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues have been assigned to you.')}</div>}
                     ref="issueList"
                     showActions={false}
                     params={{orgId:this.props.orgId}} />
@@ -234,7 +233,7 @@ const Sidebar = React.createClass({
                       status: 'unresolved',
                     }}
                     pagination={false}
-                    renderEmpty={() => <SidebarPanelItem key="no" message={t('You have no bookmarked issues.')}/>}
+                    renderEmpty={() => <div className="sidebar-panel-empty" key="no">{t('You have no bookmarked issues.')}</div>}
                     ref="issueList"
                     showActions={false}
                     params={{orgId:this.props.orgId}} />
@@ -251,7 +250,7 @@ const Sidebar = React.createClass({
                       status: 'unresolved',
                     }}
                     pagination={false}
-                    renderEmpty={() => <SidebarPanelItem key="none" message={t('No recently viewed issues.')}/>}
+                    renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No recently viewed issues.')}</div>}
                     ref="issueList"
                     showActions={false}
                     params={{orgId:this.props.orgId}} />
