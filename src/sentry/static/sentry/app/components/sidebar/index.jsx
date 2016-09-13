@@ -135,6 +135,13 @@ const Sidebar = React.createClass({
     });
   },
 
+  togglePanel(panel) {
+    if (this.state.currentPanel)
+      this.hidePanel();
+    else
+      this.showPanel(panel);
+  },
+
   render() {
     let user = ConfigStore.get('user');
     let org = this.getOrganization();
@@ -174,19 +181,19 @@ const Sidebar = React.createClass({
             <ul className="navbar-nav divider-bottom">
               <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
                 <a>
-                  <span className="icon icon-user" onClick={()=>this.showPanel('assigned')} />
+                  <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
                   <span className="activity-indicator" />
                 </a>
               </li>
               <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
                 <a>
-                  <span className="icon icon-star-solid" onClick={()=>this.showPanel('bookmarks')} />
+                  <span className="icon icon-star-solid" onClick={()=>this.togglePanel('bookmarks')} />
                   <span className="activity-indicator" />
                 </a>
               </li>
               <li className={this.state.currentPanel == 'history' ? 'active' : null }>
                 <a>
-                  <span className="icon icon-av_timer" onClick={()=>this.showPanel('history')} />
+                  <span className="icon icon-av_timer" onClick={()=>this.togglePanel('history')} />
                   <span className="activity-indicator" />
                 </a>
               </li>
@@ -284,16 +291,16 @@ const Sidebar = React.createClass({
                   org={org}
                   showPanel={this.state.showPanel}
                   currentPanel={this.state.currentPanel}
-                  onShowPanel={()=>this.showPanel('todos')}
+                  onShowPanel={()=>this.togglePanel('todos')}
                   hidePanel={()=>this.hidePanel()} />
               }
               <Broadcasts
                 showPanel={this.state.showPanel}
                 currentPanel={this.state.currentPanel}
-                onShowPanel={()=>this.showPanel('broadcasts')}
+                onShowPanel={()=>this.togglePanel('broadcasts')}
                 hidePanel={()=>this.hidePanel()} />
               <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
-                <a onClick={()=>this.showPanel('statusupdate')} ><span className="icon icon-alert" /></a>
+                <a onClick={()=>this.togglePanel('statusupdate')} ><span className="icon icon-alert" /></a>
               </li>
               <li>
                 <UserNav className="user-settings" />
