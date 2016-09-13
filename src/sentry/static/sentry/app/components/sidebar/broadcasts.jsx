@@ -8,6 +8,10 @@ import SidebarPanel from '../sidebarPanel';
 import SidebarPanelItem from '../sidebarPanelItem';
 
 const Broadcasts = React.createClass({
+  propTypes: {
+    onShowPanel: React.PropTypes.func.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],
@@ -100,6 +104,11 @@ const Broadcasts = React.createClass({
     });
   },
 
+  onShowPanel() {
+    this.markSeen();
+    this.props.onShowPanel();
+  },
+
   render() {
     let {broadcasts, loading} = this.state;
     let unseenCount = broadcasts.filter((item) => {
@@ -109,9 +118,11 @@ const Broadcasts = React.createClass({
     let title = <span className="icon-globe" />;
     return (
       <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
-        <a className="broadcasts-toggle" onClick={this.props.onShowPanel}>
+        <a className="broadcasts-toggle" onClick={this.onShowPanel}>
           <span className="icon icon-globe"/>
-          <span className="activity-indicator" />
+          {broadcasts.length > 0 &&
+            <span className="activity-indicator"/>
+          }
         </a>
         {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&
           <SidebarPanel title={t('Recent updates from Sentry')}
