@@ -2384,7 +2384,14 @@ ul.crumbs {
     h3 {
       white-space: normal;
       font-size: 20px;
-      line-height: 1.1;
+      line-height: 1.2;
+    }
+
+    .event-message, .event-meta {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      margin-bottom: 15px;
     }
 
     .meta {
@@ -2402,28 +2409,12 @@ ul.crumbs {
       }
     }
 
-    .assigned-to, .is-assigned {
-      text-align: left;
-    }
-
-    .count {
-      font-size: 18px;
-      text-align: left;
-    }
-
-    .stats {
-      margin: 15px 0;
-
-      .row {
-        border: 1px solid #E9EBEC;
-        border-radius: 4px;
-        margin: 0;
-        padding: 10px 5px;
-      }
-    }
-
     .is-assigned {
       padding-top: 0;
+    }
+
+    .seen-by {
+      display: none;
     }
   }
 
@@ -2431,14 +2422,56 @@ ul.crumbs {
 
   .event-details-container {
     flex-direction: column;
+    margin: 0;
 
     .primary {
       order: 2;
+
+      .box {
+        padding: 15px 0;
+
+        .box-header {
+          h3 {
+            margin: 0 0 10px;
+
+            small {
+              margin-left: 0 !important;
+              display: block;
+            }
+          }
+
+          .permalink {
+            display: none;
+          }
+        }
+      }
+
+      .user-report {
+        padding: 15px 0;
+      }
+
+      .exception {
+        margin: 0;
+        padding: 15px 0;
+      }
+
+      .traceback {
+        &.no-exception {
+          margin: 0;
+        }
+
+        .btn-toggle {
+          width: 17px;
+        }
+      }
     }
 
     .secondary {
       order: 1;
       width: auto;
+      padding: 0;
+      border: 0;
+      margin-bottom: 20px;
     }
   }
 
