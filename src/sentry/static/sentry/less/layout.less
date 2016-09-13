@@ -298,8 +298,12 @@ footer {
 
 
 @media(max-width:767px) {
-  body {
+
+  .app {
     overflow-x: hidden;
+  }
+
+  body {
     zoom: .85;
   }
 
@@ -312,6 +316,8 @@ footer {
   }
 
   .sub-header {
+    padding-top: 15px;
+
     h3 {
       margin: 0;
     }
@@ -319,14 +325,26 @@ footer {
     .pull-right {
       display: none;
     }
+  }
 
-    .nav-tabs {
-      > li {
-        text-transform: capitalize;
-        margin-right: 11px;
+  .nav-tabs {
+    > li {
+      text-transform: capitalize;
+      margin-right: 11px;
 
-        a {
-          font-size: 14px;
+      &:last-child {
+        margin: 0;
+      }
+
+      a {
+        font-size: 14px;
+        margin-right: 0;
+
+        .badge {
+          padding: 0;
+          min-width: 15px;
+          height: 15px;
+          line-height: 17px;
         }
       }
     }
