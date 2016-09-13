@@ -53,7 +53,7 @@ const RuleRow = React.createClass({
 
   render() {
     let {orgId, projectId, data} = this.props;
-    let editLink = `/${orgId}/${projectId}/settings/alerts/${data.id}/`;
+    let editLink = `/${orgId}/${projectId}/settings/alerts/rules/${data.id}/`;
     return (
       <div className="box">
         <div className="box-header">
