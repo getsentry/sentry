@@ -36,8 +36,6 @@ class AccountNotificationView(BaseView):
     @method_decorator(sudo_required)
     @method_decorator(transaction.atomic)
     def handle(self, request):
-        # emails = list(itertools.chain(request.user.emails.all(), request.user.secondary_emails.all()))
-        # verified_emails = list(itertools.chain(request.user.emails.filter(is_verified=True), request.user.secondary_emails.filter(is_verified=True)))
         settings_form = self.notification_settings_form(
             request.user, request.POST or None)
         reports_form = NotificationReportSettingsForm(
