@@ -380,85 +380,6 @@
   color: @yellow-orange;
 }
 
-.sub-header {
-  color: @gray-dark;
-  border-bottom: 1px solid @trim;
-  position: relative;
-  padding: 20px 0 0;
-  margin: 0 0 20px;
-  line-height: 1;
-  font-size: 16px;
-  .clearfix;
-
-  .org-name {
-    float: left;
-    font-weight: bold;
-    color: @gray-darker;
-
-    a {
-      color: @gray-darker;
-
-      &:hover {
-        color: @gray-darkest;
-      }
-    }
-  }
-
-  .project-select {
-    position: relative;
-
-    h3 {
-      font-size: 20px;
-      margin-bottom: 14px;
-    }
-
-    .project-selected {
-      background-color: lighten(@blue-light, 30);
-    }
-  }
-
-  .logo-logged-in {
-    position: relative;
-    padding-left: 38px;
-    .icon-sentry-logo {
-      position: absolute;
-      left: 0;
-    }
-  }
-
-  a {
-    color: @gray-darker;
-
-    &:hover, &:active, &:focus {
-      color: @gray-darkest;
-      text-decoration: none;
-    }
-  }
-
-  h1 {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.5;
-    margin: 0;
-  }
-
-  .nav-tabs {
-    position: relative;
-    margin-top: -3px;
-    z-index: 2;
-    margin-bottom: -20px;
-
-    li {
-      position: relative;
-      z-index: 2;
-
-      a {
-        padding-bottom: 13px;
-      }
-    }
-  }
-}
-
 .sidebar-panel {
   position: fixed;
   width: @sidebar-panel-width;
@@ -631,6 +552,8 @@
 */
 
 @media(max-width:400px) {
+  @sidebar-panel-offset: 54px;
+
   body {
     padding-left: 0;
   }
@@ -639,7 +562,7 @@
     flex-direction: row;
     position: static;
     width: 100%;
-    max-height: 54px;
+    max-height: @sidebar-panel-offset;
     padding-top: 10px;
     padding-bottom: 10px;
 
@@ -649,6 +572,18 @@
 
       > li {
         margin: 0 5px 0 0;
+
+        &.active:before {
+          top: auto;
+          right: auto;
+          bottom: -11px;
+          left: 50%;
+          margin-left: -6px;
+          border-bottom: 7px solid #F7F8F9;
+          border-right: 7px solid transparent;
+          border-left: 7px solid transparent;
+          border-top: 7px solid transparent;
+        }
       }
     }
 
@@ -677,6 +612,13 @@
         }
       }
     }
+  }
+
+  .sidebar-panel {
+    width: auto;
+    top: @sidebar-panel-offset;
+    left: 0;
+    right: 0;
   }
 }
 
