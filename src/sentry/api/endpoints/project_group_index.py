@@ -586,6 +586,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if result.get('merge') and len(group_list) > 1:
             primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
             children = []
+            transaction_id = uuid4().hex
             for group in group_list:
                 if group == primary_group:
                     continue
@@ -594,7 +595,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 merge_group.delay(
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
-                    transaction_id=uuid4().hex,
+                    transaction_id=transaction_id,
                 )
 
             Activity.objects.create(
