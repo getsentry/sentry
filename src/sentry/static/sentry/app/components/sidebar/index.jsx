@@ -106,10 +106,20 @@ const Sidebar = React.createClass({
 
   componentDidMount() {
     $(window).on('hashchange', this.hashChangeHandler);
+    $(document).on('click', this.documentClickHandler);
   },
 
   componentWillUnmount() {
     $(window).off('hashchange', this.hashChangeHandler);
+    $(document).off('click', this.documentClickHandler);
+  },
+
+  documentClickHandler(evt) {
+    // If click occurs outside of sidebar, close any
+    // active panel
+    if (!this.refs.navbar.contains(evt.target)) {
+      this.hidePanel();
+    }
   },
 
   hashChangeHandler() {
@@ -169,7 +179,7 @@ const Sidebar = React.createClass({
 
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
-      <nav className="navbar" role="navigation">
+      <nav className="navbar" role="navigation" ref="navbar">
           <div className="anchor-top">
             {org &&
               <OrganizationSelector
