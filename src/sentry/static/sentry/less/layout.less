@@ -296,25 +296,24 @@ footer {
 * ============================================================================
 */
 
-@media(max-width:400px) {
-  .project-select {
-    display: none !important;
-  }
-  .sub-header .pull-right {
-    float: left !important;
-
-    li {
-      margin: 0 15px 0 0px;
-      &:last-child {
-        margin: 0;
-      }
-    }
-  }
-}
 
 @media(max-width:767px) {
   body {
     overflow-x: hidden;
     zoom: .85;
+  }
+  
+  .container {
+    padding: 0 14px;
+  }
+
+  .project-select {
+
+  }
+
+  .sub-header {
+    .pull-right {
+      display: none;
+    }
   }
 }
