@@ -136,7 +136,7 @@ const Sidebar = React.createClass({
   },
 
   togglePanel(panel) {
-    if (this.state.currentPanel)
+    if (this.state.currentPanel === panel)
       this.hidePanel();
     else
       this.showPanel(panel);
