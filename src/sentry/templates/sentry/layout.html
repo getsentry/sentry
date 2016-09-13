@@ -141,7 +141,7 @@
     </header>
     {% endblock %}
 
-    {% if organization and request.user.is_authenticated %}
+    {% if organization and ACCESS.org_read %}
     {% block sub-header %}
     <div class="sub-header">
       <div class="container">
