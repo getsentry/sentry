@@ -43,9 +43,7 @@ _java_enhancer_re = re.compile(r'''
 #  file:///var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
 # Electron:
 #   file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js
-_js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app|CodePush)\/')
-
-_js_electron_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app/Contents/Resources/app(\.asar)?/|/resources/app(\.asar)?/)\/')
+_js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app|CodePush|\.app/Contents/Resources/app(\.asar)?/|/resources/app(\.asar)?/)\/')
 
 
 def trim_package(pkg):
@@ -229,10 +227,7 @@ def handle_nan(value):
 
 def strip_js_native_components(value):
     # we maintain the leading prefix for compat
-    # order matters here
-    value = _js_electron_re.sub('/', value)
-    value = _js_native_path_re.sub('/', value)
-    return value
+    return _js_native_path_re.sub('/', value)
 
 
 class Frame(Interface):
