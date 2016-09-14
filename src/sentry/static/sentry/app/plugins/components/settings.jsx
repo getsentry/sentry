@@ -171,6 +171,13 @@ class PluginSettings extends React.Component {
     let hasChanges = !underscore.isEqual(this.state.initialData, this.state.formData);
     return (
       <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
+        {this.state.errors.__all__ &&
+          <div className="alert alert-block alert-error">
+            <ul>
+              <li>{this.state.errors.__all__}</li>
+            </ul>
+          </div>
+        }
         {this.state.fieldList.map(f => this.renderField(f))}
       </Form>
     );
