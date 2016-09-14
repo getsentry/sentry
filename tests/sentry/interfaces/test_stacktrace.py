@@ -111,13 +111,37 @@ class StacktraceTest(TestCase):
         frame = interface.frames[0]
         assert frame.filename == '/main.jsbundle'
 
-    def test_normalizes_electron_filename(self):
+    def test_normalizes_electron_mac_asar_filename(self):
         interface = Stacktrace.to_python(dict(frames=[{
             'lineno': 1,
             'filename': 'file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js',
         }]))
         frame = interface.frames[0]
         assert frame.filename == '/Contents/app.asar/file1.js'
+
+    def test_normalizes_electron_mac_filename(self):
+        interface = Stacktrace.to_python(dict(frames=[{
+            'lineno': 1,
+            'filename': 'file:///x/yy/zzz/Electron.app/Contents/app/file1.js',
+        }]))
+        frame = interface.frames[0]
+        assert frame.filename == '/file1.js'
+
+    def test_normalizes_electron_windows_filename(self):
+        interface = Stacktrace.to_python(dict(frames=[{
+            'lineno': 1,
+            'filename': 'file:///x/yy/zzz/Electron/resources/app/file1.js',
+        }]))
+        frame = interface.frames[0]
+        assert frame.filename == '/file1.js'
+
+    def test_normalizes_electron_windows_asar_filename(self):
+        interface = Stacktrace.to_python(dict(frames=[{
+            'lineno': 1,
+            'filename': 'file:///x/yy/zzz/Electron/resources/app.asar/file1.js',
+        }]))
+        frame = interface.frames[0]
+        assert frame.filename == '/file1.js'
 
     def test_serialize_returns_frames(self):
         interface = Stacktrace.to_python(dict(frames=[{
