@@ -480,13 +480,15 @@ Duration = namedtuple(
     'Duration', (
         'adjective',    # e.g. "daily" or "weekly",
         'noun',         # relative to today, e.g. "yesterday" or "this week"
-        'date_format',  # date format used for series x axis labeling
+        'date_format',  # date format used for large series x axis labeling
+        'short_date_format',  # date format used for small series x axis labeling
     ))
 
 durations = {
     (60 * 60 * 24 * 7): Duration(
         'weekly',
         'this week',
+        'l',
         'D',
     ),
 }
@@ -623,6 +625,57 @@ Point = namedtuple('Point', 'resolved unresolved')
 DistributionType = namedtuple('DistributionType', 'label color')
 
 
+def series_map(function, series):
+    return [(timestamp, function(value)) for timestamp, value in series]
+
+
+SeriesKey = namedtuple('SeriesKey', 'instance color')
+
+
+def build_project_breakdown_series(reports):
+    totals = []
+    for project, report in reports.items():
+        totals.append((sum(sum(point) for timestamp, point in report[0]), project))
+
+    ordering = map(operator.itemgetter(1), sorted(totals))
+
+    # TODO: This artificially limits the number of items in the graph to the
+    # number of available colors -- we should probably roll up all of the
+    # smaller projects (ordinal 10 and up?) into an "Other" header?
+    colors = [
+        '#696dc3',
+        '#6288ba',
+        '#59aca4',
+        '#99d59a',
+        '#daeca9',
+    ][::-1]
+
+    keys = map(
+        lambda value: SeriesKey(*value),
+        zip(ordering, colors),
+    )
+
+    series = series_map(
+        lambda values: zip(keys, values),
+        reduce(
+            merge_series,
+            [
+                series_map(
+                    lambda values: [sum(values)],
+                    reports[project][0]
+                )
+                for project in ordering
+            ]
+        )
+    )
+
+    return {
+        'points': [(to_datetime(timestamp), value) for timestamp, value in series],
+        'maximum': max(sum(count for project, count in value) for timestamp, value in series),
+        'legend': reversed(keys),
+    }
+
+
 def to_context(reports):
     series, aggregates, issue_summaries, release_list = reduce(
         merge_reports,
@@ -657,4 +710,7 @@ def to_context(reports):
                 mean(aggregates) if all(v is not None for v in aggregates) else None,
             )),
         ],
+        'projects': {
+            'series': build_project_breakdown_series(reports),
+        },
     }

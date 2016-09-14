@@ -383,7 +383,7 @@ def report(request):
     )
 
     projects = []
-    for i in xrange(0, random.randint(1, 3)):
+    for i in xrange(0, random.randint(1, 8)):
         projects.append(
             Project(
                 id=i,

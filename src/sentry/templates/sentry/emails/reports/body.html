@@ -67,7 +67,7 @@
           </tr>
           <tr class="labels">
             {% for timestamp, metrics in report.series.points %}
-              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format }}</td>
+              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.short_date_format }}</td>
             {% endfor %}
           </tr>
         </table>
@@ -121,6 +121,104 @@
     </tr>
   </table>
   {% endwith %}
+
+  <style type="text/css">
+
+    .project-breakdown .graph {
+      /* I have no idea if this will actually work! */
+      border-spacing: 10px;
+      border-collapse: separate;
+      margin: 0 -10px;
+      width: 620px;
+    }
+
+    .project-breakdown .graph .label {
+      font-size: 14px;
+      color: #848296;
+      text-align: center;
+      padding-top: 10px;
+    }
+
+    .project-breakdown .summary td {
+      vertical-align: top;
+    }
+
+    .project-breakdown .summary > tr > td {
+      padding-bottom: 10px;
+      line-height: 20px;
+    }
+
+    .project-breakdown .summary .details td {
+      font-size: 14px;
+    }
+
+  </style>
+
+  <div class="project-breakdown">
+
+    {% with series=report.projects.series height=110 %}
+
+    <h4>Project Breakdown</h4>
+
+    <table class="graph">
+      <tr>
+        {% for timestamp, values in series.points %}
+        <td valign="bottom" class="bar" style="width: {% widthratio 1 series.points|length 100 %}%">
+            <table>
+              {% for key, count in values %}
+                <tr>
+                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                </tr>
+              {% endfor %}
+              <tr>
+                <td class="label">
+                  {{ timestamp|date:duration.date_format }}
+                </tr>
+              </td>
+            </table>
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+
+    <table class="summary">
+      {% for key in series.legend %}
+        <tr>
+          <td width="5%">
+            <span style="background-color: {{ key.color }}; display: inline-block; width: 1em;">&nbsp;</span>
+          </td>
+          <td width="20%">
+            <div style="line-height: 24px;">2.4b events</div>
+            <div style="font-size: 12px; color: #838c99;">
+            3.4m filtered<br />
+            1.2k dropped
+            </div>
+          </td>
+          <td>
+            <div style="line-height: 24px;">
+              <a href="#" style="font-weight: bold;">{{ key.instance.name }}</a>
+            </div>
+            <table class="details">
+              <tr>
+                <td>
+                  1.3k new issues<br />
+                  300 reopened issues<br />
+                  15 resolved issues
+                </td>
+                <td>
+                  12 new releases<br />
+                  20 releases active<br />
+                </td>
+              </tr>
+            </table>
+          </div>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+    {% endwith %}
+
+  </div>
 
   {% if personal.resolved and personal.users %}
     <h4>Your impact</h4>
