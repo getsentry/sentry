@@ -4,17 +4,12 @@ import underscore from 'underscore';
 import {
   Form,
   FormState,
-  PasswordField,
-  Select2Field,
-  Select2FieldAutocomplete,
-  TextField,
-  TextareaField,
+  GenericField
 } from '../../components/forms';
 import {Client} from '../../api';
 import IndicatorStore from '../../stores/indicatorStore';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t} from '../../locale';
-import {defined} from '../../utils';
 
 
 class PluginSettings extends React.Component {
@@ -60,46 +55,6 @@ class PluginSettings extends React.Component {
     let errors = this.state.errors;
     delete errors[name];
     this.setState({formData: formData, errors: errors});
-  }
-
-  renderField(field) {
-    let el;
-    let required = defined(field.required) ? field.required : true;
-    let props = {
-      value: this.state.formData[field.name],
-      onChange: this.changeField.bind(this, field.name),
-      label: field.label + (required ? '*' : ''),
-      placeholder: field.placeholder,
-      name: field.name,
-      error: this.state.errors[field.name],
-      disabled: field.readonly,
-      key: field.name,
-      help: <span dangerouslySetInnerHTML={{__html: field.help}}/>
-    };
-
-    switch (field.type) {
-      case 'secret':
-        el = <PasswordField {...props} />;
-        break;
-      case 'text':
-      case 'url':
-        el = <TextField {...props} />;
-        break;
-      case 'textarea':
-        el = <TextareaField {...props} />;
-        break;
-      case 'select':
-        if (field.has_autocomplete) {
-          el = <Select2FieldAutocomplete {...props} />;
-        } else {
-          props.choices = field.choices;
-          el = <Select2Field {...props} />;
-        }
-        break;
-      default:
-        el = null;
-    }
-    return el;
   }
 
   onSubmit() {
@@ -178,7 +133,15 @@ class PluginSettings extends React.Component {
             </ul>
           </div>
         }
-        {this.state.fieldList.map(f => this.renderField(f))}
+        {this.state.fieldList.map(f => {
+          return (
+            <GenericField
+              config={f}
+              formData={this.state.formData}
+              formErrors={this.state.errors}
+              onChange={this.changeField.bind(this, f.name)} />
+          );
+        })}
       </Form>
     );
   }
