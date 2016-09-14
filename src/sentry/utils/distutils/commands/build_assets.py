@@ -8,7 +8,6 @@ import sys
 import traceback
 
 from distutils import log
-from subprocess import check_output
 
 from .base import BaseBuildCommand
 
@@ -128,12 +127,11 @@ class BuildAssetsCommand(BaseBuildCommand):
         # By setting NODE_ENV=production, a few things happen
         #   * React optimizes out certain code paths
         #   * Webpack will add version strings to built/referenced assets
-        log.info('running [webpack]')
         env = dict(os.environ)
         env['SENTRY_STATIC_DIST_PATH'] = self.sentry_static_dist_path
         env['NODE_ENV'] = 'production'
-        check_output(['node_modules/.bin/webpack', '-p', '--bail'],
-                     cwd=self.work_path, env=env)
+        self._run_command(['node_modules/.bin/webpack', '-p', '--bail'],
+                          env=env)
 
     def _write_version_file(self, version_info):
         manifest = {
