@@ -15,6 +15,7 @@ Schema Changes
 - Removed ``HelpPage`` model.
 - Added ``OrganizationMember.token`` column.
 - Removed ``OrganizationMember.counter`` column.
+
 Version 8.7
 -----------
 
