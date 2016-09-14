@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django import forms
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
@@ -157,13 +159,11 @@ class ErrorPageEmbedView(View):
         context = {
             'endpoint': mark_safe('*/' + json.dumps(request.build_absolute_uri()) + ';/*'),
             'template': mark_safe('*/' + json.dumps(template) + ';/*'),
-            'errors': {
-                'generic': GENERIC_ERROR,
-                'form': FORM_ERROR
-            },
-            'messages': {
-                'sent': SENT_MESSAGE
-            }
+            'strings': json.dumps_htmlsafe({
+                'generic_error': six.text_type(GENERIC_ERROR),
+                'form_error': six.text_type(FORM_ERROR),
+                'sent_message': six.text_type(SENT_MESSAGE),
+            }),
         }
 
         return render_to_response('sentry/error-page-embed.js', context, request,
