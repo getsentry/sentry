@@ -568,6 +568,12 @@ def user_subscribed_to_organization_reports(user, organization):
 class Skipped(object):
     NotSubscribed = object()
     NoProjects = object()
+    NoReports = object()
+
+
+def has_valid_aggregates(interval, (project, report)):
+    _, aggregates, _, _ = report
+    return any(bool(value) for value in aggregates)
 
 
 @instrumented_task(
@@ -587,9 +593,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     projects = set()
     for team in Team.objects.get_for_user(organization, user):
-        projects.update(
-            Project.objects.get_for_user(team, user, _skip_team_check=True),
-        )
+        projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
 
     if not projects:
         logger.debug(
@@ -599,6 +603,36 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         )
         return Skipped.NoProjects
 
+    interval = _to_interval(timestamp, duration)
+    projects = list(projects)
+
+    inclusion_predicates = [
+        has_valid_aggregates,
+    ]
+
+    reports = [
+        report for project, report in
+        filter(
+            lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
+            zip(
+                projects,
+                backend.fetch(  # TODO: This should handle missing data gracefully, maybe?
+                    timestamp,
+                    duration,
+                    organization,
+                    projects,
+                ),
+            )
+        )
+    ]
+
+    if not reports:
+        logger.debug('Skipping report for %r to %r, no qualifying reports to deliver.',
+            organization,
+            user,
+        )
+        return Skipped.NoReports
+
     message = build_message(
         timestamp,
         duration,
@@ -606,12 +640,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         user,
         reduce(
             merge_reports,
-            backend.fetch(  # TODO: This should handle missing data gracefully, maybe?
-                timestamp,
-                duration,
-                organization,
-                projects,
-            ),
+            reports,
         )
     )
 
