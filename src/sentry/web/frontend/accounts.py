@@ -20,7 +20,7 @@ from django.utils.translation import ugettext as _
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, Project, UserOption, Authenticator, SecondaryUserEmail
+    UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
 from sentry.signals import email_verified
 from sentry.web.decorators import login_required, signed_auth_required
@@ -314,19 +314,18 @@ def list_identities(request):
 @login_required
 def show_emails(request):
     user = request.user
-    alt_emails = user.secondary_emails.all()
-
-    primary_email = user.emails.first()
+    primary_email = user.email
+    alt_emails = user.emails.all().exclude(email=primary_email)
 
     email_form = EmailForm(user, request.POST or None,
         initial={
-            'primary_email': user.email,
+            'primary_email': primary_email,
         },
     )
 
     if 'remove' in request.POST:
         email = request.POST.get('email')
-        del_email = SecondaryUserEmail.objects.filter(user=user, email=email)
+        del_email = UserEmail.objects.filter(user=user, email=email)
         del_email.delete()
         return HttpResponseRedirect(request.path)
 
@@ -355,11 +354,11 @@ def show_emails(request):
             user.send_confirm_emails()
         alternative_email = email_form.cleaned_data['alt_email']
         # check if this alternative email already exists for user
-        if alternative_email and not SecondaryUserEmail.objects.filter(user=user, email=alternative_email):
+        if alternative_email and not UserEmail.objects.filter(user=user, email=alternative_email):
             # create alternative email for user
             try:
                 with transaction.atomic():
-                    new_email = SecondaryUserEmail.objects.create(
+                    new_email = UserEmail.objects.create(
                         user=user,
                         email=alternative_email
                     )

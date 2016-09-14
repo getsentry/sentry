@@ -10,8 +10,6 @@ from __future__ import absolute_import
 import logging
 import warnings
 
-from itertools import chain
-
 from django.contrib.auth.models import AbstractBaseUser, UserManager
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
@@ -98,11 +96,11 @@ class User(BaseModel, AbstractBaseUser):
         return self.is_superuser
 
     def get_unverified_emails(self):
-        unverified_emails = list(chain(self.emails.filter(is_verified=False), self.secondary_emails.filter(is_verified=False)))
+        unverified_emails = self.emails.filter(is_verified=False)
         return unverified_emails
 
     def get_verified_emails(self):
-        verified_emails = list(chain(self.emails.filter(is_verified=True), self.secondary_emails.filter(is_verified=True)))
+        verified_emails = self.emails.filter(is_verified=True)
         return verified_emails
 
     def has_unverified_emails(self):
@@ -131,7 +129,7 @@ class User(BaseModel, AbstractBaseUser):
         from sentry import options
         from sentry.utils.email import MessageBuilder
 
-        email_list = list(chain(self.emails.filter(is_verified=False), self.secondary_emails.filter(is_verified=False)))
+        email_list = self.get_unverified_emails()
         for email in email_list:
             if not email.hash_is_valid():
                 email.set_hash()
