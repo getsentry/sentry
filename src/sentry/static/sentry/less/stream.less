@@ -1249,6 +1249,31 @@
     display: none;
   }
 
+  .stream-actions {
+    padding-right: 0;
+  }
+
+  .sticky .stream-actions {
+    padding-right: 30px;
+  }
+
+  .stream-actions .stream-actions-left, .group .event-details {
+    padding-left: 36px;
+    .checkbox {
+      left: 33px;
+    }
+  }
+
+  .group-list .group {
+    padding-right: 0;
+
+    h3 .error-level {
+      text-align: left;
+      text-indent: -9999em;
+      width: 30px;
+    }
+  }
+
   .awaiting-events {
     padding: 25px 20px 0px;
 
@@ -1264,6 +1289,12 @@
       margin: 0 auto;
       width: 110px;
       height: 130px;
+
+      .eye {
+        .square(6px);
+        top: 34px;
+        left: 40px;
+      }
     }
   }
 }
