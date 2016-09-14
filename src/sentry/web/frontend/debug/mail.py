@@ -382,13 +382,22 @@ def report(request):
         organization=organization,
     )
 
-    project = Project(
-        id=1,
-        organization=organization,
-        team=team,
-        slug='project',
-        name='My Project',
-    )
+    projects = []
+    for i in xrange(0, random.randint(1, 3)):
+        projects.append(
+            Project(
+                id=i,
+                organization=organization,
+                team=team,
+                slug='project-{}'.format(i),
+                name=' '.join(
+                    random.sample(
+                        WORDS,
+                        random.randint(1, 4)
+                    )
+                ),
+            )
+        )
 
     start, stop = reports._to_interval(timestamp, duration)
 
@@ -403,7 +412,7 @@ def report(request):
             )
             yield Release(
                 id=next(id_sequence),
-                project=project,
+                project=random.choice(projects),
                 version=''.join([
                     random.choice('0123456789abcdef') for _ in range(40)
                 ]),
@@ -453,11 +462,6 @@ def report(request):
 
         return series, aggregates, build_issue_summaries(), build_release_list()
 
-    report = reduce(
-        reports.merge_reports,
-        [build_report() for _ in xrange(0, random.randint(1, 3))]
-    )
-
     if random.random() < 0.85:
         personal = {
             'resolved': random.randint(0, 100),
@@ -478,7 +482,9 @@ def report(request):
                 'start': reports.date_format(start),
                 'stop': reports.date_format(stop),
             },
-            'report': reports.to_context(report),
+            'report': reports.to_context(
+                {project: build_report() for project in projects}
+            ),
             'organization': organization,
             'personal': personal,
             'user': request.user,

@@ -492,7 +492,7 @@ durations = {
 }
 
 
-def build_message(timestamp, duration, organization, user, report):
+def build_message(timestamp, duration, organization, user, reports):
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = durations[duration]
@@ -518,7 +518,7 @@ def build_message(timestamp, duration, organization, user, report):
                 organization,
                 user,
             ),
-            'report': to_context(report),
+            'report': to_context(reports),
             'user': user,
         },
     )
@@ -585,8 +585,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         has_valid_aggregates,
     ]
 
-    reports = [
-        report for project, report in
+    reports = dict(
         filter(
             lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
             zip(
@@ -599,7 +598,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
                 ),
             )
         )
-    ]
+    )
 
     if not reports:
         logger.debug('Skipping report for %r to %r, no qualifying reports to deliver.',
@@ -613,10 +612,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         duration,
         organization,
         user,
-        reduce(
-            merge_reports,
-            reports,
-        )
+        reports,
     )
 
     if features.has('organizations:reports:deliver', organization):
@@ -627,8 +623,11 @@ Point = namedtuple('Point', 'resolved unresolved')
 DistributionType = namedtuple('DistributionType', 'label color')
 
 
-def to_context(report):
-    series, aggregates, issue_summaries, release_list = report
+def to_context(reports):
+    series, aggregates, issue_summaries, release_list = reduce(
+        merge_reports,
+        reports.values(),
+    )
     series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in series]
 
     return {
