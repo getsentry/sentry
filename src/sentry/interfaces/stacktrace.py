@@ -45,7 +45,7 @@ _java_enhancer_re = re.compile(r'''
 #   file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js
 _js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app|CodePush)\/')
 
-_js_electron_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app/Contents/Resources/app(\.asar)?/|/resources/app(\.asar)/)\/')
+_js_electron_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app/Contents/Resources/app(\.asar)?/|/resources/app(\.asar)?/)\/')
 
 
 def trim_package(pkg):
