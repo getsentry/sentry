@@ -13,7 +13,7 @@ from django.utils import dateformat, timezone
 from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
+    Activity, GroupStatus, Organization, OrganizationStatus, Project,
     Release, TagValue, Team, User, UserOption
 )
 from sentry.tasks.base import instrumented_task
@@ -181,15 +181,7 @@ def prepare_project_aggregates((_, stop), project):
     ]
 
 
-def trim_issue_list(value):
-    return sorted(
-        value,
-        key=lambda (id, statistics): statistics,
-        reverse=True,
-    )[:10]
-
-
-def prepare_project_issue_list(interval, project):
+def prepare_project_issue_summaries(interval, project):
     start, stop = interval
 
     queryset = project.group_set.exclude(status=GroupStatus.MUTED)
@@ -225,21 +217,11 @@ def prepare_project_issue_list(interval, project):
         ).distinct().values_list('group_id', flat=True)
     )
 
-    issue_list_candidates = new_issue_ids | reopened_issue_ids
-
     rollup = 60 * 60 * 24
 
     event_counts = tsdb.get_sums(
         tsdb.models.group,
-        issue_list_candidates,
-        start,
-        stop,
-        rollup=rollup,
-    )
-
-    user_counts = tsdb.get_distinct_counts_totals(
-        tsdb.models.users_affected_by_group,
-        issue_list_candidates,
+        new_issue_ids | reopened_issue_ids,
         start,
         stop,
         rollup=rollup,
@@ -258,21 +240,14 @@ def prepare_project_issue_list(interval, project):
         0,
     )
 
-    return (
-        [
-            new_issue_count,
-            reopened_issue_count,
-            existing_issue_count,
-        ],
-        trim_issue_list([(id, (event_counts[id], user_counts[id])) for id in issue_list_candidates]),
-    )
+    return [
+        new_issue_count,
+        reopened_issue_count,
+        existing_issue_count,
+    ]
 
 
-def merge_issue_lists(target, other):
-    return (
-        merge_sequences(target[0], other[0]),
-        trim_issue_list(target[1] + other[1]),
-    )
+merge_issue_summaries = merge_sequences
 
 
 def trim_release_list(value):
@@ -309,7 +284,7 @@ def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
-        prepare_project_issue_list(interval, project),
+        prepare_project_issue_summaries(interval, project),
         prepare_project_release_list(interval, project),
     )
 
@@ -431,7 +406,7 @@ def merge_reports(target, other):
             other[1],
             safe_add,
         ),
-        merge_issue_lists(
+        merge_issue_summaries(
             target[2],
             other[2],
         ),
@@ -648,36 +623,12 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         message.send()
 
 
-IssueList = namedtuple('IssueList', 'count issues')
-IssueStatistics = namedtuple('IssueStatistics', 'events users')
-
-
-def rewrite_issue_list((count, issues), fetch_groups=None):
-    # XXX: This only exists for removing data dependency in tests.
-    if fetch_groups is None:
-        fetch_groups = Group.objects.in_bulk
-
-    instances = fetch_groups([id for id, _ in issues])
-
-    def rewrite((id, statistics)):
-        instance = instances.get(id)
-        if instance is None:
-            logger.debug("Could not retrieve group with key %r, skipping...", id)
-            return None
-        return (instance, IssueStatistics(*statistics))
-
-    return IssueList(
-        count,
-        filter(None, map(rewrite, issues)),
-    )
-
-
 Point = namedtuple('Point', 'resolved unresolved')
 DistributionType = namedtuple('DistributionType', 'label color')
 
 
-def to_context(report, fetch_groups=None):
-    series, aggregates, issue_list, release_list = report
+def to_context(report):
+    series, aggregates, issue_summaries, release_list = report
     series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in series]
 
     return {
@@ -695,10 +646,10 @@ def to_context(report, fetch_groups=None):
                         DistributionType('Reopened', '#6C5FC7'),
                         DistributionType('Existing', '#534a92'),
                     ),
-                    issue_list[0],
+                    issue_summaries,
                 ),
             ),
-            'total': sum(issue_list[0]),
+            'total': sum(issue_summaries),
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),
@@ -707,8 +658,4 @@ def to_context(report, fetch_groups=None):
                 mean(aggregates) if all(v is not None for v in aggregates) else None,
             )),
         ],
-        'issue_list': rewrite_issue_list(
-            issue_list,
-            fetch_groups,
-        ),
     }

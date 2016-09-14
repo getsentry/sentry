@@ -392,26 +392,6 @@ def report(request):
 
     start, stop = reports._to_interval(timestamp, duration)
 
-    group_instances = {}
-
-    def fetch_group_instances(id_list):
-        results = {}
-        for id in id_list:
-            instance = group_instances.get(id)
-            if instance is not None:
-                results[id] = instance
-        return results
-
-    def make_group_id_generator():
-        group_generator = make_group_generator(random, project)
-        while True:
-            group = next(group_generator)
-            if random.random() < 0.95:
-                group_instances[group.id] = group
-            yield group.id
-
-    group_id_sequence = make_group_id_generator()
-
     def make_release_generator():
         id_sequence = itertools.count(1)
         while True:
@@ -442,20 +422,13 @@ def report(request):
 
     release_id_generator = make_release_id_generator()
 
-    def build_issue_list():
+    def build_issue_summaries():
         summaries = []
         for i in range(3):
             summaries.append(
                 int(random.weibullvariate(10, 1) * random.paretovariate(0.5))
             )
-
-        return summaries, [(
-            next(group_id_sequence),
-            (
-                int(random.paretovariate(0.3)),
-                int(random.paretovariate(0.3)),
-            ),
-        ) for _ in xrange(0, random.randint(1, 5))]
+        return summaries
 
     def build_release_list():
         return reports.trim_release_list([
@@ -478,7 +451,7 @@ def report(request):
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
         ]
 
-        return series, aggregates, build_issue_list(), build_release_list()
+        return series, aggregates, build_issue_summaries(), build_release_list()
 
     report = reduce(
         reports.merge_reports,
@@ -505,10 +478,7 @@ def report(request):
                 'start': reports.date_format(start),
                 'stop': reports.date_format(stop),
             },
-            'report': reports.to_context(
-                report,
-                fetch_group_instances,
-            ),
+            'report': reports.to_context(report),
             'organization': organization,
             'personal': personal,
             'user': request.user,
