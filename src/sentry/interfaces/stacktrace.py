@@ -231,6 +231,7 @@ def strip_js_native_components(value):
     # we maintain the leading prefix for compat
     value = _js_native_path_re.sub('/', value)
     value = _js_electron_re.sub('/', value)
+    return value
 
 
 class Frame(Interface):
