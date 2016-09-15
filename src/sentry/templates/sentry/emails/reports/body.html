@@ -124,6 +124,10 @@
 
   <style type="text/css">
 
+    .project-breakdown {
+      margin-bottom: 40px;
+    }
+
     .project-breakdown .graph {
       /* I have no idea if this will actually work! */
       border-spacing: 10px;
@@ -143,17 +147,20 @@
       padding-top: 10px;
     }
 
-    .project-breakdown .summary td {
-      vertical-align: top;
+    .project-breakdown .summary thead th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #88859a;
+      font-weight: 500;
     }
 
-    .project-breakdown .summary > tr > td {
-      padding-bottom: 10px;
-      line-height: 20px;
-    }
-
-    .project-breakdown .summary .details td {
+    .project-breakdown .summary tbody td {
       font-size: 14px;
+      padding: 10px 0 0 0;
+    }
+
+    .project-breakdown .summary .numeric {
+      text-align: center;
     }
 
   </style>
@@ -186,39 +193,28 @@
     </table>
 
     <table class="summary">
+      <thead>
+        <tr>
+          <th style="width: 1em;"></th>
+          <th style="width: 7em;" class="numeric">Events</th>
+          <th>Project</th>
+          <th style="width: 7em;" class="numeric">Filtered</th>
+          <th style="width: 7em;" class="numeric">Dropped</th>
+        </tr>
+      </thead>
+      <tbody>
       {% for key in series.legend %}
         <tr>
-          <td width="5%">
-            <span style="background-color: {{ key.color }}; display: inline-block; width: 1em;">&nbsp;</span>
-          </td>
-          <td width="20%">
-            <div style="line-height: 24px;">2.4b events</div>
-            <div style="font-size: 12px; color: #838c99;">
-            3.4m filtered<br />
-            1.2k dropped
-            </div>
-          </td>
           <td>
-            <div style="line-height: 24px;">
-              <a href="#" style="font-weight: bold;">{{ key.instance.name }}</a>
-            </div>
-            <table class="details">
-              <tr>
-                <td>
-                  1.3k new issues<br />
-                  300 reopened issues<br />
-                  15 resolved issues
-                </td>
-                <td>
-                  12 new releases<br />
-                  20 releases active<br />
-                </td>
-              </tr>
-            </table>
-          </div>
+            <span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>
           </td>
+          <td class="numeric">2.4b</div>
+          <td><a href="#" style="font-weight: bold;">{{ key.instance.name }}</a></td>
+          <td class="numeric">3.4m</td>
+          <td class="numeric">1.2k</td>
         </tr>
       {% endfor %}
+      </tbody>
     </table>
     {% endwith %}
 
