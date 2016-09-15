@@ -6,26 +6,27 @@ import {
   FormState,
   GenericField
 } from '../../components/forms';
+import SettingsBase from '../../components/bases/settingsBase';
 import {Client} from '../../api';
-import IndicatorStore from '../../stores/indicatorStore';
 import LoadingIndicator from '../../components/loadingIndicator';
-import {t} from '../../locale';
 
 
-class PluginSettings extends React.Component {
+class PluginSettings extends SettingsBase {
   constructor(props) {
     super(props);
 
     this.onSubmit = this.onSubmit.bind(this);
     this.fetchData = this.fetchData.bind(this);
 
-    this.state = {
+    Object.assign(this.state, {
       fieldList: null,
       initialData: null,
       formData: null,
       errors: {},
-      state: FormState.READY
-    };
+      // override default FormState.READY if api requests are
+      // necessary to even load the form
+      state: FormState.LOADING
+    });
   }
 
   componentWillMount() {
@@ -58,17 +59,11 @@ class PluginSettings extends React.Component {
   }
 
   onSubmit() {
-    if (this.state.state == FormState.SAVING) {
-      return;
-    }
-    this.setState({
-      state: FormState.SAVING,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    this.onSave(() => {
       this.api.request(this.getPluginEndpoint(), {
         data: this.state.formData,
         method: 'PUT',
-        success: (data) => {
+        success: this.onSaveSuccess.bind(this, data => {
           let formData = {};
           data.config.forEach((field) => {
             formData[field.name] = field.value || field.defaultValue;
@@ -76,50 +71,42 @@ class PluginSettings extends React.Component {
           this.setState({
             formData: formData,
             initialData: Object.assign({}, formData),
-            state: FormState.READY,
-            errors: {},
+            errors: {}
           });
-        },
-        error: (error) => {
+        }),
+        error: this.onSaveError.bind(this, error => {
           this.setState({
-            state: FormState.ERROR,
             errors: (error.responseJSON || {}).errors || {},
           });
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-            duration: 3000
-          });
-        },
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
+        }),
+        complete: this.onSaveComplete.bind(this)
       });
     });
   }
 
   fetchData() {
-    this.api.request(this.getPluginEndpoint(), {
-      success: (data) => {
-        let formData = {};
-        data.config.forEach((field) => {
-          formData[field.name] = field.value || field.defaultValue;
-        });
-        this.setState({
-          fieldList: data.config,
-          state: FormState.LOADING,
-          formData: formData,
-          initialData: Object.assign({}, formData)
-        });
-      },
-      error: (error) => {
-        this.setState({
-          state: FormState.ERROR,
-        });
-      }
+    this.onLoad(() => {
+      this.api.request(this.getPluginEndpoint(), {
+        success: data => {
+          let formData = {};
+          data.config.forEach((field) => {
+            formData[field.name] = field.value || field.defaultValue;
+          });
+          this.setState({
+            fieldList: data.config,
+            formData: formData,
+            initialData: Object.assign({}, formData)
+          // call this here to prevent FormState.READY from being
+          // set before fieldList is
+          }, this.onLoadSuccess);
+        },
+        error: this.onLoadError
+      });
     });
   }
 
   render() {
-    if (!this.state.fieldList) {
+    if (this.state.state === FormState.LOADING) {
       return <LoadingIndicator />;
     }
     let isSaving = this.state.state === FormState.SAVING;
