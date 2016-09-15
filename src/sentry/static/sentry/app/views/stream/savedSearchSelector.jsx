@@ -7,7 +7,7 @@ import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
-import {CheckboxField, TextField} from '../../components/forms';
+import {BooleanField, TextField} from '../../components/forms';
 
 const SaveSearchState = {
   READY: 'Ready',
@@ -127,11 +127,11 @@ const SaveSearchButton = React.createClass({
                 value={this.state.formData.query}
                 required={true}
                 onChange={this.onFieldChange.bind(this, 'query')} />
-              <CheckboxField
+              <BooleanField
                 key="isUserDefault"
                 label={t('Make this the default view for myself.')}
                 onChange={this.onFieldChange.bind(this, 'isUserDefault')} />
-              <CheckboxField
+              <BooleanField
                 key="isDefault"
                 label={t('Make this the default view for my team.')}
                 onChange={this.onFieldChange.bind(this, 'isDefault')} />

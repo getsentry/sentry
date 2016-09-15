@@ -3,7 +3,7 @@ import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import {FormState, TextareaField, CheckboxField} from '../components/forms';
+import {FormState, TextareaField, BooleanField} from '../components/forms';
 import {t} from '../locale';
 
 const ProjectCspSettingsForm = React.createClass({
@@ -81,7 +81,7 @@ const ProjectCspSettingsForm = React.createClass({
           </div>
         }
         <fieldset>
-          <CheckboxField
+          <BooleanField
             key="ignored-sources-defaults"
             name="ignored-sources-defaults"
             label={t('Use Default Ignored Sources')}
