@@ -280,12 +280,32 @@ def prepare_project_release_list((start, stop), project):
     )
 
 
+def prepare_project_usage_summary((start, stop), project):
+    return (
+        tsdb.get_sums(
+            tsdb.models.project_total_blacklisted,
+            [project.id],
+            start,
+            stop,
+            rollup=60 * 60 * 24,
+        )[project.id],
+        tsdb.get_sums(
+            tsdb.models.project_total_rejected,
+            [project.id],
+            start,
+            stop,
+            rollup=60 * 60 * 24,
+        )[project.id],
+    )
+
+
 def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
         prepare_project_issue_summaries(interval, project),
         prepare_project_release_list(interval, project),
+        prepare_project_usage_summary(interval, project),
     )
 
 
@@ -411,6 +431,10 @@ def merge_reports(target, other):
             other[2],
         ),
         trim_release_list(target[3] + other[3]),
+        merge_sequences(
+            target[4],
+            other[4],
+        )
     )
 
 
@@ -549,7 +573,7 @@ class Skipped(object):
 
 
 def has_valid_aggregates(interval, (project, report)):
-    _, aggregates, _, _ = report
+    _, aggregates, _, _, _ = report
     return any(bool(value) for value in aggregates)
 
 
@@ -629,55 +653,76 @@ def series_map(function, series):
     return [(timestamp, function(value)) for timestamp, value in series]
 
 
-SeriesKey = namedtuple('SeriesKey', 'instance color')
+colors = [
+    '#696dc3',
+    '#6288ba',
+    '#59aca4',
+    '#99d59a',
+    '#daeca9',
+]
 
 
 def build_project_breakdown_series(reports):
-    totals = []
-    for project, report in reports.items():
-        totals.append((sum(sum(point) for timestamp, point in report[0]), project))
+    Key = namedtuple('Key', 'label url color data')
 
-    ordering = map(operator.itemgetter(1), sorted(totals))
+    def get_legend_data(report):
+        filtered, rate_limited = report[4]
+        return {
+            'events': sum(sum(value) for timestamp, value in report[0]),
+            'filtered': filtered,
+            'rate_limited': rate_limited,
+        }
 
-    # TODO: This artificially limits the number of items in the graph to the
-    # number of available colors -- we should probably roll up all of the
-    # smaller projects (ordinal 10 and up?) into an "Other" header?
-    colors = [
-        '#696dc3',
-        '#6288ba',
-        '#59aca4',
-        '#99d59a',
-        '#daeca9',
-    ][::-1]
+    instances = map(
+        operator.itemgetter(0),
+        sorted(
+            reports.items(),
+            key=lambda (instance, report): sum(sum(values) for timestamp, values in report[0]),
+            reverse=True,
+        ),
+    )[:len(colors)]
 
-    keys = map(
-        lambda value: SeriesKey(*value),
-        zip(ordering, colors),
-    )
+    selections = map(
+        lambda (instance, color): (
+            Key(instance.name, instance.get_absolute_url(), color, get_legend_data(reports[instance])),
+            reports[instance],
+        ),
+        zip(
+            instances,
+            colors,
+        ),
+    )[::-1]
 
-    series = series_map(
-        lambda values: zip(keys, values),
-        reduce(
-            merge_series,
-            [
-                series_map(
-                    lambda values: [sum(values)],
-                    reports[project][0]
-                )
-                for project in ordering
-            ]
+    overflow = set(reports) - set(instances)
+    if overflow:
+        overflow_report = reduce(
+            merge_reports,
+            [reports[instance] for instance in overflow],
         )
+        selections.insert(0, (
+            Key('Other', None, '#f2f0fa', get_legend_data(overflow_report)),
+            overflow_report,
+        ))
+
+    series = reduce(
+        merge_series,
+        [
+            series_map(
+                lambda points: [(key, sum(points))],
+                report[0],
+            ) for key, report in selections
+        ],
     )
 
     return {
         'points': [(to_datetime(timestamp), value) for timestamp, value in series],
-        'maximum': max(sum(count for project, count in value) for timestamp, value in series),
-        'legend': reversed(keys),
+        'maximum': max(sum(count for key, count in value) for timestamp, value in series),
+        'legend': [key for key, value in reversed(selections)],
     }
 
 
 def to_context(reports):
-    series, aggregates, issue_summaries, release_list = reduce(
+    series, aggregates, issue_summaries, release_list, usage_summary = reduce(
         merge_reports,
         reports.values(),
     )

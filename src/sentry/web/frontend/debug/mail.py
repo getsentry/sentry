@@ -447,6 +447,12 @@ def report(request):
             ) for _ in range(random.randint(0, 10))
         ])
 
+    def build_usage_summary():
+        return (
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
+            int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
+        )
+
     def build_report():
         daily_maximum = random.randint(1000, 10000)
 
@@ -460,7 +466,7 @@ def report(request):
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
         ]
 
-        return series, aggregates, build_issue_summaries(), build_release_list()
+        return series, aggregates, build_issue_summaries(), build_release_list(), build_usage_summary()
 
     if random.random() < 0.85:
         personal = {

@@ -199,7 +199,7 @@
           <th style="width: 7em;" class="numeric">Events</th>
           <th>Project</th>
           <th style="width: 7em;" class="numeric">Filtered</th>
-          <th style="width: 7em;" class="numeric">Dropped</th>
+          <th style="width: 7em;" class="numeric">Rate Limited</th>
         </tr>
       </thead>
       <tbody>
@@ -208,10 +208,12 @@
           <td>
             <span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>
           </td>
-          <td class="numeric">2.4b</div>
-          <td><a href="#" style="font-weight: bold;">{{ key.instance.name }}</a></td>
-          <td class="numeric">3.4m</td>
-          <td class="numeric">1.2k</td>
+          <td class="numeric">{{ key.data.events|small_count:1 }}</div>
+          <td>
+              {% if key.url %}<a href="{{ key.url }}" style="font-weight: bold;">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+          </td>
+          <td class="numeric">{{ key.data.filtered|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.rate_limited|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
