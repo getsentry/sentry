@@ -666,7 +666,7 @@ def build_project_breakdown_series(reports):
     Key = namedtuple('Key', 'label url color data')
 
     def get_legend_data(report):
-        filtered, rate_limited = report[4]
+        _, _, _, _, (filtered, rate_limited) = report
         return {
             'events': sum(sum(value) for timestamp, value in report[0]),
             'filtered': filtered,
