@@ -702,7 +702,7 @@ def to_context(report, fetch_groups=None):
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),
-            ('last month', change(
+            ('four week average', change(
                 aggregates[-1],
                 mean(aggregates) if all(v is not None for v in aggregates) else None,
             )),
