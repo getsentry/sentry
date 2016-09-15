@@ -1,11 +1,11 @@
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
-import AlertActions from '../../actions/alertActions';
 import ApiMixin from '../../mixins/apiMixin';
 import {Form, Select2Field, Select2FieldAutocomplete, TextareaField, TextField} from '../../components/forms';
 import DropdownLink from '../../components/dropdownLink';
 import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
+import IndicatorStore from '../../stores/indicatorStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import MenuItem from '../../components/menuItem';
@@ -120,51 +120,60 @@ const IssuePlugin = React.createClass({
   },
 
   createIssue() {
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.getPluginCreateEndpoint(), {
       data: this.state.createFormData,
       success: (data) => {
         GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-        AlertActions.addAlert({
-          message: t('Successfully created issue.'),
-          type: 'success'
+        IndicatorStore.add(t('Successfully created issue.'), 'success', {
+          duration: 3000
         });
         this.props.onSuccess && this.props.onSuccess();
       },
       error: (error) => {
         this.setError(error, t('There was an error creating the issue.'));
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
 
   linkIssue() {
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.getPluginLinkEndpoint(), {
       data: this.state.linkFormData,
       success: (data) => {
         GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-        AlertActions.addAlert({
-          message: t('Successfully linked issue.'),
-          type: 'success'
+        IndicatorStore.add(t('Successfully linked issue.'), 'success', {
+          duration: 3000
         });
         this.props.onSuccess && this.props.onSuccess();
       },
       error: (error) => {
         this.setError(error, t('There was an error linking the issue.'));
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
 
   unlinkIssue() {
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.getPluginUnlinkEndpoint(), {
       success: (data) => {
         GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-        AlertActions.addAlert({
-          message: t('Successfully unlinked issue.'),
-          type: 'success'
+        IndicatorStore.add(t('Successfully unlinked issue.'), 'success', {
+          duration: 3000
         });
         this.props.onSuccess && this.props.onSuccess();
       },
       error: (error) => {
         this.setError(error, t('There was an error unlinking the issue.'));
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
