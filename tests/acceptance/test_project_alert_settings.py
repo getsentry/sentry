@@ -57,7 +57,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.snapshot('project alert settings webhooks enabled')
 
     def test_rules_load(self):
-        self.browser.get(self.path1)
+        self.browser.get(self.path2)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until('.rules-list')
         self.browser.snapshot('project alert rules')
