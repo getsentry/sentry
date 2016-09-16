@@ -169,7 +169,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return None, aggregates, None, None
+        return None, aggregates, None, None, None
 
     assert has_valid_aggregates(
         interval,

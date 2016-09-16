@@ -13,7 +13,7 @@ from django.utils import dateformat, timezone
 from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, Group, GroupStatus, Organization, OrganizationStatus, Project,
+    Activity, GroupStatus, Organization, OrganizationStatus, Project,
     Release, TagValue, Team, User, UserOption
 )
 from sentry.tasks.base import instrumented_task
@@ -181,15 +181,7 @@ def prepare_project_aggregates((_, stop), project):
     ]
 
 
-def trim_issue_list(value):
-    return sorted(
-        value,
-        key=lambda (id, statistics): statistics,
-        reverse=True,
-    )[:10]
-
-
-def prepare_project_issue_list(interval, project):
+def prepare_project_issue_summaries(interval, project):
     start, stop = interval
 
     queryset = project.group_set.exclude(status=GroupStatus.MUTED)
@@ -225,21 +217,11 @@ def prepare_project_issue_list(interval, project):
         ).distinct().values_list('group_id', flat=True)
     )
 
-    issue_list_candidates = new_issue_ids | reopened_issue_ids
-
     rollup = 60 * 60 * 24
 
     event_counts = tsdb.get_sums(
         tsdb.models.group,
-        issue_list_candidates,
-        start,
-        stop,
-        rollup=rollup,
-    )
-
-    user_counts = tsdb.get_distinct_counts_totals(
-        tsdb.models.users_affected_by_group,
-        issue_list_candidates,
+        new_issue_ids | reopened_issue_ids,
         start,
         stop,
         rollup=rollup,
@@ -258,21 +240,14 @@ def prepare_project_issue_list(interval, project):
         0,
     )
 
-    return (
-        [
-            new_issue_count,
-            reopened_issue_count,
-            existing_issue_count,
-        ],
-        trim_issue_list([(id, (event_counts[id], user_counts[id])) for id in issue_list_candidates]),
-    )
+    return [
+        new_issue_count,
+        reopened_issue_count,
+        existing_issue_count,
+    ]
 
 
-def merge_issue_lists(target, other):
-    return (
-        merge_sequences(target[0], other[0]),
-        trim_issue_list(target[1] + other[1]),
-    )
+merge_issue_summaries = merge_sequences
 
 
 def trim_release_list(value):
@@ -305,12 +280,32 @@ def prepare_project_release_list((start, stop), project):
     )
 
 
+def prepare_project_usage_summary((start, stop), project):
+    return (
+        tsdb.get_sums(
+            tsdb.models.project_total_blacklisted,
+            [project.id],
+            start,
+            stop,
+            rollup=60 * 60 * 24,
+        )[project.id],
+        tsdb.get_sums(
+            tsdb.models.project_total_rejected,
+            [project.id],
+            start,
+            stop,
+            rollup=60 * 60 * 24,
+        )[project.id],
+    )
+
+
 def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
-        prepare_project_issue_list(interval, project),
+        prepare_project_issue_summaries(interval, project),
         prepare_project_release_list(interval, project),
+        prepare_project_usage_summary(interval, project),
     )
 
 
@@ -431,11 +426,15 @@ def merge_reports(target, other):
             other[1],
             safe_add,
         ),
-        merge_issue_lists(
+        merge_issue_summaries(
             target[2],
             other[2],
         ),
         trim_release_list(target[3] + other[3]),
+        merge_sequences(
+            target[4],
+            other[4],
+        )
     )
 
 
@@ -505,7 +504,7 @@ Duration = namedtuple(
     'Duration', (
         'adjective',    # e.g. "daily" or "weekly",
         'noun',         # relative to today, e.g. "yesterday" or "this week"
-        'date_format',  # date format used for series x axis labeling
+        'date_format',  # date format used for large series x axis labeling
     ))
 
 durations = {
@@ -517,7 +516,7 @@ durations = {
 }
 
 
-def build_message(timestamp, duration, organization, user, report):
+def build_message(timestamp, duration, organization, user, reports):
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = durations[duration]
@@ -543,7 +542,7 @@ def build_message(timestamp, duration, organization, user, report):
                 organization,
                 user,
             ),
-            'report': to_context(report),
+            'report': to_context(reports),
             'user': user,
         },
     )
@@ -572,7 +571,7 @@ class Skipped(object):
 
 
 def has_valid_aggregates(interval, (project, report)):
-    _, aggregates, _, _ = report
+    _, aggregates, _, _, _ = report
     return any(bool(value) for value in aggregates)
 
 
@@ -610,8 +609,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         has_valid_aggregates,
     ]
 
-    reports = [
-        report for project, report in
+    reports = dict(
         filter(
             lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
             zip(
@@ -624,7 +622,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
                 ),
             )
         )
-    ]
+    )
 
     if not reports:
         logger.debug('Skipping report for %r to %r, no qualifying reports to deliver.',
@@ -638,46 +636,115 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         duration,
         organization,
         user,
-        reduce(
-            merge_reports,
-            reports,
-        )
+        reports,
     )
 
     if features.has('organizations:reports:deliver', organization):
         message.send()
 
 
-IssueList = namedtuple('IssueList', 'count issues')
-IssueStatistics = namedtuple('IssueStatistics', 'events users')
-
-
-def rewrite_issue_list((count, issues), fetch_groups=None):
-    # XXX: This only exists for removing data dependency in tests.
-    if fetch_groups is None:
-        fetch_groups = Group.objects.in_bulk
-
-    instances = fetch_groups([id for id, _ in issues])
-
-    def rewrite((id, statistics)):
-        instance = instances.get(id)
-        if instance is None:
-            logger.debug("Could not retrieve group with key %r, skipping...", id)
-            return None
-        return (instance, IssueStatistics(*statistics))
-
-    return IssueList(
-        count,
-        filter(None, map(rewrite, issues)),
-    )
-
-
 Point = namedtuple('Point', 'resolved unresolved')
 DistributionType = namedtuple('DistributionType', 'label color')
 
 
-def to_context(report, fetch_groups=None):
-    series, aggregates, issue_list, release_list = report
+def series_map(function, series):
+    return [(timestamp, function(value)) for timestamp, value in series]
+
+
+colors = [
+    '#696dc3',
+    '#6288ba',
+    '#59aca4',
+    '#99d59a',
+    '#daeca9',
+]
+
+
+def build_project_breakdown_series(reports):
+    Key = namedtuple('Key', 'label url color data')
+
+    def get_legend_data(report):
+        series, _, _, _, (filtered, rate_limited) = report
+        return {
+            'events': sum(sum(value) for timestamp, value in series),
+            'filtered': filtered,
+            'rate_limited': rate_limited,
+        }
+
+    # Find the reports with the most total events. (The number of reports to
+    # keep is the same as the number of colors available to use in the legend.)
+    instances = map(
+        operator.itemgetter(0),
+        sorted(
+            reports.items(),
+            key=lambda (instance, report): sum(sum(values) for timestamp, values in report[0]),
+            reverse=True,
+        ),
+    )[:len(colors)]
+
+    # Starting building the list of items to include in the report chart. This
+    # is a list of [Key, Report] pairs, in *ascending* order of the total sum
+    # of values in the series. (This is so when we render the series, the
+    # largest color blocks are at the bottom and it feels appropriately
+    # weighted.)
+    selections = map(
+        lambda (instance, color): (
+            Key(
+                instance.slug,
+                instance.get_absolute_url(),
+                color,
+                get_legend_data(reports[instance]),
+            ),
+            reports[instance],
+        ),
+        zip(
+            instances,
+            colors,
+        ),
+    )[::-1]
+
+    # Collect any reports that weren't in the selection set, merge them
+    # together and add it at the top (front) of the stack.
+    overflow = set(reports) - set(instances)
+    if overflow:
+        overflow_report = reduce(
+            merge_reports,
+            [reports[instance] for instance in overflow],
+        )
+        selections.insert(0, (
+            Key('Other', None, '#f2f0fa', get_legend_data(overflow_report)),
+            overflow_report,
+        ))
+
+    def summarize(key, points):
+        total = sum(points)
+        return [(key, total)] if total else []
+
+    # Collect all of the independent series into a single series to make it
+    # easier to render, resulting in a series where each value is a sequence of
+    # (key, count) pairs.
+    series = reduce(
+        merge_series,
+        [
+            series_map(
+                functools.partial(summarize, key),
+                report[0],
+            ) for key, report in selections
+        ],
+    )
+
+    return {
+        'points': [(to_datetime(timestamp), value) for timestamp, value in series],
+        'maximum': max(sum(count for key, count in value) for timestamp, value in series),
+        'legend': [key for key, value in reversed(selections)],
+    }
+
+
+def to_context(reports):
+    series, aggregates, issue_summaries, release_list, usage_summary = reduce(
+        merge_reports,
+        reports.values(),
+    )
     series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in series]
 
     return {
@@ -695,10 +762,10 @@ def to_context(report, fetch_groups=None):
                         DistributionType('Reopened', '#6C5FC7'),
                         DistributionType('Existing', '#534a92'),
                     ),
-                    issue_list[0],
+                    issue_summaries,
                 ),
             ),
-            'total': sum(issue_list[0]),
+            'total': sum(issue_summaries),
         },
         'comparisons': [
             ('last week', change(aggregates[-1], aggregates[-2])),
@@ -707,8 +774,7 @@ def to_context(report, fetch_groups=None):
                 mean(aggregates) if all(v is not None for v in aggregates) else None,
             )),
         ],
-        'issue_list': rewrite_issue_list(
-            issue_list,
-            fetch_groups,
-        ),
+        'projects': {
+            'series': build_project_breakdown_series(reports),
+        },
     }

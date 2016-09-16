@@ -98,7 +98,7 @@
   <table class="issue-breakdown">
     <tr>
       <td>
-        <h4>Event Breakdown</h4>
+        <h4>Events by Issue Type</h4>
       </td>
       <td class="legend">
         {% for type, count in report.distribution.types %}
@@ -122,39 +122,106 @@
   </table>
   {% endwith %}
 
-  <table class="issue-table">
-    <thead>
+  <style type="text/css">
+
+    .project-breakdown {
+      margin-bottom: 40px;
+    }
+
+    .project-breakdown .graph td {
+        font-size: 0;
+        border-right: 10px solid #fff;
+    }
+
+    .project-breakdown .graph td:last-child {
+        border-right: none;
+    }
+
+    .project-breakdown .graph .label {
+      font-size: 14px;
+      color: #848296;
+      text-align: center;
+      padding-top: 10px;
+    }
+
+    .project-breakdown .summary thead th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #88859a;
+      font-weight: 500;
+    }
+
+    .project-breakdown .summary tbody td {
+      font-size: 14px;
+      padding: 10px 0 0 0;
+    }
+
+    .project-breakdown .summary .numeric {
+      text-align: center;
+    }
+
+  </style>
+
+  <div class="project-breakdown">
+
+    {% with series=report.projects.series height=110 %}
+
+    <h4>Events by Project</h4>
+
+    <table class="graph">
       <tr>
-        <th>
-          <h4>New and Reopened Issues {{ duration.noun|title }}</h4>
-        </th>
-        <th class="narrow-column">Events</th>
-        <th class="narrow-column">Users</th>
+        {% for timestamp, values in series.points %}
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+            <table>
+              {% for key, count in values %}
+                <tr>
+                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #ebe9f7;"></td>
+                </td>
+              {% endfor %}
+              <tr>
+                <td class="label">
+                  {{ timestamp|date:duration.date_format }}
+                </tr>
+              </td>
+            </table>
+          </td>
+        {% endfor %}
       </tr>
-    </thead>
-    <tbody>
-      {% for group, statistics in report.issue_list.issues %}
+    </table>
+
+    <table class="summary">
+      <thead>
         <tr>
-          <td class="issue">
-            {% include "sentry/emails/_group.html" %}
-            <small>
-              Last seen at {{ group.last_seen }}
-              in <a href="{% absolute_uri project_link %}" class="issue-project">{{ group.project.name }}</a>
-            </small>
-          </td>
-          <td class="narrow-column">{{ statistics.events|small_count }}</td>
-          <td class="narrow-column">{{ statistics.users|small_count }}</td>
+          <th style="width: 1em;"></th>
+          <th style="width: 7em;" class="numeric">Events</th>
+          <th>Project</th>
+          <th style="width: 7em;" class="numeric">Filtered</th>
+          <th style="width: 7em;" class="numeric">Rate Limited</th>
         </tr>
-      {% empty %}
+      </thead>
+      <tbody>
+      {% for key in series.legend %}
         <tr>
-          <td class="empty" colspan="3">
-            {# TODO: This is probably not the best way to articulate this. #}
-            There were no issues this period.
+          <td>
+            <span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>
           </td>
+          <td class="numeric">{{ key.data.events|small_count:1 }}</div>
+          <td>
+              {% if key.url %}<a href="{{ key.url }}" style="font-weight: bold;">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+          </td>
+          <td class="numeric">{{ key.data.filtered|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.rate_limited|small_count:1 }}</td>
         </tr>
       {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+    {% endwith %}
+
+  </div>
 
   {% if personal.resolved and personal.users %}
     <h4>Your impact</h4>
