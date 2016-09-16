@@ -666,13 +666,15 @@ def build_project_breakdown_series(reports):
     Key = namedtuple('Key', 'label url color data')
 
     def get_legend_data(report):
-        _, _, _, _, (filtered, rate_limited) = report
+        series, _, _, _, (filtered, rate_limited) = report
         return {
-            'events': sum(sum(value) for timestamp, value in report[0]),
+            'events': sum(sum(value) for timestamp, value in series),
             'filtered': filtered,
             'rate_limited': rate_limited,
         }
 
+    # Find the reports with the most total events. (The number of reports to
+    # keep is the same as the number of colors available to use in the legend.)
     instances = map(
         operator.itemgetter(0),
         sorted(
@@ -682,6 +684,11 @@ def build_project_breakdown_series(reports):
         ),
     )[:len(colors)]
 
+    # Starting building the list of items to include in the report chart. This
+    # is a list of [Key, Report] pairs, in *ascending* order of the total sum
+    # of values in the series. (This is so when we render the series, the
+    # largest color blocks are at the bottom and it feels appropriately
+    # weighted.)
     selections = map(
         lambda (instance, color): (
             Key(
@@ -701,6 +708,8 @@ def build_project_breakdown_series(reports):
         ),
     )[::-1]
 
+    # Collect any reports that weren't in the selection set, merge them
+    # together and add it at the top (front) of the stack.
     overflow = set(reports) - set(instances)
     if overflow:
         overflow_report = reduce(
@@ -712,6 +721,9 @@ def build_project_breakdown_series(reports):
             overflow_report,
         ))
 
+    # Collect all of the independent series into a single series to make it
+    # easier to render, resulting in a series where each value is a sequence of
+    # (key, count) pairs.
     series = reduce(
         merge_series,
         [
