@@ -14,9 +14,6 @@ class PluginSettings extends SettingsBase {
   constructor(props) {
     super(props);
 
-    this.onSubmit = this.onSubmit.bind(this);
-    this.fetchData = this.fetchData.bind(this);
-
     Object.assign(this.state, {
       fieldList: null,
       initialData: null,
@@ -50,49 +47,45 @@ class PluginSettings extends SettingsBase {
   }
 
   onSubmit() {
-    this.onSave(() => {
-      this.api.request(this.getPluginEndpoint(), {
-        data: this.state.formData,
-        method: 'PUT',
-        success: this.onSaveSuccess.bind(this, data => {
-          let formData = {};
-          data.config.forEach((field) => {
-            formData[field.name] = field.value || field.defaultValue;
-          });
-          this.setState({
-            formData: formData,
-            initialData: Object.assign({}, formData),
-            errors: {}
-          });
-        }),
-        error: this.onSaveError.bind(this, error => {
-          this.setState({
-            errors: (error.responseJSON || {}).errors || {},
-          });
-        }),
-        complete: this.onSaveComplete
-      });
+    this.api.request(this.getPluginEndpoint(), {
+      data: this.state.formData,
+      method: 'PUT',
+      success: this.onSaveSuccess.bind(this, data => {
+        let formData = {};
+        data.config.forEach((field) => {
+          formData[field.name] = field.value || field.defaultValue;
+        });
+        this.setState({
+          formData: formData,
+          initialData: Object.assign({}, formData),
+          errors: {}
+        });
+      }),
+      error: this.onSaveError.bind(this, error => {
+        this.setState({
+          errors: (error.responseJSON || {}).errors || {},
+        });
+      }),
+      complete: this.onSaveComplete
     });
   }
 
   fetchData() {
-    this.onLoad(() => {
-      this.api.request(this.getPluginEndpoint(), {
-        success: data => {
-          let formData = {};
-          data.config.forEach((field) => {
-            formData[field.name] = field.value || field.defaultValue;
-          });
-          this.setState({
-            fieldList: data.config,
-            formData: formData,
-            initialData: Object.assign({}, formData)
-          // call this here to prevent FormState.READY from being
-          // set before fieldList is
-          }, this.onLoadSuccess);
-        },
-        error: this.onLoadError
-      });
+    this.api.request(this.getPluginEndpoint(), {
+      success: data => {
+        let formData = {};
+        data.config.forEach((field) => {
+          formData[field.name] = field.value || field.defaultValue;
+        });
+        this.setState({
+          fieldList: data.config,
+          formData: formData,
+          initialData: Object.assign({}, formData)
+        // call this here to prevent FormState.READY from being
+        // set before fieldList is
+        }, this.onLoadSuccess);
+      },
+      error: this.onLoadError
     });
   }
 

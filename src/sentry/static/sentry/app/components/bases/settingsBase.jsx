@@ -21,13 +21,19 @@ class SettingsBase extends React.Component {
   constructor(props) {
     super(props);
 
-    ['onLoad',
-     'onLoadSuccess',
+    ['onLoadSuccess',
      'onLoadError',
      'onSave',
      'onSaveSuccess',
      'onSaveError',
      'onSaveComplete'].map(method => this[method] = this[method].bind(this));
+
+    if (this.fetchData) {
+      this.fetchData = this.onLoad.bind(this, this.fetchData.bind(this));
+    }
+    if (this.onSubmit) {
+      this.onSubmit = this.onSave.bind(this, this.onSubmit.bind(this));
+    }
 
     this.state = {
       state: FormState.READY
@@ -58,7 +64,7 @@ class SettingsBase extends React.Component {
     this.setState({
       state: FormState.ERROR
     }, callbackWithArgs(callback, ...args));
-    IndicatorStore.add(t('An unknown error occurred. Refresh to try again.'), 'error', {
+    IndicatorStore.add(t('An error occurred.'), 'error', {
       duration: 3000
     });
   }

@@ -23,14 +23,11 @@ class IssuePlugin extends SettingsBase {
   constructor(props) {
     super(props);
 
-    ['fetchData',
-     'createIssue',
-     'linkIssue',
-     'unlinkIssue',
-     'errorHandler'
-    ].map(method => this[method] = this[method].bind(this));
-
+    this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
+    this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));
+    this.unlinkIssue = this.onSave.bind(this, this.unlinkIssue.bind(this));
     this.onSuccess = this.onSaveSuccess.bind(this, this.onSuccess.bind(this));
+    this.errorHandler = this.onLoadError.bind(this, this.errorHandler.bind(this));
 
     Object.assign(this.state, {
       createFieldList: null,
@@ -101,41 +98,39 @@ class IssuePlugin extends SettingsBase {
   }
 
   fetchData() {
-    this.onLoad(() => {
-      if (this.props.actionType === 'create') {
-        this.api.request(this.getPluginCreateEndpoint(), {
-          success: (data) => {
-            let createFormData = {};
-            data.forEach((field) => {
-              createFormData[field.name] = field.default;
-            });
-            this.setState({
-              createFieldList: data,
-              error: null,
-              loading: false,
-              createFormData: createFormData
-            }, this.onLoadSuccess);
-          },
-          error: this.onLoadError.bind(this, this.errorHandler)
-        });
-      } else if (this.props.actionType === 'link') {
-        this.api.request(this.getPluginLinkEndpoint(), {
-          success: (data) => {
-            let linkFormData = {};
-            data.forEach((field) => {
-              linkFormData[field.name] = field.default;
-            });
-            this.setState({
-              linkFieldList: data,
-              error: null,
-              loading: false,
-              linkFormData: linkFormData
-            }, this.onLoadSuccess);
-          },
-          error: this.onLoadError.bind(this, this.errorHandler)
-        });
-      }
-    });
+    if (this.props.actionType === 'create') {
+      this.api.request(this.getPluginCreateEndpoint(), {
+        success: (data) => {
+          let createFormData = {};
+          data.forEach((field) => {
+            createFormData[field.name] = field.default;
+          });
+          this.setState({
+            createFieldList: data,
+            error: null,
+            loading: false,
+            createFormData: createFormData
+          }, this.onLoadSuccess);
+        },
+        error: this.errorHandler
+      });
+    } else if (this.props.actionType === 'link') {
+      this.api.request(this.getPluginLinkEndpoint(), {
+        success: (data) => {
+          let linkFormData = {};
+          data.forEach((field) => {
+            linkFormData[field.name] = field.default;
+          });
+          this.setState({
+            linkFieldList: data,
+            error: null,
+            loading: false,
+            linkFormData: linkFormData
+          }, this.onLoadSuccess);
+        },
+        error: this.errorHandler
+      });
+    }
   }
 
   onSuccess() {
@@ -144,40 +139,34 @@ class IssuePlugin extends SettingsBase {
   }
 
   createIssue() {
-    this.onSave(() => {
-      this.api.request(this.getPluginCreateEndpoint(), {
-        data: this.state.createFormData,
-        success: this.onSuccess,
-        error: this.onSaveError.bind(this, error => {
-          this.setError(error, t('There was an error creating the issue.'));
-        }),
-        complete: this.onSaveComplete
-      });
+    this.api.request(this.getPluginCreateEndpoint(), {
+      data: this.state.createFormData,
+      success: this.onSuccess,
+      error: this.onSaveError.bind(this, error => {
+        this.setError(error, t('There was an error creating the issue.'));
+      }),
+      complete: this.onSaveComplete
     });
   }
 
   linkIssue() {
-    this.onSave(() => {
-      this.api.request(this.getPluginLinkEndpoint(), {
-        data: this.state.linkFormData,
-        success: this.onSuccess,
-        error: this.onSaveError.bind(this, error => {
-          this.setError(error, t('There was an error linking the issue.'));
-        }),
-        complete: this.onSaveComplete
-      });
+    this.api.request(this.getPluginLinkEndpoint(), {
+      data: this.state.linkFormData,
+      success: this.onSuccess,
+      error: this.onSaveError.bind(this, error => {
+        this.setError(error, t('There was an error linking the issue.'));
+      }),
+      complete: this.onSaveComplete
     });
   }
 
   unlinkIssue() {
-    this.onSave(() => {
-      this.api.request(this.getPluginUnlinkEndpoint(), {
-        success: this.onSuccess,
-        error: this.onSaveError.bind(this, error => {
-          this.setError(error, t('There was an error unlinking the issue.'));
-        }),
-        complete: this.onSaveComplete
-      });
+    this.api.request(this.getPluginUnlinkEndpoint(), {
+      success: this.onSuccess,
+      error: this.onSaveError.bind(this, error => {
+        this.setError(error, t('There was an error unlinking the issue.'));
+      }),
+      complete: this.onSaveComplete
     });
   }
 
