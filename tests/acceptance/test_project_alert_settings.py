@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
-
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -33,7 +31,6 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.path2 = '/{}/{}/settings/alerts/rules/'.format(self.org.slug, self.project.slug)
 
     def test_settings_load(self):
-        self.project.update(first_event=timezone.now())
         self.browser.get(self.path1)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project alert settings')
@@ -41,7 +38,6 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.snapshot('project alert settings webhooks enabled')
 
     def test_rules_load(self):
-        self.project.update(first_event=timezone.now())
         self.browser.get(self.path1)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until('.rules-list')
