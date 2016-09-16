@@ -115,14 +115,22 @@ section.org-login {
 
 .primary-email {
   position: relative;
-  padding-right: 140px;
+
+  &.not-verified {
+    padding-right: 168px;
+  }
+
+  .verification-label {
+    position: absolute;
+    top: -3px;
+    left: 113px;
+  }
 
   .verified-status {
     position: absolute;
     top: 0;
     right: 0;
     padding-top: 28px;
-    padding-right: 30px;
   }
 
 }

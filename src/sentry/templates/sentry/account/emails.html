@@ -14,40 +14,51 @@
       </div>
     {% endif %}
 
-    <legend style="margin-top: 0;">Emails</legend>
+    <legend class="m-t-0">Emails</legend>
 
     <form action="" method="post" class="">
         {% csrf_token %}
         <button type="submit" class="hidden"></button>
         {{ email_form|as_crispy_errors }}
-        <div class='primary-email'>
+
+        <div class='primary-email {% if not primary_email.is_verified %}not-verified{% endif %}'>
 	        <div class='email-input'>
+            {% if not primary_email.is_verified %}
+            <div class="verification-label">
+              <span class="label label-warning">Unverified</span>
+            </div>
+            {% endif %}
 		        {{ email_form.primary_email|as_crispy_field }}
 	        </div>
-	        <div class='verified-status'>
-		        {% if primary_email.is_verified %}
-		        <span class='btn btn-success'>Verified</span>{% else %}<a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-warning'>Unverified</a>
-		        {% endif %}
-	        </div>
+	        {% if not primary_email.is_verified %}
+          <div class='verified-status'>
+		        <a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-default'>Resend verification</a>
+          </div>
+	        {% endif %}
 	      </div>
         <br>
         <label for='id_alternative_emails' class='control-label'>Alternative Emails</label>
         {% if alt_emails %}
-        <table class="table table-bordered" style="margin-bottom: 20px">
+        <table class="table table-bordered m-b-0">
 	        <tbody>
         	{% for email in alt_emails %}
         	<tr>
-        		<td style="text-align:center">{{ email.email }}</td>
-        		<td style="text-align:center">
-	        	{% if email.is_verified %}
-		    		<span class='btn btn-success'>Verified</span>{% else %}<a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-warning'>Unverified</a>
-		    	{% endif %}
-		    	</td>
-		    	<td style="text-align:center">
-			    	<input type='hidden' name='email' value={{ email.email }}>
-				    <button type='submit' name='remove' class='btn btn-danger remove'>Remove</button>
-			    </td>
-		    </tr>
+        		<td>
+              {{ email.email }}
+              {% if not email.is_verified %}
+                <span class="label label-warning">Unverified</span>
+              {% endif %}
+            </td>
+        		<td class="align-center">
+            {% if not email.is_verified %}
+                <a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-default btn-sm'>Resend verification</a>
+            {% endif %}
+  		    	</td>
+  		    	<td style="text-align:center">
+  			    	<input type='hidden' name='email' value={{ email.email }}>
+  				    <button type='submit' name='remove' class='btn btn-danger btn-sm remove'><span class="icon-trash"></span></button>
+  			    </td>
+  		    </tr>
 		    </tbody>
 	    {% endfor %}
 	    </table>
