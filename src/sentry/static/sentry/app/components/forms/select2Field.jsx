@@ -8,6 +8,7 @@ export default class Select2Field extends InputField {
     return (
       <select id={this.getId()}
           className="form-control"
+          ref="input"
           onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
           value={this.state.value}>
