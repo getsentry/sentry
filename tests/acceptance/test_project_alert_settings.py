@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.models import Rule
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -26,6 +27,24 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
             role='owner',
             teams=[self.team],
         )
+
+        action_data = {
+            'id': 'sentry.rules.actions.notify_event.NotifyEventAction',
+        }
+        condition_data = {
+            'id': 'sentry.rules.conditions.every_event.EveryEventCondition',
+        }
+
+        Rule.objects.filter(project=self.project).delete()
+
+        Rule.objects.create(
+            project=self.project,
+            data={
+                'conditions': [condition_data],
+                'actions': [action_data],
+            }
+        )
+
         self.login_as(self.user)
         self.path1 = '/{}/{}/settings/alerts/'.format(self.org.slug, self.project.slug)
         self.path2 = '/{}/{}/settings/alerts/rules/'.format(self.org.slug, self.project.slug)
