@@ -168,22 +168,25 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
             transaction_id = uuid4().hex
+            countdown = 86400
 
-            delete_organization.apply_async(
-                kwargs={
-                    'object_id': organization.id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=86400,
-            )
-
-            self.create_audit_entry(
+            entry = self.create_audit_entry(
                 request=request,
                 organization=organization,
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_REMOVE,
                 data=organization.get_audit_log_data(),
                 transaction_id=transaction_id,
+            )
+
+            organization.send_delete_confirmation(entry, countdown)
+
+            delete_organization.apply_async(
+                kwargs={
+                    'object_id': organization.id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=countdown,
             )
 
             delete_logger.info('object.delete.queued', extra={
