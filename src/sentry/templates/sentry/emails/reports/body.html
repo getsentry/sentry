@@ -129,15 +129,18 @@
     }
 
     .project-breakdown .graph {
-      /* I have no idea if this will actually work! */
-      border-spacing: 10px;
-      border-collapse: separate;
-      margin: 0 -10px;
-      width: 620px;
     }
 
     .project-breakdown .graph td {
         font-size: 0;
+    }
+
+    .project-breakdown .graph td {
+        border-right: 10px solid #fff;
+    }
+
+    .project-breakdown .graph td:last-child {
+        border-right: none;
     }
 
     .project-breakdown .graph .label {
