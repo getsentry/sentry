@@ -42,6 +42,7 @@ ATTR_CHOICES = [
     'message',
     'platform',
     'environment',
+    'type',
     'exception.type',
     'exception.value',
     'user.id',
@@ -107,6 +108,9 @@ class EventAttributeCondition(EventCondition):
 
         elif path[0] == 'environment':
             return [event.get_tag('environment')]
+
+        elif path[0] == 'type':
+            return [event.data['type']]
 
         elif len(path) == 1:
             return []
