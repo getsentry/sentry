@@ -22,7 +22,7 @@ from sentry.utils.validators import is_event_id
 
 GENERIC_ERROR = _('An unknown error occurred while submitting your report. Please try again.')
 FORM_ERROR = _('Some fields were invalid. Please correct the errors and try again.')
-SENT_MESSAGE = ('Your feedback has been sent. Thank you!')
+SENT_MESSAGE = _('Your feedback has been sent. Thank you!')
 
 
 class UserReportForm(forms.ModelForm):
