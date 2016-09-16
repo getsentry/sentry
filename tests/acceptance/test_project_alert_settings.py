@@ -37,6 +37,8 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.get(self.path1)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project alert settings')
+        self.browser.click('button.ref-webhooks')
+        self.browser.snapshot('project alert settings webhooks enabled')
 
     def test_rules_load(self):
         self.project.update(first_event=timezone.now())

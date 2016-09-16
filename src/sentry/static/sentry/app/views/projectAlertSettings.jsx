@@ -160,7 +160,7 @@ const InactivePlugins = React.createClass({
             {plugins.map((plugin) => {
               return (
                 <li key={plugin.id}>
-                  <button onClick={this.enablePlugin.bind(this, plugin)}>
+                  <button onClick={this.enablePlugin.bind(this, plugin)} className={`ref-${plugin.id}`}>
                     {plugin.name}
                   </button>
                 </li>

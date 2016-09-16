@@ -51,12 +51,18 @@ class Browser(object):
         self.driver.delete(self.route(path), *args, **kwargs)
         return self
 
+    def element(self, selector):
+        return self.driver.find_elements_by_css_selector(selector)
+
     def element_exists(self, selector):
         try:
-            self.driver.find_elements_by_css_selector(selector)
+            self.element(selector)
         except NoSuchElementException:
             return False
         return True
+
+    def click(self, selector):
+        self.element(selector).click()
 
     def wait_until(self, selector, timeout=3):
         """
