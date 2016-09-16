@@ -58,6 +58,9 @@ class SettingsBase extends React.Component {
     this.setState({
       state: FormState.ERROR
     }, callbackWithArgs(callback, ...args));
+    IndicatorStore.add(t('An unknown error occurred. Refresh to try again.'), 'error', {
+      duration: 3000
+    });
   }
 
   onSave(callback, ...args) {

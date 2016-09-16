@@ -70,7 +70,7 @@ class PluginSettings extends SettingsBase {
             errors: (error.responseJSON || {}).errors || {},
           });
         }),
-        complete: this.onSaveComplete.bind(this)
+        complete: this.onSaveComplete
       });
     });
   }

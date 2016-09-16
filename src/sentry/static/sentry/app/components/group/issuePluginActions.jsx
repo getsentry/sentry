@@ -30,6 +30,8 @@ class IssuePlugin extends SettingsBase {
      'errorHandler'
     ].map(method => this[method] = this[method].bind(this));
 
+    this.onSuccess = this.onSaveSuccess.bind(this, this.onSuccess.bind(this));
+
     Object.assign(this.state, {
       createFieldList: null,
       linkFieldList: null,
@@ -136,18 +138,20 @@ class IssuePlugin extends SettingsBase {
     });
   }
 
+  onSuccess() {
+    GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
+    this.props.onSuccess && this.props.onSuccess();
+  }
+
   createIssue() {
     this.onSave(() => {
       this.api.request(this.getPluginCreateEndpoint(), {
         data: this.state.createFormData,
-        success: this.onSaveSuccess.bind(this, data => {
-          GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-          this.props.onSuccess && this.props.onSuccess();
-        }),
+        success: this.onSuccess,
         error: this.onSaveError.bind(this, error => {
           this.setError(error, t('There was an error creating the issue.'));
         }),
-        complete: this.onSaveComplete.bind(this)
+        complete: this.onSaveComplete
       });
     });
   }
@@ -156,14 +160,11 @@ class IssuePlugin extends SettingsBase {
     this.onSave(() => {
       this.api.request(this.getPluginLinkEndpoint(), {
         data: this.state.linkFormData,
-        success: this.onSaveSuccess.bind(this, data => {
-          GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-          this.props.onSuccess && this.props.onSuccess();
-        }),
+        success: this.onSuccess,
         error: this.onSaveError.bind(this, error => {
           this.setError(error, t('There was an error linking the issue.'));
         }),
-        complete: this.onSaveComplete.bind(this)
+        complete: this.onSaveComplete
       });
     });
   }
@@ -171,14 +172,11 @@ class IssuePlugin extends SettingsBase {
   unlinkIssue() {
     this.onSave(() => {
       this.api.request(this.getPluginUnlinkEndpoint(), {
-        success: this.onSaveSuccess.bind(this, data => {
-          GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-          this.props.onSuccess && this.props.onSuccess();
-        }),
+        success: this.onSuccess,
         error: this.onSaveError.bind(this, error => {
           this.setError(error, t('There was an error unlinking the issue.'));
         }),
-        complete: this.onSaveComplete.bind(this)
+        complete: this.onSaveComplete
       });
     });
   }
