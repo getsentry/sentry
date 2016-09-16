@@ -1,6 +1,7 @@
 import React from 'react';
 import _ from 'underscore';
 
+import {Client} from '../../api';
 import {FormState} from '../../components/forms';
 import IndicatorStore from '../../stores/indicatorStore';
 import {t} from '../../locale';
@@ -31,6 +32,14 @@ class SettingsBase extends React.Component {
     this.state = {
       state: FormState.READY
     };
+  }
+
+  componentWillMount() {
+    this.api = new Client();
+  }
+
+  componentWillUnmount() {
+    this.api.clear();
   }
 
   onLoad(callback, ...args) {
@@ -68,6 +77,9 @@ class SettingsBase extends React.Component {
     this.setState({
       state: FormState.READY
     }, callbackWithArgs(callback, ...args));
+    IndicatorStore.add(t('Success!'), 'success', {
+      duration: 3000
+    });
   }
 
   onSaveError(callback, ...args) {

@@ -7,7 +7,6 @@ import {
   GenericField
 } from '../../components/forms';
 import SettingsBase from '../../components/bases/settingsBase';
-import {Client} from '../../api';
 import LoadingIndicator from '../../components/loadingIndicator';
 
 
@@ -29,16 +28,8 @@ class PluginSettings extends SettingsBase {
     });
   }
 
-  componentWillMount() {
-    this.api = new Client();
-  }
-
   componentDidMount() {
     this.fetchData();
-  }
-
-  componentWillUnmount() {
-    this.api.clear();
   }
 
   getPluginEndpoint() {
@@ -135,9 +126,9 @@ class PluginSettings extends SettingsBase {
 }
 
 PluginSettings.propTypes = {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    plugin: React.PropTypes.object.isRequired,
+  organization: React.PropTypes.object.isRequired,
+  project: React.PropTypes.object.isRequired,
+  plugin: React.PropTypes.object.isRequired,
 };
 
 export default PluginSettings;
