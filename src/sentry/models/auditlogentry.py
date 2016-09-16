@@ -174,6 +174,10 @@ class AuditLogEntry(Model):
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
             return 'edited the organization'
+        elif self.event == AuditLogEntryEvent.ORG_REMOVE:
+            return 'removed the organization'
+        elif self.event == AuditLogEntryEvent.ORG_RESTORE:
+            return 'restored the organization'
 
         elif self.event == AuditLogEntryEvent.TEAM_ADD:
             return 'created team %s' % (self.data['slug'],)
