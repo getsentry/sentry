@@ -6,38 +6,27 @@ import {
   FormState,
   GenericField
 } from '../../components/forms';
-import {Client} from '../../api';
-import IndicatorStore from '../../stores/indicatorStore';
+import SettingsBase from '../../components/bases/settingsBase';
 import LoadingIndicator from '../../components/loadingIndicator';
-import {t} from '../../locale';
 
 
-class PluginSettings extends React.Component {
+class PluginSettings extends SettingsBase {
   constructor(props) {
     super(props);
 
-    this.onSubmit = this.onSubmit.bind(this);
-    this.fetchData = this.fetchData.bind(this);
-
-    this.state = {
+    Object.assign(this.state, {
       fieldList: null,
       initialData: null,
       formData: null,
       errors: {},
-      state: FormState.READY
-    };
-  }
-
-  componentWillMount() {
-    this.api = new Client();
+      // override default FormState.READY if api requests are
+      // necessary to even load the form
+      state: FormState.LOADING
+    });
   }
 
   componentDidMount() {
     this.fetchData();
-  }
-
-  componentWillUnmount() {
-    this.api.clear();
   }
 
   getPluginEndpoint() {
@@ -58,68 +47,50 @@ class PluginSettings extends React.Component {
   }
 
   onSubmit() {
-    if (this.state.state == FormState.SAVING) {
-      return;
-    }
-    this.setState({
-      state: FormState.SAVING,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      this.api.request(this.getPluginEndpoint(), {
-        data: this.state.formData,
-        method: 'PUT',
-        success: (data) => {
-          let formData = {};
-          data.config.forEach((field) => {
-            formData[field.name] = field.value || field.defaultValue;
-          });
-          this.setState({
-            formData: formData,
-            initialData: Object.assign({}, formData),
-            state: FormState.READY,
-            errors: {},
-          });
-        },
-        error: (error) => {
-          this.setState({
-            state: FormState.ERROR,
-            errors: (error.responseJSON || {}).errors || {},
-          });
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error', {
-            duration: 3000
-          });
-        },
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      });
+    this.api.request(this.getPluginEndpoint(), {
+      data: this.state.formData,
+      method: 'PUT',
+      success: this.onSaveSuccess.bind(this, data => {
+        let formData = {};
+        data.config.forEach((field) => {
+          formData[field.name] = field.value || field.defaultValue;
+        });
+        this.setState({
+          formData: formData,
+          initialData: Object.assign({}, formData),
+          errors: {}
+        });
+      }),
+      error: this.onSaveError.bind(this, error => {
+        this.setState({
+          errors: (error.responseJSON || {}).errors || {},
+        });
+      }),
+      complete: this.onSaveComplete
     });
   }
 
   fetchData() {
     this.api.request(this.getPluginEndpoint(), {
-      success: (data) => {
+      success: data => {
         let formData = {};
         data.config.forEach((field) => {
           formData[field.name] = field.value || field.defaultValue;
         });
         this.setState({
           fieldList: data.config,
-          state: FormState.LOADING,
           formData: formData,
           initialData: Object.assign({}, formData)
-        });
+        // call this here to prevent FormState.READY from being
+        // set before fieldList is
+        }, this.onLoadSuccess);
       },
-      error: (error) => {
-        this.setState({
-          state: FormState.ERROR,
-        });
-      }
+      error: this.onLoadError
     });
   }
 
   render() {
-    if (!this.state.fieldList) {
+    if (this.state.state === FormState.LOADING) {
       return <LoadingIndicator />;
     }
     let isSaving = this.state.state === FormState.SAVING;
@@ -148,9 +119,9 @@ class PluginSettings extends React.Component {
 }
 
 PluginSettings.propTypes = {
-    organization: React.PropTypes.object.isRequired,
-    project: React.PropTypes.object.isRequired,
-    plugin: React.PropTypes.object.isRequired,
+  organization: React.PropTypes.object.isRequired,
+  project: React.PropTypes.object.isRequired,
+  plugin: React.PropTypes.object.isRequired,
 };
 
 export default PluginSettings;
