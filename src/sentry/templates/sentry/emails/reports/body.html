@@ -174,12 +174,16 @@
     <table class="graph">
       <tr>
         {% for timestamp, values in series.points %}
-        <td valign="bottom" class="bar" style="width: {% widthratio 1 series.points|length 100 %}%">
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
             <table>
               {% for key, count in values %}
                 <tr>
                   <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
                 </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #ebe9f7;"></td>
+                </td>
               {% endfor %}
               <tr>
                 <td class="label">

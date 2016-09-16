@@ -721,6 +721,10 @@ def build_project_breakdown_series(reports):
             overflow_report,
         ))
 
+    def summarize(key, points):
+        total = sum(points)
+        return [(key, total)] if total else []
+
     # Collect all of the independent series into a single series to make it
     # easier to render, resulting in a series where each value is a sequence of
     # (key, count) pairs.
@@ -728,7 +732,7 @@ def build_project_breakdown_series(reports):
         merge_series,
         [
             series_map(
-                lambda points: [(key, sum(points))],
+                functools.partial(summarize, key),
                 report[0],
             ) for key, report in selections
         ],
