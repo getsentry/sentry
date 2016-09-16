@@ -25,16 +25,15 @@
 	        <div class='email-input'>
             {% if not primary_email.is_verified %}
             <div class="verification-label">
-              <span class="label label-warning">Unverified</span>
+              <span class="label verification label-warning">Unverified</span>
+            </div>
+            {% else %}
+            <div class="verification-label">
+              <span class="label verification label-success">Verified</span>
             </div>
             {% endif %}
 		        {{ email_form.primary_email|as_crispy_field }}
 	        </div>
-	        {% if not primary_email.is_verified %}
-          <div class='verified-status'>
-		        <a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-default'>Resend verification</a>
-          </div>
-	        {% endif %}
 	      </div>
         <br>
         <label for='id_alternative_emails' class='control-label'>Alternative Emails</label>
@@ -46,14 +45,11 @@
         		<td>
               {{ email.email }}
               {% if not email.is_verified %}
-                <span class="label label-warning">Unverified</span>
+              <span class="label verification label-warning">Unverified</span>
+              {% else %}
+              <span class="label verification label-success">Verified</span>
               {% endif %}
             </td>
-        		<td class="align-center">
-            {% if not email.is_verified %}
-                <a href="{% url 'sentry-account-confirm-email-send' %}" class='btn btn-default btn-sm'>Resend verification</a>
-            {% endif %}
-  		    	</td>
   		    	<td style="text-align:center">
   			    	<input type='hidden' name='email' value={{ email.email }}>
   				    <button type='submit' name='remove' class='btn btn-danger btn-sm remove'><span class="icon-trash"></span></button>
@@ -62,7 +58,7 @@
 		    </tbody>
 	    {% endfor %}
 	    </table>
-	    <p class='help-block'>To use an email for notifications it must be verified</p>
+	    <p class='help-block'>To use an email for <a href="{% url "sentry-account-settings-notifications" %}">notifications</a> it must be verified</p>
 	    {% endif %}
 
 	    {% if not alt_emails %}

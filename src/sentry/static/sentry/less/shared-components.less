@@ -2601,8 +2601,16 @@ ul.faces {
 * ============================================================================
 */
 
-.label.label-warning {
-  background-color: @yellow-orange;
+.label.verification {
+
+  &.label-warning {
+    background-color: @yellow-orange;
+  }
+
+  &.label-success {
+    background-color: @green-light;
+  }
+
   display: inline;
   padding: .2em .6em .3em;
   font-size: 75%;
