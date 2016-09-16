@@ -26,10 +26,11 @@ const ProjectDigestSettings = React.createClass({
   },
 
   onFieldChange(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: {
+        ...this.state.formData,
+        [name]: value,
+      }
     });
   },
 
@@ -191,10 +192,13 @@ const ProjectAlertSettings = React.createClass({
 
   onDigestsChange(data) {
     // TODO(dcramer): propagate this in a more correct way
-    let project = this.state.project;
-    project.digestsMinDelay = data.digestsMinDelay;
-    project.digestsMaxDelay = data.digestsMaxDelay;
-    this.setState({project: project});
+    this.setState({
+      project: {
+        ...this.state.project,
+        digestsMinDelay: data.digestsMinDelay,
+        digestsMaxDelay: data.digestsMaxDelay,
+      },
+    });
   },
 
   enablePlugin(plugin) {
