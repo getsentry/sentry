@@ -73,6 +73,7 @@ from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
+from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
@@ -171,6 +172,8 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
             sentry.web.frontend.debug.mail.recover_account),
         url(r'^debug/mail/unassigned/$',
             DebugUnassignedEmailView.as_view()),
+        url(r'^debug/mail/org-delete-confirm/$',
+            sentry.web.frontend.debug.mail.org_delete_confirm),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
@@ -350,6 +353,8 @@ urlpatterns += patterns(
         name='sentry-create-project'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$', RemoveOrganizationView.as_view(),
         name='sentry-remove-organization'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/restore/$', RestoreOrganizationView.as_view(),
+        name='sentry-restore-organization'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'),
 
