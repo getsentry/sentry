@@ -11,6 +11,7 @@ from random import Random
 import six
 from django.contrib.webdesign.lorem_ipsum import WORDS
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
@@ -382,35 +383,25 @@ def report(request):
         organization=organization,
     )
 
-    project = Project(
-        id=1,
-        organization=organization,
-        team=team,
-        slug='project',
-        name='My Project',
-    )
+    projects = []
+    for i in xrange(0, random.randint(1, 8)):
+        name = ' '.join(
+            random.sample(
+                WORDS,
+                random.randint(1, 4)
+            )
+        )
+        projects.append(
+            Project(
+                id=i,
+                organization=organization,
+                team=team,
+                slug=slugify(name),
+                name=name,
+            )
+        )
 
     start, stop = reports._to_interval(timestamp, duration)
-
-    group_instances = {}
-
-    def fetch_group_instances(id_list):
-        results = {}
-        for id in id_list:
-            instance = group_instances.get(id)
-            if instance is not None:
-                results[id] = instance
-        return results
-
-    def make_group_id_generator():
-        group_generator = make_group_generator(random, project)
-        while True:
-            group = next(group_generator)
-            if random.random() < 0.95:
-                group_instances[group.id] = group
-            yield group.id
-
-    group_id_sequence = make_group_id_generator()
 
     def make_release_generator():
         id_sequence = itertools.count(1)
@@ -423,7 +414,7 @@ def report(request):
             )
             yield Release(
                 id=next(id_sequence),
-                project=project,
+                project=random.choice(projects),
                 version=''.join([
                     random.choice('0123456789abcdef') for _ in range(40)
                 ]),
@@ -442,20 +433,13 @@ def report(request):
 
     release_id_generator = make_release_id_generator()
 
-    def build_issue_list():
+    def build_issue_summaries():
         summaries = []
         for i in range(3):
             summaries.append(
                 int(random.weibullvariate(10, 1) * random.paretovariate(0.5))
             )
-
-        return summaries, [(
-            next(group_id_sequence),
-            (
-                int(random.paretovariate(0.3)),
-                int(random.paretovariate(0.3)),
-            ),
-        ) for _ in xrange(0, random.randint(1, 5))]
+        return summaries
 
     def build_release_list():
         return reports.trim_release_list([
@@ -464,6 +448,12 @@ def report(request):
                 max(1, int(random.weibullvariate(20, 0.15))),
             ) for _ in range(random.randint(0, 10))
         ])
+
+    def build_usage_summary():
+        return (
+            int(random.weibullvariate(3, 1) * random.paretovariate(0.2)),
+            int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
+        )
 
     def build_report():
         daily_maximum = random.randint(1000, 10000)
@@ -478,12 +468,7 @@ def report(request):
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
         ]
 
-        return series, aggregates, build_issue_list(), build_release_list()
-
-    report = reduce(
-        reports.merge_reports,
-        [build_report() for _ in xrange(0, random.randint(1, 3))]
-    )
+        return series, aggregates, build_issue_summaries(), build_release_list(), build_usage_summary()
 
     if random.random() < 0.85:
         personal = {
@@ -506,8 +491,7 @@ def report(request):
                 'stop': reports.date_format(stop),
             },
             'report': reports.to_context(
-                report,
-                fetch_group_instances,
+                {project: build_report() for project in projects}
             ),
             'organization': organization,
             'personal': personal,
