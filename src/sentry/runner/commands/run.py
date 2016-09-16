@@ -123,6 +123,9 @@ def smtp(bind, upgrade, noinput):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@click.option('--max-tasks-per-child', type=click.INT, help=(
+    'Maximum number of tasks a pool worker can execute before it\'s'
+    'terminated and replaced by a new worker.'))
 @log_options()
 @configuration
 def worker(**options):
