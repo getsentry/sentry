@@ -690,10 +690,7 @@ def build_project_breakdown_series(reports):
     selections = map(
         lambda (instance, color): (
             Key(
-                u'{} / {}'.format(
-                    instance.team.name,
-                    instance.name,
-                ),
+                instance.slug,
                 instance.get_absolute_url(),
                 color,
                 get_legend_data(reports[instance]),

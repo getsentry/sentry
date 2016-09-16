@@ -11,6 +11,7 @@ from random import Random
 import six
 from django.contrib.webdesign.lorem_ipsum import WORDS
 from django.core.urlresolvers import reverse
+from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
@@ -384,18 +385,19 @@ def report(request):
 
     projects = []
     for i in xrange(0, random.randint(1, 8)):
+        name = ' '.join(
+            random.sample(
+                WORDS,
+                random.randint(1, 4)
+            )
+        )
         projects.append(
             Project(
                 id=i,
                 organization=organization,
                 team=team,
-                slug='project-{}'.format(i),
-                name=' '.join(
-                    random.sample(
-                        WORDS,
-                        random.randint(1, 4)
-                    )
-                ),
+                slug=slugify(name),
+                name=name,
             )
         )
 
