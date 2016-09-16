@@ -505,14 +505,12 @@ Duration = namedtuple(
         'adjective',    # e.g. "daily" or "weekly",
         'noun',         # relative to today, e.g. "yesterday" or "this week"
         'date_format',  # date format used for large series x axis labeling
-        'short_date_format',  # date format used for small series x axis labeling
     ))
 
 durations = {
     (60 * 60 * 24 * 7): Duration(
         'weekly',
         'this week',
-        'l',
         'D',
     ),
 }

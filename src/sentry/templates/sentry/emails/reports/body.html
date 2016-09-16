@@ -67,7 +67,7 @@
           </tr>
           <tr class="labels">
             {% for timestamp, metrics in report.series.points %}
-              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.short_date_format }}</td>
+              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format }}</td>
             {% endfor %}
           </tr>
         </table>
