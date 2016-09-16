@@ -498,6 +498,7 @@ class EventManager(object):
 
         data['type'] = event_type.key
         data['metadata'] = event_metadata
+        tags.append(('event.type', event_type.key))
 
         # index components into ``Event.message``
         # See GH-3248
