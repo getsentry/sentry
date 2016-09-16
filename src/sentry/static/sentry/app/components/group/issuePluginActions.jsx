@@ -1,61 +1,79 @@
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
 import ApiMixin from '../../mixins/apiMixin';
-import {Form, Select2Field, Select2FieldAutocomplete, TextareaField, TextField} from '../../components/forms';
+import {
+  Form,
+  FormState,
+  Select2Field,
+  Select2FieldAutocomplete,
+  TextareaField,
+  TextField
+} from '../../components/forms';
 import DropdownLink from '../../components/dropdownLink';
 import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
-import IndicatorStore from '../../stores/indicatorStore';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import MenuItem from '../../components/menuItem';
+import SettingsBase from '../../components/bases/settingsBase';
 import {t} from '../../locale';
 import {defined, toTitleCase} from '../../utils';
 
-const IssuePlugin = React.createClass({
-  propTypes: {
-    plugin: React.PropTypes.object.isRequired,
-    actionType: React.PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
-    onSuccess: React.PropTypes.func
-  },
+class IssuePlugin extends SettingsBase {
+  constructor(props) {
+    super(props);
 
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+    this.createIssue = this.onSave.bind(this, this.createIssue.bind(this));
+    this.linkIssue = this.onSave.bind(this, this.linkIssue.bind(this));
+    this.unlinkIssue = this.onSave.bind(this, this.unlinkIssue.bind(this));
+    this.onSuccess = this.onSaveSuccess.bind(this, this.onSuccess.bind(this));
+    this.errorHandler = this.onLoadError.bind(this, this.errorHandler.bind(this));
 
-  getInitialState() {
-    return {
+    Object.assign(this.state, {
       createFieldList: null,
       linkFieldList: null,
       loading: ['link', 'create'].includes(this.props.actionType),
+      state: (['link', 'create'].includes(this.props.actionType) ?
+              FormState.LOADING : FormState.READY),
       error: null,
       createFormData: {},
       linkFormData: {}
-    };
-  },
+    });
+  }
 
-  componentWillMount() {
+  getGroup() {
+    return this.props.group;
+  }
+
+  getProject() {
+    return this.props.project;
+  }
+
+  getOrganization() {
+    return this.props.organization;
+  }
+
+  componentDidMount() {
     let plugin = this.props.plugin;
     if (!plugin.issue && this.props.actionType !== 'unlink') {
       this.fetchData();
     }
-  },
+  }
 
   getPluginCreateEndpoint() {
     return ('/issues/' + this.getGroup().id +
             '/plugins/' + this.props.plugin.slug + '/create/');
-  },
+  }
 
   getPluginLinkEndpoint() {
     return ('/issues/' + this.getGroup().id +
             '/plugins/' + this.props.plugin.slug + '/link/');
-  },
+  }
 
   getPluginUnlinkEndpoint() {
     return ('/issues/' + this.getGroup().id +
             '/plugins/' + this.props.plugin.slug + '/unlink/');
-  },
+  }
 
   setError(error, defaultMessage) {
     let errorBody;
@@ -65,7 +83,7 @@ const IssuePlugin = React.createClass({
       errorBody = {message: defaultMessage};
     }
     this.setState({error: errorBody});
-  },
+  }
 
   errorHandler(error) {
     let state = {
@@ -77,13 +95,9 @@ const IssuePlugin = React.createClass({
       state.error = {message: t('An unknown error occurred.')};
     }
     this.setState(state);
-  },
+  }
 
   fetchData() {
-    this.setState({
-      loading: true
-    });
-
     if (this.props.actionType === 'create') {
       this.api.request(this.getPluginCreateEndpoint(), {
         success: (data) => {
@@ -96,7 +110,7 @@ const IssuePlugin = React.createClass({
             error: null,
             loading: false,
             createFormData: createFormData
-          });
+          }, this.onLoadSuccess);
         },
         error: this.errorHandler
       });
@@ -112,71 +126,49 @@ const IssuePlugin = React.createClass({
             error: null,
             loading: false,
             linkFormData: linkFormData
-          });
+          }, this.onLoadSuccess);
         },
         error: this.errorHandler
       });
     }
-  },
+  }
+
+  onSuccess() {
+    GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
+    this.props.onSuccess && this.props.onSuccess();
+  }
 
   createIssue() {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.getPluginCreateEndpoint(), {
       data: this.state.createFormData,
-      success: (data) => {
-        GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-        IndicatorStore.add(t('Successfully created issue.'), 'success', {
-          duration: 3000
-        });
-        this.props.onSuccess && this.props.onSuccess();
-      },
-      error: (error) => {
+      success: this.onSuccess,
+      error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error creating the issue.'));
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
+      }),
+      complete: this.onSaveComplete
     });
-  },
+  }
 
   linkIssue() {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.getPluginLinkEndpoint(), {
       data: this.state.linkFormData,
-      success: (data) => {
-        GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-        IndicatorStore.add(t('Successfully linked issue.'), 'success', {
-          duration: 3000
-        });
-        this.props.onSuccess && this.props.onSuccess();
-      },
-      error: (error) => {
+      success: this.onSuccess,
+      error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error linking the issue.'));
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
+      }),
+      complete: this.onSaveComplete
     });
-  },
+  }
 
   unlinkIssue() {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(this.getPluginUnlinkEndpoint(), {
-      success: (data) => {
-        GroupActions.updateSuccess(null, [this.getGroup().id], {stale: true});
-        IndicatorStore.add(t('Successfully unlinked issue.'), 'success', {
-          duration: 3000
-        });
-        this.props.onSuccess && this.props.onSuccess();
-      },
-      error: (error) => {
+      success: this.onSuccess,
+      error: this.onSaveError.bind(this, error => {
         this.setError(error, t('There was an error unlinking the issue.'));
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
+      }),
+      complete: this.onSaveComplete
     });
-  },
+  }
 
   changeField(action, name, value) {
     let key = action + 'FormData';
@@ -185,7 +177,7 @@ const IssuePlugin = React.createClass({
     let state = {};
     state[key] = formData;
     this.setState(state);
-  },
+  }
 
   renderField(action, field) {
     let el;
@@ -219,7 +211,7 @@ const IssuePlugin = React.createClass({
         el = null;
     }
     return el;
-  },
+  }
 
   renderForm() {
     let form;
@@ -261,14 +253,14 @@ const IssuePlugin = React.createClass({
         form = null;
     }
     return form;
-  },
+  }
 
   getPluginConfigureUrl() {
     let org = this.getOrganization();
     let project = this.getProject();
     let plugin = this.props.plugin;
     return '/' + org.slug + '/' + project.slug + '/settings/plugins/' + plugin.slug;
-  },
+  }
 
   renderError() {
     let error = this.state.error;
@@ -321,10 +313,10 @@ const IssuePlugin = React.createClass({
       );
     }
     return <LoadingError/>;
-  },
+  }
 
   render() {
-    if (this.state.loading) {
+    if (this.state.state === FormState.LOADING) {
       return <LoadingIndicator />;
     }
     return (
@@ -334,7 +326,13 @@ const IssuePlugin = React.createClass({
       </div>
     );
   }
-});
+}
+
+IssuePlugin.propTypes = {
+  plugin: React.PropTypes.object.isRequired,
+  actionType: React.PropTypes.oneOf(['unlink', 'link', 'create']).isRequired,
+  onSuccess: React.PropTypes.func
+};
 
 
 const IssuePluginActions = React.createClass({
@@ -428,6 +426,9 @@ const IssuePluginActions = React.createClass({
           <Modal.Body>
             {this.state.actionType &&
               <IssuePlugin plugin={this.props.plugin}
+                           group={this.getGroup()}
+                           project={this.getProject()}
+                           organization={this.getOrganization()}
                            actionType={this.state.actionType}
                            onSuccess={this.closeModal}/>
             }
