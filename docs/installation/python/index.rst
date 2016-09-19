@@ -16,7 +16,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * Python 2.7
 * ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
   ``gcc``, ``libffi-dev``, ``libjpeg-dev``, ``libxml2-dev``, ``libxslt-dev``,
-  ``libyaml-dev``
+  ``libyaml-dev``, ``libpq-dev``
 
 If you're building from source you'll also need:
 

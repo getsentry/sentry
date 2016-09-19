@@ -28,6 +28,7 @@ class AuditLogEntryEvent(object):
     ORG_ADD = 10
     ORG_EDIT = 11
     ORG_REMOVE = 12
+    ORG_RESTORE = 13
 
     TEAM_ADD = 20
     TEAM_EDIT = 21
@@ -94,6 +95,7 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.ORG_ADD, 'org.create'),
         (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
         (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
+        (AuditLogEntryEvent.ORG_RESTORE, 'org.restore'),
 
         (AuditLogEntryEvent.TAGKEY_REMOVE, 'tagkey.remove'),
 
@@ -172,6 +174,10 @@ class AuditLogEntry(Model):
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
             return 'edited the organization'
+        elif self.event == AuditLogEntryEvent.ORG_REMOVE:
+            return 'removed the organization'
+        elif self.event == AuditLogEntryEvent.ORG_RESTORE:
+            return 'restored the organization'
 
         elif self.event == AuditLogEntryEvent.TEAM_ADD:
             return 'created team %s' % (self.data['slug'],)

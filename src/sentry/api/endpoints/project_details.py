@@ -129,6 +129,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
             'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
+            'sentry:safe_fields': project.get_option('sentry:safe_fields', []),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
             'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
             'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
@@ -233,6 +234,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
                 project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+            if 'sentry:safe_fields' in options:
+                project.update_option(
+                    'sentry:safe_fields',
+                    [s.strip().lower() for s in options['sentry:safe_fields']]
+                )
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',

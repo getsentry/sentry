@@ -19,6 +19,10 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         with self.feature('organizations:sso'):
             self.assert_team_admin_cannot_access(self.path)
 
+    def test_manager_cannot_load(self):
+        with self.feature('organizations:sso'):
+            self.assert_role_cannot_access(self.path, 'manager')
+
     def test_owner_can_load(self):
         with self.feature('organizations:sso'):
             self.assert_owner_can_access(self.path)

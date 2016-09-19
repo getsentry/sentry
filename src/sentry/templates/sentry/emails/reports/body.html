@@ -25,7 +25,8 @@
 
 <div class="container">
   <p class="info-box">
-    You're seeing a preview release of our Weekly Reports. Have feedback? Let us know by sending an email to <a href="mailto:support@getsentry.com">support@getsentry.com</a>.
+    You're seeing a preview release of our Weekly Reports.<br />
+    Have feedback? Let us know on our <a href="https://forum.sentry.io/t/weekly-reports-for-early-adopter-organizations/132">support forum</a>.
   </p>
 
   <table style="margin-bottom: 10px">
@@ -67,7 +68,7 @@
           </tr>
           <tr class="labels">
             {% for timestamp, metrics in report.series.points %}
-              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format }}</td>
+              <td title="{{ timestamp }}" style="width: {% widthratio 1 report.series.points|length 100 %}%">{{ timestamp|date:duration.date_format|first }}</td>
             {% endfor %}
           </tr>
         </table>
@@ -85,7 +86,7 @@
                 {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
             {% endwith %}
             </div>
-            <small>{% if change >= 0 %}more{% else %}fewer{% endif %} events than {{ label }}</small>
+            <small>{% if change >= 0 %}more{% else %}less{% endif %} than {{ label }}</small>
           {% else %}
             <small class="empty">There is not enough data to compare to {{ label }}.</small>
           {% endif %}
@@ -98,7 +99,7 @@
   <table class="issue-breakdown">
     <tr>
       <td>
-        <h4>Issue Breakdown</h4>
+        <h4>Events by Issue Type</h4>
       </td>
       <td class="legend">
         {% for type, count in report.distribution.types %}
@@ -122,48 +123,155 @@
   </table>
   {% endwith %}
 
-  <table class="issue-table">
-    <thead>
+  <style type="text/css">
+
+    .project-breakdown {
+      margin-bottom: 40px;
+    }
+
+    .project-breakdown .graph {
+      table-layout: fixed;
+    }
+
+    .project-breakdown .graph td {
+        font-size: 0;
+        border-right: 10px solid #fff;
+    }
+
+    .project-breakdown .graph td:last-child {
+        border-right: none;
+    }
+
+    .project-breakdown .graph .label {
+      font-size: 14px;
+      color: #848296;
+      text-align: center;
+      padding-top: 10px;
+    }
+
+    .project-breakdown .summary thead th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #88859a;
+      font-weight: 500;
+    }
+
+    .project-breakdown .summary tbody td {
+      font-size: 14px;
+      padding: 10px 0 0 0;
+    }
+
+    .project-breakdown .summary .numeric {
+      text-align: center;
+    }
+
+  </style>
+
+  <div class="project-breakdown">
+
+    {% with series=report.projects.series height=110 %}
+
+    <h4>Events by Project</h4>
+
+    <table class="graph">
       <tr>
-        <th>
-          <h4>New and Reopened Issues {{ duration.noun|title }}</h4>
-        </th>
-        <th class="narrow-column">Events</th>
-        <th class="narrow-column">Users</th>
+        {% for timestamp, values in series.points %}
+        <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+            <table>
+              {% for key, count in values %}
+                <tr>
+                  <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td height="1" style="background-color: #ebe9f7;"></td>
+                </td>
+              {% endfor %}
+              <tr>
+                <td class="label">
+                  {{ timestamp|date:duration.date_format }}
+                </tr>
+              </td>
+            </table>
+          </td>
+        {% endfor %}
       </tr>
-    </thead>
-    <tbody>
-      {% for group, statistics in report.issue_list.issues %}
+    </table>
+
+    <table class="summary">
+      <thead>
         <tr>
-          <td class="issue">
-            {% include "sentry/emails/_group.html" %}
-            <small>
-              Last seen at {{ group.last_seen }}
-              in <a href="{% absolute_uri project_link %}" class="issue-project">{{ group.project.name }}</a>
-            </small>
-          </td>
-          <td class="narrow-column">{{ statistics.events|small_count }}</td>
-          <td class="narrow-column">{{ statistics.users|small_count }}</td>
+          <th style="width: 1em;"></th>
+          <th style="width: 7em;" class="numeric">Events</th>
+          <th>Project</th>
+          <th style="width: 7em;" class="numeric">Filtered</th>
+          <th style="width: 7em;" class="numeric">Rate Limited</th>
         </tr>
-      {% empty %}
+      </thead>
+      <tbody>
+      {% for key in series.legend %}
         <tr>
-          <td class="empty" colspan="3">
-            {# TODO: This is probably not the best way to articulate this. #}
-            There were no issues this period.
+          <td>
+            <span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>
           </td>
+          <td class="numeric">{{ key.data.events|small_count:1 }}</div>
+          <td>
+              {% if key.url %}<a href="{{ key.url }}" style="font-weight: bold;">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+          </td>
+          <td class="numeric">{{ key.data.filtered|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.rate_limited|small_count:1 }}</td>
         </tr>
       {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+    {% endwith %}
 
-  {% if personal.resolved or personal.users %}
+  </div>
+
+  {% if personal.resolved and personal.users %}
     <h4>Your impact</h4>
     <table class="user-impact">
       <tr>
         <td width="50%">
           <table>
             <tr>
-              <td class="user-impact-stat">{{ personal.resolved|small_count:0 }}</td>
+              <td class="user-impact-stat">
+                <table>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td width="64px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
+                    </td>
+                    <td class="count">
+                      {{ personal.resolved|small_count:0 }}
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td width="64px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                </table>
+              </td>
               <td class="user-impact-text">Issue{{ personal.resolved|pluralize }} resolved this week by you.</td>
             </tr>
           </table>
@@ -171,7 +279,43 @@
         <td width="50%">
           <table>
             <tr>
-              <td class="user-impact-stat">{{ personal.users|small_count:0 }}</td>
+              <td class="user-impact-stat">
+                <table>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td>
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
+                    </td>
+                    <td class="count">
+                      {{ personal.users|small_count:0 }}
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
+                    </td>
+                  </tr>
+                  <tr>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
+                    </td>
+                    <td>
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
+                    </td>
+                    <td width="11px">
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
+                    </td>
+                  </tr>
+                </table>
+              </td>
               <td class="user-impact-text">User{{ personal.users|pluralize }} rejoicing because of it.</td>
             </tr>
           </table>

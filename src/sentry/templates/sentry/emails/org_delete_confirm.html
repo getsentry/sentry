@@ -1,0 +1,14 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Organization Queued for Deletion</h3>
+    <p>The <strong>{{ organization.name }}</strong> organization has been scheduled for deletion by:</p>
+    <p><pre>User: {{ audit_log_entry.actor.get_display_name }}
+IP: {{ audit_log_entry.ip_address }}
+Date: {{ audit_log_entry.datetime }}</pre></p>
+    <p>This irreversible deletion will take place at <strong>{{ eta }}</strong> and will permanently remove all associated data including events, projects, and team members.</p>
+    <p><strong>If this was unintentional and you would like to cancel the deletion:<strong></p>
+    <p><a href="{{ url }}" class="btn">Restore Organization</a></p>
+{% endblock %}

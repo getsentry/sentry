@@ -89,6 +89,8 @@ class Release(Model):
                     'date_added': date_added,
                 },
             )[0]
+            # TODO(dcramer): upon creating a new release, check if it should be
+            # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
 
         return release

@@ -118,15 +118,16 @@ class BaseBuildCommand(Command):
 
         if os.path.exists(os.path.join(work_path, '.git')):
             log.info('initializing git submodules')
-            check_output(['git', 'submodule', 'init'], cwd=work_path)
-            check_output(['git', 'submodule', 'update'], cwd=work_path)
+            self._run_command(['git', 'submodule', 'init'])
+            self._run_command(['git', 'submodule', 'update'])
 
     def _setup_npm(self):
-        work_path = self.work_path
         node_version = []
         for app in 'node', 'npm':
             try:
-                node_version.append(check_output([app, '--version']).rstrip())
+                node_version.append(
+                    self._run_command([app, '--version']).rstrip()
+                )
             except OSError:
                 log.fatal('Cannot find `{0}` executable. Please install {0}`'
                           ' and try again.'.format(app))
@@ -134,8 +135,18 @@ class BaseBuildCommand(Command):
 
         log.info('using node ({}) and npm ({})'.format(*node_version))
 
-        log.info('running [npm install --production --quiet]')
-        check_output(['npm', 'install', '--production', '--quiet'], cwd=work_path)
+        self._run_command(['npm', 'install', '--production', '--quiet'])
+
+    def _run_command(self, cmd, env=None):
+        log.debug('running [%s]' % (' '.join(cmd),))
+        try:
+            return check_output(cmd, cwd=self.work_path, env=env)
+        except Exception:
+            log.error('command failed [%s] via [%s]' % (
+                ' '.join(cmd),
+                self.work_path,
+            ))
+            raise
 
     def update_manifests(self):
         # if we were invoked from sdist, we need to inform sdist about

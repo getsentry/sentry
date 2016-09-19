@@ -370,6 +370,12 @@ class StoreView(APIView):
                 project.get_option(sensitive_fields_key, [])
             )
 
+            exclude_fields_key = 'sentry:safe_fields'
+            exclude_fields = (
+                org_options.get(exclude_fields_key, []) +
+                project.get_option(exclude_fields_key, [])
+            )
+
             if org_options.get('sentry:require_scrub_defaults', False):
                 scrub_defaults = True
             else:
@@ -378,6 +384,7 @@ class StoreView(APIView):
             inst = SensitiveDataFilter(
                 fields=sensitive_fields,
                 include_defaults=scrub_defaults,
+                exclude_fields=exclude_fields,
             )
             inst.apply(data)
 

@@ -320,13 +320,7 @@ class PermissionTestCase(TestCase):
         assert resp.status_code >= 300
 
     def assert_member_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='member', teams=[self.team],
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'member')
 
     def assert_teamless_member_can_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -338,22 +332,10 @@ class PermissionTestCase(TestCase):
         self.assert_can_access(user, path)
 
     def assert_member_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='member', teams=[self.team],
-        )
-
-        self.assert_cannot_access(user, path)
+        return self.assert_role_cannot_access(path, 'member')
 
     def assert_manager_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='manager', teams=[self.team],
-        )
-
-        self.assert_cannot_access(user, path)
+        return self.assert_role_cannot_access(path, 'manager')
 
     def assert_teamless_member_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -365,13 +347,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path)
 
     def assert_team_admin_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            teams=[self.team], role='admin',
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'owner')
 
     def assert_teamless_admin_can_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -383,13 +359,7 @@ class PermissionTestCase(TestCase):
         self.assert_can_access(user, path)
 
     def assert_team_admin_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            teams=[self.team], role='admin',
-        )
-
-        self.assert_cannot_access(user, path)
+        return self.assert_role_cannot_access(path, 'admin')
 
     def assert_teamless_admin_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -401,34 +371,34 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path)
 
     def assert_team_owner_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            teams=[self.team], role='owner',
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'owner')
 
     def assert_owner_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='owner', teams=[self.team],
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'owner')
 
     def assert_owner_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='owner', teams=[self.team],
-        )
-
-        self.assert_cannot_access(user, path)
+        return self.assert_role_cannot_access(path, 'owner')
 
     def assert_non_member_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
+        self.assert_cannot_access(user, path)
+
+    def assert_role_can_access(self, path, role):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization,
+            role=role, teams=[self.team],
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_role_cannot_access(self, path, role):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization,
+            role=role, teams=[self.team],
+        )
+
         self.assert_cannot_access(user, path)
 
 
