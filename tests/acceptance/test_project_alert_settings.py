@@ -53,7 +53,10 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.get(self.path1)
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project alert settings')
-        self.browser.click('button.ref-webhooks')
+        self.browser.wait_until('.ref-plugin-enable-webhooks')
+        self.browser.click('.ref-plugin-enable-webhooks')
+        self.browser.wait_until('.ref-plugin-config-webhooks')
+        self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project alert settings webhooks enabled')
 
     def test_rules_load(self):

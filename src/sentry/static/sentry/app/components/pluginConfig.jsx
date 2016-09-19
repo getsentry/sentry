@@ -86,7 +86,7 @@ const PluginConfig = React.createClass({
             // <button className="btn btn-sm btn-default pull-right"
             //         onClick={this.disablePlugin.bind(this, data)}>{t('Disable')}</button>}
     return (
-      <div className="box">
+      <div className={`box ref-plugin-config-${data.id}`}>
         <div className="box-header">
           {data.canDisable && data.enabled &&
             <div className="pull-right">

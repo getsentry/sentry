@@ -92,7 +92,7 @@
             {% endifchanged %}
             <tr>
               <td>
-                <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{{ project.organization.slug}} / {{ project.slug }}</a>
+                <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{{ project.organization.slug}} / {{ project.slug }}</a>
               </td>
               <td style="text-align:center">{{ form.alert }}</td>
               <td style="text-align:center">{{ form.workflow }}</td>
