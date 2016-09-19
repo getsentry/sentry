@@ -319,3 +319,14 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
         assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_does_sanitize_social_security_number(self):
+        data = {
+            'extra': {
+                's': '123-45-6789',
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data['extra'] == {'s': FILTER_MASK}

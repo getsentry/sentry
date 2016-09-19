@@ -49,7 +49,10 @@ class SensitiveDataFilter(object):
     VALUES_RE = re.compile(r'|'.join([
         # http://www.richardsramblings.com/regex/credit-card-numbers/
         r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
-        r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----'
+        # various private/public keys
+        r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
+        # social security numbers (US)
+        r'^\b\d{3}-?\d{2}-?\d{4}\b',
     ]), re.DOTALL)
     URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
 
