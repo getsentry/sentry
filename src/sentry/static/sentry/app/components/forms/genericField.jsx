@@ -31,7 +31,8 @@ export default class GenericField extends React.Component {
   render() {
     let config = this.props.config;
     let required = defined(config.required) ? config.required : true;
-    let props = Object.assign(Object.assign({}, config), {
+    let props = {
+      ...config,
       value: this.props.formData[config.name],
       onChange: this.props.onChange,
       label: config.label + (required ? '*' : ''),
@@ -46,7 +47,7 @@ export default class GenericField extends React.Component {
         defined(config.help) && config.help !== '' ? (
           <span dangerouslySetInnerHTML={{__html: config.help}} />
         ) : null,
-    });
+    };
 
     switch (config.type) {
       case 'secret':

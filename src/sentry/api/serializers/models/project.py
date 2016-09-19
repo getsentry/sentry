@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.utils import timezone
 
-from sentry import tsdb
+from sentry import tsdb, options
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.constants import StatsPeriod
@@ -187,6 +187,11 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             'sentry:blacklisted_ips',
             'sentry:releases',
             'sentry:error_messages',
+            'sentry:scrape_javascript',
+            'sentry:token',
+            'sentry:token_header',
+            'sentry:verify_ssl',
+            'sentry:scrub_ip_address',
             'feedback:branding',
             'digests:mail:minimum_delay',
             'digests:mail:maximum_delay',
@@ -280,19 +285,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 'latestRelease':
                 attrs['latest_release'],
                 'options': {
-                    'sentry:origins':
-                    '\n'.join(attrs['options'].get(
-                        'sentry:origins', ['*']) or []),
-                    'sentry:resolve_age':
-                    int(attrs['options'].get('sentry:resolve_age', 0)),
-                    'sentry:scrub_data':
-                    bool(attrs['options'].get('sentry:scrub_data', True)),
-                    'sentry:scrub_defaults':
-                    bool(attrs['options'].get('sentry:scrub_defaults', True)),
-                    'sentry:safe_fields':
-                    attrs['options'].get('sentry:safe_fields', []),
-                    'sentry:sensitive_fields':
-                    attrs['options'].get('sentry:sensitive_fields', []),
                     'sentry:csp_ignored_sources_defaults':
                     bool(attrs['options'].get(
                         'sentry:csp_ignored_sources_defaults', True)),
@@ -326,10 +318,28 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     digests.maximum_delay,
                 ),
                 'subjectPrefix':
-                attrs['options'].get('mail:subject_prefix'),
+                attrs['options'].get('mail:subject_prefix', options.get('mail.subject-prefix')),
+                'allowedDomains':
+                attrs['options'].get(
+                    'sentry:origins', ['*']),
+                'resolveAge':
+                int(attrs['options'].get('sentry:resolve_age', 0)),
+                'dataScrubber':
+                bool(attrs['options'].get('sentry:scrub_data', True)),
+                'dataScrubberDefaults':
+                bool(attrs['options'].get('sentry:scrub_defaults', True)),
+                'safeFields':
+                attrs['options'].get('sentry:safe_fields', []),
+                'sensitiveFields':
+                attrs['options'].get('sentry:sensitive_fields', []),
                 'subjectTemplate':
                 attrs['options'].get(
                     'mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
+                'securityToken': attrs['options'].get('sentry:token') or obj.get_security_token(),
+                'securityTokenHeader': attrs['options'].get('sentry:token_header') or 'X-Sentry-Token',
+                'verifySSL': bool(attrs['options'].get('sentry:verify_ssl', False)),
+                'scrubIPAddresses': bool(attrs['options'].get('sentry:scrub_ip_address', False)),
+                'scrapeJavaScript': bool(attrs['options'].get('sentry:scrape_javascript', True)),
                 'organization':
                 attrs['org'],
                 'plugins':

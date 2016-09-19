@@ -46,7 +46,6 @@ from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
-from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
@@ -413,7 +412,7 @@ urlpatterns += patterns(
     # Settings - Projects
     url(
         r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',
-        ProjectSettingsView.as_view(),
+        react_page_view,
         name='sentry-manage-project'
     ),
     url(
