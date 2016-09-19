@@ -8,18 +8,19 @@ sentry.utils.auth
 from __future__ import absolute_import
 
 import six
-import time
 import logging
 
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, resolve
+from time import time
 
 from sentry.models import User, Authenticator
-from sentry.web.helpers import get_login_url
 
 logger = logging.getLogger('sentry.auth')
+
+_LOGIN_URL = None
 
 
 class AuthUserPasswordExpired(Exception):
@@ -64,6 +65,44 @@ def get_pending_2fa_user(request):
 
 def has_pending_2fa(request):
     return request.session.get('_pending_2fa') is not None
+
+
+def get_login_url(reset=False):
+    global _LOGIN_URL
+
+    if _LOGIN_URL is None or reset:
+        # if LOGIN_URL resolves force login_required to it instead of our own
+        # XXX: this must be done as late as possible to avoid idempotent requirements
+        try:
+            resolve(settings.LOGIN_URL)
+        except Exception:
+            _LOGIN_URL = settings.SENTRY_LOGIN_URL
+        else:
+            _LOGIN_URL = settings.LOGIN_URL
+
+        if _LOGIN_URL is None:
+            _LOGIN_URL = reverse('sentry-login')
+    return _LOGIN_URL
+
+
+def initiate_login(request, next_url=None):
+    try:
+        del request.session['_after_2fa']
+    except KeyError:
+        pass
+
+    try:
+        del request.session['_pending_2fa']
+    except KeyError:
+        pass
+
+    if next_url:
+        request.session['_next'] = next_url
+    else:
+        try:
+            del request.session['_next']
+        except KeyError:
+            pass
 
 
 def get_login_redirect(request, default=None):
