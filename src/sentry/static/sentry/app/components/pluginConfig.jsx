@@ -19,7 +19,9 @@ const PluginConfig = React.createClass({
 
   getDefaultProps() {
     return {
-      onDisablePlugin: window.location.reload
+      onDisablePlugin: () => {
+        window.location.reload();
+      },
     };
   },
 
