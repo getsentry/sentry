@@ -24,7 +24,7 @@ const RateLimitEditor = React.createClass({
     };
   },
 
-  onProjectLimitChange(e, value) {
+  onProjectLimitChange(value) {
     this.setState({
       currentProjectLimit: value,
     });
