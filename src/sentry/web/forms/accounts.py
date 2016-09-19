@@ -421,6 +421,10 @@ class NotificationSettingsForm(forms.Form):
         label=_('Receive updates for all issues by default'),
         required=False,
     )
+    self_notifications = forms.BooleanField(
+        label=_('Receive notifications about my own activity'),
+        required=False,
+    )
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -450,6 +454,13 @@ class NotificationSettingsForm(forms.Form):
             ) == UserOptionValue.all_conversations
         )
 
+        self.fields['self_notifications'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='self_notifications',
+            default='0'
+        ) == '1'
+
     def get_title(self):
         return "General"
 
@@ -466,6 +477,13 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='subscribe_by_default',
             value='1' if self.cleaned_data['subscribe_by_default'] else '0',
+        )
+
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='self_notifications',
+            value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
         if self.cleaned_data.get('workflow_notifications') is True:
