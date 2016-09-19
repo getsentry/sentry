@@ -232,7 +232,8 @@
   .sentry-error-embed header p {
     font-size: 13px;
   }
-  .sentry-error-embed .hide-tiny {
+  .sentry-error-embed header h2 > span,
+  .sentry-error-embed header p > span {
     display: none;
   }
   .sentry-error-embed .form-submit {
@@ -254,8 +255,8 @@
 
 <div class="sentry-error-embed clearfix">
   <header>
-    <h2>{% trans "It looks like we're having <span class=\"hide-tiny\">some internal</span> issues." %}</h2>
-    <p><span class="hide-tiny">{% trans "Our team has been notified." %}</span> {% trans "If you'd like to help, tell us what happened below." %}</p>
+    <h2>{% blocktrans %}It looks like we're having <span>some internal</span> issues.{% endblocktrans %}</h2>
+    <p><span>{% trans "Our team has been notified." %}</span> {% trans "If you'd like to help, tell us what happened below." %}</p>
   </header>
   <form>
     <div class="error-wrapper"></div>
