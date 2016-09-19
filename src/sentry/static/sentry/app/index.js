@@ -80,6 +80,7 @@ export default {
     ProjectIssueTracking: require('./views/projectIssueTracking'),
     ProjectSelector: require('./components/projectHeader/projectSelector'),
     RuleEditor: require('./views/ruleEditor'),
+    Sidebar: require('./components/sidebar'),
     StackedBarChart: require('./components/stackedBarChart'),
     TimeSince: require('./components/timeSince'),
     TodoList: require('./components/todos'),
