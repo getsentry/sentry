@@ -97,7 +97,12 @@ class SensitiveDataFilter(object):
         if value is None:
             return
 
-        if key in self.exclude_fields:
+        if isinstance(key, six.string_types):
+            key = key.lower()
+        else:
+            key = ''
+
+        if key and key in self.exclude_fields:
             return value
 
         if isinstance(value, six.string_types):
@@ -109,11 +114,6 @@ class SensitiveDataFilter(object):
             # e.g. postgres://foo:password@example.com/db
             if '//' in value and '@' in value:
                 value = self.URL_PASSWORD_RE.sub(r'\1' + FILTER_MASK + '@', value)
-
-        if isinstance(key, six.string_types):
-            key = key.lower()
-        else:
-            key = ''
 
         original_value = value
         if isinstance(value, six.string_types):
