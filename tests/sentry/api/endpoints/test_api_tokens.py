@@ -35,6 +35,8 @@ class ApiTokensCreateTest(APITestCase):
         token = ApiToken.objects.get(
             user=self.user,
         )
+        assert not token.expires_at
+        assert not token.refresh_token
         scopes = [k for k, v in six.iteritems(token.scopes) if v]
         assert scopes == ['event:read']
 

@@ -51,8 +51,8 @@ def cleanup(days, project, concurrency, silent, model):
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.models import (
-        Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
-        LostPasswordHash, TagValue, GroupEmailThread,
+        ApiGrant, ApiToken, Event, EventMapping, Group, GroupRuleStatus,
+        GroupTagValue, LostPasswordHash, TagValue, GroupEmailThread,
     )
 
     models = {m.lower() for m in model}
@@ -76,7 +76,7 @@ def cleanup(days, project, concurrency, silent, model):
     )
 
     if not silent:
-        click.echo("Removing expired values for LostPasswordHash")
+        click.echo('Removing expired values for LostPasswordHash')
 
     if is_filtered('LostPasswordHash'):
         if not silent:
@@ -85,6 +85,18 @@ def cleanup(days, project, concurrency, silent, model):
         LostPasswordHash.objects.filter(
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
+
+    for model in [ApiGrant, ApiToken]:
+        if not silent:
+            click.echo('Removing expired values for {}'.format(model.__name__))
+
+        if is_filtered(model.__name__):
+            if not silent:
+                click.echo('>> Skipping {}'.format(model.__name__))
+        else:
+            model.objects.filter(
+                expires_at__lt=timezone.now()
+            ).delete()
 
     project_id = None
     if project:
