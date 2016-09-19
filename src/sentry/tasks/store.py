@@ -91,4 +91,5 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         if cache_key:
             default_cache.delete(cache_key)
         if start_time:
-            metrics.timing('events.time-to-process', time() - start_time)
+            metrics.timing('events.time-to-process', time() - start_time,
+                           instance=data['platform'])
