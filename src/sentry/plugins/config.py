@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 __all__ = ['PluginConfigMixin']
 
+from sentry.exceptions import PluginError
 from sentry.utils.forms import form_to_config
 
 from .validators import DEFAULT_VALIDATORS
@@ -41,6 +42,11 @@ class PluginConfigMixin(object):
         for config in self.get_config(project=project):
             if config['name'] != name:
                 continue
+
+            if value is None:
+                if config.get('required'):
+                    raise PluginError('Field is required')
+                return value
 
             for validator in DEFAULT_VALIDATORS.get(config['type'], ()):
                 value = validator(project=project, value=value, actor=actor)
