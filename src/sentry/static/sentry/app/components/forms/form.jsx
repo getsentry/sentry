@@ -62,8 +62,9 @@ export default class Form extends React.Component {
   onSubmitSuccess = data => {
     let curData = this.state.data;
     let newData = {};
-    Object.keys(data).forEach(k => {
-      if (curData.hasOwnProperty(k)) newData[k] = data[k];
+    Object.keys(curData).forEach(k => {
+      if (data.hasOwnProperty(k)) newData[k] = data[k];
+      else newData[k] = curData[k];
     });
 
     this.setState({

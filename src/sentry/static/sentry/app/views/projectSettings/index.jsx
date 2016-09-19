@@ -87,9 +87,9 @@ const ProjectSettings = React.createClass({
         <div className="col-md-2">
           <h6 className="nav-header">{t('Configuration')}</h6>
           <ul className="nav nav-stacked">
-            <li>
-              <a href={`${settingsUrlRoot}/`}>{t('General')}</a>
-            </li>
+            <ListLink to={`/${orgId}/${projectId}/settings/`} index={true}>
+              {t('General')}
+            </ListLink>
             <ListLink
               to={`/${orgId}/${projectId}/settings/alerts/`}
               isActive={loc => path.indexOf(loc.pathname) === 0}
