@@ -28,8 +28,8 @@ from sentry.web.forms.accounts import (
     AccountSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
 )
-from sentry.web.helpers import render_to_response, get_login_url
-from sentry.utils.auth import get_auth_providers, get_login_redirect
+from sentry.web.helpers import render_to_response
+from sentry.utils import auth
 
 
 def send_password_recovery_mail(user):
@@ -46,7 +46,7 @@ def send_password_recovery_mail(user):
 
 @login_required
 def login_redirect(request):
-    login_url = get_login_redirect(request)
+    login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
@@ -195,7 +195,7 @@ def settings(request):
         'form': form,
         'page': 'settings',
         'has_2fa': Authenticator.objects.user_has_2fa(request.user),
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
     })
     return render_to_response('sentry/account/settings.html', context, request)
 
@@ -229,7 +229,7 @@ def avatar_settings(request):
     context = csrf(request)
     context.update({
         'page': 'avatar',
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
     })
     return render_to_response('sentry/account/avatar.html', context, request)
 
@@ -258,7 +258,7 @@ def appearance_settings(request):
     context.update({
         'form': form,
         'page': 'appearance',
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
     })
     return render_to_response('sentry/account/appearance.html', context, request)
 
@@ -280,7 +280,7 @@ def email_unsubscribe_project(request, project_id):
         if 'cancel' not in request.POST:
             UserOption.objects.set_value(
                 request.user, project, 'mail:alert', 0)
-        return HttpResponseRedirect(get_login_url())
+        return HttpResponseRedirect(auth.get_login_url())
 
     context = csrf(request)
     context['project'] = project
@@ -296,7 +296,7 @@ def list_identities(request):
 
     identity_list = list(UserSocialAuth.objects.filter(user=request.user))
 
-    AUTH_PROVIDERS = get_auth_providers()
+    AUTH_PROVIDERS = auth.get_auth_providers()
 
     context = csrf(request)
     context.update({

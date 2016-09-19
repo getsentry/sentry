@@ -10,10 +10,10 @@ from __future__ import absolute_import
 
 from social_auth.middleware import SocialAuthExceptionMiddleware
 
+from sentry.utils import auth
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import get_login_url
 
 
 class SentrySocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):
     def get_redirect_uri(self, request, exception):
-        return absolute_uri(get_login_url())
+        return absolute_uri(auth.get_login_url())
