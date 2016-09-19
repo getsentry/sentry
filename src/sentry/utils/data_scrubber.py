@@ -56,13 +56,14 @@ class SensitiveDataFilter(object):
     ]), re.DOTALL)
     URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
 
-    def __init__(self, fields=None, include_defaults=True):
+    def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
         if fields:
             fields = tuple(fields)
         else:
             fields = ()
         if include_defaults:
             fields += DEFAULT_SCRUBBED_FIELDS
+        self.exclude_fields = set(exclude_fields)
         self.fields = set(fields)
 
     def apply(self, data):
@@ -95,6 +96,9 @@ class SensitiveDataFilter(object):
     def sanitize(self, key, value):
         if value is None:
             return
+
+        if key in self.exclude_fields:
+            return value
 
         if isinstance(value, six.string_types):
             if self.VALUES_RE.search(value):

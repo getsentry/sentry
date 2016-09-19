@@ -330,3 +330,25 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
         assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_exclude_fields_on_field_name(self):
+        data = {
+            'extra': {
+                'password': '123-45-6789',
+            },
+        }
+
+        proc = SensitiveDataFilter(exclude_fields=['password'])
+        proc.apply(data)
+        assert data['extra'] == {'password': '123-45-6789'}
+
+    def test_exclude_fields_on_field_value(self):
+        data = {
+            'extra': {
+                'foobar': '123-45-6789',
+            },
+        }
+
+        proc = SensitiveDataFilter(exclude_fields=['foobar'])
+        proc.apply(data)
+        assert data['extra'] == {'foobar': '123-45-6789'}
