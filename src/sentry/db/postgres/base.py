@@ -35,7 +35,7 @@ class CursorWrapper(object):
     @auto_reconnect_cursor
     @less_shitty_error_messages
     def execute(self, sql, params=None):
-        if params is not None:
+        if params:
             return self.cursor.execute(sql, params)
         return self.cursor.execute(sql)
 
