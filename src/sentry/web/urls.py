@@ -42,6 +42,8 @@ from sentry.web.frontend.group_tag_export import GroupTagExportView
 from sentry.web.frontend.home import HomeView
 from sentry.web.frontend.mailgun_inbound_webhook import \
     MailgunInboundWebhookView
+from sentry.web.frontend.oauth_authorize import OAuthAuthorizeView
+from sentry.web.frontend.oauth_token import OAuthTokenView
 from sentry.web.frontend.organization_api_key_settings import \
     OrganizationApiKeySettingsView
 from sentry.web.frontend.organization_api_keys import OrganizationApiKeysView
@@ -220,6 +222,10 @@ urlpatterns += patterns(
         name='sentry-release-hook'),
     url(r'^api/embed/error-page/$', ErrorPageEmbedView.as_view(),
         name='sentry-error-page-embed'),
+
+    # OAuth
+    url(r'^oauth/authorize/', OAuthAuthorizeView.as_view()),
+    url(r'^oauth/token/', OAuthTokenView.as_view()),
 
     # Auth
     url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),

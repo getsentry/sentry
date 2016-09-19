@@ -65,6 +65,9 @@ class TokenAuthentication(QuietBasicAuthentication):
         except ApiToken.DoesNotExist:
             raise AuthenticationFailed('Invalid token')
 
+        if token.is_expired():
+            raise AuthenticationFailed('Token expired')
+
         if not token.user.is_active:
             raise AuthenticationFailed('User inactive or deleted')
 

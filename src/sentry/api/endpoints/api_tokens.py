@@ -30,7 +30,7 @@ class ApiTokensEndpoint(Endpoint):
     def get(self, request):
         token_list = list(ApiToken.objects.filter(
             user=request.user,
-        ))
+        ).select_related('application'))
 
         return Response(serialize(token_list, request.user))
 
@@ -45,6 +45,8 @@ class ApiTokensEndpoint(Endpoint):
                 scopes=reduce(or_, (
                     getattr(ApiToken.scopes, k) for k in result['scopes']
                 )),
+                refresh_token=None,
+                expires_at=None,
             )
 
             return Response(serialize(token, request.user), status=201)
