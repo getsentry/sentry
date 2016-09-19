@@ -11,11 +11,11 @@ import {
 import GroupActions from '../../actions/groupActions';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
-import SettingsBase from '../../components/bases/settingsBase';
+import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import {t} from '../../locale';
 import {defined} from '../../utils';
 
-class IssueActions extends SettingsBase {
+class IssueActions extends PluginComponentBase {
   constructor(props) {
     super(props);
 

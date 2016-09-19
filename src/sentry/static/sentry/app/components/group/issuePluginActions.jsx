@@ -32,8 +32,9 @@ const IssuePluginActions = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    // TODO: this might be excessive...
-    this.loadPlugin(nextProps.plugin);
+    if (this.props.plugin.id !== nextProps.plugin.id) {
+      this.loadPlugin(nextProps.plugin);
+    }
   },
 
   ACTION_LABELS: {
