@@ -114,6 +114,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:scrub_data': False,
             'sentry:scrub_defaults': False,
             'sentry:sensitive_fields': ['foo', 'bar'],
+            'sentry:safe_fields': ['token'],
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
         }
@@ -127,6 +128,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
         assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
         assert project.get_option('sentry:sensitive_fields', []) == options['sentry:sensitive_fields']
+        assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
         assert project.get_option('sentry:csp_ignored_sources_defaults', True) == options['sentry:csp_ignored_sources_defaults']
         assert project.get_option('sentry:csp_ignored_sources', []) == options['sentry:csp_ignored_sources'].split('\n')
 

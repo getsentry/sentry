@@ -59,6 +59,17 @@ class OrganizationSettingsForm(forms.ModelForm):
         }),
         required=False,
     )
+    safe_fields = forms.CharField(
+        label=_('Global safe fields'),
+        help_text=_('Field names which data scrubbers should ignore. '
+                    'Separate multiple entries with a newline.<br /><strong>Note: These fields will be used in addition to project specific fields.</strong>'),
+        widget=forms.Textarea(attrs={
+            'placeholder': mark_safe(_('e.g. email')),
+            'class': 'span8',
+            'rows': '3',
+        }),
+        required=False,
+    )
     require_scrub_ip_address = forms.BooleanField(
         label=_('Prevent Storing of IP Addresses'),
         help_text=_('Preventing IP addresses from being stored for new events on all projects.'),
@@ -86,6 +97,13 @@ class OrganizationSettingsForm(forms.ModelForm):
 
         return filter(bool, (v.lower().strip() for v in value.split('\n')))
 
+    def clean_safe_fields(self):
+        value = self.cleaned_data.get('safe_fields')
+        if not value:
+            return
+
+        return filter(bool, (v.lower().strip() for v in value.split('\n')))
+
 
 class OrganizationSettingsView(OrganizationView):
     required_scope = 'org:write'
@@ -105,6 +123,7 @@ class OrganizationSettingsView(OrganizationView):
                 'require_scrub_data': bool(organization.get_option('sentry:require_scrub_data', False)),
                 'require_scrub_defaults': bool(organization.get_option('sentry:require_scrub_defaults', False)),
                 'sensitive_fields': '\n'.join(organization.get_option('sentry:sensitive_fields', None) or []),
+                'safe_fields': '\n'.join(organization.get_option('sentry:safe_fields', None) or []),
                 'require_scrub_ip_address': bool(organization.get_option('sentry:require_scrub_ip_address', False)),
                 'early_adopter': bool(organization.flags.early_adopter),
             }
@@ -124,6 +143,7 @@ class OrganizationSettingsView(OrganizationView):
                     'require_scrub_data',
                     'require_scrub_defaults',
                     'sensitive_fields',
+                    'safe_fields',
                     'require_scrub_ip_address'):
                 value = form.cleaned_data.get(opt)
                 if value is None:
