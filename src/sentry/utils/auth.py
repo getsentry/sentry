@@ -54,7 +54,7 @@ def get_pending_2fa_user(request):
         return
 
     user_id, created_at = rv
-    if created_at < time.time() - 60 * 5:
+    if created_at < time() - 60 * 5:
         return None
 
     try:
@@ -164,7 +164,7 @@ def login(request, user, passed_2fa=False, after_2fa=None):
     """
     has_2fa = Authenticator.objects.user_has_2fa(user)
     if has_2fa and not passed_2fa:
-        request.session['_pending_2fa'] = [user.id, time.time()]
+        request.session['_pending_2fa'] = [user.id, time()]
         if after_2fa is not None:
             request.session['_after_2fa'] = after_2fa
         return False
