@@ -4,7 +4,9 @@ from __future__ import absolute_import
 
 import mock
 import six
+from datetime import datetime
 
+import pytz
 from django.core import mail
 from django.utils import timezone
 from exam import fixture
@@ -241,6 +243,13 @@ class MailPluginTest(TestCase):
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
         assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
+
+    def test_get_digest_subject(self):
+        assert self.plugin.get_digest_subject(
+            mock.Mock(get_full_name=lambda: 'Rick & Morty'),
+            {mock.sentinel.group: 3},
+            datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
+        ) == '[Rick & Morty] 1 notification since Sept. 19, 2016, 1:02 a.m. UTC'
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send_async', autospec=True)

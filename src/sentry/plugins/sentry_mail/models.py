@@ -14,7 +14,7 @@ import six
 import sentry
 
 from django.core.urlresolvers import reverse
-from django.template.loader import render_to_string
+from django.utils import dateformat
 from django.utils.encoding import force_text
 from django.utils.safestring import mark_safe
 
@@ -196,6 +196,14 @@ class MailPlugin(NotificationPlugin):
                 send_to=[user_id],
             )
 
+    def get_digest_subject(self, project, counts, date):
+        return u'[{project}] {count} {noun} since {date}'.format(
+            project=project.get_full_name(),
+            count=len(counts),
+            noun='notification' if len(counts) == 1 else 'notifications',
+            date=dateformat.format(date, 'N j, Y, P e'),
+        )
+
     def notify_digest(self, project, digest):
         start, end, counts = get_digest_metadata(digest)
 
@@ -222,10 +230,12 @@ class MailPlugin(NotificationPlugin):
             'counts': counts,
         }
 
+        subject = self.get_digest_subject(project, counts, start)
+
         for user_id in self.get_send_to(project):
             self.add_unsubscribe_link(context, user_id, project)
             self._send_mail(
-                subject=render_to_string('sentry/emails/digests/subject.txt', context).rstrip(),
+                subject=subject,
                 template='sentry/emails/digests/body.txt',
                 html_template='sentry/emails/digests/body.html',
                 project=project,
