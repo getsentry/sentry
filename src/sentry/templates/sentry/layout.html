@@ -71,11 +71,39 @@
         {% show_system_status %}
     {% endif %}
 
+    {% if request.user.is_authenticated %}
+    <div id="blk_sidebar"></div>
+    <script>
+    $(function(){
+      var SidebarWrapper = React.createClass({
+        propTypes: {
+          organization: React.PropTypes.object
+        },
+        getChildContext: function () {
+          return {
+            organization: this.props.organization,
+          }
+        },
+        render: function () {
+          return React.createElement(Sentry.Sidebar);
+        }
+      });
+      SidebarWrapper.childContextTypes = {
+        organization: React.PropTypes.object
+      };
+      ReactDOM.render(React.createFactory(SidebarWrapper)({
+        organization: {% serialize_detailed_org organization %},
+      }), document.getElementById('blk_sidebar'));
+    });
+    </script>
+    {% endif %}
+
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
     {% block header %}
+    {% comment %}
     <header>
       <div class="container">
         {% if request.user.is_authenticated %}
@@ -139,6 +167,7 @@
         {% endif %}
       </div>
     </header>
+    {% endcomment %}
     {% endblock %}
 
     {% if organization and ACCESS.org_read %}
@@ -147,9 +176,6 @@
       <div class="container">
         <div class="pull-right">
           {% block header_action %}{% endblock %}
-        </div>
-        <div class="org-name">
-            <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
         </div>
         <div id="blk_projectselect"></div>
         <script>
