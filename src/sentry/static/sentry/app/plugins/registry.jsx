@@ -7,6 +7,10 @@ export default class Registry {
     this.assetCache = {};
   }
 
+  isLoaded(data) {
+    return defined(this.plugins[data.id]);
+  }
+
   loadAll(dataList, callback) {
     let remaining = dataList.length;
     let pluginList = [];

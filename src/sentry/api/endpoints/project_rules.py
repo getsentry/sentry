@@ -22,7 +22,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         queryset = Rule.objects.filter(
             project=project,
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
-        )
+        ).select_related('project')
 
         return self.paginate(
             request=request,

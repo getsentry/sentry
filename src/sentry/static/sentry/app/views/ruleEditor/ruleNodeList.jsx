@@ -64,8 +64,6 @@ const RuleNodeList = React.createClass({
     return (
       <div className={this.props.className}>
         <table className="node-list table" style={{marginBottom: '10px'}}>
-          <col />
-          <col style={{textAlign: 'right'}} />
           <tbody>
             {this.state.items.map((item, idx) => {
               return (
@@ -78,7 +76,7 @@ const RuleNodeList = React.createClass({
           </tbody>
         </table>
         <fieldset className="node-selector">
-          <SelectInput onChange={this.onAddRow}>
+          <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
             {this.props.nodes.map((node) => {
               return (

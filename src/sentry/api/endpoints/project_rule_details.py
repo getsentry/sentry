@@ -3,13 +3,15 @@ from __future__ import absolute_import
 from rest_framework import status
 from rest_framework.response import Response
 
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.models import Rule, RuleStatus
 
 
 class ProjectRuleDetailsEndpoint(ProjectEndpoint):
+    permission_classes = [ProjectSettingPermission]
+
     def get(self, request, project, rule_id):
         """
         Retrieve a rule

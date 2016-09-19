@@ -1,3 +1,7 @@
 import BasePlugin from './basePlugin';
 
-export class DefaultPlugin extends BasePlugin {}
+class DefaultPlugin extends BasePlugin {}
+
+DefaultPlugin.displayName = 'DefaultPlugin';
+
+export {DefaultPlugin};
