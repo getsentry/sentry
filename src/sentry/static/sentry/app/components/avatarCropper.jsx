@@ -350,7 +350,7 @@ const AvatarCropper = React.createClass({
       <div>
         {!src &&
         <div className="image-well well blankslate">
-          <p><a onClick={this.uploadClick}><strong>{t('Upload a photo')}</strong></a>{t(' to get started.')}</p>
+          <p><a onClick={this.uploadClick}><strong>Upload a photo</strong></a> to get started.</p>
         </div>}
         {this.renderImageCrop()}
         {this.renderCanvas()}
