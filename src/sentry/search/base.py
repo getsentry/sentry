@@ -9,6 +9,7 @@ sentry.search.base
 from __future__ import absolute_import
 
 ANY = object()
+EMPTY = object()
 
 
 class SearchBackend(object):

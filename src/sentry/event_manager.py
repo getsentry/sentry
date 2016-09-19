@@ -740,6 +740,7 @@ class EventManager(object):
                 merge_group.delay(
                     from_object_id=hash.group_id,
                     to_object_id=group.id,
+                    transaction_id=uuid4().hex,
                 )
 
         return GroupHash.objects.filter(

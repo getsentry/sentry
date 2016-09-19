@@ -53,6 +53,17 @@ class EditProjectForm(forms.ModelForm):
         }),
         required=False,
     )
+    safe_fields = forms.CharField(
+        label=_('Safe fields'),
+        help_text=_('Field names which data scrubbers should ignore. '
+                    'Separate multiple entries with a newline.'),
+        widget=forms.Textarea(attrs={
+            'placeholder': mark_safe(_('e.g. email')),
+            'class': 'span8',
+            'rows': '3',
+        }),
+        required=False,
+    )
     scrub_ip_address = forms.BooleanField(
         label=_('Don\'t store IP Addresses'),
         help_text=_('Prevent IP addresses from being stored for new events.'),
@@ -133,6 +144,13 @@ class EditProjectForm(forms.ModelForm):
 
         return filter(bool, (v.lower().strip() for v in value.split('\n')))
 
+    def clean_safe_fields(self):
+        value = self.cleaned_data.get('safe_fields')
+        if not value:
+            return
+
+        return filter(bool, (v.lower().strip() for v in value.split('\n')))
+
     def clean_team(self):
         value = self.cleaned_data.get('team')
         if not value:
@@ -195,6 +213,7 @@ class ProjectSettingsView(ProjectView):
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
                 'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
+                'safe_fields': '\n'.join(project.get_option('sentry:safe_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
                 'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
@@ -214,6 +233,7 @@ class ProjectSettingsView(ProjectView):
                 'scrub_data',
                 'scrub_defaults',
                 'sensitive_fields',
+                'safe_fields',
                 'scrub_ip_address',
                 'scrape_javascript',
                 'blacklisted_ips',

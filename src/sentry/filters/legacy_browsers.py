@@ -18,7 +18,7 @@ class LegacyBrowsersFilter(Filter):
     id = 'legacy-browsers'
     name = 'Filter out known errors from legacy browsers'
     description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
-    default = True
+    default = False
 
     def get_user_agent(self, data):
         try:

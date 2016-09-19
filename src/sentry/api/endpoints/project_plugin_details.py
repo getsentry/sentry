@@ -89,14 +89,15 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             if not errors.get(key):
                 cleaned[key] = value
 
-        try:
-            cleaned = plugin.validate_config(
-                project=project,
-                config=cleaned,
-                actor=request.user,
-            )
-        except PluginError as e:
-            errors['__all__'] = e.message
+        if not errors:
+            try:
+                cleaned = plugin.validate_config(
+                    project=project,
+                    config=cleaned,
+                    actor=request.user,
+                )
+            except PluginError as e:
+                errors['__all__'] = e.message
 
         if errors:
             return Response({
@@ -116,4 +117,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
                     value=value,
                 )
 
-        return Response({'message': OK_UPDATED})
+        context = serialize(
+            plugin, request.user, PluginWithConfigSerializer(project))
+
+        return Response(context)

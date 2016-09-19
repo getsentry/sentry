@@ -270,6 +270,8 @@ class BaseView(View, OrganizationMixin):
 
         audit_logger.info(entry.get_event_display(), extra=extra)
 
+        return entry
+
 
 class OrganizationView(BaseView):
     """

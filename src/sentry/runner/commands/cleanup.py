@@ -33,12 +33,13 @@ def get_project(value):
 
 
 @click.command()
-@click.option('--days', default=30, type=int, show_default=True, help='Numbers of days to truncate on.')
+@click.option('--days', default=30, show_default=True, help='Numbers of days to truncate on.')
 @click.option('--project', help='Limit truncation to only entries from project.')
 @click.option('--concurrency', type=int, default=1, show_default=True, help='The number of concurrent workers to run.')
 @click.option('--silent', '-q', default=False, is_flag=True, help='Run quietly. No output on success.')
+@click.option('--model', '-m', multiple=True)
 @configuration
-def cleanup(days, project, concurrency, silent):
+def cleanup(days, project, concurrency, silent, model):
     """Delete a portion of trailing data based on creation date.
 
     All data that is older than `--days` will be deleted.  The default for
@@ -53,6 +54,13 @@ def cleanup(days, project, concurrency, silent):
         Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
         LostPasswordHash, TagValue, GroupEmailThread,
     )
+
+    models = {m.lower() for m in model}
+
+    def is_filtered(model):
+        if not models:
+            return False
+        return model.lower() not in models
 
     # these models should be safe to delete without cascades, in order
     BULK_DELETES = (
@@ -69,9 +77,14 @@ def cleanup(days, project, concurrency, silent):
 
     if not silent:
         click.echo("Removing expired values for LostPasswordHash")
-    LostPasswordHash.objects.filter(
-        date_added__lte=timezone.now() - timedelta(hours=48)
-    ).delete()
+
+    if is_filtered('LostPasswordHash'):
+        if not silent:
+            click.echo('>> Skipping LostPasswordHash')
+    else:
+        LostPasswordHash.objects.filter(
+            date_added__lte=timezone.now() - timedelta(hours=48)
+        ).delete()
 
     project_id = None
     if project:
@@ -83,11 +96,15 @@ def cleanup(days, project, concurrency, silent):
     else:
         if not silent:
             click.echo("Removing old NodeStore values")
-        cutoff = timezone.now() - timedelta(days=days)
-        try:
-            nodestore.cleanup(cutoff)
-        except NotImplementedError:
-            click.echo("NodeStore backend does not support cleanup operation", err=True)
+        if is_filtered('NodeStore'):
+            if not silent:
+                click.echo('>> Skipping NodeStore')
+        else:
+            cutoff = timezone.now() - timedelta(days=days)
+            try:
+                nodestore.cleanup(cutoff)
+            except NotImplementedError:
+                click.echo("NodeStore backend does not support cleanup operation", err=True)
 
     for model, dtfield in BULK_DELETES:
         if not silent:
@@ -96,29 +113,41 @@ def cleanup(days, project, concurrency, silent):
                 days=days,
                 project=project or '*',
             ))
-        BulkDeleteQuery(
-            model=model,
-            dtfield=dtfield,
-            days=days,
-            project_id=project_id,
-        ).execute()
+        if is_filtered(model.__name__):
+            if not silent:
+                click.echo('>> Skipping %s' % model.__name__)
+        else:
+            BulkDeleteQuery(
+                model=model,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
+            ).execute()
 
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
     if not silent:
         click.echo("Removing expired values for EventMapping")
-    BulkDeleteQuery(
-        model=EventMapping,
-        dtfield='date_added',
-        days=min(days, 7),
-        project_id=project_id,
-    ).execute()
+    if is_filtered('EventMapping'):
+        if not silent:
+            click.echo('>> Skipping EventMapping')
+    else:
+        BulkDeleteQuery(
+            model=EventMapping,
+            dtfield='date_added',
+            days=min(days, 7),
+            project_id=project_id,
+        ).execute()
 
-    # Clean up FileBLob instances which are no longer used and aren't super
+    # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
     if not silent:
         click.echo("Cleaning up unused FileBlob references")
-    cleanup_unused_files(silent)
+    if is_filtered('FileBlob'):
+        if not silent:
+            click.echo('>> Skipping FileBlob')
+    else:
+        cleanup_unused_files(silent)
 
     for model, dtfield in GENERIC_DELETES:
         if not silent:
@@ -127,12 +156,16 @@ def cleanup(days, project, concurrency, silent):
                 days=days,
                 project=project or '*',
             ))
-        BulkDeleteQuery(
-            model=model,
-            dtfield=dtfield,
-            days=days,
-            project_id=project_id,
-        ).execute_generic()
+        if is_filtered(model.__name__):
+            if not silent:
+                click.echo('>> Skipping %s' % model.__name__)
+        else:
+            BulkDeleteQuery(
+                model=model,
+                dtfield=dtfield,
+                days=days,
+                project_id=project_id,
+            ).execute_generic()
 
 
 def cleanup_unused_files(quiet=False):

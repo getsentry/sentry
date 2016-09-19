@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.base import Endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.permissions import SystemPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -39,6 +39,7 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
 
 class DSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
+    permission_classes = (ProjectReleasePermission,)
 
     content_negotiation_class = ConditionalContentNegotiation
 
@@ -100,6 +101,7 @@ class GlobalDSymFilesEndpoint(Endpoint):
 
 class UnknownDSymFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
+    permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project):
         checksums = request.GET.getlist('checksums')

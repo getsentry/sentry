@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from django.core.urlresolvers import reverse
+from django.core import mail
 
 from sentry.models import Organization, OrganizationStatus
 from sentry.testutils import TestCase, PermissionTestCase
@@ -42,14 +45,43 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context['form']
         assert resp.context['team_list']
 
-    def test_success(self):
-        resp = self.client.post(self.path)
+    @patch('sentry.web.frontend.remove_organization.uuid4')
+    @patch('sentry.web.frontend.remove_organization.delete_organization')
+    def test_success(self, mock_delete_organization, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
+
+        owners = self.organization.get_owners()
+        assert len(owners) > 0
+
+        with self.tasks():
+            resp = self.client.post(self.path)
 
         assert resp.status_code == 302
 
-        organization = Organization.objects.get(id=self.organization.id)
+        org = Organization.objects.get(id=self.organization.id)
 
-        assert organization.status == OrganizationStatus.PENDING_DELETION
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        mock_delete_organization.apply_async.assert_called_once_with(
+            kwargs={
+                'object_id': org.id,
+                'transaction_id': 'abc123',
+            },
+            countdown=86400,
+        )
+
+        # Make sure we've emailed all owners
+        assert len(mail.outbox) == len(owners)
+        owner_emails = set(o.email for o in owners)
+        for msg in mail.outbox:
+            assert 'Deletion' in msg.subject
+            assert len(msg.to) == 1
+            owner_emails.remove(msg.to[0])
+        # No owners should be remaining
+        assert len(owner_emails) == 0
 
     def test_cannot_remove_default(self):
         Organization.objects.all().delete()

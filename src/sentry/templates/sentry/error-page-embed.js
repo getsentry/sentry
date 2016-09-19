@@ -13,14 +13,15 @@
     };
    */
 
-  var GENERIC_ERROR = '<p class="message-error">An unknown error occurred while submitting your report. Please try again.</p>';
-  var FORM_ERROR = '<p class="message-error">Some fields were invalid. Please correct the errors and try again.</p>';
+  var strings = {{ strings }};
+  var template = /*{{ template }}*/'';
+  var endpoint = /*{{ endpoint }}*/'';
+
+  var GENERIC_ERROR = '<p class="message-error">' + strings.generic_error + '</p>';
+  var FORM_ERROR = '<p class="message-error">' + strings.form_error + '</p>';
 
   // XMLHttpRequest.DONE does not exist in all browsers
   var XHR_DONE = 4;
-
-  var template = /*{{ template }}*/'';
-  var endpoint = /*{{ endpoint }}*/'';
 
   var serialize = function(form) {
     var q = [];
@@ -128,7 +129,7 @@
 
   SentryErrorEmbed.prototype.onSuccess = function() {
     this._errorWrapper.innerHTML = '';
-    this._formContent.innerHTML = '<p class="message-success">Your feedback has been sent. Thank you!</p>';
+    this._formContent.innerHTML = '<p class="message-success">' + strings.sent_message + '</p>';
     this._submitBtn.parentNode.removeChild(this._submitBtn);
   };
 

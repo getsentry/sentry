@@ -127,6 +127,8 @@ class Endpoint(APIView):
 
         audit_logger.info(entry.get_event_display(), extra=extra)
 
+        return entry
+
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         """

@@ -24,7 +24,6 @@ from six import BytesIO
 from time import time
 
 from sentry import filters
-from sentry.app import env
 from sentry.cache import default_cache
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP,
@@ -165,7 +164,6 @@ class ClientLogHelper(object):
         tags.update(context.get_tags_context())
         tags['project'] = project_label
 
-        extra['request'] = env.request
         extra['tags'] = tags
         extra['agent'] = context.agent
         extra['protocol'] = context.version
