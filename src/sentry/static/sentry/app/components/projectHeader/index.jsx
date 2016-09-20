@@ -1,7 +1,10 @@
 import React from 'react';
 import {Link} from 'react-router';
 
+
 import ProjectSelector from './projectSelector';
+import BookmarkToggle from '../projects/bookmarkToggle';
+
 import {t} from '../../locale';
 
 const ProjectHeader = React.createClass({
@@ -26,14 +29,18 @@ const ProjectHeader = React.createClass({
                 organization={org}
                 projectId={project.slug}/>
 
-              <div className="pull-right project-actions">
-              <a className=""><span className="icon icon-star-solid" /> Star</a>
-              <a className=""><span className="icon icon-signal" /> Subscribe</a>
+            <div className="pull-right project-actions">
+              <BookmarkToggle orgId={org.slug} project={project}>
+                <a className="">
+                  <span className={project.isBookmarked ? 'icon icon-star-solid active' : 'icon icon-star-solid'}/>
+                  {t('Star')}
+                </a>
                 {access.has('project:write') &&
                   <a className={navSection == 'settings' ? 'active' : ''} href={`/${org.slug}/${project.slug}/settings/`}>
                     <span className="icon icon-settings" /> {t('Settings')}
                   </a>
                 }
+              </BookmarkToggle>
             </div>
 
             <ul className="nav nav-tabs">
