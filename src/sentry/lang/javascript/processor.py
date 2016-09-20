@@ -269,9 +269,19 @@ def fetch_release_file(filename, release):
             cache.set(cache_key, -1, 3600)
             result = None
         else:
-            # Write the compressed version to cache, but return the deflated version
-            cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
-            result = (releasefile.file.headers, body.decode('utf-8'), 200)
+            try:
+                result = (releasefile.file.headers, body.decode('utf-8'), 200)
+            except UnicodeDecodeError:
+                error = {
+                    'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                    'value': 'utf8',
+                    'url': expose_url(releasefile.name),
+                }
+                raise CannotFetchSource(error)
+            else:
+                # Write the compressed version to cache, but return the deflated version
+                cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
+
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
@@ -280,7 +290,15 @@ def fetch_release_file(filename, release):
         # We got a cache hit, but the body is compressed, so we
         # need to decompress it before handing it off
         body = zlib.decompress(result[1])
-        result = (result[0], body.decode('utf-8'), result[2])
+        try:
+            result = (result[0], body.decode('utf-8'), result[2])
+        except UnicodeDecodeError:
+            error = {
+                'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                'value': 'utf8',
+                'url': expose_url(releasefile.name),
+            }
+            raise CannotFetchSource(error)
 
     return result
 
