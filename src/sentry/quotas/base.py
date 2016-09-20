@@ -98,7 +98,12 @@ class Quota(object):
         return quota
 
     def get_organization_quota(self, organization):
+        system_rate_limit = options.get('system.rate-limit')
+        # If there is only a single org, this one org should
+        # be allowed to consume the entire quota.
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            return system_rate_limit
         return self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            options.get('system.rate-limit'),
+            system_rate_limit,
         )
