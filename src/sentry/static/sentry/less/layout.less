@@ -241,19 +241,34 @@ footer {
 */
 
 .windowed-small {
-  background: #fbfbfc;
-  padding-top: 100px;
+  // background: #fbfbfc;
 
-  .container {
-    max-width: 600px !important;
-    width: auto !important;
-    margin: 0 auto;
+  .pattern-bg {
+    background: #f2f1f3 url(../images/sentry-pattern.png);
+    background-size: 340px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    opacity: .4;
   }
 
-  header {
-    margin-top: -100px;
-    background: none;
-    margin-bottom: 30px;
+  .app > .container {
+    padding-top: 120px !important;
+    max-width: 600px !important;
+    margin: 0 auto;
+
+    .box {
+      box-shadow: 0 1px 12px rgba(0, 0, 0, 0.2);
+      border-color: darken(@trim, 12);
+    }
+
+    .box-header h3 {
+      max-width: 100%;
+      font-size: 16px;
+    }
   }
 
   footer {
