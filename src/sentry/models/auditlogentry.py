@@ -57,6 +57,10 @@ class AuditLogEntryEvent(object):
     APIKEY_EDIT = 71
     APIKEY_REMOVE = 72
 
+    RULE_ADD = 80
+    RULE_EDIT = 81
+    RULE_REMOVE = 82
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -113,6 +117,10 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.APIKEY_ADD, 'api-key.create'),
         (AuditLogEntryEvent.APIKEY_EDIT, 'api-key.edit'),
         (AuditLogEntryEvent.APIKEY_REMOVE, 'api-key.remove'),
+
+        (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
+        (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
+        (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -222,5 +230,12 @@ class AuditLogEntry(Model):
             return 'edited api key %s' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
             return 'removed api key %s' % (self.data['label'],)
+
+        elif self.event == AuditLogEntryEvent.RULE_ADD:
+            return 'added rule "%s"' % (self.data['label'],)
+        elif self.event == AuditLogEntryEvent.RULE_EDIT:
+            return 'edited rule "%s"' % (self.data['label'],)
+        elif self.event == AuditLogEntryEvent.RULE_REMOVE:
+            return 'removed rule "%s"' % (self.data['label'],)
 
         return ''
