@@ -10,6 +10,7 @@ from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.exceptions import PluginError
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
@@ -334,6 +335,8 @@ class IssueTrackingPlugin2(Plugin):
                 'url': self.get_issue_url(group=group, issue_id=issue_id),
                 'label': self.get_issue_label(group=group, issue_id=issue_id),
             }
+
+        item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
         return plugin_issues
 
