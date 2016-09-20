@@ -15,13 +15,13 @@
 
     <form class="form-stacked" action="" method="post">
       {% csrf_token %}
-      <fieldset>
+      <fieldset style="margin-bottom: 5px">
         {{ form|as_crispy_errors }}
         {% for field in form %}
             {{ field|as_crispy_field }}
         {% endfor %}
       </fieldset>
-      <div class="actions">
+      <div class="form-actions">
         <button type="submit" class="btn btn-primary">{% trans "Create Organization" %}</button>
       </div>
     </form>

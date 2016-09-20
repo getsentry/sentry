@@ -49,6 +49,23 @@ body.auth {
   .app > .container {
     padding-top: 100px;
     max-width: 500px !important;
+
+    .with-padding {
+      padding: 30px 30px 0;
+      .form-actions {
+        margin: 20px 0 0;
+        padding: 20px 0;
+
+        a.pull-right {
+          font-size: 15px;
+          color: @50;
+
+          &:hover {
+            color: @80;
+          }
+        }
+      }
+    }
   }
 
   footer {
