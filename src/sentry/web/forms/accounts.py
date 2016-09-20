@@ -7,15 +7,14 @@ sentry.web.forms.accounts
 """
 from __future__ import absolute_import
 
-import pytz
-
 from datetime import datetime
+
+import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
-from six.moves import range
 
 from sentry import options
 from sentry.app import ratelimiter
@@ -25,6 +24,7 @@ from sentry.models import (
 )
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
+from six.moves import range
 
 
 def _get_timezone_choices():

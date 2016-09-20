@@ -2,30 +2,21 @@
 
 from __future__ import absolute_import
 
-import mock
-import six
 from datetime import datetime
 
+import mock
 import pytz
+import six
 from django.core import mail
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry.digests.notifications import (
-    build_digest,
-    event_to_record,
-)
+from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity,
-    Event,
-    Group,
-    GroupSubscription,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Rule,
-    UserOption,
+    Activity, Event, Group, GroupSubscription, OrganizationMember,
+    OrganizationMemberTeam, Rule, UserOption
 )
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
