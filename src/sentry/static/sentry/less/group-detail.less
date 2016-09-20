@@ -1900,11 +1900,63 @@ pre.val, span.val {
 
 .shared-group {
   .container {
-    max-width: 900px;
+    padding-left: 0;
+    padding-right: 0;
   }
-  header .icon-sentry-logo {
-    &:before {
-      content: "\e61a";
+
+  .group-detail {
+    box-shadow: 0 1px 3px rgba(0,0,0, .08);
+
+    .details {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 0 0;
+    }
+  }
+
+  .event-details-container {
+    display: block;
+    margin: 0;
+
+    .primary {
+      .box {
+        padding: 0;
+        &:first-child {
+          border-top: 0;
+        }
+      }
+
+      .box-header, .box-content {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      .box-header {
+        margin-top: 15px;
+      }
+
+      .exception {
+        padding: 20px 0;
+        margin: 0;
+
+        &:first-child {
+          padding-top: 0;
+        }
+      }
+
+      .traceback.no-exception {
+        margin-bottom: 25px;
+        margin-top: -5px;
+      }
+    }
+  }
+
+  footer {
+    margin-top: 0;
+
+    .container {
+      padding-left: 30px;
+      padding-right: 30px;
     }
   }
 }
