@@ -5,11 +5,16 @@
 
 {% block sub-header %}{% endblock %}
 
-{% block wrapperclass %}narrow auth org-login hide-sidebar{% endblock %}
+{% block wrapperclass %}narrow auth org-login{% endblock %}
 
 {% block main %}
-  <section class="body org-login">
-    {% block auth_main %}{% endblock %}
+  <div class="pattern-bg"></div>
+  <section class="org-login">
+    <div class="box box-modal">
+      <div class="box-content with-padding">
+        {% block auth_main %}{% endblock %}
+      </div>
+    </div>
   </section>
 {% endblock %}
 
