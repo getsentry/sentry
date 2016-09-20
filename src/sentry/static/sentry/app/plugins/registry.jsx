@@ -1,4 +1,5 @@
 import {DefaultPlugin} from './defaultPlugin';
+import {DefaultIssuePlugin} from './defaultIssuePlugin';
 import {defined} from '../utils';
 
 export default class Registry {
@@ -30,7 +31,11 @@ export default class Registry {
     let remainingAssets = data.assets.length;
     let finishLoad = function() {
       if (!defined(this.plugins[data.id])) {
-        this.plugins[data.id] = DefaultPlugin;
+        if (data.type === 'issue-tracking') {
+          this.plugins[data.id] = DefaultIssuePlugin;
+        } else {
+          this.plugins[data.id] = DefaultPlugin;
+        }
       }
       console.info('[plugins] Loaded ' + data.id + ' as {' + this.plugins[data.id].name + '}');
       callback(this.get(data));
