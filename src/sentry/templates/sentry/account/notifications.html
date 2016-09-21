@@ -47,6 +47,8 @@
 
         <p class="help-text help-block">Note: You'll always receive notifications if you're explicitly participating on an issue.</p>
 
+        {{ settings_form.self_notifications|as_crispy_field }}
+
         <hr />
 
         <h4>{% trans "Weekly Reports" %}</h4>
