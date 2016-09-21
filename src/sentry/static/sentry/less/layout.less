@@ -46,9 +46,31 @@ body.auth {
   zoom: 1;
   padding: 0;
 
+  .brand-flag {
+    position: fixed;
+    top: 40px;
+    left: -10px;
+    background: @red;
+    padding: 15px 15px 15px 35px;
+    font-size: 22px;
+    line-height: 22px;
+    color: #fff;
+    .transition(left .3s ease);
+
+    &:hover, &:active, &:focus {
+      color: #fff;
+      left: 0;
+    }
+
+    span {
+      display: block;
+      line-height: inherit;
+    }
+  }
+
   .app > .container {
     padding-top: 100px;
-    max-width: 500px !important;
+    max-width: 540px !important;
 
     .with-padding {
       padding: 30px 30px 0;
@@ -388,6 +410,28 @@ footer {
           height: 15px;
           line-height: 17px;
         }
+      }
+    }
+  }
+
+  body.auth {
+    .brand-flag {
+      left: 0;
+      right: 0;
+      top: 0;
+      font-size: 20px;
+      background: @header-bg-color;
+      padding-left: 30px;
+    }
+
+    .app > .container {
+      padding: 52px 0 0 0 !important;
+      .box {
+        border-left: 0;
+        border-right: 0;
+        border-top: 0;
+        border-radius: 0;
+        padding-bottom: 10px;
       }
     }
   }
