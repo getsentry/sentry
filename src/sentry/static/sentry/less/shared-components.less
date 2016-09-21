@@ -21,11 +21,19 @@ dl.flat dd {
 
  .flex {
    display: flex;
+
+   &.flex-container {
+     padding-left: 30px;
+     padding-right: 30px;
+   }
    &.flex-justify-center {
      justify-content: center;
    }
    &.flex-justify-right {
      justify-content: flex-end;
+   }
+   &.flex-vertically-centered {
+     align-items: center;
    }
    > * {
      flex-grow: 1;
@@ -78,13 +86,13 @@ dl.flat dd {
   color: @gray-dark;
   background: #fff;
   #gradient > .vertical(#fff, @10);
-  border-color: @gray-lighter;
-  box-shadow: 0 1px 1px rgba(0,0,0, .08);
+  border-color: lighten(@gray-lighter, 5);
+  box-shadow: 0 1px 1px rgba(0,0,0, .07);
 
   &:hover, &:focus, &:active {
     color: @gray-darker;
     background-color: @white-darker;
-    border-color: @gray-light;
+    border-color: darken(@gray-lighter, 5);
   }
 }
 
@@ -1110,12 +1118,12 @@ table.integrations {
     border: 1px solid @gray-lighter;
     box-shadow: 0 1px 1px rgba(0, 0, 0, .08);
     border-radius: 50%;
-    height: 22px;
-    width: 22px;
+    height: 21px;
+    width: 21px;
     line-height: 21px;
     // text-align: center;
     position: relative;
-    top: -2px;
+    top: -1px;
 
     margin-left: 10px;
     display: inline-block;
@@ -1129,7 +1137,7 @@ table.integrations {
     .icon-arrow-down {
       position: relative;
       top: -1px;
-      left: 3px;
+      left: 2px;
       font-size: 15px !important;
       color: @gray;
     }
@@ -1217,7 +1225,7 @@ table.integrations {
             left: 0;
             top: 0;
             bottom: 0;
-            background: @blue;
+            background: @purple-light;
           }
         }
       }
@@ -1225,8 +1233,8 @@ table.integrations {
   }
 
   &.open .dropdown-toggle {
-    border-color: darken(@blue, 15);
-    background-color: @blue;
+    border-color: darken(@purple, 15);
+    background-color: @purple;
     .icon-arrow-down {
       color: #fff;
     }
@@ -2408,6 +2416,7 @@ ul.faces {
     > a {
       font-size: 15px;
       padding: 0 0 10px;
+      margin: 0;
       border: 0;
       background: none;
       color: @gray-light;
@@ -3428,7 +3437,10 @@ div.qrcode {
 */
 
 @media(max-width:767px) {
-
+  .flex.flex-container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
 }
 
 /**

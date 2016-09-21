@@ -122,11 +122,10 @@ body.auth {
   color: @gray-dark;
   border-bottom: 1px solid @trim;
   position: relative;
-  padding: 20px 0 0;
   margin: 0 0 20px;
   line-height: 1;
   font-size: 16px;
-  display: flex;
+  min-height: 62px;
 
   .container {
     .clearfix;
@@ -151,7 +150,15 @@ body.auth {
 
     h3 {
       font-size: 20px;
-      margin-bottom: 14px;
+      margin: 0;
+
+      a {
+        color: @gray-dark;
+
+        &:hover {
+          color: @gray-darkest;
+        }
+      }
     }
 
     .project-selected {
@@ -168,15 +175,6 @@ body.auth {
     }
   }
 
-  a {
-    color: @gray-darker;
-
-    &:hover, &:active, &:focus {
-      color: @gray-darkest;
-      text-decoration: none;
-    }
-  }
-
   h1 {
     font-size: 18px;
     font-weight: 600;
@@ -186,9 +184,8 @@ body.auth {
 
   .nav-tabs {
     position: relative;
-    margin-top: -3px;
     z-index: 2;
-    margin-bottom: -20px;
+    margin-bottom: 0;
 
     li {
       position: relative;
@@ -196,6 +193,28 @@ body.auth {
 
       a {
         padding-bottom: 13px;
+      }
+    }
+  }
+
+  .project-select + .nav-tabs {
+    margin-top: 10px;
+  }
+
+  .align-right {
+    align-self: flex-end;
+
+    .nav-tabs{
+      margin-top: 4px; // balance active border-bottom
+
+      > li {
+        margin: 0 0 0 20px;
+        float: none;
+        display: inline-block;
+
+        > a {
+          padding: 18px 0px;
+        }
       }
     }
   }
@@ -254,29 +273,33 @@ footer {
 */
 
 .project-actions {
-  margin-top: -5px;
-  position: relative;
-  z-index: 50;
-
-  a {
-    padding-left: 30px;
-    color: @80;
-
-    &:hover {
-      color: @90;
-    }
+  .btn-sm {
+    font-size: 14px;
+    margin-left: 7px;
+    line-height: 22px;
   }
 
   .icon {
     font-size: 14px;
-    padding-right: 4px;
+    padding-right: 5px;
     color: @40;
+    position: relative;
+
+    &.icon-star-solid {
+      top: 0;
+      margin: 0;
+    }
 
     &.icon-signal  {
       font-size: 18px;
-      position: relative;
       top: 1px;
     }
+
+    &.icon-settings  {
+      top: 1px;
+      font-size: 15px;
+    }
+
     &.active {
       color: @yellow-orange;
     }
@@ -377,18 +400,6 @@ footer {
 
   .narrow .app > .container, .narrow.windowed-small .app > .container {
     padding-top: 30px !important;
-  }
-
-  .sub-header {
-    padding-top: 15px;
-
-    h3 {
-      margin: 0;
-    }
-
-    .pull-right {
-      display: none;
-    }
   }
 
   .nav-tabs {

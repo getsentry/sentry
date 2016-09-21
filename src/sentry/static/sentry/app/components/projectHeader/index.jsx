@@ -22,28 +22,13 @@ const ProjectHeader = React.createClass({
     let access = new Set(org.access);
 
     return (
-      <div>
-        <div className="sub-header">
-          <div className="container">
+        <div className="sub-header flex flex-container flex-vertically-centered">
+          <div className="p-t-1">
             <ProjectSelector
                 organization={org}
                 projectId={project.slug}/>
 
-            <div className="pull-right project-actions">
-              <BookmarkToggle orgId={org.slug} project={project}>
-                <a className="">
-                  <span className={project.isBookmarked ? 'icon icon-star-solid active' : 'icon icon-star-solid'}/>
-                  {t('Star')}
-                </a>
-                {access.has('project:write') &&
-                  <a className={navSection == 'settings' ? 'active' : ''} href={`/${org.slug}/${project.slug}/settings/`}>
-                    <span className="icon icon-settings" /> {t('Settings')}
-                  </a>
-                }
-              </BookmarkToggle>
-            </div>
-
-            <ul className="nav nav-tabs">
+              <ul className="nav nav-tabs">
               <li className={navSection == 'stream' ? 'active' : ''}>
                 <Link to={`/${org.slug}/${project.slug}/`}>
                   {t('Issues')}
@@ -73,8 +58,25 @@ const ProjectHeader = React.createClass({
               </li>
             </ul>
           </div>
+
+          <div className="align-right project-actions">
+            <BookmarkToggle orgId={org.slug} project={project}>
+              <a className="btn btn-sm btn-default">
+                <span className={project.isBookmarked ? 'icon icon-star-solid active' : 'icon icon-star-solid'}/>
+                {project.isBookmarked ?
+                  <span>{t('Unstar Project')}</span>
+                :
+                  <span>{t('Star Project')}</span>
+                }
+              </a>
+              {access.has('project:write') &&
+                <a className={navSection == 'settings' ? 'btn btn-sm btn-default active' : 'btn btn-sm btn-default'} href={`/${org.slug}/${project.slug}/settings/`}>
+                  <span className="icon icon-settings" /> {t('Project Settings')}
+                </a>
+              }
+            </BookmarkToggle>
+          </div>
         </div>
-      </div>
     );
   }
 });
