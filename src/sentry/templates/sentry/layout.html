@@ -172,11 +172,8 @@
 
     {% if organization and ACCESS.org_read %}
     {% block sub-header %}
-    <div class="sub-header">
-      <div class="container">
-        <div class="pull-right">
-          {% block header_action %}{% endblock %}
-        </div>
+    <div class="sub-header flex flex-container flex-vertically-centered">
+      <div>
         <div id="blk_projectselect"></div>
         <script>
         $(function(){
@@ -186,6 +183,9 @@
           }), document.getElementById('blk_projectselect'));
         });
         </script>
+      </div>
+      <div class="align-right">
+        {% block header_action %}{% endblock %}
       </div>
     </div>
     {% endblock %}
