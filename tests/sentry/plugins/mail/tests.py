@@ -2,32 +2,26 @@
 
 from __future__ import absolute_import
 
-import mock
-import six
 from datetime import datetime
 
+import mock
 import pytz
+import six
 from django.core import mail
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry.digests.notifications import (
-    build_digest,
-    event_to_record,
-)
+from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity,
-    Event,
-    Group,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Rule,
+    Activity, Event, Group, GroupSubscription, OrganizationMember,
+    OrganizationMemberTeam, Rule, UserOption
 )
 from sentry.plugins import Notification
+from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.utils.email import MessageBuilder
 
 
@@ -351,3 +345,37 @@ class MailPluginTest(TestCase):
 
         assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
+
+
+class ActivityEmailTestCase(TransactionTestCase):
+    def test_get_participants(self):
+        organization = self.create_organization(owner=self.create_user())
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, team=team)
+        group = self.create_group(project=project)
+
+        actor = self.create_user()
+        other = self.create_user()
+
+        for user in (actor, other):
+            self.create_member([team], user=user, organization=organization)
+            GroupSubscription.objects.subscribe(group, user)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+                user=actor,
+            )
+        )
+
+        assert email.get_participants() == set([other])
+
+        UserOption.objects.set_value(
+            user=actor,
+            project=None,
+            key='self_notifications',
+            value='1'
+        )
+
+        assert email.get_participants() == set([actor, other])
