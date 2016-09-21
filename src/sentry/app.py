@@ -32,9 +32,9 @@ def get_instance(attribute, options, dangerous=()):
     cls = import_string(value)
     if cls in dangerous:
         warnings.warn(
-            u'The {!r} backend for {} is not recommended for production use.'.format(
-                value,
-                attribute,
+            warnings.UnsupportedBackend(
+                u'The {!r} backend for {} is not recommended '
+                'for production use.'.format(value, attribute)
             )
         )
 
@@ -47,7 +47,6 @@ buffer = get_instance('SENTRY_BUFFER', settings.SENTRY_BUFFER_OPTIONS)
 
 from sentry.digests.backends.dummy import DummyBackend
 digests = get_instance('SENTRY_DIGESTS', settings.SENTRY_DIGESTS_OPTIONS, (DummyBackend,))
-
 quotas = get_instance('SENTRY_QUOTAS', settings.SENTRY_QUOTA_OPTIONS)
 nodestore = get_instance('SENTRY_NODESTORE', settings.SENTRY_NODESTORE_OPTIONS)
 ratelimiter = get_instance('SENTRY_RATELIMITER', settings.SENTRY_RATELIMITER_OPTIONS)

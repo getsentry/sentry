@@ -5,6 +5,10 @@ import six
 import warnings
 
 
+class UnsupportedBackend(RuntimeWarning):
+    pass
+
+
 class DeprecatedSettingWarning(DeprecationWarning):
     def __init__(self, setting, replacement, url=None, removed_in_version=None):
         self.setting = setting
