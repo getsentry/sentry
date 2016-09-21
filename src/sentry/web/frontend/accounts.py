@@ -380,6 +380,6 @@ def show_emails(request):
         'primary_email': primary_email,
         'alt_emails': alt_emails,
         'page': 'emails',
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
     })
     return render_to_response('sentry/account/emails.html', context, request)
