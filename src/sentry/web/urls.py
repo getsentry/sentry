@@ -264,6 +264,8 @@ urlpatterns += patterns(
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/security/$', AccountSecurityView.as_view(),
         name='sentry-account-security'),
+    url(r'^account/settings/emails/$', accounts.show_emails,
+        name='sentry-account-settings-emails'),
 
     # compatibility
     url(r'^account/settings/notifications/unsubscribe/(?P<project_id>\d+)/$',

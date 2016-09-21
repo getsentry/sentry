@@ -207,6 +207,37 @@ class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
 
 
+class EmailForm(forms.Form):
+    primary_email = forms.EmailField(label=_('Primary Email'))
+
+    alt_email = forms.EmailField(
+        label=_('New Email'),
+        required=False,
+        help_text='Designate an alternative email for this account',
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(EmailForm, self).__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+
+        if self.cleaned_data['primary_email'] != self.user.email:
+            new_username = self.user.email == self.user.username
+        else:
+            new_username = False
+
+        self.user.email = self.cleaned_data['primary_email']
+
+        if new_username and not User.objects.filter(username__iexact=self.user.email).exists():
+            self.user.username = self.user.email
+
+        if commit:
+            self.user.save()
+
+        return self.user
+
+
 class AccountSettingsForm(forms.Form):
     name = forms.CharField(required=True, label=_('Name'), max_length=30)
     username = forms.CharField(label=_('Username'), max_length=128)
@@ -413,6 +444,7 @@ class NotificationSettingsForm(forms.Form):
         help_text=_('Designate an alternative email address to send email notifications to.'),
         required=False
     )
+
     subscribe_by_default = forms.BooleanField(
         label=_('Subscribe to alerts for projects by default'),
         required=False,
@@ -505,7 +537,8 @@ class NotificationSettingsForm(forms.Form):
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
     workflow = forms.BooleanField(required=False)
-    email = forms.EmailField(required=False, widget=forms.HiddenInput())
+    email = forms.ChoiceField(label="", choices=(), required=False,
+        widget=forms.Select())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -516,10 +549,20 @@ class ProjectEmailOptionsForm(forms.Form):
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
         has_workflow = project.is_user_subscribed_to_workflow(user)
 
+        # This allows users who have entered an alert_email value or have specified an email
+        # for notifications to keep their settings
+        emails = [e.email for e in user.get_verified_emails()]
+        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=None)
+        specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
+        emails.extend([user.email, alert_email, specified_email])
+
+        choices = [(email, email) for email in set(emails) if email is not None]
+        self.fields['email'].choices = choices
+
         self.fields['alert'].initial = has_alerts
         self.fields['workflow'].initial = has_workflow
         self.fields['email'].initial = UserOption.objects.get_value(
-            user, project, 'mail:email', None)
+            user, project, 'mail:email', None) or alert_email
 
     def save(self):
         UserOption.objects.set_value(
