@@ -29,6 +29,17 @@ const SelectInput = React.createClass({
 
   componentDidMount() {
     this.create();
+    /*below is a hack for a bug in edge related to form submitting.
+    see: https://github.com/facebook/react/issues/7655
+    (@maxbittker)*/
+    const selectedIndex = this.refs.select.selectedIndex;
+    if (this.refs.select && selectedIndex >= 0) {
+     const options = this.refs.select.options;
+     const tempIndex = (selectedIndex + 1) % options.length;
+
+     options[tempIndex].selected = true;
+     options[selectedIndex].selected = true;
+    }
   },
 
   componentWillUpdate() {
