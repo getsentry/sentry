@@ -6,9 +6,13 @@ import mock
 
 from django.core.urlresolvers import reverse
 from exam import fixture
+from mock import Mock
 
 from sentry.models import ProjectKey
-from sentry.testutils import TestCase
+from sentry.signals import event_accepted, event_dropped, event_filtered
+from sentry.testutils import (
+    assert_mock_called_once_with_partial, TestCase
+)
 from sentry.utils import json
 
 
@@ -296,6 +300,63 @@ class StoreViewTest(TestCase):
             'version': '0.0.0',
             'client_ip': '127.0.0.1',
         }
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
+    def test_accepted_signal(self):
+        mock_event_accepted = Mock()
+
+        event_accepted.connect(mock_event_accepted)
+
+        resp = self._postWithHeader({'sentry.interfaces.Message': {'message': u'hello'}})
+
+        assert resp.status_code == 200, resp.content
+
+        assert_mock_called_once_with_partial(
+            mock_event_accepted,
+            ip='127.0.0.1',
+            project=self.project,
+            signal=event_accepted,
+        )
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
+    @mock.patch('sentry.app.quotas.is_rate_limited')
+    def test_dropped_signal(self, mock_is_rate_limited):
+        mock_is_rate_limited.is_limited = True
+
+        mock_event_dropped = Mock()
+
+        event_dropped.connect(mock_event_dropped)
+
+        resp = self._postWithHeader({'sentry.interfaces.Message': {'message': u'hello'}})
+
+        assert resp.status_code == 429, resp.content
+
+        assert_mock_called_once_with_partial(
+            mock_event_dropped,
+            ip='127.0.0.1',
+            project=self.project,
+            signal=event_dropped,
+        )
+
+    @mock.patch('sentry.coreapi.ClientApiHelper.insert_data_to_database', Mock())
+    @mock.patch('sentry.coreapi.ClientApiHelper.should_filter')
+    def test_filtered_signal(self, mock_should_filter):
+        mock_should_filter.return_value = True
+
+        mock_event_filtered = Mock()
+
+        event_filtered.connect(mock_event_filtered)
+
+        resp = self._postWithHeader({'sentry.interfaces.Message': {'message': u'hello'}})
+
+        assert resp.status_code == 403, resp.content
+
+        assert_mock_called_once_with_partial(
+            mock_event_filtered,
+            ip='127.0.0.1',
+            project=self.project,
+            signal=event_filtered,
+        )
 
 
 class CrossDomainXmlTest(TestCase):

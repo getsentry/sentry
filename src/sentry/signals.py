@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from functools import wraps
-
 from django.dispatch import Signal
 
 
@@ -20,7 +18,14 @@ class BetterSignal(Signal):
 
         if receiver is None:
             return wrapped
-        return wraps(receiver)(wrapped(receiver))
+
+        if hasattr(receiver, '__name__'):
+            wrapped.__name__ = receiver.__name__
+        if hasattr(receiver, '__module__'):
+            wrapped.__module__ = receiver.__module__
+        if hasattr(receiver, '__doc__'):
+            wrapped.__doc__ = receiver.__doc__
+        return wrapped(receiver)
 
 
 regression_signal = BetterSignal(providing_args=["instance"])
