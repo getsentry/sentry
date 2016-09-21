@@ -43,15 +43,16 @@ class ActivityEmail(object):
             )
         )
 
-        receive_own_activity = UserOption.objects.get_value(
-            user=self.activity.user,
-            project=None,
-            key='self_notifications',
-            default='0'
-        ) == '1'
+        if self.activity.user is not None:
+            receive_own_activity = UserOption.objects.get_value(
+                user=self.activity.user,
+                project=None,
+                key='self_notifications',
+                default='0'
+            ) == '1'
 
-        if not receive_own_activity:
-            participants.discard(self.activity.user)
+            if not receive_own_activity:
+                participants.discard(self.activity.user)
 
         return participants
 
