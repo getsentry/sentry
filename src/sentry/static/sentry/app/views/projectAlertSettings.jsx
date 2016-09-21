@@ -236,7 +236,7 @@ const ProjectAlertSettings = React.createClass({
     let plugins = project.plugins.filter(p => p.type == 'notification');
     return (
       <div>
-        <a href={`/${orgId}/${projectId}/settings/alerts/rule/new/`}
+        <a href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
            className="btn pull-right btn-primary btn-sm">
           <span className="icon-plus" />
           {t('New Alert Rule')}
