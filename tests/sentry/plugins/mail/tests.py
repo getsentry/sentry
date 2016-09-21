@@ -348,18 +348,22 @@ class MailPluginTest(TestCase):
 
 
 class ActivityEmailTestCase(TransactionTestCase):
-    def test_get_participants(self):
+    def get_fixture_data(self, users):
         organization = self.create_organization(owner=self.create_user())
         team = self.create_team(organization=organization)
         project = self.create_project(organization=organization, team=team)
         group = self.create_group(project=project)
 
-        actor = self.create_user()
-        other = self.create_user()
+        users = [self.create_user() for _ in range(users)]
 
-        for user in (actor, other):
+        for user in users:
             self.create_member([team], user=user, organization=organization)
             GroupSubscription.objects.subscribe(group, user)
+
+        return group, users
+
+    def test_get_participants(self):
+        group, (actor, other) = self.get_fixture_data(2)
 
         email = ActivityEmail(
             Activity(
@@ -379,3 +383,15 @@ class ActivityEmailTestCase(TransactionTestCase):
         )
 
         assert email.get_participants() == set([actor, other])
+
+    def test_get_participants_without_actor(self):
+        group, (user,) = self.get_fixture_data(1)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+            )
+        )
+
+        assert email.get_participants() == set([user])
