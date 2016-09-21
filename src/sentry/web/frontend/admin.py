@@ -28,7 +28,7 @@ from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
-from sentry.utils.warnings import DeprecatedSettingWarning, seen_warnings
+from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
 from sentry.web.decorators import requires_admin
 from sentry.web.forms import (
     ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
@@ -210,6 +210,7 @@ def status_packages(request):
 def status_warnings(request):
     groupings = {
         DeprecatedSettingWarning: 'Deprecated Settings',
+        UnsupportedBackend: 'Unsupported Backends',
     }
 
     groups = defaultdict(list)
@@ -226,7 +227,7 @@ def status_warnings(request):
     return render_to_response(
         'sentry/admin/status/warnings.html',
         {
-            'groups': [(groupings[key], sort_by_message(values)) for key, values in groups.items()],
+            'groups': sorted([(groupings[key], sort_by_message(values)) for key, values in groups.items()]),
             'warnings': sort_by_message(warnings),
         },
         request,
