@@ -28,7 +28,7 @@ class ProjectPluginDetailsTest(APITestCase):
             'name': 'urls',
             'help': 'Enter callback URLs to POST new events to (one per line).',
             'defaultValue': None,
-            'required': False,
+            'required': True,
             'type': 'textarea',
             'value': None,
             'label': 'Callback URLs',
