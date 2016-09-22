@@ -221,7 +221,7 @@ def status_warnings(request):
         else:
             warnings.append(warning)
 
-    sort_by_message = functools.partial(sorted, key=str)
+    sort_by_message = functools.partial(sorted, key=six.binary_type)
 
     return render_to_response(
         'sentry/admin/status/warnings.html',
