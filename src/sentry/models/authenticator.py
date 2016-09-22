@@ -572,6 +572,7 @@ class Authenticator(BaseModel):
         db_table = 'auth_authenticator'
         verbose_name = _('authenticator')
         verbose_name_plural = _('authenticators')
+        unique_together = (('user', 'type'),)
 
     @cached_property
     def interface(self):
