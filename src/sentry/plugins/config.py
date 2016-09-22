@@ -48,6 +48,14 @@ class PluginConfigMixin(object):
                     raise PluginError('Field is required')
                 return value
 
+            if isinstance(value, basestring):
+                value = value.strip()
+                # TODO(dcramer): probably should do something with default
+                # validations here, though many things will end up bring string
+                # based
+                if not value and config.get('required'):
+                    raise PluginError('Field is required')
+
             for validator in DEFAULT_VALIDATORS.get(config['type'], ()):
                 value = validator(project=project, value=value, actor=actor)
 
