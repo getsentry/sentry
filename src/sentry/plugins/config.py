@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 __all__ = ['PluginConfigMixin']
 
+import six
+
 from sentry.exceptions import PluginError
 from sentry.utils.forms import form_to_config
 
@@ -47,6 +49,14 @@ class PluginConfigMixin(object):
                 if config.get('required'):
                     raise PluginError('Field is required')
                 return value
+
+            if isinstance(value, six.string_types):
+                value = value.strip()
+                # TODO(dcramer): probably should do something with default
+                # validations here, though many things will end up bring string
+                # based
+                if not value and config.get('required'):
+                    raise PluginError('Field is required')
 
             for validator in DEFAULT_VALIDATORS.get(config['type'], ()):
                 value = validator(project=project, value=value, actor=actor)
