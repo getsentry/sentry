@@ -51,7 +51,7 @@ def serialize_field(project, plugin, field):
         'name': six.text_type(field['name']),
         'label': six.text_type(field.get('label') or field['name'].title().replace('_', ' ')),
         'type': field.get('type', 'text'),
-        'required': field.get('required', False),
+        'required': field.get('required', True),
         'help': six.text_type(field['help']) if field.get('help') else None,
         'placeholder': six.text_type(field['placeholder']) if field.get('placeholder') else None,
         'choices': field.get('choices'),

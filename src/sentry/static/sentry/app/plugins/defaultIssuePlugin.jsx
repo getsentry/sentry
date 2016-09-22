@@ -10,4 +10,6 @@ export class DefaultIssuePlugin extends BasePlugin {
     }
 }
 
+DefaultIssuePlugin.DefaultIssueActions = IssueActions;
+
 export default DefaultIssuePlugin;
