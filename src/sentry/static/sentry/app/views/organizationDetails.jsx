@@ -149,13 +149,11 @@ const OrganizationDetails = React.createClass({
       }
     }
 
-    let params = this.props.params;
-
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          <Sidebar orgId={params.orgId}/>
+          <Sidebar/>
           {this.props.children}
           <Footer />
         </div>
