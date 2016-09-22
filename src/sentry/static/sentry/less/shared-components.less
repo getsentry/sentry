@@ -3293,6 +3293,7 @@ ul.tag-list {
     border-radius: 5px;
     color: #fff;
     text-shadow: 0 2px 0 rgba(0,0,0, .06);
+    background: @gray; // Default BG
   }
 
   // Colors
@@ -3370,6 +3371,10 @@ ul.tag-list {
     &.javascript-ember .platformicon {
       background: #ed573e;
       color: #fff;
+    }
+
+    &.elixir .platformicon {
+      background: @purple-dark;
     }
   }
 }
