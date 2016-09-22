@@ -1,8 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router';
 
-import MenuItem from '../menuItem';
-import DropdownLink from '../dropdownLink';
 import SidebarPanel from '../sidebarPanel';
 import LetterAvatar from '../letterAvatar';
 
@@ -16,32 +14,29 @@ const OrganizationSelector = React.createClass({
   propTypes: {
     organization: React.PropTypes.object,
     showPanel: React.PropTypes.bool,
+    onShowPanel: React.PropTypes.func,
+    hidePanel: React.PropTypes.func,
     currentPanel: React.PropTypes.string
   },
 
   mixins: [
     AppState,
   ],
-  //
-  // shouldComponentUpdate(nextProps, nextState) {
-  //   console.log(nextProps, nextState);
-  //   return (nextProps.organization || {}).id !== (this.props.organization || {}).id;
-  // },
 
   render() {
-    let singleOrganization = ConfigStore.get('singleOrganization');
+    // TODO: what to do in single org state?
+    // let isSingleOrg = ConfigStore.get('singleOrganization');
     let activeOrg = this.props.organization;
 
-
-    // if (singleOrganization || !activeOrg) {
+    // if (isSingleOrg || !activeOrg) {
     //   return null;
     // }
 
     let features = ConfigStore.get('features');
 
-    let classNames = "org-selector divider-bottom";
+    let classNames = 'org-selector divider-bottom';
     if(this.props.currentPanel == 'org-selector') {
-      classNames += " active";
+      classNames += ' active';
     }
 
     let hoverIntent;
