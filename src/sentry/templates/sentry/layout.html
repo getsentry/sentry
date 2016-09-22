@@ -85,7 +85,8 @@
           }
         },
         render: function () {
-          return React.createElement(Sentry.Sidebar);
+          return React.createElement(Sentry.OrganizationsLoader, {},
+            React.createElement(Sentry.Sidebar));
         }
       });
       SidebarWrapper.childContextTypes = {

@@ -75,6 +75,7 @@ export default {
     ListLink: require('./components/listLink'),
     MenuItem: require('./components/menuItem'),
     OrganizationHomeContainer: require('./components/organizations/homeContainer'),
+    OrganizationsLoader: require('./components/organizations/organizationsLoader'),
     Pagination: require('./components/pagination'),
     PluginConfig: require('./components/pluginConfig'),
     ProjectIssueTracking: require('./views/projectIssueTracking'),
