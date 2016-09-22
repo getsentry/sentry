@@ -1167,12 +1167,13 @@ div.traceback > ul {
 
 .exception {
   border-top: 1px solid @trim;
-  margin: 0 -20px;
-  padding: 15px 20px 0;
+  margin: 20px 0 0;
+  padding: 20px 0 0;
 
   &:first-child {
     border-top: 0;
     padding-top: 0;
+    margin-top: 0;
   }
 
   .traceback {
@@ -1181,10 +1182,6 @@ div.traceback > ul {
 }
 
 .traceback {
-  &.no-exception {
-    margin-top: -20px;
-  }
-
   &.no-exception .frame:first-child {
     border-top: 0;
   }
