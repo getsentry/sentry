@@ -19,9 +19,21 @@ const OrganizationSelector = React.createClass({
     currentPanel: React.PropTypes.string
   },
 
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   mixins: [
     AppState,
   ],
+
+  getLinkNode(org, child, className) {
+    let url = `/${org.slug}/`;
+    if (!this.context.location) {
+      return <a className={className} href={url}>{child}</a>;
+    }
+    return <Link className={className} to={`/${org.slug}/`}>{child}</Link>;
+  },
 
   render() {
     // TODO: what to do in single org state?
@@ -63,10 +75,8 @@ const OrganizationSelector = React.createClass({
               {OrganizationStore.getAll().map((org) => {
                 return (
                   <li className={activeOrg.id === org.id ? 'org active' : 'org'} key={org.slug}>
-                    <Link className="org-avatar" to={`/${org.slug}/`}>
-                      <LetterAvatar displayName={org.name} identifier={org.slug}/>
-                    </Link>
-                    <h5><Link to={`/${org.slug}/`}>{org.name}</Link></h5>
+                    {this.getLinkNode(org, <LetterAvatar displayName={org.name} identifier={org.slug}/>, 'org-avatar')}
+                    <h5>{this.getLinkNode(org, org.name)}</h5>
                     <p>
                       <a href={`/organizations/${org.slug}/settings/`}>
                         <span className="icon-settings"/> {t('Settings')}
