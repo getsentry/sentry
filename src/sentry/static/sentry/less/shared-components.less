@@ -89,10 +89,11 @@ dl.flat dd {
   border-color: lighten(@gray-lighter, 5);
   box-shadow: 0 1px 1px rgba(0,0,0, .07);
 
-  &:hover, &:focus, &:active {
+  &:hover, &:focus, &:active, &.active, &.active:hover {
     color: @gray-darker;
     background-color: @white-darker;
     border-color: darken(@gray-lighter, 5);
+    box-shadow: inset 0 1px 3px rgba(0,0,0, .12);
   }
 }
 
@@ -109,9 +110,10 @@ dl.flat dd {
   text-shadow: 0 -1px 0 rgba(0,0,0, .15);
   box-shadow: 0 1px 1px rgba(0,0,0, .10);
 
-  &:hover, &:focus, &:active {
+  &:hover, &:focus, &:active, &.active, &.active:hover {
     background-color: darken(@purple, 5);
     border-color: darken(@purple, 18);
+    box-shadow: inset 0 1px 3px rgba(0,0,0, .12);
   }
 }
 
@@ -2233,7 +2235,7 @@ ul.faces {
     height: 0;
     border-left: 9px solid transparent;
     border-right: 9px solid transparent;
-    border-bottom: 9px solid rgba(52, 60, 69, .25);
+    border-bottom: 9px solid rgba(52, 60, 69, .35);
     content: "";
     display: block;
     position: absolute;
@@ -2265,7 +2267,7 @@ ul.faces {
   }
 
   li.active a, li.active a:hover {
-    background: @blue;
+    background: @purple;
     color: #fff !important;
   }
 
