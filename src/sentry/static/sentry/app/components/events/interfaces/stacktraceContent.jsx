@@ -73,7 +73,6 @@ const StacktraceContent = React.createClass({
       if(repeatedFrame){
         nRepeats++;
       }
-      debugger
       if (this.frameIsVisible(frame, nextFrame)
           && !repeatedFrame ){
         frames.push(

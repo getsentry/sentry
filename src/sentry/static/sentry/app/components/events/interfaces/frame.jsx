@@ -267,7 +267,7 @@ const Frame = React.createClass({
     } else if (nRepeats > 0) {
       return (
       <span className="repeated-frames">
-        ↻  {nRepeats} &nbsp;&nbsp;&nbsp;
+        ↻  {nRepeats} 
       </span>
       );
     } else return null;
