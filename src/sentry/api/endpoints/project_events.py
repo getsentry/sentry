@@ -23,10 +23,12 @@ class ProjectEventsEndpoint(ProjectEndpoint):
     @attach_scenarios([list_project_available_samples_scenario])
     def get(self, request, project):
         """
-        List a Project's Available Samples
-        ``````````````````````````````````
+        List a Project's Events
+        ```````````````````````
 
-        Return a list of sampled events bound to a project.
+        Return a list of events bound to a project.
+
+        Note: This endpoint is experimental and may be removed without notice.
 
         :pparam string organization_slug: the slug of the organization the
                                           groups belong to.
