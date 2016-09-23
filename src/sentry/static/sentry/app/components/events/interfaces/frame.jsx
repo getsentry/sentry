@@ -28,6 +28,7 @@ const Frame = React.createClass({
     isExpanded: React.PropTypes.bool,
     emptySourceNotation: React.PropTypes.bool,
     isOnlyFrame: React.PropTypes.bool,
+    timesRepeated: React.PropTypes.number,
   },
 
   mixins: [
@@ -256,23 +257,27 @@ const Frame = React.createClass({
     return !this.props.data.inApp && this.props.nextFrameInApp;
   },
 
-  renderLeadHint() {
+  renderLeadHint(nRepeats) {
     if (this.leadsToApp() && !this.state.isExpanded) {
       return (
         <span className="leads-to-app-hint">
           {'Called from: '}
         </span>
       );
-    } else {
-      return null;
-    }
+    } else if (nRepeats > 0) {
+      return (
+      <span className="repeated-frames">
+        ↻  {nRepeats} &nbsp;&nbsp;&nbsp;
+      </span>
+      );
+    } else return null;
   },
 
-  renderDefaultLine() {
+  renderDefaultLine(nRepeats) {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <div className="title">
-          {this.renderLeadHint()}
+          {this.renderLeadHint(nRepeats)}
           {this.renderDefaultTitle()}
         </div>
       </StrictClick>
@@ -311,13 +316,13 @@ const Frame = React.createClass({
     );
   },
 
-  renderLine() {
+  renderLine(nRepeats) {
     switch (this.getPlatform()) {
       case 'objc':
       case 'cocoa':
         return this.renderCocoaLine();
       default:
-        return this.renderDefaultLine();
+        return this.renderDefaultLine(nRepeats);
     }
   },
 
@@ -338,7 +343,7 @@ const Frame = React.createClass({
 
     return (
       <li {...props}>
-        {this.renderLine()}
+        {this.renderLine(this.props.timesRepeated)}
         {context}
       </li>
     );
