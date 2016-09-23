@@ -77,7 +77,7 @@
     $(function(){
       var SidebarWrapper = React.createClass({
         propTypes: {
-          organization: React.PropTypes.object
+          organization: React.PropTypes.any.isRequired
         },
         getChildContext: function () {
           return {
@@ -90,7 +90,7 @@
         }
       });
       SidebarWrapper.childContextTypes = {
-        organization: React.PropTypes.object
+        organization: React.PropTypes.any
       };
       ReactDOM.render(React.createFactory(SidebarWrapper)({
         organization: {% serialize_detailed_org organization %},

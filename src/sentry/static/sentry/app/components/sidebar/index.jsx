@@ -148,6 +148,136 @@ const Sidebar = React.createClass({
       this.showPanel(panel);
   },
 
+
+  renderBody() {
+    let org = this.getOrganization();
+
+    if (!org) {
+      // When no organization, just render Sentry logo at top
+      return (
+        <ul className="navbar-nav">
+          <li><a className="logo" href="/"><span className="icon-sentry-logo"/></a></li>
+        </ul>
+      );
+    }
+
+    let incidents = INCIDENTS;
+
+    return (<div>
+      <OrganizationSelector
+        organization={org}
+        showPanel={this.state.showPanel}
+        currentPanel={this.state.currentPanel}
+        onShowPanel={()=>this.showPanel('org-selector')}
+        hidePanel={()=>this.hidePanel()}/>
+
+      {/* Top nav links */}
+      <ul className="navbar-nav divider-bottom">
+        <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
+          <a>
+            <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
+          </a>
+        </li>
+        <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
+          <a>
+            <span className="icon icon-star-solid" onClick={()=>this.togglePanel('bookmarks')} />
+          </a>
+        </li>
+        <li className={this.state.currentPanel == 'history' ? 'active' : null }>
+          <a>
+            <span className="icon icon-av_timer" onClick={()=>this.togglePanel('history')} />
+          </a>
+        </li>
+      </ul>
+
+      {/* Panel bodies */}
+      {this.state.showPanel && this.state.currentPanel == 'assigned' &&
+        <SidebarPanel title={t('Assigned to me')}
+                      hidePanel={()=>this.hidePanel()}>
+          <IssueList
+            endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
+            query={{
+              statsPeriod: '24h',
+              per_page: 10,
+              status: 'unresolved',
+            }}
+            pagination={false}
+            renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues have been assigned to you.')}</div>}
+            ref="issueList"
+            showActions={false}
+            params={{orgId: org.slug}} />
+        </SidebarPanel>
+      }
+      {this.state.showPanel && this.state.currentPanel == 'bookmarks' &&
+        <SidebarPanel title={t('My Bookmarks')}
+                      hidePanel={()=>this.hidePanel()}>
+          <IssueList
+            endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
+            query={{
+              statsPeriod: '24h',
+              per_page: 10,
+              status: 'unresolved',
+            }}
+            pagination={false}
+            renderEmpty={() => <div className="sidebar-panel-empty" key="no">{t('You have no bookmarked issues.')}</div>}
+            ref="issueList"
+            showActions={false}
+            params={{orgId: org.slug}} />
+        </SidebarPanel>
+      }
+      {this.state.showPanel && this.state.currentPanel == 'history' &&
+        <SidebarPanel title={t('Recently Viewed')}
+                      hidePanel={()=>this.hidePanel()}>
+          <IssueList
+            endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
+            query={{
+              statsPeriod: '24h',
+              per_page: 10,
+              status: 'unresolved',
+            }}
+            pagination={false}
+            renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No recently viewed issues.')}</div>}
+            ref="issueList"
+            showActions={false}
+            params={{orgId: org.slug}} />
+        </SidebarPanel>
+      }
+      {this.state.showPanel && this.state.currentPanel == 'statusupdate' &&
+        <SidebarPanel title={t('Recent status updates')}
+                      hidePanel={()=>this.hidePanel()}>
+          <ul className="incident-list list-unstyled">
+            {incidents.map((incident) =>
+              <li className="incident-item" key={incident.id}>
+                <h4>{incident.title}</h4>
+                {incident.updates ?
+                  <div>
+                    <h6>Latest updates:</h6>
+                    <ul className="status-list list-unstyled">
+                      {incident.updates.map((update) =>
+                        <li className="status-item" key={update.id}>
+                          <p>
+                            <strong>{update.status}</strong> - &nbsp;
+                            {update.message}<br/>
+                            <small>{update.timestamp}</small>
+                          </p>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                  :
+                  null
+                }
+                <p>
+                  <a href={incident.url} className="btn btn-default btn-sm">Learn more</a>
+                </p>
+              </li>
+            )}
+          </ul>
+        </SidebarPanel>
+      }
+    </div>);
+  },
+
   render() {
     let user = ConfigStore.get('user');
     let org = this.getOrganization();
@@ -170,166 +300,55 @@ const Sidebar = React.createClass({
       );
     }
 
-    let incidents = INCIDENTS;
-
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
       <nav className="navbar" role="navigation" ref="navbar">
-          <div className="anchor-top">
+        <div className="anchor-top">
+          {this.renderBody()}
+        </div>
+
+        {/* Bottom nav links */}
+        <div className="anchor-bottom">
+          <ul className="navbar-nav">
             {org &&
-              <OrganizationSelector
-                organization={org}
+              <OnboardingStatus
+                org={org}
                 showPanel={this.state.showPanel}
                 currentPanel={this.state.currentPanel}
-                onShowPanel={()=>this.showPanel('org-selector')}
-                hidePanel={()=>this.hidePanel()}/>
-            }
-            <ul className="navbar-nav divider-bottom">
-              <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
-                <a>
-                  <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
-                </a>
-              </li>
-              <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
-                <a>
-                  <span className="icon icon-star-solid" onClick={()=>this.togglePanel('bookmarks')} />
-                </a>
-              </li>
-              <li className={this.state.currentPanel == 'history' ? 'active' : null }>
-                <a>
-                  <span className="icon icon-av_timer" onClick={()=>this.togglePanel('history')} />
-                </a>
-              </li>
-            </ul>
-            {this.state.showPanel && this.state.currentPanel == 'assigned' &&
-                <SidebarPanel title={t('Assigned to me')}
-                              hidePanel={()=>this.hidePanel()}>
-                  <IssueList
-                    endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
-                    query={{
-                      statsPeriod: '24h',
-                      per_page: 10,
-                      status: 'unresolved',
-                    }}
-                    pagination={false}
-                    renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues have been assigned to you.')}</div>}
-                    ref="issueList"
-                    showActions={false}
-                    params={{orgId: org.slug}} />
-                </SidebarPanel>
-            }
-            {this.state.showPanel && this.state.currentPanel == 'bookmarks' &&
-                <SidebarPanel title={t('My Bookmarks')}
-                              hidePanel={()=>this.hidePanel()}>
-                  <IssueList
-                    endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
-                    query={{
-                      statsPeriod: '24h',
-                      per_page: 10,
-                      status: 'unresolved',
-                    }}
-                    pagination={false}
-                    renderEmpty={() => <div className="sidebar-panel-empty" key="no">{t('You have no bookmarked issues.')}</div>}
-                    ref="issueList"
-                    showActions={false}
-                    params={{orgId: org.slug}} />
-                </SidebarPanel>
-            }
-            {this.state.showPanel && this.state.currentPanel == 'history' &&
-                <SidebarPanel title={t('Recently Viewed')}
-                              hidePanel={()=>this.hidePanel()}>
-                  <IssueList
-                    endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
-                    query={{
-                      statsPeriod: '24h',
-                      per_page: 10,
-                      status: 'unresolved',
-                    }}
-                    pagination={false}
-                    renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No recently viewed issues.')}</div>}
-                    ref="issueList"
-                    showActions={false}
-                    params={{orgId: org.slug}} />
-                </SidebarPanel>
-            }
-            {this.state.showPanel && this.state.currentPanel == 'statusupdate' &&
-                <SidebarPanel title={t('Recent status updates')}
-                              hidePanel={()=>this.hidePanel()}>
-                  <ul className="incident-list list-unstyled">
-                    {incidents.map((incident) =>
-                      <li className="incident-item" key={incident.id}>
-                        <h4>{incident.title}</h4>
-                        {incident.updates ?
-                          <div>
-                            <h6>Latest updates:</h6>
-                            <ul className="status-list list-unstyled">
-                              {incident.updates.map((update) =>
-                                <li className="status-item" key={update.id}>
-                                  <p>
-                                    <strong>{update.status}</strong> - &nbsp;
-                                    {update.message}<br/>
-                                    <small>{update.timestamp}</small>
-                                  </p>
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                          :
-                          null
-                        }
-                        <p>
-                          <a href={incident.url} className="btn btn-default btn-sm">Learn more</a>
-                        </p>
-                      </li>
-                    )}
-                  </ul>
-                </SidebarPanel>
-            }
-          </div>
-
-          <div className="anchor-bottom">
-            <ul className="navbar-nav">
-              {org &&
-                <OnboardingStatus
-                  org={org}
-                  showPanel={this.state.showPanel}
-                  currentPanel={this.state.currentPanel}
-                  onShowPanel={()=>this.togglePanel('todos')}
-                  hidePanel={()=>this.hidePanel()} />
-              }
-              <Broadcasts
-                showPanel={this.state.showPanel}
-                currentPanel={this.state.currentPanel}
-                onShowPanel={()=>this.togglePanel('broadcasts')}
+                onShowPanel={()=>this.togglePanel('todos')}
                 hidePanel={()=>this.hidePanel()} />
-              <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
-                <a onClick={()=>this.togglePanel('statusupdate')} ><span className="icon icon-alert" /></a>
-              </li>
-              <li>
-                <UserNav className="user-settings" />
-              </li>
-            </ul>
-          </div>
+            }
+            <Broadcasts
+              showPanel={this.state.showPanel}
+              currentPanel={this.state.currentPanel}
+              onShowPanel={()=>this.togglePanel('broadcasts')}
+              hidePanel={()=>this.hidePanel()} />
+            <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
+              <a onClick={()=>this.togglePanel('statusupdate')} ><span className="icon icon-alert" /></a>
+            </li>
+            <li>
+              <UserNav className="user-settings" />
+            </li>
+          </ul>
+        </div>
 
+        { /* {org.slug ?
+          <Link to={`/${org.slug}/`} className="logo">{logo}</Link>
+          :
+          <a href="/" className="logo">{logo}</a>
+        */}
+        { /* <OrganizationSelector
+          organization={org}
+          showPanel={this.state.showPanel}
+          currentPanel={this.state.currentPanel}
+          onShowPanel={()=>this.showPanel('broadcasts')}
+          hidePanel={()=>this.hidePanel()}/> */ }
 
-
-          { /* {org.slug ?
-            <Link to={`/${org.slug}/`} className="logo">{logo}</Link>
-            :
-            <a href="/" className="logo">{logo}</a>
-          */}
-          { /* <OrganizationSelector
-            organization={org}
-            showPanel={this.state.showPanel}
-            currentPanel={this.state.currentPanel}
-            onShowPanel={()=>this.showPanel('broadcasts')}
-            hidePanel={()=>this.hidePanel()}/> */ }
-
-          { /* <StatusPage className="pull-right" /> */}
-          { /*  {actionMessage ?
-          <span className="admin-action-message">{actionMessage}</span>
-          : null}
-          */ }
+        { /* <StatusPage className="pull-right" /> */}
+        { /*  {actionMessage ?
+        <span className="admin-action-message">{actionMessage}</span>
+        : null}
+        */ }
       </nav>
     );
   }
