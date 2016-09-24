@@ -23,7 +23,7 @@ class GenericField extends React.Component {
       placeholder: config.placeholder,
       required: required,
       name: config.name,
-      error: this.props.formErrors[config.name],
+      error: (this.props.formErrors || {})[config.name],
       disabled: config.readonly,
       key: config.name,
       help: (
