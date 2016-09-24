@@ -41,18 +41,18 @@ def get_gravatar_url(email, size=None, default='mm'):
 
 
 LETTER_AVATAR_COLORS = [
-    '#25A6F7',  # blue
-    '#1D87CE',  # blue_dark
-    '#6FBA57',  # green
-    '#4F923C',  # green_dark
-    '#F8A509',  # yellow_orange
-    '#E35141',  # red
-    '#B64236',  # red_dark
-    '#E56AA6',  # pink
-    '#836CC2',  # purple
-    '#6958A2',  # purple_dark
-    '#44ADA0',  # teal
-    '#6F7E94'   # gray
+    '#4674ca',  # blue
+    '#315cac',  # blue_dark
+    '#57be8c',  # green
+    '#3fa372',  # green_dark
+    '#f9a66d',  # yellow_orange
+    '#ec5e44',  # red
+    '#e63717',  # red_dark
+    '#f868bc',  # pink
+    '#6c5fc7',  # purple
+    '#4e3fb4',  # purple_dark
+    '#57b1be',  # teal
+    '#847a8c'   # gray
 ]
 
 
