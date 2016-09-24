@@ -1,42 +1,22 @@
 import React from 'react';
+import Reflux from 'reflux';
 import $ from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
+import IncidentStore from '../../stores/incidentStore';
 import OrganizationState from '../../mixins/organizationState';
-// import {Link} from 'react-router';
+import {load as loadIncidents} from '../../actionCreators/incidents';
 
 import Broadcasts from './broadcasts';
-// import StatusPage from './statuspage';
 import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
 import IssueList from '../issueList';
-import {t} from '../../locale';
 
-const INCIDENTS = [
-  {
-    id: 1,
-    title: 'Issues delivering mail to FastMail customers',
-    url: 'http://example.com',
-    updates: [
-        {
-          id: 1,
-          status: 'Resolved',
-          message: 'FastMail has addressed the issue, and we are delivering email again.',
-          timestamp : '1 hour ago'
-        },
-        {
-          id: 2,
-          status: 'Identified',
-          message: 'FastMail customers are not getting emails. Our outbound IPs are being rate limited by FastMail. We have an open ticket with them to try and alleviate the issue. In the meantime, you may want to switch your Sentry email to something not backed by FastMail.',
-          timestamp : '2 hours ago',
-        }
-    ]
-  }
-];
+import {t} from '../../locale';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
@@ -89,19 +69,24 @@ function getFirstRequiredAdminAction(org) {
 }
 
 const Sidebar = React.createClass({
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [
+    ApiMixin,
+    OrganizationState,
+    Reflux.listenTo(IncidentStore, 'onIncidentChange'),
+  ],
 
   getInitialState: function() {
-    if (location.hash == '#welcome') {
-      return {showTodos: true};
-    } else {
-      return {showTodos: false};
-    }
+    return {
+      showTodos: location.hash === '#welcome',
+      status: null
+    };
   },
 
   componentDidMount() {
     $(window).on('hashchange', this.hashChangeHandler);
     $(document).on('click', this.documentClickHandler);
+
+    loadIncidents();
   },
 
   componentWillUnmount() {
@@ -121,6 +106,12 @@ const Sidebar = React.createClass({
     if (location.hash == '#welcome') {
       this.setState({showTodos: true});
     }
+  },
+
+  onIncidentChange(status) {
+    this.setState({
+      status: {...status}
+    });
   },
 
   toggleTodos(e) {
@@ -161,7 +152,7 @@ const Sidebar = React.createClass({
       );
     }
 
-    let incidents = INCIDENTS;
+    let status = this.state.status;
 
     return (<div>
       <OrganizationSelector
@@ -242,24 +233,20 @@ const Sidebar = React.createClass({
             params={{orgId: org.slug}} />
         </SidebarPanel>
       }
-      {this.state.showPanel && this.state.currentPanel == 'statusupdate' &&
+      {this.state.showPanel && this.state.currentPanel == 'statusupdate' && status &&
         <SidebarPanel title={t('Recent status updates')}
                       hidePanel={()=>this.hidePanel()}>
           <ul className="incident-list list-unstyled">
-            {incidents.map((incident) =>
+            {status.incidents.map((incident) =>
               <li className="incident-item" key={incident.id}>
                 <h4>{incident.title}</h4>
                 {incident.updates ?
                   <div>
                     <h6>Latest updates:</h6>
                     <ul className="status-list list-unstyled">
-                      {incident.updates.map((update) =>
-                        <li className="status-item" key={update.id}>
-                          <p>
-                            <strong>{update.status}</strong> - &nbsp;
-                            {update.message}<br/>
-                            <small>{update.timestamp}</small>
-                          </p>
+                      {incident.updates.map((update, key) =>
+                        <li className="status-item" key={key}>
+                          <p>{update}</p>
                         </li>
                       )}
                     </ul>
@@ -323,9 +310,12 @@ const Sidebar = React.createClass({
               currentPanel={this.state.currentPanel}
               onShowPanel={()=>this.togglePanel('broadcasts')}
               hidePanel={()=>this.hidePanel()} />
-            <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
-              <a onClick={()=>this.togglePanel('statusupdate')} ><span className="icon icon-alert" /></a>
-            </li>
+
+            {this.state.status &&
+              <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
+                <a onClick={()=>this.togglePanel('statusupdate')}><span className="icon icon-alert"/></a>
+              </li>
+            }
             <li>
               <UserNav className="user-settings" />
             </li>
