@@ -25,8 +25,8 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
     @attach_scenarios([get_oldest_group_sample_scenario])
     def get(self, request, group):
         """
-        Retriev Oldest Event
-        ````````````````````
+        Retrieve Oldest Event
+        `````````````````````
 
         Retrieves the details of the oldest event for an issue.
 
