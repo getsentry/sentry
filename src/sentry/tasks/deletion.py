@@ -115,7 +115,8 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
         Release, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
-        TagValue, UserReport, ReleaseEnvironment, Environment
+        TagValue, UserReport, ReleaseEnvironment, Environment, ReleaseCommit,
+        Commit, CommitAuthor
     )
 
     try:
@@ -145,7 +146,8 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, ReleaseEnvironment, Environment
+        UserReport, ReleaseEnvironment, Environment, ReleaseCommit,
+        CommitAuthor, Commit
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)

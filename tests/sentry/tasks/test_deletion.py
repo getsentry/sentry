@@ -5,7 +5,8 @@ from sentry.models import (
     Event, EventMapping, EventTag,
     Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
-    Release, TagKey, TagValue, Team, TeamStatus
+    Release, TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor,
+    ReleaseCommit
 )
 from sentry.tasks.deletion import (
     delete_group, delete_organization, delete_project, delete_tag_key,
@@ -83,11 +84,29 @@ class DeleteProjectTest(TestCase):
         GroupMeta.objects.create(group=group, key='foo', value='bar')
         release = Release.objects.create(version='a' * 32, project=project)
         GroupResolution.objects.create(group=group, release=release)
+        commit_author = CommitAuthor.objects.create(
+            project_id=project.id,
+            name='foo',
+            email='foo@example.com',
+        )
+        commit = Commit.objects.create(
+            project_id=project.id,
+            author=commit_author,
+            key='a' * 40,
+        )
+        ReleaseCommit.objects.create(
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=0,
+        )
 
         with self.tasks():
             delete_project(object_id=project.id)
 
         assert not Project.objects.filter(id=project.id).exists()
+        for model in (Commit, CommitAuthor, ReleaseCommit):
+            assert not model.objects.filter(project_id=project.id).exists()
 
     def test_cancels_without_pending_status(self):
         project = self.create_project(
