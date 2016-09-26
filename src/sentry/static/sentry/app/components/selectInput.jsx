@@ -32,7 +32,7 @@ const SelectInput = React.createClass({
     /*below is a hack for a bug in edge related to form submitting.
     see: https://github.com/facebook/react/issues/7655
     (@maxbittker)*/
-    if(this.refs.select){
+    if(this.refs.select)  {
       let selectedIndex = this.refs.select.selectedIndex;
       if (selectedIndex >= 0) {
        let options = this.refs.select.options;
