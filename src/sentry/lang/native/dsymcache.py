@@ -29,12 +29,12 @@ class DSymCache(object):
 
     def fetch_dsyms(self, project, uuids):
         bases = set()
-        loaded = []
+        loaded = set()
         for image_uuid in uuids:
             rv = self.fetch_dsym(project, image_uuid)
             if rv is not None:
                 base, dsym = rv
-                loaded.append(dsym)
+                loaded.add(dsym)
                 bases.add(base)
         return list(bases), loaded
 
