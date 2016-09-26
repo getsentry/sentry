@@ -12,6 +12,7 @@ body {
   .transition(.1s padding ease-in-out);
   overflow-x: hidden;
   padding-left: @sidebar-width;
+  padding-top: 30px;
 }
 
 /**
@@ -26,15 +27,6 @@ body.narrow {
     max-width: 760px;
     padding-top: 40px;
   }
-}
-
-/**
-* body.white-bg
-* ============================================================================
-*/
-
-body.white-bg {
-  background: #fff;
 }
 
 /**
@@ -122,7 +114,7 @@ body.auth {
   color: @gray-dark;
   border-bottom: 1px solid @trim;
   position: relative;
-  margin: 0 0 20px;
+  margin: -30px 0 20px; // Offset body padding-top
   line-height: 1;
   font-size: 16px;
   min-height: 62px;
