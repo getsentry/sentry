@@ -40,6 +40,21 @@ _java_enhancer_re = re.compile(r'''
 ''', re.X)
 
 
+def max_addr(cur, addr):
+    if addr is None:
+        return cur
+    length = len(addr) - 2
+    if length > cur:
+        return length
+    return cur
+
+
+def pad_hex_addr(addr, length):
+    if length is None:
+        return addr
+    return '0x' + addr[2:].rjust(length, '0')
+
+
 def trim_package(pkg):
     if not pkg:
         return '?'
@@ -56,10 +71,7 @@ def to_hex_addr(addr):
         return '0x%x' % addr
     elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
-            # XXX: More correct would be this but we currently can't do
-            # that yet.
-            # addr = int(addr[2:], 16)
-            return addr
+            addr = int(addr[2:], 16)
         return '0x%x' % int(addr)
     raise ValueError('Unsupported address format %r' % (addr,))
 
@@ -385,15 +397,15 @@ class Frame(Interface):
             output.append(self.lineno)
         return output
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, pad_addr=None):
         data = {
             'filename': self.filename,
             'absPath': self.abs_path,
             'module': self.module,
             'package': self.package,
             'platform': self.platform,
-            'instructionAddr': self.instruction_addr,
-            'instructionOffset': self.instruction_offset,
+            'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
+            'instructionOffset': pad_hex_addr(self.instruction_offset, pad_addr),
             'symbolAddr': self.symbol_addr,
             'function': self.function,
             'context': get_context(
@@ -652,9 +664,18 @@ class Stacktrace(Interface):
             return False
         return bool(system_frames)
 
+    def get_longest_address(self):
+        rv = None
+        for frame in self.frames:
+            rv = max_addr(rv, frame.instruction_addr)
+            rv = max_addr(rv, frame.symbol_addr)
+        return rv
+
     def get_api_context(self, is_public=False):
+        longest_addr = self.get_longest_address()
+
         frame_list = [
-            f.get_api_context(is_public=is_public)
+            f.get_api_context(is_public=is_public, pad_addr=longest_addr)
             for f in self.frames
         ]
 
