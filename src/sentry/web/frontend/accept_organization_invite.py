@@ -10,6 +10,7 @@ from sentry.models import (
     AuditLogEntryEvent, OrganizationMember, Project
 )
 from sentry.signals import member_joined
+from sentry.utils import auth
 from sentry.web.frontend.base import BaseView
 
 ERR_INVITE_INVALID = _('The invite link you followed is not valid.')
@@ -72,7 +73,7 @@ class AcceptOrganizationInviteView(BaseView):
 
         if not request.user.is_authenticated():
             # Show login or register form
-            request.session['_next'] = request.get_full_path()
+            auth.initiate_login(request, next_url=request.get_full_path())
             request.session['can_register'] = True
             request.session['invite_email'] = om.email
 

@@ -23,7 +23,9 @@ from sentry.coreapi import (
     LazyData
 )
 from sentry.models import Project, OrganizationOption
-from sentry.signals import event_accepted, event_received
+from sentry.signals import (
+    event_accepted, event_dropped, event_filtered, event_received
+)
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
 from sentry.utils.data_scrubber import SensitiveDataFilter
@@ -302,6 +304,7 @@ class StoreView(APIView):
 
         event_received.send_robust(
             ip=remote_addr,
+            project=project,
             sender=type(self),
         )
 
@@ -313,6 +316,11 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_blacklisted, project.organization_id),
             ])
             metrics.incr('events.blacklisted')
+            event_filtered.send_robust(
+                ip=remote_addr,
+                project=project,
+                sender=type(self),
+            )
             raise APIForbidden('Event dropped due to filter')
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
@@ -333,6 +341,11 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
             metrics.incr('events.dropped')
+            event_dropped.send_robust(
+                ip=remote_addr,
+                project=project,
+                sender=type(self),
+            )
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)
         else:

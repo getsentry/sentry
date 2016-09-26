@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
-from sentry.models import Rule, RuleStatus
+from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -22,7 +22,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         queryset = Rule.objects.filter(
             project=project,
             status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
-        )
+        ).select_related('project')
 
         return self.paginate(
             request=request,
@@ -53,6 +53,13 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         if serializer.is_valid():
             rule = serializer.save(rule=Rule())
+            self.create_audit_entry(
+                request=request,
+                organization=project.organization,
+                target_object=rule.id,
+                event=AuditLogEntryEvent.RULE_ADD,
+                data=rule.get_audit_log_data(),
+            )
 
             return Response(serialize(rule, request.user))
 

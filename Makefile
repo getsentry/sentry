@@ -7,7 +7,7 @@ install-python:
 	# order matters here, base package must install first
 	pip install -e .
 	pip install ujson
-	pip install "file://`pwd`#egg=sentry[dev,dsym]"
+	pip install "file://`pwd`#egg=sentry[dev]"
 
 install-npm:
 	@echo "--> Installing Node dependencies"

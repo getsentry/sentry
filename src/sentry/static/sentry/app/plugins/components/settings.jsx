@@ -3,14 +3,13 @@ import underscore from 'underscore';
 
 import {
   Form,
-  FormState,
-  GenericField
+  FormState
 } from '../../components/forms';
-import SettingsBase from '../../components/bases/settingsBase';
+import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import LoadingIndicator from '../../components/loadingIndicator';
 
 
-class PluginSettings extends SettingsBase {
+class PluginSettings extends PluginComponentBase {
   constructor(props) {
     super(props);
 
@@ -105,13 +104,12 @@ class PluginSettings extends SettingsBase {
           </div>
         }
         {this.state.fieldList.map(f => {
-          return (
-            <GenericField
-              config={f}
-              formData={this.state.formData}
-              formErrors={this.state.errors}
-              onChange={this.changeField.bind(this, f.name)} />
-          );
+          return this.renderField({
+            config: f,
+            formData: this.state.formData,
+            formErrors: this.state.errors,
+            onChange: this.changeField.bind(this, f.name)
+          });
         })}
       </Form>
     );

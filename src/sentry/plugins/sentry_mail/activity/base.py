@@ -4,7 +4,9 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
 
 from sentry import options
-from sentry.models import GroupSubscription, ProjectOption, UserAvatar
+from sentry.models import (
+    GroupSubscription, ProjectOption, UserAvatar, UserOption
+)
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
@@ -34,13 +36,25 @@ class ActivityEmail(object):
         # TODO(dcramer): not used yet today except by Release's
         if not self.group:
             return []
-        return [
-            u for u in
+
+        participants = set(
             GroupSubscription.objects.get_participants(
-                group=self.group,
+                group=self.group
             )
-            if u != self.activity.user
-        ]
+        )
+
+        if self.activity.user is not None:
+            receive_own_activity = UserOption.objects.get_value(
+                user=self.activity.user,
+                project=None,
+                key='self_notifications',
+                default='0'
+            ) == '1'
+
+            if not receive_own_activity:
+                participants.discard(self.activity.user)
+
+        return participants
 
     def get_template(self):
         return 'sentry/emails/activity/generic.txt'

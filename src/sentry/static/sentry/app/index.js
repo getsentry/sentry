@@ -70,6 +70,7 @@ export default {
     FlotChart: require('./components/flotChart'),
     HookStore: require('./stores/hookStore'),
     Indicators: require('./components/indicators'),
+    IndicatorStore: require('./stores/indicatorStore'),
     LoadingError: require('./components/loadingError'),
     LoadingIndicator: require('./components/loadingIndicator'),
     ListLink: require('./components/listLink'),

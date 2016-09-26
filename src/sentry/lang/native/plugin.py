@@ -9,7 +9,7 @@ import posixpath
 
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
-from sentry.lang.native.symbolizer import Symbolizer, have_symsynd
+from sentry.lang.native.symbolizer import Symbolizer
 from sentry.lang.native.utils import find_all_stacktraces, \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
@@ -251,14 +251,6 @@ def inject_apple_device_data(data, system):
             device['family'] = match.group(1)
 
 
-def record_no_symsynd(data):
-    if data.get('sentry.interfaces.AppleCrashReport'):
-        append_error(data, {
-            'type': EventError.NATIVE_NO_SYMSYND,
-        })
-        return data
-
-
 def dump_crash_report(report):
     import json
     with open('/tmp/sentry-apple-crash-report-%s.json' % time.time(), 'w') as f:
@@ -452,6 +444,4 @@ class NativePlugin(Plugin2):
     can_disable = False
 
     def get_event_preprocessors(self, **kwargs):
-        if not have_symsynd:
-            return [record_no_symsynd]
         return [preprocess_apple_crash_event, resolve_frame_symbols]

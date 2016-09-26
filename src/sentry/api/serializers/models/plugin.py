@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -12,7 +14,7 @@ class PluginSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
             'id': obj.slug,
-            'name': obj.get_title(),
+            'name': six.text_type(obj.get_title()),
             'type': obj.get_plugin_type(),
             'canDisable': obj.can_disable,
             'isTestable': obj.is_testable(),
@@ -46,12 +48,12 @@ class PluginWithConfigSerializer(PluginSerializer):
 
 def serialize_field(project, plugin, field):
     data = {
-        'name': field['name'],
-        'label': field.get('label') or field['name'].title().replace('_', ' '),
+        'name': six.text_type(field['name']),
+        'label': six.text_type(field.get('label') or field['name'].title().replace('_', ' ')),
         'type': field.get('type', 'text'),
         'required': field.get('required', False),
-        'help': field.get('help'),
-        'placeholder': field.get('placeholder'),
+        'help': six.text_type(field['help']) if field.get('help') else None,
+        'placeholder': six.text_type(field['placeholder']) if field.get('placeholder') else None,
         'choices': field.get('choices'),
         'readonly': field.get('readonly', False),
         'defaultValue': field.get('default'),

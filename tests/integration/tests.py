@@ -14,8 +14,8 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
 from django.utils import timezone
-from gzip import GzipFile
 from exam import fixture
+from gzip import GzipFile
 from raven import Client
 from six import StringIO
 
