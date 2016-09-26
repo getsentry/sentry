@@ -160,7 +160,7 @@ class BasicResolvingFileTest(TestCase):
         frames = bt['frames']
 
         assert frames[0]['function'] == '<redacted>'
-        assert frames[0]['instruction_addr'] == '0x002ac28b8'
+        assert frames[0]['instruction_addr'] == '0x2ac28b8'
 
         assert frames[1]['function'] == 'real_main'
         assert frames[1]['lineno'] == 42
