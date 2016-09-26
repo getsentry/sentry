@@ -46,7 +46,16 @@ def make_symbolizer(project, binary_images, referenced_images=None):
         to_load = [x['uuid'] for x in binary_images]
 
     dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
-    return ReportSymbolizer(driver, dsym_paths, binary_images)
+
+    # We only want to pass the actually loaded symbols to the report
+    # symbolizer to avoid the expensive FS operations that will otherwise
+    # happen.
+    user_images = []
+    for img in binary_images:
+        if img['uuid'] in loaded:
+            user_images.append(img)
+
+    return ReportSymbolizer(driver, dsym_paths, user_images)
 
 
 class Symbolizer(object):
