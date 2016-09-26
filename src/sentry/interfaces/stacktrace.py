@@ -50,7 +50,7 @@ def max_addr(cur, addr):
 
 
 def pad_hex_addr(addr, length):
-    if length is None:
+    if length is None or addr is None:
         return addr
     return '0x' + addr[2:].rjust(length, '0')
 
@@ -68,12 +68,16 @@ def to_hex_addr(addr):
     if addr is None:
         return None
     elif isinstance(addr, six.integer_types):
-        return '0x%x' % addr
+        rv = '0x%x' % addr
     elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
             addr = int(addr[2:], 16)
-        return '0x%x' % int(addr)
-    raise ValueError('Unsupported address format %r' % (addr,))
+        rv = '0x%x' % int(addr)
+    else:
+        raise ValueError('Unsupported address format %r' % (addr,))
+    if len(rv) > 24:
+        raise ValueError('Address too long %r' % (rv,))
+    return rv
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None,
@@ -318,9 +322,9 @@ class Frame(Interface):
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': package,
-            'image_addr': to_hex_addr(trim(data.get('image_addr'), 16)),
-            'symbol_addr': to_hex_addr(trim(data.get('symbol_addr'), 16)),
-            'instruction_addr': to_hex_addr(trim(data.get('instruction_addr'), 16)),
+            'image_addr': to_hex_addr(data.get('image_addr')),
+            'symbol_addr': to_hex_addr(data.get('symbol_addr')),
+            'instruction_addr': to_hex_addr(data.get('instruction_addr')),
             'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
@@ -405,8 +409,8 @@ class Frame(Interface):
             'package': self.package,
             'platform': self.platform,
             'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
-            'instructionOffset': pad_hex_addr(self.instruction_offset, pad_addr),
-            'symbolAddr': self.symbol_addr,
+            'instructionOffset': self.instruction_offset,
+            'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
             'context': get_context(
                 lineno=self.lineno,
