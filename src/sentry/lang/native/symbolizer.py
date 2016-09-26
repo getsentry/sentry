@@ -2,16 +2,11 @@ from __future__ import absolute_import
 
 import six
 
-try:
-    from symsynd.driver import Driver, SymbolicationError
-    from symsynd.report import ReportSymbolizer
-    from symsynd.macho.arch import get_cpu_name
-    from symsynd.demangle import demangle_symbol
-    have_symsynd = True
-except ImportError:
-    have_symsynd = False
+from symsynd.driver import Driver, SymbolicationError
+from symsynd.report import ReportSymbolizer
+from symsynd.macho.arch import get_cpu_name
+from symsynd.demangle import demangle_symbol
 
-from sentry import options
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.models import DSymSymbol, EventError
@@ -44,17 +39,23 @@ def make_symbolizer(project, binary_images, referenced_images=None):
     list of referenced images is referenced (UUIDs) then only images
     needed by those frames are loaded.
     """
-    if not have_symsynd:
-        raise RuntimeError('symsynd is unavailable.  Install sentry with '
-                           'the dsym feature flag.')
-    driver = Driver(options.get('dsym.llvm-symbolizer-path') or None)
+    driver = Driver()
 
     to_load = referenced_images
     if to_load is None:
         to_load = [x['uuid'] for x in binary_images]
 
     dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
-    return ReportSymbolizer(driver, dsym_paths, binary_images)
+
+    # We only want to pass the actually loaded symbols to the report
+    # symbolizer to avoid the expensive FS operations that will otherwise
+    # happen.
+    user_images = []
+    for img in binary_images:
+        if img['uuid'] in loaded:
+            user_images.append(img)
+
+    return ReportSymbolizer(driver, dsym_paths, user_images)
 
 
 class Symbolizer(object):

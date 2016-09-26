@@ -17,11 +17,7 @@ import tempfile
 from itertools import chain
 from django.db import models, router, transaction, connection, IntegrityError
 
-try:
-    from symsynd.macho.arch import get_macho_uuids
-    have_symsynd = True
-except ImportError:
-    have_symsynd = False
+from symsynd.macho.arch import get_macho_uuids
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
     sane_repr, BaseManager
@@ -406,9 +402,6 @@ def create_files_from_macho_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
-    if not have_symsynd:
-        raise RuntimeError('symsynd is unavailable.  Install sentry with '
-                           'the dsym feature flag.')
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad)

@@ -29,12 +29,11 @@ class DSymCache(object):
 
     def fetch_dsyms(self, project, uuids):
         bases = set()
-        loaded = []
+        loaded = set()
         for image_uuid in uuids:
-            rv = self.fetch_dsym(project, image_uuid)
-            if rv is not None:
-                base, dsym = rv
-                loaded.append(dsym)
+            base = self.fetch_dsym(project, image_uuid)
+            if base is not None:
+                loaded.add(image_uuid)
                 bases.add(base)
         return list(bases), loaded
 
@@ -50,12 +49,12 @@ class DSymCache(object):
             base = self.get_project_path(project)
             dsym = os.path.join(base, image_uuid)
             try:
-                stat = os.stat(dsym)
+                os.stat(dsym)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
             else:
-                return base, self.try_bump_timestamp(dsym, stat)
+                return base
 
         dsf = find_dsym_file(project, image_uuid)
         if dsf is None:
@@ -89,7 +88,7 @@ class DSymCache(object):
                     except Exception:
                         pass
 
-        return base, dsym
+        return base
 
     def clear_old_entries(self):
         try:

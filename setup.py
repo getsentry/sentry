@@ -130,6 +130,7 @@ install_requires = [
     'statsd>=3.1.0,<3.2.0',
     'structlog==16.1.0',
     'South==1.0.1',
+    'symsynd>=1.1.0,<2.0.0',
     'toronado>=0.0.10,<0.1.0',
     'ua-parser>=0.6.1,<0.8.0',
     'urllib3>=1.14,<1.17',
@@ -137,10 +138,6 @@ install_requires = [
     'rb>=1.5.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
-]
-
-dsym_requires = [
-    'symsynd>=0.8.3,<1.0.0',
 ]
 
 
@@ -194,7 +191,6 @@ setup(
         'tests': tests_require,
         'dev': dev_requires,
         'postgres': install_requires,
-        'dsym': dsym_requires,
     },
     cmdclass=cmdclass,
     license='BSD',
