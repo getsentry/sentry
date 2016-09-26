@@ -1,6 +1,7 @@
 import React from 'react';
 import Reflux from 'reflux';
 import $ from 'jquery';
+import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import ConfigStore from '../../stores/configStore';
@@ -165,9 +166,9 @@ const Sidebar = React.createClass({
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
         <li>
-          <a href="/">
+          <Link to={`/${org.slug}/`}>
             <span className="icon icon-home" />
-          </a>
+          </Link>
         </li>
         <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
           <a>
