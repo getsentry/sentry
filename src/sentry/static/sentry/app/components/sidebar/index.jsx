@@ -164,6 +164,11 @@ const Sidebar = React.createClass({
 
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
+        <li>
+          <a href="/">
+            <span className="icon icon-home" />
+          </a>
+        </li>
         <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
           <a>
             <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
@@ -268,13 +273,7 @@ const Sidebar = React.createClass({
   render() {
     let user = ConfigStore.get('user');
     let org = this.getOrganization();
-    let logo;
 
-    if (user) {
-      logo = <span className="icon-sentry-logo"/>;
-    } else {
-      logo = <span className="icon-sentry-logo-full"/>;
-    }
 
     let requiredAction = org && getFirstRequiredAdminAction(org);
 
@@ -322,19 +321,6 @@ const Sidebar = React.createClass({
           </ul>
         </div>
 
-        { /* {org.slug ?
-          <Link to={`/${org.slug}/`} className="logo">{logo}</Link>
-          :
-          <a href="/" className="logo">{logo}</a>
-        */}
-        { /* <OrganizationSelector
-          organization={org}
-          showPanel={this.state.showPanel}
-          currentPanel={this.state.currentPanel}
-          onShowPanel={()=>this.showPanel('broadcasts')}
-          hidePanel={()=>this.hidePanel()}/> */ }
-
-        { /* <StatusPage className="pull-right" /> */}
         { /*  {actionMessage ?
         <span className="admin-action-message">{actionMessage}</span>
         : null}
