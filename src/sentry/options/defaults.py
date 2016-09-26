@@ -49,7 +49,6 @@ register(
 register('redis.options', type=Dict, flags=FLAG_NOSTORE)
 
 # symbolizer specifics
-register('dsym.llvm-symbolizer-path', type=String)
 register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache')
 
 # Mail
