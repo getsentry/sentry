@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 
 
 class Version(tuple):
     def __str__(self):
-        return '.'.join(map(str, self))
+        return '.'.join(map(six.binary_type, self))
 
 
 def summarize(sequence, max=3):
@@ -21,7 +23,7 @@ def summarize(sequence, max=3):
 
 def make_upgrade_message(service, modality, version, hosts):
     return '{service} {modality} be upgraded to {version} on {hosts}.'.format(
-        hosts=','.join(map(str, summarize(hosts.keys(), 2))),
+        hosts=','.join(map(six.binary_type, summarize(hosts.keys(), 2))),
         modality=modality,
         service=service,
         version=version,

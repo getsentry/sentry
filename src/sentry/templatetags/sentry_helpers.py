@@ -55,7 +55,7 @@ register.filter(to_json)
 @register.filter
 def multiply(x, y):
     def coerce(value):
-        if isinstance(value, (int, long, float)):
+        if isinstance(value, (six.integer_types, float)):
             return value
         try:
             return int(value)
@@ -102,7 +102,7 @@ def subtract(value, amount):
 
 @register.filter
 def absolute_value(value):
-    return abs(int(value) if isinstance(value, (int, long)) else float(value))
+    return abs(int(value) if isinstance(value, six.integer_types) else float(value))
 
 
 @register.filter

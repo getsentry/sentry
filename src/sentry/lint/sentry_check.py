@@ -92,20 +92,13 @@ class SentryVisitor(ast.NodeVisitor):
                             bug(node.lineno, node.col_offset)
                         )
                     break
-            for bug in (B311,):
+            for bug in (B312,):
                 if node.func.attr in bug.methods:
                     call_path = '.'.join(self.compose_call_path(node.func.value))
                     if call_path in bug.invalid_paths:
                         self.errors.append(
                             bug(node.lineno, node.col_offset)
                         )
-                    break
-        elif isinstance(node.func, ast.Name):
-            for bug in (B308, B309, B310):
-                if node.func.id in bug.names:
-                    self.errors.append(
-                        bug(node.lineno, node.col_offset)
-                    )
                     break
         self.generic_visit(node)
 
@@ -147,9 +140,19 @@ class SentryVisitor(ast.NodeVisitor):
                 )
             if '__unicode__' in assign_targets:
                 self.errors.append(
-                    B312(node.lineno, node.col_offset)
+                    B313(node.lineno, node.col_offset)
                 )
         self.generic_visit(node)
+
+    def visit_Name(self, node):
+        for bug in (B308, B309, B310, B311):
+            if node.id in bug.names:
+                self.errors.append(
+                    bug(
+                        lineno=node.lineno,
+                        col=node.col_offset,
+                    ),
+                )
 
     def compose_call_path(self, node):
         if isinstance(node, ast.Attribute):
@@ -305,40 +308,48 @@ B307.names = {'urllib', 'urlib2', 'urlparse'}
 
 B308 = partial(
     error,
-    message="B308: The usage of ``str()`` differs between Python 2 and 3. Use "
-            "``six.text_type()`` or ``six.binary_type`` instead.",
+    message="B308: The usage of ``str`` differs between Python 2 and 3. Use "
+            "``six.binary_type`` instead.",
     type=SentryCheck,
 )
 B308.names = {'str'}
 
 B309 = partial(
     error,
-    message="B309: ``unicode()`` does not exist in Python 3. Use "
-            "``six.text_type()`` instead.",
+    message="B309: ``unicode`` does not exist in Python 3. Use "
+            "``six.text_type`` instead.",
     type=SentryCheck,
 )
 B309.names = {'unicode'}
 
 B310 = partial(
     error,
-    message="B310: ``long`` should not be used. Use int instead, and allow "
-            "Python to deal with handling large integers.",
+    message="B310: ``basestring`` does not exist in Python 3. Use "
+            "``six.string_types`` instead.",
     type=SentryCheck,
 )
-B310.names = {'long'}
+B310.names = {'basestring'}
 
 B311 = partial(
     error,
-    message="B311: ``cgi.escape`` and ``html.escape`` should not be used. Use "
-            "sentry.utils.html.escape instead.",
+    message="B311: ``long`` should not be used. Use int instead, and allow "
+            "Python to deal with handling large integers.",
     type=SentryCheck,
 )
-B311.methods = {'escape'}
-B311.invalid_paths = {'cgi', 'html'}
+B311.names = {'long'}
 
 B312 = partial(
     error,
-    message="B312: ``__unicode__`` should not be defined on classes. Define "
+    message="B312: ``cgi.escape`` and ``html.escape`` should not be used. Use "
+            "sentry.utils.html.escape instead.",
+    type=SentryCheck,
+)
+B312.methods = {'escape'}
+B312.invalid_paths = {'cgi', 'html'}
+
+B313 = partial(
+    error,
+    message="B313: ``__unicode__`` should not be defined on classes. Define "
             "just ``__str__`` returning a unicode text string, and use the "
             "sentry.utils.compat.implements_to_string class decorator.",
     type=SentryCheck,
