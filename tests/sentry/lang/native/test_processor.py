@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from mock import patch
 
-from sentry.testutils import requires_llvm_symbolizer, TestCase
+from sentry.testutils import TestCase
 from sentry.lang.native.plugin import resolve_frame_symbols
 
 
@@ -44,7 +44,6 @@ def patched_symbolize_system_frame(self, frame, sdk_info):
         }
 
 
-@requires_llvm_symbolizer
 class BasicResolvingFileTest(TestCase):
 
     @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame',
