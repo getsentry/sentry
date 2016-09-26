@@ -60,5 +60,5 @@ def base36_encode(number):
     return _encode(number, BASE36_ALPHABET)
 
 
-def base36_decode(str):
-    return int(str, 36)
+def base36_decode(s):
+    return int(s, 36)

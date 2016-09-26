@@ -213,7 +213,7 @@ class ListResolver(object):
                 'Cannot generate mailing list identifier for {!r}'.format(instance)
             )
 
-        label = '.'.join(map(str, handler(instance)))
+        label = '.'.join(map(six.binary_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
         return '{}.{}'.format(label, self.__namespace)

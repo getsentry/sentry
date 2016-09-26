@@ -31,8 +31,8 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
-@scenario('BulkUpdateAggregates')
-def bulk_update_aggregates_scenario(runner):
+@scenario('BulkUpdateIssues')
+def bulk_update_issues_scenario(runner):
     project = runner.default_project
     group1, group2 = Group.objects.filter(project=project)[:2]
     runner.request(
@@ -43,8 +43,8 @@ def bulk_update_aggregates_scenario(runner):
     )
 
 
-@scenario('BulkRemoveAggregates')
-def bulk_remove_aggregates_scenario(runner):
+@scenario('BulkRemoveIssuess')
+def bulk_remove_issues_scenario(runner):
     with runner.isolated_project('Amazing Plumbing') as project:
         group1, group2 = Group.objects.filter(project=project)[:2]
         runner.request(
@@ -54,8 +54,8 @@ def bulk_remove_aggregates_scenario(runner):
         )
 
 
-@scenario('ListProjectAggregates')
-def list_project_aggregates_scenario(runner):
+@scenario('ListProjectIssuess')
+def list_project_issues_scenario(runner):
     project = runner.default_project
     runner.request(
         method='GET',
@@ -145,13 +145,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     # status=<x>
     # <tag>=<value>
     # statsPeriod=24h
-    @attach_scenarios([list_project_aggregates_scenario])
+    @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
         """
-        List a Project's Aggregates
-        ```````````````````````````
+        List a Project's Issues
+        ```````````````````````
 
-        Return a list of aggregates bound to a project.  All parameters are
+        Return a list of issues (groups) bound to a project.  All parameters are
         supplied as query string parameters.
 
         A default query of ``is:resolved`` is applied. To return results
@@ -167,15 +167,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam bool shortIdLookup: if this is set to true then short IDs are
                                     looked up by this function as well.  This
                                     can cause the return value of the function
-                                    to return an event group of a different
+                                    to return an event issue of a different
                                     project which is why this is an opt-in.
                                     Set to `1` to enable.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:resolved"`` is assumed.)
         :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+                                          issues belong to.
+        :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -254,15 +254,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return response
 
-    @attach_scenarios([bulk_update_aggregates_scenario])
+    @attach_scenarios([bulk_update_issues_scenario])
     def put(self, request, project):
         """
-        Bulk Mutate a List of Aggregates
-        ````````````````````````````````
+        Bulk Mutate a List of Issues
+        ````````````````````````````
 
-        Bulk mutate various attributes on aggregates.  The list of groups
+        Bulk mutate various attributes on issues.  The list of issues
         to modify is given through the `id` query parameter.  It is repeated
-        for each group that should be modified.
+        for each issue that should be modified.
 
         - For non-status updates, the `id` query parameter is required.
         - For status updates, the `id` query parameter may be omitted
@@ -276,24 +276,24 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the groups to be mutated.  This
-                        parameter shall be repeated for each group.  It
+        :qparam int id: a list of IDs of the issues to be mutated.  This
+                        parameter shall be repeated for each issue.  It
                         is optional only if a status is mutated in which
                         case an implicit `update all` is assumed.
-        :qparam string status: optionally limits the query to groups of the
+        :qparam string status: optionally limits the query to issues of the
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
                                ``"muted"``.
         :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+                                          issues belong to.
+        :pparam string project_slug: the slug of the project the issues
                                      belong to.
-        :param string status: the new status for the groups.  Valid values
+        :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
                               ``"muted"``.
         :param int snoozeDuration: the number of minutes to mute this issue.
-        :param boolean isPublic: sets the group to public or private.
-        :param boolean merge: allows to merge or unmerge different groups.
+        :param boolean isPublic: sets the issue to public or private.
+        :param boolean merge: allows to merge or unmerge different issues.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -615,26 +615,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return Response(result)
 
-    @attach_scenarios([bulk_remove_aggregates_scenario])
+    @attach_scenarios([bulk_remove_issues_scenario])
     def delete(self, request, project):
         """
-        Bulk Remove a List of Aggregates
-        ````````````````````````````````
+        Bulk Remove a List of Issues
+        ````````````````````````````
 
-        Permanently remove the given aggregates. The list of groups to
+        Permanently remove the given issues. The list of issues to
         modify is given through the `id` query parameter.  It is repeated
-        for each group that should be removed.
+        for each issue that should be removed.
 
         Only queries by 'id' are accepted.
 
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the groups to be removed.  This
-                        parameter shall be repeated for each group.
+        :qparam int id: a list of IDs of the issues to be removed.  This
+                        parameter shall be repeated for each issue.
         :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+                                          issues belong to.
+        :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """

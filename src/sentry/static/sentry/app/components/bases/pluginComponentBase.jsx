@@ -2,7 +2,7 @@ import React from 'react';
 import _ from 'underscore';
 
 import {Client} from '../../api';
-import {FormState} from '../../components/forms';
+import {FormState, GenericField} from '../../components/forms';
 import IndicatorStore from '../../stores/indicatorStore';
 import {t} from '../../locale';
 
@@ -17,7 +17,7 @@ const callbackWithArgs = function(callback, ...args) {
 };
 
 
-class SettingsBase extends React.Component {
+class PluginComponentBase extends React.Component {
   constructor(props) {
     super(props);
 
@@ -26,7 +26,8 @@ class SettingsBase extends React.Component {
      'onSave',
      'onSaveSuccess',
      'onSaveError',
-     'onSaveComplete'].map(method => this[method] = this[method].bind(this));
+     'onSaveComplete',
+     'renderField'].map(method => this[method] = this[method].bind(this));
 
     if (this.fetchData) {
       this.fetchData = this.onLoad.bind(this, this.fetchData.bind(this));
@@ -108,6 +109,10 @@ class SettingsBase extends React.Component {
     callback = callbackWithArgs(callback, ...args);
     callback && callback();
   }
+
+  renderField(props) {
+    return <GenericField {...props}/>;
+  }
 }
 
-export default SettingsBase;
+export default PluginComponentBase;

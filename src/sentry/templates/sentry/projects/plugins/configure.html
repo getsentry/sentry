@@ -80,13 +80,13 @@
         </div>
     </div>
 
-    {% if issue_v2_plugin %}
+    {% if react_plugin %}
         <script>
         $(function(){
             ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
                 project: {% serialize project %},
                 organization: {% serialize organization %},
-                data: {% serialize issue_v2_plugin %}
+                data: {% serialize react_plugin %}
             }), document.getElementById('issue_plugins'));
         });
         </script>

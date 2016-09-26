@@ -115,6 +115,6 @@ def organizations(metrics, since, until):
                 '{} {} {}\n'.format(
                     instance.id,
                     instance.slug,
-                    ' '.join(map(str, values)),
+                    ' '.join(map(six.binary_type, values)),
                 ),
             )

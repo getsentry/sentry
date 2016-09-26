@@ -7,15 +7,14 @@ sentry.web.forms.accounts
 """
 from __future__ import absolute_import
 
-import pytz
-
 from datetime import datetime
+
+import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
-from six.moves import range
 
 from sentry import options
 from sentry.app import ratelimiter
@@ -25,6 +24,7 @@ from sentry.models import (
 )
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
+from six.moves import range
 
 
 def _get_timezone_choices():
@@ -205,6 +205,37 @@ class RecoverPasswordForm(forms.Form):
 
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
+
+
+class EmailForm(forms.Form):
+    primary_email = forms.EmailField(label=_('Primary Email'))
+
+    alt_email = forms.EmailField(
+        label=_('New Email'),
+        required=False,
+        help_text='Designate an alternative email for this account',
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(EmailForm, self).__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+
+        if self.cleaned_data['primary_email'] != self.user.email:
+            new_username = self.user.email == self.user.username
+        else:
+            new_username = False
+
+        self.user.email = self.cleaned_data['primary_email']
+
+        if new_username and not User.objects.filter(username__iexact=self.user.email).exists():
+            self.user.username = self.user.email
+
+        if commit:
+            self.user.save()
+
+        return self.user
 
 
 class AccountSettingsForm(forms.Form):
@@ -413,12 +444,17 @@ class NotificationSettingsForm(forms.Form):
         help_text=_('Designate an alternative email address to send email notifications to.'),
         required=False
     )
+
     subscribe_by_default = forms.BooleanField(
         label=_('Subscribe to alerts for projects by default'),
         required=False,
     )
     workflow_notifications = forms.BooleanField(
         label=_('Receive updates for all issues by default'),
+        required=False,
+    )
+    self_notifications = forms.BooleanField(
+        label=_('Receive notifications about my own activity'),
         required=False,
     )
 
@@ -450,6 +486,13 @@ class NotificationSettingsForm(forms.Form):
             ) == UserOptionValue.all_conversations
         )
 
+        self.fields['self_notifications'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='self_notifications',
+            default='0'
+        ) == '1'
+
     def get_title(self):
         return "General"
 
@@ -466,6 +509,13 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='subscribe_by_default',
             value='1' if self.cleaned_data['subscribe_by_default'] else '0',
+        )
+
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='self_notifications',
+            value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
         if self.cleaned_data.get('workflow_notifications') is True:
@@ -487,7 +537,8 @@ class NotificationSettingsForm(forms.Form):
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
     workflow = forms.BooleanField(required=False)
-    email = forms.EmailField(required=False, widget=forms.HiddenInput())
+    email = forms.ChoiceField(label="", choices=(), required=False,
+        widget=forms.Select())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -498,10 +549,20 @@ class ProjectEmailOptionsForm(forms.Form):
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
         has_workflow = project.is_user_subscribed_to_workflow(user)
 
+        # This allows users who have entered an alert_email value or have specified an email
+        # for notifications to keep their settings
+        emails = [e.email for e in user.get_verified_emails()]
+        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=None)
+        specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
+        emails.extend([user.email, alert_email, specified_email])
+
+        choices = [(email, email) for email in set(emails) if email is not None]
+        self.fields['email'].choices = choices
+
         self.fields['alert'].initial = has_alerts
         self.fields['workflow'].initial = has_workflow
         self.fields['email'].initial = UserOption.objects.get_value(
-            user, project, 'mail:email', None)
+            user, project, 'mail:email', None) or alert_email
 
     def save(self):
         UserOption.objects.set_value(

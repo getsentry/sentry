@@ -25,12 +25,12 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
     @attach_scenarios([get_oldest_group_sample_scenario])
     def get(self, request, group):
         """
-        Oldest Sample
-        `````````````
+        Retrieve Oldest Event
+        `````````````````````
 
-        Retrieves the details of the oldest sample for an aggregate.
+        Retrieves the details of the oldest event for an issue.
 
-        :pparam string group_id: the ID of the group to get the oldest sample of.
+        :pparam string group_id: the ID of the issue
         """
         event = group.get_oldest_event()
         if not event:

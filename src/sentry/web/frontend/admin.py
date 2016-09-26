@@ -28,18 +28,19 @@ from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
-from sentry.utils.warnings import DeprecatedSettingWarning, seen_warnings
+from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
 from sentry.web.decorators import requires_admin
 from sentry.web.forms import (
     ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
 )
-from sentry.web.helpers import render_to_response, render_to_string, get_login_url
+from sentry.utils import auth
+from sentry.web.helpers import render_to_response, render_to_string
 
 
 def configure_plugin(request, slug):
     plugin = plugins.get(slug)
     if not plugin.has_site_conf():
-        return HttpResponseRedirect(get_login_url())
+        return HttpResponseRedirect(auth.get_login_url())
 
     view = plugin.configure(request=request)
     if isinstance(view, HttpResponse):
@@ -58,7 +59,7 @@ def configure_plugin(request, slug):
 @csrf_protect
 def create_new_user(request):
     if not request.is_superuser():
-        return HttpResponseRedirect(get_login_url())
+        return HttpResponseRedirect(auth.get_login_url())
 
     form = NewUserForm(request.POST or None, initial={
         'send_welcome_mail': True,
@@ -77,7 +78,7 @@ def create_new_user(request):
             context = {
                 'username': user.username,
                 'password': password,
-                'url': absolute_uri(get_login_url()),
+                'url': absolute_uri(auth.get_login_url()),
             }
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
@@ -105,7 +106,7 @@ def create_new_user(request):
 @csrf_protect
 def edit_user(request, user_id):
     if not request.is_superuser():
-        return HttpResponseRedirect(get_login_url())
+        return HttpResponseRedirect(auth.get_login_url())
 
     try:
         user = User.objects.get(pk=user_id)
@@ -209,6 +210,7 @@ def status_packages(request):
 def status_warnings(request):
     groupings = {
         DeprecatedSettingWarning: 'Deprecated Settings',
+        UnsupportedBackend: 'Unsupported Backends',
     }
 
     groups = defaultdict(list)
@@ -220,12 +222,12 @@ def status_warnings(request):
         else:
             warnings.append(warning)
 
-    sort_by_message = functools.partial(sorted, key=str)
+    sort_by_message = functools.partial(sorted, key=six.binary_type)
 
     return render_to_response(
         'sentry/admin/status/warnings.html',
         {
-            'groups': [(groupings[key], sort_by_message(values)) for key, values in groups.items()],
+            'groups': sorted([(groupings[key], sort_by_message(values)) for key, values in groups.items()]),
             'warnings': sort_by_message(warnings),
         },
         request,

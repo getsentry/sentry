@@ -53,7 +53,6 @@ from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_keys import ProjectKeysView
-from sentry.web.frontend.project_notifications import ProjectNotificationsView
 from sentry.web.frontend.project_plugin_configure import \
     ProjectPluginConfigureView
 from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
@@ -64,8 +63,6 @@ from sentry.web.frontend.project_quotas import ProjectQuotasView
 from sentry.web.frontend.project_release_tracking import \
     ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
-from sentry.web.frontend.project_rule_remove import ProjectRuleRemoveView
-from sentry.web.frontend.project_rules import ProjectRulesView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
@@ -267,6 +264,8 @@ urlpatterns += patterns(
         name='sentry-account-settings-notifications'),
     url(r'^account/settings/security/$', AccountSecurityView.as_view(),
         name='sentry-account-security'),
+    url(r'^account/settings/emails/$', accounts.show_emails,
+        name='sentry-account-settings-emails'),
 
     # compatibility
     url(r'^account/settings/notifications/unsubscribe/(?P<project_id>\d+)/$',
@@ -415,22 +414,12 @@ urlpatterns += patterns(
         ProjectQuotasView.as_view(),
         name='sentry-manage-project-quotas'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/notifications/$',
-        ProjectNotificationsView.as_view(),
-        name='sentry-project-notifications'),
-
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/$',
-        ProjectRulesView.as_view(),
-        name='sentry-project-rules'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/edit/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-edit-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/remove/$',
-        ProjectRuleRemoveView.as_view(),
-        name='sentry-remove-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/new/$',
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
         ProjectRuleEditView.as_view(),
         name='sentry-new-project-rule'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/(?P<rule_id>\d+)/$',
+        ProjectRuleEditView.as_view(),
+        name='sentry-edit-project-rule'),
 
     url(r'^avatar/(?P<avatar_id>[^\/]+)/$',
         UserAvatarPhotoView.as_view(),

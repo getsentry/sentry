@@ -72,3 +72,10 @@ class Rule(Model):
         cache_key = 'project:{}:rules'.format(self.project_id)
         cache.delete(cache_key)
         return rv
+
+    def get_audit_log_data(self):
+        return {
+            'label': self.label,
+            'data': self.data,
+            'status': self.status,
+        }

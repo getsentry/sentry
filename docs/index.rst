@@ -14,6 +14,7 @@ running on your own infrastructure.
    config
    nginx
    nodestore
+   filestore
    queue
    buffer
    sso

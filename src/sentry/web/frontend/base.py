@@ -19,7 +19,8 @@ from sentry.models import (
     AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project,
     ProjectStatus, Team, TeamStatus
 )
-from sentry.web.helpers import get_login_url, render_to_response
+from sentry.utils import auth
+from sentry.web.helpers import render_to_response
 
 ERR_MISSING_SSO_LINK = _('You need to link your account with the SSO provider to continue.')
 
@@ -204,12 +205,12 @@ class BaseView(View, OrganizationMixin):
         )
 
     def handle_auth_required(self, request, *args, **kwargs):
-        request.session['_next'] = request.get_full_path()
+        auth.initiate_login(request, next_url=request.get_full_path())
         if 'organization_slug' in kwargs:
             redirect_to = reverse('sentry-auth-organization',
                                   args=[kwargs['organization_slug']])
         else:
-            redirect_to = get_login_url()
+            redirect_to = auth.get_login_url()
         return self.redirect(redirect_to)
 
     def is_sudo_required(self, request, *args, **kwargs):
@@ -338,7 +339,7 @@ class OrganizationView(BaseView):
             and self.valid_sso_required and not request.access.sso_is_valid
         )
 
-        request.session['_next'] = request.get_full_path()
+        auth.initiate_login(request, next_url=request.get_full_path())
 
         if needs_link:
             messages.add_message(

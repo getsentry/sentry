@@ -10,6 +10,7 @@ from django.conf.urls import url
 from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.exceptions import PluginError
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
@@ -161,6 +162,8 @@ class IssueTrackingPlugin2(Plugin):
         """
         Can be overridden for any actions needed when linking issues
         (like adding a comment to an existing issue).
+
+        Returns ``{'title': issue_title}``
         """
         pass
 
@@ -258,22 +261,29 @@ class IssueTrackingPlugin2(Plugin):
                 'error_type': 'validation',
                 'errors': errors
             }, status=400)
+
+        issue_id = int(request.DATA['issue_id'])
+
         try:
-            self.link_issue(
+            issue = self.link_issue(
                 group=group,
                 form_data=request.DATA,
                 request=request,
             )
+            if issue is None:
+                issue = {
+                    'title': self.get_issue_title_by_id(request, group, issue_id),
+                }
         except PluginError as e:
             return Response({
                 'error_type': 'validation',
                 'errors': {'__all__': e.message}
             }, status=400)
 
-        issue_id = int(request.DATA['issue_id'])
         GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
+
         issue_information = {
-            'title': self.get_issue_title_by_id(request, group, issue_id),
+            'title': issue['title'],
             'provider': self.get_title(),
             'location': self.get_issue_url(group, issue_id),
             'label': self.get_issue_label(group=group, issue_id=issue_id),
@@ -334,6 +344,8 @@ class IssueTrackingPlugin2(Plugin):
                 'url': self.get_issue_url(group=group, issue_id=issue_id),
                 'label': self.get_issue_label(group=group, issue_id=issue_id),
             }
+
+        item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
         return plugin_issues
 

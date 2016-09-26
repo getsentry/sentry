@@ -66,7 +66,7 @@ const RuleEditor = React.createClass({
     let rule = this.props.rule;
     let project = this.props.project;
     let org = this.props.organization;
-    let endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/';
+    let endpoint = `/projects/${org.slug}/${project.slug}/rules/`;
     if (rule.id) {
       endpoint += rule.id + '/';
     }
@@ -76,7 +76,7 @@ const RuleEditor = React.createClass({
       method: (rule.id ? 'PUT' : 'POST'),
       data: data,
       success: () => {
-        window.location.href = (rule.id ? '../../' : '../');
+        window.location.href = '../';
       },
       error: (response) => {
         this.setState({
@@ -106,7 +106,7 @@ const RuleEditor = React.createClass({
         <div className="box rule-detail">
           <div className="box-header">
             <h3>
-              {rule.id ? 'Edit Rule' : 'New Rule'}
+              {rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}
             </h3>
           </div>
           <div className="box-content with-padding">
@@ -116,12 +116,13 @@ const RuleEditor = React.createClass({
               </div>
             }
             <h6>{t('Rule name')}:</h6>
-            <input ref="name"
-                   type="text" className="form-control"
-                   defaultValue={name}
-                   required={true}
-                   placeholder={t('My Rule Name')} />
-            <hr/>
+            <div className="control-group">
+              <input ref="name"
+                     type="text" className="form-control"
+                     defaultValue={name}
+                     required={true}
+                     placeholder={t('My Rule Name')} />
+            </div>
 
             <div className="node-match-selector">
               <h6>

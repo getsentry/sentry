@@ -55,6 +55,16 @@ class ProjectEventPermission(ProjectPermission):
     }
 
 
+class ProjectSettingPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete'],
+        'POST': ['project:write', 'project:delete'],
+        'PUT': ['project:write', 'project:delete'],
+        'DELETE': ['project:write', 'project:delete'],
+
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 

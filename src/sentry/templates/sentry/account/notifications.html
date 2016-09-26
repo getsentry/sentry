@@ -27,8 +27,6 @@
 
         <h4>{% trans "General" %}</h4>
 
-        {{ settings_form.alert_email|as_crispy_field }}
-
         <hr />
 
         <h4>{% trans "Alerts" %}</h4>
@@ -47,6 +45,8 @@
 
         <p class="help-text help-block">Note: You'll always receive notifications if you're explicitly participating on an issue.</p>
 
+        {{ settings_form.self_notifications|as_crispy_field }}
+
         <hr />
 
         <h4>{% trans "Weekly Reports" %}</h4>
@@ -59,7 +59,7 @@
 
         <h4>{% trans "Fine Tuning" %}</h4>
 
-        <p>Use the settings below to fine tune notification settings per-project.</p>
+        <p>Use the settings below to fine tune notification settings per-project.<br>Add or verify emails in the <a href="{% url "sentry-account-settings-emails" %}">Emails</a> Tab.</p>
 
         {% for project, form in project_forms %}
             {{ form|as_crispy_errors }}
@@ -83,7 +83,7 @@
                             <th style="width:50px;text-align:center">
                               <a data-toggle="workflow">Workflow</a>
                             </th>
-                            <th style="width:150px;overflow:hidden;text-align:right">
+                            <th style="width:300px;overflow:hidden;text-align:center">
                               {% trans "Email Address" %}
                             </th>
                         </tr>
@@ -92,15 +92,14 @@
             {% endifchanged %}
             <tr>
               <td>
-                <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{{ project.organization.slug}} / {{ project.slug }}</a>
+                <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{{ project.organization.slug}} / {{ project.slug }}</a>
               </td>
               <td style="text-align:center">{{ form.alert }}</td>
               <td style="text-align:center">{{ form.workflow }}</td>
-              <td style="text-align:right">
-                <a href="javascript:void(0)" data-target="{{ form.email.auto_id }}" data-toggle="change-target-value">
-                  {% if form.email.value %}{{ form.email.value }}{% else %}<em>Default</em>{% endif %}
-                </a>
-                {{ form.email }}
+              <td style="text-align:center">
+              {% with form.email as field %}
+                {{ field|as_crispy_field }}
+              {% endwith %}
               </td>
             </tr>
         {% endfor %}
@@ -125,17 +124,6 @@
     </form>
     <script>
     $(function(){
-      $('form a[data-toggle="change-target-value"]').click(function(){
-        var $this = $(this);
-        var $target = $('#' + $this.data('target'));
-        var result = window.prompt('Enter an email address', $target.val());
-        $target.val(result || '');
-        if (result) {
-          $this.text(result);
-        } else {
-          $this.html('<em>Default</em>');
-        }
-      });
 
       function findCheckboxes(parent, match) {
         return $(parent).parents('table')
