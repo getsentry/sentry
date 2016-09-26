@@ -3,11 +3,10 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.models import Event
-from sentry.testutils import requires_llvm_symbolizer, TestCase
+from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 
 
-@requires_llvm_symbolizer
 class BasicResolvingIntegrationTest(TestCase):
 
     @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')
@@ -168,7 +167,7 @@ class BasicResolvingIntegrationTest(TestCase):
         frames = bt.frames
 
         assert frames[0].function == '<redacted>'
-        assert frames[0].instruction_addr == '0x002ac28b8'
+        assert frames[0].instruction_addr == '0x2ac28b8'
         assert not frames[0].in_app
 
         assert frames[1].function == 'real_main'
