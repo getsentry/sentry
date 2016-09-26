@@ -341,7 +341,7 @@ class BasicResolvingIntegrationTest(TestCase):
         frames = bt.frames
 
         assert frames[0].function == '<redacted>'
-        assert frames[0].instruction_addr == '0x002ac28b8'
+        assert frames[0].instruction_addr == '0x2ac28b8'
         assert not frames[0].in_app
 
         assert frames[1].function == 'real_main'
@@ -358,7 +358,7 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[2].lineno == 82
         assert frames[2].colno == 23
         assert frames[2].package == object_name
-        assert frames[2].instruction_addr == '0x000000001'
+        assert frames[2].instruction_addr == '0x1'
         assert frames[2].instruction_offset is None
         assert frames[2].in_app
 
@@ -370,3 +370,9 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[3].filename == '../../sentry/scripts/views.js'
         assert frames[3].instruction_offset is None
         assert frames[3].in_app
+
+        x = bt.get_api_context()
+        long_frames = x['frames']
+        assert long_frames[0]['instructionAddr'] == '0x002ac28b8'
+        assert long_frames[1]['instructionAddr'] == '0x100026330'
+        assert long_frames[2]['instructionAddr'] == '0x000000001'
