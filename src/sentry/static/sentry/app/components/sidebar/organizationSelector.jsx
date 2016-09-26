@@ -14,7 +14,7 @@ const OrganizationSelector = React.createClass({
   propTypes: {
     organization: React.PropTypes.object,
     showPanel: React.PropTypes.bool,
-    onShowPanel: React.PropTypes.func,
+    togglePanel: React.PropTypes.func,
     hidePanel: React.PropTypes.func,
     currentPanel: React.PropTypes.string
   },
@@ -51,19 +51,9 @@ const OrganizationSelector = React.createClass({
       classNames += ' active';
     }
 
-    let hoverIntent;
-    let hoverTime = 500;
-
     return (
-      <div className={classNames}
-        onMouseEnter={()=> {hoverIntent = setTimeout(this.props.onShowPanel, hoverTime);}}
-        onMouseLeave={()=> {this.props.hidePanel(); clearTimeout(hoverIntent); }}>
-
-        <div className="hover-bar-container">
-          <div className="hover-bar"/>
-        </div>
-
-        <a className="active-org" href="/">
+      <div className={classNames}>
+        <a className="active-org" onClick={this.props.togglePanel}>
           <LetterAvatar displayName={activeOrg.name} identifier={activeOrg.slug}/>
         </a>
 

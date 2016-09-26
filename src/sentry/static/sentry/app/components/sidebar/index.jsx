@@ -159,7 +159,7 @@ const Sidebar = React.createClass({
         organization={org}
         showPanel={this.state.showPanel}
         currentPanel={this.state.currentPanel}
-        onShowPanel={()=>this.showPanel('org-selector')}
+        togglePanel={()=>this.togglePanel('org-selector')}
         hidePanel={()=>this.hidePanel()}/>
 
       {/* Top nav links */}
