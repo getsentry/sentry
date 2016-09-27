@@ -69,12 +69,15 @@ const StacktraceContent = React.createClass({
     let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
       let nextFrame = data.frames[frameIdx + 1];
-      let repeatedFrame = nextFrame && frame.lineNo == nextFrame.lineNo && frame.function == nextFrame.function;
+      let repeatedFrame = nextFrame &&
+       frame.lineNo === nextFrame.lineNo &&
+       frame.function === nextFrame.function;
+
       if(repeatedFrame){
         nRepeats++;
       }
-      if (this.frameIsVisible(frame, nextFrame)
-          && !repeatedFrame ){
+
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame ){
         frames.push(
           <Frame
             key={frameIdx}
@@ -87,9 +90,11 @@ const StacktraceContent = React.createClass({
             timesRepeated={nRepeats}/>
         );
       }
+
       if(!repeatedFrame){
         nRepeats = 0;
       }
+
       if (frameIdx === firstFrameOmitted) {
         frames.push(this.renderOmittedFrames(
           firstFrameOmitted, lastFrameOmitted));
