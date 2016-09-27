@@ -18,7 +18,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger('sentry.events')
 
 
 @instrumented_task(
@@ -35,7 +35,7 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
 
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
-        logger.error('Data not available in preprocess_event (cache_key=%s)', cache_key)
+        logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
     project = data['project']
