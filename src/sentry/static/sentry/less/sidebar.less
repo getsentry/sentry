@@ -581,6 +581,7 @@
     max-height: @sidebar-panel-offset;
     padding-top: 10px;
     padding-bottom: 10px;
+    margin-bottom: 30px;
 
     .navbar-nav {
       flex-direction: row;
@@ -599,6 +600,10 @@
           border-right: 7px solid transparent;
           border-left: 7px solid transparent;
           border-top: 7px solid transparent;
+        }
+
+        &.onboarding {
+          display: none;
         }
       }
     }
@@ -636,7 +641,10 @@
     .user-settings {
       display: block;
       margin-left: 5px;
-      margin-top: 0;
+
+      .dropdown-toggle {
+        margin-top: 0;
+      }
 
       .dropdown-menu {
         left: auto;
