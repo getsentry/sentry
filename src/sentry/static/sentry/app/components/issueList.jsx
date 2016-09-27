@@ -43,6 +43,9 @@ const IssueList = React.createClass({
   componentWillReceiveProps(nextProps) {
     let location = this.props.location;
     let nextLocation = nextProps.location;
+    if (!location)
+      return;
+
     if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
       this.remountComponent();
     }
