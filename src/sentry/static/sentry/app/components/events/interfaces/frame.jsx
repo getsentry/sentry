@@ -257,28 +257,33 @@ const Frame = React.createClass({
     return !this.props.data.inApp && this.props.nextFrameInApp;
   },
 
-  renderLeadHint(nRepeats) {
+  renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
       return (
         <span className="leads-to-app-hint">
           {'Called from: '}
         </span>
       );
-    } else if (nRepeats > 0) {
-      return (
-      <span className="repeated-frames">
-        ↻  {nRepeats} 
-      </span>
-      );
     } else return null;
   },
-
-  renderDefaultLine(nRepeats) {
+  renderRepeats() {
+    if (this.props.timesRepeated > 0) {
+      return (
+      <span className="repeated-frames"
+        title={`Frame repeated ${this.props.timesRepeated} times`}>
+        ↻  {this.props.timesRepeated}
+      </span>
+      );
+    } else
+     return null;
+  },
+  renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <div className="title">
-          {this.renderLeadHint(nRepeats)}
+          {this.renderLeadHint()}
           {this.renderDefaultTitle()}
+          {this.renderRepeats()}
         </div>
       </StrictClick>
     );
@@ -316,13 +321,13 @@ const Frame = React.createClass({
     );
   },
 
-  renderLine(nRepeats) {
+  renderLine() {
     switch (this.getPlatform()) {
       case 'objc':
       case 'cocoa':
         return this.renderCocoaLine();
       default:
-        return this.renderDefaultLine(nRepeats);
+        return this.renderDefaultLine();
     }
   },
 
@@ -343,7 +348,7 @@ const Frame = React.createClass({
 
     return (
       <li {...props}>
-        {this.renderLine(this.props.timesRepeated)}
+        {this.renderLine()}
         {context}
       </li>
     );
