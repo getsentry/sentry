@@ -166,7 +166,7 @@ const Sidebar = React.createClass({
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
         <li>
-          <Link to={`/${org.slug}/`}>
+          <Link to={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
             <span className="icon icon-home" />
           </Link>
         </li>
