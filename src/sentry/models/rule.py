@@ -29,6 +29,9 @@ class RuleStatus(object):
 class Rule(Model):
     __core__ = True
 
+    DEFAULT_ACTION_MATCH = 'all'  # any, all
+    DEFAULT_FREQUENCY = 30  # minutes
+
     project = FlexibleForeignKey('sentry.Project')
     label = models.CharField(max_length=64)
     data = GzippedDictField()
