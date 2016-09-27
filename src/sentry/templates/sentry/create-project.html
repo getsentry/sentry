@@ -5,6 +5,7 @@
 {% load sentry_features %}
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
+{% block sub-header %}{% endblock %}
 
 {% block content %}
 <div class="create-flow">
@@ -14,7 +15,7 @@
 
   <p>{% blocktrans %}Projects allow you to scope events to a specific application in your organization. For example, you might have separate projects for production vs development instances, or separate projects for your web app and mobile app.{% endblocktrans %}</p>
 
-  <form action="" method="post">
+  <form action="" method="post" class="form-actions">
     {% csrf_token %}
     {% if form.errors %}
       <div class="alert alert-block alert-error">{% trans "Please correct the errors below." %}</div>
