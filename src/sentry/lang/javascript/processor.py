@@ -218,7 +218,7 @@ def fetch_release_file(filename, release):
     cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5_text(filename).hexdigest(),
-    ),
+    )
 
     filename_path = None
     if filename is not None:
