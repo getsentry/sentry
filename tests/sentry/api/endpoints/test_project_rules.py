@@ -50,6 +50,7 @@ class CreateProjectRuleTest(APITestCase):
             'actionMatch': 'any',
             'actions': actions,
             'conditions': conditions,
+            'frequency': 30,
         }, format='json')
 
         assert response.status_code == 200, response.content
@@ -60,6 +61,7 @@ class CreateProjectRuleTest(APITestCase):
         assert rule.data['action_match'] == 'any'
         assert rule.data['actions'] == actions
         assert rule.data['conditions'] == conditions
+        assert rule.data['frequency'] == 30
 
     def test_missing_name(self):
         self.login_as(user=self.user)
