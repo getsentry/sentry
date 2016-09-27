@@ -49,6 +49,7 @@ class ProjectRuleDetailsEndpoint(ProjectEndpoint):
         )
         serializer = RuleSerializer({
             'actionMatch': rule.data.get('action_match', 'all'),
+            'frequency': rule.data.get('frequency', 30),
         }, context={'project': project}, data=request.DATA, partial=True)
 
         if serializer.is_valid():

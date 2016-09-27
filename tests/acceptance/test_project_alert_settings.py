@@ -37,7 +37,7 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
 
         Rule.objects.filter(project=self.project).delete()
 
-        Rule.objects.create(
+        self.rule = Rule.objects.create(
             project=self.project,
             data={
                 'conditions': [condition_data],
@@ -46,11 +46,11 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         )
 
         self.login_as(self.user)
-        self.path1 = '/{}/{}/settings/alerts/'.format(self.org.slug, self.project.slug)
-        self.path2 = '/{}/{}/settings/alerts/rules/'.format(self.org.slug, self.project.slug)
 
     def test_settings_load(self):
-        self.browser.get(self.path1)
+        self.browser.get('/{}/{}/settings/alerts/'.format(
+            self.org.slug, self.project.slug,
+        ))
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('project alert settings')
         self.browser.wait_until('.ref-plugin-enable-webhooks')
@@ -60,7 +60,17 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.snapshot('project alert settings webhooks enabled')
 
     def test_rules_load(self):
-        self.browser.get(self.path2)
+        self.browser.get('/{}/{}/settings/alerts/rules/'.format(
+            self.org.slug, self.project.slug,
+        ))
         self.browser.wait_until_not('.loading-indicator')
         self.browser.wait_until('.rules-list')
         self.browser.snapshot('project alert rules')
+
+    def test_rules_details_load(self):
+        self.browser.get('/{}/{}/settings/alerts/rules/{}/'.format(
+            self.org.slug, self.project.slug, self.rule.id,
+        ))
+        self.browser.wait_until_not('.loading-indicator')
+        self.browser.wait_until('.ref-rule-editor')
+        self.browser.snapshot('project alert rule details')

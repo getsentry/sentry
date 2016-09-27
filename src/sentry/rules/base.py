@@ -111,10 +111,7 @@ class RuleBase(object):
 
 
 class EventState(object):
-    def __init__(self, is_new, is_regression, is_sample, rule_is_active,
-                 rule_last_active):
+    def __init__(self, is_new, is_regression, is_sample):
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_sample = is_sample,
-        self.rule_is_active = rule_is_active
-        self.rule_last_active = rule_last_active

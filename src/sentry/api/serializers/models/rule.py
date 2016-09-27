@@ -35,6 +35,7 @@ class RuleSerializer(Serializer):
                 }, **o) for o in obj.data.get('actions', [])
             ],
             'actionMatch': obj.data.get('action_match', 'all'),
+            'frequency': obj.data.get('frequency', 30),
             'name': obj.label,
             'dateCreated': obj.date_added,
         }
