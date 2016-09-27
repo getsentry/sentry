@@ -271,7 +271,8 @@ const Frame = React.createClass({
       return (
       <span className="repeated-frames"
         title={`Frame repeated ${this.props.timesRepeated} times`}>
-        ↻  {this.props.timesRepeated}
+          <span className="icon-refresh"/>
+          <span>{this.props.timesRepeated}</span>
       </span>
       );
     } else

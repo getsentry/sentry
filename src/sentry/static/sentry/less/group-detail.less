@@ -1405,16 +1405,18 @@ div.traceback > ul {
   }
   .repeated-frames{
     border-radius: 50px;
-    padding: 1px 3px 0 3px;
-    margin-top: -2px;
-    margin-right: 30px;
+    padding: 1px 3px;
+    margin-left: 1em;
     border-width: thin;
     border-style: solid;
-    float: right;
     border-color: @yellow-orange-dark;
     color: @yellow-orange-dark;
     background-color: @white-dark;
+    span {
+      vertical-align: middle;
+    }
   }
+
   &.in-app-traceback .frame.leads-to-app {
     .leads-to-app-hint {
       display: none;
