@@ -38,6 +38,10 @@ class RuleProcessorTest(TestCase):
         assert futures[0].rule == rule
         assert futures[0].kwargs == {}
 
+        # should not apply twice due to 30m default frequency
+        results = list(rp.apply())
+        assert len(results) == 0
+
 
 class EventCompatibilityProxyTest(TestCase):
     def test_simple(self):
