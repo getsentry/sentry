@@ -3,13 +3,18 @@ from __future__ import absolute_import
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import TestCase
-from sentry.models import TotpInterface
+from sentry.models import TotpInterface, User
 
 
-class TwoFactorAuthTest(TestCase):
+class TwoFactorAuthTestPassword(TestCase):
+    def setUp(self):
+        User.objects.create(email='foo@example.com')
+
+    def tearDown(self):
+        User.objects.get(email='foo@example.com').delete()
 
     def test_security_renders_without_2fa(self):
-        user = self.create_user('foo@example.com')
+        user = User.objects.get(email='foo@example.com')
         self.login_as(user)
         path = reverse('sentry-account-security')
         resp = self.client.get(path)
@@ -20,7 +25,7 @@ class TwoFactorAuthTest(TestCase):
         self.assertContains(resp, 'Enable')
 
     def test_security_renders_with_2fa(self):
-        user = self.create_user('foo@example.com')
+        user = User.objects.get(email='foo@example.com')
         self.login_as(user)
         TotpInterface().enroll(user)
         path = reverse('sentry-account-security')
@@ -31,7 +36,7 @@ class TwoFactorAuthTest(TestCase):
         self.assertContains(resp, 'Manage')
 
     def test_2fa_settings_render_without_2fa(self):
-        user = self.create_user('foo@example.com')
+        user = User.objects.get(email='foo@example.com')
         path = reverse('sentry-account-settings-2fa')
         self.login_as(user)
         resp = self.client.get(path)
@@ -44,7 +49,7 @@ class TwoFactorAuthTest(TestCase):
         self.assertNotContains(resp, '<span class="icon-trash">')
 
     def test_2fa_settings_render_with_2fa(self):
-        user = self.create_user('foo@example.com')
+        user = User.objects.get(email='foo@example.com')
         path = reverse('sentry-account-settings-2fa')
         self.login_as(user)
         TotpInterface().enroll(user)
@@ -56,8 +61,49 @@ class TwoFactorAuthTest(TestCase):
         self.assertNotContains(resp, 'this can only be managed if 2FA is enabled')
         self.assertContains(resp, '<span class="icon-trash">')
 
+    def test_add_2fa_password(self):
+        user = User.objects.get(email='foo@example.com')
+        user.set_password('password')
+        user.save()
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        resp = self.client.post(path, data={'enroll': ''})
+        self.assertContains(resp, 'QR')
+        self.assertContains(resp, 'Sentry account password')
+        self.assertNotContains(resp, 'Method is currently not enabled')
+
+    def test_totp_get_path_render(self):
+        user = User.objects.get(email='foo@example.com')
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        resp = self.client.get(path)
+        self.assertNotContains(resp, 'QR')
+        self.assertNotContains(resp, 'Sentry account password')
+        self.assertContains(resp, 'Method is currently not enabled')
+
+    def test_remove_2fa_password(self):
+        user = User.objects.get(email='foo@example.com')
+        user.set_password('password')
+        user.save()
+        TotpInterface().enroll(user)
+        path = reverse('sentry-account-settings-2fa-totp')
+        self.login_as(user)
+        resp = self.client.post(path, data={'remove': ''})
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/twofactor/remove.html')
+        self.assertContains(resp, 'Do you want to remove the method?')
+        self.assertContains(resp, 'Sentry account password')
+
+
+class TwoFactorAuthTestNoPassword(TestCase):
+    def setUp(self):
+        User.objects.create(email='foo@example.com')
+
+    def tearDown(self):
+        User.objects.get(email='foo@example.com').delete()
+
     def test_add_2fa_SSO(self):
-        user = self.create_user('foo@example.com')
+        user = User.objects.get(email='foo@example.com')
         user.set_unusable_password()
         user.save()
         path = reverse('sentry-account-settings-2fa-totp')
@@ -70,26 +116,8 @@ class TwoFactorAuthTest(TestCase):
         self.assertContains(resp, 'Authenticator App')
         self.assertNotContains(resp, 'Sentry account password')
 
-    def test_add_2fa_password(self):
-        user = self.create_user('foo@example.com')
-        path = reverse('sentry-account-settings-2fa-totp')
-        self.login_as(user)
-        resp = self.client.post(path, data={'enroll': ''})
-        self.assertContains(resp, 'QR')
-        self.assertContains(resp, 'Sentry account password')
-        self.assertNotContains(resp, 'Method is currently not enabled')
-
-    def test_totp_get_path_render(self):
-        user = self.create_user('foo@example.com')
-        path = reverse('sentry-account-settings-2fa-totp')
-        self.login_as(user)
-        resp = self.client.get(path)
-        self.assertNotContains(resp, 'QR')
-        self.assertNotContains(resp, 'Sentry account password')
-        self.assertContains(resp, 'Method is currently not enabled')
-
     def test_remove_2fa_SSO(self):
-        user = self.create_user('foo@example.com')
+        user = User.objects.get(email='foo@example.com')
         user.set_unusable_password()
         user.save()
         TotpInterface().enroll(user)
@@ -100,14 +128,3 @@ class TwoFactorAuthTest(TestCase):
         self.assertTemplateUsed('sentry/account/twofactor/remove.html')
         self.assertContains(resp, 'Do you want to remove the method?')
         self.assertNotContains(resp, 'Sentry account password')
-
-    def test_remove_2fa_password(self):
-        user = self.create_user('foo@example.com')
-        TotpInterface().enroll(user)
-        path = reverse('sentry-account-settings-2fa-totp')
-        self.login_as(user)
-        resp = self.client.post(path, data={'remove': ''})
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/twofactor/remove.html')
-        self.assertContains(resp, 'Do you want to remove the method?')
-        self.assertContains(resp, 'Sentry account password')
