@@ -35,7 +35,7 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
 
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
-        logger.error('preprocess.failed.empty', extra={'redis_key': cache_key})
+        logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
         return
 
     project = data['project']
