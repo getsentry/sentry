@@ -4,10 +4,11 @@
 {% load crispy_forms_tags %}
 
 {% block title %}{% trans "Add Member to Organization" %} | {{ block.super }}{% endblock %}
+{% block sub-header %}{% endblock %}
 
 {% block main %}
   <div class="page-header">
-    <a class="back-arrow" style="top: 0px;" href="{% url 'sentry-organization-members' organization.slug %}"><span class="icon-arrow-left"></span></a>
+    <a class="back-arrow" style="top: -3px;" href="{% url 'sentry-organization-members' organization.slug %}"><span class="icon-arrow-left"></span></a>
     <h2>{% trans "Add Member to Organization" %}</h2>
   </div>
 
