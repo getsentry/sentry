@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ApiMixin from '../../mixins/apimixin';
+import ApiMixin from '../../mixins/apiMixin';
 
 import {update as projectUpdate} from '../../actionCreators/projects';
 
