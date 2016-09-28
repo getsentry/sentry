@@ -85,7 +85,7 @@ class Breadcrumbs(Interface):
         if event_id is not None:
             rv['event_id'] = event_id
 
-        if 'data' in crumb:
+        if crumb.get('data'):
             for key, value in six.iteritems(crumb['data']):
                 if not isinstance(value, six.string_types):
                     crumb['data'][key] = json.dumps(value)
