@@ -1,6 +1,5 @@
 import React from 'react';
 import Reflux from 'reflux';
-import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -8,6 +7,7 @@ import DropdownLink from './dropdownLink';
 import SnoozeAction from './issues/snoozeAction';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
+import Link from './link';
 import {t} from '../locale';
 
 const CompactIssueHeader = React.createClass({

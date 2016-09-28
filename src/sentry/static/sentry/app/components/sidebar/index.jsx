@@ -1,7 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
 import $ from 'jquery';
-import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import IncidentStore from '../../stores/incidentStore';
@@ -15,6 +14,7 @@ import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
 import IssueList from '../issueList';
+import Link from '../link';
 
 import {t} from '../../locale';
 
@@ -169,15 +169,9 @@ const Sidebar = React.createClass({
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
         <li>
-          {this.context.location
-            ? <Link to={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
-                <span className="icon icon-home" />
-              </Link>
-            :
-              <a href={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
-                <span className="icon icon-home" />
-              </a>
-          }
+          <Link to={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
+            <span className="icon icon-home" />
+          </Link>
         </li>
         <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
           <a>
