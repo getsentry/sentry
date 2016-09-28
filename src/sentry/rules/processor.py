@@ -55,6 +55,7 @@ class RuleProcessor(object):
         rule_status, _ = GroupRuleStatus.objects.get_or_create(
             rule=rule,
             group=self.group,
+            project=rule.project_id,
             defaults={
                 'project': self.project,
                 'status': GroupRuleStatus.INACTIVE,
@@ -114,6 +115,7 @@ class RuleProcessor(object):
         if passed and rule_status.status == GroupRuleStatus.INACTIVE:
             # we only fire if we're able to say that the state has changed
             GroupRuleStatus.objects.filter(
+                project=rule.project_id,
                 id=rule_status.id,
                 status=GroupRuleStatus.INACTIVE,
             ).update(
@@ -125,12 +127,14 @@ class RuleProcessor(object):
         elif not passed and rule_status.status == GroupRuleStatus.ACTIVE:
             # update the state to suggest this rule can fire again
             GroupRuleStatus.objects.filter(
+                project=rule.project_id,
                 id=rule_status.id,
                 status=GroupRuleStatus.ACTIVE,
             ).update(status=GroupRuleStatus.INACTIVE)
             rule_status.status = GroupRuleStatus.INACTIVE
         elif passed:
             GroupRuleStatus.objects.filter(
+                project=rule.project_id,
                 id=rule_status.id,
                 status=GroupRuleStatus.ACTIVE,
             ).update(last_active=now)

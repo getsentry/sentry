@@ -396,7 +396,7 @@ class EventManager(object):
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
-        project = Project.objects.get_from_cache(id=project)
+        project = Project.all_objects.get_from_cache(id=project)
 
         data = self.data.copy()
 
@@ -844,7 +844,7 @@ class EventManager(object):
         # we now think its a regression, rely on the database to validate that
         # no one beat us to this
         date = max(event.datetime, group.last_seen)
-        is_regression = bool(Group.objects.filter(
+        is_regression = bool(Group.all_objects.filter(
             id=group.id,
             # ensure we cant update things if the status has been set to
             # muted
@@ -867,7 +867,7 @@ class EventManager(object):
             # resolutions are only valid if the state of the group is still
             # resolved -- if it were to change the resolution should get removed
             try:
-                resolution = GroupResolution.objects.get(
+                resolution = GroupResolution.all_objects.get(
                     group=group,
                 )
             except GroupResolution.DoesNotExist:
@@ -883,7 +883,7 @@ class EventManager(object):
                 # the queue to handling this) then we need to also record
                 # the corresponding event
                 try:
-                    activity = Activity.objects.filter(
+                    activity = Activity.all_objects.filter(
                         group=group,
                         type=Activity.SET_RESOLVED_IN_RELEASE,
                         ident=resolution.id,
@@ -898,7 +898,7 @@ class EventManager(object):
 
         if is_regression:
             Activity.objects.create(
-                project=group.project,
+                project=group.project_id,
                 group=group,
                 type=Activity.SET_REGRESSION,
                 data={

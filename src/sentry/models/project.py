@@ -19,9 +19,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import locks
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
-    sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
+from sentry.db.models.manager import RestrictedManager
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
@@ -36,7 +36,7 @@ class ProjectStatus(object):
     DELETION_IN_PROGRESS = 3
 
 
-class ProjectManager(BaseManager):
+class ProjectManager(RestrictedManager):
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, _skip_team_check=False):
         from sentry.models import Team
@@ -211,11 +211,9 @@ class Project(Model):
     @property
     def member_set(self):
         from sentry.models import OrganizationMember
-        return self.organization.member_set.filter(
-            id__in=OrganizationMember.objects.filter(
-                organizationmemberteam__is_active=True,
-                organizationmemberteam__team=self.team,
-            ).values('id'),
+        return OrganizationMember.all_objects.filter(
+            organizationmemberteam__is_active=True,
+            organizationmemberteam__team=self.team_id,
             user__is_active=True,
         ).distinct()
 

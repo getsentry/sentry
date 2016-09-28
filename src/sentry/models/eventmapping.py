@@ -42,7 +42,7 @@ class EventMapping(Model):
     def _get_group(self):
         from sentry.models import Group
         if not hasattr(self, '_group_cache'):
-            self._group_cache = Group.objects.get(id=self.group_id)
+            self._group_cache = Group.all_objects.get(id=self.group_id)
         return self._group_cache
 
     group = property(_get_group, _set_group)
@@ -55,7 +55,7 @@ class EventMapping(Model):
     def _get_project(self):
         from sentry.models import Project
         if not hasattr(self, '_project_cache'):
-            self._project_cache = Project.objects.get(id=self.project_id)
+            self._project_cache = Project.all_objects.get(id=self.project_id)
         return self._project_cache
 
     project = property(_get_project, _set_project)

@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import Model, sane_repr
+from sentry.db.models import BaseManager, Model, sane_repr
 from sentry.db.models.fields import UnicodePickledObjectField
 
 
@@ -27,6 +27,8 @@ class Option(Model):
     key = models.CharField(max_length=64, unique=True)
     value = UnicodePickledObjectField()
     last_updated = models.DateTimeField(default=timezone.now)
+
+    manager = BaseManager()
 
     class Meta:
         app_label = 'sentry'
