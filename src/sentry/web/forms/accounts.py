@@ -553,11 +553,7 @@ class ProjectEmailOptionsForm(forms.Form):
         # for notifications to keep their settings
         emails = [e.email for e in user.get_verified_emails()]
         alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=None)
-        if alert_email:
-            alert_email = alert_email.rstrip()
         specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
-        if specified_email:
-            specified_email.rstrip()
         emails.extend([user.email, alert_email, specified_email])
 
         choices = [(email, email) for email in set(emails) if email is not None]
