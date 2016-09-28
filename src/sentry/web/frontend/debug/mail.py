@@ -475,7 +475,7 @@ def report(request):
             build_issue_summaries(),
             build_release_list(),
             build_usage_summary(),
-            int(random.weibullvariate(10, 0.07)),
+            int(aggregates[0] * random.random()) if aggregates[0] is not None and random.random() < 0.8 else 0,
         )
 
     if random.random() < 0.85:
