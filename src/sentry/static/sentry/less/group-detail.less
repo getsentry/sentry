@@ -789,6 +789,14 @@
       padding-top: 15px;
       padding-bottom: 15px;
 
+      .icon-exclamation {
+        font-size: 18px;
+        color: desaturate(darken(@alert-info-border-color, 15), 20%);
+        margin-right: 8px;
+        position: relative;
+        top: 2px;
+      }
+
       &.alert-info, &.alert-info + .box, &.alert-info + .context-summary {
         border-top: 1px solid @alert-info-border-color;
       }
