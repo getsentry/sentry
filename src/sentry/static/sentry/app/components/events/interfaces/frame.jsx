@@ -28,6 +28,7 @@ const Frame = React.createClass({
     isExpanded: React.PropTypes.bool,
     emptySourceNotation: React.PropTypes.bool,
     isOnlyFrame: React.PropTypes.bool,
+    timesRepeated: React.PropTypes.number,
   },
 
   mixins: [
@@ -263,9 +264,19 @@ const Frame = React.createClass({
           {'Called from: '}
         </span>
       );
-    } else {
-      return null;
-    }
+    } else return null;
+  },
+
+  renderRepeats() {
+    if (this.props.timesRepeated > 0) {
+      return (
+        <span className="repeated-frames"
+          title={`Frame repeated ${this.props.timesRepeated} times`}>
+            <span className="icon-refresh"/>
+            <span>{this.props.timesRepeated}</span>
+        </span>
+      );
+    } else return null;
   },
 
   renderDefaultLine() {
@@ -274,6 +285,7 @@ const Frame = React.createClass({
         <div className="title">
           {this.renderLeadHint()}
           {this.renderDefaultTitle()}
+          {this.renderRepeats()}
         </div>
       </StrictClick>
     );
