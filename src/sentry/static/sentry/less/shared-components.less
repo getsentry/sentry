@@ -2104,9 +2104,9 @@ ul.faces {
 }
 
 .alert {
-  background: #FFFDF7;
+  background: @alert-warning-bg-color;
   color: rgba(0,0,0, .7);
-  border: 1px solid #E1D697;
+  border: 1px solid @alert-warning-border-color;
   font-weight: 400;
   padding: 10px 20px;
   border-radius: 0;
@@ -2181,8 +2181,8 @@ ul.faces {
 
 .alert-error,
 .alert-danger {
-  background: #FDF6F5;
-  border-color: #E7C0BC;
+  background: @alert-danger-bg-color;
+  border-color: @alert-danger-border-color;
 
   .icon:before {
     content: "\e615";
@@ -2190,8 +2190,8 @@ ul.faces {
 }
 
 .alert-info {
-  background: #F5FAFE;
-  border-color: #B5D6ED;
+  background: @alert-info-bg-color;
+  border-color: @alert-info-border-color;
   color: @gray-dark;
 
   .icon {
@@ -2200,8 +2200,8 @@ ul.faces {
 }
 
 .alert-success {
-  background: #F8FCF7;
-  border-color: #BBD6B3;
+  background: @alert-success-bg-color;
+  border-color: @alert-success-border-color;
 
   .icon:before {
     content: "\e60a";

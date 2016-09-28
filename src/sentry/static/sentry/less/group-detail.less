@@ -785,6 +785,21 @@
   .primary {
     flex: 1;
 
+    .box.alert-block {
+      padding-top: 15px;
+      padding-bottom: 15px;
+
+      &.alert-info, &.alert-info + .box, &.alert-info + .context-summary {
+        border-top: 1px solid @alert-info-border-color;
+      }
+      &.alert-success, &.alert-success + .box, &.alert-success + .context-summary {
+        border-top: 1px solid @alert-success-border-color;
+      }
+      &.alert-error, &.alert-error + .box, &.alert-error + .context-summary {
+        border-top: 1px solid @alert-danger-border-color;
+      }
+    }
+
     .box, .user-report {
       border-radius: 0;
       box-shadow: none;
