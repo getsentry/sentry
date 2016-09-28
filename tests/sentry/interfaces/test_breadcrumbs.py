@@ -24,3 +24,14 @@ class BreadcrumbsTest(TestCase):
         assert int(ts) == 1458857193
         assert abs(ts - 1458857193.973275) < 0.001
         assert result.values[0]['data'] == {'message': 'Whats up dawg?'}
+
+    def test_non_string_keys(self):
+        result = Breadcrumbs.to_python(dict(values=[{
+            'type': 'message',
+            'timestamp': 1458857193.973275,
+            'data': {
+                'extra': {'foo': 'bar'},
+            },
+        }]))
+        assert len(result.values) == 1
+        assert result.values[0]['data'] == {'extra': '{"foo":"bar"}'}
