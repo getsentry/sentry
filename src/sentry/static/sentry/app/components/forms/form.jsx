@@ -7,7 +7,8 @@ const Form = React.createClass({
     onSubmit: React.PropTypes.func.isRequired,
     submitDisabled: React.PropTypes.bool,
     submitLabel: React.PropTypes.string.isRequired,
-    footerClass: React.PropTypes.string
+    footerClass: React.PropTypes.string,
+    extraButton: React.PropTypes.element
   },
 
   getDefaultProps() {
@@ -31,6 +32,7 @@ const Form = React.createClass({
           <button className="btn btn-primary"
                   disabled={this.props.submitDisabled}
                   type="submit">{this.props.submitLabel}</button>
+          {this.props.extraButton}
         </div>
       </form>
     );

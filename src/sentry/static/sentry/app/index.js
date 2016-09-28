@@ -51,7 +51,8 @@ export default {
     routes: require('./routes'),
     plugins: {
       add: plugins.add,
-      BasePlugin: plugins.BasePlugin
+      BasePlugin: plugins.BasePlugin,
+      DefaultIssuePlugin: plugins.DefaultIssuePlugin
     },
 
     createHistory: require('history/lib/createBrowserHistory'),
@@ -68,6 +69,8 @@ export default {
     DateTime: require('./components/dateTime'),
     DropdownLink: require('./components/dropdownLink'),
     FlotChart: require('./components/flotChart'),
+    Form: require('./components/forms/form'),
+    FormState: require('./components/forms/index').FormState,
     HookStore: require('./stores/hookStore'),
     Indicators: require('./components/indicators'),
     IndicatorStore: require('./stores/indicatorStore'),
