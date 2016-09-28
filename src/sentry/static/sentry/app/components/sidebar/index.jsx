@@ -4,7 +4,6 @@ import $ from 'jquery';
 import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
-import ConfigStore from '../../stores/configStore';
 import IncidentStore from '../../stores/incidentStore';
 import OrganizationState from '../../mixins/organizationState';
 import {load as loadIncidents} from '../../actionCreators/incidents';
@@ -271,12 +270,11 @@ const Sidebar = React.createClass({
     </div>);
   },
 
-  render() {
-    let user = ConfigStore.get('user');
+  renderRequiredActions() {
+    // TODO: investigate if this is seriously deprecated
     let org = this.getOrganization();
-
-
     let requiredAction = org && getFirstRequiredAdminAction(org);
+    let actionMessage;
 
     if (org && requiredAction !== null) {
       let slugId = requiredAction.ID.toLowerCase().replace(/_/g, '-');
@@ -286,6 +284,14 @@ const Sidebar = React.createClass({
           requiredAction.getActionLinkTitle()}</a>
       );
     }
+
+    return actionMessage
+      ? <span className="admin-action-message">{actionMessage}</span>
+      : null;
+  },
+
+  render() {
+    let org = this.getOrganization();
 
     // NOTE: this.props.orgId not guaranteed to be specified
     return (
@@ -322,10 +328,7 @@ const Sidebar = React.createClass({
           </ul>
         </div>
 
-        { /*  {actionMessage ?
-        <span className="admin-action-message">{actionMessage}</span>
-        : null}
-        */ }
+        {this.renderRequiredActions()}
       </nav>
     );
   }
