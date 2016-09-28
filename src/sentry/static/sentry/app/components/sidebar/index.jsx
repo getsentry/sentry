@@ -69,6 +69,10 @@ function getFirstRequiredAdminAction(org) {
 }
 
 const Sidebar = React.createClass({
+  contextTypes: {
+    location: React.PropTypes.object
+  },
+
   mixins: [
     ApiMixin,
     OrganizationState,
@@ -165,9 +169,15 @@ const Sidebar = React.createClass({
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
         <li>
-          <Link to={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
-            <span className="icon icon-home" />
-          </Link>
+          {this.context.location
+            ? <Link to={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
+                <span className="icon icon-home" />
+              </Link>
+            :
+              <a href={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
+                <span className="icon icon-home" />
+              </a>
+          }
         </li>
         <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
           <a>
