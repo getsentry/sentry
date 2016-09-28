@@ -174,7 +174,7 @@ const OrganizationAuditLog = React.createClass({
 
           <p>{t('Sentry keeps track of important events within your organization.')}</p>
 
-          <div className="panel panel-default">
+          <div className="panel panel-default horizontal-scroll">
             <table className="table">
               <thead>
                 <tr>
