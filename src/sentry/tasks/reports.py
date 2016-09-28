@@ -583,7 +583,7 @@ class Skipped(object):
 
 
 def has_valid_aggregates(interval, (project, report)):
-    _, aggregates, _, _, _ = report
+    _, aggregates, _, _, _, _ = report
     return any(bool(value) for value in aggregates)
 
 
