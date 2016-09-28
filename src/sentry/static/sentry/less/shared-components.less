@@ -2118,7 +2118,6 @@ ul.faces {
   p:last-child {
     margin: 0;
   }
-
   .icon {
     float: left;
     margin: 3px 8px 0 3px;
@@ -2169,6 +2168,12 @@ ul.faces {
   }
 }
 
+.alert-block {
+  .btn {
+    float: right;
+  }
+}
+
 .alert-block ul {
   padding-left: 20px;
 }
@@ -2187,6 +2192,10 @@ ul.faces {
   .icon:before {
     content: "\e615";
   }
+
+  .btn-default {
+    border-color: darken(@alert-danger-border-color, 5);
+  }
 }
 
 .alert-info {
@@ -2197,6 +2206,10 @@ ul.faces {
   .icon {
     display: none;
   }
+
+  .btn-default {
+    border-color: desaturate(darken(@alert-info-border-color, 10), 10);
+  }
 }
 
 .alert-success {
@@ -2205,6 +2218,10 @@ ul.faces {
 
   .icon:before {
     content: "\e60a";
+  }
+
+  .btn-default {
+    border-color: darken(@alert-success-border-color, 5);
   }
 }
 
