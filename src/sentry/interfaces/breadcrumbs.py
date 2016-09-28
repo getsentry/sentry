@@ -13,6 +13,7 @@ __all__ = ('Breadcrumbs',)
 import six
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.utils import json
 from sentry.utils.safe import trim
 from sentry.utils.dates import to_timestamp, to_datetime, parse_timestamp
 
@@ -85,6 +86,9 @@ class Breadcrumbs(Interface):
             rv['event_id'] = event_id
 
         if 'data' in crumb:
+            for key, value in six.iteritems(crumb['data']):
+                if not isinstance(value, six.string_types):
+                    crumb['data'][key] = json.dumps(value)
             rv['data'] = trim(crumb['data'], 4096)
 
         return rv
