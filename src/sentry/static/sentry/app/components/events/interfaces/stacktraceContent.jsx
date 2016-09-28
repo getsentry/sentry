@@ -73,7 +73,7 @@ const StacktraceContent = React.createClass({
        frame.lineNo === nextFrame.lineNo &&
        frame.function === nextFrame.function;
 
-      if(repeatedFrame){
+      if (repeatedFrame) {
         nRepeats++;
       }
 

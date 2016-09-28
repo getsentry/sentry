@@ -266,18 +266,19 @@ const Frame = React.createClass({
       );
     } else return null;
   },
+
   renderRepeats() {
     if (this.props.timesRepeated > 0) {
       return (
-      <span className="repeated-frames"
-        title={`Frame repeated ${this.props.timesRepeated} times`}>
-          <span className="icon-refresh"/>
-          <span>{this.props.timesRepeated}</span>
-      </span>
+        <span className="repeated-frames"
+          title={`Frame repeated ${this.props.timesRepeated} times`}>
+            <span className="icon-refresh"/>
+            <span>{this.props.timesRepeated}</span>
+        </span>
       );
-    } else
-     return null;
+    } else return null;
   },
+
   renderDefaultLine() {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
