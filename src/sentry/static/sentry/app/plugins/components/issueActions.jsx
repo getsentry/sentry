@@ -2,18 +2,13 @@ import React from 'react';
 
 import {
   Form,
-  FormState,
-  Select2Field,
-  Select2FieldAutocomplete,
-  TextareaField,
-  TextField
+  FormState
 } from '../../components/forms';
 import GroupActions from '../../actions/groupActions';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import {t} from '../../locale';
-import {defined} from '../../utils';
 
 class IssueActions extends PluginComponentBase {
   constructor(props) {
@@ -175,40 +170,6 @@ class IssueActions extends PluginComponentBase {
     this.setState(state);
   }
 
-  renderField(action, field) {
-    let el;
-    let required = defined(field.required) ? field.required : true;
-    let props = {
-      value: this.state[action + 'FormData'][field.name],
-      onChange: this.changeField.bind(this, action, field.name),
-      label: field.label + (required ? '*' : ''),
-      name: field.name,
-      disabled: field.readonly,
-      help: <span dangerouslySetInnerHTML={{__html: field.help}}/>
-    };
-    switch (field.type) {
-      case 'text':
-        el = <TextField {...props} />;
-        break;
-      case 'textarea':
-        el = <TextareaField {...props} />;
-        break;
-      case 'select':
-        if (field.has_autocomplete) {
-          props.url = ('/api/0/issues/' + this.getGroup().id +
-                       '/plugins/' + this.props.plugin.slug + '/autocomplete');
-          el = <Select2FieldAutocomplete {...props} />;
-        } else {
-          props.choices = field.choices;
-          el = <Select2Field {...props} />;
-        }
-        break;
-      default:
-        el = null;
-    }
-    return el;
-  }
-
   renderForm() {
     let form;
     switch (this.props.actionType) {
@@ -218,7 +179,21 @@ class IssueActions extends PluginComponentBase {
             <Form onSubmit={this.createIssue} submitLabel={t('Create Issue')}
                   footerClass="">
               {this.state.createFieldList.map((field) => {
-                return <div key={field.name}>{this.renderField('create', field)}</div>;
+                if (field.has_autocomplete) {
+                  field = Object.assign({
+                    url: ('/api/0/issues/' + this.getGroup().id +
+                          '/plugins/' + this.props.plugin.slug + '/autocomplete')
+                  }, field);
+                }
+                return (
+                  <div key={field.name}>
+                    {this.renderField({
+                      config: field,
+                      formData: this.state.createFormData,
+                      onChange: this.changeField.bind(this, 'create', field.name)
+                    })}
+                  </div>
+                );
               })}
             </Form>
           );
@@ -230,7 +205,21 @@ class IssueActions extends PluginComponentBase {
             <Form onSubmit={this.linkIssue} submitLabel={t('Link Issue')}
                   footerClass="">
               {this.state.linkFieldList.map((field) => {
-                return <div key={field.name}>{this.renderField('link', field)}</div>;
+                if (field.has_autocomplete) {
+                  field = Object.assign({
+                    url: ('/api/0/issues/' + this.getGroup().id +
+                          '/plugins/' + this.props.plugin.slug + '/autocomplete')
+                  }, field);
+                }
+                return (
+                  <div key={field.name}>
+                    {this.renderField({
+                      config: field,
+                      formData: this.state.linkFormData,
+                      onChange: this.changeField.bind(this, 'link', field.name)
+                    })}
+                  </div>
+                );
               })}
             </Form>
           );
