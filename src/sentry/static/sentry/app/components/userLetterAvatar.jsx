@@ -8,8 +8,7 @@ const UserLetterAvatar = React.createClass({
 
   getIdentifier() {
     let user = this.props.user;
-    let identifier = user.email || user.username || user.id || user.ip_address;
-    return identifier;
+    return user.email || user.username || user.id || user.ip_address;
   },
 
   getDisplayName() {
