@@ -299,6 +299,16 @@ def prepare_project_usage_summary((start, stop), project):
     )
 
 
+def prepare_project_user_count((start, stop), project):
+    return tsdb.get_distinct_counts_totals(
+        tsdb.models.users_affected_by_project,
+        [project.id],
+        start,
+        stop,
+        rollup=60 * 60 * 24,
+    )[project.id]
+
+
 def prepare_project_report(interval, project):
     return (
         prepare_project_series(interval, project),
@@ -306,6 +316,7 @@ def prepare_project_report(interval, project):
         prepare_project_issue_summaries(interval, project),
         prepare_project_release_list(interval, project),
         prepare_project_usage_summary(interval, project),
+        prepare_project_user_count(interval, project),
     )
 
 
@@ -434,7 +445,8 @@ def merge_reports(target, other):
         merge_sequences(
             target[4],
             other[4],
-        )
+        ),
+        target[5] + other[5],
     )
 
 
@@ -664,11 +676,12 @@ def build_project_breakdown_series(reports):
     Key = namedtuple('Key', 'label url color data')
 
     def get_legend_data(report):
-        series, _, _, _, (filtered, rate_limited) = report
+        series, _, _, _, (filtered, rate_limited), user_count = report
         return {
             'events': sum(sum(value) for timestamp, value in series),
             'filtered': filtered,
             'rate_limited': rate_limited,
+            'users': user_count,
         }
 
     # Find the reports with the most total events. (The number of reports to
@@ -741,7 +754,7 @@ def build_project_breakdown_series(reports):
 
 
 def to_context(reports):
-    series, aggregates, issue_summaries, release_list, usage_summary = reduce(
+    series, aggregates, issue_summaries, release_list, usage_summary, user_counts = reduce(
         merge_reports,
         reports.values(),
     )
