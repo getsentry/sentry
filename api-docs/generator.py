@@ -183,7 +183,6 @@ def cli(output_path):
 
         vars = {
             'org': org,
-            'api_key': api_key,
             'me': user,
             'api_key': api_key,
             'teams': [{

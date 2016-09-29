@@ -129,6 +129,17 @@ class Endpoint(APIView):
 
         return entry
 
+    def initialize_request(self, request, *args, **kwargs):
+        rv = super(Endpoint, self).initialize_request(request, *args, **kwargs)
+        # If our request is being made via our internal API client, we need to
+        # stitch back on auth and user information
+        if getattr(request, '__from_api_client__', False):
+            if rv.auth is None:
+                rv.auth = getattr(request, 'auth', None)
+            if rv.user is None:
+                rv.user = getattr(request, 'user', None)
+        return rv
+
     @csrf_exempt
     def dispatch(self, request, *args, **kwargs):
         """
