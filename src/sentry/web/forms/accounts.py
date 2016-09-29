@@ -561,8 +561,7 @@ class ProjectEmailOptionsForm(forms.Form):
 
         self.fields['alert'].initial = has_alerts
         self.fields['workflow'].initial = has_workflow
-        self.fields['email'].initial = UserOption.objects.get_value(
-            user, project, 'mail:email', None) or alert_email
+        self.fields['email'].initial = specified_email or alert_email or user.email
 
     def save(self):
         UserOption.objects.set_value(

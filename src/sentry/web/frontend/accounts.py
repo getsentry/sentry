@@ -314,12 +314,12 @@ def list_identities(request):
 @login_required
 def show_emails(request):
     user = request.user
-    primary_email = user.emails.get(email=user.email)
-    alt_emails = user.emails.all().exclude(email=primary_email.email)
+    primary_email = user.email
+    alt_emails = user.emails.all().exclude(email=primary_email)
 
     email_form = EmailForm(user, request.POST or None,
         initial={
-            'primary_email': primary_email.email,
+            'primary_email': primary_email,
         },
     )
 
