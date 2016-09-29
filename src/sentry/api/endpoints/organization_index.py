@@ -103,6 +103,8 @@ class OrganizationIndexEndpoint(Endpoint):
                             platform__in=value,
                         ).values('project_id')
                     )
+                elif key == 'id':
+                    queryset = queryset.filter(id__in=value)
 
         sort_by = request.GET.get('sortBy')
         if sort_by == 'members':

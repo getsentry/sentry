@@ -71,6 +71,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
             'help': 'Enter callback URLs to POST new events to (one per line).',
             'placeholder': 'https://sentry.io/callback/url',
             'validators': [validate_urls],
+            'required': False
         }]
 
     def get_group_data(self, group, event):

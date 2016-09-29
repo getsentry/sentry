@@ -19,7 +19,7 @@ File System Backend
 S3 Backend
 ----------
 
-S3 is supported through an third party library called `django-storages <https://django-storages.readthedocs.io/en/latest/>`_:
+S3 is supported through a third party library called `django-storages <https://django-storages.readthedocs.io/en/latest/>`_:
 
 .. code-block:: bash
 
