@@ -9,6 +9,9 @@ import SidebarPanelItem from '../sidebarPanelItem';
 
 const Broadcasts = React.createClass({
   propTypes: {
+    showPanel: React.PropTypes.bool,
+    currentPanel: React.PropTypes.currentPanel,
+    hidePanel: React.PropTypes.func,
     onShowPanel: React.PropTypes.func.isRequired
   },
 
@@ -111,11 +114,6 @@ const Broadcasts = React.createClass({
 
   render() {
     let {broadcasts, loading} = this.state;
-    let unseenCount = broadcasts.filter((item) => {
-      return !item.hasSeen;
-    }).length;
-
-    let title = <span className="icon-globe" />;
     return (
       <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
         <a className="broadcasts-toggle" onClick={this.onShowPanel}>
@@ -139,8 +137,7 @@ const Broadcasts = React.createClass({
                       className={!item.hasSeen && 'unseen'}
                       title={item.title}
                       message={item.message}
-                      link={item.link}>
-                    </SidebarPanelItem>
+                      link={item.link}/>
                   );
                 })
               )}
