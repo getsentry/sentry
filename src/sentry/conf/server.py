@@ -1019,12 +1019,16 @@ SUDO_URL = 'sentry-sudo'
 SDK_VERSIONS = {
     'raven-js': '3.3.0',
     'raven-python': '5.23.0',
+    'sentry-laravel': '0.4.0',
+    'sentry-php': '1.5.0',
 }
 
 SDK_URLS = {
-    'raven-js': 'https://docs.sentry.io/hosted/clients/javascript/',
-    'raven-python': 'https://docs.sentry.io/hosted/clients/python/',
-    'raven-swift': 'https://docs.sentry.io/hosted/clients/cocoa/',
+    'raven-js': 'https://docs.sentry.io/clients/javascript/',
+    'raven-python': 'https://docs.sentry.io/clients/python/',
+    'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-php': 'https://docs.sentry.io/clients/php/',
+    'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
 }
 
 DEPRECATED_SDKS = {
