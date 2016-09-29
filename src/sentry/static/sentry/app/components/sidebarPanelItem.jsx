@@ -1,6 +1,13 @@
 import React from 'react';
 
 const SidebarPanelItem = React.createClass({
+  propTypes: {
+    title: React.PropTypes.string,
+    image: React.PropTypes.string,
+    message: React.PropTypes.any,
+    link: React.PropTypes.string
+  },
+
   render() {
     return (
       <div className="sidebar-panel-item">
@@ -8,7 +15,7 @@ const SidebarPanelItem = React.createClass({
           <h3>{this.props.title}</h3>
         }
         {this.props.image &&
-          <div class="image"><img src={this.props.image} /></div>
+          <div className="image"><img src={this.props.image} /></div>
         }
         {this.props.message &&
           <p className="message">{this.props.message}</p>
