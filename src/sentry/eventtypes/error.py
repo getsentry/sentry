@@ -20,5 +20,5 @@ class ErrorEvent(BaseEvent):
             'value': trim(exception.get('value', ''), 1024),
         }
 
-    def to_string(self, data):
-        return u'{}: {}'.format(data['type'], data['value'])
+    def to_string(self, metadata):
+        return u'{}: {}'.format(metadata['type'], metadata['value'])

@@ -76,6 +76,9 @@ class NodeData(collections.MutableMapping):
             return
         return ref_func(instance)
 
+    def copy(self):
+        return self.data.copy()
+
     @memoize
     def data(self):
         from sentry.app import nodestore
