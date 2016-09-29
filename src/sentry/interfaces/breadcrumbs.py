@@ -53,7 +53,13 @@ class Breadcrumbs(Interface):
     def to_python(cls, data):
         values = []
         for crumb in data.get('values') or ():
-            values.append(cls.normalize_crumb(crumb))
+            try:
+                values.append(cls.normalize_crumb(crumb))
+            except InterfaceValidationError:
+                # TODO(dcramer): we dont want to discard the entirety of data
+                # when one breadcrumb errors, but it'd be nice if we could still
+                # record an error
+                continue
         return cls(values=values)
 
     @classmethod
@@ -86,10 +92,21 @@ class Breadcrumbs(Interface):
             rv['event_id'] = event_id
 
         if crumb.get('data'):
-            for key, value in six.iteritems(crumb['data']):
-                if not isinstance(value, six.string_types):
-                    crumb['data'][key] = json.dumps(value)
-            rv['data'] = trim(crumb['data'], 4096)
+            try:
+                for key, value in six.iteritems(crumb['data']):
+                    if not isinstance(value, six.string_types):
+                        crumb['data'][key] = json.dumps(value)
+            except AttributeError:
+                # TODO(dcramer): we dont want to discard the the rest of the
+                # crumb, but it'd be nice if we could record an error
+                # raise InterfaceValidationError(
+                #     'The ``data`` on breadcrumbs must be a mapping (received {})'.format(
+                #         type(crumb['data']),
+                #     )
+                # )
+                pass
+            else:
+                rv['data'] = trim(crumb['data'], 4096)
 
         return rv
 
