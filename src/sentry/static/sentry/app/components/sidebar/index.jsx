@@ -14,7 +14,6 @@ import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
 import IssueList from '../issueList';
-import Link from '../link';
 
 import {t} from '../../locale';
 
@@ -168,11 +167,6 @@ const Sidebar = React.createClass({
 
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
-        <li>
-          <Link to={`/${org.slug}/`} onClick={()=>this.hidePanel()}>
-            <span className="icon icon-home" />
-          </Link>
-        </li>
         <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
           <a>
             <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />

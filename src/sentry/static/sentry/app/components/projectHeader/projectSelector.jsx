@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {History} from 'react-router';
-import {Link} from 'react-router';
 import jQuery from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -9,6 +8,8 @@ import ApiMixin from '../../mixins/apiMixin';
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
+import Link from '../link';
+
 import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
@@ -272,6 +273,9 @@ const ProjectSelector = React.createClass({
     return (
       <div className="project-select" ref="container">
         <h3>
+          <Link to={`/${org.slug}/`} className="home-crumb">
+            <span className="icon-home" />
+          </Link>
           {this.state.activeProject ?
             this.getLinkNode(this.state.activeTeam, this.state.activeProject)
           :

@@ -1118,8 +1118,21 @@ table.integrations {
 * ============================================================================
 */
 
-.project-select > a {
-  color: @gray-darker;
+.project-select {
+  > a {
+    color: @gray-darker;
+  }
+
+  .home-crumb {
+    color: @gray-lighter !important;
+    border-right: 1px solid @trim;
+    padding-right: 10px;
+    margin-right: 10px;
+
+    &:hover {
+      color: @gray-light !important;
+    }
+  }
 }
 
 .project-dropdown {
@@ -1159,7 +1172,7 @@ table.integrations {
     max-width: 500px;
     width: auto;
     padding-bottom: 0;
-    left: 0;
+    left: 30px;
     .clearfix;
     overflow: auto;
     max-height: 500px;
@@ -3474,7 +3487,7 @@ div.qrcode {
   background: @blue;
 }
 &.level-warning .error-level {
-  background: @yellow;
+  background: @yellow-orange;
 }
 &.level-error .error-level {
   background: @orange;
