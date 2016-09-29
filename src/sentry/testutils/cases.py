@@ -19,6 +19,7 @@ import os
 import os.path
 import pytest
 import six
+import types
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -30,6 +31,7 @@ from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
+from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
 from six.moves.urllib.parse import urlencode
 
@@ -405,8 +407,31 @@ class PluginTestCase(TestCase):
 
     def setUp(self):
         super(PluginTestCase, self).setUp()
-        plugins.register(self.plugin)
-        self.addCleanup(plugins.unregister, self.plugin)
+
+        # Old plugins, plugin is a class, new plugins, it's an instance
+        # New plugins don't need to be registered
+        if isinstance(self.plugin, (type, types.ClassType)):
+            plugins.register(self.plugin)
+            self.addCleanup(plugins.unregister, self.plugin)
+
+    def assertAppInstalled(self, name, path):
+        for ep in iter_entry_points('sentry.apps'):
+            if ep.name == name:
+                ep_path = ep.module_name
+                if ep_path == path:
+                    return
+                self.fail('Found app in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+        self.fail('Missing app from entry_points: %r' % (name,))
+
+    def assertPluginInstalled(self, name, plugin):
+        path = type(plugin).__module__ + ':' + type(plugin).__name__
+        for ep in iter_entry_points('sentry.plugins'):
+            if ep.name == name:
+                ep_path = ep.module_name + ':' + '.'.join(ep.attrs)
+                if ep_path == path:
+                    return
+                self.fail('Found plugin in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+        self.fail('Missing plugin from entry_points: %r' % (name,))
 
 
 class CliTestCase(TestCase):
