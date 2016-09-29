@@ -63,7 +63,7 @@ class OrganizationManager(BaseManager):
         if scope is not None:
             return [
                 r.organization for r in results
-                if scope not in r.get_scopes()
+                if scope in r.get_scopes()
             ]
         return [r.organization for r in results]
 

@@ -98,9 +98,10 @@ def make_group_generator(random, project):
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
 class MailPreview(object):
-    def __init__(self, html_template, text_template, context=None):
+    def __init__(self, html_template, text_template, context=None, subject=None):
         self.html_template = html_template
         self.text_template = text_template
+        self.subject = subject
         self.context = context if context is not None else {}
 
     def text_body(self):

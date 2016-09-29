@@ -17,6 +17,7 @@ running on your own infrastructure.
    filestore
    queue
    buffer
+   filestore
    sso
    throttling
    tsdb

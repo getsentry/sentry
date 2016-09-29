@@ -94,3 +94,45 @@ class ProjectsListTest(APITestCase):
         response = self.client.get(self.path + '?query=baz')
         assert response.status_code == 200
         assert len(response.data) == 0
+
+    def test_slug_query(self):
+        Project.objects.all().delete()
+
+        user = self.create_user('foo@example.com', is_superuser=True)
+
+        org = self.create_organization(name='foo')
+        project1 = self.create_project(name='foo', slug='foo', organization=org)
+
+        self.create_project(name='bar', slug='bar', organization=org)
+
+        self.login_as(user=user)
+
+        response = self.client.get(self.path + '?query=slug:foo')
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(project1.id)
+
+        response = self.client.get(self.path + '?query=slug:baz')
+        assert response.status_code == 200
+        assert len(response.data) == 0
+
+    def test_id_query(self):
+        Project.objects.all().delete()
+
+        user = self.create_user('foo@example.com', is_superuser=True)
+
+        org = self.create_organization(name='foo')
+        project1 = self.create_project(name='foo', slug='foo', organization=org)
+
+        self.create_project(name='bar', slug='bar', organization=org)
+
+        self.login_as(user=user)
+
+        response = self.client.get('{}?query=id:{}'.format(self.path, project1.id))
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]['id'] == six.text_type(project1.id)
+
+        response = self.client.get('{}?query=id:-1'.format(self.path))
+        assert response.status_code == 200
+        assert len(response.data) == 0
