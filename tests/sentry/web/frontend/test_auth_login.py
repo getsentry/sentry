@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import urllib
+
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -97,3 +99,30 @@ class AuthLoginTest(TestCase):
         assert resp.context['op'] == 'register'
         assert resp.context['register_form'].initial['username'] == 'foo@example.com'
         self.assertTemplateUsed('sentry/login.html')
+
+    def test_redirects_to_relative_next_url(self):
+        # load it once for test cookie
+        next = '/welcome'
+        self.client.get(self.path + '?next=' + next)
+
+        resp = self.client.post(self.path, {
+            'username': self.user.username,
+            'password': 'admin',
+            'op': 'login',
+        })
+        assert resp.status_code == 302
+        assert resp.get('Location', '').endswith(next)
+
+    def test_doesnt_redirect_to_external_next_url(self):
+        # load it once for test cookie
+        next = "http://example.com"
+        self.client.get(self.path + '?next=' + urllib.quote(next))
+
+        resp = self.client.post(self.path, {
+            'username': self.user.username,
+            'password': 'admin',
+            'op': 'login',
+        })
+        assert resp.status_code == 302
+        assert next not in resp['Location']
+        assert next['Location'] == 'http://testserver/auth/login/'

@@ -125,6 +125,11 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request):
+        redirect_next = request.GET.get('next', None)
+        if redirect_next:
+            # TODO: enforce max redirect_next limit? (potential for abuse?)
+            request.session['_next'] = redirect_next
+
         if request.user.is_authenticated():
             return self.redirect_to_org(request)
 
