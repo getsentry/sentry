@@ -36,13 +36,13 @@ const OrganizationSelector = React.createClass({
   },
 
   render() {
-    // TODO: what to do in single org state?
-    // let isSingleOrg = ConfigStore.get('singleOrganization');
+    let isSingleOrg = ConfigStore.get('singleOrganization');
     let activeOrg = this.props.organization;
 
-    // if (isSingleOrg || !activeOrg) {
-    //   return null;
-    // }
+    // Single-org accounts can't create new orgs/select between them
+    if (isSingleOrg || !activeOrg) {
+      return null;
+    }
 
     let features = ConfigStore.get('features');
 

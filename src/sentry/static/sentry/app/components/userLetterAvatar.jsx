@@ -16,7 +16,6 @@ const UserLetterAvatar = React.createClass({
     return user.name || user.email || user.username || '';
   },
 
-
   render() {
     return (
       <LetterAvatar

@@ -272,20 +272,19 @@ const Sidebar = React.createClass({
     // TODO: investigate if this is seriously deprecated
     let org = this.getOrganization();
     let requiredAction = org && getFirstRequiredAdminAction(org);
-    let actionMessage;
 
     if (org && requiredAction !== null) {
       let slugId = requiredAction.ID.toLowerCase().replace(/_/g, '-');
       let url = `/organizations/${org.slug}/actions/${slugId}/`;
-      actionMessage = (
-        <a href={url}>{t('Required Action:')}{' '}{
-          requiredAction.getActionLinkTitle()}</a>
+      return (
+        <span className="admin-action-message">
+          <a href={url}>{t('Required Action:')}{' '}{
+            requiredAction.getActionLinkTitle()}</a>
+        </span>
       );
     }
 
-    return actionMessage
-      ? <span className="admin-action-message">{actionMessage}</span>
-      : null;
+    return null;
   },
 
   render() {
