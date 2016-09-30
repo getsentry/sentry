@@ -101,7 +101,6 @@ class AuthLoginTest(TestCase):
         self.assertTemplateUsed('sentry/login.html')
 
     def test_redirects_to_relative_next_url(self):
-        # load it once for test cookie
         next = '/welcome'
         self.client.get(self.path + '?next=' + next)
 
@@ -114,7 +113,6 @@ class AuthLoginTest(TestCase):
         assert resp.get('Location', '').endswith(next)
 
     def test_doesnt_redirect_to_external_next_url(self):
-        # load it once for test cookie
         next = "http://example.com"
         self.client.get(self.path + '?next=' + urllib.quote(next))
 
