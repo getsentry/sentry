@@ -21,9 +21,7 @@ const SidebarPanel = React.createClass({
               <SidebarPanelItem />
             </div>
           }
-          {this.props.children &&
-            this.props.children
-          }
+          {this.props.children}
         </div>
       </div>
     );

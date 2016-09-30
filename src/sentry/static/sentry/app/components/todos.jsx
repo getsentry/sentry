@@ -267,9 +267,9 @@ const TodoList = React.createClass({
   },
 
   render() {
-    let next_tasks = this.state.tasks;
+    let nextTasks = this.state.tasks;
 
-    let todo_list = next_tasks.map( (task) => {
+    let todo_list = nextTasks.map( (task) => {
       return (<TodoItem key={task.task} task={task} onSkip={this.skipTask} />);
     }, this);
 
