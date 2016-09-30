@@ -44,6 +44,8 @@ body.narrow {
 body.auth {
   zoom: 1;
   padding: 0;
+
+  // Hide fake sidebar on auth pages
   background: none;
 
   .brand-flag {
@@ -389,13 +391,16 @@ footer {
 
 
 @media(max-width:767px) {
-  .app {
-    overflow-x: hidden;
-  }
-
   body {
     zoom: .85;
     padding-top: 0;
+
+    // Hide fake sidebar on mobile
+    background: none;
+  }
+
+  .app {
+    overflow-x: hidden;
   }
 
   .messages-container {
