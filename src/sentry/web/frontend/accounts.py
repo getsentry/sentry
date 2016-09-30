@@ -11,6 +11,7 @@ from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
@@ -322,6 +323,10 @@ def show_emails(request):
             'primary_email': primary_email,
         },
     )
+    try:
+        email = user.emails.get(email=primary_email)
+    except ObjectDoesNotExist:
+        UserEmail.objects.create(user=user, email=primary_email)
 
     if 'remove' in request.POST:
         email = request.POST.get('email')
