@@ -89,7 +89,7 @@ const RuleRow = React.createClass({
             <div className="col-md-6">
               {data.actions.length !== 0 &&
                 <div>
-                  <h6>Take these actions <strong>once every <Duration seconds={data.frequency * 60} /></strong>:</h6>
+                  <h6>Take these actions at most <strong>once every <Duration seconds={data.frequency * 60} /></strong>:</h6>
                   <table className="actions-list table">
                   {data.actions.map((action) => {
                     return (
