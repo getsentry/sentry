@@ -11,7 +11,6 @@ from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect, Http404
 from django.views.decorators.cache import never_cache
@@ -160,7 +159,7 @@ def settings(request):
     form = AccountSettingsForm(
         user, request.POST or None,
         initial={
-            'email': user.email,
+            'email': UserEmail.get_primary_email(user).email,
             'username': user.username,
             'name': user.name,
         },
@@ -315,18 +314,14 @@ def list_identities(request):
 @login_required
 def show_emails(request):
     user = request.user
-    primary_email = user.email
-    alt_emails = user.emails.all().exclude(email=primary_email)
+    primary_email = UserEmail.get_primary_email(user)
+    alt_emails = user.emails.all().exclude(email=primary_email.email)
 
     email_form = EmailForm(user, request.POST or None,
         initial={
-            'primary_email': primary_email,
+            'primary_email': primary_email.email,
         },
     )
-    try:
-        email = user.emails.get(email=primary_email)
-    except ObjectDoesNotExist:
-        UserEmail.objects.create(user=user, email=primary_email)
 
     if 'remove' in request.POST:
         email = request.POST.get('email')
