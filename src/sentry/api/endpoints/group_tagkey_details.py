@@ -21,6 +21,7 @@ def list_tag_details_scenario(runner):
         method='GET',
         path='/issues/%s/tags/%s/' % (
             group.id, 'browser'),
+        assert_status=None,
     )
 
 
