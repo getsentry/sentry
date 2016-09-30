@@ -75,7 +75,7 @@ class TwoFactorAuthTest(TestCase):
         path = reverse('sentry-account-settings-2fa-totp')
         self.login_as(user)
         resp = self.client.post(path, data={'enroll': ''})
-        self.assertContains(resp, 'QR')
+        self.assertContains(resp, 'Scan the below QR code')
         self.assertContains(resp, 'Sentry account password')
         self.assertNotContains(resp, 'Method is currently not enabled')
 
@@ -84,7 +84,7 @@ class TwoFactorAuthTest(TestCase):
         path = reverse('sentry-account-settings-2fa-totp')
         self.login_as(user)
         resp = self.client.get(path)
-        self.assertNotContains(resp, 'QR')
+        self.assertNotContains(resp, 'Scan the below QR code')
         self.assertNotContains(resp, 'Sentry account password')
         self.assertContains(resp, 'Method is currently not enabled')
 
