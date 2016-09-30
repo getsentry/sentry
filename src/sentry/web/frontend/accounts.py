@@ -159,7 +159,7 @@ def settings(request):
     form = AccountSettingsForm(
         user, request.POST or None,
         initial={
-            'email': user.email,
+            'email': UserEmail.get_primary_email(user).email,
             'username': user.username,
             'name': user.name,
         },
@@ -314,12 +314,12 @@ def list_identities(request):
 @login_required
 def show_emails(request):
     user = request.user
-    primary_email = user.email
-    alt_emails = user.emails.all().exclude(email=primary_email)
+    primary_email = UserEmail.get_primary_email(user)
+    alt_emails = user.emails.all().exclude(email=primary_email.email)
 
     email_form = EmailForm(user, request.POST or None,
         initial={
-            'primary_email': primary_email,
+            'primary_email': primary_email.email,
         },
     )
 
