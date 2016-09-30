@@ -41,3 +41,7 @@ class RestrictedIPAddress(SuspiciousOperation):
 
 class PluginError(Exception):
     pass
+
+
+class InvalidIdentity(Exception):
+    pass
