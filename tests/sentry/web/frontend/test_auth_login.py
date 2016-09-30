@@ -123,4 +123,4 @@ class AuthLoginTest(TestCase):
         })
         assert resp.status_code == 302
         assert next not in resp['Location']
-        assert next['Location'] == 'http://testserver/auth/login/'
+        assert resp['Location'] == 'http://testserver/auth/login/'
