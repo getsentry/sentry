@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.exceptions import PluginError
+from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
@@ -212,6 +212,11 @@ class IssueTrackingPlugin2(Plugin):
                 form_data=request.DATA,
                 request=request,
             )
+        except InvalidIdentity as e:
+            return Response({
+                'error_type': 'auth',
+                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
+            })
         except PluginError as e:
             return Response({
                 'error_type': 'validation',
@@ -274,6 +279,11 @@ class IssueTrackingPlugin2(Plugin):
                 issue = {
                     'title': self.get_issue_title_by_id(request, group, issue_id),
                 }
+        except InvalidIdentity as e:
+            return Response({
+                'error_type': 'auth',
+                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
+            })
         except PluginError as e:
             return Response({
                 'error_type': 'validation',
