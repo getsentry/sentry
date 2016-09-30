@@ -21,8 +21,9 @@
   .placeholder(@gray-light);
 
   &:focus {
-    box-shadow: none;
-    border-color: darken(@trim, 10);
+    border-color: darken(@gray-lighter, 4);
+    box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.04), 0 0 6px rgba(177, 171, 225, .3);
+    outline: none;
   }
 
   object {
