@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-import urllib
+from django.utils.http import urlquote
 
 from django.core.urlresolvers import reverse
 from exam import fixture
@@ -114,7 +114,7 @@ class AuthLoginTest(TestCase):
 
     def test_doesnt_redirect_to_external_next_url(self):
         next = "http://example.com"
-        self.client.get(self.path + '?next=' + urllib.quote(next))
+        self.client.get(self.path + '?next=' + urlquote(next))
 
         resp = self.client.post(self.path, {
             'username': self.user.username,
