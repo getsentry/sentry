@@ -314,7 +314,7 @@ const Sidebar = React.createClass({
               onShowPanel={()=>this.togglePanel('broadcasts')}
               hidePanel={()=>this.hidePanel()} />
 
-            {this.state.status &&
+            {this.state.status && this.state.status.incidents.length > 0 &&
               <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
                 <a onClick={()=>this.togglePanel('statusupdate')}><span className="icon icon-alert"/></a>
               </li>
