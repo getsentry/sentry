@@ -1,13 +1,12 @@
 import React from 'react';
-import Reflux from 'reflux';
 import $ from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
-import IncidentStore from '../../stores/incidentStore';
 import OrganizationState from '../../mixins/organizationState';
 import {load as loadIncidents} from '../../actionCreators/incidents';
 
 import Broadcasts from './broadcasts';
+import Incidents from './incidents';
 import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
@@ -75,13 +74,11 @@ const Sidebar = React.createClass({
   mixins: [
     ApiMixin,
     OrganizationState,
-    Reflux.listenTo(IncidentStore, 'onIncidentChange'),
   ],
 
   getInitialState: function() {
     return {
-      showTodos: location.hash === '#welcome',
-      status: null
+      showTodos: location.hash === '#welcome'
     };
   },
 
@@ -109,12 +106,6 @@ const Sidebar = React.createClass({
     if (location.hash == '#welcome') {
       this.setState({showTodos: true});
     }
-  },
-
-  onIncidentChange(status) {
-    this.setState({
-      status: {...status}
-    });
   },
 
   toggleTodos(e) {
@@ -154,8 +145,6 @@ const Sidebar = React.createClass({
         </ul>
       );
     }
-
-    let status = this.state.status;
 
     return (<div>
       <OrganizationSelector
@@ -236,35 +225,6 @@ const Sidebar = React.createClass({
             params={{orgId: org.slug}} />
         </SidebarPanel>
       }
-      {this.state.showPanel && this.state.currentPanel == 'statusupdate' && status &&
-        <SidebarPanel title={t('Recent status updates')}
-                      hidePanel={()=>this.hidePanel()}>
-          <ul className="incident-list list-unstyled">
-            {status.incidents.map((incident) =>
-              <li className="incident-item" key={incident.id}>
-                <h4>{incident.title}</h4>
-                {incident.updates ?
-                  <div>
-                    <h6>Latest updates:</h6>
-                    <ul className="status-list list-unstyled">
-                      {incident.updates.map((update, key) =>
-                        <li className="status-item" key={key}>
-                          <p>{update}</p>
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                  :
-                  null
-                }
-                <p>
-                  <a href={incident.url} className="btn btn-default btn-sm">Learn more</a>
-                </p>
-              </li>
-            )}
-          </ul>
-        </SidebarPanel>
-      }
     </div>);
   },
 
@@ -314,11 +274,12 @@ const Sidebar = React.createClass({
               onShowPanel={()=>this.togglePanel('broadcasts')}
               hidePanel={()=>this.hidePanel()} />
 
-            {this.state.status && this.state.status.incidents.length > 0 &&
-              <li className={this.state.currentPanel == 'statusupdate' ? 'active' : null }>
-                <a onClick={()=>this.togglePanel('statusupdate')}><span className="icon icon-alert"/></a>
-              </li>
-            }
+            <Incidents
+              showPanel={this.state.showPanel}
+              currentPanel={this.state.currentPanel}
+              onShowPanel={()=>this.togglePanel('statusupdate')}
+              hidePanel={()=>this.hidePanel()} />
+
             <li>
               <UserNav className="user-settings" />
             </li>
