@@ -89,6 +89,16 @@ const Sidebar = React.createClass({
     loadIncidents();
   },
 
+  componentWillReceiveProps(nextProps, nextContext) {
+    let {location} = this.context;
+    let nextLocation = nextContext.location;
+
+    // Close active panel if we navigated anywhere
+    if (location.pathname != nextLocation.pathname) {
+      this.hidePanel();
+    }
+  },
+
   componentWillUnmount() {
     $(window).off('hashchange', this.hashChangeHandler);
     $(document).off('click', this.documentClickHandler);
@@ -132,7 +142,6 @@ const Sidebar = React.createClass({
     else
       this.showPanel(panel);
   },
-
 
   renderBody() {
     let org = this.getOrganization();
