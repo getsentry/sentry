@@ -9,7 +9,7 @@ import {t} from '../../locale';
 const Incidents = React.createClass({
   propTypes: {
     showPanel: React.PropTypes.bool,
-    currentPanel: React.PropTypes.currentPanel,
+    currentPanel: React.PropTypes.string,
     hidePanel: React.PropTypes.func,
     onShowPanel: React.PropTypes.func.isRequired
   },
