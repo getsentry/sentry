@@ -1,5 +1,21 @@
-Version 8.9 (Unreleased)
-------------------------
+Version 8.9
+-----------
+
+- Added support for Elixir.
+- Improve performance for bulk deletions of Events and Groups.
+- Fix rate limit logic for single organization mode.
+- Added ``--no-repair`` flag for ``sentry upgrade`` for large installs.
+- Fixed bug with merging counters yielding the wrong values.
+- Require password confirmation when enabling/disabling 2fa.
+- Collapse repeated frames in the stacktrace UI.
+- Added weekly report emails behind feature flag.
+- Rebrand Rules as Alerts / Alert Rules.
+- Add frequency to Alerts.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added unique index on ``Authenticator(user_id, type)``
 
 Version 8.8
 -----------
