@@ -182,6 +182,27 @@ class IssueTrackingPlugin2(Plugin):
                     errors[field['name']] = u'%s is a required field.' % field['label']
         return errors
 
+    def handle_api_error(self, error):
+        context = {
+            'error_type': 'unknown',
+        }
+        if isinstance(error, InvalidIdentity):
+            context.update({
+                'error_type': 'auth',
+                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
+            })
+            status = 400
+        elif isinstance(error, PluginError):
+            # TODO(dcramer): we should have a proper validation error
+            context.update({
+                'error_type': 'validation',
+                'errors': {'__all__': error.message},
+            })
+            status = 400
+        else:
+            status = 500
+        return Response(context, status=status)
+
     def view_create(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)
         if auth_errors:
@@ -191,11 +212,8 @@ class IssueTrackingPlugin2(Plugin):
         Event.objects.bind_nodes([event], 'data')
         try:
             fields = self.get_new_issue_fields(request, group, event, **kwargs)
-        except PluginError as e:
-            return Response({
-                'error_type': 'validation',
-                'errors': {'__all__': e.message}
-            }, status=400)
+        except Exception as e:
+            return self.handle_api_error(e)
         if request.method == 'GET':
             return Response(fields)
 
@@ -212,16 +230,8 @@ class IssueTrackingPlugin2(Plugin):
                 form_data=request.DATA,
                 request=request,
             )
-        except InvalidIdentity as e:
-            return Response({
-                'error_type': 'auth',
-                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
-            })
-        except PluginError as e:
-            return Response({
-                'error_type': 'validation',
-                'errors': {'__all__': e.message}
-            }, status=400)
+        except Exception as e:
+            return self.handle_api_error(e)
         GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
 
         issue_information = {
@@ -257,7 +267,10 @@ class IssueTrackingPlugin2(Plugin):
             return Response(auth_errors, status=400)
         event = group.get_latest_event()
         Event.objects.bind_nodes([event], 'data')
-        fields = self.get_link_existing_issue_fields(request, group, event, **kwargs)
+        try:
+            fields = self.get_link_existing_issue_fields(request, group, event, **kwargs)
+        except Exception as e:
+            return self.handle_api_error(e)
         if request.method == 'GET':
             return Response(fields)
         errors = self.validate_form(fields, request.DATA)
@@ -279,16 +292,8 @@ class IssueTrackingPlugin2(Plugin):
                 issue = {
                     'title': self.get_issue_title_by_id(request, group, issue_id),
                 }
-        except InvalidIdentity as e:
-            return Response({
-                'error_type': 'auth',
-                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
-            })
-        except PluginError as e:
-            return Response({
-                'error_type': 'validation',
-                'errors': {'__all__': e.message}
-            }, status=400)
+        except Exception as e:
+            return self.handle_api_error(e)
 
         GroupMeta.objects.set_value(group, '%s:tid' % self.get_conf_key(), issue_id)
 
