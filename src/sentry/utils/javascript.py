@@ -185,7 +185,7 @@ class GroupTransformer(Transformer):
             'id': six.text_type(obj.id),
             'count': six.text_type(obj.times_seen),
             'title': escape(obj.title),
-            'message': escape(obj.message_short),
+            'message': escape(obj.get_legacy_message()),
             'level': obj.level,
             'levelName': escape(obj.get_level_display()),
             'logger': escape(obj.logger),
