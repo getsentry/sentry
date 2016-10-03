@@ -415,7 +415,7 @@ class Group(Model):
         return self.title
 
     def has_two_part_message(self):
-        warnings.warn('Group.message_short is no longer used',
+        warnings.warn('Group.has_two_part_message is no longer used',
                       DeprecationWarning)
         return False
 

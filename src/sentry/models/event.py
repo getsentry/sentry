@@ -103,9 +103,7 @@ class Event(Model):
 
         See ``sentry.eventtypes``.
         """
-        etype = self.data.get('type')
-        if etype is None:
-            etype = 'default'
+        etype = self.data.get('type', 'default')
         if 'metadata' not in self.data:
             # TODO(dcramer): remove after Dec 1 2016
             data = self.data.copy() if self.data else {}
@@ -131,7 +129,7 @@ class Event(Model):
         return self.title
 
     def has_two_part_message(self):
-        warnings.warn('Event.message_short is no longer used',
+        warnings.warn('Event.has_two_part_message is no longer used',
                       DeprecationWarning)
         return False
 
