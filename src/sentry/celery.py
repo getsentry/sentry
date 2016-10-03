@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from random import random
 import celery
 import os
 import os.path
@@ -83,17 +82,12 @@ OriginalTask = app.Task
 
 
 class SentryTask(OriginalTask):
-    chance_for_close = 0.2
 
     def apply_async(self, *args, **kwargs):
         key = 'jobs.delay'
         instance = self.name
-        try:
-            with metrics.timer(key, instance=instance):
-                return OriginalTask.apply_async(self, *args, **kwargs)
-        finally:
-            if random() < self.chance_for_close:
-                app.close()
+        with metrics.timer(key, instance=instance):
+            return OriginalTask.apply_async(self, *args, **kwargs)
 
 app.Task = SentryTask
 
