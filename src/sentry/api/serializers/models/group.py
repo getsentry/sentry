@@ -144,24 +144,13 @@ class GroupSerializer(Serializer):
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
 
-        event_type = obj.data.get('type', 'default')
-        metadata = obj.data.get('metadata') or {
-            'title': obj.message_short,
-        }
-        # TODO(dcramer): remove in 8.6+
-        if event_type == 'error':
-            if 'value' in metadata:
-                metadata['value'] = six.text_type(metadata['value'])
-            if 'type' in metadata:
-                metadata['type'] = six.text_type(metadata['type'])
-
         return {
             'id': six.text_type(obj.id),
             'shareId': obj.get_share_id(),
             'shortId': obj.qualified_short_id,
             'count': six.text_type(obj.times_seen),
             'userCount': attrs['user_count'],
-            'title': obj.message_short,
+            'title': obj.title,
             'culprit': obj.culprit,
             'permalink': permalink,
             'firstSeen': obj.first_seen,
@@ -175,8 +164,8 @@ class GroupSerializer(Serializer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
-            'type': event_type,
-            'metadata': metadata,
+            'type': obj.get_event_type(),
+            'metadata': obj.get_event_metadata(),
             'numComments': obj.num_comments,
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],

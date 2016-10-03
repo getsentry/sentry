@@ -241,6 +241,21 @@ class Fixtures(object):
             'name': 'foobar',
         }])
 
+        # maintain simple event fixtures by supporting the legacy message
+        # parameter just like our API would
+        if 'sentry.interfaces.Message' not in kwargs['data']:
+            kwargs['data']['sentry.interfaces.Message'] = {
+                'message': kwargs.get('message') or '<unlabeled event>',
+            }
+
+        if 'type' not in kwargs['data']:
+            kwargs['data'].update({
+                'type': 'default',
+                'metadata': {
+                    'title': kwargs['data']['sentry.interfaces.Message']['message'],
+                },
+            })
+
         event = Event(
             event_id=event_id,
             **kwargs
@@ -335,6 +350,14 @@ class Fixtures(object):
         if checksum:
             warnings.warn('Checksum passed to create_group', DeprecationWarning)
         kwargs.setdefault('message', 'Hello world')
+        kwargs.setdefault('data', {})
+        if 'type' not in kwargs['data']:
+            kwargs['data'].update({
+                'type': 'default',
+                'metadata': {
+                    'title': kwargs['message'],
+                },
+            })
         return Group.objects.create(
             project=project or self.project,
             **kwargs
