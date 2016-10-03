@@ -897,7 +897,7 @@ class EventManager(object):
                     })
 
         if is_regression:
-            Activity.objects.create(
+            activity = Activity.objects.create(
                 project=group.project,
                 group=group,
                 type=Activity.SET_REGRESSION,
@@ -905,6 +905,7 @@ class EventManager(object):
                     'version': release.version if release else '',
                 }
             )
+            activity.send_notification()
 
         return is_regression
 
