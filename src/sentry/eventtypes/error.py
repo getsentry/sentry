@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.safe import trim
+from sentry.utils.strings import truncatechars
 
 from .base import BaseEvent
 
@@ -21,4 +22,7 @@ class ErrorEvent(BaseEvent):
         }
 
     def to_string(self, metadata):
-        return u'{}: {}'.format(metadata['type'], metadata['value'])
+        return u'{}: {}'.format(
+            metadata['type'],
+            truncatechars(metadata['value'].splitlines()[0], 100),
+        )
