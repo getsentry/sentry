@@ -52,7 +52,7 @@ def get_sentry_conf():
     try:
         ctx = click.get_current_context()
         return ctx.obj['config']
-    except (RuntimeError, KeyError):
+    except (RuntimeError, KeyError, TypeError):
         try:
             return os.environ['SENTRY_CONF']
         except KeyError:
