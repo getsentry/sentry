@@ -211,7 +211,7 @@ const ProjectSavedSearches = React.createClass({
   renderResults() {
     let {orgId, projectId} = this.props.params;
     return (
-      <div className="panel panel-default">
+      <div className="panel panel-default horizontal-scroll">
         <table className="table">
           <thead>
             <tr>

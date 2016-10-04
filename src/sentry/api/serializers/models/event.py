@@ -106,11 +106,6 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
-        event_type = obj.data.get('type', 'default')
-        metadata = obj.data.get('metadata') or {
-            'title': obj.message_short,
-        }
-
         # TODO(dcramer): move release serialization here
         d = {
             'id': six.text_type(obj.id),
@@ -126,8 +121,8 @@ class EventSerializer(Serializer):
             # TODO(dcramer): move into contexts['extra']
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
-            'type': event_type,
-            'metadata': metadata,
+            'type': obj.get_event_type(),
+            'metadata': obj.get_event_metadata(),
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,

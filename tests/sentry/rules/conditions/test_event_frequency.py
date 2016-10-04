@@ -100,26 +100,6 @@ class FrequencyConditionMixin(object):
         self.assertPasses(rule, event)
 
     @mock.patch('django.utils.timezone.now')
-    def test_doesnt_send_consecutive(self, now):
-        now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
-
-        event = self.get_event()
-        value = 10
-        rule = self.get_rule({
-            'interval': Interval.ONE_HOUR,
-            'value': six.text_type(value),
-        })
-
-        self.assertDoesNotPass(rule, event)
-
-        rule.clear_cache(event)
-        self.increment(event, value + 1)
-
-        self.assertPasses(rule, event)
-
-        self.assertDoesNotPass(rule, event, rule_last_active=now())
-
-    @mock.patch('django.utils.timezone.now')
     def test_more_than_zero(self, now):
         now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=pytz.utc)
 

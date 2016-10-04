@@ -125,7 +125,7 @@ export function getOptionField(option, onChange, value, field) {
         placeholder={meta.placeholder}
         help={meta.help}
         onChange={onChange}
-        required={meta.required}
+        required={meta.required && !meta.allowEmpty}
         value={value}
         disabled={meta.disabled}
         disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]} />

@@ -15,6 +15,9 @@ class BaseEvent(object):
     def get_metadata(self):
         raise NotImplementedError
 
+    def to_string(self, metadata):
+        raise NotImplementedError
+
 
 class DefaultEvent(BaseEvent):
     key = 'default'
@@ -37,5 +40,5 @@ class DefaultEvent(BaseEvent):
             'title': title,
         }
 
-    def to_string(self, data):
-        return data['title']
+    def to_string(self, metadata):
+        return metadata['title']

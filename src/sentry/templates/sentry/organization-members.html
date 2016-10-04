@@ -24,7 +24,7 @@
   <h3>{% trans "Members" %}</h3>
 
   {% if request_list %}
-  <div class="panel panel-default">
+  <div class="panel panel-default horizontal-scroll">
     <table class="table" id="access_request_list">
       <thead>
         <tr>
@@ -54,7 +54,7 @@
     </div>
   {% endif %}
 
-  <div class="panel panel-default">
+  <div class="panel panel-default horizontal-scroll">
     <table class="table member-list">
       <colgroup>
         {% if can_remove_members or members_can_leave %}

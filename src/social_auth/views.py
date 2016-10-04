@@ -8,6 +8,7 @@ Notes:
 from __future__ import absolute_import
 
 from sudo.utils import is_safe_url
+from django.conf import settings
 from django.http import HttpResponseRedirect, HttpResponse
 from django.contrib.auth import login, REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
@@ -17,7 +18,7 @@ from six.moves.urllib.parse import quote
 
 from social_auth.utils import (
     setting, backend_setting, clean_partial_pipeline)
-from social_auth.decorators import dsa_view, disconnect_view
+from social_auth.decorators import dsa_view
 
 
 DEFAULT_REDIRECT = setting('SOCIAL_AUTH_LOGIN_REDIRECT_URL',
@@ -50,6 +51,15 @@ def associate_complete(request, backend, *args, **kwargs):
     redirect_value = request.session.get(REDIRECT_FIELD_NAME, '')
     user = auth_complete(request, backend, request.user, *args, **kwargs)
 
+    backend_name = backend.AUTH_BACKEND.name
+
+    messages.add_message(
+        request, messages.SUCCESS,
+        'You have linked your account with {}.'.format(
+            settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
+        )
+    )
+
     if not user:
         url = backend_setting(backend, 'LOGIN_ERROR_URL', LOGIN_ERROR_URL)
     elif isinstance(user, HttpResponse):
@@ -61,27 +71,6 @@ def associate_complete(request, backend, *args, **kwargs):
             DEFAULT_REDIRECT
         )
     return HttpResponseRedirect(url)
-
-
-@login_required
-@dsa_view()
-@disconnect_view
-def disconnect(request, backend, association_id=None):
-    """Disconnects given backend from current logged in user."""
-    backend.disconnect(request.user, association_id)
-    data = request.REQUEST
-    if REDIRECT_FIELD_NAME in data:
-        redirect = data[REDIRECT_FIELD_NAME]
-        # NOTE: django-sudo's `is_safe_url` is much better at catching bad
-        # redirections to different domains than social_auth's
-        # `sanitize_redirect` call.
-        if not is_safe_url(redirect, host=request.get_host()):
-            redirect = DEFAULT_REDIRECT
-    else:
-        redirect = backend_setting(backend, 'SOCIAL_AUTH_DISCONNECT_REDIRECT_URL')
-        if not redirect:
-            redirect = DEFAULT_REDIRECT
-    return HttpResponseRedirect(redirect)
 
 
 def auth_process(request, backend):

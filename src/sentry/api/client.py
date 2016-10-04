@@ -44,6 +44,8 @@ class ApiClient(object):
 
         rf = APIRequestFactory()
         mock_request = getattr(rf, method.lower())(full_path, data or {})
+        # Flag to our API class that we should trust this auth passed through
+        mock_request.__from_api_client__ = True
 
         if request:
             mock_request.auth = getattr(request, 'auth', None)

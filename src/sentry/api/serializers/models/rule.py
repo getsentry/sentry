@@ -34,7 +34,8 @@ class RuleSerializer(Serializer):
                     'name': _generate_rule_label(obj.project, obj, o),
                 }, **o) for o in obj.data.get('actions', [])
             ],
-            'actionMatch': obj.data.get('action_match', 'all'),
+            'actionMatch': obj.data.get('action_match') or Rule.DEFAULT_ACTION_MATCH,
+            'frequency': obj.data.get('frequency') or Rule.DEFAULT_FREQUENCY,
             'name': obj.label,
             'dateCreated': obj.date_added,
         }
