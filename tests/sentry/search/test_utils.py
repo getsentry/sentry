@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -196,3 +198,13 @@ class ParseQueryTest(TestCase):
     def test_has_release(self):
         result = self.parse_query('has:release')
         assert result['tags']['sentry:release'] == ANY
+
+    def test_quoted_string(self):
+        result = self.parse_query('"release:foo"')
+        assert result == {'tags': {}, 'query': 'release:foo'}
+
+    # TODO(dcramer): it'd be nice to support this without quotes
+    @pytest.mark.xfail
+    def test_invalid_tag_as_query(self):
+        result = self.parse_query('Resque::DirtyExit')
+        assert result == {'tags': {}, 'query': 'Resque::DirtyExit'}
