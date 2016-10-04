@@ -174,7 +174,7 @@ def tokenize_query(query):
         # this handles quoted string, and is duplicated below
         if token[0] == '"':
             nvalue = token
-            while not nvalue.endswith('"'):
+            while nvalue[-1] != '"':
                 try:
                     nvalue = six.next(tokens_iter)
                 except StopIteration:
@@ -195,7 +195,7 @@ def tokenize_query(query):
 
         if value[0] == '"':
             nvalue = value
-            while not nvalue.endswith('"'):
+            while nvalue[-1] != '"':
                 try:
                     nvalue = six.next(tokens_iter)
                 except StopIteration:
