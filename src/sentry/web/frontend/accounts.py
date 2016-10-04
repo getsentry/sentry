@@ -7,6 +7,8 @@ sentry.web.frontend.accounts
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
@@ -326,7 +328,15 @@ def disconnect_identity(request, identity_id):
     if backend is None:
         raise Exception('Backend was not found for request: {}'.format(auth.provider))
 
-    backend.disconnect(request.user, identity_id)
+    # stop this from bubbling up errors to social-auth's middleware
+    # XXX(dcramer): IM SO MAD ABOUT THIS
+    try:
+        backend.disconnect(request.user, identity_id)
+    except Exception as exc:
+        import sys
+        exc_tb = sys.exc_info()[2]
+        six.reraise(Exception, exc, exc_tb)
+        del exc_tb
 
     # XXX(dcramer): we experienced an issue where the identity still existed,
     # and given that this is a cheap query, lets error hard in that case
