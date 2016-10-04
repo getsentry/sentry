@@ -80,19 +80,22 @@ const Broadcasts = React.createClass({
     }
   },
 
-  markSeen() {
-    let broadcastIds = this.state.broadcasts.filter((item) => {
+  getUnseenIds() {
+    return this.state.broadcasts.filter((item) => {
       return !item.hasSeen;
     }).map((item) => {
       return item.id;
     });
+  },
 
-    if (broadcastIds.length === 0)
+  markSeen() {
+    let unseenBroadcastIds = this.getUnseenIds();
+    if (unseenBroadcastIds.length === 0)
       return;
 
     this.api.request('/broadcasts/', {
       method: 'PUT',
-      query: {id: broadcastIds},
+      query: {id: unseenBroadcastIds},
       data: {
         hasSeen: '1'
       },
@@ -118,7 +121,7 @@ const Broadcasts = React.createClass({
       <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
         <a className="broadcasts-toggle" onClick={this.onShowPanel}>
           <span className="icon icon-globe"/>
-          {broadcasts.length > 0 &&
+          {this.getUnseenIds() > 0 &&
             <span className="activity-indicator"/>
           }
         </a>
