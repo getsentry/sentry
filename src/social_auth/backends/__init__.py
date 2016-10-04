@@ -102,7 +102,7 @@ class SocialAuthBackend(object):
         for idx, name in enumerate(pipeline):
             out['pipeline_index'] = base_index + idx
             mod_name, func_name = name.rsplit('.', 1)
-            mod = __import__(mod_name)
+            mod = __import__(mod_name, {}, {}, [func_name])
             func = getattr(mod, func_name, None)
 
             try:
