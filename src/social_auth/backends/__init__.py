@@ -719,8 +719,8 @@ def get_backends(force_load=False):
     """
     global BACKENDSCACHE
 
-    with _import_lock:
-        if not BACKENDSCACHE or force_load:
+    if not BACKENDSCACHE or force_load:
+        with _import_lock:
             for auth_backend in setting('AUTHENTICATION_BACKENDS'):
                 mod, cls_name = auth_backend.rsplit('.', 1)
                 module = __import__(mod, {}, {}, ['BACKENDS', cls_name])
