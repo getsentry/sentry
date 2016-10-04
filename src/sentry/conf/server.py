@@ -329,6 +329,7 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.update_user_details',
     'social_auth.backends.pipeline.misc.save_status_to_session',
 )
+SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT = True
 
 INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
