@@ -7,30 +7,32 @@ from sentry.testutils import TestCase
 class UserMergeToTest(TestCase):
     def test_simple(self):
         from_user = self.create_user('foo@example.com')
-        from_email = UserEmail.objects.create(
+        UserEmail.objects.create_or_update(
             user=from_user,
-            email='foo@example.com',
-            is_verified=True
+            email=from_user.email,
+            values={
+                'is_verified': True,
+            }
         )
         to_user = self.create_user('bar@example.com')
-        to_email = UserEmail.objects.create(
-            user=from_user,
-            email='foo@example.com',
-            is_verified=True,
+        UserEmail.objects.create_or_update(
+            user=to_user,
+            email=to_user.email,
+            values={
+                'is_verified': True,
+            }
         )
         from_user.merge_to(to_user)
 
         assert UserEmail.objects.filter(
-            id=to_email.id,
             user=to_user,
-            email=to_email.email,
+            email=to_user.email,
             is_verified=True,
         ).exists()
 
         assert UserEmail.objects.filter(
-            id=from_email.id,
             user=to_user,
-            email=from_email.email,
+            email=from_user.email,
             is_verified=True,
         ).exists()
 
