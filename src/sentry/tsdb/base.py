@@ -172,6 +172,19 @@ class BaseTSDB(object):
         epoch = self.normalize_to_epoch(timestamp, rollup)
         return epoch + (rollup * samples)
 
+    def get_earliest_timestamp(self, rollup, timestamp=None):
+        """
+        Calculate the earliest available timestamp for a rollup.
+        """
+        if timestamp is None:
+            timestamp = timezone.now()
+
+        lifespan = timedelta(seconds=rollup * (self.rollups[rollup] - 1))
+        return self.normalize_to_epoch(
+            timestamp - lifespan,
+            rollup,
+        )
+
     def incr(self, model, key, timestamp=None, count=1):
         """
         Increment project ID=1:
