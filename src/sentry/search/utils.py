@@ -171,6 +171,23 @@ def tokenize_query(query):
             results['query'].append(token)
             continue
 
+        # this handles quoted string, and is duplicated below
+        if token[0] == '"':
+            nvalue = token
+            while not nvalue.endswith('"'):
+                try:
+                    nvalue = six.next(tokens_iter)
+                except StopIteration:
+                    break
+                token = '%s %s' % (token, nvalue)
+
+            if token.endswith('"'):
+                token = token[1:-1]
+            else:
+                token = token[1:]
+            results['query'].append(token)
+            continue
+
         key, value = token.split(':', 1)
         if not value:
             results['query'].append(token)
