@@ -181,7 +181,7 @@ def tokenize_query(query):
                     break
                 token = '%s %s' % (token, nvalue)
 
-            if token.endswith('"'):
+            if token[-1] == '"':
                 token = token[1:-1]
             else:
                 token = token[1:]
@@ -202,7 +202,7 @@ def tokenize_query(query):
                     break
                 value = '%s %s' % (value, nvalue)
 
-            if value.endswith('"'):
+            if value[-1] == '"':
                 value = value[1:-1]
             else:
                 value = value[1:]
