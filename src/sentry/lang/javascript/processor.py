@@ -311,7 +311,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     Attempts to fetch from the cache.
     """
     if release:
-        with metrics.timing('sourcemaps.release_file'):
+        with metrics.timer('sourcemaps.release_file'):
             result = fetch_release_file(url, release)
     else:
         result = None
