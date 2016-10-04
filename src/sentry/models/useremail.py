@@ -33,6 +33,11 @@ class UserEmail(Model):
 
     __repr__ = sane_repr('user_id', 'email')
 
+    def __init__(self, *args, **kwargs):
+        super(UserEmail, self).__init__(*args, **kwargs)
+        if not self.validation_hash:
+            self.set_hash()
+
     def set_hash(self):
         self.date_hash_added = timezone.now()
         self.validation_hash = get_random_string(32, CHARACTERS)

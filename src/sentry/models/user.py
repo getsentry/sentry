@@ -156,7 +156,7 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models import (
             AuditLogEntry, Activity, AuthIdentity, GroupAssignee, GroupBookmark,
             GroupSeen, OrganizationMember, OrganizationMemberTeam, UserAvatar,
-            UserOption
+            UserEmail, UserOption
         )
 
         audit_logger.info('user.merge', extra={
@@ -194,6 +194,7 @@ class User(BaseModel, AbstractBaseUser):
             GroupBookmark,
             GroupSeen,
             UserAvatar,
+            UserEmail,
             UserOption
         )
 
