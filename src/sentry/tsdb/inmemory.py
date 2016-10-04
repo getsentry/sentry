@@ -31,7 +31,7 @@ class InMemoryTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        for rollup, max_values in self.rollups:
+        for rollup, max_values in six.iteritems(self.rollups):
             norm_epoch = self.normalize_to_rollup(timestamp, rollup)
             self.data[model][key][norm_epoch] += count
 
@@ -58,7 +58,7 @@ class InMemoryTSDB(BaseTSDB):
         if timestamp is None:
             timestamp = timezone.now()
 
-        for rollup, max_values in self.rollups:
+        for rollup, max_values in six.iteritems(self.rollups):
             r = self.normalize_to_rollup(timestamp, rollup)
             self.sets[model][key][r].update(values)
 
@@ -131,7 +131,7 @@ class InMemoryTSDB(BaseTSDB):
             for key, items in request.items():
                 items = {k: float(v) for k, v in items.items()}
                 source = self.frequencies[model][key]
-                for rollup, _ in self.rollups:
+                for rollup in self.rollups:
                     source[self.normalize_to_rollup(timestamp, rollup)].update(items)
 
     def get_most_frequent(self, model, keys, start, end=None, rollup=None, limit=None):
