@@ -27,7 +27,7 @@
                         <td>{{ identity.provider|auth_provider_label }}</td>
                         <td style="text-align: center;">
                             <form method="post"
-                                  action="{% url 'sentry-account-disconnect-identity' identity.provider identity.id %}">
+                                  action="{% url 'sentry-account-disconnect-identity' identity.id %}">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-default btn-sm">Disconnect</button>
                             </form>
