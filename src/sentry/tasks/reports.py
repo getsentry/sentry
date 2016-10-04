@@ -1,11 +1,13 @@
 from __future__ import absolute_import
 
+import bisect
 import functools
 import itertools
 import logging
+import math
 import operator
 import zlib
-from collections import namedtuple
+from collections import OrderedDict, namedtuple
 from datetime import timedelta
 
 from django.utils import dateformat, timezone
@@ -789,3 +791,38 @@ def to_context(reports):
             'series': build_project_breakdown_series(reports),
         },
     }
+
+
+def get_percentile(values, percentile):
+    assert 1 >= percentile > 0
+    if percentile == 1:
+        index = -1
+    else:
+        index = int(math.ceil(len(values) * percentile)) - 1
+    return values[index]
+
+
+def colorize(spectrum, values):
+    calculate_percentile = functools.partial(
+        get_percentile,
+        sorted(values),
+    )
+
+    legend = OrderedDict()
+    width = 1.0 / len(spectrum)
+    for i, color in enumerate(spectrum, 1):
+        legend[color] = calculate_percentile(i * width)
+
+    find_index = functools.partial(
+        bisect.bisect_left,
+        legend.values(),
+    )
+
+    results = []
+    for value in values:
+        results.append((
+            spectrum[find_index(value)],
+            value,
+        ))
+
+    return legend, results
