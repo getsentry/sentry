@@ -228,6 +228,89 @@
 
   </div>
 
+  <style type="text/css">
+    td.spectrum {  /* XXX: td qualifier is a hack */
+      margin: 0;
+      padding: 0;
+      font-size: 12px;
+      text-align: right;
+      color: #555;
+    }
+    .spectrum .range {
+      font-size: 0px;
+      display: inline-block;
+      vertical-align: middle;
+      margin: 0 6px;
+    }
+    .spectrum .range span {
+      display: inline-block;
+      height: 5px;
+      width: 5px;
+    }
+    .calendar {
+      width: 33.3%;
+      vertical-align: top;
+      padding-right: 10px;
+    }
+    .calendar:last-child {
+      padding-right: 0;
+    }
+    .calendar h5 {
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .calendar .day {
+      width: 14.2%;
+      padding: 0 5px 5px 0;
+    }
+    .calendar .day span {
+      display: inline-block;
+      width: 100%;
+      height: 20px;
+    }
+  </style>
+
+  <table style="margin-bottom: 25px;">
+    <tr>
+      <th style="width: 300px; text-align: left; font-weight: 700; font-size: 18px;">
+        3 Month History
+      </th>
+      <td class="spectrum">
+        Less Events
+        <div class="range">{% for color in report.calendar.legend %}<span style="background-color: {{ color }}">&nbsp;</span>{% endfor %}</div>
+        More Events
+      </td>
+    </tr>
+  </table>
+
+  <div>
+    <table>
+      <tr>
+        {% for first_date, weeks in report.calendar.sheets %}
+          <td class="calendar" style="">
+            <h5>{{ first_date|date:"F Y" }}</h5>
+            <table>
+              {% for week in weeks %}
+                <tr>
+                  {% for day, data in week %}
+                  {% if day.month == first_date.month %}
+                    <td class="day" title="{{ day|date:"F jS, Y" }}: {{ data.value }}">
+                      <span style="background-color: {{ data.color }}">&nbsp;</span>
+                    </td>
+                  {% else %}
+                    <td class="day">&nbsp;</td>
+                  {% endif %}
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </table>
+          </td>
+        {% endfor %}
+      </tr>
+    </table>
+  </div>
+
   {% if personal.resolved and personal.users %}
     <h4>Your impact</h4>
     <table class="user-impact">

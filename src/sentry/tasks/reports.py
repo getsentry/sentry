@@ -5,10 +5,12 @@ import functools
 import itertools
 import logging
 import math
+import pytz
 import operator
 import zlib
+from calendar import Calendar
 from collections import OrderedDict, namedtuple
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import dateformat, timezone
 
@@ -302,6 +304,90 @@ def prepare_project_usage_summary((start, stop), project):
     )
 
 
+def month_to_index(year, month):
+    return year * 12 + month - 1
+
+
+def index_to_month(index):
+    return index // 12, index % 12 + 1
+
+
+def get_calendar_range((_, stop_time), months):
+    assert (
+        stop_time.hour,
+        stop_time.minute,
+        stop_time.second,
+        stop_time.microsecond,
+        stop_time.tzinfo,
+    ) == (0, 0, 0, 0, pytz.utc)
+
+    last_day = stop_time - timedelta(days=1)
+
+    stop_month_index = month_to_index(
+        last_day.year,
+        last_day.month,
+    )
+
+    start_month_index = stop_month_index - months + 1
+    return start_month_index, stop_month_index
+
+
+def get_calendar_query_range(interval, months):
+    start_month_index, _ = get_calendar_range(interval, months)
+
+    start_time = datetime(
+        day=1,
+        tzinfo=pytz.utc,
+        *index_to_month(start_month_index)
+    )
+
+    return start_time, interval[1]
+
+
+def remove_expired_values(rollup, series, timestamp=None):
+    earliest = tsdb.get_earliest_timestamp(rollup, timestamp=timestamp)
+
+    def clean_value((timestamp, value)):
+        if timestamp < earliest:
+            value = None
+        return (timestamp, value)
+
+    return map(clean_value, series)
+
+
+def clean_calendar_data(series, start, stop, rollup, timestamp=None):
+    return remove_expired_values(
+        rollup,
+        clean_series(
+            start,
+            stop,
+            rollup,
+            series,
+        ),
+        timestamp,
+    )
+
+
+def prepare_project_calendar_series(interval, project):
+    start, stop = get_calendar_query_range(interval, 3)
+
+    rollup = 60 * 60 * 24
+    series = tsdb.get_range(
+        tsdb.models.project,
+        [project.id],
+        start,
+        stop,
+        rollup=rollup,
+    )[project.id]
+
+    return clean_calendar_data(
+        series,
+        start,
+        stop,
+        rollup,
+    )
+
+
 Report = namedtuple(
     'Report',
     (
@@ -310,6 +396,7 @@ Report = namedtuple(
         'issue_summaries',
         'release_list',
         'usage_summary',
+        'calendar_series',
     ),
 )
 
@@ -321,6 +408,7 @@ def prepare_project_report(interval, project):
         prepare_project_issue_summaries(interval, project),
         prepare_project_release_list(interval, project),
         prepare_project_usage_summary(interval, project),
+        prepare_project_calendar_series(interval, project),
     )
 
 
@@ -452,6 +540,11 @@ def merge_reports(target, other):
             target.usage_summary,
             other.usage_summary,
         ),
+        merge_series(
+            target.calendar_series,
+            other.calendar_series,
+            safe_add,
+        ),
     )
 
 
@@ -559,7 +652,7 @@ def build_message(timestamp, duration, organization, user, reports):
                 organization,
                 user,
             ),
-            'report': to_context(reports),
+            'report': to_context(interval, reports),
             'user': user,
         },
     )
@@ -756,7 +849,7 @@ def build_project_breakdown_series(reports):
     }
 
 
-def to_context(reports):
+def to_context(interval, reports):
     report = reduce(merge_reports, reports.values())
     series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
 
@@ -790,6 +883,7 @@ def to_context(reports):
         'projects': {
             'series': build_project_breakdown_series(reports),
         },
+        'calendar': to_calendar(interval, report.calendar_series),
     }
 
 
@@ -821,8 +915,70 @@ def colorize(spectrum, values):
     results = []
     for value in values:
         results.append((
-            spectrum[find_index(value)],
             value,
+            spectrum[find_index(value)],
         ))
 
     return legend, results
+
+
+def to_calendar(interval, series):
+    start, stop = get_calendar_range(interval, 3)
+
+    legend, values = colorize(
+        [
+            "#59ACA4",
+            "#58B598",
+            "#57BE8C",
+            "#78CA93",
+            "#99D59A",
+            "#B9E1A2",
+            "#DAECA9",
+            "#FBF8B0",
+            "#FBE8A0",
+            "#FBD991",
+            "#FBC981",
+            "#FBBA72",
+            "#FBAA62",
+            "#F69458",
+            "#F07F4E",
+            "#EB6943",
+            "#E55439",
+        ],
+        [value for timestamp, value in series if value is not None],
+    )
+
+    value_color_map = dict(values)
+    value_color_map[None] = '#F2F2F2'
+
+    series_value_map = dict(series)
+
+    def get_data_for_date(date):
+        dt = datetime(date.year, date.month, date.day, tzinfo=pytz.utc)
+        ts = to_timestamp(dt)
+        value = series_value_map.get(ts, None)
+        return (
+            dt,
+            {
+                'value': value,
+                'color': value_color_map[value],
+            }
+        )
+
+    calendar = Calendar(6)
+    sheets = []
+    for year, month in map(index_to_month, range(start, stop + 1)):
+        weeks = []
+
+        for week in calendar.monthdatescalendar(year, month):
+            weeks.append(map(get_data_for_date, week))
+
+        sheets.append((
+            datetime(year, month, 1, tzinfo=pytz.utc),
+            weeks,
+        ))
+
+    return {
+        'legend': list(legend.keys()),
+        'sheets': sheets,
+    }

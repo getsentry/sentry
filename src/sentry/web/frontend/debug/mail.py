@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
+from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
@@ -366,9 +367,15 @@ def report(request):
     random = get_random(request)
 
     duration = 60 * 60 * 24 * 7
-    timestamp = random.randint(
-        to_timestamp(datetime(2016, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
-        to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
+    timestamp = to_timestamp(
+        reports.floor_to_utc_day(
+            to_datetime(
+                random.randint(
+                    to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
+                    to_timestamp(datetime(2016, 7, 1, 0, 0, 0, tzinfo=timezone.utc)),
+                )
+            )
+        )
     )
 
     organization = Organization(
@@ -402,7 +409,7 @@ def report(request):
             )
         )
 
-    start, stop = reports._to_interval(timestamp, duration)
+    start, stop = interval = reports._to_interval(timestamp, duration)
 
     def make_release_generator():
         id_sequence = itertools.count(1)
@@ -456,6 +463,27 @@ def report(request):
             int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
         )
 
+    def build_calendar_data():
+        start, stop = reports.get_calendar_query_range(interval, 3)
+        rollup = 60 * 60 * 24
+        series = []
+
+        weekend = frozenset((5, 6))
+        value = int(random.weibullvariate(5000, 3))
+        for timestamp in tsdb.get_optimal_rollup_series(start, stop, rollup)[1]:
+            damping = random.uniform(0.2, 0.6) if to_datetime(timestamp).weekday in weekend else 1
+            jitter = random.paretovariate(1.2)
+            series.append((timestamp, value * damping * jitter))
+            value = value * random.uniform(0.25, 2)
+
+        return reports.clean_calendar_data(
+            series,
+            start,
+            stop,
+            rollup,
+            stop
+        )
+
     def build_report():
         daily_maximum = random.randint(1000, 10000)
 
@@ -475,6 +503,7 @@ def report(request):
             build_issue_summaries(),
             build_release_list(),
             build_usage_summary(),
+            build_calendar_data(),
         )
 
     if random.random() < 0.85:
@@ -498,6 +527,7 @@ def report(request):
                 'stop': reports.date_format(stop),
             },
             'report': reports.to_context(
+                interval,
                 {project: build_report() for project in projects}
             ),
             'organization': organization,
