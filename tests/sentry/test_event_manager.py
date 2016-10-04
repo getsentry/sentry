@@ -283,8 +283,10 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
 
+    @patch('sentry.tasks.activity.send_activity_notifications.delay')
     @patch('sentry.event_manager.plugin_is_regression')
-    def test_marks_as_unresolved_only_with_new_release(self, plugin_is_regression):
+    def test_marks_as_unresolved_with_new_release(self, plugin_is_regression,
+                                                  mock_send_activity_notifications_delay):
         plugin_is_regression.return_value = True
 
         old_release = Release.objects.create(
@@ -351,10 +353,14 @@ class EventManagerTest(TransactionTestCase):
 
         assert not GroupResolution.objects.filter(group=group).exists()
 
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             group=group,
             type=Activity.SET_REGRESSION,
-        ).exists()
+        )
+
+        mock_send_activity_notifications_delay.assert_called_once_with(
+            activity.id
+        )
 
     @patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):

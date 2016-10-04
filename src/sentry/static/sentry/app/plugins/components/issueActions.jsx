@@ -253,13 +253,19 @@ class IssueActions extends PluginComponentBase {
       return null;
     }
     if (error.error_type === 'auth') {
+      let authUrl = error.auth_url;
+      if (authUrl.indexOf('?') === -1) {
+        authUrl += '?next=' + encodeURIComponent(document.location.pathname);
+      } else {
+        authUrl += '&next=' + encodeURIComponent(document.location.pathname);
+      }
       return (
         <div>
           <div className="alert alert-warning m-b-1">
             {'You need to associate an identity with ' + error.title +
              ' before you can create issues with this service.'}
           </div>
-          <a className="btn btn-primary" href={error.auth_url}>
+          <a className="btn btn-primary" href={authUrl}>
             Associate Identity
           </a>
         </div>

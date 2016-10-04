@@ -7,6 +7,7 @@ sentry.web.frontend.accounts
 """
 from __future__ import absolute_import
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
@@ -17,6 +18,8 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from social_auth.decorators import dsa_view
+from social_auth.models import UserSocialAuth
 from sudo.decorators import sudo_required
 
 from sentry.models import (
@@ -153,13 +156,13 @@ def confirm_email(request, user_id, hash):
 @never_cache
 @login_required
 @transaction.atomic
-def settings(request):
+def account_settings(request):
     user = request.user
 
     form = AccountSettingsForm(
         user, request.POST or None,
         initial={
-            'email': user.email,
+            'email': UserEmail.get_primary_email(user).email,
             'username': user.username,
             'name': user.name,
         },
@@ -294,8 +297,6 @@ def email_unsubscribe_project(request, project_id):
 @never_cache
 @login_required
 def list_identities(request):
-    from social_auth.models import UserSocialAuth
-
     identity_list = list(UserSocialAuth.objects.filter(user=request.user))
 
     AUTH_PROVIDERS = auth.get_auth_providers()
@@ -312,9 +313,37 @@ def list_identities(request):
 @csrf_protect
 @never_cache
 @login_required
+@dsa_view()
+def disconnect_identity(request, backend, identity_id):
+    if request.method != 'POST':
+        raise NotImplementedError
+
+    backend.disconnect(request.user, identity_id)
+
+    # XXX(dcramer): we experienced an issue where the identity still existed,
+    # and given that this is a cheap query, lets error hard in that case
+    assert not UserSocialAuth.objects.filter(
+        user=request.user,
+        id=identity_id,
+    ).exists()
+
+    backend_name = backend.AUTH_BACKEND.name
+
+    messages.add_message(
+        request, messages.SUCCESS,
+        'Your {} association has been revoked.'.format(
+            settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
+        )
+    )
+    return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
+
+
+@csrf_protect
+@never_cache
+@login_required
 def show_emails(request):
     user = request.user
-    primary_email = user.emails.get(email=user.email)
+    primary_email = UserEmail.get_primary_email(user)
     alt_emails = user.emails.all().exclude(email=primary_email.email)
 
     email_form = EmailForm(user, request.POST or None,

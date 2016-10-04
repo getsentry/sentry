@@ -3,12 +3,9 @@ from __future__ import absolute_import
 from functools import wraps
 
 from django.core.urlresolvers import reverse
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_protect
 
 from social_auth.backends import get_backend
 from social_auth.exceptions import WrongBackend
-from social_auth.utils import setting
 
 
 def dsa_view(redirect_name=None):
@@ -31,13 +28,3 @@ def dsa_view(redirect_name=None):
             return func(request, request.social_auth_backend, *args, **kwargs)
         return wrapper
     return dec
-
-
-def disconnect_view(func):
-    @wraps(func)
-    def wrapper(request, *args, **kwargs):
-        return func(request, *args, **kwargs)
-
-    if setting('SOCIAL_AUTH_FORCE_POST_DISCONNECT'):
-        wrapper = require_POST(csrf_protect(wrapper))
-    return wrapper

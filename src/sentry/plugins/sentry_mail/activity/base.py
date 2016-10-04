@@ -109,7 +109,7 @@ class ActivityEmail(object):
         return u'[%s] %s: %s' % (
             self.project.get_full_name(),
             group.get_level_display().upper(),
-            group.message_short
+            group.title
         )
 
     def get_context(self):

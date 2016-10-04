@@ -13,6 +13,7 @@ class Select2Field extends InputField {
           onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
           required={this.props.required}
+          multiple={this.props.multiple || false}
           value={this.state.value}>
         {this.props.choices.map((choice) => {
           return (
@@ -24,6 +25,25 @@ class Select2Field extends InputField {
         })}
       </select>
     );
+  }
+
+  onChange(e) {
+    if (this.props.multiple) {
+      let options = e.target.options;
+      let value = [];
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].selected) {
+          value.push(options[i].value);
+        }
+      }
+      this.setState({
+        value: value,
+      }, () => {
+        this.props.onChange(this.state.value);
+      });
+      return;
+    }
+    super.onChange(e);
   }
 
   componentDidMount() {
