@@ -587,7 +587,8 @@ class SourceProcessor(object):
         # all of these methods assume mutation on the original
         # objects rather than re-creation
         self.populate_source_cache(frames, release)
-        expand_errors, sourcemap_applied = self.expand_frames(frames, release)
+        with metrics.timer('sourcemaps.expand_frames'):
+            expand_errors, sourcemap_applied = self.expand_frames(frames, release)
         errors.extend(expand_errors or [])
         self.ensure_module_names(frames)
         self.fix_culprit(data, stacktraces)
