@@ -33,6 +33,7 @@ from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
+from sentry.utils import metrics
 
 from .cache import SourceCache, SourceMapCache
 from .sourcemaps import sourcemap_to_index, find_source, get_inline_content_sources
@@ -310,7 +311,8 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     Attempts to fetch from the cache.
     """
     if release:
-        result = fetch_release_file(url, release)
+        with metrics.timing('sourcemaps.release_file'):
+            result = fetch_release_file(url, release)
     else:
         result = None
 
@@ -353,57 +355,58 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
         logger.debug('Fetching %r from the internet', url)
 
-        http_session = http.build_session()
-        try:
-            response = http_session.get(
-                url,
-                allow_redirects=True,
-                verify=False,
-                headers=headers,
-                timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
-            )
-        except Exception as exc:
-            logger.debug('Unable to fetch %r', url, exc_info=True)
-            if isinstance(exc, RestrictedIPAddress):
-                error = {
-                    'type': EventError.RESTRICTED_IP,
-                    'url': expose_url(url),
-                }
-            elif isinstance(exc, SuspiciousOperation):
-                error = {
-                    'type': EventError.SECURITY_VIOLATION,
-                    'url': expose_url(url),
-                }
-            elif isinstance(exc, (RequestException, ZeroReturnError)):
-                error = {
-                    'type': EventError.JS_GENERIC_FETCH_ERROR,
-                    'value': six.text_type(type(exc)),
-                    'url': expose_url(url),
-                }
-            else:
-                logger.exception(six.text_type(exc))
-                error = {
-                    'type': EventError.UNKNOWN_ERROR,
-                    'url': expose_url(url),
-                }
+        with metrics.timer('sourcemaps.fetch'):
+            http_session = http.build_session()
+            try:
+                response = http_session.get(
+                    url,
+                    allow_redirects=True,
+                    verify=False,
+                    headers=headers,
+                    timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+                )
+            except Exception as exc:
+                logger.debug('Unable to fetch %r', url, exc_info=True)
+                if isinstance(exc, RestrictedIPAddress):
+                    error = {
+                        'type': EventError.RESTRICTED_IP,
+                        'url': expose_url(url),
+                    }
+                elif isinstance(exc, SuspiciousOperation):
+                    error = {
+                        'type': EventError.SECURITY_VIOLATION,
+                        'url': expose_url(url),
+                    }
+                elif isinstance(exc, (RequestException, ZeroReturnError)):
+                    error = {
+                        'type': EventError.JS_GENERIC_FETCH_ERROR,
+                        'value': six.text_type(type(exc)),
+                        'url': expose_url(url),
+                    }
+                else:
+                    logger.exception(six.text_type(exc))
+                    error = {
+                        'type': EventError.UNKNOWN_ERROR,
+                        'url': expose_url(url),
+                    }
 
-            # TODO(dcramer): we want to be less aggressive on disabling domains
-            cache.set(domain_key, error or '', 300)
-            logger.warning('Disabling sources to %s for %ss', domain, 300,
-                           exc_info=True)
-            raise CannotFetchSource(error)
+                # TODO(dcramer): we want to be less aggressive on disabling domains
+                cache.set(domain_key, error or '', 300)
+                logger.warning('Disabling sources to %s for %ss', domain, 300,
+                               exc_info=True)
+                raise CannotFetchSource(error)
 
-        # requests' attempts to use chardet internally when no encoding is found
-        # and we want to avoid that slow behavior
-        if not response.encoding:
-            response.encoding = 'utf-8'
+            # requests' attempts to use chardet internally when no encoding is found
+            # and we want to avoid that slow behavior
+            if not response.encoding:
+                response.encoding = 'utf-8'
 
-        body = response.text
-        z_body = zlib.compress(force_bytes(body))
-        headers = {k.lower(): v for k, v in response.headers.items()}
+            body = response.text
+            z_body = zlib.compress(force_bytes(body))
+            headers = {k.lower(): v for k, v in response.headers.items()}
 
-        cache.set(cache_key, (headers, z_body, response.status_code), 60)
-        result = (headers, body, response.status_code)
+            cache.set(cache_key, (headers, z_body, response.status_code), 60)
+            result = (headers, body, response.status_code)
 
     if result[2] != 200:
         logger.debug('HTTP %s when fetching %r', result[2], url,
