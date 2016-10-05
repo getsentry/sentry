@@ -26,7 +26,7 @@ from social_auth.utils import (
 from social_auth.exceptions import (
     StopPipeline, AuthFailed, AuthCanceled, AuthUnknownError,
     AuthTokenError, AuthMissingParameter, AuthStateMissing, AuthStateForbidden,
-    NotAllowedToDisconnect, BackendError)
+    BackendError)
 from social_auth.backends.utils import build_consumer_oauth_request
 from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest
 
@@ -314,23 +314,20 @@ class BaseAuth(object):
         Override if extra operations are needed.
         """
         name = self.AUTH_BACKEND.name
-        if UserSocialAuth.allowed_to_disconnect(user, name, association_id):
-            do_revoke = setting('SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT')
-            filter_args = {}
+        do_revoke = setting('SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT')
+        filter_args = {}
 
-            if association_id:
-                filter_args['id'] = association_id
-            else:
-                filter_args['provider'] = name
-            instances = UserSocialAuth.get_social_auth_for_user(user)\
-                                      .filter(**filter_args)
-
-            if do_revoke:
-                for instance in instances:
-                    instance.revoke_token(drop_token=False)
-            instances.delete()
+        if association_id:
+            filter_args['id'] = association_id
         else:
-            raise NotAllowedToDisconnect()
+            filter_args['provider'] = name
+        instances = UserSocialAuth.get_social_auth_for_user(user)\
+                                  .filter(**filter_args)
+
+        if do_revoke:
+            for instance in instances:
+                instance.revoke_token(drop_token=False)
+        instances.delete()
 
     def build_absolute_uri(self, path=None):
         """Build absolute URI for given path. Replace http:// schema with
