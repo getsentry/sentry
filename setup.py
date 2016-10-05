@@ -72,6 +72,8 @@ dev_requires = [
 tests_require = [
     # cassandra
     'blist',
+    # TODO(dcramer): figure out why Travis needs this
+    'cassandra-driver<=3.5.0',
     'casscache',
     'cqlsh',
     # /cassandra
