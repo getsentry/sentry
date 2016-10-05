@@ -61,6 +61,10 @@ dl.flat dd {
   background: #fff;
   border-color: @gray-lighter;
 
+  .progress-bar {
+    background: @blue;
+  }
+
   &:hover, &:focus, &:active {
     color: @gray-darker;
     background-color: @white-darker;
@@ -78,6 +82,17 @@ dl.flat dd {
   background-color: @blue;
   border-color: darken(@blue, 15);
   text-shadow: 0 -1px 0 rgba(0,0,0, .15);
+
+  .progress-bar {
+    background: darken(@blue-dark, 3);
+  }
+
+  .loading .loading-indicator {
+    border-top: 6px solid rgba(255,255,255, .5);
+    border-right: 6px solid rgba(255,255,255, .5);
+    border-bottom: 6px solid rgba(255,255,255, .5);
+    border-left: 6px solid rgba(255,255,255, 1);
+  }
 
   &:hover, &:focus, &:active {
     background-color: darken(@blue, 5);
@@ -182,6 +197,83 @@ dl.flat dd {
     position: relative;
     font-size: 14px !important;
     top: 2px;
+  }
+}
+
+// Button Progress bar
+
+.progress-bar-container {
+  opacity: 0;
+  position: absolute;
+  height: 3px;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  background: rgba(0,0,0, .07);
+  overflow-x: hidden;
+  .transition(all .5s ease-in-out);
+
+  .progress-bar {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    .transition(width .2s);
+  }
+}
+
+.btn-progress {
+  position: relative;
+  overflow: hidden;
+
+  .btn-text {
+    .transition(all .2s ease-in-out);
+  }
+
+  .loading {
+    opacity: 0;
+    .transition(all .2s ease-in-out);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -9px !important;
+    margin-top: -9px !important;
+  }
+
+  .icon-checkmark {
+    opacity: 0;
+    .transition(all .2s ease-in-out);
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    margin-left: -7px;
+    margin-top: -7px;
+  }
+
+  &.initiated {
+    .btn-text {
+      opacity: 0;
+    }
+
+    .loading {
+      opacity: 1;
+    }
+
+    .progress-bar-container {
+      opacity: 1;
+      bottom: 0;
+    }
+  }
+
+  &.complete {
+    .loading {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .icon-checkmark {
+      opacity: 1;
+      visibility: visible;
+    }
   }
 }
 
