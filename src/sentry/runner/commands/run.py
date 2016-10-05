@@ -123,6 +123,9 @@ def smtp(bind, upgrade, noinput):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@click.option('--without-gossip', is_flag=True, default=False)
+@click.option('--without-mingle', is_flag=True, default=False)
+@click.option('--without-heartbeat', is_flag=True, default=False)
 @log_options()
 @configuration
 def worker(**options):
@@ -159,6 +162,9 @@ def worker(**options):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@click.option('--without-gossip', is_flag=True, default=False)
+@click.option('--without-mingle', is_flag=True, default=False)
+@click.option('--without-heartbeat', is_flag=True, default=False)
 @log_options()
 @configuration
 def cron(**options):
