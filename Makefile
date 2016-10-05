@@ -97,7 +97,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack -p
 	@echo "--> Running JavaScript tests"
 	@npm run test
 	@echo ""
@@ -109,9 +109,9 @@ test-python:
 
 test-acceptance:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack -p
 	@echo "--> Running acceptance tests"
-	py.test tests/acceptance || exit 1
+	py.test tests/acceptance
 	@echo ""
 
 test-python-coverage:
@@ -156,14 +156,13 @@ travis-upgrade-pip:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-travis-install-python: travis-upgrade-pip install-python install-python-tests travis-setup-cassandra
+travis-install-python: travis-upgrade-pip install-python install-python-tests
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
 
 .PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
 
-# Install steps
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
@@ -172,7 +171,7 @@ travis-install-mysql: travis-install-python
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-npm travis-install-postgres
 travis-install-js: travis-upgrade-pip install-python install-python-tests install-npm
-travis-install-cli: travis-install-python
+travis-install-cli: travis-install-postgres
 travis-install-dist: travis-upgrade-pip install-python install-python-tests
 
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
@@ -194,7 +193,7 @@ travis-test-postgres: test-python-coverage
 travis-test-mysql: test-python-coverage
 travis-test-acceptance: test-acceptance
 travis-test-js: test-js
-travis-test-ci: test-ci
+travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
