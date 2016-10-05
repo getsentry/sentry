@@ -56,6 +56,9 @@ class DjangoSearchBackend(SearchBackend):
 
             if matches:
                 base_qs = base_qs.filter(group_id__in=matches)
+            else:
+                # restrict matches to only the most recently seen issues
+                base_qs = base_qs.order_by('-last_seen')
 
             matches = list(base_qs.values_list('group_id', flat=True)[:1000])
             if not matches:
