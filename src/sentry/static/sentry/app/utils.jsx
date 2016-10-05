@@ -174,6 +174,22 @@ export default {
     return !!str && _.isString(str) && (str.indexOf('http://') === 0 || str.indexOf('https://') === 0);
   },
 
+  isOwnersTag(str) {
+    return str == 'owner(s)';
+  },
+
+  getOwnershipServiceUrl(str) {
+    var url = 'https://sauron.zncloud.net/metadata/resources/dashboard/#/name=/type=all/owners_emails=';
+    var regex = /\w+@zenefits.com/gi;
+    var m = str.match(regex);
+    if (m && m.length == 1) {
+      var email = m[0];
+      return url + email;
+    }
+
+    return null;
+  },
+
   escape(str) {
     return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   },

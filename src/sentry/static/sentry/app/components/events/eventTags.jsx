@@ -5,7 +5,7 @@ import _ from 'underscore';
 import PropTypes from '../../proptypes';
 
 import EventDataSection from './eventDataSection';
-import {isUrl} from '../../utils';
+import {isUrl, isOwnersTag, getOwnershipServiceUrl} from '../../utils';
 import {t} from '../../locale';
 
 const EventTags = React.createClass({
@@ -65,6 +65,11 @@ const EventTags = React.createClass({
                       </Link>
                       {isUrl(value) &&
                         <a href={value} className="external-icon">
+                          <em className="icon-open" />
+                        </a>
+                      }
+                      {isOwnersTag(tag.key) &&
+                        <a href={getOwnershipServiceUrl(value)} className="external-icon">
                           <em className="icon-open" />
                         </a>
                       }
