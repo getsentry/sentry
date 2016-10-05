@@ -36,9 +36,9 @@ matrix:
         - riak
         - redis-server
         - cassandra
-      install:
-        - make travis-install-$TEST_SUITE
+      before_script:
         - make travis-setup-cassandra
+        - pip freeze
     - python: 2.7
       env: TEST_SUITE=postgres DB=postgres
       services:
