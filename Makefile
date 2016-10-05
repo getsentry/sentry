@@ -154,7 +154,6 @@ extract-api-docs:
 travis-upgrade-pip:
 	python -m pip install pip==8.1.1
 travis-setup-cassandra:
-	pip install -e .[cassandra]
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
 travis-install-python: travis-upgrade-pip install-python install-python-tests

@@ -61,5 +61,7 @@ matrix:
       env: TEST_SUITE=js
     - python: 2.7
       env: TEST_SUITE=cli
+      services:
+        - postgresql
     - python: 2.7
       env: TEST_SUITE=dist

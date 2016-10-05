@@ -69,13 +69,12 @@ dev_requires = [
     'isort>=4.2.2,<4.3.0',
 ]
 
-cassandra_requires = [
+tests_require = [
+    # cassandra
     'blist',
     'casscache',
     'cqlsh',
-]
-
-tests_require = [
+    # /cassandra
     'datadog',
     'pytest-cov>=1.8.0,<1.9.0',
     'pytest-timeout>=0.5.0,<0.6.0',
@@ -191,7 +190,6 @@ setup(
     zip_safe=False,
     install_requires=install_requires,
     extras_require={
-        'cassandra': cassandra_requires,
         'dev': dev_requires,
         'postgres': install_requires,
         'tests': tests_require,
