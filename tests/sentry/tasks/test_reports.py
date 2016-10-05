@@ -11,7 +11,7 @@ from django.core import mail
 from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
-    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change,
+    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Report, Skipped, change,
     clean_series, deliver_organization_user_report, has_valid_aggregates,
     merge_mappings, merge_sequences, merge_series, prepare_reports, safe_add,
     user_subscribed_to_organization_reports
@@ -169,7 +169,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return None, aggregates, None, None, None
+        return Report(None, aggregates, None, None, None)
 
     assert has_valid_aggregates(
         interval,

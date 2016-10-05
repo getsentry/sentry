@@ -23,6 +23,7 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
 from six.moves import reduce
 
+
 date_format = functools.partial(
     dateformat.format,
     format_string="F jS, Y",
@@ -299,8 +300,20 @@ def prepare_project_usage_summary((start, stop), project):
     )
 
 
+Report = namedtuple(
+    'Report',
+    (
+        'series',
+        'aggregates',
+        'issue_summaries',
+        'release_list',
+        'usage_summary',
+    ),
+)
+
+
 def prepare_project_report(interval, project):
-    return (
+    return Report(
         prepare_project_series(interval, project),
         prepare_project_aggregates(interval, project),
         prepare_project_issue_summaries(interval, project),
@@ -364,10 +377,10 @@ class RedisReportBackend(ReportBackend):
         )
 
     def __encode(self, report):
-        return zlib.compress(json.dumps(report))
+        return zlib.compress(json.dumps(list(report)))
 
     def __decode(self, value):
-        return json.loads(zlib.decompress(value))
+        return Report(*json.loads(zlib.decompress(value)))
 
     def prepare(self, timestamp, duration, organization):
         reports = {}
@@ -415,26 +428,28 @@ def safe_add(x, y):
 
 
 def merge_reports(target, other):
-    return (
+    return Report(
         merge_series(
-            target[0],
-            other[0],
+            target.series,
+            other.series,
             merge_sequences,
         ),
         merge_sequences(
-            target[1],
-            other[1],
+            target.aggregates,
+            other.aggregates,
             safe_add,
         ),
         merge_issue_summaries(
-            target[2],
-            other[2],
+            target.issue_summaries,
+            other.issue_summaries,
         ),
-        trim_release_list(target[3] + other[3]),
+        trim_release_list(
+            target.release_list + other.release_list,
+        ),
         merge_sequences(
-            target[4],
-            other[4],
-        )
+            target.usage_summary,
+            other.usage_summary,
+        ),
     )
 
 
@@ -571,8 +586,7 @@ class Skipped(object):
 
 
 def has_valid_aggregates(interval, (project, report)):
-    _, aggregates, _, _, _ = report
-    return any(bool(value) for value in aggregates)
+    return any(bool(value) for value in report.aggregates)
 
 
 @instrumented_task(
@@ -664,9 +678,9 @@ def build_project_breakdown_series(reports):
     Key = namedtuple('Key', 'label url color data')
 
     def get_legend_data(report):
-        series, _, _, _, (filtered, rate_limited) = report
+        filtered, rate_limited = report.usage_summary
         return {
-            'events': sum(sum(value) for timestamp, value in series),
+            'events': sum(sum(value) for timestamp, value in report.series),
             'filtered': filtered,
             'rate_limited': rate_limited,
         }
@@ -741,11 +755,8 @@ def build_project_breakdown_series(reports):
 
 
 def to_context(reports):
-    series, aggregates, issue_summaries, release_list, usage_summary = reduce(
-        merge_reports,
-        reports.values(),
-    )
-    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in series]
+    report = reduce(merge_reports, reports.values())
+    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
 
     return {
         'series': {
@@ -762,16 +773,16 @@ def to_context(reports):
                         DistributionType('Reopened', '#6C5FC7'),
                         DistributionType('Existing', '#534a92'),
                     ),
-                    issue_summaries,
+                    report.issue_summaries,
                 ),
             ),
-            'total': sum(issue_summaries),
+            'total': sum(report.issue_summaries),
         },
         'comparisons': [
-            ('last week', change(aggregates[-1], aggregates[-2])),
+            ('last week', change(report.aggregates[-1], report.aggregates[-2])),
             ('four week average', change(
-                aggregates[-1],
-                mean(aggregates) if all(v is not None for v in aggregates) else None,
+                report.aggregates[-1],
+                mean(report.aggregates) if all(v is not None for v in report.aggregates) else None,
             )),
         ],
         'projects': {
