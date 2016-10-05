@@ -171,7 +171,7 @@ travis-install-mysql: travis-install-python
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-npm travis-install-postgres
 travis-install-js: travis-upgrade-pip install-python install-python-tests install-npm
-travis-install-cli: travis-install-python
+travis-install-cli: travis-install-postgres
 travis-install-dist: travis-upgrade-pip install-python install-python-tests
 
 .PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
