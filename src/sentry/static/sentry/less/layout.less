@@ -22,60 +22,51 @@ body {
 }
 
 /**
-* body.narrow
-* ============================================================================
-*/
-
-body.narrow {
-  background: #fff;
-
-  .app {
-    > .container {
-      max-width: 760px;
-    }
-  }
-}
-
-/**
 * body.auth
 * ============================================================================
 */
 
-body.auth {
+body.narrow {
   zoom: 1;
   padding: 30px 0 0;
 
-  // Hide fake sidebar on auth pages
-  background: none;
+  background: #fff;
 
-  .brand-flag {
-    position: fixed;
-    top: 30px;
-    left: -10px;
-    background: @red;
-    padding: 15px 20px 15px 40px;
-    font-size: 20px;
-    line-height: 22px;
-    color: #fff;
-    .transition(left .3s ease);
-
-    &:hover, &:active, &:focus {
-      color: #fff;
-      left: 0;
-    }
-
-    span {
-      display: block;
-      line-height: inherit;
-    }
+  h3, h4 {
+    line-height: 1.2;
   }
 
   .app > .container {
-    padding-top: 80px;
-    max-width: 540px !important;
+    padding-top: 10px;
+    max-width: 860px;
+
+    .box-header {
+      padding: 15px 30px 10px;
+
+      a {
+        font-size: 20px;
+
+        &:hover {
+          color: @gray-dark;
+        }
+      }
+
+      .back-to, .pull-right a {
+        font-size: 16px;
+      }
+
+      .back-to {
+        border-left: 1px solid @trim;
+        padding: 2px 10px;
+        display: inline-block;
+        margin-left: 7px;
+        position: relative;
+        top: -3px;
+      }
+    }
 
     .with-padding {
-      padding: 30px 30px 0;
+      padding: 20px 30px 0;
       .form-actions {
         margin: 20px 0 0;
         padding: 20px 0;
@@ -94,6 +85,13 @@ body.auth {
 
   footer {
     display: none;
+  }
+}
+
+body.auth {
+  .app > .container {
+    padding-top: 30px;
+    max-width: 540px;
   }
 }
 
@@ -320,7 +318,7 @@ footer {
 
 .windowed-small {
   .app > .container {
-    padding-top: 120px !important;
+    padding-top: 60px !important;
     max-width: 600px !important;
     margin: 0 auto;
 
