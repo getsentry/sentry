@@ -10,13 +10,8 @@
 
 {% block main %}
   <div class="pattern-bg"></div>
-  <a href="/" class="brand-flag"><span class="icon-sentry-logo-full"></span></a>
   <section class="org-login">
-    <div class="box box-modal">
-      <div class="box-content with-padding">
-        {% block auth_main %}{% endblock %}
-      </div>
-    </div>
+    {% block auth_main %}{% endblock %}
   </section>
 {% endblock %}
 

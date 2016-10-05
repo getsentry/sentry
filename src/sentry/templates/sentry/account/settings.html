@@ -4,6 +4,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_features %}
+{% block wrapperclass %}narrow account-settings{% endblock %}
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
 
