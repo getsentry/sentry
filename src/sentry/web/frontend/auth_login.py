@@ -96,8 +96,6 @@ class AuthLoginView(BaseView):
 
             return self.redirect(auth.get_login_redirect(request))
 
-        request.session.set_test_cookie()
-
         context = {
             'op': op or 'login',
             'server_hostname': get_server_hostname(),
@@ -125,13 +123,16 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request):
-        redirect_next = request.GET.get('next', None)
-        if redirect_next:
-            # TODO: enforce max redirect_next limit? (potential for abuse?)
-            request.session['_next'] = redirect_next
-
+        next_uri = request.GET.get('next', None)
         if request.user.is_authenticated():
+            if auth.is_valid_redirect(next_uri):
+                return self.redirect(next_uri)
             return self.redirect_to_org(request)
+
+        request.session.set_test_cookie()
+
+        if next_uri:
+            auth.initiate_login(request, next_uri)
 
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
