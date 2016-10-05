@@ -15,7 +15,7 @@ env:
     - SENTRY_SKIP_BACKEND_VALIDATION=1
 install:
   - make travis-install-$TEST_SUITE
-after_install:
+before_script:
   - pip freeze
 script:
   - make travis-lint-$TEST_SUITE
