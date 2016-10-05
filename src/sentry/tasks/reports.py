@@ -70,6 +70,13 @@ def change(value, reference):
 
 
 def safe_add(x, y):
+    """
+    Adds two values which are either numeric types or None.
+
+    - If both values are numeric, the result is the sum of those values.
+    - If only one numeric value is provided, that value is returned.
+    - If both values are None, then None is returned.
+    """
     if x is not None and y is not None:
         return x + y
     elif x is not None:
@@ -78,6 +85,27 @@ def safe_add(x, y):
         return y
     else:
         return None
+
+
+def month_to_index(year, month):
+    """
+    Convert a year and month to a single value: the number of months between
+    this month and 1 AD.
+
+    This mainly exists to simplify doing month-based arithmetic (e.g. "three
+    months ago") without having to manually handle wrapping around years, since
+    timedelta doesn't accept a "months" parameter.
+    """
+    assert 12 >= month >= 1
+    return (year - 1) * 12 + month - 1
+
+
+def index_to_month(index):
+    """
+    The opposite companion to ``month_to_index``. Returns a (year, month)
+    tuple.
+    """
+    return (index // 12) + 1, index % 12 + 1
 
 
 def clean_series(start, stop, rollup, series):
@@ -309,14 +337,6 @@ def prepare_project_usage_summary((start, stop), project):
             rollup=60 * 60 * 24,
         )[project.id],
     )
-
-
-def month_to_index(year, month):
-    return year * 12 + month - 1
-
-
-def index_to_month(index):
-    return index // 12, index % 12 + 1
 
 
 def get_calendar_range((_, stop_time), months):
@@ -889,6 +909,7 @@ def to_context(interval, reports):
 
 
 def get_percentile(values, percentile):
+    # XXX: ``values`` must be sorted.
     assert 1 >= percentile > 0
     if percentile == 1:
         index = -1
