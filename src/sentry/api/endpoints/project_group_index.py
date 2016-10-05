@@ -27,6 +27,7 @@ from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.cursors import Cursor
 from sentry.utils.apidocs import scenario, attach_scenarios
+from django.db import DataError
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -143,7 +144,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         query = request.GET.get('query', 'is:unresolved').strip()
         if query:
-            query_kwargs.update(parse_query(project, query, request.user))
+            try:
+                query_kwargs.update(parse_query(project, query, request.user))
+            except DataError:
+                raise ValidationError('malformed query')
 
         return query_kwargs
 
