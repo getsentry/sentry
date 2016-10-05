@@ -7,14 +7,13 @@ sentry.tsdb.inmemory
 """
 from __future__ import absolute_import
 
-import six
-
 from collections import Counter, defaultdict
 
+import six
 from django.utils import timezone
 
-from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.tsdb.base import BaseTSDB
+from sentry.utils.dates import to_datetime, to_timestamp
 
 
 class InMemoryTSDB(BaseTSDB):

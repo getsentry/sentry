@@ -12,10 +12,10 @@ from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
     DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Report, Skipped, change,
-    clean_series, deliver_organization_user_report, has_valid_aggregates,
-    merge_mappings, merge_sequences, merge_series, prepare_reports, safe_add,
-    user_subscribed_to_organization_reports, get_percentile, colorize, month_to_index, index_to_month,
-    get_calendar_range,
+    clean_series, colorize, deliver_organization_user_report,
+    get_calendar_range, get_percentile, has_valid_aggregates, index_to_month,
+    merge_mappings, merge_sequences, merge_series, month_to_index,
+    prepare_reports, safe_add, user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp

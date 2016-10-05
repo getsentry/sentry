@@ -1,12 +1,10 @@
 from __future__ import absolute_import
 
-__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
-
 import logging
-import six
 import time
-
 from datetime import datetime, timedelta
+
+import six
 from django.conf import settings
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -28,6 +26,7 @@ from .authentication import ApiKeyAuthentication, TokenAuthentication
 from .paginator import Paginator
 from .permissions import NoPermission
 
+__all__ = ['DocSection', 'Endpoint', 'StatsMixin']
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
