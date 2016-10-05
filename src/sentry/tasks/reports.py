@@ -69,6 +69,17 @@ def change(value, reference):
     return ((value or 0) - reference) / float(reference)
 
 
+def safe_add(x, y):
+    if x is not None and y is not None:
+        return x + y
+    elif x is not None:
+        return x
+    elif y is not None:
+        return y
+    else:
+        return None
+
+
 def clean_series(start, stop, rollup, series):
     """
     Validate a series, ensuring that it follows the specified rollup and
@@ -251,9 +262,6 @@ def prepare_project_issue_summaries(interval, project):
     ]
 
 
-merge_issue_summaries = merge_sequences
-
-
 def trim_release_list(value):
     return sorted(
         value,
@@ -387,28 +395,64 @@ def prepare_project_calendar_series(interval, project):
     )
 
 
-Report = namedtuple(
+def build(name, fields):
+    names, prepare_fields, merge_fields = zip(*fields)
+
+    cls = namedtuple(name, names)
+
+    def prepare(*args):
+        return cls(*[f(*args) for f in prepare_fields])
+
+    def merge(target, other):
+        return cls(*[f(target[i], other[i]) for i, f in enumerate(merge_fields)])
+
+    return cls, prepare, merge
+
+
+Report, prepare_project_report, merge_reports = build(
     'Report',
-    (
-        'series',
-        'aggregates',
-        'issue_summaries',
-        'release_list',
-        'usage_summary',
-        'calendar_series',
-    ),
+    [
+        (
+            'series',
+            prepare_project_series,
+            functools.partial(
+                merge_series,
+                function=merge_sequences,
+            ),
+        ),
+        (
+            'aggregates',
+            prepare_project_aggregates,
+            functools.partial(
+                merge_sequences,
+                function=safe_add,
+            ),
+        ),
+        (
+            'issue_summaries',
+            prepare_project_issue_summaries,
+            merge_sequences,
+        ),
+        (
+            'release_list',
+            prepare_project_release_list,
+            lambda target, other: trim_release_list(target + other),
+        ),
+        (
+            'usage_summary',
+            prepare_project_usage_summary,
+            merge_sequences,
+        ),
+        (
+            'calendar_series',
+            prepare_project_calendar_series,
+            functools.partial(
+                merge_series,
+                function=safe_add,
+            ),
+        ),
+    ],
 )
-
-
-def prepare_project_report(interval, project):
-    return Report(
-        prepare_project_series(interval, project),
-        prepare_project_aggregates(interval, project),
-        prepare_project_issue_summaries(interval, project),
-        prepare_project_release_list(interval, project),
-        prepare_project_usage_summary(interval, project),
-        prepare_project_calendar_series(interval, project),
-    )
 
 
 class ReportBackend(object):
@@ -503,48 +547,6 @@ backend = RedisReportBackend(
     redis.clusters.get('default'),
     60 * 60 * 3,
 )
-
-
-def safe_add(x, y):
-    if x is not None and y is not None:
-        return x + y
-    elif x is not None:
-        return x
-    elif y is not None:
-        return y
-    else:
-        return None
-
-
-def merge_reports(target, other):
-    return Report(
-        merge_series(
-            target.series,
-            other.series,
-            merge_sequences,
-        ),
-        merge_sequences(
-            target.aggregates,
-            other.aggregates,
-            safe_add,
-        ),
-        merge_issue_summaries(
-            target.issue_summaries,
-            other.issue_summaries,
-        ),
-        trim_release_list(
-            target.release_list + other.release_list,
-        ),
-        merge_sequences(
-            target.usage_summary,
-            other.usage_summary,
-        ),
-        merge_series(
-            target.calendar_series,
-            other.calendar_series,
-            safe_add,
-        ),
-    )
 
 
 @instrumented_task(
