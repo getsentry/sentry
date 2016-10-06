@@ -529,6 +529,7 @@ def report(request):
                 'stop': reports.date_format(stop),
             },
             'report': reports.to_context(
+                organization,
                 interval,
                 {project: build_report(project) for project in projects}
             ),

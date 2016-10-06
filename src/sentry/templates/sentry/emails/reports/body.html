@@ -228,6 +228,8 @@
 
   </div>
 
+  {% if report.calendar %}
+
   <style type="text/css">
     td.spectrum {  /* XXX: td qualifier is a hack */
       margin: 0;
@@ -310,6 +312,8 @@
       </tr>
     </table>
   </div>
+
+  {% endif %}
 
   {% if personal.resolved and personal.users %}
     <h4>Your impact</h4>

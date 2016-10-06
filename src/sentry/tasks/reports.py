@@ -672,7 +672,7 @@ def build_message(timestamp, duration, organization, user, reports):
                 organization,
                 user,
             ),
-            'report': to_context(interval, reports),
+            'report': to_context(organization, interval, reports),
             'user': user,
         },
     )
@@ -869,11 +869,11 @@ def build_project_breakdown_series(reports):
     }
 
 
-def to_context(interval, reports):
+def to_context(organization, interval, reports):
     report = reduce(merge_reports, reports.values())
     series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
 
-    return {
+    context = {
         'series': {
             'points': series,
             'maximum': max(sum(point) for timestamp, point in series),
@@ -903,8 +903,15 @@ def to_context(interval, reports):
         'projects': {
             'series': build_project_breakdown_series(reports),
         },
-        'calendar': to_calendar(interval, report.calendar_series),
     }
+
+    if features.has('organizations:reports:calendar', organization):
+        context['calendar'] = to_calendar(
+            interval,
+            report.calendar_series,
+        )
+
+    return context
 
 
 def get_percentile(values, percentile):
