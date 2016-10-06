@@ -1,3 +1,4 @@
+/*eslint no-console:0*/
 import {DefaultPlugin} from './defaultPlugin';
 import {DefaultIssuePlugin} from './defaultIssuePlugin';
 import {defined} from '../utils';
