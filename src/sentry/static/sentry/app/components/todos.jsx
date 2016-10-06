@@ -124,10 +124,6 @@ const Confirmation = React.createClass({
 });
 
 const TodoList = React.createClass({
-  propTypes: {
-    onClose: React.PropTypes.func
-  },
-
   mixins: [ApiMixin, OrganizationState],
 
   statics: {
@@ -247,20 +243,6 @@ const TodoList = React.createClass({
     this.setState({tasks: tasks});
   },
 
-  componentDidMount() {
-    // If a click is detected *outside* the TodoList, trigger
-    // the onClose handler
-    this.clickHandler = $('body').on('click', (e) => {
-      if (!$(e.target).closest('.onboarding-progress-bar').length) {
-        this.props.onClose();
-      }
-    });
-  },
-
-  componentWillUnmount() {
-    $('body').off('click', this.clickHandler);
-  },
-
   skipTask(skipped_task) {
     let org = this.getOrganization();
     this.api.request('/organizations/' + org.slug + '/onboarding-tasks/', {
@@ -284,34 +266,19 @@ const TodoList = React.createClass({
     e.stopPropagation();
   },
 
-  toggleSeeAll(e) {
-    this.setState({seeAll: !this.state.seeAll});
-  },
-
   render() {
-    let next_tasks = [];
-    if (this.state.seeAll) {
-      next_tasks = this.state.tasks;
-    } else {
-      next_tasks = this.state.tasks.filter( (task) => {
-        if (task.status != 'complete' && task.status != 'skipped') {
-          return task;
-        }
-      }).slice(0,3);
-    }
+    let nextTasks = this.state.tasks;
 
-    let todo_list = next_tasks.map( (task) => {
+    let todo_list = nextTasks.map( (task) => {
       return (<TodoItem key={task.task} task={task} onSkip={this.skipTask} />);
     }, this);
 
     return (
       <div>
         <div onClick={this.click} className="onboarding-wrapper">
-          <h3>{t('Getting started with Sentry')}</h3>
           <ul className="list-unstyled">
             {todo_list}
           </ul>
-          <a className="btn btn-default btn-see-all" onClick={this.toggleSeeAll}>{this.state.seeAll ? t('Show less') : t('Show more')}</a>
         </div>
       </div>
     );

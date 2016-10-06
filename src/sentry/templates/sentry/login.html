@@ -7,7 +7,7 @@
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-  <ul class="nav nav-tabs auth-toggle">
+  <ul class="nav nav-tabs auth-toggle border-bottom">
     <li{% if op == "login" %} class="active"{% endif %}>
       <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
     </li>
@@ -35,7 +35,7 @@
         {% endfor %}
 
         <fieldset class="form-actions">
-          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
         </fieldset>
       </form>
     </div>

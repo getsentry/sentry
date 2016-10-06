@@ -80,8 +80,8 @@ const GroupEventDetails = React.createClass({
 
     return (
       <div>
-        <div className="row event">
-          <div className="col-md-9">
+        <div className="event-details-container">
+          <div className="primary">
             {evt &&
               <GroupEventToolbar
                   group={group}
@@ -117,7 +117,7 @@ const GroupEventDetails = React.createClass({
                 project={this.getProject()} />
             )}
           </div>
-          <div className="col-md-3">
+          <div className="secondary">
             <GroupSidebar group={group} />
           </div>
         </div>

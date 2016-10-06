@@ -3,7 +3,7 @@ import DocumentTitle from 'react-document-title';
 import React from 'react';
 
 import Footer from '../../components/footer';
-import Header from '../../components/header';
+import Sidebar from '../../components/sidebar';
 import HookStore from '../../stores/hookStore';
 import ListLink from '../../components/listLink';
 
@@ -28,7 +28,7 @@ const Admin = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          <Header />
+          <Sidebar />
           <div className="container">
             <div className="content">
               <div className="row">

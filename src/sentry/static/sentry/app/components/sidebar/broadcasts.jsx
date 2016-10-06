@@ -1,11 +1,20 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
-import DropdownLink from '../dropdownLink';
 import LoadingIndicator from '../loadingIndicator';
 import {t} from '../../locale';
 
+import SidebarPanel from '../sidebarPanel';
+import SidebarPanelItem from '../sidebarPanelItem';
+
 const Broadcasts = React.createClass({
+  propTypes: {
+    showPanel: React.PropTypes.bool,
+    currentPanel: React.PropTypes.string,
+    hidePanel: React.PropTypes.func,
+    onShowPanel: React.PropTypes.func.isRequired
+  },
+
   mixins: [
     ApiMixin
   ],
@@ -71,19 +80,22 @@ const Broadcasts = React.createClass({
     }
   },
 
-  markSeen() {
-    let broadcastIds = this.state.broadcasts.filter((item) => {
+  getUnseenIds() {
+    return this.state.broadcasts.filter((item) => {
       return !item.hasSeen;
     }).map((item) => {
       return item.id;
     });
+  },
 
-    if (broadcastIds.length === 0)
+  markSeen() {
+    let unseenBroadcastIds = this.getUnseenIds();
+    if (unseenBroadcastIds.length === 0)
       return;
 
     this.api.request('/broadcasts/', {
       method: 'PUT',
-      query: {id: broadcastIds},
+      query: {id: unseenBroadcastIds},
       data: {
         hasSeen: '1'
       },
@@ -98,40 +110,43 @@ const Broadcasts = React.createClass({
     });
   },
 
+  onShowPanel() {
+    this.markSeen();
+    this.props.onShowPanel();
+  },
+
   render() {
     let {broadcasts, loading} = this.state;
-    let unseenCount = broadcasts.filter((item) => {
-      return !item.hasSeen;
-    }).length;
-
-    let title = <span className="icon-globe" />;
     return (
-      <DropdownLink
-          topLevelClasses={`broadcasts ${this.props.className || ''} ${unseenCount && 'unseen'}`}
-          menuClasses="dropdown-menu-right"
-          onOpen={this.onOpen}
-          onClose={this.onClose}
-          title={title}>
-        {loading ?
-          <li><LoadingIndicator /></li>
-        : (broadcasts.length === 0 ?
-          <li className="empty">{t('No recent broadcasts from the Sentry team.')}</li>
-        :
-          broadcasts.map((item) => {
-            return (
-              <li key={item.id} className={!item.hasSeen && 'unseen'}>
-                {item.title &&
-                  <h4>{item.title}</h4>
-                }
-                {item.message}
-                {item.link &&
-                  <a href={item.link} className="read-more">{t('Read more')}</a>
-                }
-              </li>
-            );
-          })
-        )}
-      </DropdownLink>
+      <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
+        <a className="broadcasts-toggle" onClick={this.onShowPanel}>
+          <span className="icon icon-globe"/>
+          {this.getUnseenIds() > 0 &&
+            <span className="activity-indicator"/>
+          }
+        </a>
+        {this.props.showPanel && this.props.currentPanel == 'broadcasts' &&
+          <SidebarPanel title={t('Recent updates from Sentry')}
+                        hidePanel={this.props.hidePanel}>
+              {loading ?
+                <LoadingIndicator />
+              : (broadcasts.length === 0 ?
+                <div className="sidebar-panel-empty">{t('No recent updates from the Sentry team.')}</div>
+              :
+                broadcasts.map((item) => {
+                  return (
+                    <SidebarPanelItem
+                      key={item.id}
+                      className={!item.hasSeen && 'unseen'}
+                      title={item.title}
+                      message={item.message}
+                      link={item.link}/>
+                  );
+                })
+              )}
+          </SidebarPanel>
+        }
+      </li>
     );
   }
 });

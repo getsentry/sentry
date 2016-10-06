@@ -8,21 +8,24 @@
 
 {% block wrapperclass %} {{ block.super }} show-rightbar settings white-bg{% endblock %}
 
-{% block header_action %}
+{% block header_nav %}
   <ul class="nav nav-tabs">
-    <li>
-      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">Dashboard</a>
-    </li>
     <li>
       <a href="{% absolute_uri '/{}/{}/' project.organization.slug project.slug %}">Issues</a>
     </li>
     <li>
+      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">Overview</a>
+    </li>
+    <li>
       <a href="{% absolute_uri '/{}/{}/releases/' project.organization.slug project.slug %}">Releases</a>
     </li>
-    <li class="active">
-      <a href="{% absolute_uri '/{}/{}/settings/' project.organization.slug project.slug %}">Settings</a>
-    </li>
   </ul>
+{% endblock %}
+
+{% block header_action %}
+  <a class="btn btn-sm btn-default active" href="{% absolute_uri '/{}/{}/settings/' project.organization.slug project.slug %}">
+    <span class="icon icon-settings"></span> Project Settings
+  </a>
 {% endblock %}
 
 {% block main %}

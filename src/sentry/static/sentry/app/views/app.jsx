@@ -4,12 +4,14 @@ import Cookies from 'js-cookie';
 
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
-import AlertActions from '../actions/alertActions.jsx';
+import AlertActions from '../actions/alertActions';
 import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
+import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationStore from '../stores/organizationStore';
+
 import {t} from '../locale';
 
 function getAlertTypeForProblem(problem) {
@@ -119,11 +121,11 @@ const App = React.createClass({
     }
 
     return (
-      <div>
+      <OrganizationsLoader>
         <Alerts className="messages-container" />
         <Indicators className="indicators-container" />
         {this.props.children}
-      </div>
+      </OrganizationsLoader>
     );
   }
 });

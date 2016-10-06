@@ -116,15 +116,12 @@ const GroupHeader = React.createClass({
     return (
       <div className={className}>
         <div className="row">
-          <div className="col-sm-8">
+          <div className="col-sm-7">
             <h3>
               <GroupTitle data={group} />
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
-              {group.shortId &&
-                <ShortId shortId={group.shortId} />
-              }
               {message &&
                 <span className="message">{message}</span>
               }
@@ -143,19 +140,25 @@ const GroupHeader = React.createClass({
               })}
             </div>
           </div>
-          <div className="col-sm-4 stats">
-            <div className="row">
-              <div className="col-xs-4 assigned-to">
+          <div className="col-sm-5 stats">
+            <div className="flex flex-justify-right">
+              {group.shortId &&
+                <div className="short-id-box count align-right">
+                  <h6 className="nav-header">{t('Issue #')}</h6>
+                  <ShortId shortId={group.shortId} />
+                </div>
+              }
+              <div className="assigned-to">
                 <h6 className="nav-header">{t('Assigned')}</h6>
                 <AssigneeSelector id={group.id} />
               </div>
-              <div className="col-xs-4 count align-right">
+              <div className="count align-right">
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
-              <div className="col-xs-4 count align-right">
+              <div className="count align-right">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ?
                   <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>

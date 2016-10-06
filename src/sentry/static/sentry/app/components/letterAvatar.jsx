@@ -7,28 +7,30 @@ import React from 'react';
 
 const LetterAvatar = React.createClass({
   propTypes: {
-    user: React.PropTypes.object.isRequired
+    identifier: React.PropTypes.string.isRequired,
+    displayName: React.PropTypes.string.isRequired
   },
 
   COLORS: [
-    '#25A6F7', // blue
-    '#1D87CE', // blue_dark
-    '#6FBA57', // green
-    '#4F923C', // green_dark
-    '#F8A509', // yellow_orange
-    '#E35141', // red
-    '#B64236', // red_dark
-    '#E56AA6', // pink
-    '#836CC2', // purple
-    '#6958A2', // purple_dark
-    '#44ADA0', // teal
-    '#6F7E94'  // gray
+    '#4674ca', // blue
+    '#315cac', // blue_dark
+    '#57be8c', // green
+    '#3fa372', // green_dark
+    '#f9a66d', // yellow_orange
+    '#ec5e44', // red
+    '#e63717', // red_dark
+    '#f868bc', // pink
+    '#6c5fc7', // purple
+    '#4e3fb4', // purple_dark
+    '#57b1be', // teal
+    '#847a8c'  // gray
   ],
 
   getColor() {
-    let userId = this.getIdentifierHash();
-    return this.COLORS[userId % this.COLORS.length];
+    let id = this.hashIdentifier(this.props.identifier);
+    return this.COLORS[id % this.COLORS.length];
   },
+
 
   hashIdentifier(identifier) {
     identifier += '';
@@ -39,19 +41,8 @@ const LetterAvatar = React.createClass({
     return hash;
   },
 
-  getIdentifierHash() {
-    let user = this.props.user;
-    let identifier = user.email || user.username || user.id || user.ip_address;
-    return this.hashIdentifier(identifier);
-  },
-
-  getDisplayName() {
-    let user = this.props.user;
-    return user.name || user.email || user.username || '';
-  },
-
   getInitials() {
-    let names = (this.getDisplayName().trim() || '?').split(' ');
+    let names = (this.props.displayName.trim() || '?').split(' ');
     let initials = names[0][0] + (names.length > 1 ? names[names.length - 1][0] : '');
     return initials.toUpperCase();
   },
