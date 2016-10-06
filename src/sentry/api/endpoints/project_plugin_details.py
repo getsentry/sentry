@@ -11,7 +11,7 @@ from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.plugin import PluginWithConfigSerializer
+from sentry.api.serializers.models.plugin import PluginWithConfigSerializer, serialize_field
 
 ERR_ALWAYS_ENABLED = 'This plugin is always enabled.'
 ERR_FIELD_REQUIRED = 'This field is required.'
@@ -63,9 +63,12 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
     def put(self, request, project, plugin_id):
         plugin = self._get_plugin(plugin_id)
 
-        config = plugin.get_config(
-            project=project,
-        )
+        config = [
+            serialize_field(project, plugin, c)
+            for c in plugin.get_config(
+                project=project,
+            )
+        ]
 
         cleaned = {}
         errors = {}
