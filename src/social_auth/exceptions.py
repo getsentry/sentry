@@ -22,11 +22,6 @@ class WrongBackend(BackendError):
             self.backend_name
 
 
-class NotAllowedToDisconnect(SocialAuthBaseException):
-    """User is not allowed to disconnect it's social account."""
-    pass
-
-
 class StopPipeline(SocialAuthBaseException):
     """Stop pipeline process exception.
     Raise this exception to stop the rest of the pipeline process.

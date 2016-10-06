@@ -260,7 +260,7 @@ urlpatterns += patterns(
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
         name='sentry-account-settings-identities'),
-    url(r'^account/settings/identities/(?P<backend>[^\/]+)/(?P<identity_id>[^\/]+)/disconnect/$',
+    url(r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
         accounts.disconnect_identity,
         name='sentry-account-disconnect-identity'),
     url(r'^account/settings/notifications/$', AccountNotificationView.as_view(),

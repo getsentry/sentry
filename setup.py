@@ -70,9 +70,13 @@ dev_requires = [
 ]
 
 tests_require = [
-    'blist',  # used by cassandra
+    # cassandra
+    'blist',
+    # TODO(dcramer): figure out why Travis needs this
+    'cassandra-driver<=3.5.0',
     'casscache',
     'cqlsh',
+    # /cassandra
     'datadog',
     'pytest-cov>=1.8.0,<1.9.0',
     'pytest-timeout>=0.5.0,<0.6.0',
@@ -123,7 +127,7 @@ install_requires = [
     'raven>=5.21.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
     'requests[security]>=2.9.1,<2.12.0',
-    'selenium>=2.53,<2.60',
+    'selenium==3.0.0b3',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.10.0,<1.11.0',
     'setproctitle>=1.1.7,<1.2.0',
@@ -188,9 +192,9 @@ setup(
     zip_safe=False,
     install_requires=install_requires,
     extras_require={
-        'tests': tests_require,
         'dev': dev_requires,
         'postgres': install_requires,
+        'tests': tests_require,
     },
     cmdclass=cmdclass,
     license='BSD',

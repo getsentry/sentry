@@ -142,13 +142,12 @@ Starting the Web Service
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The web interface needs to expose port 9000 into the container. This
-can just be done with `--port 9000:9000`::
+can just be done with `--publish 9000:9000`::
 
     docker run \
       --detach \
-      --rm \
       --name sentry-web-01 \
-      --port 9000:9000 \
+      --publish 9000:9000 \
       sentry-onpremise \
       run web
 
@@ -163,7 +162,6 @@ A large amount of Sentry's work is managed via background workers::
 
     docker run \
       --detach \
-      --rm \
       --name sentry-worker-01 \
       sentry-onpremise
       run worker
@@ -177,7 +175,6 @@ Sentry also needs a cron process::
 
     docker run \
       --detch \
-      --rm \
       --name sentry-cron \
       sentry-onpremise
       run cron

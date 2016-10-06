@@ -120,12 +120,24 @@ def get_login_redirect(request, default=None):
     if after_2fa is not None:
         return after_2fa
 
-    login_url = request.session.pop('_next', None) or default
-    if login_url.startswith(('http://', 'https://')):
+    login_url = request.session.pop('_next', None)
+    if not login_url:
+        return default
+
+    if not is_valid_redirect(login_url):
         login_url = default
-    elif login_url.startswith(get_login_url()):
-        login_url = default
+
     return login_url
+
+
+def is_valid_redirect(url):
+    if not url:
+        return False
+    if url.startswith(('http://', 'https://')):
+        return False
+    if url.startswith(get_login_url()):
+        return False
+    return True
 
 
 def find_users(username, with_valid_password=True, is_active=None):

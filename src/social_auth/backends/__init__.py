@@ -12,9 +12,9 @@ enabled.
 from __future__ import absolute_import
 
 import six
+import threading
 
 from django.contrib.auth import authenticate
-from django.utils.importlib import import_module
 from django.utils.crypto import get_random_string, constant_time_compare
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.request import Request
@@ -26,7 +26,7 @@ from social_auth.utils import (
 from social_auth.exceptions import (
     StopPipeline, AuthFailed, AuthCanceled, AuthUnknownError,
     AuthTokenError, AuthMissingParameter, AuthStateMissing, AuthStateForbidden,
-    NotAllowedToDisconnect, BackendError)
+    BackendError)
 from social_auth.backends.utils import build_consumer_oauth_request
 from oauth2 import Consumer as OAuthConsumer, Token, Request as OAuthRequest
 
@@ -102,7 +102,7 @@ class SocialAuthBackend(object):
         for idx, name in enumerate(pipeline):
             out['pipeline_index'] = base_index + idx
             mod_name, func_name = name.rsplit('.', 1)
-            mod = import_module(mod_name)
+            mod = __import__(mod_name, {}, {}, [func_name])
             func = getattr(mod, func_name, None)
 
             try:
@@ -193,7 +193,7 @@ class OAuthBackend(SocialAuthBackend):
         names = (cls.EXTRA_DATA or []) + setting(name + '_EXTRA_DATA', [])
 
         for entry in names:
-            if type(entry) is str:
+            if isinstance(entry, six.string_types):
                 entry = (entry,)
 
             try:
@@ -314,23 +314,20 @@ class BaseAuth(object):
         Override if extra operations are needed.
         """
         name = self.AUTH_BACKEND.name
-        if UserSocialAuth.allowed_to_disconnect(user, name, association_id):
-            do_revoke = setting('SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT')
-            filter_args = {}
+        do_revoke = setting('SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT')
+        filter_args = {}
 
-            if association_id:
-                filter_args['id'] = association_id
-            else:
-                filter_args['provider'] = name
-            instances = UserSocialAuth.get_social_auth_for_user(user)\
-                                      .filter(**filter_args)
-
-            if do_revoke:
-                for instance in instances:
-                    instance.revoke_token(drop_token=False)
-            instances.delete()
+        if association_id:
+            filter_args['id'] = association_id
         else:
-            raise NotAllowedToDisconnect()
+            filter_args['provider'] = name
+        instances = UserSocialAuth.get_social_auth_for_user(user)\
+                                  .filter(**filter_args)
+
+        if do_revoke:
+            for instance in instances:
+                instance.revoke_token(drop_token=False)
+        instances.delete()
 
     def build_absolute_uri(self, path=None):
         """Build absolute URI for given path. Replace http:// schema with
@@ -367,8 +364,9 @@ class BaseOAuth(BaseAuth):
     @classmethod
     def enabled(cls):
         """Return backend enabled status by checking basic settings"""
-        return (setting(cls.SETTINGS_KEY_NAME) and
-                setting(cls.SETTINGS_SECRET_NAME))
+        return bool(
+            setting(cls.SETTINGS_KEY_NAME) and setting(cls.SETTINGS_SECRET_NAME)
+        )
 
     def get_scope(self):
         """Return list with needed access scope"""
@@ -691,16 +689,10 @@ class BaseOAuth2(BaseOAuth):
         return authenticate(*args, **kwargs)
 
 
-# Backend loading was previously performed via the
-# SOCIAL_AUTH_IMPORT_BACKENDS setting - as it's no longer used,
-# provide a deprecation warning.
-if setting('SOCIAL_AUTH_IMPORT_BACKENDS'):
-    from warnings import warn
-    warn("SOCIAL_AUTH_IMPORT_SOURCES is deprecated")
-
-
 # Cache for discovered backends.
 BACKENDSCACHE = {}
+
+_import_lock = threading.Lock()
 
 
 def get_backends(force_load=False):
@@ -722,35 +714,30 @@ def get_backends(force_load=False):
     A force_load boolean arg is also provided so that get_backend
     below can retry a requested backend that may not yet be discovered.
     """
-    if not BACKENDSCACHE or force_load:
-        for auth_backend in setting('AUTHENTICATION_BACKENDS'):
-            mod, cls_name = auth_backend.rsplit('.', 1)
-            module = import_module(mod)
-            backend = getattr(module, cls_name)
+    global BACKENDSCACHE
 
-            if issubclass(backend, SocialAuthBackend):
-                name = backend.name
-                backends = getattr(module, 'BACKENDS', {})
-                if name in backends and backends[name].enabled():
-                    BACKENDSCACHE[name] = backends[name]
+    if not BACKENDSCACHE or force_load:
+        with _import_lock:
+            for auth_backend in setting('AUTHENTICATION_BACKENDS'):
+                mod, cls_name = auth_backend.rsplit('.', 1)
+                module = __import__(mod, {}, {}, ['BACKENDS', cls_name])
+                backend = getattr(module, cls_name)
+
+                if issubclass(backend, SocialAuthBackend):
+                    name = backend.name
+                    backends = getattr(module, 'BACKENDS', {})
+                    if name in backends and backends[name].enabled():
+                        BACKENDSCACHE[name] = backends[name]
     return BACKENDSCACHE
 
 
 def get_backend(name, *args, **kwargs):
-    """Returns a backend by name. Backends are stored in the BACKENDSCACHE
-    cache dict. If not found, each of the modules referenced in
-    AUTHENTICATION_BACKENDS is imported and checked for a BACKENDS
-    definition. If the named backend is found in the module's BACKENDS
-    definition, it's then stored in the cache for future access.
-    """
+    get_backends()
+
     try:
         # Cached backend which has previously been discovered.
-        return BACKENDSCACHE[name](*args, **kwargs)
+        backend_cls = BACKENDSCACHE[name]
     except KeyError:
-        # Force a reload of BACKENDS to ensure a missing
-        # backend hasn't been missed.
-        get_backends(force_load=True)
-        try:
-            return BACKENDSCACHE[name](*args, **kwargs)
-        except KeyError:
-            return None
+        return None
+    else:
+        return backend_cls(*args, **kwargs)

@@ -3,6 +3,8 @@
 from __future__ import absolute_import
 
 import mock
+import pytest
+import responses
 import six
 
 from django.core.urlresolvers import reverse
@@ -297,3 +299,42 @@ class ConfirmEmailTest(TestCase):
         self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         email = self.user.emails.first()
         assert email.is_verified
+
+
+class DisconnectIdentityTest(TestCase):
+    @responses.activate
+    def test_simple(self):
+        self.login_as(self.user)
+
+        auth = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='github',
+            extra_data={'access_token': 'abcdef'},
+        )
+
+        with self.settings(GITHUB_APP_ID='app_id', GITHUB_API_SECRET='secret'):
+            resp = self.client.post(reverse('sentry-account-disconnect-identity', args=[
+                auth.id,
+            ]))
+
+        assert resp['Location'] == 'http://testserver{}'.format(
+            reverse('sentry-account-settings-identities'),
+        )
+
+        assert not UserSocialAuth.objects.filter(id=auth.id).exists()
+
+    @responses.activate
+    def test_invalid_backend(self):
+        self.login_as(self.user)
+
+        auth = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='invalid',
+            extra_data={'access_token': 'abcdef'},
+        )
+
+        with pytest.raises(Exception):
+            # this should just error hard
+            self.client.post(reverse('sentry-account-disconnect-identity', args=[
+                auth.id,
+            ]))
