@@ -242,6 +242,7 @@ class ReportTestCase(TestCase):
         project = self.create_project(
             organization=self.organization,
             team=self.team,
+            date_added=now - timedelta(days=90),
         )
 
         tsdb.incr(

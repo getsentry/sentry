@@ -378,6 +378,8 @@ def report(request):
         )
     )
 
+    start, stop = interval = reports._to_interval(timestamp, duration)
+
     organization = Organization(
         id=1,
         slug='example',
@@ -406,10 +408,9 @@ def report(request):
                 team=team,
                 slug=slugify(name),
                 name=name,
+                date_added=start - timedelta(days=random.randint(0, 120)),
             )
         )
-
-    start, stop = interval = reports._to_interval(timestamp, duration)
 
     def make_release_generator():
         id_sequence = itertools.count(1)
@@ -463,7 +464,7 @@ def report(request):
             int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
         )
 
-    def build_calendar_data():
+    def build_calendar_data(project):
         start, stop = reports.get_calendar_query_range(interval, 3)
         rollup = 60 * 60 * 24
         series = []
@@ -477,6 +478,7 @@ def report(request):
             value = value * random.uniform(0.25, 2)
 
         return reports.clean_calendar_data(
+            project,
             series,
             start,
             stop,
@@ -484,7 +486,7 @@ def report(request):
             stop
         )
 
-    def build_report():
+    def build_report(project):
         daily_maximum = random.randint(1000, 10000)
 
         rollup = 60 * 60 * 24
@@ -503,7 +505,7 @@ def report(request):
             build_issue_summaries(),
             build_release_list(),
             build_usage_summary(),
-            build_calendar_data(),
+            build_calendar_data(project),
         )
 
     if random.random() < 0.85:
@@ -528,7 +530,7 @@ def report(request):
             },
             'report': reports.to_context(
                 interval,
-                {project: build_report() for project in projects}
+                {project: build_report(project) for project in projects}
             ),
             'organization': organization,
             'personal': personal,

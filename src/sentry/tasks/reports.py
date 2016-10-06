@@ -371,27 +371,25 @@ def get_calendar_query_range(interval, months):
     return start_time, interval[1]
 
 
-def remove_expired_values(rollup, series, timestamp=None):
+def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
     earliest = tsdb.get_earliest_timestamp(rollup, timestamp=timestamp)
 
-    def clean_value((timestamp, value)):
+    def remove_invalid_values(item):
+        timestamp, value = item
         if timestamp < earliest:
+            value = None
+        elif to_datetime(timestamp) < project.date_added:
             value = None
         return (timestamp, value)
 
-    return map(clean_value, series)
-
-
-def clean_calendar_data(series, start, stop, rollup, timestamp=None):
-    return remove_expired_values(
-        rollup,
+    return map(
+        remove_invalid_values,
         clean_series(
             start,
             stop,
             rollup,
             series,
         ),
-        timestamp,
     )
 
 
@@ -408,6 +406,7 @@ def prepare_project_calendar_series(interval, project):
     )[project.id]
 
     return clean_calendar_data(
+        project,
         series,
         start,
         stop,
