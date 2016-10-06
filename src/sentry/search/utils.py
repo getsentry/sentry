@@ -10,6 +10,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, Release, User
 from sentry.search.base import ANY, EMPTY
 from sentry.utils.auth import find_users
+from django.db import DataError
 
 
 class InvalidQuery(Exception):
@@ -215,67 +216,69 @@ def parse_query(project, query, user):
     tokens = tokenize_query(query)
 
     results = {'tags': {}, 'query': []}
-
-    for key, token_list in six.iteritems(tokens):
-        for value in token_list:
-            if key == 'query':
-                results['query'].append(value)
-            elif key == 'is':
-                if value == 'unassigned':
-                    results['unassigned'] = True
-                elif value == 'assigned':
-                    results['unassigned'] = False
+    try:
+        for key, token_list in six.iteritems(tokens):
+            for value in token_list:
+                if key == 'query':
+                    results['query'].append(value)
+                elif key == 'is':
+                    if value == 'unassigned':
+                        results['unassigned'] = True
+                    elif value == 'assigned':
+                        results['unassigned'] = False
+                    else:
+                        try:
+                            results['status'] = STATUS_CHOICES[value]
+                        except KeyError:
+                            pass
+                elif key == 'assigned':
+                    if value == 'me':
+                        results['assigned_to'] = user
+                    else:
+                        try:
+                            results['assigned_to'] = find_users(value)[0]
+                        except IndexError:
+                            # XXX(dcramer): hacky way to avoid showing any results when
+                            # an invalid user is entered
+                            results['assigned_to'] = User(id=0)
+                elif key == 'bookmarks':
+                    if value == 'me':
+                        results['bookmarked_by'] = user
+                    else:
+                        try:
+                            results['bookmarked_by'] = find_users(value)[0]
+                        except IndexError:
+                            # XXX(dcramer): hacky way to avoid showing any results when
+                            # an invalid user is entered
+                            results['bookmarked_by'] = User(id=0)
+                elif key == 'first-release':
+                    results['first_release'] = parse_release(project, value)
+                elif key == 'release':
+                    results['tags']['sentry:release'] = parse_release(project, value)
+                elif key == 'user':
+                    if ':' in value:
+                        comp, value = value.split(':', 1)
+                    else:
+                        comp = 'id'
+                    results['tags']['sentry:user'] = get_user_tag(
+                        project, comp, value)
+                elif key == 'has':
+                    if value == 'user':
+                        value = 'sentry:user'
+                    elif value == 'release':
+                        value = 'sentry:release'
+                    results['tags'][value] = ANY
+                elif key == 'age':
+                    results.update(get_date_params(value, 'age_from', 'age_to'))
+                elif key.startswith('user.'):
+                    results['tags']['sentry:user'] = get_user_tag(
+                        project, key.split('.', 1)[1], value)
+                elif key == 'event.timestamp':
+                    results.update(get_date_params(value, 'date_from', 'date_to'))
                 else:
-                    try:
-                        results['status'] = STATUS_CHOICES[value]
-                    except KeyError:
-                        pass
-            elif key == 'assigned':
-                if value == 'me':
-                    results['assigned_to'] = user
-                else:
-                    try:
-                        results['assigned_to'] = find_users(value)[0]
-                    except IndexError:
-                        # XXX(dcramer): hacky way to avoid showing any results when
-                        # an invalid user is entered
-                        results['assigned_to'] = User(id=0)
-            elif key == 'bookmarks':
-                if value == 'me':
-                    results['bookmarked_by'] = user
-                else:
-                    try:
-                        results['bookmarked_by'] = find_users(value)[0]
-                    except IndexError:
-                        # XXX(dcramer): hacky way to avoid showing any results when
-                        # an invalid user is entered
-                        results['bookmarked_by'] = User(id=0)
-            elif key == 'first-release':
-                results['first_release'] = parse_release(project, value)
-            elif key == 'release':
-                results['tags']['sentry:release'] = parse_release(project, value)
-            elif key == 'user':
-                if ':' in value:
-                    comp, value = value.split(':', 1)
-                else:
-                    comp = 'id'
-                results['tags']['sentry:user'] = get_user_tag(
-                    project, comp, value)
-            elif key == 'has':
-                if value == 'user':
-                    value = 'sentry:user'
-                elif value == 'release':
-                    value = 'sentry:release'
-                results['tags'][value] = ANY
-            elif key == 'age':
-                results.update(get_date_params(value, 'age_from', 'age_to'))
-            elif key.startswith('user.'):
-                results['tags']['sentry:user'] = get_user_tag(
-                    project, key.split('.', 1)[1], value)
-            elif key == 'event.timestamp':
-                results.update(get_date_params(value, 'date_from', 'date_to'))
-            else:
-                results['tags'][key] = value
+                    results['tags'][key] = value
+    except DataError:
+        raise InvalidQuery('malformed query')
 
     results['query'] = ' '.join(results['query'])
 
