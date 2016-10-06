@@ -200,6 +200,7 @@ class IssueTrackingPlugin2(Plugin):
             })
             status = 400
         else:
+            self.logger.exception(six.text_type(error))
             status = 500
         return Response(context, status=status)
 
