@@ -259,9 +259,7 @@ def dump_crash_report(report):
 
 def preprocess_apple_crash_event(data):
     """This processes the "legacy" AppleCrashReport."""
-    crash_report = data.get('sentry.interfaces.AppleCrashReport')
-    if crash_report is None:
-        return
+    crash_report = data['sentry.interfaces.AppleCrashReport']
 
     if os.environ.get('SENTRY_DUMP_APPLE_CRASH_REPORT') == '1':
         dump_crash_report(crash_report)
@@ -347,10 +345,7 @@ def preprocess_apple_crash_event(data):
 
 
 def resolve_frame_symbols(data):
-    debug_meta = data.get('debug_meta')
-    if not debug_meta:
-        return
-
+    debug_meta = data['debug_meta']
     debug_images = debug_meta['images']
     sdk_info = get_sdk_from_event(data)
 
@@ -443,5 +438,10 @@ def resolve_frame_symbols(data):
 class NativePlugin(Plugin2):
     can_disable = False
 
-    def get_event_preprocessors(self, **kwargs):
-        return [preprocess_apple_crash_event, resolve_frame_symbols]
+    def get_event_preprocessors(self, data, **kwargs):
+        rv = []
+        if data.get('sentry.interfaces.AppleCrashReport'):
+            rv.append(preprocess_apple_crash_event)
+        if data.get('debug_meta'):
+            rv.append(resolve_frame_symbols)
+        return rv
