@@ -21,7 +21,9 @@ class InvalidQuery(Exception):
 def parse_release(project, value):
     # TODO(dcramer): add environment support
     if value == 'latest':
-        value = Release.objects.extra(select={
+        value = Release.objects.filter(
+            project=project,
+        ).extra(select={
             'sort': 'COALESCE(date_released, date_added)',
         }).order_by('-sort').values_list('version', flat=True).first()
         if value is None:
