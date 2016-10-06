@@ -68,6 +68,8 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         user = auth_identity.user
         assert user.email == 'foo@example.com'
+        assert not user.has_usable_password()
+        assert user.is_managed
 
         member = OrganizationMember.objects.get(
             organization=organization,
