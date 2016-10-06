@@ -784,6 +784,9 @@
 
   .primary {
     flex: 1;
+    // TODO(dcramer): whatever flex is doing here is causing this to extend to
+    // whatever it pleases (e.g. 4k pixels on my 1280 screen)
+    max-width: ~"calc(100% - 365px)";
 
     .box.alert-block {
       padding-top: 15px;
