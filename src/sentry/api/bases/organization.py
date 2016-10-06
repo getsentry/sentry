@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
-from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
+from sentry.app import raven
+from sentry.auth import access
 from sentry.models import Organization, OrganizationStatus
 from sentry.models.apikey import ROOT_KEY
 
@@ -49,6 +50,10 @@ class OrganizationEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, organization)
+
+        raven.tags_context({
+            'organization': organization.id,
+        })
 
         kwargs['organization'] = organization
         return (args, kwargs)
