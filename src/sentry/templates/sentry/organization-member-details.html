@@ -6,15 +6,19 @@
 
 {% block title %}{% trans "Member Details" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
-  <div class="page-header">
-    <a class="back-arrow" style="top: 0px;" href="{% url 'sentry-organization-members' organization.slug %}"><span class="icon-arrow-left"></span></a>
-    <h2>
-      {{ member.get_display_name }}
-      <br><small>Member Settings</small>
-    </h2>
-  </div>
+{% block modal_header_link %}
+  {% url 'sentry-organization-members' organization.slug %}
+{% endblock %}
 
+{% block modal_header_extra %}
+  <span class="back-to">Back to Member List</span>
+{% endblock %}
+
+{% block main %}
+  <h2 class="p-b-1 m-b-1 b-b-1">
+    {{ member.get_display_name }}
+    <br><small>Member Settings</small>
+  </h2>
 
   <div class="box">
     <div class="box-header">
