@@ -63,7 +63,8 @@ var entry = {
     'flot/jquery.flot.stack',
     'flot/jquery.flot.time',
     'flot-tooltip/jquery.flot.tooltip',
-    'vendor/simple-slider/simple-slider'
+    'vendor/simple-slider/simple-slider',
+    'underscore'
   ],
 
   // css
@@ -142,7 +143,9 @@ var config = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js'
+      Raven: 'raven-js',
+      underscore: 'underscore',
+      _: 'underscore'
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
-from django.contrib.messages.api import error, MessageFailure
+from django.contrib import messages
 from django.shortcuts import redirect
 
 from social_auth.exceptions import SocialAuthBaseException
@@ -32,12 +34,7 @@ class SocialAuthExceptionMiddleware(object):
             if backend_name:
                 tags.append(backend_name)
 
-            try:
-                error(request, message, extra_tags=' '.join(tags))
-            except MessageFailure:  # messages app is not installed
-                url += ('?' in url and '&' or '?') + 'message=' + message
-                if backend_name:
-                    url += '&backend=' + backend_name
+            messages.error(request, message, extra_tags=' '.join(tags))
             return redirect(url)
 
     def get_backend(self, request, exception):
@@ -53,7 +50,7 @@ class SocialAuthExceptionMiddleware(object):
         return backend and backend_setting(backend, 'SOCIAL_AUTH_RAISE_EXCEPTIONS')
 
     def get_message(self, request, exception):
-        return unicode(exception)
+        return six.text_type(exception)
 
     def get_redirect_uri(self, request, exception):
         if self.backend is not None:

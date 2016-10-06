@@ -210,7 +210,8 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
-    'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
+    # TODO(dcramer): kill this once we verify its safe
+    # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )

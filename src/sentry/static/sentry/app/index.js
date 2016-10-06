@@ -45,6 +45,7 @@ export default {
   ReactDOM: require('react-dom'),
   Reflux: require('reflux'),
   Router: require('react-router'),
+  underscore: require('underscore'),
 
   Sentry: {
     api: require('./api'),

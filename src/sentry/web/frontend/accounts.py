@@ -7,6 +7,8 @@ sentry.web.frontend.accounts
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
@@ -18,7 +20,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from django.utils.translation import ugettext as _
-from social_auth.decorators import dsa_view
+from social_auth.backends import get_backend
 from social_auth.models import UserSocialAuth
 from sudo.decorators import sudo_required
 
@@ -313,12 +315,28 @@ def list_identities(request):
 @csrf_protect
 @never_cache
 @login_required
-@dsa_view()
-def disconnect_identity(request, backend, identity_id):
+def disconnect_identity(request, identity_id):
     if request.method != 'POST':
         raise NotImplementedError
 
-    backend.disconnect(request.user, identity_id)
+    try:
+        auth = UserSocialAuth.objects.get(id=identity_id)
+    except UserSocialAuth.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
+
+    backend = get_backend(auth.provider, request, '/')
+    if backend is None:
+        raise Exception('Backend was not found for request: {}'.format(auth.provider))
+
+    # stop this from bubbling up errors to social-auth's middleware
+    # XXX(dcramer): IM SO MAD ABOUT THIS
+    try:
+        backend.disconnect(request.user, identity_id)
+    except Exception as exc:
+        import sys
+        exc_tb = sys.exc_info()[2]
+        six.reraise(Exception, exc, exc_tb)
+        del exc_tb
 
     # XXX(dcramer): we experienced an issue where the identity still existed,
     # and given that this is a cheap query, lets error hard in that case

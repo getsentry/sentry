@@ -69,6 +69,18 @@ class AcceptOrganizationInviteView(BaseView):
             'project_list': project_list,
             'project_count': project_count,
             'needs_authentication': not request.user.is_authenticated(),
+            'logout_url': '{}?next={}'.format(
+                reverse('sentry-logout'),
+                request.path,
+            ),
+            'login_url': '{}?next={}'.format(
+                reverse('sentry-login'),
+                request.path,
+            ),
+            'register_url': '{}?next={}'.format(
+                reverse('sentry-register'),
+                request.path,
+            ),
         }
 
         if not request.user.is_authenticated():
@@ -78,6 +90,14 @@ class AcceptOrganizationInviteView(BaseView):
             request.session['invite_email'] = om.email
 
             return self.respond('sentry/accept-organization-invite.html', context)
+
+        # if they're already a member of the organization its likely they're
+        # using a shared account and either previewing this invite or
+        # are incorrectly expecting this to create a new account for them
+        context['existing_member'] = OrganizationMember.objects.filter(
+            user=request.user.id,
+            organization=om.organization_id,
+        ).exists()
 
         form = self.get_form(request)
         if form.is_valid():
