@@ -2,7 +2,6 @@ import jQuery from 'jquery';
 import React from 'react';
 
 import Footer from '../components/footer';
-import Sidebar from '../components/sidebar';
 
 const NarryLayout = React.createClass({
   componentWillMount() {
@@ -16,9 +15,14 @@ const NarryLayout = React.createClass({
   render() {
     return (
       <div className="app">
-        <Sidebar />
+        <div className="pattern-bg"/>
         <div className="container">
-          <div className="box">
+          <div className="box box-modal">
+            <div className="box-header">
+              <a href="/">
+                <span className="icon-sentry-logo" />
+              </a>
+            </div>
             <div className="box-content with-padding">
               {this.props.children}
             </div>
