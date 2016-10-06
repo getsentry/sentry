@@ -26,10 +26,12 @@ const BookmarkToggle = React.createClass({
   },
 
   render() {
+    // TODO: can't guarantee that a <span> is appropriate here 100% of the time
+    //       if this is to be truly re-usable
     return (
-      <div onClick={this.handleBookmarkClick}>
+      <span onClick={this.handleBookmarkClick}>
         {this.props.children}
-      </div>
+      </span>
     );
 
   }
