@@ -23,7 +23,7 @@ error_logger = logging.getLogger('sentry.errors.events')
 
 @instrumented_task(
     name='sentry.tasks.store.preprocess_event',
-    queue='events',
+    queue='events.preprocess_event',
     time_limit=65,
     soft_time_limit=60,
 )
@@ -65,7 +65,7 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
 
 @instrumented_task(
     name='sentry.tasks.store.save_event',
-    queue='events')
+    queue='events.save_event')
 def save_event(cache_key=None, data=None, start_time=None, **kwargs):
     """
     Saves an event to the database.
