@@ -395,6 +395,9 @@ footer {
 
     // Hide fake sidebar on mobile
     background: none;
+
+    // Account for there being no footer on mobile
+    padding-bottom: 20px;
   }
 
   .app {
@@ -457,5 +460,9 @@ footer {
         padding: 20px 20px 10px;
       }
     }
+  }
+
+  .app > footer {
+    display: none;
   }
 }
