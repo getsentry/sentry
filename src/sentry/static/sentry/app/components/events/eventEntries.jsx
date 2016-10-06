@@ -116,11 +116,12 @@ const EventEntries = React.createClass({
             event={evt} />
         }
         {!utils.objectIsEmpty(evt.sdk) && evt.sdk.upstream.isNewer &&
-          <div className="alert-block alert-info box" style={{padding: '5px 20px'}}>
+          <div className="alert-block alert-info box">
+            <span className="icon-exclamation"/>
             {t('This event was reported with an old version of the %s SDK.', evt.platform)}
             {evt.sdk.upstream.url &&
               <a href={evt.sdk.upstream.url}
-                 style={{marginLeft: 10}}>{t('Learn More')}</a>
+                 className="btn btn-sm btn-default">{t('Learn More')}</a>
             }
           </div>
         }

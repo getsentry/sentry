@@ -1,16 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {History} from 'react-router';
-import {Link} from 'react-router';
 import jQuery from 'jquery';
 
-import {update as projectUpdate} from '../../actionCreators/projects';
 import ApiMixin from '../../mixins/apiMixin';
 
 import ProjectLabel from '../../components/projectLabel';
 import DropdownLink from '../dropdownLink';
 import MenuItem from '../menuItem';
-import TooltipMixin from '../../mixins/tooltip';
+import Link from '../link';
+
 import {sortArray} from '../../utils';
 import {t} from '../../locale';
 
@@ -29,15 +28,6 @@ const ProjectSelector = React.createClass({
   mixins: [
     ApiMixin,
     History,
-    TooltipMixin(function () {
-      return {
-        selector: '.tip',
-        title: function (instance) {
-          return (this.getAttribute('data-isbookmarked') === 'true' ?
-            'Remove from bookmarks' : 'Add to bookmarks');
-        }
-      };
-    })
   ],
 
   getDefaultProps() {
@@ -102,16 +92,6 @@ const ProjectSelector = React.createClass({
     // onFilterBlur above after a timeout. My hunch is that sometimes
     // this DOM element is removed within the 200ms, so we error out.
     this.refs.dropdownLink && this.refs.dropdownLink.close();
-  },
-
-  handleBookmarkClick(project) {
-    projectUpdate(this.api, {
-      orgId: this.props.organization.slug,
-      projectId: project.slug,
-      data: {
-        isBookmarked: !project.isBookmarked
-      }
-    });
   },
 
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
@@ -202,12 +182,8 @@ const ProjectSelector = React.createClass({
     let orgId = org.slug;
     let projectId = project.slug;
 
-    let className = 'bookmark tip ' + (project.isBookmarked ? 'icon-star-solid' : 'icon-star-outline');
     return (
       <span>
-        <a className={className}
-           onClick={this.handleBookmarkClick.bind(this, project)}
-           data-isbookmarked={project.isBookmarked} />
         <Link to={`/${orgId}/${projectId}/`}>
           {label}
         </Link>
@@ -296,26 +272,31 @@ const ProjectSelector = React.createClass({
     });
     return (
       <div className="project-select" ref="container">
-        {this.state.activeProject ?
-          this.getLinkNode(this.state.activeTeam, this.state.activeProject)
-        :
-          t('Select a project')
-        }
-        <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
-            onOpen={this.onOpen} onClose={this.onClose}>
-          <li className="project-filter" key="_filter">
-            <input
-              value={this.state.filter}
-              type="text"
-              placeholder={t('Filter projects')}
-              onChange={this.onFilterChange}
-              onKeyUp={this.onKeyUp}
-              onKeyDown={this.onKeyDown}
-              onBlur={this.onFilterBlur}
-              ref="filter" />
-          </li>
-          {children}
-        </DropdownLink>
+        <h3>
+          <Link to={`/${org.slug}/`} className="home-crumb">
+            <span className="icon-home" />
+          </Link>
+          {this.state.activeProject ?
+            this.getLinkNode(this.state.activeTeam, this.state.activeProject)
+          :
+            t('Select a project')
+          }
+          <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
+              onOpen={this.onOpen} onClose={this.onClose}>
+            <li className="project-filter" key="_filter">
+              <input
+                value={this.state.filter}
+                type="text"
+                placeholder={t('Filter projects')}
+                onChange={this.onFilterChange}
+                onKeyUp={this.onKeyUp}
+                onKeyDown={this.onKeyDown}
+                onBlur={this.onFilterBlur}
+                ref="filter" />
+            </li>
+            {children}
+          </DropdownLink>
+        </h3>
       </div>
     );
   }

@@ -6,7 +6,8 @@
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block content %}
+{% block auth_main %}
+<div style="padding-bottom: 10px">
   <div class="align-center">
     <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
 
@@ -74,4 +75,5 @@
       </div>
     </div>
   {% endif %}
+</div>
 {% endblock %}

@@ -8,9 +8,8 @@
 
 {% block wrapperclass %}{{block.super }} windowed-small{% endblock %}
 
-{% block header %}
-
-{% endblock %}
+{% block global_sidebar %}{% endblock %}
+{% block header %}{% endblock %}
 
 {% block scripts %}
 
@@ -26,13 +25,18 @@
 {% endblock %}
 
 {% block content %}
-    <div class="box">
+    <div class="pattern-bg"></div>
+    <div class="box box-modal">
         <div class="box-header">
-            <h3>
-            {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
-            </h3>
+          <a href="/">
+            <span class="icon-sentry-logo-full"></span>
+            <span class="back-to">{% trans "Back to organization" %}</span>
+          </a>
         </div>
         <div class="box-content with-padding">
+            <h4 class="m-b-1 p-b-1 b-b-1">
+              {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
+            </h4>
             <form action="" method="post" autocomplete="off">
                 {% csrf_token %}
 
@@ -60,9 +64,9 @@
                     </script>
                 {% endif %}
 
-                <p>
+                <div class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
-                </p>
+                </div>
             </form>
         </div>
     </div>

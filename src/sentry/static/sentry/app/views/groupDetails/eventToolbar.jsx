@@ -131,8 +131,7 @@ let GroupEventToolbar  = React.createClass({
     //       React component?
     let jsonUrl = `/${orgId}/${projectId}/issues/${groupId}/events/${evt.id}/json/`;
     let style = {
-      borderBottom: '1px dotted #dfe3ea',
-      paddingBottom: '5px'
+      borderBottom: '1px dotted #dfe3ea'
     };
 
     let latencyThreshold = 30 * 60 * 1000;  // 30 minutes
@@ -145,7 +144,7 @@ let GroupEventToolbar  = React.createClass({
             {eventNavNodes}
           </div>
         </div>
-        <h4>{t('Event %s', evt.eventID)}</h4>
+        <h4>{t('Event')} <span className="event-id">{evt.eventID}</span></h4>
         <span>
           {/* use a key here to force removal of tooltip parent - fixes #3341 */}
           <span className="tip" data-title={this.getDateTooltip()} key={evt.id}>

@@ -2,8 +2,20 @@
 
 {% load i18n %}
 
-{% block wrapperclass %}{{ block.super }} narrow hide-sidebar{% endblock %}
+{% block wrapperclass %}{{ block.super }} narrow{% endblock %}
 
 {% block content %}
-  {% block main %}{% endblock %}
+<div class="pattern-bg"></div>
+<section class="org-login">
+  <div class="box box-modal">
+    <div class="box-header">
+      <a href="/">
+        <span class="icon-sentry-logo-full"></span>
+      </a>
+    </div>
+    <div class="box-content with-padding">
+      {% block main %}{% endblock %}
+    </div>
+  </div>
+</section>
 {% endblock %}

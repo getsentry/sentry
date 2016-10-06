@@ -23,7 +23,7 @@ const GroupTitle = React.createClass({
       return (
         <span>
           <span style={{marginRight: 10}}>{title}</span>
-          <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{subtitle}</em><br/>
+          <em>{subtitle}</em><br/>
         </span>
       );
     }

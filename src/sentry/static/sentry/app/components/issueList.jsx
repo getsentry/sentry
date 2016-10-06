@@ -15,6 +15,7 @@ const IssueList = React.createClass({
     pagination: React.PropTypes.bool,
     renderEmpty: React.PropTypes.func,
     statsPeriod: React.PropTypes.string,
+    showActions: React.PropTypes.bool
   },
 
   mixins: [ApiMixin],
@@ -42,6 +43,9 @@ const IssueList = React.createClass({
   componentWillReceiveProps(nextProps) {
     let location = this.props.location;
     let nextLocation = nextProps.location;
+    if (!location)
+      return;
+
     if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
       this.remountComponent();
     }
@@ -57,7 +61,7 @@ const IssueList = React.createClass({
     this.api.request(this.props.endpoint, {
       method: 'GET',
       query: {
-        cursor: location.query.cursor || '',
+        cursor: (location && location.query && location.query.cursor) || '',
         ...this.props.query,
       },
       success: (data, _, jqXHR) => {
@@ -96,7 +100,9 @@ const IssueList = React.createClass({
                 key={id}
                 id={id}
                 orgId={params.orgId}
-                statsPeriod={this.props.statsPeriod} />
+                statsPeriod={this.props.statsPeriod}
+                showActions={this.props.showActions}
+              />
             );
           })}
         </ul>
