@@ -647,6 +647,18 @@
       .org-selector {
         padding: 0;
         padding-right: 14px;
+
+        &.active:before {
+          top: auto;
+          right: auto;
+          bottom: -10px;
+          left: 50%;
+          margin-left: -12px;
+          border-bottom: 7px solid #F7F8F9;
+          border-right: 7px solid transparent;
+          border-left: 7px solid transparent;
+          border-top: 7px solid transparent;
+        }
       }
     }
 
