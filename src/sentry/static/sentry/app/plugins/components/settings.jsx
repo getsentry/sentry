@@ -7,6 +7,7 @@ import {
 } from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import LoadingIndicator from '../../components/loadingIndicator';
+import {t} from '../../locale';
 
 
 class PluginSettings extends PluginComponentBase {
@@ -94,6 +95,13 @@ class PluginSettings extends PluginComponentBase {
     }
     let isSaving = this.state.state === FormState.SAVING;
     let hasChanges = !underscore.isEqual(this.state.initialData, this.state.formData);
+    if (this.state.state === FormState.ERROR && !this.state.fieldList) {
+      return (
+        <div className="alert alert-error m-b-1">
+          {t('An unknown error occurred.')}
+        </div>
+      );
+    }
     return (
       <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
         {this.state.errors.__all__ &&
