@@ -2,7 +2,6 @@ import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
-import GroupStore from '../stores/groupStore';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';
 import Pagination from './pagination';
@@ -65,9 +64,8 @@ const IssueList = React.createClass({
         ...this.props.query,
       },
       success: (data, _, jqXHR) => {
-        GroupStore.add(data);
-
         this.setState({
+          data: data,
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
@@ -94,11 +92,12 @@ const IssueList = React.createClass({
     else if (this.state.issueIds.length > 0) {
       body = (
         <ul className="issue-list">
-          {this.state.issueIds.map((id) => {
+          {this.state.data.map((issue) => {
             return (
               <CompactIssue
-                key={id}
-                id={id}
+                key={issue.id}
+                id={issue.id}
+                data={issue}
                 orgId={params.orgId}
                 statsPeriod={this.props.statsPeriod}
                 showActions={this.props.showActions}
