@@ -28,6 +28,7 @@ const RuleRow = React.createClass({
   },
 
   onDelete() {
+    /* eslint no-alert:0*/
     if (!confirm('Are you sure you want to remove this rule?'))
       return;
     if (this.state.loading)
