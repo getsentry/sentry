@@ -181,6 +181,13 @@ const Sidebar = React.createClass({
           </a>
         </li>
       </ul>
+      <ul className="navbar-nav">
+        <Broadcasts
+          showPanel={this.state.showPanel}
+          currentPanel={this.state.currentPanel}
+          onShowPanel={()=>this.togglePanel('broadcasts')}
+          hidePanel={()=>this.hidePanel()} />
+      </ul>
 
       {/* Panel bodies */}
       {this.state.showPanel && this.state.currentPanel == 'assigned' &&
@@ -277,11 +284,6 @@ const Sidebar = React.createClass({
                 onShowPanel={()=>this.togglePanel('todos')}
                 hidePanel={()=>this.hidePanel()} />
             }
-            <Broadcasts
-              showPanel={this.state.showPanel}
-              currentPanel={this.state.currentPanel}
-              onShowPanel={()=>this.togglePanel('broadcasts')}
-              hidePanel={()=>this.hidePanel()} />
 
             <Incidents
               showPanel={this.state.showPanel}
