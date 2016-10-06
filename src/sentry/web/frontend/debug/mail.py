@@ -473,7 +473,7 @@ def report(request):
         for timestamp in tsdb.get_optimal_rollup_series(start, stop, rollup)[1]:
             damping = random.uniform(0.2, 0.6) if to_datetime(timestamp).weekday in weekend else 1
             jitter = random.paretovariate(1.2)
-            series.append((timestamp, value * damping * jitter))
+            series.append((timestamp, int(value * damping * jitter)))
             value = value * random.uniform(0.25, 2)
 
         return reports.clean_calendar_data(
