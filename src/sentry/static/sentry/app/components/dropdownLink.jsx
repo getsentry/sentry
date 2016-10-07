@@ -49,6 +49,10 @@ const DropdownLink = React.createClass({
       });
   },
 
+  componentWillUnmount(){
+    jQuery(this.refs.dropdownToggle.parentNode).off();
+  },
+
   close() {
     this.setState({isOpen: false});
   },
