@@ -1,6 +1,6 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
-import DropdownLink from 'app/components/DropdownLink';
+import DropdownLink from 'app/components/dropdownLink';
 
 describe('DropdownLink', function() {
   const INPUT_1 = {
