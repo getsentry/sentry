@@ -47,3 +47,5 @@ issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
 plugin_enabled = BetterSignal(providing_args=["plugin", "project", "user"])
 
 email_verified = BetterSignal(providing_args=["email"])
+
+mocks_loaded = BetterSignal(providing_args=["project"])
