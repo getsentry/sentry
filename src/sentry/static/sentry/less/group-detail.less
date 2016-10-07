@@ -816,7 +816,7 @@
     .box, .user-report {
       border-radius: 0;
       box-shadow: none;
-      padding: 20px 30px 20px 40px;
+      padding: 20px 30px 0 40px;
       border: 0;
       border-top: 1px solid lighten(@trim, 4);
       margin: 0;
@@ -1129,6 +1129,7 @@
   border: 1px solid @trim-dark;
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0,0,0, .04);
+  margin-bottom: 20px;
 }
 
 // TODO(dcramer): we probably shouldnt overload these
@@ -1195,14 +1196,12 @@ div.traceback > ul {
 }
 
 .exception {
-  border-top: 1px solid @trim;
-  margin: 20px 0 0;
-  padding: 20px 0 0;
+  border-bottom: 1px solid @trim;
+  margin: 0 0 20px;
 
-  &:first-child {
-    border-top: 0;
-    padding-top: 0;
-    margin-top: 0;
+  &:last-child {
+    border-bottom: 0;
+    margin-bottom: 0;
   }
 
   .traceback {
@@ -1717,7 +1716,7 @@ div.commands {
   position: relative;
   margin-left: -20px;
   margin-right: -20px;
-  padding: 16px 20px 1px;
+  padding: 16px 20px 0;
   border-top: 1px solid #f1f2f3;
   .transition(all 5s ease-in-out);
 
@@ -1750,7 +1749,6 @@ div.commands {
     max-height: 200px;
     overflow: hidden;
   }
-
 }
 
 .box.errors {
@@ -2048,7 +2046,6 @@ ul.crumbs {
   border: 1px solid @trim-dark;
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0,0,0, .04);
-  margin-bottom: 0;
 
   li {
     margin: 0;
