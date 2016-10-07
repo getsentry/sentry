@@ -166,17 +166,17 @@ const Sidebar = React.createClass({
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
         <li className={this.state.currentPanel == 'assigned' ? 'active' : null }>
-          <a>
+          <a title="Assigned to me">
             <span className="icon icon-user" onClick={()=>this.togglePanel('assigned')} />
           </a>
         </li>
         <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null }>
-          <a>
+          <a title="My Bookmarks">
             <span className="icon icon-star-solid" onClick={()=>this.togglePanel('bookmarks')} />
           </a>
         </li>
         <li className={this.state.currentPanel == 'history' ? 'active' : null }>
-          <a>
+          <a title="Recently Viewed">
             <span className="icon icon-av_timer" onClick={()=>this.togglePanel('history')} />
           </a>
         </li>
