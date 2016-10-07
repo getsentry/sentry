@@ -98,7 +98,6 @@ def make_django_command(name, django_command=None, help=None):
 
 list(map(cli.add_command, (
     make_django_command('shell', help='Run a Python interactive interpreter.'),
-    make_django_command('celery', help='DEPRECATED see `sentry run` instead.'),
 )))
 
 
