@@ -1,6 +1,8 @@
 Version 8.10 (Unreleased)
 -------------------------
 
+- Removed previously deprecated ``sentry celery`` command.
+
 Version 8.9
 -----------
 
