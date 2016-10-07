@@ -21,13 +21,38 @@
     td label small {
         font-weight: normal;
     }
+    table.notifications-fine-tuning {
+      margin-bottom: 20px;
+    }
+    table.notifications-fine-tuning > tbody > tr > td,
+    table.notifications-fine-tuning > thead > tr > th {
+      padding: 8px 10px;
+      font-size: 14px;
+    }
+    table.notifications-fine-tuning > tbody > tr > td.route {
+      padding: 0;
+    }
+    table.notifications-fine-tuning > tbody > tr > td.route .form-control {
+      padding: 8px 10px;
+      border: 1px solid #fff;
+      border-width: 0 1px;
+      box-shadow: none;
+      top: 0;
+      border-radius: 0;
+    }
+    table.notifications-fine-tuning > tbody > tr > td.route .form-control .select2-choice .select2-arrow {
+      right: -3px;
+    }
+    table.notifications-fine-tuning > tbody > tr > td.route .form-control .select2-choice > .select2-chosen {
+      margin-right: 20px;
+    }
+    table.notifications-fine-tuning > tbody > tr > td.route .form-control.select2-dropdown-open {
+      border-color: #c9c0d1;
+    }
+    td .form-group { margin-bottom: 0; }
     </style>
     <form action="" method="post" class="">
         {% csrf_token %}
-
-        <h4>{% trans "General" %}</h4>
-
-        <hr />
 
         <h4>{% trans "Alerts" %}</h4>
 
@@ -39,13 +64,20 @@
 
         <h4>{% trans "Workflow" %}</h4>
 
-        <p>{% blocktrans %}Workflow notifications are separate from alerts, and are generated for things like comments and issue updates. You may subscribe (or unsubscribe) from individual issues on their respective pages.{% endblocktrans %}</p>
+        <p>{% blocktrans %}Workflow notifications are separate from alerts and are generated for issue updates, such as:{% endblocktrans %}</p>
+
+        <ul>
+          <li>{% trans "Assignment" %}</li>
+          <li>{% trans "Comments" %}</li>
+          <li>{% trans "Regressions" %}</li>
+          <li>{% trans "Resolution" %}</li>
+        </ul>
 
         {{ settings_form.workflow_notifications|as_crispy_field }}
 
-        <p class="help-text help-block">Note: You'll always receive notifications if you're explicitly participating on an issue.</p>
-
         {{ settings_form.self_notifications|as_crispy_field }}
+
+        <p>{% blocktrans %}You may subscribe (or unsubscribe) from individual issues on their respective pages.{% endblocktrans %}</p>
 
         <hr />
 
@@ -59,7 +91,7 @@
 
         <h4>{% trans "Fine Tuning" %}</h4>
 
-        <p>Use the settings below to fine tune notification settings per-project.<br>Add or verify emails in the <a href="{% url "sentry-account-settings-emails" %}">Emails</a> Tab.</p>
+        <p>Use the settings below to fine tune notification settings per-project. You may add or verify additional email addresses via the <a href="{% url "sentry-account-settings-emails" %}">Emails</a> settings.</p>
 
         {% for project, form in project_forms %}
             {{ form|as_crispy_errors }}
@@ -71,20 +103,18 @@
                     </table>
                 {% endif %}
 
-                <h5 style="margin-top: 20px; font-weight: normal">{{ project.organization.name }}</h5>
-
-                <table class="table table-bordered table-striped" style="margin-bottom: 20px">
+                <table class="table notifications-fine-tuning">
                     <thead>
                         <tr>
                             <th>{% trans "Project" %}</th>
+                            <th style="width:300px;overflow:hidden;text-align:right">
+                              {% trans "Email Address" %}
+                            </th>
                             <th style="width:50px;text-align:center">
                               <a data-toggle="alert">Alerts</a>
                             </th>
                             <th style="width:50px;text-align:center">
                               <a data-toggle="workflow">Workflow</a>
-                            </th>
-                            <th style="width:300px;overflow:hidden;text-align:center">
-                              {% trans "Email Address" %}
                             </th>
                         </tr>
                     </thead>
@@ -94,13 +124,13 @@
               <td>
                 <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{{ project.organization.slug}} / {{ project.slug }}</a>
               </td>
-              <td style="text-align:center">{{ form.alert }}</td>
-              <td style="text-align:center">{{ form.workflow }}</td>
-              <td style="text-align:center">
+              <td style="text-align:right" class="route">
               {% with form.email as field %}
                 {{ field|as_crispy_field }}
               {% endwith %}
               </td>
+              <td style="text-align:center">{{ form.alert }}</td>
+              <td style="text-align:center">{{ form.workflow }}</td>
             </tr>
         {% endfor %}
         </tbody></table>
