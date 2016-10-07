@@ -21,6 +21,7 @@ from sentry.models import (
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
     GroupRelease, Environment, ReleaseEnvironment
 )
+from sentry.signals import mocks_loaded
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event
 
@@ -382,6 +383,8 @@ def main(num_events=1):
             if hasattr(buffer, 'process_pending'):
                 print('    > Processing pending buffers')
                 buffer.process_pending()
+
+            mocks_loaded.send(project=project, sender=__name__)
 
         OrganizationAccessRequest.objects.create_or_update(
             member=dummy_member,
