@@ -6,7 +6,27 @@ from rest_framework.response import Response
 
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.models import GroupMeta
+
+
+class PluginOrganizationEndpoint(OrganizationEndpoint):
+    plugin = None
+    view = None
+
+    def _handle(self, request, organization, *args, **kwargs):
+        if self.view is None:
+            return Response(status=405)
+        return self.view(request, organization, *args, **kwargs)
+
+    def get(self, request, organization, *args, **kwargs):
+        return self._handle(request, organization, *args, **kwargs)
+
+    def post(self, request, organization, *args, **kwargs):
+        return self._handle(request, organization, *args, **kwargs)
+
+    def respond(self, *args, **kwargs):
+        return Response(*args, **kwargs)
 
 
 class PluginProjectEndpoint(ProjectEndpoint):
