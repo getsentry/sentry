@@ -63,14 +63,15 @@ class BuildAssetsCommand(BaseBuildCommand):
             sys.path.pop(0)
 
         if not (version and build):
+            json_path = self.get_asset_json_path()
             try:
-                with open(self.get_asset_json_path()) as fp:
+                with open(json_path) as fp:
                     data = json.loads(fp.read())
             except Exception:
                 pass
             else:
                 log.info('pulled version information from \'{}\''.format(
-                    self.package_path,
+                    json_path,
                 ))
                 version, build = data['version'], data['build']
 
