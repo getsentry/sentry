@@ -70,7 +70,7 @@ class BuildAssetsCommand(BaseBuildCommand):
                 pass
             else:
                 log.info('pulled version information from \'{}\''.format(
-                    self.package_path,
+                    self.pkg_path,
                 ))
                 version, build = data['version'], data['build']
 
