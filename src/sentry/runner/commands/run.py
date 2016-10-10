@@ -35,15 +35,25 @@ class AddressParamType(click.ParamType):
 Address = AddressParamType()
 
 
-class SetType(click.ParamType):
+class QueueSetType(click.ParamType):
     name = 'text'
 
     def convert(self, value, param, ctx):
         if value is None:
             return None
-        return frozenset(value.split(','))
+        # Providing a compatibility with splitting
+        # the `events` queue until multiple queues
+        # without the need to explicitly add them.
+        queues = set()
+        for queue in value.split(','):
+            queues.add(queue)
+            if queue == 'events':
+                queues.add('events.preprocess_event')
+                queues.add('events.save_event')
+        return frozenset(queues)
 
-Set = SetType()
+
+QueueSet = QueueSetType()
 
 
 @click.group()
@@ -109,11 +119,11 @@ def smtp(bind, upgrade, noinput):
 @click.option('--hostname', '-n', help=(
     'Set custom hostname, e.g. \'w1.%h\'. Expands: %h'
     '(hostname), %n (name) and %d, (domain).'))
-@click.option('--queues', '-Q', type=Set, help=(
+@click.option('--queues', '-Q', type=QueueSet, help=(
     'List of queues to enable for this worker, separated by '
     'comma. By default all configured queues are enabled. '
     'Example: -Q video,image'))
-@click.option('--exclude-queues', '-X', type=Set)
+@click.option('--exclude-queues', '-X', type=QueueSet)
 @click.option('--concurrency', '-c', default=cpu_count(), help=(
     'Number of child processes processing the queue. The '
     'default is the number of CPUs available on your '
