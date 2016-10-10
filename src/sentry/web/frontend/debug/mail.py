@@ -469,7 +469,14 @@ def report(request):
             random.randint(0, daily_maximum * 7) if random.random() < 0.9 else None for _ in xrange(0, 4)
         ]
 
-        return series, aggregates, build_issue_summaries(), build_release_list(), build_usage_summary()
+        return (
+            series,
+            aggregates,
+            build_issue_summaries(),
+            build_release_list(),
+            build_usage_summary(),
+            int(aggregates[0] * random.random()) if aggregates[0] is not None and random.random() < 0.8 else 0,
+        )
 
     if random.random() < 0.85:
         personal = {
