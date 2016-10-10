@@ -281,7 +281,10 @@ class IssueTrackingPlugin2(Plugin):
                 'errors': errors
             }, status=400)
 
-        issue_id = int(request.DATA['issue_id'])
+        try:
+            issue_id = int(request.DATA['issue_id'])
+        except ValueError:
+            issue_id = request.DATA['issue_id']
 
         try:
             issue = self.link_issue(
