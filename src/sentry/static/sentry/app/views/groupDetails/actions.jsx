@@ -100,7 +100,6 @@ const GroupActions = React.createClass({
 
     let hasRelease = defined(group.lastRelease);
     let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
-    let linkTrackerText = t('Link Issue Tracker');
 
     return (
       <div className="group-actions">
@@ -231,7 +230,7 @@ const GroupActions = React.createClass({
         {!group.pluginIssues.length &&
           <a href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
              className={'btn btn-default btn-sm btn-config-issue-tracking'}>
-            {linkTrackerText}
+            {t('Link Issue Tracker')}
           </a>
         }
       </div>
