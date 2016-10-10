@@ -227,6 +227,12 @@ const GroupActions = React.createClass({
         {group.pluginIssues && group.pluginIssues.map((plugin) => {
           return <IssuePluginActions key={plugin.slug} plugin={plugin}/>;
         })}
+        {!group.pluginIssues.length &&
+          <a href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
+             className={'btn btn-default btn-sm btn-config-issue-tracking'}>
+            {t('Link Issue Tracker')}
+          </a>
+        }
       </div>
     );
   }
