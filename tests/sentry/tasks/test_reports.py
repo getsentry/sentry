@@ -237,6 +237,7 @@ class ReportTestCase(TestCase):
         has_feature.side_effect = lambda name, *a, **k: {
             'organizations:reports:deliver': True,
             'organizations:reports:prepare': True,
+            'organizations:reports:calendar': True,
         }.get(name, False)
 
         project = self.create_project(
