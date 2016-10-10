@@ -6,7 +6,7 @@ import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
 import PluginConfig from '../components/pluginConfig';
 import {FormState, RangeField} from '../components/forms';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 const ProjectDigestSettings = React.createClass({
   propTypes: {
@@ -248,6 +248,17 @@ const ProjectAlertSettings = React.createClass({
                     index={true}>{t('Settings')}</ListLink>
           <ListLink to={`/${orgId}/${projectId}/settings/alerts/rules/`}>{t('Rules')}</ListLink>
         </ul>
+
+        <div className="alert alert-block alert-info">
+          {tct(
+            'These settings cover rule-based alerts. If you\'re ' +
+            'looking to change which notifications you receive ' +
+            'you may do so from your [link:account settings].',
+            {
+              link: <a href="/account/settings/notifications/" />
+            }
+          )}
+        </div>
 
         <ProjectDigestSettings
           orgId={orgId}
