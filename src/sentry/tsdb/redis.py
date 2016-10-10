@@ -11,22 +11,21 @@ import itertools
 import logging
 import operator
 import random
-import six
 import uuid
-
 from binascii import crc32
 from collections import defaultdict, namedtuple
-
-from django.utils import timezone
 from hashlib import md5
+
+import six
+from django.utils import timezone
 from pkg_resources import resource_string
 from redis.client import Script
-from six.moves import reduce
 
 from sentry.tsdb.base import BaseTSDB
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
+from six.moves import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -164,7 +163,7 @@ class RedisTSDB(BaseTSDB):
             timestamp = timezone.now()
 
         with self.cluster.map() as client:
-            for rollup, max_values in self.rollups:
+            for rollup, max_values in six.iteritems(self.rollups):
                 norm_rollup = normalize_to_rollup(timestamp, rollup)
                 for model, key in items:
                     model_key = self.get_model_key(key)
@@ -229,7 +228,7 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.fanout() as client:
             for model, key, values in items:
                 c = client.target_key(key)
-                for rollup, max_values in self.rollups:
+                for rollup, max_values in six.iteritems(self.rollups):
                     k = self.make_key(
                         model,
                         rollup,
@@ -407,7 +406,7 @@ class RedisTSDB(BaseTSDB):
 
                 # Figure out all of the keys we need to be incrementing, as
                 # well as their expiration policies.
-                for rollup, max_values in self.rollups:
+                for rollup, max_values in six.iteritems(self.rollups):
                     chunk = self.make_frequency_table_keys(model, rollup, ts, key)
                     keys.extend(chunk)
 

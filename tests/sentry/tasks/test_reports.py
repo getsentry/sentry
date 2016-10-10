@@ -11,10 +11,11 @@ from django.core import mail
 from sentry.app import tsdb
 from sentry.models import Project, UserOption
 from sentry.tasks.reports import (
-    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Skipped, change,
-    clean_series, deliver_organization_user_report, has_valid_aggregates,
-    merge_mappings, merge_sequences, merge_series, prepare_reports, safe_add,
-    user_subscribed_to_organization_reports
+    DISABLED_ORGANIZATIONS_USER_OPTION_KEY, Report, Skipped, change,
+    clean_series, colorize, deliver_organization_user_report,
+    get_calendar_range, get_percentile, has_valid_aggregates, index_to_month,
+    merge_mappings, merge_sequences, merge_series, month_to_index,
+    prepare_reports, safe_add, user_subscribed_to_organization_reports
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils.dates import to_datetime, to_timestamp
@@ -169,7 +170,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return None, aggregates, None, None, None
+        return Report(None, aggregates, None, None, None, None)
 
     assert has_valid_aggregates(
         interval,
@@ -187,6 +188,45 @@ def test_has_valid_aggregates(interval):
     ) is True
 
 
+def test_percentiles():
+    values = [3, 6, 7, 8, 8, 9, 10, 13, 15, 16, 20]
+
+    get_percentile(values, 0.25) == 7
+    get_percentile(values, 0.50) == 9
+    get_percentile(values, 0.75) == 15
+    get_percentile(values, 1.00) == 20
+
+
+def test_colorize():
+    colors = ['green', 'yellow', 'red']
+    values = [2, 5, 1, 3, 4, 0]
+
+    legend, results = colorize(colors, values)
+
+    assert results == [
+        (2, 'yellow'),
+        (5, 'red'),
+        (1, 'green'),
+        (3, 'yellow'),
+        (4, 'red'),
+        (0, 'green'),
+    ]
+
+
+def test_month_indexing():
+    assert index_to_month(month_to_index(1986, 10)) == (1986, 10)
+
+
+def test_calendar_range():
+    assert get_calendar_range(
+        (None, datetime(2016, 2, 1, tzinfo=pytz.utc)),
+        months=3,
+    ) == (
+        month_to_index(2015, 11),
+        month_to_index(2016, 1),
+    )
+
+
 class ReportTestCase(TestCase):
     @mock.patch('sentry.features.has')
     def test_integration(self, has_feature):
@@ -197,11 +237,13 @@ class ReportTestCase(TestCase):
         has_feature.side_effect = lambda name, *a, **k: {
             'organizations:reports:deliver': True,
             'organizations:reports:prepare': True,
+            'organizations:reports:calendar': True,
         }.get(name, False)
 
         project = self.create_project(
             organization=self.organization,
             team=self.team,
+            date_added=now - timedelta(days=90),
         )
 
         tsdb.incr(
