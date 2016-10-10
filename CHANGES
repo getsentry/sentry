@@ -3,6 +3,7 @@ Version 8.10 (Unreleased)
 
 - Removed previously deprecated ``sentry celery`` command.
 - Split the ``events`` queue into ``events.{preprocess,save}_event``.
+- Add additional ``events.process_event`` queue.
 
 Version 8.9
 -----------

@@ -49,6 +49,7 @@ class QueueSetType(click.ParamType):
             queues.add(queue)
             if queue == 'events':
                 queues.add('events.preprocess_event')
+                queues.add('events.process_event')
                 queues.add('events.save_event')
         return frozenset(queues)
 

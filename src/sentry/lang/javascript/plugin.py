@@ -11,9 +11,6 @@ from .errormapping import rewrite_exception
 
 
 def preprocess_event(data):
-    if data.get('platform') != 'javascript':
-        return
-
     if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT:
         project = Project.objects.get_from_cache(
             id=data['project'],
@@ -119,5 +116,7 @@ class JavascriptPlugin(Plugin2):
     def can_configure_for_project(self, project, **kwargs):
         return False
 
-    def get_event_preprocessors(self, **kwargs):
-        return [preprocess_event]
+    def get_event_preprocessors(self, data, **kwargs):
+        if data.get('platform') == 'javascript':
+            return [preprocess_event]
+        return []
