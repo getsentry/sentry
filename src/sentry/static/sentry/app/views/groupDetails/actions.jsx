@@ -230,7 +230,7 @@ const GroupActions = React.createClass({
         {!group.pluginIssues.length &&
           <a href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
              className={'btn btn-default btn-sm btn-config-issue-tracking'}>
-            Configure Issue Tracking
+            Link Issue Tracker
           </a>
         }
       </div>
