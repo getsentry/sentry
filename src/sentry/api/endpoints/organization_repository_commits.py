@@ -13,8 +13,8 @@ class OrganizationRepositoryCommitsEndpoint(OrganizationEndpoint):
 
     def get(self, request, organization, repo_id):
         """
-        List a Repositories's Commits
-        `````````````````````````````
+        List a Repository's Commits
+        ```````````````````````````
 
         Return a list of commits for a given repository.
 
