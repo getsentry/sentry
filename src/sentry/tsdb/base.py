@@ -7,9 +7,10 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
-import six
+from collections import OrderedDict
 from datetime import timedelta
 
+import six
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -77,7 +78,7 @@ class BaseTSDB(object):
     models = TSDBModel
 
     def __init__(self, rollups=settings.SENTRY_TSDB_ROLLUPS):
-        self.rollups = rollups
+        self.rollups = OrderedDict(rollups)
 
     def validate(self):
         """
@@ -133,13 +134,13 @@ class BaseTSDB(object):
         # window, retrieved several days after it's occurrence), this can
         # return a rollup that has already been evicted due to TTL, even if a
         # lower resolution representation of the range exists.
-        for rollup, samples in self.rollups:
+        for rollup, samples in six.iteritems(self.rollups):
             if rollup * samples >= num_seconds:
                 return rollup
 
         # If nothing actually matches the requested range, just return the
         # lowest resolution interval.
-        return self.rollups[-1][0]
+        return list(self.rollups)[-1]
 
     def get_optimal_rollup_series(self, start, end=None, rollup=None):
         if end is None:
@@ -170,6 +171,19 @@ class BaseTSDB(object):
         """
         epoch = self.normalize_to_epoch(timestamp, rollup)
         return epoch + (rollup * samples)
+
+    def get_earliest_timestamp(self, rollup, timestamp=None):
+        """
+        Calculate the earliest available timestamp for a rollup.
+        """
+        if timestamp is None:
+            timestamp = timezone.now()
+
+        lifespan = timedelta(seconds=rollup * (self.rollups[rollup] - 1))
+        return self.normalize_to_epoch(
+            timestamp - lifespan,
+            rollup,
+        )
 
     def incr(self, model, key, timestamp=None, count=1):
         """
