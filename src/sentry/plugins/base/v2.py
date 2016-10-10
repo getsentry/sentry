@@ -349,7 +349,7 @@ class IPlugin2(local, PluginConfigMixin):
         """
         return []
 
-    def get_event_preprocessors(self, **kwargs):
+    def get_event_preprocessors(self, data, **kwargs):
         """
         Return a list of preprocessors to apply to the given event.
 
@@ -357,7 +357,10 @@ class IPlugin2(local, PluginConfigMixin):
         input and returns modified data as output. If no changes to the data are
         made it is safe to return ``None``.
 
-        >>> def get_event_preprocessors(self, **kwargs):
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        >>> def get_event_preprocessors(self, data, **kwargs):
         >>>     return [lambda x: x]
         """
         return []
