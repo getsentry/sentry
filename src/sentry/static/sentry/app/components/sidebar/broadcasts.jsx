@@ -7,6 +7,9 @@ import {t} from '../../locale';
 import SidebarPanel from '../sidebarPanel';
 import SidebarPanelItem from '../sidebarPanelItem';
 
+const MARK_SEEN_DELAY = 1000;
+const POLLER_DELAY = 60000;
+
 const Broadcasts = React.createClass({
   propTypes: {
     showPanel: React.PropTypes.bool,
@@ -46,7 +49,7 @@ const Broadcasts = React.createClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
-  fetchData(callback) {
+  fetchData() {
     if (this.poller) {
       window.clearTimeout(this.poller);
     }
@@ -57,27 +60,21 @@ const Broadcasts = React.createClass({
           broadcasts: data,
           loading: false
         });
-        this.poller = window.setTimeout(this.fetchData, 60000);
+        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
       },
       error: () => {
         this.setState({
           loading: false,
           error: true
         });
-        this.poller = window.setTimeout(this.fetchData, 60000);
+        this.poller = window.setTimeout(this.fetchData, POLLER_DELAY);
       }
     });
   },
 
-  onOpen() {
-    this.timer = window.setTimeout(this.markSeen, 1000);
-  },
-
-  onClose() {
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
+  onShowPanel() {
+    this.timer = window.setTimeout(this.markSeen, MARK_SEEN_DELAY);
+    this.props.onShowPanel();
   },
 
   getUnseenIds() {
@@ -108,11 +105,6 @@ const Broadcasts = React.createClass({
         });
       },
     });
-  },
-
-  onShowPanel() {
-    this.markSeen();
-    this.props.onShowPanel();
   },
 
   render() {

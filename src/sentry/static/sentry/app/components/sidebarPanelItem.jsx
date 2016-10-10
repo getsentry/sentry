@@ -5,12 +5,18 @@ const SidebarPanelItem = React.createClass({
     title: React.PropTypes.string,
     image: React.PropTypes.string,
     message: React.PropTypes.any,
-    link: React.PropTypes.string
+    link: React.PropTypes.string,
+    hasSeen: React.PropTypes.bool
   },
 
   render() {
+    let className = 'sidebar-panel-item';
+    if (this.props.hasSeen) {
+      className += ' has-seen';
+    }
+
     return (
-      <div className="sidebar-panel-item">
+      <div className={className}>
         {this.props.title &&
           <h3>{this.props.title}</h3>
         }
