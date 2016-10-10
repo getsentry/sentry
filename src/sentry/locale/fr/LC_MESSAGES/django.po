@@ -911,7 +911,7 @@ msgstr "Les équipes permettent de regrouper l'accès des membres à un domaine 
 
 #: templates/sentry/error-page-embed.html:258
 msgid "It looks like we're having <span>some internal</span> issues."
-msgstr ""
+msgstr "Il semblerait qu'un <span>problème</span> soit survenu."
 
 #: templates/sentry/error-page-embed.html:259
 msgid "Our team has been notified."
