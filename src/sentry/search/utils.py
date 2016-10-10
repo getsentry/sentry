@@ -40,7 +40,7 @@ def get_user_tag(project, key, value):
             **{lookup: value}
         )[0]
     except (KeyError, IndexError):
-        return '{}:{}'.format(key, value)
+        return u'{}:{}'.format(key, value)
 
     return euser.tag_value
 
@@ -49,10 +49,10 @@ def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
     except (ValueError, TypeError):
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag not in ('+', '-'):
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if interval == 'h':
         delta = timedelta(hours=count)
@@ -63,7 +63,7 @@ def parse_datetime_range(value):
     elif interval == 'm':
         delta = timedelta(minutes=count)
     else:
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag == '-':
         return (timezone.now() - delta, None)
@@ -84,14 +84,14 @@ def parse_datetime_comparison(value):
         return (None, parse_datetime_value(value[1:])[0])
     if value[0] == '=':
         return parse_datetime_value(value[1:])
-    raise InvalidQuery('{} is not a valid datetime query'.format(value))
+    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
 def parse_datetime_value(value):
     try:
         return _parse_datetime_value(value)
     except ValueError:
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
 def _parse_datetime_value(value):
