@@ -23,6 +23,11 @@ class Commit(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_commit'
-        unique_together = (('repository_id', 'key'),)
+        index_together = (
+            ('repository_id', 'date_added'),
+        )
+        unique_together = (
+            ('repository_id', 'key'),
+        )
 
     __repr__ = sane_repr('organization_id', 'repository_id', 'key')
