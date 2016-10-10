@@ -5,7 +5,8 @@ from sentry.models import (
     Event, EventMapping, EventTag,
     Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
-    Release, TagKey, TagValue, Team, TeamStatus
+    Release, TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor,
+    ReleaseCommit, Repository
 )
 from sentry.tasks.deletion import (
     delete_group, delete_organization, delete_project, delete_tag_key,
@@ -22,11 +23,28 @@ class DeleteOrganizationTest(TestCase):
         )
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
-
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name=org.name,
+        )
+        commit_author = CommitAuthor.objects.create(
+            organization_id=org.id,
+            name='foo',
+            email='foo@example.com',
+        )
+        commit = Commit.objects.create(
+            repository_id=repo.id,
+            organization_id=org.id,
+            author=commit_author,
+            key='a' * 40,
+        )
         with self.tasks():
             delete_organization(object_id=org.id)
 
         assert not Organization.objects.filter(id=org.id).exists()
+        assert not Repository.objects.filter(id=repo.id).exists()
+        assert not CommitAuthor.objects.filter(id=commit_author.id).exists()
+        assert not Commit.objects.filter(id=commit.id).exists()
 
     def test_cancels_without_pending_status(self):
         org = self.create_organization(
@@ -83,11 +101,34 @@ class DeleteProjectTest(TestCase):
         GroupMeta.objects.create(group=group, key='foo', value='bar')
         release = Release.objects.create(version='a' * 32, project=project)
         GroupResolution.objects.create(group=group, release=release)
+        repo = Repository.objects.create(
+            organization_id=project.organization_id,
+            name=project.name,
+        )
+        commit_author = CommitAuthor.objects.create(
+            organization_id=project.organization_id,
+            name='foo',
+            email='foo@example.com',
+        )
+        commit = Commit.objects.create(
+            repository_id=repo.id,
+            organization_id=project.organization_id,
+            author=commit_author,
+            key='a' * 40,
+        )
+        ReleaseCommit.objects.create(
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=0,
+        )
 
         with self.tasks():
             delete_project(object_id=project.id)
 
         assert not Project.objects.filter(id=project.id).exists()
+        assert not ReleaseCommit.objects.filter(project_id=project.id).exists()
+        assert Commit.objects.filter(id=commit.id).exists()
 
     def test_cancels_without_pending_status(self):
         project = self.create_project(
