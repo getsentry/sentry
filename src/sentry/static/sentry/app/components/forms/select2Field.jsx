@@ -15,7 +15,7 @@ class Select2Field extends InputField {
           required={this.props.required}
           multiple={this.props.multiple || false}
           value={this.state.value}>
-        {this.props.choices.map((choice) => {
+        {(this.props.choices || []).map((choice) => {
           return (
             <option key={choice[0]}
                     value={choice[0]}>
