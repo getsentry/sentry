@@ -46,11 +46,22 @@ class QueueSetType(click.ParamType):
         # without the need to explicitly add them.
         queues = set()
         for queue in value.split(','):
-            queues.add(queue)
             if queue == 'events':
                 queues.add('events.preprocess_event')
                 queues.add('events.process_event')
                 queues.add('events.save_event')
+
+                from sentry.runner.initializer import show_big_error
+                show_big_error([
+                    'DEPRECATED',
+                    '`events` queue no longer exists.',
+                    'Switch to using:',
+                    '- events.preprocess_event',
+                    '- events.process_event',
+                    '- events.save_event',
+                ])
+            else:
+                queues.add(queue)
         return frozenset(queues)
 
 
