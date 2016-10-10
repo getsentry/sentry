@@ -80,7 +80,7 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'values_seen')
         )
 
-        snoozes = dict(
+        ignore_durations = dict(
             GroupSnooze.objects.filter(
                 group__in=item_list,
             ).values_list('group', 'until')
@@ -112,7 +112,7 @@ class GroupSerializer(Serializer):
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
-                'snooze': snoozes.get(item.id),
+                'ignore_duration': ignore_durations.get(item.id),
                 'pending_resolution': pending_resolutions.get(item.id),
             }
         return result
@@ -120,11 +120,11 @@ class GroupSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         status = obj.status
         status_details = {}
-        if attrs['snooze']:
-            if attrs['snooze'] < timezone.now() and status == GroupStatus.MUTED:
+        if attrs['ignore_duration']:
+            if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
                 status = GroupStatus.UNRESOLVED
             else:
-                status_details['snoozeUntil'] = attrs['snooze']
+                status_details['ignoreUntil'] = attrs['ignore_duration']
         elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             status = GroupStatus.RESOLVED
             status_details['autoResolved'] = True
@@ -132,8 +132,8 @@ class GroupSerializer(Serializer):
             status_label = 'resolved'
             if attrs['pending_resolution']:
                 status_details['inNextRelease'] = True
-        elif status == GroupStatus.MUTED:
-            status_label = 'muted'
+        elif status == GroupStatus.IGNORED:
+            status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
             status_label = 'pending_deletion'
         elif status == GroupStatus.PENDING_MERGE:

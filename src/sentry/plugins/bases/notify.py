@@ -160,7 +160,7 @@ class NotificationPlugin(Plugin):
         if not self.is_configured(project=project):
             return False
 
-        if group.is_muted():
+        if group.is_ignored():
             return False
 
         # If the plugin doesn't support digests or they are not enabled,

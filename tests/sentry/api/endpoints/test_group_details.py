@@ -82,8 +82,8 @@ class GroupUpdateTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(url, data={
-            'status': 'muted',
-            'snoozeDuration': 30,
+            'status': 'ignored',
+            'ignoreDuration': 30,
         }, format='json')
 
         assert response.status_code == 200
@@ -96,7 +96,7 @@ class GroupUpdateTest(APITestCase):
         assert response.data['statusDetails']['snoozeUntil'] == snooze.until
 
         group = Group.objects.get(id=group.id)
-        assert group.get_status() == GroupStatus.MUTED
+        assert group.get_status() == GroupStatus.IGNORED
 
         assert GroupSubscription.objects.filter(
             user=self.user,

@@ -74,7 +74,7 @@ const SearchBar = React.createClass({
         {
           title: t('Status'),
           desc: t('State of an issue'),
-          example: 'is:resolved, unresolved, muted, assigned, unassigned',
+          example: 'is:resolved, unresolved, ignored, assigned, unassigned',
           className: 'icon-toggle',
           value: 'is:'
         },

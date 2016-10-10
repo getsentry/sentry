@@ -67,8 +67,11 @@ def list_project_issues_scenario(runner):
 STATUS_CHOICES = {
     'resolved': GroupStatus.RESOLVED,
     'unresolved': GroupStatus.UNRESOLVED,
-    'muted': GroupStatus.MUTED,
+    'ignored': GroupStatus.IGNORED,
     'resolvedInNextRelease': GroupStatus.UNRESOLVED,
+
+    # TODO(dcramer): remove in 9.0
+    'muted': GroupStatus.IGNORED,
 }
 
 
@@ -85,6 +88,9 @@ class GroupSerializer(serializers.Serializer):
     isPublic = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
+    ignoreDuration = serializers.IntegerField()
+
+    # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
 
@@ -283,15 +289,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam string status: optionally limits the query to issues of the
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
-                               ``"muted"``.
+                               ``"ignored"``.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
-                              ``"muted"``.
-        :param int snoozeDuration: the number of minutes to mute this issue.
+                              ``"ignored"``.
+        :param int ignoreDuration: the number of minutes to mute this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
         :param boolean hasSeen: in case this API call is invoked with a user
@@ -451,27 +457,30 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 group__in=group_ids,
             ).delete()
 
-            if new_status == GroupStatus.MUTED:
-                snooze_duration = result.pop('snoozeDuration', None)
-                if snooze_duration:
-                    snooze_until = timezone.now() + timedelta(
-                        minutes=snooze_duration,
+            if new_status == GroupStatus.IGNORED:
+                ignore_duration = (
+                    result.pop('ignoreDuration', None)
+                    or result.pop('snoozeDuration', None)
+                )
+                if ignore_duration:
+                    ignore_until = timezone.now() + timedelta(
+                        minutes=ignore_duration,
                     )
                     for group in group_list:
                         GroupSnooze.objects.create_or_update(
                             group=group,
                             values={
-                                'until': snooze_until,
+                                'until': ignore_until,
                             }
                         )
                         result['statusDetails'] = {
-                            'snoozeUntil': snooze_until,
+                            'ignoreUntil': ignore_until,
                         }
                 else:
                     GroupSnooze.objects.filter(
                         group__in=group_ids,
                     ).delete()
-                    snooze_until = None
+                    ignore_until = None
                     result['statusDetails'] = {}
             else:
                 result['statusDetails'] = {}
@@ -480,11 +489,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 if new_status == GroupStatus.UNRESOLVED:
                     activity_type = Activity.SET_UNRESOLVED
                     activity_data = {}
-                elif new_status == GroupStatus.MUTED:
-                    activity_type = Activity.SET_MUTED
+                elif new_status == GroupStatus.IGNORED:
+                    activity_type = Activity.SET_IGNORED
                     activity_data = {
-                        'snoozeUntil': snooze_until,
-                        'snoozeDuration': snooze_duration,
+                        'ignoreUntil': ignore_until,
+                        'ignoreDuration': ignore_duration,
                     }
 
                 for group in group_list:

@@ -48,10 +48,13 @@ def looks_like_short_id(value):
 class GroupStatus(object):
     UNRESOLVED = 0
     RESOLVED = 1
-    MUTED = 2
+    IGNORED = 2
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
+
+    # TODO(dcramer): remove in 9.0
+    MUTED = IGNORED
 
 
 def get_group_with_redirect(id, queryset=None):
@@ -164,7 +167,7 @@ class Group(Model):
     status = BoundedPositiveIntegerField(default=0, choices=(
         (GroupStatus.UNRESOLVED, _('Unresolved')),
         (GroupStatus.RESOLVED, _('Resolved')),
-        (GroupStatus.MUTED, _('Muted')),
+        (GroupStatus.IGNORED, _('Ignored')),
     ), db_index=True)
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -239,8 +242,11 @@ class Group(Model):
             return False
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
 
-    def is_muted(self):
-        return self.get_status() == GroupStatus.MUTED
+    def is_ignored(self):
+        return self.get_status() == GroupStatus.IGNORED
+
+    # TODO(dcramer): remove in 9.0
+    is_muted = is_ignored
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
@@ -249,7 +255,7 @@ class Group(Model):
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
-        if self.status == GroupStatus.MUTED:
+        if self.status == GroupStatus.IGNORED:
             try:
                 snooze = GroupSnooze.objects.get(group=self)
             except GroupSnooze.DoesNotExist:
@@ -258,7 +264,7 @@ class Group(Model):
                 # XXX(dcramer): if the snooze row exists then we need
                 # to confirm its still valid
                 if snooze.until > timezone.now():
-                    return GroupStatus.MUTED
+                    return GroupStatus.IGNORED
                 else:
                     return GroupStatus.UNRESOLVED
 
