@@ -40,6 +40,8 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
+from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
@@ -178,6 +180,12 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/projects/$',
         OrganizationProjectsEndpoint.as_view(),
         name='sentry-api-0-organization-projects'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/$',
+        OrganizationRepositoriesEndpoint.as_view(),
+        name='sentry-api-0-organization-repositories'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$',
+        OrganizationRepositoryCommitsEndpoint.as_view(),
+        name='sentry-api-0-organization-repository-commits'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'),
