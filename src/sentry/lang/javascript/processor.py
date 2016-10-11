@@ -427,7 +427,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 body = b''.join(contents)
                 z_body = zlib.compress(body)
                 headers = {k.lower(): v for k, v in response.headers.items()}
-                text_body = body.decode('utf-8', 'replace')
+                text_body = body.decode(response.encoding or 'utf-8', 'replace')
 
                 cache.set(cache_key, (headers, z_body, response.status_code), 60)
                 result = (headers, text_body, response.status_code)
