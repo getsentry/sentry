@@ -8,6 +8,6 @@ release.
 
     .. include:: ../CHANGES
 
-.. sentry:edition:: on-premise
+.. sentry:edition:: hosted, on-premise
 
     .. include:: ../../doc-modules/sentry/CHANGES
