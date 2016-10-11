@@ -38,19 +38,24 @@ class GroupSubscriptionManager(BaseManager):
             pass
 
     def get_participants(self, group):
+        return self.get_participants_with_reason(group).keys()
+
+    def get_participants_with_reason(self, group):
         """
         Identify all users who are participating with a given issue.
         """
         from sentry.models import User, UserOption, UserOptionValue
 
-        # identify all members of a project
+        # Identify all members of a project -- we'll use this to start figuring
+        # out who could possibly be associated with this group due to implied
+        # subscriptions.
         users = User.objects.filter(
             sentry_orgmember_set__teams=group.project.team,
             is_active=True,
         )
 
-        # TODO(dcramer): allow members to change from default particpating to
-        # explicit
+        # Obviously, users who have explicitly unsubscribed from this issue
+        # aren't considered participants.
         users = users.exclude(
             id__in=GroupSubscription.objects.filter(
                 group=group,
@@ -59,36 +64,48 @@ class GroupSubscriptionManager(BaseManager):
             ).values('user')
         )
 
-        # find users which by default do not subscribe
-        participating_only = set(UserOption.objects.filter(
-            Q(project__isnull=True) | Q(project=group.project),
-            user__in=users,
-            key='workflow:notifications',
-            value=UserOptionValue.participating_only,
-        ).exclude(
-            user__in=UserOption.objects.filter(
+        # Fetch all of the users that have been explicitly associated with this
+        # issue.
+        participants = {
+            subscription.user: subscription.reason
+            for subscription in
+            GroupSubscription.objects.filter(
+                group=group,
+                is_active=True,
+            ).select_related('user')
+        }
+
+        # Find users which by default do not subscribe.
+        participating_only = set(
+            UserOption.objects.filter(
+                Q(project__isnull=True) | Q(project=group.project),
                 user__in=users,
                 key='workflow:notifications',
-                project=group.project,
-                value=UserOptionValue.all_conversations,
-            )
-        ).values_list('user', flat=True))
+                value=UserOptionValue.participating_only,
+            ).exclude(
+                user__in=UserOption.objects.filter(
+                    user__in=users,
+                    key='workflow:notifications',
+                    project=group.project,
+                    value=UserOptionValue.all_conversations,
+                )
+            ).values_list('user', flat=True)
+        )
 
         if participating_only:
-            excluded = participating_only.difference(
-                GroupSubscription.objects.filter(
-                    group=group,
-                    is_active=True,
-                    user__in=participating_only,
-                ).values_list('user', flat=True)
-            )
-
+            excluded = participating_only.difference(participants.keys())
             if excluded:
-                users = users.exclude(
-                    id__in=excluded,
-                )
+                users = users.exclude(id__in=excluded)
 
-        return list(users)
+        results = {}
+
+        for user in users:
+            results[user] = None
+
+        for user, reason in participants.items():
+            results[user] = reason
+
+        return results
 
 
 class GroupSubscription(Model):
