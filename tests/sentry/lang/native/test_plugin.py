@@ -5,6 +5,49 @@ from mock import patch
 from sentry.models import Event
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
+from sentry.lang.native.plugin import convert_stacktrace
+
+
+def test_legacy_stacktrace_converter():
+    addr = {'foo': 'bar'}
+    rv = convert_stacktrace([
+        {
+            'symbol_name': '<redacted>',
+            'symbol_addr': 6479154912,
+            'instruction_addr': 6479155036,
+            'object_name': 'CoreFoundation',
+            'object_addr': 6477955072
+        },
+        {
+            'symbol_name': 'objc_exception_throw',
+            'symbol_addr': 6820298568,
+            'instruction_addr': 6820298624,
+            'object_name': 'libobjc.A.dylib',
+            'object_addr': 6820265984
+        }
+    ], notable_addresses=addr)['frames']
+    assert len(rv) == 2
+    assert rv == [
+        {'abs_path': None,
+         'filename': None,
+         'function': 'objc_exception_throw',
+         'in_app': False,
+         'instruction_addr': '0x196857f80',
+         'instruction_offset': 56,
+         'lineno': None,
+         'package': 'libobjc.A.dylib',
+         'symbol_addr': '0x196857f48'},
+        {'abs_path': None,
+         'filename': None,
+         'function': '<redacted>',
+         'in_app': False,
+         'instruction_addr': '0x182300f5c',
+         'instruction_offset': 124,
+         'lineno': None,
+         'package': 'CoreFoundation',
+         'symbol_addr': '0x182300ee0',
+         'vars': {'foo': 'bar'}}
+    ]
 
 
 class BasicResolvingIntegrationTest(TestCase):
