@@ -200,7 +200,7 @@ class MailPlugin(NotificationPlugin):
         return u'[{project}] {count} new {noun} since {date}'.format(
             project=project.get_full_name(),
             count=len(counts),
-            noun='alert' if len(counts) == 1 else 'alert',
+            noun='alert' if len(counts) == 1 else 'alerts',
             date=dateformat.format(date, 'N j, Y, P e'),
         )
 
