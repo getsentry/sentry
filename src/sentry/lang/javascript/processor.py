@@ -6,14 +6,15 @@ import logging
 import re
 import base64
 import six
+import time
 import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_text
 from collections import namedtuple
 from os.path import splitext
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, Timeout
 from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 
 # In case SSL is unavailable (light builds) we can't import this here.
@@ -358,56 +359,80 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
         with metrics.timer('sourcemaps.fetch'):
             http_session = http.build_session()
+            response = None
             try:
-                response = http_session.get(
-                    url,
-                    allow_redirects=True,
-                    verify=False,
-                    headers=headers,
-                    timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
-                )
-            except Exception as exc:
-                logger.debug('Unable to fetch %r', url, exc_info=True)
-                if isinstance(exc, RestrictedIPAddress):
-                    error = {
-                        'type': EventError.RESTRICTED_IP,
-                        'url': expose_url(url),
-                    }
-                elif isinstance(exc, SuspiciousOperation):
-                    error = {
-                        'type': EventError.SECURITY_VIOLATION,
-                        'url': expose_url(url),
-                    }
-                elif isinstance(exc, (RequestException, ZeroReturnError)):
-                    error = {
-                        'type': EventError.JS_GENERIC_FETCH_ERROR,
-                        'value': six.text_type(type(exc)),
-                        'url': expose_url(url),
-                    }
-                else:
-                    logger.exception(six.text_type(exc))
-                    error = {
-                        'type': EventError.UNKNOWN_ERROR,
-                        'url': expose_url(url),
-                    }
+                try:
+                    now = time.time()
+                    response = http_session.get(
+                        url,
+                        allow_redirects=True,
+                        verify=False,
+                        headers=headers,
+                        timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
+                        stream=True,
+                    )
 
-                # TODO(dcramer): we want to be less aggressive on disabling domains
-                cache.set(domain_key, error or '', 300)
-                logger.warning('Disabling sources to %s for %ss', domain, 300,
-                               exc_info=True)
-                raise CannotFetchSource(error)
+                    try:
+                        cl = int(response.headers['content-length'])
+                    except (LookupError, ValueError):
+                        cl = 0
+                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                        raise OverflowError()
+                    contents = []
+                    for chunk in response.iter_content():
+                        if time.time() - now > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
+                            raise Timeout()
+                        contents.append(chunk)
+                except Exception as exc:
+                    logger.debug('Unable to fetch %r', url, exc_info=True)
+                    if isinstance(exc, RestrictedIPAddress):
+                        error = {
+                            'type': EventError.RESTRICTED_IP,
+                            'url': expose_url(url),
+                        }
+                    elif isinstance(exc, SuspiciousOperation):
+                        error = {
+                            'type': EventError.SECURITY_VIOLATION,
+                            'url': expose_url(url),
+                        }
+                    elif isinstance(exc, Timeout):
+                        error = {
+                            'type': EventError.JS_SOURCEMAP_TIMEOUT,
+                            'url': expose_url(url),
+                        }
+                    elif isinstance(exc, OverflowError):
+                        error = {
+                            'type': EventError.JS_SOURCEMAP_TOO_LARGE,
+                            'url': expose_url(url),
+                        }
+                    elif isinstance(exc, (RequestException, ZeroReturnError)):
+                        error = {
+                            'type': EventError.JS_GENERIC_FETCH_ERROR,
+                            'value': six.text_type(type(exc)),
+                            'url': expose_url(url),
+                        }
+                    else:
+                        logger.exception(six.text_type(exc))
+                        error = {
+                            'type': EventError.UNKNOWN_ERROR,
+                            'url': expose_url(url),
+                        }
 
-            # requests' attempts to use chardet internally when no encoding is found
-            # and we want to avoid that slow behavior
-            if not response.encoding:
-                response.encoding = 'utf-8'
+                    # TODO(dcramer): we want to be less aggressive on disabling domains
+                    cache.set(domain_key, error or '', 300)
+                    logger.warning('Disabling sources to %s for %ss', domain, 300,
+                                   exc_info=True)
+                    raise CannotFetchSource(error)
 
-            body = response.text
-            z_body = zlib.compress(force_bytes(body))
-            headers = {k.lower(): v for k, v in response.headers.items()}
+                body = b''.join(contents)
+                z_body = zlib.compress(body)
+                headers = {k.lower(): v for k, v in response.headers.items()}
 
-            cache.set(cache_key, (headers, z_body, response.status_code), 60)
-            result = (headers, body, response.status_code)
+                cache.set(cache_key, (headers, z_body, response.status_code), 60)
+                result = (headers, body, response.status_code)
+            finally:
+                if response is not None:
+                    response.close()
 
     if result[2] != 200:
         logger.debug('HTTP %s when fetching %r', result[2], url,
