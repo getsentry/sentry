@@ -111,7 +111,7 @@ const Broadcasts = React.createClass({
     let {broadcasts, loading} = this.state;
     return (
       <li className={this.props.currentPanel == 'broadcasts' ? 'active' : null }>
-        <a className="broadcasts-toggle" onClick={this.onShowPanel}>
+        <a className="broadcasts-toggle" onClick={this.onShowPanel} title="Updates from Sentry">
           <span className="icon icon-globe"/>
           {this.getUnseenIds() > 0 &&
             <span className="activity-indicator"/>

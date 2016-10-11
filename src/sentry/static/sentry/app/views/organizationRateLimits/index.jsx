@@ -66,19 +66,18 @@ const RateLimitEditor = React.createClass({
 
     return (
       <form onSubmit={this.onSubmit} className="ref-rate-limit-editor">
-          <p>
-            {/* This may not translate well to all languages since maxRate may affect plural form of "events per minute" */}
-            {tct('Your organization is limited to [strong:[maxRate] events per minute]. When this rate is exceeded the system will begin discarding data until the next interval.',
-              {
-                strong: <strong/>,
-                maxRate: maxRate
-              }
-            )}
-          </p>
-
-        <p>{t('You may set a limit to the maximum amount a single project may send:')}</p>
+        <p>
+          {/* This may not translate well to all languages since maxRate may affect plural form of "events per minute" */}
+          {tct('Your organization is limited to [strong:[maxRate] events per minute]. When this rate is exceeded the system will begin discarding data until the next interval.',
+            {
+              strong: <strong/>,
+              maxRate: maxRate
+            }
+          )}
+        </p>
 
         <RangeField
+            label={t('Maximum amount a single project may send')}
             defaultValue={savedProjectLimit}
             onChange={this.onProjectLimitChange}
             formatLabel={(value) => { return `${value}%`; }} />
