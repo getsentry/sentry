@@ -243,7 +243,7 @@ class MailPluginTest(TestCase):
             mock.Mock(get_full_name=lambda: 'Rick & Morty'),
             {mock.sentinel.group: 3},
             datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
-        ) == '[Rick & Morty] 1 notification since Sept. 19, 2016, 1:02 a.m. UTC'
+        ) == '[Rick & Morty] 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC'
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send_async', autospec=True)

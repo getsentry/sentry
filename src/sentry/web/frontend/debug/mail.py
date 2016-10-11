@@ -193,7 +193,7 @@ class ActivityMailDebugView(View):
 
 
 @login_required
-def new_event(request):
+def alert(request):
     platform = request.GET.get('platform', 'python')
     org = Organization(
         id=1,
