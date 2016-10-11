@@ -263,8 +263,9 @@ def fetch_release_file(filename, release):
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
         try:
-            with releasefile.file.getfile() as fp:
-                z_body, body = compress_file(fp)
+            with metrics.timer('sourcemaps.release_file_read'):
+                with releasefile.file.getfile() as fp:
+                    z_body, body = compress_file(fp)
         except Exception as e:
             logger.exception(six.text_type(e))
             cache.set(cache_key, -1, 3600)
