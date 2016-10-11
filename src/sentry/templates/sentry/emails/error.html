@@ -4,11 +4,7 @@
 {% load i18n %}
 
 {% block preheader %}
-  {% if group.times_seen == 1 %}
-      New Issue on {{ project_label }}.
-  {% else %}
-      Regression on {{ project_label }}.
-  {% endif %}
+  New alert from {{ project_label }}.
 {% endblock %}
 
 {% block header %}
@@ -18,11 +14,7 @@
 
 {% block main %}
     <h2 style="margin-bottom: 15px">
-        {% if group.times_seen == 1 %}
-            New Issue on <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
-        {% else %}
-            Regression on <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
-        {% endif %}
+        New alert from <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
     </h2>
 
     {% if enhanced_privacy %}
