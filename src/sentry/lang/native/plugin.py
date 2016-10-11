@@ -175,8 +175,8 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
             # function needs to be provided.
             'function': function,
             'package': frame.get('object_name'),
-            'symbol_addr': '%x' % frame['symbol_addr'],
-            'instruction_addr': '%x' % frame['instruction_addr'],
+            'symbol_addr': '0x%x' % frame['symbol_addr'],
+            'instruction_addr': '0x%x' % frame['instruction_addr'],
             'instruction_offset': offset,
             'lineno': lineno,
         }
