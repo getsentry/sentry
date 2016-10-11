@@ -23,7 +23,7 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
 from sentry.http import get_server_hostname
 from sentry.models import (
-    Activity, Event, Group, GroupStatus, Organization, OrganizationMember,
+    Activity, Event, Group, GroupStatus, GroupSubscriptionReason, Organization, OrganizationMember,
     Project, Release, Rule, Team
 )
 from sentry.plugins.sentry_mail.activity import emails
@@ -123,11 +123,15 @@ class MailPreview(object):
 
 
 class ActivityMailPreview(object):
-    def __init__(self, activity):
+    def __init__(self, request, activity):
+        self.request = request
         self.email = emails.get(activity.type)(activity)
 
     def get_context(self):
         context = self.email.get_base_context()
+        context['reason'] = get_random(self.request).choice(
+            GroupSubscriptionReason.descriptions.values()
+        )
         context.update(self.email.get_context())
         return context
 
@@ -187,7 +191,7 @@ class ActivityMailDebugView(View):
         )
 
         return render_to_response('sentry/debug/mail/preview.html', {
-            'preview': ActivityMailPreview(activity),
+            'preview': ActivityMailPreview(request, activity),
             'format': request.GET.get('format'),
         })
 

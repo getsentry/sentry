@@ -12,11 +12,21 @@ from sentry.db.models import (
 
 
 class GroupSubscriptionReason(object):
+    implicit = -1  # not for use as a persisted field value
     unknown = 0
     comment = 1
     assigned = 2
     bookmark = 3
     status_change = 4
+
+    descriptions = {
+        implicit: u"have opted to receive updates for all issues within "
+                  "projects that you are a member of",
+        comment: u"have commented on this issue",
+        assigned: u"have been assigned to this issue",
+        bookmark: u"have bookmarked this issue",
+        status_change: u"have changed the resolution status of this issue",
+    }
 
 
 class GroupSubscriptionManager(BaseManager):
@@ -38,9 +48,6 @@ class GroupSubscriptionManager(BaseManager):
             pass
 
     def get_participants(self, group):
-        return self.get_participants_with_reason(group).keys()
-
-    def get_participants_with_reason(self, group):
         """
         Identify all users who are participating with a given issue.
         """
@@ -100,7 +107,7 @@ class GroupSubscriptionManager(BaseManager):
         results = {}
 
         for user in users:
-            results[user] = None
+            results[user] = GroupSubscriptionReason.implicit
 
         for user, reason in participants.items():
             results[user] = reason

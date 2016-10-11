@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import GroupSubscription, UserOption, UserOptionValue
+from sentry.models import GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
 from sentry.testutils import TestCase
 
 
@@ -34,7 +34,9 @@ class GetParticipantsTest(TestCase):
         # implicit membership
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == [user]
+        assert users == {
+            user: GroupSubscriptionReason.implicit,
+        }
 
         # unsubscribed
         GroupSubscription.objects.create(
@@ -46,7 +48,7 @@ class GetParticipantsTest(TestCase):
 
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == []
+        assert users == {}
 
         # not participating by default
         GroupSubscription.objects.filter(
@@ -63,7 +65,7 @@ class GetParticipantsTest(TestCase):
 
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == []
+        assert users == {}
 
         # explicitly participating
         GroupSubscription.objects.create(
@@ -71,11 +73,14 @@ class GetParticipantsTest(TestCase):
             group=group,
             project=project,
             is_active=True,
+            reason=GroupSubscriptionReason.comment,
         )
 
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == [user]
+        assert users == {
+            user: GroupSubscriptionReason.comment,
+        }
 
     def test_excludes_project_participating_only(self):
         org = self.create_organization()
@@ -94,4 +99,4 @@ class GetParticipantsTest(TestCase):
 
         users = GroupSubscription.objects.get_participants(group=group)
 
-        assert users == []
+        assert users == {}
