@@ -5,6 +5,7 @@ from ua_parser.user_agent_parser import Parse
 
 from sentry.models import Project
 from sentry.plugins import Plugin2
+from sentry.utils import metrics
 
 from .processor import SourceProcessor
 from .errormapping import rewrite_exception
@@ -22,7 +23,8 @@ def preprocess_event(data):
             project=project,
             allow_scraping=allow_scraping,
         )
-        processor.process(data)
+        with metrics.timer('sourcemaps.process', instance=project.id):
+            processor.process(data)
 
     rewrite_exception(data)
 
