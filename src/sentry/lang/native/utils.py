@@ -66,18 +66,18 @@ def find_all_stacktraces(data):
         for exc in exc_container['values']:
             stacktrace = exc.get('stacktrace')
             if stacktrace:
-                rv.append(stacktrace)
+                rv.append((stacktrace, exc))
 
     stacktrace = data.get('sentry.interfaces.Stacktrace')
     if stacktrace:
-        rv.append(stacktrace)
+        rv.append((stacktrace, None))
 
     threads = data.get('threads')
     if threads:
         for thread in threads['values']:
             stacktrace = thread.get('stacktrace')
             if stacktrace:
-                rv.append(stacktrace)
+                rv.append((stacktrace, thread))
 
     return rv
 

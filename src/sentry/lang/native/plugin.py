@@ -351,7 +351,7 @@ def resolve_frame_symbols(data):
 
     errors = []
     referenced_images = find_stacktrace_referenced_images(
-        debug_images, stacktraces)
+        debug_images, [x[0] for x in stacktraces])
     sym = Symbolizer(project, debug_images,
                      referenced_images=referenced_images)
 
@@ -371,12 +371,14 @@ def resolve_frame_symbols(data):
 
     processed_frames = []
     with sym:
-        for stacktrace in stacktraces:
+        for stacktrace, container in stacktraces:
+            store_raw = False
             for idx, frame in enumerate(stacktrace['frames']):
                 if 'image_addr' not in frame or \
                    'instruction_addr' not in frame or \
                    'symbol_addr' not in frame:
                     continue
+                store_raw = True
                 try:
                     sfrm = sym.symbolize_frame({
                         'object_name': frame.get('package'),
@@ -412,6 +414,12 @@ def resolve_frame_symbols(data):
                         'type': EventError.NATIVE_INTERNAL_FAILURE,
                         'error': 'The symbolicator encountered an internal failure',
                     })
+
+            # Remember the raw stacktrace.
+            if store_raw and container is not None:
+                container['raw_stacktrace'] = {
+                    'frames': stacktrace['frames'],
+                }
 
     if errors:
         data.setdefault('errors', []).extend(errors)
