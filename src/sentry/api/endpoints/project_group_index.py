@@ -297,7 +297,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
                               ``"ignored"``.
-        :param int ignoreDuration: the number of minutes to mute this issue.
+        :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
         :param boolean hasSeen: in case this API call is invoked with a user

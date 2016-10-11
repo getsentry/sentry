@@ -245,7 +245,7 @@ class Group(Model):
     def is_ignored(self):
         return self.get_status() == GroupStatus.IGNORED
 
-    # TODO(dcramer): remove in 9.0
+    # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
 
     def is_resolved(self):
