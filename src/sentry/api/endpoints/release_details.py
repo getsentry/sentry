@@ -7,7 +7,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Group, Release, ReleaseFile
+from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
@@ -57,6 +59,7 @@ class ReleaseSerializer(serializers.Serializer):
     url = serializers.URLField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
+    commits = ListField(child=CommitSerializer(), required=False)
 
 
 class ReleaseDetailsEndpoint(ProjectEndpoint):
@@ -142,6 +145,12 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
         if kwargs:
             release.update(**kwargs)
+
+        commit_list = result.get('commits')
+        if commit_list:
+            hook = ReleaseHook(project)
+            # TODO(dcramer): handle errors with release payloads
+            hook.set_commits(release.version, commit_list)
 
         return Response(serialize(release, request.user))
 

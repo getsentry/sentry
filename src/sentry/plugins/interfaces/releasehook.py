@@ -35,6 +35,9 @@ class ReleaseHook(object):
             values=values,
         )
 
+    # TODO(dcramer): this is being used by the release details endpoint, but
+    # it'd be ideal if most if not all of this logic lived there, and this
+    # hook simply called out to the endpoint
     def set_commits(self, version, commit_list):
         """
         Commits should be ordered oldest to newest.
@@ -66,8 +69,13 @@ class ReleaseHook(object):
                 else:
                     repo = repos[repo_name]
 
-                author_email = data.get('author_email') or self._to_email(data['author_name'])
-                if author_email not in authors:
+                author_email = data.get('author_email')
+                if author_email is None and data.get('author_name'):
+                    author_email = self._to_email(data['author_name'])
+
+                if not author_email:
+                    author = None
+                elif author_email not in authors:
                     authors[author_email] = author = CommitAuthor.objects.get_or_create(
                         organization_id=project.organization_id,
                         email=author_email,
@@ -85,7 +93,7 @@ class ReleaseHook(object):
                     repository_id=repo.id,
                     key=data['id'],
                     defaults={
-                        'message': data['message'],
+                        'message': data.get('message'),
                         'author': author,
                         'date_added': data.get('timestamp') or timezone.now(),
                     }
