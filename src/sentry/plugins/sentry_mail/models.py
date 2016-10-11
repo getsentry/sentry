@@ -197,10 +197,10 @@ class MailPlugin(NotificationPlugin):
             )
 
     def get_digest_subject(self, project, counts, date):
-        return u'[{project}] {count} {noun} since {date}'.format(
+        return u'[{project}] {count} new {noun} since {date}'.format(
             project=project.get_full_name(),
             count=len(counts),
-            noun='notification' if len(counts) == 1 else 'notifications',
+            noun='alert' if len(counts) == 1 else 'alert',
             date=dateformat.format(date, 'N j, Y, P e'),
         )
 
