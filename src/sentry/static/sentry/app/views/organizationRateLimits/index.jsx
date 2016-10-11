@@ -77,7 +77,7 @@ const RateLimitEditor = React.createClass({
         </p>
 
         <RangeField
-            label={t('Maximum amount a single project may send')}
+            label={t('Max percentage a single project may send')}
             defaultValue={savedProjectLimit}
             onChange={this.onProjectLimitChange}
             formatLabel={(value) => { return `${value}%`; }} />
