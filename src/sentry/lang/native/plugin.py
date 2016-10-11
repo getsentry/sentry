@@ -154,7 +154,6 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
             app_uuid = app_uuid.lower()
 
     converted_frames = []
-    longest_addr = 0
     for frame in reversed(frames):
         fn = frame.get('filename')
 
@@ -183,13 +182,6 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
         }
         cframe['in_app'] = is_in_app(cframe, app_uuid)
         converted_frames.append(cframe)
-        longest_addr = max(longest_addr, len(cframe['symbol_addr']),
-                           len(cframe['instruction_addr']))
-
-    # Pad out addresses to be of the same length and add prefix
-    for frame in converted_frames:
-        for key in 'symbol_addr', 'instruction_addr':
-            frame[key] = '0x' + frame[key][2:].rjust(longest_addr, '0')
 
     if converted_frames and notable_addresses:
         converted_frames[-1]['vars'] = notable_addresses
@@ -377,7 +369,6 @@ def resolve_frame_symbols(data):
             )
         })
 
-    longest_addr = 0
     processed_frames = []
     with sym:
         for stacktrace in stacktraces:
@@ -414,8 +405,6 @@ def resolve_frame_symbols(data):
                     frame['instruction_addr'] = '0x%x' % parse_addr(
                         sfrm['instruction_addr'])
                     frame['in_app'] = is_in_app(frame)
-                    longest_addr = max(longest_addr, len(frame['symbol_addr']),
-                                       len(frame['instruction_addr']))
                     processed_frames.append(frame)
                 except Exception:
                     logger.exception('Failed to symbolicate')
@@ -423,11 +412,6 @@ def resolve_frame_symbols(data):
                         'type': EventError.NATIVE_INTERNAL_FAILURE,
                         'error': 'The symbolicator encountered an internal failure',
                     })
-
-    # Pad out addresses to be of the same length
-    for frame in processed_frames:
-        for key in 'symbol_addr', 'instruction_addr':
-            frame[key] = '0x' + frame[key][2:].rjust(longest_addr - 2, '0')
 
     if errors:
         data.setdefault('errors', []).extend(errors)
