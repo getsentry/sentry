@@ -345,10 +345,13 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             domain_result['url'] = url
             raise CannotFetchSource(domain_result)
 
+        verify_tls = False
+
         headers = {}
         if project and is_valid_origin(url, project=project):
             token = project.get_option('sentry:token')
             if token:
+                verify_tls = True
                 headers['X-Sentry-Token'] = token
 
         logger.debug('Fetching %r from the internet', url)
@@ -358,7 +361,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             response = http_session.get(
                 url,
                 allow_redirects=True,
-                verify=False,
+                verify=verify_tls,
                 headers=headers,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
