@@ -838,7 +838,7 @@ SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
     (10, 360),  # 60 minutes at 10 seconds
     (3600, 24 * 7),  # 7 days at 1 hour
-    (3600 * 24, 60),  # 60 days at 1 day
+    (3600 * 24, 90),  # 90 days at 1 day
 )
 
 
