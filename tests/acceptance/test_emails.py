@@ -111,12 +111,12 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.snapshot('unassigned email txt')
 
     def test_new_event_html(self):
-        self.browser.get(self.build_url('/debug/mail/new-event/'))
+        self.browser.get(self.build_url('/debug/mail/alert/'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email html')
 
     def test_new_event_txt(self):
-        self.browser.get(self.build_url('/debug/mail/new-event/', 'txt'))
+        self.browser.get(self.build_url('/debug/mail/alert/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email txt')
 
