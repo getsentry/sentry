@@ -5,7 +5,8 @@ from django.utils.html import escape, mark_safe
 
 from sentry import options
 from sentry.models import (
-    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar, UserOption
+    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar,
+    UserOption
 )
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email

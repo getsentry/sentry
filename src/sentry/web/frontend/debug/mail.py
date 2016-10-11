@@ -23,8 +23,8 @@ from sentry.digests.notifications import Notification, build_digest
 from sentry.digests.utilities import get_digest_metadata
 from sentry.http import get_server_hostname
 from sentry.models import (
-    Activity, Event, Group, GroupStatus, GroupSubscriptionReason, Organization, OrganizationMember,
-    Project, Release, Rule, Team
+    Activity, Event, Group, GroupStatus, GroupSubscriptionReason, Organization,
+    OrganizationMember, Project, Release, Rule, Team
 )
 from sentry.plugins.sentry_mail.activity import emails
 from sentry.utils.dates import to_datetime, to_timestamp
