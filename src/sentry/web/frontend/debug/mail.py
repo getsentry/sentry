@@ -129,9 +129,12 @@ class ActivityMailPreview(object):
 
     def get_context(self):
         context = self.email.get_base_context()
-        context['reason'] = get_random(self.request).choice(
-            GroupSubscriptionReason.descriptions.values()
-        )
+        context.update({
+            'reason': get_random(self.request).choice(
+                GroupSubscriptionReason.descriptions.values()
+            ),
+            'unsubscribe_link': 'javascript:alert("This is a preview page, what did you expect to happen?");',
+        })
         context.update(self.email.get_context())
         return context
 
