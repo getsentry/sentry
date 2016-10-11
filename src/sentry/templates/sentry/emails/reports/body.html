@@ -262,6 +262,12 @@
       text-align: center;
       margin-bottom: 10px;
     }
+    .calendar th {
+      font-size: 12px;
+      color: #848296;
+      text-align: center;
+      padding: 0 0 10px 0;
+    }
     .calendar .day {
       width: 14.2%;
       padding: 0 5px 5px 0;
@@ -293,6 +299,15 @@
           <td class="calendar" style="">
             <h5>{{ first_date|date:"F Y" }}</h5>
             <table>
+              <tr>
+                <th>S</th>
+                <th>M</th>
+                <th>T</th>
+                <th>W</th>
+                <th>T</th>
+                <th>F</th>
+                <th>S</th>
+              </tr>
               {% for week in weeks %}
                 <tr>
                   {% for day, data in week %}
