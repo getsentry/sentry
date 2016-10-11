@@ -21,7 +21,7 @@ from sentry.models import (
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
 
 
@@ -347,7 +347,7 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
 
-class ActivityEmailTestCase(TransactionTestCase):
+class ActivityEmailTestCase(TestCase):
     def get_fixture_data(self, users):
         organization = self.create_organization(owner=self.create_user())
         team = self.create_team(organization=organization)

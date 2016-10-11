@@ -4,9 +4,7 @@ import six
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from django.db.models import Q
 from django.utils import timezone
-from six.moves import reduce
 
 from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, Release, User
@@ -282,11 +280,3 @@ def parse_query(project, query, user):
     results['query'] = ' '.join(results['query'])
 
     return results
-
-
-def in_iexact(column, values):
-    from operator import or_
-
-    query = '{}__iexact'.format(column)
-
-    return reduce(or_, [Q(**{query: v}) for v in values])
