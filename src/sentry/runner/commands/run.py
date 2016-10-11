@@ -148,6 +148,7 @@ def smtp(bind, upgrade, noinput):
 @click.option('--without-gossip', is_flag=True, default=False)
 @click.option('--without-mingle', is_flag=True, default=False)
 @click.option('--without-heartbeat', is_flag=True, default=False)
+@click.option('--max-tasks-per-child', default=10000)
 @log_options()
 @configuration
 def worker(**options):
