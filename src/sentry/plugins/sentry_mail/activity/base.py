@@ -5,7 +5,8 @@ from django.utils.html import escape, mark_safe
 
 from sentry import options
 from sentry.models import (
-    GroupSubscription, ProjectOption, UserAvatar, UserOption
+    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar,
+    UserOption
 )
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
@@ -37,13 +38,9 @@ class ActivityEmail(object):
         if not self.group:
             return []
 
-        participants = set(
-            GroupSubscription.objects.get_participants(
-                group=self.group
-            )
-        )
+        participants = GroupSubscription.objects.get_participants(group=self.group)
 
-        if self.activity.user is not None:
+        if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = UserOption.objects.get_value(
                 user=self.activity.user,
                 project=None,
@@ -52,7 +49,7 @@ class ActivityEmail(object):
             ) == '1'
 
             if not receive_own_activity:
-                participants.discard(self.activity.user)
+                del participants[self.activity.user]
 
         return participants
 
@@ -224,8 +221,8 @@ class ActivityEmail(object):
         if not self.should_email():
             return
 
-        users = self.get_participants()
-        if not users:
+        participants = self.get_participants()
+        if not participants:
             return
 
         activity = self.activity
@@ -246,13 +243,19 @@ class ActivityEmail(object):
         email_type = self.get_email_type()
         headers = self.get_headers()
 
-        for user in users:
+        for user, reason in participants.items():
             if group:
-                context['unsubscribe_link'] = generate_signed_link(
-                    user.id,
-                    'sentry-account-email-unsubscribe-issue',
-                    kwargs={'issue_id': group.id},
-                )
+                context.update({
+                    'reason': GroupSubscriptionReason.descriptions.get(
+                        reason,
+                        "are subscribed to this issue",
+                    ),
+                    'unsubscribe_link': generate_signed_link(
+                        user.id,
+                        'sentry-account-email-unsubscribe-issue',
+                        kwargs={'issue_id': group.id},
+                    ),
+                })
 
             msg = MessageBuilder(
                 subject=subject,
