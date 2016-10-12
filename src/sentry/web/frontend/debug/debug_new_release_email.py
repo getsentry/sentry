@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from django.views.generic import View
 
 from sentry.models import (
-    Commit, CommitAuthor, Organization, Team, Project, Release,
-    GroupSubscriptionReason,
+    Commit, CommitAuthor, GroupSubscriptionReason, Organization, Project,
+    Release, Team
 )
 from sentry.utils.http import absolute_uri
 
