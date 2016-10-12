@@ -467,7 +467,8 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         if body.startswith((u")]}'\n", u")]}\n")):
             body = body.split(u'\n', 1)[1]
 
-        return sourcemap_to_index(body)
+        with metrics.timer('sourcemaps.parse_sourcemap'):
+            return sourcemap_to_index(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(six.text_type(exc), exc_info=True)
@@ -587,8 +588,9 @@ class SourceProcessor(object):
         release = self.get_release(data)
         # all of these methods assume mutation on the original
         # objects rather than re-creation
-        with metrics.timer('sourcemaps.expand_frames'):
+        with metrics.timer('sourcemaps.populate_cache'):
             self.populate_source_cache(frames, release)
+        with metrics.timer('sourcemaps.expand_frames'):
             expand_errors, sourcemap_applied = self.expand_frames(frames, release)
         errors.extend(expand_errors or [])
         self.ensure_module_names(frames)
