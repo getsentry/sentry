@@ -154,12 +154,25 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     project=project,
                     version=result['version'],
                 ), False
+                was_released = bool(release.date_released)
+            else:
+                was_released = False
 
             commit_list = result.get('commits')
             if commit_list:
                 hook = ReleaseHook(project)
                 # TODO(dcramer): handle errors with release payloads
                 hook.set_commits(release.version, commit_list)
+
+            if (not was_released and release.date_released):
+                activity = Activity.objects.create(
+                    type=Activity.RELEASE,
+                    project=project,
+                    ident=result['version'],
+                    data={'version': result['version']},
+                    datetime=release.date_released,
+                )
+                activity.send_notification()
 
             if not created:
                 # This is the closest status code that makes sense, and we want
@@ -168,13 +181,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 #   208 Already Reported (WebDAV; RFC 5842)
                 status = 208
             else:
-                Activity.objects.create(
-                    type=Activity.RELEASE,
-                    project=project,
-                    ident=result['version'],
-                    data={'version': result['version']},
-                    datetime=release.date_released or release.date_added,
-                )
                 status = 201
+
             return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)
