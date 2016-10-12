@@ -1,9 +1,13 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+
+import pytz
 from django.views.generic import View
 
 from sentry.models import (
-    Commit, CommitAuthor, Organization, Team, Project, Release
+    Commit, CommitAuthor, GroupSubscriptionReason, Organization, Project,
+    Release, Team
 )
 from sentry.utils.http import absolute_uri
 
@@ -33,6 +37,7 @@ class DebugNewReleaseEmailView(View):
         release = Release(
             project=project,
             version='6c998f755f304593a4713abd123eaf8833a2de5e',
+            date_added=datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc)
         )
 
         release_link = absolute_uri('/{}/{}/releases/{}/'.format(
@@ -67,5 +72,8 @@ class DebugNewReleaseEmailView(View):
                 'release_link': release_link,
                 'project_link': project_link,
                 'commit_list': commit_list,
+                'reason': GroupSubscriptionReason.descriptions[
+                    GroupSubscriptionReason.committed
+                ],
             },
         ).render(request)
