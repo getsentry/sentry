@@ -310,16 +310,16 @@ const StreamActions = React.createClass({
                 </MenuItem>
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className="action-mute"
+                    className="action-ignore"
                     disabled={!this.state.anySelected}
-                    onAction={this.onUpdate.bind(this, {status: 'muted'})}
+                    onAction={this.onUpdate.bind(this, {status: 'ignored'})}
                     extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t('Are you sure you want to mute all issues matching this search query?')
+                        ? t('Are you sure you want to ignore all issues matching this search query?')
                         : (count) =>
-                             tn('Are you sure you want to mute this %d issue?',
-                                'Are you sure you want to mute these %d issues?',
+                             tn('Are you sure you want to ignore this %d issue?',
+                                'Are you sure you want to ignore these %d issues?',
                                 count)
                     }
                     confirmLabel={

@@ -20,7 +20,7 @@ class GroupTest(TestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert group.is_resolved()
 
-        group.status = GroupStatus.MUTED
+        group.status = GroupStatus.IGNORED
         assert not group.is_resolved()
 
         group.status = GroupStatus.UNRESOLVED
@@ -87,19 +87,19 @@ class GroupTest(TestCase):
         assert group.get_latest_event().event_id == '3'
         assert group.get_oldest_event().event_id == '0'
 
-    def test_is_muted_with_expired_snooze(self):
+    def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,
             until=timezone.now() - timedelta(minutes=1),
         )
-        assert not group.is_muted()
+        assert not group.is_ignored()
 
     def test_status_with_expired_snooze(self):
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,

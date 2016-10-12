@@ -40,7 +40,7 @@ const GroupHeader = React.createClass({
       projectId: project.slug,
       itemIds: [group.id],
       data: {
-        status: group.status === 'muted' ? 'unresolved' : 'muted'
+        status: group.status === 'ignored' ? 'unresolved' : 'ignored'
       }
     }, {
       complete: () => {

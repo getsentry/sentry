@@ -24,7 +24,7 @@ ACTIVITY_ACTION_STRINGS = {
     Activity.NOTE: 'left a note',
     Activity.SET_RESOLVED: 'marked this event as resolved',
     Activity.SET_UNRESOLVED: 'marked this event as unresolved',
-    Activity.SET_MUTED: 'marked this event as muted',
+    Activity.SET_IGNORED: 'marked this event as ignored',
     Activity.SET_PUBLIC: 'made this event public',
     Activity.SET_PRIVATE: 'made this event private',
     Activity.SET_REGRESSION: 'marked this event as a regression',

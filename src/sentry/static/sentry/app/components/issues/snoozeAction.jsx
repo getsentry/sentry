@@ -51,7 +51,7 @@ const SnoozeAction = React.createClass({
         <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false}
                onHide={this.closeModal} bsSize="sm">
           <div className="modal-body">
-            <h5>{t('How long should we snooze this issue?')}</h5>
+            <h5>{t('How long should we ignore this issue?')}</h5>
             <ul className="nav nav-stacked nav-pills">
               <li><a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>{t('30 minutes')}</a></li>
               <li><a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>{t('2 hours')}</a></li>
