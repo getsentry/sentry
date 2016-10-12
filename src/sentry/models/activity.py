@@ -26,7 +26,7 @@ class Activity(Model):
 
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
-    SET_MUTED = 3
+    SET_IGNORED = 3
     SET_PUBLIC = 4
     SET_PRIVATE = 5
     SET_REGRESSION = 6
@@ -46,7 +46,7 @@ class Activity(Model):
         (SET_RESOLVED_BY_AGE, 'set_resolved_by_age'),
         (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
         (SET_UNRESOLVED, 'set_unresolved'),
-        (SET_MUTED, 'set_muted'),
+        (SET_IGNORED, 'set_ignored'),
         (SET_PUBLIC, 'set_public'),
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),

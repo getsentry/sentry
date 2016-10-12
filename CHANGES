@@ -1,6 +1,24 @@
 Version 8.10 (Unreleased)
 -------------------------
 
+- Removed previously deprecated ``sentry celery`` command.
+- Replaced the ``events`` queue with ``events.{preprocess,process,save}_event``.
+
+API Changes
+~~~~~~~~~~~
+
+- Add ``/organizations/{org}/repositories/`` endpoint.
+- Add ``/organizations/{org}/repositories/{repo}/commits/`` endpoint.
+- Add ``/projects/{org}/{project}/releases/{versoin}/commits/`` endpoint.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Repository`` model.
+- Added ``Commit`` model.
+- Added ``CommitAuthor`` model.
+- Added ``ReleaseCommit`` model.
+
 Version 8.9
 -----------
 

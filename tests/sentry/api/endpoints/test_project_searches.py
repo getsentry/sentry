@@ -58,8 +58,8 @@ class ProjectSearchCreateTest(APITestCase):
             'project_slug': project.slug,
         })
         response = self.client.post(url, data={
-            'name': 'muted',
-            'query': 'is:muted'
+            'name': 'ignored',
+            'query': 'is:ignored'
         })
 
         assert response.status_code == 201, response.content
@@ -77,7 +77,7 @@ class ProjectSearchCreateTest(APITestCase):
         team = self.create_team()
         project = self.create_project(team=team, name='foo')
 
-        SavedSearch.objects.create(name='muted', project=project, query='')
+        SavedSearch.objects.create(name='ignored', project=project, query='')
 
         url = reverse('sentry-api-0-project-searches', kwargs={
             'organization_slug': project.organization.slug,
@@ -85,8 +85,8 @@ class ProjectSearchCreateTest(APITestCase):
         })
 
         response = self.client.post(url, data={
-            'name': 'muted',
-            'query': 'is:muted'
+            'name': 'ignored',
+            'query': 'is:ignored'
         })
 
         assert response.status_code == 400, response.content
@@ -102,8 +102,8 @@ class ProjectSearchCreateTest(APITestCase):
             'project_slug': project.slug,
         })
         response = self.client.post(url, data={
-            'name': 'muted',
-            'query': 'is:muted',
+            'name': 'ignored',
+            'query': 'is:ignored',
             'isDefault': True,
         })
 
@@ -133,8 +133,8 @@ class ProjectSearchCreateTest(APITestCase):
             'project_slug': project.slug,
         })
         response = self.client.post(url, data={
-            'name': 'muted',
-            'query': 'is:muted',
+            'name': 'ignored',
+            'query': 'is:ignored',
             'isUserDefault': True,
         })
 

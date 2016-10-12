@@ -16,7 +16,7 @@ def clear_expired_snoozes():
 
     Group.objects.filter(
         id__in=group_list,
-        status=GroupStatus.MUTED,
+        status=GroupStatus.IGNORED,
     ).update(
         status=GroupStatus.UNRESOLVED,
     )

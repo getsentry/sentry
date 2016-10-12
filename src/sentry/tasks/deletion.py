@@ -23,7 +23,8 @@ logger = logging.getLogger('sentry.deletions.async')
 @retry(exclude=(DeleteAborted,))
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
-        Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus
+        Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
+        Commit, CommitAuthor, Repository
     )
 
     try:
@@ -48,9 +49,14 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
             )
         return
 
-    model_list = (OrganizationMember,)
+    model_list = (OrganizationMember, Commit, CommitAuthor, Repository)
 
-    has_more = delete_objects(model_list, transaction_id=transaction_id, relation={'organization': o}, logger=logger)
+    has_more = delete_objects(
+        model_list,
+        transaction_id=transaction_id,
+        relation={'organization_id': o.id},
+        logger=logger,
+    )
     if has_more:
         if continuous:
             delete_organization.apply_async(
@@ -115,7 +121,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
         Release, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
-        TagValue, UserReport, ReleaseEnvironment, Environment
+        TagValue, UserReport, ReleaseEnvironment, Environment, ReleaseCommit
     )
 
     try:
@@ -145,7 +151,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, ReleaseEnvironment, Environment
+        UserReport, ReleaseEnvironment, Environment, ReleaseCommit
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)

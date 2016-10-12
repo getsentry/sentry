@@ -21,7 +21,7 @@ from sentry.models import (
 from sentry.plugins import Notification
 from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
-from sentry.testutils import TestCase, TransactionTestCase
+from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
 
 
@@ -243,7 +243,7 @@ class MailPluginTest(TestCase):
             mock.Mock(get_full_name=lambda: 'Rick & Morty'),
             {mock.sentinel.group: 3},
             datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
-        ) == '[Rick & Morty] 1 notification since Sept. 19, 2016, 1:02 a.m. UTC'
+        ) == '[Rick & Morty] 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC'
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send_async', autospec=True)
@@ -347,7 +347,7 @@ class MailPluginTest(TestCase):
         assert msg.to == [self.user.email]
 
 
-class ActivityEmailTestCase(TransactionTestCase):
+class ActivityEmailTestCase(TestCase):
     def get_fixture_data(self, users):
         organization = self.create_organization(owner=self.create_user())
         team = self.create_team(organization=organization)

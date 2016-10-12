@@ -37,7 +37,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
             raise AuthenticationFailed('Key is disabled')
 
         raven.tags_context({
-            'api_key': userid,
+            'api_key': key.id,
         })
 
         return (AnonymousUser(), key)
@@ -67,5 +67,9 @@ class TokenAuthentication(QuietBasicAuthentication):
 
         if not token.user.is_active:
             raise AuthenticationFailed('User inactive or deleted')
+
+        raven.tags_context({
+            'api_token': token.id,
+        })
 
         return (token.user, token)

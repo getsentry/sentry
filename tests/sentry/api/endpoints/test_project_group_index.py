@@ -232,7 +232,7 @@ class GroupUpdateTest(APITestCase):
     def test_global_resolve(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -272,9 +272,9 @@ class GroupUpdateTest(APITestCase):
             is_active=True,
         ).exists()
 
-        # the muted entry should not be included
+        # the ignored entry should not be included
         new_group3 = Group.objects.get(id=group3.id)
-        assert new_group3.status == GroupStatus.MUTED
+        assert new_group3.status == GroupStatus.IGNORED
         assert new_group3.resolved_at is None
 
         assert not GroupSubscription.objects.filter(
@@ -294,7 +294,7 @@ class GroupUpdateTest(APITestCase):
     def test_selective_status_update(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -330,7 +330,7 @@ class GroupUpdateTest(APITestCase):
 
         new_group3 = Group.objects.get(id=group3.id)
         assert new_group3.resolved_at is None
-        assert new_group3.status == GroupStatus.MUTED
+        assert new_group3.status == GroupStatus.IGNORED
 
         new_group4 = Group.objects.get(id=group4.id)
         assert new_group4.resolved_at is None
@@ -409,7 +409,7 @@ class GroupUpdateTest(APITestCase):
         ).exists()
 
     def test_set_unresolved_on_snooze(self):
-        group = self.create_group(checksum='a' * 32, status=GroupStatus.MUTED)
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.IGNORED)
 
         GroupSnooze.objects.create(
             group=group,
@@ -444,8 +444,8 @@ class GroupUpdateTest(APITestCase):
             group=group,
         )
         response = self.client.put(url, data={
-            'status': 'muted',
-            'snoozeDuration': 30,
+            'status': 'ignored',
+            'ignoreDuration': 30,
         }, format='json')
 
         assert response.status_code == 200
@@ -460,22 +460,22 @@ class GroupUpdateTest(APITestCase):
         assert snooze.until < now + timedelta(minutes=31)
 
         # Drop microsecond value for MySQL
-        response.data['statusDetails']['snoozeUntil'] = response.data['statusDetails']['snoozeUntil'].replace(microsecond=0)
+        response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(microsecond=0)
 
         assert response.data == {
-            'status': 'muted',
+            'status': 'ignored',
             'statusDetails': {
-                'snoozeUntil': snooze.until,
+                'ignoreUntil': snooze.until,
             },
         }
 
         group = Group.objects.get(id=group.id)
-        assert group.get_status() == GroupStatus.MUTED
+        assert group.get_status() == GroupStatus.IGNORED
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -609,7 +609,7 @@ class GroupUpdateTest(APITestCase):
     def test_set_has_seen(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -701,7 +701,7 @@ class GroupDeleteTest(APITestCase):
     def test_delete_by_id(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
-        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.MUTED)
+        group3 = self.create_group(checksum='c' * 32, status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug='foo'),
             checksum='b' * 32, status=GroupStatus.UNRESOLVED)

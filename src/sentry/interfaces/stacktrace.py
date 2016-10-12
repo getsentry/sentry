@@ -40,6 +40,21 @@ _java_enhancer_re = re.compile(r'''
 ''', re.X)
 
 
+def max_addr(cur, addr):
+    if addr is None:
+        return cur
+    length = len(addr) - 2
+    if length > cur:
+        return length
+    return cur
+
+
+def pad_hex_addr(addr, length):
+    if length is None or addr is None:
+        return addr
+    return '0x' + addr[2:].rjust(length, '0')
+
+
 def trim_package(pkg):
     if not pkg:
         return '?'
@@ -53,15 +68,16 @@ def to_hex_addr(addr):
     if addr is None:
         return None
     elif isinstance(addr, six.integer_types):
-        return '0x%x' % addr
+        rv = '0x%x' % addr
     elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
-            # XXX: More correct would be this but we currently can't do
-            # that yet.
-            # addr = int(addr[2:], 16)
-            return addr
-        return '0x%x' % int(addr)
-    raise ValueError('Unsupported address format %r' % (addr,))
+            addr = int(addr[2:], 16)
+        rv = '0x%x' % int(addr)
+    else:
+        raise ValueError('Unsupported address format %r' % (addr,))
+    if len(rv) > 24:
+        raise ValueError('Address too long %r' % (rv,))
+    return rv
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None,
@@ -306,9 +322,9 @@ class Frame(Interface):
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': package,
-            'image_addr': to_hex_addr(trim(data.get('image_addr'), 16)),
-            'symbol_addr': to_hex_addr(trim(data.get('symbol_addr'), 16)),
-            'instruction_addr': to_hex_addr(trim(data.get('instruction_addr'), 16)),
+            'image_addr': to_hex_addr(data.get('image_addr')),
+            'symbol_addr': to_hex_addr(data.get('symbol_addr')),
+            'instruction_addr': to_hex_addr(data.get('instruction_addr')),
             'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
@@ -385,16 +401,16 @@ class Frame(Interface):
             output.append(self.lineno)
         return output
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, pad_addr=None):
         data = {
             'filename': self.filename,
             'absPath': self.abs_path,
             'module': self.module,
             'package': self.package,
             'platform': self.platform,
-            'instructionAddr': self.instruction_addr,
+            'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
             'instructionOffset': self.instruction_offset,
-            'symbolAddr': self.symbol_addr,
+            'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
             'context': get_context(
                 lineno=self.lineno,
@@ -652,9 +668,18 @@ class Stacktrace(Interface):
             return False
         return bool(system_frames)
 
+    def get_longest_address(self):
+        rv = None
+        for frame in self.frames:
+            rv = max_addr(rv, frame.instruction_addr)
+            rv = max_addr(rv, frame.symbol_addr)
+        return rv
+
     def get_api_context(self, is_public=False):
+        longest_addr = self.get_longest_address()
+
         frame_list = [
-            f.get_api_context(is_public=is_public)
+            f.get_api_context(is_public=is_public, pad_addr=longest_addr)
             for f in self.frames
         ]
 

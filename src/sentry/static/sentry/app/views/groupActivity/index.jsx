@@ -52,14 +52,14 @@ const GroupActivity = React.createClass({
         );
       case 'set_unresolved':
         return t('%s marked this issue as unresolved', author);
-      case 'set_muted':
-        if (data.snoozeDuration) {
-          return t('%(author)s snoozed this issue for %(duration)s', {
+      case 'set_ignored':
+        if (data.ignoreDuration) {
+          return t('%(author)s ignored this issue for %(duration)s', {
             author: author,
-            duration: <Duration seconds={data.snoozeDuration * 60} />
+            duration: <Duration seconds={data.ignoreDuration * 60} />
           });
         }
-        return t('%s muted this issue', author);
+        return t('%s ignored this issue', author);
       case 'set_public':
         return t('%s made this issue public', author);
       case 'set_private':

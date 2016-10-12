@@ -133,8 +133,8 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
 
     urlpatterns += patterns(
         '',
-        url(r'^debug/mail/new-event/$',
-            sentry.web.frontend.debug.mail.new_event),
+        url(r'^debug/mail/alert/$',
+            sentry.web.frontend.debug.mail.alert),
         url(r'^debug/mail/note/$',
             DebugNoteEmailView.as_view()),
         url(r'^debug/mail/new-release/$',

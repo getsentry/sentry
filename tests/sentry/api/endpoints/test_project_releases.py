@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import Release
+from sentry.models import Release, ReleaseCommit
 from sentry.testutils import APITestCase
 
 
@@ -80,8 +80,7 @@ class ProjectReleaseCreateTest(APITestCase):
     def test_minimal(self):
         self.login_as(user=self.user)
 
-        team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(name='foo')
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,
@@ -103,8 +102,7 @@ class ProjectReleaseCreateTest(APITestCase):
     def test_duplicate(self):
         self.login_as(user=self.user)
 
-        team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(name='foo')
 
         Release.objects.create(version='1.2.1', project=project)
 
@@ -117,13 +115,12 @@ class ProjectReleaseCreateTest(APITestCase):
             'version': '1.2.1',
         })
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 208, response.content
 
     def test_version_whitespace(self):
         self.login_as(user=self.user)
 
-        team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(name='foo')
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,
@@ -170,8 +167,7 @@ class ProjectReleaseCreateTest(APITestCase):
     def test_features(self):
         self.login_as(user=self.user)
 
-        team = self.create_team()
-        project = self.create_project(team=team, name='foo')
+        project = self.create_project(name='foo')
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,
@@ -190,3 +186,33 @@ class ProjectReleaseCreateTest(APITestCase):
             version=response.data['version'],
         )
         assert release.owner == self.user
+
+    def test_commits(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'commits': [
+                {'id': 'a' * 40},
+                {'id': 'b' * 40},
+            ]
+        })
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data['version']
+
+        release = Release.objects.get(
+            project=project,
+            version=response.data['version'],
+        )
+
+        rc_list = list(ReleaseCommit.objects.filter(
+            release=release,
+        ).select_related('commit', 'commit__author').order_by('order'))
+        assert len(rc_list) == 2

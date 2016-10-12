@@ -127,11 +127,11 @@ const CompactIssue = React.createClass({
 
   onSnooze(duration) {
     let data = {
-      status: 'muted'
+      status: 'ignored'
     };
 
     if (duration)
-      data.snoozeDuration = duration;
+      data.ignoreDuration = duration;
 
     this.onUpdate(data);
   },
@@ -165,8 +165,8 @@ const CompactIssue = React.createClass({
     if (issue.status === 'resolved') {
       className += ' isResolved';
     }
-    if (issue.status === 'muted') {
-      className += ' isMuted';
+    if (issue.status === 'ignored') {
+      className += ' isIgnored';
     }
 
     className += ' level-' + issue.level;

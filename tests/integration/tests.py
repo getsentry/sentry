@@ -131,7 +131,7 @@ class RavenIntegrationTest(TransactionTestCase):
         )
 
         with self.tasks():
-            client.capture('Message', message='foo')
+            client.captureMessage(message='foo')
 
         assert send_remote.call_count is 1
         assert Group.objects.count() == 1

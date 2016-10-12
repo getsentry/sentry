@@ -1,20 +1,24 @@
 from __future__ import absolute_import
 
+import bisect
 import functools
 import itertools
 import logging
+import math
 import operator
 import zlib
-from collections import namedtuple
-from datetime import timedelta
+from calendar import Calendar
+from collections import OrderedDict, namedtuple
+from datetime import datetime, timedelta
 
+import pytz
 from django.utils import dateformat, timezone
 
 from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, GroupStatus, Organization, OrganizationStatus, Project,
-    Release, TagValue, Team, User, UserOption
+    Activity, GroupStatus, Organization, OrganizationStatus, Project, Release,
+    TagValue, Team, User, UserOption
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
@@ -63,6 +67,45 @@ def change(value, reference):
         return None
 
     return ((value or 0) - reference) / float(reference)
+
+
+def safe_add(x, y):
+    """
+    Adds two values which are either numeric types or None.
+
+    - If both values are numeric, the result is the sum of those values.
+    - If only one numeric value is provided, that value is returned.
+    - If both values are None, then None is returned.
+    """
+    if x is not None and y is not None:
+        return x + y
+    elif x is not None:
+        return x
+    elif y is not None:
+        return y
+    else:
+        return None
+
+
+def month_to_index(year, month):
+    """
+    Convert a year and month to a single value: the number of months between
+    this month and 1 AD.
+
+    This mainly exists to simplify doing month-based arithmetic (e.g. "three
+    months ago") without having to manually handle wrapping around years, since
+    timedelta doesn't accept a "months" parameter.
+    """
+    assert 12 >= month >= 1
+    return (year - 1) * 12 + month - 1
+
+
+def index_to_month(index):
+    """
+    The opposite companion to ``month_to_index``. Returns a (year, month)
+    tuple.
+    """
+    return (index // 12) + 1, index % 12 + 1
 
 
 def clean_series(start, stop, rollup, series):
@@ -184,7 +227,7 @@ def prepare_project_aggregates((_, stop), project):
 def prepare_project_issue_summaries(interval, project):
     start, stop = interval
 
-    queryset = project.group_set.exclude(status=GroupStatus.MUTED)
+    queryset = project.group_set.exclude(status=GroupStatus.IGNORED)
 
     # Fetch all new issues.
     new_issue_ids = set(
@@ -247,9 +290,6 @@ def prepare_project_issue_summaries(interval, project):
     ]
 
 
-merge_issue_summaries = merge_sequences
-
-
 def trim_release_list(value):
     return sorted(
         value,
@@ -299,14 +339,139 @@ def prepare_project_usage_summary((start, stop), project):
     )
 
 
-def prepare_project_report(interval, project):
-    return (
-        prepare_project_series(interval, project),
-        prepare_project_aggregates(interval, project),
-        prepare_project_issue_summaries(interval, project),
-        prepare_project_release_list(interval, project),
-        prepare_project_usage_summary(interval, project),
+def get_calendar_range((_, stop_time), months):
+    assert (
+        stop_time.hour,
+        stop_time.minute,
+        stop_time.second,
+        stop_time.microsecond,
+        stop_time.tzinfo,
+    ) == (0, 0, 0, 0, pytz.utc)
+
+    last_day = stop_time - timedelta(days=1)
+
+    stop_month_index = month_to_index(
+        last_day.year,
+        last_day.month,
     )
+
+    start_month_index = stop_month_index - months + 1
+    return start_month_index, stop_month_index
+
+
+def get_calendar_query_range(interval, months):
+    start_month_index, _ = get_calendar_range(interval, months)
+
+    start_time = datetime(
+        day=1,
+        tzinfo=pytz.utc,
+        *index_to_month(start_month_index)
+    )
+
+    return start_time, interval[1]
+
+
+def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
+    earliest = tsdb.get_earliest_timestamp(rollup, timestamp=timestamp)
+
+    def remove_invalid_values(item):
+        timestamp, value = item
+        if timestamp < earliest:
+            value = None
+        elif to_datetime(timestamp) < project.date_added:
+            value = None
+        return (timestamp, value)
+
+    return map(
+        remove_invalid_values,
+        clean_series(
+            start,
+            stop,
+            rollup,
+            series,
+        ),
+    )
+
+
+def prepare_project_calendar_series(interval, project):
+    start, stop = get_calendar_query_range(interval, 3)
+
+    rollup = 60 * 60 * 24
+    series = tsdb.get_range(
+        tsdb.models.project,
+        [project.id],
+        start,
+        stop,
+        rollup=rollup,
+    )[project.id]
+
+    return clean_calendar_data(
+        project,
+        series,
+        start,
+        stop,
+        rollup,
+    )
+
+
+def build(name, fields):
+    names, prepare_fields, merge_fields = zip(*fields)
+
+    cls = namedtuple(name, names)
+
+    def prepare(*args):
+        return cls(*[f(*args) for f in prepare_fields])
+
+    def merge(target, other):
+        return cls(*[f(target[i], other[i]) for i, f in enumerate(merge_fields)])
+
+    return cls, prepare, merge
+
+
+Report, prepare_project_report, merge_reports = build(
+    'Report',
+    [
+        (
+            'series',
+            prepare_project_series,
+            functools.partial(
+                merge_series,
+                function=merge_sequences,
+            ),
+        ),
+        (
+            'aggregates',
+            prepare_project_aggregates,
+            functools.partial(
+                merge_sequences,
+                function=safe_add,
+            ),
+        ),
+        (
+            'issue_summaries',
+            prepare_project_issue_summaries,
+            merge_sequences,
+        ),
+        (
+            'release_list',
+            prepare_project_release_list,
+            lambda target, other: trim_release_list(target + other),
+        ),
+        (
+            'usage_summary',
+            prepare_project_usage_summary,
+            merge_sequences,
+        ),
+        (
+            'calendar_series',
+            prepare_project_calendar_series,
+            functools.partial(
+                merge_series,
+                function=safe_add,
+            ),
+        ),
+    ],
+)
 
 
 class ReportBackend(object):
@@ -364,10 +529,10 @@ class RedisReportBackend(ReportBackend):
         )
 
     def __encode(self, report):
-        return zlib.compress(json.dumps(report))
+        return zlib.compress(json.dumps(list(report)))
 
     def __decode(self, value):
-        return json.loads(zlib.decompress(value))
+        return Report(*json.loads(zlib.decompress(value)))
 
     def prepare(self, timestamp, duration, organization):
         reports = {}
@@ -401,41 +566,6 @@ backend = RedisReportBackend(
     redis.clusters.get('default'),
     60 * 60 * 3,
 )
-
-
-def safe_add(x, y):
-    if x is not None and y is not None:
-        return x + y
-    elif x is not None:
-        return x
-    elif y is not None:
-        return y
-    else:
-        return None
-
-
-def merge_reports(target, other):
-    return (
-        merge_series(
-            target[0],
-            other[0],
-            merge_sequences,
-        ),
-        merge_sequences(
-            target[1],
-            other[1],
-            safe_add,
-        ),
-        merge_issue_summaries(
-            target[2],
-            other[2],
-        ),
-        trim_release_list(target[3] + other[3]),
-        merge_sequences(
-            target[4],
-            other[4],
-        )
-    )
 
 
 @instrumented_task(
@@ -542,7 +672,7 @@ def build_message(timestamp, duration, organization, user, reports):
                 organization,
                 user,
             ),
-            'report': to_context(reports),
+            'report': to_context(organization, interval, reports),
             'user': user,
         },
     )
@@ -571,8 +701,7 @@ class Skipped(object):
 
 
 def has_valid_aggregates(interval, (project, report)):
-    _, aggregates, _, _, _ = report
-    return any(bool(value) for value in aggregates)
+    return any(bool(value) for value in report.aggregates)
 
 
 @instrumented_task(
@@ -664,9 +793,9 @@ def build_project_breakdown_series(reports):
     Key = namedtuple('Key', 'label url color data')
 
     def get_legend_data(report):
-        series, _, _, _, (filtered, rate_limited) = report
+        filtered, rate_limited = report.usage_summary
         return {
-            'events': sum(sum(value) for timestamp, value in series),
+            'events': sum(sum(value) for timestamp, value in report.series),
             'filtered': filtered,
             'rate_limited': rate_limited,
         }
@@ -740,14 +869,11 @@ def build_project_breakdown_series(reports):
     }
 
 
-def to_context(reports):
-    series, aggregates, issue_summaries, release_list, usage_summary = reduce(
-        merge_reports,
-        reports.values(),
-    )
-    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in series]
+def to_context(organization, interval, reports):
+    report = reduce(merge_reports, reports.values())
+    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
 
-    return {
+    context = {
         'series': {
             'points': series,
             'maximum': max(sum(point) for timestamp, point in series),
@@ -762,19 +888,122 @@ def to_context(reports):
                         DistributionType('Reopened', '#6C5FC7'),
                         DistributionType('Existing', '#534a92'),
                     ),
-                    issue_summaries,
+                    report.issue_summaries,
                 ),
             ),
-            'total': sum(issue_summaries),
+            'total': sum(report.issue_summaries),
         },
         'comparisons': [
-            ('last week', change(aggregates[-1], aggregates[-2])),
+            ('last week', change(report.aggregates[-1], report.aggregates[-2])),
             ('four week average', change(
-                aggregates[-1],
-                mean(aggregates) if all(v is not None for v in aggregates) else None,
+                report.aggregates[-1],
+                mean(report.aggregates) if all(v is not None for v in report.aggregates) else None,
             )),
         ],
         'projects': {
             'series': build_project_breakdown_series(reports),
         },
+    }
+
+    if features.has('organizations:reports:calendar', organization):
+        context['calendar'] = to_calendar(
+            interval,
+            report.calendar_series,
+        )
+
+    return context
+
+
+def get_percentile(values, percentile):
+    # XXX: ``values`` must be sorted.
+    assert 1 >= percentile > 0
+    if percentile == 1:
+        index = -1
+    else:
+        index = int(math.ceil(len(values) * percentile)) - 1
+    return values[index]
+
+
+def colorize(spectrum, values):
+    calculate_percentile = functools.partial(
+        get_percentile,
+        sorted(values),
+    )
+
+    legend = OrderedDict()
+    width = 1.0 / len(spectrum)
+    for i, color in enumerate(spectrum, 1):
+        legend[color] = calculate_percentile(i * width)
+
+    find_index = functools.partial(
+        bisect.bisect_left,
+        legend.values(),
+    )
+
+    results = []
+    for value in values:
+        results.append((
+            value,
+            spectrum[find_index(value)],
+        ))
+
+    return legend, results
+
+
+def to_calendar(interval, series):
+    start, stop = get_calendar_range(interval, 3)
+
+    legend, values = colorize(
+        [
+            '#fae5cf',
+            '#f9ddc2',
+            '#f9d6b6',
+            '#f9cfaa',
+            '#f8c79e',
+            '#f8bf92',
+            '#f8b786',
+            '#f9a66d',
+            '#f99d60',
+            '#fa9453',
+            '#fb8034',
+            '#fc7520',
+            '#f9600c',
+            '#f75500',
+        ],
+        [value for timestamp, value in series if value is not None],
+    )
+
+    value_color_map = dict(values)
+    value_color_map[None] = '#F2F2F2'
+
+    series_value_map = dict(series)
+
+    def get_data_for_date(date):
+        dt = datetime(date.year, date.month, date.day, tzinfo=pytz.utc)
+        ts = to_timestamp(dt)
+        value = series_value_map.get(ts, None)
+        return (
+            dt,
+            {
+                'value': value,
+                'color': value_color_map[value],
+            }
+        )
+
+    calendar = Calendar(6)
+    sheets = []
+    for year, month in map(index_to_month, range(start, stop + 1)):
+        weeks = []
+
+        for week in calendar.monthdatescalendar(year, month):
+            weeks.append(map(get_data_for_date, week))
+
+        sheets.append((
+            datetime(year, month, 1, tzinfo=pytz.utc),
+            weeks,
+        ))
+
+    return {
+        'legend': list(legend.keys()),
+        'sheets': sheets,
     }
