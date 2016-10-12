@@ -4,14 +4,28 @@
 {% load sentry_assets %}
 
 {% block header %}
-  <a href="{{ link }}" class="btn">View on Sentry</a>
+  {% block action %}
+    <a href="{{ link }}" class="btn">View on Sentry</a>
+  {% endblock %}
   {{ block.super }}
 {% endblock %}
 
 {% block main %}
-  <h2>{{ activity_name }}</h2>
 
-  <p>{{ html_description }}</p>
+  {% block activity %}
+
+    <h2>{{ activity_name }}</h2>
+
+    <p>{{ html_description }}</p>
+
+  {% endblock %}
 
   {% include "sentry/emails/group_header.html" %}
+
+  {% if reason %}
+    <p class="via">
+      You are receiving this email because you {{ reason }}.
+    </p>
+  {% endif %}
+
 {% endblock %}

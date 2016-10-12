@@ -373,7 +373,7 @@ class ActivityEmailTestCase(TestCase):
             )
         )
 
-        assert email.get_participants() == set([other])
+        assert set(email.get_participants()) == set([other])
 
         UserOption.objects.set_value(
             user=actor,
@@ -382,7 +382,7 @@ class ActivityEmailTestCase(TestCase):
             value='1'
         )
 
-        assert email.get_participants() == set([actor, other])
+        assert set(email.get_participants()) == set([actor, other])
 
     def test_get_participants_without_actor(self):
         group, (user,) = self.get_fixture_data(1)
@@ -394,4 +394,4 @@ class ActivityEmailTestCase(TestCase):
             )
         )
 
-        assert email.get_participants() == set([user])
+        assert set(email.get_participants()) == set([user])
