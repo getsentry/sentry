@@ -12,4 +12,19 @@
         Version {{ release.short_version }}
     </h2>
     <p><a href="{{ release_link }}" class="highlight">{{ release.short_version }}</a> was released for <a href="{{ project_link }}">{{ project.name }}</a> on {{ release.date_added }}</p>
+    <h3>Commits</h3>
+    {% if commit_list %}
+        <ul style="padding-left: 20px;">
+            {% for commit in commit_list %}
+                <li style="padding: 5px 0;">
+                    {% if commit.message %}
+                        <strong>{{ commit.title }}</strong> &mdash; {% if commit.author %}{{ commit.author.name }}{% endif %}<br />
+                    {% endif %}
+                    <small>{{ commit.short_id }}</small>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>It looks like there's no commit data wired up yet :(</p>
+    {% endif %}
 {% endblock %}

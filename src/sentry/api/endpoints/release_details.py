@@ -8,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Group, Release, ReleaseFile
+from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -117,7 +117,6 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
                                       the current time is assumed.
         :auth: required
         """
-        # TODO(dcramer): handle Activity creation
         try:
             release = Release.objects.get(
                 project=project,
@@ -132,6 +131,8 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.object
+
+        was_released = bool(release.date_released)
 
         kwargs = {}
         if result.get('dateStarted'):
@@ -151,6 +152,16 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             hook = ReleaseHook(project)
             # TODO(dcramer): handle errors with release payloads
             hook.set_commits(release.version, commit_list)
+
+        if (not was_released and release.date_released):
+            activity = Activity.objects.create(
+                type=Activity.RELEASE,
+                project=project,
+                ident=result['version'],
+                data={'version': result['version']},
+                datetime=release.date_released,
+            )
+            activity.send_notification()
 
         return Response(serialize(release, request.user))
 

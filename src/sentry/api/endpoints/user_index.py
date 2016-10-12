@@ -3,22 +3,14 @@ from __future__ import absolute_import
 import six
 
 from django.db.models import Q
-from six.moves import reduce
 
 from sentry.api.base import Endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import serialize
+from sentry.db.models.query import in_iexact
 from sentry.models import User
 from sentry.search.utils import tokenize_query
-
-
-def in_iexact(column, values):
-    from operator import or_
-
-    query = '{}__iexact'.format(column)
-
-    return reduce(or_, [Q(**{query: v}) for v in values])
 
 
 class UserIndexEndpoint(Endpoint):

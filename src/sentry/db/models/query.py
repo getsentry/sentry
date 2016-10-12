@@ -12,9 +12,10 @@ import itertools
 import six
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Model
+from django.db.models import Model, Q
 from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save
+from six.moves import reduce
 
 from .utils import resolve_expression_node
 
@@ -95,3 +96,11 @@ def create_or_update(model, using=None, **kwargs):
         affected = objects.filter(**kwargs).update(**values)
 
     return affected, False
+
+
+def in_iexact(column, values):
+    from operator import or_
+
+    query = '{}__iexact'.format(column)
+
+    return reduce(or_, [Q(**{query: v}) for v in values])

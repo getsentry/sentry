@@ -6,6 +6,7 @@ from django.utils import timezone
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
+from sentry.utils.cache import memoize
 
 
 class Commit(Model):
@@ -31,3 +32,15 @@ class Commit(Model):
         )
 
     __repr__ = sane_repr('organization_id', 'repository_id', 'key')
+
+    @memoize
+    def title(self):
+        if not self.message:
+            return ''
+        return self.message.splitlines()[0]
+
+    @memoize
+    def short_id(self):
+        if len(self.key) == 40:
+            return self.key[:12]
+        return self.key
