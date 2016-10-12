@@ -379,10 +379,14 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                     if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
                         raise OverflowError()
                     contents = []
-                    for chunk in response.iter_content():
+                    cl = 0
+                    for chunk in response.iter_content(16 * 1024):
                         if time.time() - now > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
                             raise Timeout()
                         contents.append(chunk)
+                        cl += len(chunk)
+                        if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                            raise OverflowError()
                 except Exception as exc:
                     logger.debug('Unable to fetch %r', url, exc_info=True)
                     if isinstance(exc, RestrictedIPAddress):
@@ -397,12 +401,12 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                         }
                     elif isinstance(exc, Timeout):
                         error = {
-                            'type': EventError.JS_SOURCEMAP_TIMEOUT,
+                            'type': EventError.JS_FETCH_TIMEOUT,
                             'url': expose_url(url),
                         }
                     elif isinstance(exc, OverflowError):
                         error = {
-                            'type': EventError.JS_SOURCEMAP_TOO_LARGE,
+                            'type': EventError.JS_TOO_LARGE,
                             'url': expose_url(url),
                         }
                     elif isinstance(exc, (RequestException, ZeroReturnError)):
