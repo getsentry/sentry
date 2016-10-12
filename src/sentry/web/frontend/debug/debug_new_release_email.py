@@ -3,7 +3,8 @@ from __future__ import absolute_import
 from django.views.generic import View
 
 from sentry.models import (
-    Commit, CommitAuthor, Organization, Team, Project, Release
+    Commit, CommitAuthor, Organization, Team, Project, Release,
+    GroupSubscriptionReason,
 )
 from sentry.utils.http import absolute_uri
 
@@ -67,5 +68,8 @@ class DebugNewReleaseEmailView(View):
                 'release_link': release_link,
                 'project_link': project_link,
                 'commit_list': commit_list,
+                'reason': GroupSubscriptionReason.descriptions[
+                    GroupSubscriptionReason.committed
+                ],
             },
         ).render(request)
