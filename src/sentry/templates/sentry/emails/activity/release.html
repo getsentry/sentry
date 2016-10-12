@@ -1,13 +1,12 @@
-{% extends "sentry/emails/base.html" %}
+{% extends "sentry/emails/activity/generic.html" %}
 
 {% load sentry_helpers %}
 
-{% block header %}
+{% block action %}
     <a href="{{ release_link }}" class="btn">View Release</a>
-    {{ block.super }}
 {% endblock %}
 
-{% block main %}
+{% block activity %}
     <h2>
         Version {{ release.short_version }}
     </h2>

@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.db.models.query import in_iexact
-from sentry.models import Release, ReleaseCommit, User
+from sentry.models import GroupSubscriptionReason, Release, ReleaseCommit, User
 
 from .base import ActivityEmail
 
@@ -37,16 +37,20 @@ class ReleaseActivityEmail(ActivityEmail):
         ])
 
         if not email_list:
-            return set()
+            return {}
 
         # identify members which have been seen in the commit log and have
         # verified the matching email address
-        return set(User.objects.filter(
-            in_iexact('emails__email', email_list),
-            emails__is_verified=True,
-            sentry_orgmember_set__teams=project.team,
-            is_active=True,
-        ).distinct())
+        return {
+            user: GroupSubscriptionReason.committed
+            for user in
+            User.objects.filter(
+                in_iexact('emails__email', email_list),
+                emails__is_verified=True,
+                sentry_orgmember_set__teams=project.team,
+                is_active=True,
+            ).distinct()
+        }
 
     def get_context(self):
         return {
