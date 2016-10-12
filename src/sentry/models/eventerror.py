@@ -20,8 +20,8 @@ class EventError(object):
     JS_TOO_MANY_REMOTE_SOURCES = 'js_too_many_sources'
     JS_INVALID_SOURCE_ENCODING = 'js_invalid_source_encoding'
     JS_INVALID_SOURCEMAP_LOCATION = 'js_invalid_sourcemap_location'
-    JS_SOURCEMAP_TOO_LARGE = 'js_sourcemap_too_large'
-    JS_SOURCEMAP_TIMEOUT = 'js_sourcemap_timeout'
+    JS_TOO_LARGE = 'js_too_large'
+    JS_FETCH_TIMEOUT = 'js_fetch_timeout'
     NATIVE_NO_CRASHED_THREAD = 'native_no_crashed_thread'
     NATIVE_INTERNAL_FAILURE = 'native_internal_failure'
     NATIVE_NO_SYMSYND = 'native_no_symsynd'
@@ -42,8 +42,8 @@ class EventError(object):
         JS_TOO_MANY_REMOTE_SOURCES: u'The maximum number of remote source requests was made',
         JS_INVALID_SOURCE_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
         JS_INVALID_SOURCEMAP_LOCATION: u'Invalid location in sourcemap: ({column}, {row})',
-        JS_SOURCEMAP_TOO_LARGE: u'Sourcemap too large',
-        JS_SOURCEMAP_TIMEOUT: u'Sourcemap took too long to load',
+        JS_TOO_LARGE: u'Remote file too large',
+        JS_FETCH_TIMEOUT: u'Remote file took too long to load',
         NATIVE_NO_CRASHED_THREAD: u'No crashed thread found in crash report',
         NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate: {error}',
         NATIVE_NO_SYMSYND: u'The symbolizer is not configured for this system.',
