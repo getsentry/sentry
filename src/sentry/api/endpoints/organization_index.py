@@ -13,11 +13,12 @@ from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.db.models.query import in_iexact
 from sentry.models import (
     AuditLogEntryEvent, Organization, OrganizationMember,
     OrganizationMemberTeam, OrganizationStatus, ProjectPlatform
 )
-from sentry.search.utils import tokenize_query, in_iexact
+from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 

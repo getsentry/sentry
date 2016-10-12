@@ -70,6 +70,16 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.wait_until('#preview')
         self.browser.snapshot('regression_with_version email txt')
 
+    def test_release_html(self):
+        self.browser.get(self.build_url('/debug/mail/new-release/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('release email html')
+
+    def test_release_txt(self):
+        self.browser.get(self.build_url('/debug/mail/new-release/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('release email txt')
+
     def test_resolved_html(self):
         self.browser.get(self.build_url('/debug/mail/resolved/'))
         self.browser.wait_until('#preview')
@@ -111,12 +121,12 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.snapshot('unassigned email txt')
 
     def test_new_event_html(self):
-        self.browser.get(self.build_url('/debug/mail/new-event/'))
+        self.browser.get(self.build_url('/debug/mail/alert/'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email html')
 
     def test_new_event_txt(self):
-        self.browser.get(self.build_url('/debug/mail/new-event/', 'txt'))
+        self.browser.get(self.build_url('/debug/mail/alert/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email txt')
 

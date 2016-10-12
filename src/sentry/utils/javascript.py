@@ -171,8 +171,8 @@ class GroupTransformer(Transformer):
         status = obj.get_status()
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-        elif status == GroupStatus.MUTED:
-            status_label = 'muted'
+        elif status == GroupStatus.IGNORED:
+            status_label = 'ignored'
         else:
             status_label = 'unresolved'
 
