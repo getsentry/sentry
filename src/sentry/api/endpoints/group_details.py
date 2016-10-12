@@ -59,6 +59,9 @@ class GroupSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
     hasSeen = serializers.BooleanField()
     assignedTo = UserField()
+    ignoreDuration = serializers.IntegerField()
+
+    # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
 
@@ -245,7 +248,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :pparam string issue_id: the ID of the group to retrieve.
         :param string status: the new status for the groups.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
-                              ``"muted"``.
+                              ``"ignored"``.
         :param string assignedTo: the username of the user that should be
                                assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user

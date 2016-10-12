@@ -25,6 +25,8 @@ const StreamTagStore = Reflux.createStore({
         values: [
           'resolved',
           'unresolved',
+          'ignored',
+          // TODO(dcramer): remove muted once data is migrated and 9.0+
           'muted',
           'assigned',
           'unassigned'

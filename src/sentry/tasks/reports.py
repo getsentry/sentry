@@ -227,7 +227,7 @@ def prepare_project_aggregates((_, stop), project):
 def prepare_project_issue_summaries(interval, project):
     start, stop = interval
 
-    queryset = project.group_set.exclude(status=GroupStatus.MUTED)
+    queryset = project.group_set.exclude(status=GroupStatus.IGNORED)
 
     # Fetch all new issues.
     new_issue_ids = set(

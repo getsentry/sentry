@@ -73,8 +73,8 @@ const GroupActions = React.createClass({
 
   onSnooze(duration) {
     this.onUpdate({
-      status: 'muted',
-      snoozeDuration: duration,
+      status: 'ignored',
+      ignoreDuration: duration,
     });
   },
 
@@ -93,9 +93,9 @@ const GroupActions = React.createClass({
       bookmarkClassName += ' active';
     }
 
-    let snoozeClassName = 'group-snooze btn btn-default btn-sm';
-    if (group.status === 'muted') {
-      snoozeClassName += ' active';
+    let ignoreClassName = 'group-ignore btn btn-default btn-sm';
+    if (group.status === 'ignored') {
+      ignoreClassName += ' active';
     }
 
     let hasRelease = defined(group.lastRelease);
@@ -150,18 +150,18 @@ const GroupActions = React.createClass({
           }
         </div>
         <div className="btn-group">
-          {group.status === 'muted' ?
-            <a className={snoozeClassName}
-               title={t('Remove Snooze')}
+          {group.status === 'ignored' ?
+            <a className={ignoreClassName}
+               title={t('Remove Ignored Status')}
                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-             {t('Snooze')}
+             {t('Ignore')}
             </a>
           :
             <DropdownLink
               caret={false}
-              className={snoozeClassName}
+              className={ignoreClassName}
               title={<span>
-                {t('Snooze')}
+                {t('Ignore')}
                 <span className="icon-arrow-down" style={{marginLeft: 3, marginRight: -3}} />
               </span>}>
               <MenuItem noAnchor={true}>
@@ -177,7 +177,7 @@ const GroupActions = React.createClass({
                 <a onClick={this.onSnooze.bind(this, Snooze.ONEWEEK)}>{t('for 1 week')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.onUpdate.bind(this, {status: 'muted'})}>{t('forever')}</a>
+                <a onClick={this.onUpdate.bind(this, {status: 'ignored'})}>{t('forever')}</a>
               </MenuItem>
             </DropdownLink>
           }

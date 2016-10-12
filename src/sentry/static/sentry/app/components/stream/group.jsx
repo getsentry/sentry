@@ -141,8 +141,8 @@ const StreamGroup = React.createClass({
     if (data.status === 'resolved') {
       className += ' isResolved';
     }
-    if (data.status === 'muted') {
-      className += ' isMuted';
+    if (data.status === 'ignored') {
+      className += ' isIgnored';
     }
 
     className += ' type-' + data.type;

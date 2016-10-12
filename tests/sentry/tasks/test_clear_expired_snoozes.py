@@ -14,7 +14,7 @@ class ClearExpiredSnoozesTest(TestCase):
 
     def test_simple(self):
         group1 = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group1,
@@ -22,7 +22,7 @@ class ClearExpiredSnoozesTest(TestCase):
         )
 
         group2 = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group2,
@@ -37,4 +37,4 @@ class ClearExpiredSnoozesTest(TestCase):
 
         assert Group.objects.get(
             id=group2.id,
-        ).status == GroupStatus.MUTED
+        ).status == GroupStatus.IGNORED

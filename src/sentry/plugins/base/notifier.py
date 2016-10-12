@@ -25,7 +25,7 @@ class Notifier(object):
         """
 
     def should_notify(self, group, event):
-        if group.is_muted():
+        if group.is_ignored():
             return False
 
         project = group.project

@@ -50,12 +50,15 @@ SEARCH_SORT_OPTIONS = OrderedDict((
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
-STATUS_MUTED = 2
+STATUS_IGNORED = 2
 
 STATUS_CHOICES = {
     'resolved': STATUS_RESOLVED,
     'unresolved': STATUS_UNRESOLVED,
-    'muted': STATUS_MUTED,
+    'ignored': STATUS_IGNORED,
+
+    # TODO(dcramer): remove in 9.0
+    'muted': STATUS_IGNORED,
 }
 
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A

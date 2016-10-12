@@ -15,12 +15,12 @@ from sentry.testutils import TestCase
 
 
 class GroupSerializerTest(TestCase):
-    def test_is_muted_with_expired_snooze(self):
+    def test_is_ignored_with_expired_snooze(self):
         now = timezone.now().replace(microsecond=0)
 
         user = self.create_user()
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,
@@ -31,12 +31,12 @@ class GroupSerializerTest(TestCase):
         assert result['status'] == 'unresolved'
         assert result['statusDetails'] == {}
 
-    def test_is_muted_with_valid_snooze(self):
+    def test_is_ignored_with_valid_snooze(self):
         now = timezone.now().replace(microsecond=0)
 
         user = self.create_user()
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         snooze = GroupSnooze.objects.create(
             group=group,
@@ -44,8 +44,8 @@ class GroupSerializerTest(TestCase):
         )
 
         result = serialize(group, user)
-        assert result['status'] == 'muted'
-        assert result['statusDetails'] == {'snoozeUntil': snooze.until}
+        assert result['status'] == 'ignored'
+        assert result['statusDetails'] == {'ignoreUntil': snooze.until}
 
     def test_resolved_in_next_release(self):
         release = Release.objects.create(
