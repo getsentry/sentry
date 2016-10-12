@@ -114,7 +114,7 @@ const TagDistributionMeter = React.createClass({
         {hasOther &&
           <Link
               key="other"
-              className="segment" style={{width: otherPct + '%'}}
+              className="segment segment-9" style={{width: otherPct + '%'}}
               to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
               title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">
