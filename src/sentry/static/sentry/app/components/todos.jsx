@@ -211,12 +211,12 @@ const TodoList = React.createClass({
       },
       {
         'task': 10,
-        'title': t('Set up a notification service'),
+        'title': t('Set up an alerts service'),
         'description': t('Receive Sentry alerts in Slack or HipChat'),
         'skippable': true,
         'prereq': [1, 2],
         'featureLocation': 'project',
-        'location': 'settings/notifications/',
+        'location': 'settings/alerts/',
       },
     ]
   },
