@@ -62,6 +62,8 @@ Version 8.9
 - Added weekly report emails behind feature flag.
 - Rebrand Rules as Alerts / Alert Rules.
 - Add frequency to Alerts.
+- Send email to specific email when adding a new email rather than sending to all unverified email addresses
+- Allow user to resend email verification to primary email address
 
 Schema Changes
 ~~~~~~~~~~~~~~

@@ -124,33 +124,36 @@ class User(BaseModel, AbstractBaseUser):
             return avatar.get_avatar_type_display()
         return 'letter_avatar'
 
-    def send_confirm_emails(self, is_new_user=False):
+    def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
         from sentry.utils.email import MessageBuilder
 
+        if not email.hash_is_valid():
+            email.set_hash()
+            email.save()
+
+        context = {
+            'user': self,
+            'url': absolute_uri(reverse(
+                'sentry-account-confirm-email',
+                args=[self.id, email.validation_hash]
+            )),
+            'confirm_email': email.email,
+            'is_new_user': is_new_user,
+        }
+        msg = MessageBuilder(
+            subject='%sConfirm Email' % (options.get('mail.subject-prefix'),),
+            template='sentry/emails/confirm_email.txt',
+            html_template='sentry/emails/confirm_email.html',
+            type='user.confirm_email',
+            context=context,
+        )
+        msg.send_async([email.email])
+
+    def send_confirm_emails(self, is_new_user=False):
         email_list = self.get_unverified_emails()
         for email in email_list:
-            if not email.hash_is_valid():
-                email.set_hash()
-                email.save()
-
-            context = {
-                'user': self,
-                'url': absolute_uri(reverse(
-                    'sentry-account-confirm-email',
-                    args=[self.id, email.validation_hash]
-                )),
-                'confirm_email': email.email,
-                'is_new_user': is_new_user,
-            }
-            msg = MessageBuilder(
-                subject='%sConfirm Email' % (options.get('mail.subject-prefix'),),
-                template='sentry/emails/confirm_email.txt',
-                html_template='sentry/emails/confirm_email.html',
-                type='user.confirm_email',
-                context=context,
-            )
-            msg.send_async([email.email])
+            self.send_confirm_email_singular(email, is_new_user)
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful

@@ -10,7 +10,10 @@
     {% if request.user.has_unverified_emails %}
       <div class="alert alert-warning alert-block">
         {% trans "You have unverified emails. " %}
-        <a href="{% url 'sentry-account-confirm-email-send' %}">{% trans "Resend Verification Emails" %}</a>.
+        <form action="{% url 'sentry-account-confirm-email-send' %}" method="post" class="email-alert-button">
+          {% csrf_token %}
+          <button type="submit" class="btn-link">{% trans "Resend Verification Emails." %}</button>
+        </form>
       </div>
     {% endif %}
 
