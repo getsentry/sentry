@@ -36,11 +36,9 @@ class FrequencyConditionMixin(object):
         )
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, value)
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, 1)
 
         self.assertPasses(rule, event)
@@ -63,11 +61,9 @@ class FrequencyConditionMixin(object):
         )
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, value)
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, 1)
 
         self.assertPasses(rule, event)
@@ -90,11 +86,9 @@ class FrequencyConditionMixin(object):
         )
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, value)
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, 1)
 
         self.assertPasses(rule, event)
@@ -111,7 +105,6 @@ class FrequencyConditionMixin(object):
 
         self.assertDoesNotPass(rule, event)
 
-        rule.clear_cache(event)
         self.increment(event, 1)
 
         self.assertPasses(rule, event)
