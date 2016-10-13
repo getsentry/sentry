@@ -43,7 +43,8 @@ class SentryInternalClient(DjangoClient):
             metrics.incr('internal.uncaptured.events')
             self.error_logger.error('Not capturing event due to unsafe stacktrace:\n%r', kwargs)
             return
-        return super(SentryInternalClient, self).capture(*args, **kwargs)
+        self.last_event_id = super(SentryInternalClient, self).capture(*args, **kwargs)
+        return self.last_event_id
 
     def send(self, **kwargs):
         # TODO(dcramer): this should respect rate limits/etc and use the normal
