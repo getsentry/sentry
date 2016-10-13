@@ -2,7 +2,7 @@
 sentry.rules.conditions.tagged_event
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
