@@ -409,11 +409,14 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                         error = {
                             'type': EventError.JS_FETCH_TIMEOUT,
                             'url': expose_url(url),
+                            'timeout': settings.SENTRY_SOURCE_FETCH_TIMEOUT,
                         }
                     elif isinstance(exc, OverflowError):
                         error = {
                             'type': EventError.JS_TOO_LARGE,
                             'url': expose_url(url),
+                            # We want size in megabytes to format nicely
+                            'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                         }
                     elif isinstance(exc, (RequestException, ZeroReturnError)):
                         error = {
