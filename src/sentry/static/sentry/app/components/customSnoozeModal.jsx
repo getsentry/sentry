@@ -44,11 +44,6 @@ const CustomSnoozeModal = React.createClass({
   },
 
   render() {
-    const inputStyle = {
-      marginLeft: '5px',
-      width: '150px',
-    };
-
     // Give the user a sane starting point to select a date
     // (prettier than the empty date/time inputs):
     let defaultDate = new Date();
@@ -68,17 +63,28 @@ const CustomSnoozeModal = React.createClass({
       <Modal show={this.props.show} animation={false} bsSize="sm">
         <div className="modal-body">
           <h5>{t('Ignore until:')}</h5>
-          <form>
+          <form className="form-horizontal">
             <div className="form-group">
-              <label htmlFor="snooze-until-date">{t('Date:')}</label>
-              <input id="snooze-until-date" type="date"
-                     defaultValue={defaultDateVal} ref="snoozeDateInput" style={inputStyle}/>
+              <label htmlFor="snooze-until-date"
+                     className="col-sm-4 control-label">{t('Date:')}</label>
+              <div className="col-sm-7">
+                <input className="form-control"
+                       type="date"
+                       id="snooze-until-date"
+                       defaultValue={defaultDateVal}
+                       ref="snoozeDateInput"/>
+              </div>
             </div>
             <div className="form-group">
-              <label htmlFor="snooze-until-time">{t('Time:')}</label>
-              <input id="snooze-until-time" type="time"
-                     defaultValue={defaultTimeVal} ref="snoozeTimeInput" style={inputStyle}/>
-              <span> {t('UTC')}</span>
+              <label htmlFor="snooze-until-time"
+                     className="col-sm-4 control-label">{t('Time (UTC):')}</label>
+              <div className="col-sm-7">
+                <input className="form-control"
+                       type="time"
+                       id="snooze-until-time"
+                       defaultValue={defaultTimeVal}
+                       ref="snoozeTimeInput"/>
+              </div>
             </div>
           </form>
         </div>
