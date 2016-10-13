@@ -790,6 +790,44 @@
     // whatever it pleases (e.g. 4k pixels on my 1280 screen)
     max-width: ~"calc(100% - 365px)";
 
+    .issue-status {
+      background: @white-dark;
+
+      .icon {
+        position: absolute;
+        font-size: 16px;
+        top: 18px;
+      }
+
+      .icon-checkmark {
+        color: @green;
+      }
+
+      .icon-soundoff {
+        color: @red;
+      }
+
+      .box {
+        padding-top: 15px;
+        position: relative;
+        background: transparent;
+        border-top: 1px solid @trim;
+        border-bottom: 1px solid @trim;
+        font-size: 14px;
+
+        p {
+          margin: 0;
+          padding-bottom: 13px;
+          padding-left: 26px;
+        }
+      }
+
+      &+.entries .box:first-child{
+        box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.03);
+        border-top: 0;
+      }
+    }
+
     .box.alert-block {
       padding-top: 15px;
       padding-bottom: 15px;
