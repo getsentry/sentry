@@ -74,7 +74,9 @@ const CustomSnoozeModal = React.createClass({
                        type="date"
                        id="snooze-until-date"
                        defaultValue={defaultDateVal}
-                       ref="snoozeDateInput"/>
+                       ref="snoozeDateInput"
+                       style={{'padding' : '0 10px'}}
+                       />
               </div>
             </div>
             <div className="form-group m-b-1">
@@ -85,7 +87,9 @@ const CustomSnoozeModal = React.createClass({
                        type="time"
                        id="snooze-until-time"
                        defaultValue={defaultTimeVal}
-                       ref="snoozeTimeInput"/>
+                       ref="snoozeTimeInput"
+                       style={{'padding' : '0 10px'}}
+                       />
               </div>
             </div>
           </form>
