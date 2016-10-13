@@ -33,6 +33,9 @@
           <p>This is the body of an email</p>
           {% endblock %}
         </div>
+      </div>
+      {% endblock %}
+      <div class="container">
         <div class="footer">
           {% block footer %}
           <a href="{% absolute_uri %}" style="float:right">Home</a>
@@ -44,7 +47,6 @@
           {% endblock %}
         </div>
       </div>
-      {% endblock %}
     </td>
   </tr>
 </table>

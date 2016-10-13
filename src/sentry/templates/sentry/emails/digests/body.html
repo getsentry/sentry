@@ -52,18 +52,4 @@
     </div>
 {% endfor %}
 
-    <p>
-      <a href="{{ unsubscribe_link }}">Click to unsubscribe</a>
-    </p>
-
-<div class="container">
-  <div class="footer" style="margin-top: 30px">
-    {% block footer %}
-    <a href="{% absolute_uri %}" style="float:right">Home</a>
-    {% url 'sentry-account-settings-notifications' as settings_link %}
-    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
-    {% endblock %}
-  </div>
-</div>
-
 {% endblock %}
