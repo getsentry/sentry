@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import File, Release, ReleaseCommit, ReleaseFile
+from sentry.models import (
+    Activity, File, Release, ReleaseCommit, ReleaseFile
+)
 from sentry.testutils import APITestCase
 
 
@@ -69,7 +72,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             'commits': [
                 {'id': 'a' * 40},
                 {'id': 'b' * 40},
-            ]
+            ],
         })
 
         assert response.status_code == 200, (response.status_code, response.content)
@@ -78,6 +81,37 @@ class UpdateReleaseDetailsTest(APITestCase):
             release=release,
         ).select_related('commit', 'commit__author').order_by('order'))
         assert len(rc_list) == 2
+
+    def test_activity_generation(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            version='1',
+        )
+
+        url = reverse('sentry-api-0-release-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+        response = self.client.put(url, data={
+            'dateReleased': datetime.utcnow().isoformat() + 'Z',
+        })
+
+        assert response.status_code == 200, (response.status_code, response.content)
+
+        release = Release.objects.get(id=release.id)
+        assert release.date_released
+
+        activity = Activity.objects.filter(
+            type=Activity.RELEASE,
+            project=project,
+            ident=release.version,
+        )
+        assert activity.exists()
 
 
 class ReleaseDeleteTest(APITestCase):
