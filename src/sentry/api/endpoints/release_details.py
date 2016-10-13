@@ -157,8 +157,8 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
             activity = Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
-                ident=result['version'],
-                data={'version': result['version']},
+                ident=release.version,
+                data={'version': release.version},
                 datetime=release.date_released,
             )
             activity.send_notification()
