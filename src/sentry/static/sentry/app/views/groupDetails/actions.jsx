@@ -2,6 +2,7 @@ import React from 'react';
 import {History} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
+import CustomSnoozeModal from '../../components/customSnoozeModal';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
@@ -78,6 +79,23 @@ const GroupActions = React.createClass({
     });
   },
 
+  customSnoozeClicked() {
+    this.setState({
+      isCustomSnoozeModalOpen: true
+    });
+  },
+
+  customSnoozeSelected(duration) {
+    this.onSnooze(duration);
+    this.customSnoozeCanceled();
+  },
+
+  customSnoozeCanceled() {
+    this.setState({
+      isCustomSnoozeModalOpen: false
+    });
+  },
+
   render() {
     let group = this.getGroup();
 
@@ -103,6 +121,10 @@ const GroupActions = React.createClass({
 
     return (
       <div className="group-actions">
+        <CustomSnoozeModal
+            show={this.state && this.state.isCustomSnoozeModalOpen}
+            onSelected={this.customSnoozeSelected}
+            onCanceled={this.customSnoozeCanceled}/>
         <div className="btn-group">
           {group.status === 'resolved' ? (
             group.statusDetails.autoResolved ?
@@ -175,6 +197,9 @@ const GroupActions = React.createClass({
               </MenuItem>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onSnooze.bind(this, Snooze.ONEWEEK)}>{t('for 1 week')}</a>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <a onClick={this.customSnoozeClicked.bind(this)}>{t('until custom date...')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onUpdate.bind(this, {status: 'ignored'})}>{t('forever')}</a>
