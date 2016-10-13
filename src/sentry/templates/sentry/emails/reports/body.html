@@ -425,18 +425,5 @@
       </tr>
     </table>
   {% endif %}
-
-  {% comment %}
-  <div class="unsubscribe-box">
-    Not enjoying these? <a>Click to unsubscribe</a>.
-  </div>
-  {% endcomment %}
-</div>
-<div class="footer">
-  <div class="container">
-    <a href="{% absolute_uri %}" style="float:right">Home</a>
-    {% url 'sentry-account-settings-notifications' as settings_link %}
-    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
-  </div>
 </div>
 {% endblock %}
