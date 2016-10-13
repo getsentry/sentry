@@ -58,37 +58,27 @@ class BaseEventFrequencyCondition(EventCondition):
 
         return current_value > value
 
-    def clear_cache(self, event):
-        event._rate_cache = {}
-
     def query(self, event, start, end):
         """
         """
         raise NotImplementedError  # subclass must implement
 
     def get_rate(self, event, interval):
-        if not hasattr(event, '_rate_cache'):
-            event._rate_cache = {}
+        end = timezone.now()
+        if interval == Interval.ONE_MINUTE:
+            start = end - timedelta(minutes=1)
+        elif interval == Interval.ONE_HOUR:
+            start = end - timedelta(hours=1)
+        elif interval == Interval.ONE_DAY:
+            start = end - timedelta(hours=24)
+        else:
+            raise ValueError(interval)
 
-        result = event._rate_cache.get(interval)
-        if result is None:
-            end = timezone.now()
-            if interval == Interval.ONE_MINUTE:
-                start = end - timedelta(minutes=1)
-            elif interval == Interval.ONE_HOUR:
-                start = end - timedelta(hours=1)
-            elif interval == Interval.ONE_DAY:
-                start = end - timedelta(hours=24)
-            else:
-                raise ValueError(interval)
-
-            event._rate_cache[interval] = result = self.query(
-                event,
-                start,
-                end,
-            )
-
-        return result
+        return self.query(
+            event,
+            start,
+            end,
+        )
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
