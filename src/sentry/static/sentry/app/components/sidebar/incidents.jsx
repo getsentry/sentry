@@ -36,7 +36,7 @@ const Incidents = React.createClass({
 
     return status && status.incidents.length > 0 &&
       <li className={this.props.currentPanel == 'statusupdate' ? 'active' : null }>
-        <a onClick={this.props.onShowPanel}><span className="icon icon-alert"/></a>
+        <a onClick={this.props.onShowPanel}><span className="icon icon-alert animated pulse infinite"/></a>
         {this.props.showPanel && this.props.currentPanel == 'statusupdate' && status &&
           <SidebarPanel title={t('Recent status updates')}
                         hidePanel={this.props.hidePanel}>
