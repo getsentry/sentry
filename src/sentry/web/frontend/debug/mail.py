@@ -97,6 +97,11 @@ def make_group_generator(random, project):
         yield group
 
 
+def add_unsubscribe_link(context):
+    if 'unsubscribe_link' not in context:
+        context['unsubscribe_link'] = 'javascript:alert("This is a preview page, what did you expect to happen?");'
+
+
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
 class MailPreview(object):
     def __init__(self, html_template, text_template, context=None, subject=None):
@@ -104,6 +109,7 @@ class MailPreview(object):
         self.text_template = text_template
         self.subject = subject
         self.context = context if context is not None else {}
+        add_unsubscribe_link(self.context)
 
     def text_body(self):
         return render_to_string(self.text_template, self.context)
@@ -129,13 +135,11 @@ class ActivityMailPreview(object):
 
     def get_context(self):
         context = self.email.get_base_context()
-        context.update({
-            'reason': get_random(self.request).choice(
-                GroupSubscriptionReason.descriptions.values()
-            ),
-            'unsubscribe_link': 'javascript:alert("This is a preview page, what did you expect to happen?");',
-        })
+        context['reason'] = get_random(self.request).choice(
+            GroupSubscriptionReason.descriptions.values()
+        )
         context.update(self.email.get_context())
+        add_unsubscribe_link(context)
         return context
 
     def text_body(self):
@@ -354,16 +358,19 @@ def digest(request):
     digest = build_digest(project, records, state)
     start, end, counts = get_digest_metadata(digest)
 
+    context = {
+        'project': project,
+        'counts': counts,
+        'digest': digest,
+        'start': start,
+        'end': end,
+    }
+    add_unsubscribe_link(context)
+
     return MailPreview(
         html_template='sentry/emails/digests/body.html',
         text_template='sentry/emails/digests/body.txt',
-        context={
-            'project': project,
-            'counts': counts,
-            'digest': digest,
-            'start': start,
-            'end': end,
-        },
+        context=context,
     ).render(request)
 
 
