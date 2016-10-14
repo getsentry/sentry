@@ -89,7 +89,7 @@ const GroupEventDetails = React.createClass({
                   orgId={params.orgId}
                   projectId={params.projectId} />
             }
-            {group.status &&
+            {group.status != 'unresolved' &&
               <div className="issue-status">
                 {group.status === 'ignored' &&
                   <MutedBox statusDetails={group.statusDetails} />
