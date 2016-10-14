@@ -1,6 +1,20 @@
 from __future__ import absolute_import
 
 import six
+from string import Formatter
+
+
+class dontexplodedict(object):
+    """
+    A dictionary that won't throw a KeyError and will
+    return back a sensible default value to be used in
+    string formatting.
+    """
+    def __init__(self, d=None):
+        self.data = d or {}
+
+    def __getitem__(self, key):
+        return self.data.get(key, '')
 
 
 class EventError(object):
@@ -51,7 +65,11 @@ class EventError(object):
 
     @classmethod
     def get_message(cls, data):
-        return cls._messages[data['type']].format(**data)
+        return Formatter().vformat(
+            cls._messages[data['type']],
+            [],
+            dontexplodedict(data),
+        )
 
     def to_dict(self):
         return {k: v for k, v in six.iteritems(self) if k != 'type'}
