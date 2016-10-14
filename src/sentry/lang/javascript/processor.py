@@ -37,7 +37,7 @@ from sentry.utils.strings import truncatechars
 from sentry.utils import metrics
 
 from .cache import SourceCache, SourceMapCache
-from .sourcemaps import sourcemap_to_index, find_source, get_inline_content_sources
+from .sourcemaps import from_json as view_from_json
 
 
 # number of surrounding lines (on each side) to fetch
@@ -494,6 +494,8 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
+        # TODO(mattrobenolt): this is returning unicodes, and there's no
+        # reason we need to do this. We operate on this payload as bytes.
         result = fetch_file(url, project=project, release=release,
                             allow_scraping=allow_scraping)
         body = result.body
@@ -505,8 +507,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
         if body.startswith((u")]}'\n", u")]}\n")):
             body = body.split(u'\n', 1)[1]
-
-        return sourcemap_to_index(body)
+        return view_from_json(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(six.text_type(exc), exc_info=True)
@@ -700,8 +701,8 @@ class SourceProcessor(object):
                 frame.module = generate_module(frame.abs_path)
 
     def expand_frames(self, frames, release):
-        last_state = None
-        state = None
+        last_token = None
+        token = None
 
         cache = self.cache
         sourcemaps = self.sourcemaps
@@ -722,14 +723,14 @@ class SourceProcessor(object):
                 logger.debug('No source found for %s', frame.abs_path)
                 continue
 
-            sourcemap_url, sourcemap_idx = sourcemaps.get_link(frame.abs_path)
-            if sourcemap_idx and frame.colno is None:
+            sourcemap_url, sourcemap_view = sourcemaps.get_link(frame.abs_path)
+            if sourcemap_view and frame.colno is None:
                 all_errors.append({
                     'type': EventError.JS_NO_COLUMN,
                     'url': expose_url(frame.abs_path),
                 })
-            elif sourcemap_idx:
-                last_state = state
+            elif sourcemap_view:
+                last_token = token
 
                 if is_data_uri(sourcemap_url):
                     sourcemap_label = frame.abs_path
@@ -739,9 +740,12 @@ class SourceProcessor(object):
                 sourcemap_label = expose_url(sourcemap_label)
 
                 try:
-                    state = find_source(sourcemap_idx, frame.lineno, frame.colno)
+                    # Errors are 1-indexed in the frames, so we need to -1 to get
+                    # zero-indexed value from tokens.
+                    assert frame.lineno > 0, "line numbers are 1-indexed"
+                    token = sourcemap_view.lookup_token(frame.lineno - 1, frame.colno)
                 except Exception:
-                    state = None
+                    token = None
                     all_errors.append({
                         'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
                         'column': frame.colno,
@@ -761,8 +765,8 @@ class SourceProcessor(object):
 
                 sourcemap_applied = True
 
-                if state is not None:
-                    abs_path = urljoin(sourcemap_url, state.src)
+                if token is not None:
+                    abs_path = urljoin(sourcemap_url, token.src)
 
                     logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
                     source = self.get_source(abs_path, release)
@@ -777,18 +781,18 @@ class SourceProcessor(object):
                             'url': expose_url(abs_path),
                         })
 
-                if state is not None:
-                    # SourceMap's return zero-indexed lineno's
-                    frame.lineno = state.src_line + 1
-                    frame.colno = state.src_col
+                if token is not None:
+                    # Token's return zero-indexed lineno's
+                    frame.lineno = token.src_line + 1
+                    frame.colno = token.src_col
                     # The offending function is always the previous function in the stack
                     # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                    if last_state:
-                        frame.function = last_state.name or frame.function
+                    if last_token:
+                        frame.function = last_token.name or frame.function
                     else:
-                        frame.function = state.name or frame.function
+                        frame.function = token.name or frame.function
 
-                    filename = state.src
+                    filename = token.src
                     # special case webpack support
                     # abs_path will always be the full path with webpack:/// prefix.
                     # filename will be relative to that
@@ -879,7 +883,7 @@ class SourceProcessor(object):
 
         # pull down sourcemap
         try:
-            sourcemap_idx = fetch_sourcemap(
+            sourcemap_view = fetch_sourcemap(
                 sourcemap_url,
                 project=self.project,
                 release=release,
@@ -889,12 +893,17 @@ class SourceProcessor(object):
             cache.add_error(filename, exc.data)
             return
 
-        sourcemaps.add(sourcemap_url, sourcemap_idx)
+        sourcemaps.add(sourcemap_url, sourcemap_view)
 
         # cache any inlined sources
-        inline_sources = get_inline_content_sources(sourcemap_idx, sourcemap_url)
-        for source in inline_sources:
-            self.cache.add(*source)
+        # inline_sources = sourcemap_view.get_inline_content_sources(sourcemap_url)
+        for src_id, source in sourcemap_view.iter_sources():
+            # TODO(mattrobenolt): This is slightly less than ideal,
+            # but it's the simplest path for now.
+            # Ideally, we would do this lazily.
+            content = sourcemap_view.get_source_contents(src_id)
+            if content is not None:
+                self.cache.add(urljoin(sourcemap_url, source), content)
 
     def populate_source_cache(self, frames, release):
         """
