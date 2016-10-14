@@ -10,7 +10,9 @@ from mock import patch
 from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
 
-BASE64_SOURCEMAP = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
+BASE64_SOURCEMAP = 'data:application/json;base64,' + (
+    '{"version":3,"file":"generated.js","sources":["/test.js"],"names":[],"mappings":"AAAA","sourcesContent":["console.log(\\"hello, World!\\")"]}'.encode('base64').replace('\n', '')
+)
 
 
 def get_fixture_path(name):
