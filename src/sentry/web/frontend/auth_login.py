@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
@@ -123,7 +124,7 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request):
-        next_uri = request.GET.get('next', None)
+        next_uri = request.GET.get(REDIRECT_FIELD_NAME, None)
         if request.user.is_authenticated():
             if auth.is_valid_redirect(next_uri):
                 return self.redirect(next_uri)

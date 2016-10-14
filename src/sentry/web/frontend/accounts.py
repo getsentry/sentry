@@ -349,7 +349,7 @@ def disconnect_identity(request, identity_id):
 
     messages.add_message(
         request, messages.SUCCESS,
-        'Your {} association has been revoked.'.format(
+        'Your {} identity has been disconnected.'.format(
             settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
         )
     )
