@@ -52,12 +52,14 @@ class PluginSettings extends PluginComponentBase {
       method: 'PUT',
       success: this.onSaveSuccess.bind(this, data => {
         let formData = {};
+        let initialData = {};
         data.config.forEach((field) => {
           formData[field.name] = field.value || field.defaultValue;
+          initialData[field.name] = field.value;
         });
         this.setState({
           formData: formData,
-          initialData: Object.assign({}, formData),
+          initialData: initialData,
           errors: {}
         });
       }),
@@ -74,13 +76,15 @@ class PluginSettings extends PluginComponentBase {
     this.api.request(this.getPluginEndpoint(), {
       success: data => {
         let formData = {};
+        let initialData = {};
         data.config.forEach((field) => {
           formData[field.name] = field.value || field.defaultValue;
+          initialData[field.name] = field.value;
         });
         this.setState({
           fieldList: data.config,
           formData: formData,
-          initialData: Object.assign({}, formData)
+          initialData: initialData
         // call this here to prevent FormState.READY from being
         // set before fieldList is
         }, this.onLoadSuccess);
