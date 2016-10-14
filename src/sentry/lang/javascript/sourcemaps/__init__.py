@@ -1,3 +1,6 @@
 from __future__ import absolute_import
 
-from .native import from_json  # NOQA
+try:
+    from libsourcemap import from_json
+except ImportError:
+    from .native import from_json  # NOQA

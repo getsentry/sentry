@@ -19,7 +19,7 @@ from sentry.lang.javascript.errormapping import (
     rewrite_exception, REACT_MAPPING_URL
 )
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, requires_no_libsourcemap
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
@@ -245,6 +245,7 @@ class GenerateModuleTest(TestCase):
         assert generate_module('~/app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
 
 
+@requires_no_libsourcemap
 class FetchBase64SourcemapTest(TestCase):
     def test_simple(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
