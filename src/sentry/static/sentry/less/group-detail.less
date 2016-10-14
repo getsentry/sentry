@@ -1794,10 +1794,20 @@ div.commands {
 }
 
 .box.errors {
-  border-color: #E7C0BC;
-  background: #FDF6F5;
-  color: rgba(0,0,0, .70);
-  font-size: 15px;
+  border-top: 1px solid @alert-danger-border-color !important;
+  background: @alert-danger-bg-color;
+  margin-top: -1px !important;
+  padding-top: 15px !important;
+  font-size: 14px;
+  position: relative;
+  .clearfix;
+
+  .icon-alert {
+    position: absolute;
+    top: 17px;
+    font-size: 16px;
+    color: @red;
+  }
 
   .box-content {
     padding: 10px 20px;
@@ -1811,8 +1821,9 @@ div.commands {
     }
 
     p {
-      margin: 0;
+      margin: 0 0 13px;
       line-height: 1.5;
+      padding-left: 26px;
 
       .btn {
         margin-left: 5px;
@@ -1820,12 +1831,13 @@ div.commands {
     }
 
     ul {
-      border-top: 1px solid #EFE0E1;
+      border-top: 1px solid lighten(@alert-danger-border-color, 4);
       margin: 10px 0 0;
-      padding: 10px 0 0 20px;
+      padding: 10px 0 10px 20px;
 
       li {
         margin-bottom: 5px;
+        word-break: break-word;
       }
     }
 
@@ -1834,6 +1846,10 @@ div.commands {
       color: #381618;
       margin: 5px 0 0;
     }
+  }
+
+  &+ .box, &+ .context-summary {
+    border-top: 1px solid lighten(@alert-danger-border-color, 4);
   }
 }
 
