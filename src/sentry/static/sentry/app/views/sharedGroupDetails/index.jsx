@@ -5,7 +5,6 @@ import DocumentTitle from 'react-document-title';
 import ApiMixin from '../../mixins/apiMixin';
 import EventEntries from '../../components/events/eventEntries';
 import Footer from '../../components/footer';
-import Sidebar from '../../components/sidebar';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import PropTypes from '../../proptypes';
@@ -90,23 +89,32 @@ const SharedGroupDetails = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          <Sidebar />
+          <div className="pattern-bg" />
           <div className="container">
-            <div className="content">
-              <SharedGroupHeader group={group} />
-              <div className="group-overview event-details-container">
-                <div className="primary">
-                  <EventEntries
-                    group={group}
-                    event={evt}
-                    orgId={group.project.organization.slug}
-                    project={group.project}
-                    isShare={true} />
+            <div className="box box-modal">
+              <div className="box-header">
+                <a href="/">
+                  <span className="icon-sentry-logo-full" />
+                </a>
+              </div>
+              <div className="box-content">
+                <div className="content">
+                  <SharedGroupHeader group={group} />
+                  <div className="group-overview event-details-container">
+                    <div className="primary">
+                      <EventEntries
+                        group={group}
+                        event={evt}
+                        orgId={group.project.organization.slug}
+                        project={group.project}
+                        isShare={true} />
+                    </div>
+                  </div>
+                  <Footer />
                 </div>
               </div>
             </div>
           </div>
-          <Footer />
         </div>
       </DocumentTitle>
     );
