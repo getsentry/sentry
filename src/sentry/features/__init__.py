@@ -18,6 +18,7 @@ default_manager.add('organizations:reports:calendar', OrganizationFeature)  # NO
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:quotas', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
+default_manager.add('workflow:release-emails')
 
 # expose public api
 add = default_manager.add
