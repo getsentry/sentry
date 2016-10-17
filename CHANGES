@@ -9,7 +9,7 @@ API Changes
 
 - Add ``/organizations/{org}/repositories/`` endpoint.
 - Add ``/organizations/{org}/repositories/{repo}/commits/`` endpoint.
-- Add ``/projects/{org}/{project}/releases/{versoin}/commits/`` endpoint.
+- Add ``/projects/{org}/{project}/releases/{version}/commits/`` endpoint.
 
 Schema Changes
 ~~~~~~~~~~~~~~
