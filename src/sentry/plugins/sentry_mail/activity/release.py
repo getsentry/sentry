@@ -55,6 +55,7 @@ class ReleaseActivityEmail(ActivityEmail):
     def get_context(self):
         return {
             'commit_list': self.commit_list,
+            'release': self.release,
         }
 
     def get_subject(self):
