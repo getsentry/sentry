@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry import features
 from sentry.db.models.query import in_iexact
 from sentry.models import GroupSubscriptionReason, Release, ReleaseCommit, User
 
@@ -43,13 +44,13 @@ class ReleaseActivityEmail(ActivityEmail):
         # verified the matching email address
         return {
             user: GroupSubscriptionReason.committed
-            for user in
-            User.objects.filter(
+            for user in User.objects.filter(
                 in_iexact('emails__email', email_list),
                 emails__is_verified=True,
                 sentry_orgmember_set__teams=project.team,
                 is_active=True,
             ).distinct()
+            if features.has('workflow:release-emails', actor=user)
         }
 
     def get_context(self):
