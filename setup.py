@@ -135,7 +135,7 @@ install_requires = [
     'structlog==16.1.0',
     'South==1.0.1',
     'symsynd>=1.1.0,<2.0.0',
-    'toronado>=0.0.10,<0.1.0',
+    'toronado>=0.0.11,<0.1.0',
     'ua-parser>=0.6.1,<0.8.0',
     'urllib3>=1.14,<1.17',
     'uwsgi>2.0.0,<2.1.0',
