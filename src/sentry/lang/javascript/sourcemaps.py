@@ -12,7 +12,7 @@ maps. Specifically, it supports indexed source maps with the "map" section prope
 output by the React Native bundler. It does NOT support indexed source maps with the "url"
 section property.
 
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
