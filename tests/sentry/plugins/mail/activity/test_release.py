@@ -90,19 +90,20 @@ class ReleaseTestCase(TestCase):
             )
         )
 
-        assert email.get_participants() == {
-            self.user: GroupSubscriptionReason.committed,
-        }
+        with self.feature('workflow:release-emails'):
+            assert email.get_participants() == {
+                self.user: GroupSubscriptionReason.committed,
+            }
 
-        context = email.get_context()
-        assert context['commit_list'] == [self.commit, self.commit2]
+            context = email.get_context()
+            assert context['commit_list'] == [self.commit, self.commit2]
 
-        with self.tasks():
-            email.send()
+            with self.tasks():
+                email.send()
 
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[-1]
-        assert msg.to == [self.user.email]
+            assert len(mail.outbox) == 1
+            msg = mail.outbox[-1]
+            assert msg.to == [self.user.email]
 
     def test_doesnt_generate_on_no_release(self):
         email = ReleaseActivityEmail(

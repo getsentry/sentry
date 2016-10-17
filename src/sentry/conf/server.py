@@ -654,6 +654,7 @@ SENTRY_FEATURES = {
     'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
+    'workflow:release-emails': False,
 }
 
 # Default time zone for localization in the UI.
