@@ -17,7 +17,7 @@ from django.utils.translation import ugettext, ugettext_lazy as _
 from pprint import saferepr
 from sentry.models import (
     ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast,
-    Option, Organization, OrganizationMember, OrganizationMemberTeam, Project,
+    Option, Organization, OrganizationMember, Project,
     Team, User
 )
 from sentry.utils.html import escape
@@ -152,33 +152,7 @@ class TeamAdmin(admin.ModelAdmin):
         if new_org != prev_org:
             return
 
-        Project.objects.filter(
-            team=obj,
-        ).update(
-            organization=obj.organization,
-        )
-
-        old_memberships = OrganizationMember.objects.filter(
-            teams=obj,
-        ).exclude(organization=obj.organization)
-        for member in old_memberships:
-            try:
-                new_member = OrganizationMember.objects.get(
-                    user=member.user,
-                    organization=obj.organization,
-                )
-            except OrganizationMember.DoesNotExist:
-                continue
-            OrganizationMemberTeam.objects.create(
-                team=obj,
-                organizationmember=new_member,
-            )
-
-        OrganizationMemberTeam.objects.filter(
-            team=obj,
-        ).exclude(
-            organizationmember__organization=obj.organization,
-        ).delete()
+        obj.transfer_to(obj.organization)
 
 admin.site.register(Team, TeamAdmin)
 
