@@ -209,10 +209,14 @@ class Team(Model):
             except OrganizationMember.DoesNotExist:
                 continue
 
-            OrganizationMemberTeam.objects.create(
-                team=new_team,
-                organizationmember=new_member,
-            )
+            try:
+                with transaction.atomic():
+                    OrganizationMemberTeam.objects.create(
+                        team=new_team,
+                        organizationmember=new_member,
+                    )
+            except IntegrityError:
+                pass
 
         OrganizationMemberTeam.objects.filter(
             team=self,
