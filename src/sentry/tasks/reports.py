@@ -571,18 +571,18 @@ backend = RedisReportBackend(
 @instrumented_task(
     name='sentry.tasks.reports.prepare_reports',
     queue='reports.prepare')
-def prepare_reports(*args, **kwargs):
+def prepare_reports(dry_run=False, *args, **kwargs):
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
     organization_ids = _get_organization_queryset().values_list('id', flat=True)
     for organization_id in organization_ids:
-        prepare_organization_report.delay(timestamp, duration, organization_id)
+        prepare_organization_report.delay(timestamp, duration, organization_id, dry_run=dry_run)
 
 
 @instrumented_task(
     name='sentry.tasks.reports.prepare_organization_report',
     queue='reports.prepare')
-def prepare_organization_report(timestamp, duration, organization_id):
+def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
     organization = _get_organization_queryset().get(id=organization_id)
 
     if not features.has('organizations:reports:prepare', organization):
@@ -603,6 +603,7 @@ def prepare_organization_report(timestamp, duration, organization_id):
             duration,
             organization_id,
             user_id,
+            dry_run=dry_run,
         )
 
 
@@ -707,7 +708,7 @@ def has_valid_aggregates(interval, (project, report)):
 @instrumented_task(
     name='sentry.tasks.reports.deliver_organization_user_report',
     queue='reports.deliver')
-def deliver_organization_user_report(timestamp, duration, organization_id, user_id):
+def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
     organization = _get_organization_queryset().get(id=organization_id)
     user = User.objects.get(id=user_id)
 
@@ -768,7 +769,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         reports,
     )
 
-    if features.has('organizations:reports:deliver', organization):
+    if not dry_run and features.has('organizations:reports:deliver', organization):
         message.send()
 
 
