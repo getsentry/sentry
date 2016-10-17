@@ -14,7 +14,7 @@ from sentry.lang.javascript.processor import (
     BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
     SourceProcessor, trim_line, UrlResult, fetch_release_file
 )
-from sentry.lang.javascript.sourcemaps import SourceMap, SourceMapIndex
+from sentry.lang.javascript.sourcemaps.native import Token, SourceMapIndex, IndexedSourceMapIndex
 from sentry.lang.javascript.errormapping import (
     rewrite_exception, REACT_MAPPING_URL
 )
@@ -247,13 +247,13 @@ class GenerateModuleTest(TestCase):
 
 class FetchBase64SourcemapTest(TestCase):
     def test_simple(self):
-        index = fetch_sourcemap(base64_sourcemap)
-        states = [SourceMap(1, 0, '/test.js', 0, 0, None)]
-        sources = set(['/test.js'])
+        smap_view = fetch_sourcemap(base64_sourcemap)
+        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+        sources = ['/test.js']
         keys = [(1, 0)]
-        content = {'/test.js': ['console.log("hello, World!")']}
+        content = {0: ['console.log("hello, World!")']}
 
-        assert index == SourceMapIndex(states, keys, sources, content)
+        assert smap_view.index == IndexedSourceMapIndex([(0, 0)], [SourceMapIndex(tokens, keys, sources, content)])
 
 
 class TrimLineTest(TestCase):
