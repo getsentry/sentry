@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Release, TagValue
+from sentry.models import Environment, Release, ReleaseEnvironment, TagValue
 
 
 @register(Release)
@@ -53,4 +53,26 @@ class ReleaseSerializer(Serializer):
                 'lastEvent': None,
                 'firstEvent': None,
             })
+        return d
+
+
+class DetailedReleaseSerializer(ReleaseSerializer):
+    def serialize(self, obj, attrs, user):
+        rel_envs = ReleaseEnvironment.objects.filter(
+            release_id=obj.id,
+        ).order_by('last_seen')[:25]
+
+        env_id_map = dict(Environment.objects.filter(
+            project_id=obj.project_id,
+            id__in=[r.environment_id for r in rel_envs],
+        ).values_list('id', 'name'))
+
+        d = super(DetailedReleaseSerializer, self).serialize(obj, attrs, user)
+        d['environments'] = sorted(({
+            'id': six.text_type(re.environment_id),
+            'name': env_id_map.get(re.environment_id, 'unknown'),
+            'firstSeen': re.first_seen,
+            'lastSeen': re.last_seen,
+        } for re in rel_envs), key=lambda x: x['name'])
+
         return d

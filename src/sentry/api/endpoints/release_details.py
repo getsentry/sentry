@@ -8,6 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.models.release import DetailedReleaseSerializer
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -89,7 +90,7 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+        return Response(serialize(release, request.user, DetailedReleaseSerializer()))
 
     @attach_scenarios([update_release_scenario])
     def put(self, request, project, version):
