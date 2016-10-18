@@ -267,7 +267,18 @@ class StoreView(APIView):
 
     """
     def post(self, request, **kwargs):
-        data = request.body
+        try:
+            data = request.body
+        except Exception as e:
+            logger.exception(e)
+            # We were unable to read the body.
+            # This would happen if a request were submitted
+            # as a multipart form for example, where reading
+            # body yields an Exception. There's also not a more
+            # sane exception to catch here. This will ultimately
+            # bubble up as an APIError.
+            data = None
+
         response_or_event_id = self.process(request, data=data, **kwargs)
         if isinstance(response_or_event_id, HttpResponse):
             return response_or_event_id
