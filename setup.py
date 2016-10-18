@@ -110,6 +110,7 @@ install_requires = [
     'lxml>=3.4.1',
 
     'ipaddress>=1.0.16,<1.1.0',
+    'libsourcemap==0.4.0',
     'mock>=0.8.0,<1.1',
     'oauth2>=1.5.167',
     'percy>=0.2.5',

@@ -37,3 +37,15 @@ def cassandra_is_available():
 requires_cassandra = pytest.mark.skipif(
     not cassandra_is_available(),
     reason="requires cassandra server running")
+
+
+def libsourcemap_is_available():
+    try:
+        import libsourcemap  # NOQA
+        return True
+    except ImportError:
+        return False
+
+requires_no_libsourcemap = pytest.mark.skipif(
+    libsourcemap_is_available(),
+    reason="doesn't work with libsourcemap")
