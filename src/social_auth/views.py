@@ -84,6 +84,7 @@ def complete(request, backend, *args, **kwargs):
             request, messages.ERROR,
             six.text_type(exc)
         )
+        user = None
     else:
         messages.add_message(
             request, messages.SUCCESS,
@@ -91,6 +92,7 @@ def complete(request, backend, *args, **kwargs):
                 settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
             )
         )
+        user = None
 
     if not user:
         url = (
