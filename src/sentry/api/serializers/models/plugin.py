@@ -57,6 +57,7 @@ def serialize_field(project, plugin, field):
         'choices': field.get('choices'),
         'readonly': field.get('readonly', False),
         'defaultValue': field.get('default'),
+        'value': None
     }
     if field.get('type') != 'secret':
         data['value'] = plugin.get_option(field['name'], project)
