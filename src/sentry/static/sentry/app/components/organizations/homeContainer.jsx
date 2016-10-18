@@ -31,7 +31,7 @@ const HomeContainer = React.createClass({
                 {t('New Project')}
               </a>
             :
-              <a className="btn btn-primary btn-disabled tip"
+              <a className="btn btn-primary btn-disabled tip" data-placement="bottom"
                  title={t('You do not have enough permission to create new projects')}
                  style={{marginRight: 5}}>
                 {t('New Project')}
@@ -42,7 +42,7 @@ const HomeContainer = React.createClass({
                 {t('New Team')}
               </a>
             :
-              <a className="btn btn-primary btn-disabled tip"
+              <a className="btn btn-primary btn-disabled tip" data-placement="bottom"
                  title={t('You do not have enough permission to create new teams')}>
                 {t('New Team')}
               </a>
