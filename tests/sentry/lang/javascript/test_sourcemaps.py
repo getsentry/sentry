@@ -127,8 +127,14 @@ class GetSourceContentsTest(TestCase):
     def test_indexed_inline(self):
         smap_view = NativeView.from_json(indexed_sourcemap_example)
 
-        assert smap_view.get_source_contents((0, 0)) == [' ONE.foo = function (bar) {', '   return baz(bar);', ' };']
-        assert smap_view.get_source_contents((1, 0)) == [' TWO.inc = function (n) {', '   return n + 1;', ' };']
+        assert smap_view.get_source_contents((0, 0)) == (
+            ' ONE.foo = function (bar) {\n' +
+            '   return baz(bar);\n' +
+            ' };')
+        assert smap_view.get_source_contents((1, 0)) == (
+            ' TWO.inc = function (n) {\n' +
+            '   return n + 1;\n' +
+            ' };')
 
 
 class ParseSourcemapTest(TestCase):

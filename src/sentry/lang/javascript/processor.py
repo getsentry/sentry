@@ -77,7 +77,7 @@ def expose_url(url):
     if url[:5] == 'data:':
         return u'<data url>'
     url = truncatechars(url, MAX_URL_LENGTH)
-    if isinstance(url, bytes):
+    if isinstance(url, six.binary_type):
         url = url.decode('utf-8', 'replace')
     return url
 
@@ -903,7 +903,14 @@ class SourceProcessor(object):
             # Ideally, we would do this lazily.
             content = sourcemap_view.get_source_contents(src_id)
             if content is not None:
-                self.cache.add(urljoin(sourcemap_url, source), content)
+                # TODO(mattrobenolt): This is gross. libsourcemap returns back
+                # bytes, and our internal stuff assumed unicode. So everything else in
+                # the pipeline assumes unicode and working with bytes is harder.
+                # So let's coerce here to unicodes just to conform to API for both,
+                # but remove this and handle bytes down the line when done.
+                if isinstance(content, six.binary_type):
+                    content = content.decode('utf-8', errors='replace')
+                self.cache.add(urljoin(sourcemap_url, source), content.split(u'\n'))
 
     def populate_source_cache(self, frames, release):
         """

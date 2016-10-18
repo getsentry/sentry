@@ -251,7 +251,7 @@ class FetchBase64SourcemapTest(TestCase):
         tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
         sources = ['/test.js']
         keys = [(1, 0)]
-        content = {0: ['console.log("hello, World!")']}
+        content = {0: 'console.log("hello, World!")'}
 
         assert smap_view.index == IndexedSourceMapIndex([(0, 0)], [SourceMapIndex(tokens, keys, sources, content)])
 
