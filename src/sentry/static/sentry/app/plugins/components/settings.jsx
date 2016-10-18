@@ -7,7 +7,7 @@ import {
 } from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import LoadingIndicator from '../../components/loadingIndicator';
-import {t} from '../../locale';
+import {tct} from '../../locale';
 
 
 class PluginSettings extends PluginComponentBase {
@@ -102,7 +102,9 @@ class PluginSettings extends PluginComponentBase {
     if (this.state.state === FormState.ERROR && !this.state.fieldList) {
       return (
         <div className="alert alert-error m-b-1">
-          {t('An unknown error occurred.')}
+          {tct('An unknown error occurred. Need help with this? [link:Contact support]', {
+            link: <a href="https://sentry.io/support"/>
+          })}
         </div>
       );
     }
