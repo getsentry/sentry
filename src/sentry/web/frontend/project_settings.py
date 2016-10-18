@@ -244,6 +244,7 @@ class ProjectSettingsView(ProjectView):
                 'scrape_javascript',
                 'blacklisted_ips',
                 'default_environment',
+                'mail_subject_prefix',
             ):
                 opt_key = 'sentry:{}'.format(opt)
 
