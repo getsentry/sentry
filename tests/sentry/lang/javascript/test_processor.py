@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import pytest
 import responses
 import six
+from libsourcemap import Token
 
 from mock import patch
 from requests.exceptions import RequestException
@@ -14,12 +15,11 @@ from sentry.lang.javascript.processor import (
     BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
     SourceProcessor, trim_line, UrlResult, fetch_release_file
 )
-from sentry.lang.javascript.sourcemaps.native import Token, SourceMapIndex, IndexedSourceMapIndex
 from sentry.lang.javascript.errormapping import (
     rewrite_exception, REACT_MAPPING_URL
 )
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import TestCase, requires_no_libsourcemap
+from sentry.testutils import TestCase
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
@@ -245,16 +245,14 @@ class GenerateModuleTest(TestCase):
         assert generate_module('~/app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
 
 
-@requires_no_libsourcemap
 class FetchBase64SourcemapTest(TestCase):
     def test_simple(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
         tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
-        sources = ['/test.js']
-        keys = [(1, 0)]
-        content = {0: 'console.log("hello, World!")'}
 
-        assert smap_view.index == IndexedSourceMapIndex([(0, 0)], [SourceMapIndex(tokens, keys, sources, content)])
+        assert list(smap_view) == tokens
+        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == u'/test.js'
 
 
 class TrimLineTest(TestCase):
