@@ -103,7 +103,7 @@ class PluginSettings extends PluginComponentBase {
       return (
         <div className="alert alert-error m-b-1">
           {tct('An unknown error occurred. Need help with this? [link:Contact support]', {
-            link: <a href="https://sentry.io/support"/>
+            link: <a href="https://sentry.io/support/"/>
           })}
         </div>
       );
