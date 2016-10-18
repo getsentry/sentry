@@ -108,7 +108,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             }, status=400)
 
         for key, value in six.iteritems(cleaned):
-            if not value:
+            if value is None:
                 plugin.unset_option(
                     project=project,
                     key=key,
