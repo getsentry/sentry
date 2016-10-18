@@ -64,6 +64,34 @@ class OrganizationUpdateTest(APITestCase):
             org, 'sentry:project-rate-limit')
         assert result == 80
 
+    def test_setting_suspended_as_non_superuser(self):
+        user = self.create_user('foo', is_superuser=False)
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'suspended': True,
+        })
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+        assert bool(not org.flags.suspended)
+
+    def test_setting_suspended_as_superuser(self):
+        user = self.create_user('foo', is_superuser=True)
+        org = self.create_organization(owner=user)
+        self.login_as(user=user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'suspended': True,
+        })
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+        assert bool(org.flags.suspended)
+
 
 class OrganizationDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.organization_details.uuid4')

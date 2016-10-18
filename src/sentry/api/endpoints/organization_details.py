@@ -76,6 +76,20 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return rv
 
 
+class AdminOrganizationSerializer(OrganizationSerializer):
+    suspended = serializers.BooleanField(required=False)
+
+    def restore_object(self, attrs, instance):
+        """
+        Instantiate a new User instance.
+        """
+        inst = super(AdminOrganizationSerializer, self).restore_object(
+            attrs, instance)
+        if 'suspended' in attrs:
+            inst.flags.suspended = attrs['suspended']
+        return inst
+
+
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     doc_section = DocSection.ORGANIZATIONS
 
@@ -115,8 +129,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
-        serializer = OrganizationSerializer(organization, data=request.DATA,
-                                            partial=True)
+        if request.is_superuser():
+            serializer_cls = AdminOrganizationSerializer
+        else:
+            serializer_cls = OrganizationSerializer
+
+        serializer = serializer_cls(organization, data=request.DATA,
+                                    partial=True)
         if serializer.is_valid():
             organization = serializer.save()
 

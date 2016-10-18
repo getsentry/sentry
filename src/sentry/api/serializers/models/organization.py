@@ -25,6 +25,7 @@ class OrganizationSerializer(Serializer):
             'name': obj.name,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'isSuspended': bool(obj.flags.suspended),
         }
 
 
