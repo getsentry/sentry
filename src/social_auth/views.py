@@ -17,7 +17,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 
-from social_auth.exceptions import AuthAlreadyAssociated, AuthException
+from social_auth.exceptions import AuthException
 from social_auth.utils import (
     setting, backend_setting, clean_partial_pipeline)
 from social_auth.decorators import dsa_view
@@ -72,14 +72,6 @@ def complete(request, backend, *args, **kwargs):
 
     try:
         user = auth_complete(request, backend, request.user, *args, **kwargs)
-    except AuthAlreadyAssociated:
-        messages.add_message(
-            request, messages.ERROR,
-            'This {} identity is already associated with another account.'.format(
-                settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
-            )
-        )
-        user = None
     except AuthException as exc:
         messages.add_message(
             request, messages.ERROR,

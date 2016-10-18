@@ -89,11 +89,6 @@ class AuthStateForbidden(AuthException):
         return ugettext(u'Wrong state parameter given.')
 
 
-class AuthAlreadyAssociated(AuthException):
-    """A different user has already associated the target social account"""
-    pass
-
-
 class AuthTokenRevoked(AuthException):
     """User revoked the access_token in the provider."""
     def __unicode__(self):
