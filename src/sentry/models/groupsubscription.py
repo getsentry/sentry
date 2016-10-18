@@ -82,6 +82,7 @@ class GroupSubscriptionManager(BaseManager):
             GroupSubscription.objects.filter(
                 group=group,
                 is_active=True,
+                user__in=users,
             ).select_related('user')
         }
 
