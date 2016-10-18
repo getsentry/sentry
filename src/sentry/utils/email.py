@@ -396,7 +396,10 @@ def send_messages(messages, fail_silently=False):
     sent = connection.send_messages(messages)
     metrics.incr('email.sent', len(messages))
     for message in messages:
-        extra = {'message_id': message.extra_headers['Message-Id']}
+        extra = {
+            'message_id': message.extra_headers['Message-Id'],
+            'size': len(message.message().as_bytes()),
+        }
         logger.info('mail.sent', extra=extra)
     return sent
 
