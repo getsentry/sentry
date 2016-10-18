@@ -109,6 +109,12 @@ function routes() {
 
         <Route path="/organizations/:orgId/audit-log/" component={errorHandler(OrganizationAuditLog)} />
         <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
+        <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
+          <IndexRedirect to="settings/" />
+          <Route path="settings/" component={errorHandler(TeamSettings)} />
+          <Route path="members/" component={errorHandler(TeamMembers)} />
+        </Route>
+
         <Route path="/organizations/:orgId/all-teams/" component={errorHandler(OrganizationTeams)}>
           <IndexRoute component={errorHandler(AllTeamsList)}/>
         </Route>
@@ -118,11 +124,6 @@ function routes() {
         <Route path="/organizations/:orgId/projects/choose/" component={errorHandler(ProjectChooser)} />
         <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
         <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
-        <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
-          <IndexRedirect to="settings/" />
-          <Route path="settings/" component={errorHandler(TeamSettings)} />
-          <Route path="members/" component={errorHandler(TeamMembers)} />
-        </Route>
         <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
 
         {hooksOrgRoutes}
