@@ -124,7 +124,7 @@ install_requires = [
     'python-memcached>=1.53,<2.0.0',
     'python-openid>=2.2',
     'PyYAML>=3.11,<3.12',
-    'raven>=5.21.0,<6.0.0',
+    'raven>=5.29.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
     'requests[security]>=2.9.1,<2.12.0',
     'selenium==3.0.0b3',
