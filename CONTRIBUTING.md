@@ -7,4 +7,4 @@ utilize our [community forum](https://forum.sentry.io/) rather than GitHub Issue
 
 Want to contribute towards this repository? Follow the server
 development documentation
-[here](https://docs.sentry.io/hosted/serverdev/).
+[here](https://docs.sentry.io/internal/).
