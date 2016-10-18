@@ -79,6 +79,7 @@ def complete(request, backend, *args, **kwargs):
                 settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
             )
         )
+        user = None
     except AuthException as exc:
         messages.add_message(
             request, messages.ERROR,
@@ -92,7 +93,6 @@ def complete(request, backend, *args, **kwargs):
                 settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
             )
         )
-        user = None
 
     if not user:
         url = (
