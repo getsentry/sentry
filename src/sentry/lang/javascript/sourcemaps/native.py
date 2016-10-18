@@ -155,7 +155,7 @@ def _sourcemap_to_index(smap):
             if value is None:
                 continue
 
-            content[src_id] = value.split('\n')
+            content[src_id] = value
 
     for token in parse_sourcemap(smap):
         token_list.append(token)
