@@ -103,7 +103,7 @@
       </td>
       <td class="legend">
         {% for type, count in report.distribution.types %}
-          <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent count total "0.0f" %}%
+          <span class="box" style="background-color: {{ type.color }};"></span>{{ type.label }}: {% percent count total "0.1f" %}%
         {% endfor %}
       </td>
     </tr>
