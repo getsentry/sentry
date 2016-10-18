@@ -1,31 +1,20 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError
-from django.utils.translation import ugettext
 
 from social_auth.models import UserSocialAuth
-from social_auth.exceptions import AuthAlreadyAssociated
 
 
-def social_auth_user(backend, uid, user=None, *args, **kwargs):
-    """Return UserSocialAuth account for backend/uid pair or None if it
-    doesn't exists.
-
-    Raise AuthAlreadyAssociated if UserSocialAuth entry belongs to another
-    user.
+def social_auth_user(backend, uid, user, *args, **kwargs):
     """
-    social_user = UserSocialAuth.get_social_auth(backend.name, uid)
-    if social_user:
-        if user and social_user.user != user:
-            msg = ugettext('This %(provider)s account is already in use.')
-            raise AuthAlreadyAssociated(backend, msg % {
-                'provider': backend.name
-            })
-        elif not user:
-            user = social_user.user
-    return {'social_user': social_user,
-            'user': user,
-            'new_association': False}
+    Return UserSocialAuth details.
+    """
+    social_user = UserSocialAuth.get_social_auth(backend.name, uid, user)
+    return {
+        'social_user': social_user,
+        'user': user,
+        'new_association': False
+    }
 
 
 def associate_user(backend, user, uid, social_user=None, *args, **kwargs):
@@ -53,7 +42,7 @@ def load_extra_data(backend, details, response, uid, user, social_user=None,
     extra_data field.
     """
     social_user = (social_user or
-                   UserSocialAuth.get_social_auth(backend.name, uid))
+                   UserSocialAuth.get_social_auth(backend.name, uid, user))
     if social_user:
         extra_data = backend.extra_data(user, uid, response, details)
         if kwargs.get('original_email') and 'email' not in extra_data:
