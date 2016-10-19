@@ -102,8 +102,6 @@ const TeamSettingsForm = React.createClass({
 
 const TeamSettings = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.object.isRequired,
-    teamId: React.PropTypes.object.isRequired,
     team: React.PropTypes.object.isRequired,
     onTeamChange: React.PropTypes.func.isRequired
   },
