@@ -27,7 +27,7 @@
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
 
   {% block css %}
-  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  <link href="{% asset_url "sentry" "dist/styles.css" %}" rel="stylesheet"/>
   {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
@@ -40,13 +40,14 @@
   {% block scripts %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
   {% locale_js_include %}
-  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/components.js" %}"{% crossorigin %}></script>
+  <script src="{% asset_url "sentry" "dist/sentry.js" %}"{% crossorigin %}></script>
 
   <script>
-    for (var n in window.exports) {
-      window[n] = window.exports[n];
+    for (var n in window.sentry) {
+      window[n] = window.sentry[n];
     }
-    window.$ = window.jQuery;
+    window.$ = sentry.jQuery;
 
     window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
 

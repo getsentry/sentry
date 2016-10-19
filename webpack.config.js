@@ -39,7 +39,10 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 
 var entry = {
   // js
-  'app': 'app',
+  'sentry': 'app',
+  'components': [
+    'app/components'
+  ],
   'vendor': [
     'babel-core/polyfill',
     'bootstrap/js/dropdown',
@@ -68,9 +71,11 @@ var entry = {
   ],
 
   // css
-  // NOTE: this will also create an empty 'sentry.js' file
+  // NOTE: this will also create an empty 'styles.js' file
   // TODO: figure out how to not generate this
-  'sentry': 'less/sentry.less'
+  'styles': [
+    'less/sentry.less'
+  ]
 };
 
 // dynamically iterate over locale files and add to `entry` config
@@ -134,6 +139,10 @@ var config = {
     ],
   },
   plugins: [
+    new webpack.DllPlugin({
+      path: path.join(distPath, '[name]-manifest.json'),
+      name: '[name]',
+    }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
     }),
@@ -176,7 +185,7 @@ var config = {
     path: distPath,
     filename: '[name].js',
     libraryTarget: 'var',
-    library: 'exports',
+    library: '[name]',
     sourceMapFilename: '[name].js.map',
   },
   devtool: IS_PRODUCTION ?
