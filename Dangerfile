@@ -33,8 +33,8 @@
 @S_DANGER_LICENSE_FILES = ["LICENSE"]
 
 # set the patterns to watch and warn about if they need security review
-@S_SECURITY_FILE_PATTERN = /auth|login|permission/
-@S_SECURITY_CONTENT_PATTERN = /auth|login|permission|token|secret|security|scope|key/
+@S_SECURITY_FILE_PATTERN = /auth|login|permission|email|account|admin|twofactor|sudo/
+@S_SECURITY_CONTENT_PATTERN = /auth|login|permission|token|secret|security|scope|key|sudo/
 
 # determine if any of the files were modified
 def didModify(files_array)
@@ -57,12 +57,12 @@ end
 
 def hasMatchingContentChanges(pattern)
     git.modified_files.each do |f|
-        if git.diff_for_file[f].patch.find { |e | pattern =~ e }
+        if git.diff_for_file[f].patch.find { |e| pattern =~ e }
             return true
         end
     end
     git.deleted_files.each do |f|
-        if git.diff_for_file[f].patch.find { |e | pattern =~ e }
+        if git.diff_for_file[f].patch.find { |e| pattern =~ e }
             return true
         end
     end
