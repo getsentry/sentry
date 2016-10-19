@@ -14,13 +14,13 @@
     return origin;
   }
 
-    (function checkAuthChange() {
-      var loggedIn = '{{ logged_in }}';
-      if (window.opener && loggedIn === 'True') {
-        window.opener.postMessage('User is logged in', extractOrigin());
-      }
-      window.close();
-    })();
+  (function checkAuthChange() {
+    var loggedIn = '{{ logged_in }}';
+    if (window.opener && loggedIn === 'True') {
+      window.opener.postMessage('user_authenticated', extractOrigin());
+    }
+    window.close();
+  })();
   </script>
 </body>
 </html>
