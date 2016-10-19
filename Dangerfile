@@ -92,5 +92,5 @@ fail("Do not modify the License") if didModify(@S_LICENSE_FILES)
 
 # Reasonable commits must update CHANGES
 if git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && didModifyPattern(@S_CHANGES_REQUIRED_PATTERNS)
-    fail("Missing an update to CHANGES"
+    fail("You need to update CHANGES due to the size of this PR")
 end
