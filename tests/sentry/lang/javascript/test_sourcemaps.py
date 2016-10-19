@@ -2,9 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.lang.javascript.sourcemaps.native import (
-    parse_vlq, parse_sourcemap, View as NativeView, Token,
-)
+from libsourcemap import from_json as view_from_json, Token
 from sentry.testutils import TestCase
 
 from sentry.utils import json
@@ -74,18 +72,9 @@ indexed_sourcemap_example = json.dumps({
 })
 
 
-class ParseVlqTest(TestCase):
-    def test_simple(self):
-        assert parse_vlq('gqjG') == [100000]
-        assert parse_vlq('hqjG') == [-100000]
-        assert parse_vlq('DFLx+BhqjG') == [-1, -2, -5, -1000, -100000]
-        assert parse_vlq('CEKw+BgqjG') == [1, 2, 5, 1000, 100000]
-        assert parse_vlq('/+Z') == [-13295]
-
-
 class FindSourceTest(TestCase):
     def test_simple(self):
-        smap_view = NativeView.from_json(sourcemap)
+        smap_view = view_from_json(sourcemap)
 
         result = smap_view.lookup_token(0, 56)
         assert result == Token(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, src_id=1, name='multiply')
@@ -109,29 +98,29 @@ class FindSourceTest(TestCase):
 
 class IterSourcesTest(TestCase):
     def test_basic(self):
-        smap_view = NativeView.from_json(sourcemap)
+        smap_view = view_from_json(sourcemap)
         assert list(smap_view.iter_sources()) == [
-            ((0, 0), 'foo/file1.js'),
-            ((0, 1), 'foo/file2.js'),
+            (0, 'foo/file1.js'),
+            (1, 'foo/file2.js'),
         ]
 
 
 class GetSourceContentsTest(TestCase):
     def test_no_inline(self):
         # basic sourcemap fixture has no inlined sources, so expect None
-        smap_view = NativeView.from_json(sourcemap)
+        smap_view = view_from_json(sourcemap)
 
-        source = smap_view.get_source_contents((0, 0))
+        source = smap_view.get_source_contents(0)
         assert source is None
 
     def test_indexed_inline(self):
-        smap_view = NativeView.from_json(indexed_sourcemap_example)
+        smap_view = view_from_json(indexed_sourcemap_example)
 
-        assert smap_view.get_source_contents((0, 0)) == (
+        assert smap_view.get_source_contents(0) == (
             ' ONE.foo = function (bar) {\n' +
             '   return baz(bar);\n' +
             ' };')
-        assert smap_view.get_source_contents((1, 0)) == (
+        assert smap_view.get_source_contents(1) == (
             ' TWO.inc = function (n) {\n' +
             '   return n + 1;\n' +
             ' };')
@@ -139,10 +128,9 @@ class GetSourceContentsTest(TestCase):
 
 class ParseSourcemapTest(TestCase):
     def test_basic(self):
-        smap = json.loads(sourcemap)
-        states = list(parse_sourcemap(smap))
+        index = view_from_json(sourcemap)
 
-        assert states == [
+        assert list(index) == [
             Token(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, src_id=0, name=None),
             Token(dst_line=0, dst_col=8, src='foo/file1.js', src_line=0, src_col=9, src_id=0, name='add'),
             Token(dst_line=0, dst_col=13, src='foo/file1.js', src_line=0, src_col=13, src_id=0, name='a'),
@@ -185,7 +173,7 @@ class ParseIndexedSourcemapTest(TestCase):
     # Tests lookups that fall exactly on source map token boundaries
     # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#138
     def test_exact_mappings(self):
-        smap_view = NativeView.from_json(indexed_sourcemap_example)
+        smap_view = view_from_json(indexed_sourcemap_example)
 
         # one.js
         assert smap_view.lookup_token(0, 1) == \
@@ -197,16 +185,16 @@ class ParseIndexedSourcemapTest(TestCase):
 
         # two.js
         assert smap_view.lookup_token(1, 18) == \
-            Token(dst_line=1, dst_col=18, src='/the/root/two.js', src_line=0, src_col=21, src_id=0, name='n')
+            Token(dst_line=1, dst_col=18, src='/the/root/two.js', src_line=0, src_col=21, src_id=1, name='n')
         assert smap_view.lookup_token(1, 21) == \
-            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=0, name=None)
+            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=1, name=None)
         assert smap_view.lookup_token(1, 21) == \
-            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=0, name=None)
+            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=1, name=None)
 
     # Tests lookups that fall inside source map token boundaries
     # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#181
     def test_fuzzy_mapping(self):
-        smap_view = NativeView.from_json(indexed_sourcemap_example)
+        smap_view = view_from_json(indexed_sourcemap_example)
 
         # one.js
         assert smap_view.lookup_token(0, 20) == \
@@ -214,4 +202,4 @@ class ParseIndexedSourcemapTest(TestCase):
         assert smap_view.lookup_token(0, 30) == \
             Token(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, src_id=0, name='baz')
         assert smap_view.lookup_token(1, 12) == \
-            Token(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, src_id=0, name=None)
+            Token(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, src_id=1, name=None)
