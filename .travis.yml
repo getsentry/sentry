@@ -1,5 +1,7 @@
 sudo: false
 language: python
+rvm:
+  - 2.2
 cache:
   directories:
     - node_modules
@@ -28,6 +30,9 @@ after_failure:
 matrix:
   fast_finish: true
   include:
+    - language: ruby
+      rvm: 2.2
+      env: TEST_SUITE=danger
     # only the sqlite suite runs cassandra/riak tests
     - python: 2.7
       env: TEST_SUITE=sqlite DB=sqlite
