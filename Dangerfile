@@ -68,7 +68,7 @@ warn("Changes to build requirements") if didModify(@S_BUILD_FILES)
 # Warn about changes to dependencies or the build process
 if didModifyPattern(@S_SECURITY_FILE_PATTERN) || hasMatchingContentChanges(@S_SECURITY_CONTENT_PATTERN)
     unless github.pr_labels.include?("Security")
-        github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["id"], {
+        github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
             :labels => github.pr_labels.join(",") + "Security",
         })
     end
