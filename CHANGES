@@ -18,6 +18,8 @@ Schema Changes
 - Added ``Commit`` model.
 - Added ``CommitAuthor`` model.
 - Added ``ReleaseCommit`` model.
+- Added index on ``GroupTagValue(project, key, value, last_seen)``.
+- Dropped index on ``GroupTagValue(project, key, value)``.
 
 Version 8.9
 -----------
