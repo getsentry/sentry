@@ -204,7 +204,7 @@ const StreamGroup = React.createClass({
           <AssigneeSelector id={data.id} />
         </div>
         <div className="col-md-2 hidden-sm hidden-xs event-graph align-right">
-          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} />
+          <GroupChart id={data.id} statsPeriod={this.props.statsPeriod} data={data}/>
         </div>
         <div className="col-md-1 col-xs-2 event-count align-right">
           <Count value={data.count} />

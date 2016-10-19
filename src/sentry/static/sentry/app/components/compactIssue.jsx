@@ -184,7 +184,7 @@ const CompactIssue = React.createClass({
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod &&
           <div className="event-graph">
-            <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
+            <GroupChart id={id} statsPeriod={this.props.statsPeriod} data={this.props.data}/>
           </div>
         }
         {this.props.showActions &&
