@@ -48,6 +48,8 @@ class PluginConfigMixin(object):
             if value is None:
                 if config.get('required'):
                     raise PluginError('Field is required')
+                if config.get('type') == 'secret':
+                    value = self.get_option(name, project)
                 return value
 
             if isinstance(value, six.string_types):
