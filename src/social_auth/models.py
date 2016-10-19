@@ -38,7 +38,7 @@ class UserSocialAuth(models.Model):
 
     class Meta:
         """Meta data"""
-        unique_together = ('provider', 'uid')
+        unique_together = ('provider', 'uid', 'user')
         app_label = 'social_auth'
 
     def __unicode__(self):
@@ -181,10 +181,15 @@ class UserSocialAuth(models.Model):
         return cls.objects.create(user=user, uid=uid, provider=provider)
 
     @classmethod
-    def get_social_auth(cls, provider, uid):
+    def get_social_auth(cls, provider, uid, user):
         try:
-            return cls.objects.select_related('user').get(provider=provider,
-                                                          uid=uid)
+            instance = cls.objects.get(
+                provider=provider,
+                uid=uid,
+                user=user,
+            )
+            instance.user = user
+            return instance
         except UserSocialAuth.DoesNotExist:
             return None
 
