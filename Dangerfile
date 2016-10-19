@@ -40,7 +40,7 @@
 def didModify(files_array)
     did_modify_files = false
     files_array.each do |file_name|
-        if git.modified_files.include?(file_name) || git.deleted_files.include?(file_name)
+        if git.modified_files.include?(file_name)
             did_modify_files = true
         end
     end
@@ -49,7 +49,7 @@ end
 
 def didModifyPattern(pattern)
     did_modify_files = false
-    if git.modified_files.find { |e| pattern =~ e } || git.deleted_files.find { |e| pattern =~ e }
+    if git.modified_files.find { |e| pattern =~ e }
         did_modify_files = true
     end
     return did_modify_files
