@@ -374,10 +374,6 @@ def get_calendar_query_range(interval, months):
 def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
     earliest = tsdb.get_earliest_timestamp(rollup, timestamp=timestamp)
 
-    # XXX: This is temporary for sentry.io until 30 days after deployment and
-    # any preexisting records have their TTLs updated.
-    earliest = earliest + (30 * rollup)
-
     def remove_invalid_values(item):
         timestamp, value = item
         if timestamp < earliest:
