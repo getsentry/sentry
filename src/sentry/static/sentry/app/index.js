@@ -62,6 +62,7 @@ export default {
     AvatarSettings: require('./components/avatarSettings'),
     mixins: {
       ApiMixin: require('./mixins/apiMixin'),
+      TooltipMixin: require('./mixins/tooltip')
     },
     BarChart: require('./components/barChart'),
     i18n: require('./locale'),
