@@ -1,4 +1,3 @@
-import jQuery from 'jquery';
 import React from 'react';
 import {History} from 'react-router';
 
@@ -9,6 +8,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import MenuItem from '../components/menuItem';
 import OrganizationState from '../mixins/organizationState';
+import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import {t} from '../locale';
 
 const TeamDetails = React.createClass({
@@ -28,7 +28,6 @@ const TeamDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
-    jQuery(document.body).addClass('narrow');
   },
 
   componentWillReceiveProps(nextProps) {
@@ -40,10 +39,6 @@ const TeamDetails = React.createClass({
         error: false
       }, this.fetchData);
     }
-  },
-
-  componentWillUnmount() {
-    jQuery(document.body).removeClass('narrow');
   },
 
   fetchData() {
@@ -89,7 +84,7 @@ const TeamDetails = React.createClass({
     let access = this.getAccess();
 
     return (
-      <div className="container">
+      <OrganizationHomeContainer>
         <h3>{team.name}</h3>
 
         {access.has('team:delete') &&
@@ -107,7 +102,7 @@ const TeamDetails = React.createClass({
           team: team,
           onTeamChange: this.onTeamChange,
         })}
-      </div>
+      </OrganizationHomeContainer>
     );
   }
 });
