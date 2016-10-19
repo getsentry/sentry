@@ -33,7 +33,7 @@
 @S_DANGER_LICENSE_FILES = ["LICENSE"]
 
 # set the patterns to watch and warn about if they need security review
-@S_SECURITY_FILE_PATTERN = /auth|login|permission|email|account|admin|twofactor|sudo/
+@S_SECURITY_FILE_PATTERN = /Dangerfile|auth|login|permission|email|account|admin|twofactor|sudo/
 @S_SECURITY_CONTENT_PATTERN = /auth|login|permission|token|secret|security|scope|key|sudo/
 
 # determine if any of the files were modified

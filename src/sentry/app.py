@@ -25,7 +25,6 @@ class State(local):
 
 env = State()
 
-scope = 'abc'
 
 def get_instance(attribute, options, dangerous=()):
     value = getattr(settings, attribute)
