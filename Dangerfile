@@ -56,16 +56,7 @@ def didModifyPattern(pattern)
 end
 
 def hasMatchingContentChanges(pattern)
-    git.modified_files.each do |f|
-        if git.diff_for_file[f].patch =~ e
-            return true
-        end
-    end
-    git.deleted_files.each do |f|
-        if git.diff_for_file[f].patch =~ e
-            return true
-        end
-    end
+    return github.pr_diff =~ pattern
 end
 
 # Warn about changes to dependencies or the build process
