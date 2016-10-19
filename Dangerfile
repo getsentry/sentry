@@ -57,12 +57,12 @@ end
 
 def hasMatchingContentChanges(pattern)
     git.modified_files.each do |f|
-        if git.diff_for_file[f].patch.find { |e| pattern =~ e }
+        if git.diff_for_file[f].patch =~ e
             return true
         end
     end
     git.deleted_files.each do |f|
-        if git.diff_for_file[f].patch.find { |e| pattern =~ e }
+        if git.diff_for_file[f].patch =~ e
             return true
         end
     end
