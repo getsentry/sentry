@@ -16,6 +16,7 @@ from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException, Timeout
 from six.moves.urllib.parse import urlparse, urljoin, urlsplit
+from libsourcemap import from_json as view_from_json
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -37,7 +38,6 @@ from sentry.utils.strings import truncatechars
 from sentry.utils import metrics
 
 from .cache import SourceCache, SourceMapCache
-from .sourcemaps import from_json as view_from_json
 
 
 # number of surrounding lines (on each side) to fetch
@@ -501,12 +501,6 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         body = result.body
 
     try:
-        # According to various specs[1][2] a SourceMap may be prefixed to force
-        # a Javascript load error.
-        # [1] https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v
-        # [2] http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-xssi
-        if body.startswith((u")]}'\n", u")]}\n")):
-            body = body.split(u'\n', 1)[1]
         return view_from_json(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
