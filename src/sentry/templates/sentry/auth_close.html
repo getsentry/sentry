@@ -15,8 +15,8 @@
   }
 
     (function checkAuthChange() {
-      var logged_in = '{{ logged_in }}';
-      if (window.opener && logged_in === 'True') {
+      var loggedIn = '{{ logged_in }}';
+      if (window.opener && loggedIn === 'True') {
         window.opener.postMessage('User is logged in', extractOrigin());
       }
       window.close();
