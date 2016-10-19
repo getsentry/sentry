@@ -25,6 +25,7 @@ from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import \
     AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import \
     CreateOrganizationMemberView
@@ -225,6 +226,8 @@ urlpatterns += patterns(
         name='sentry-reactivate-account'),
     url(r'^auth/register/$', AuthLoginView.as_view(),
         name='sentry-register'),
+    url(r'^auth/close/$', AuthCloseView.as_view(),
+        name='sentry-auth-close'),
 
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,

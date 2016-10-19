@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title></title>
+</head>
+<body>
+  <script>
+  // sends message to window that opened this popup if user is authenticated and closes the window
+  function extractOrigin() {
+    var pathArray = location.href.split( '/' );
+    var protocol = pathArray[0];
+    var host = pathArray[2];
+    var origin = protocol + '//' + host;
+    return origin;
+  }
+
+  (function checkAuthChange() {
+    var loggedIn = '{{ logged_in }}';
+    if (window.opener && loggedIn === 'True') {
+      window.opener.postMessage('user_authenticated', extractOrigin());
+    }
+    window.close();
+  })();
+  </script>
+</body>
+</html>
