@@ -76,9 +76,9 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 
 var entry = {
   // js
-  'sentry': 'app',
+  'sentry': 'app-entry',
   'components': [
-    'app/components'
+    'app'
   ],
   'vendor': [
     'babel-core/polyfill',
