@@ -676,6 +676,17 @@ class ClientApiHelper(object):
                     'value': data['release'],
                 })
                 del data['release']
+
+        if data.get('environment'):
+            data['environment'] = six.text_type(data['environment'])
+            if len(data['environment']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'environment',
+                    'value': data['environment'],
+                })
+                del data['environment']
+
         return data
 
     def ensure_does_not_have_ip(self, data):
