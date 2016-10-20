@@ -77,8 +77,20 @@ class TSDBModel(Enum):
 class BaseTSDB(object):
     models = TSDBModel
 
-    def __init__(self, rollups=settings.SENTRY_TSDB_ROLLUPS):
+    def __init__(self, rollups=None, legacy_rollups=None):
+        if rollups is None:
+            rollups = settings.SENTRY_TSDB_ROLLUPS
+
         self.rollups = OrderedDict(rollups)
+
+        # The ``SENTRY_TSDB_LEGACY_ROLLUPS`` setting should be used to store
+        # previous rollup configuration values after they are modified in
+        # ``SENTRY_TSDB_ROLLUPS``. The values can be removed after the new
+        # rollup period is full of new data.
+        if legacy_rollups is None:
+            legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
+
+        self.__legacy_rollups = legacy_rollups
 
     def validate(self):
         """
@@ -179,7 +191,11 @@ class BaseTSDB(object):
         if timestamp is None:
             timestamp = timezone.now()
 
-        lifespan = timedelta(seconds=rollup * (self.rollups[rollup] - 1))
+        samples = self.__legacy_rollups.get(rollup)
+        if samples is None:
+            samples = self.rollups[rollup]
+
+        lifespan = timedelta(seconds=rollup * (samples - 1))
         return self.normalize_to_epoch(
             timestamp - lifespan,
             rollup,
