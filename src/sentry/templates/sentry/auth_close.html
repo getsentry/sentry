@@ -12,7 +12,7 @@
   (function checkAuthChange() {
     var loggedIn = '{{ logged_in }}';
     if (window.opener && loggedIn === 'True') {
-      window.opener.postMessage('user_authenticated', '{% absolute_uri "" %}');
+      window.opener.postMessage('user_authenticated', '{% system_origin %}');
     }
     window.close();
   })();
