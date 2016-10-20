@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import functools
 from datetime import datetime, timedelta
 
-import mock
 import pytest
 import pytz
 from django.core import mail
@@ -228,17 +227,10 @@ def test_calendar_range():
 
 
 class ReportTestCase(TestCase):
-    @mock.patch('sentry.features.has')
     def test_integration(self, has_feature):
         Project.objects.all().delete()
 
         now = datetime(2016, 9, 12, tzinfo=pytz.utc)
-
-        has_feature.side_effect = lambda name, *a, **k: {
-            'organizations:reports:deliver': True,
-            'organizations:reports:prepare': True,
-            'organizations:reports:calendar': True,
-        }.get(name, False)
 
         project = self.create_project(
             organization=self.organization,
