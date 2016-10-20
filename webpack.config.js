@@ -5,6 +5,43 @@ var path = require('path'),
     webpack = require('webpack'),
     ExtractTextPlugin = require('extract-text-webpack-plugin');
 
+/*
+ * Custom version of DllPlugin that falls back to SingleEntryPlugin
+ * for non-library entry points (e.g. sentry.js/app.js) - this is
+ * required to build both application builds AND dll/library builds
+ */
+var SentryDllPlugin = (function () {
+  var DllEntryPlugin = require('webpack/lib/DllEntryPlugin');
+  var LibManifestPlugin = require('webpack/lib/LibManifestPlugin');
+  var SingleEntryPlugin = require('webpack/lib/SingleEntryPlugin');
+
+  function DllPlugin(options) {
+    this.options = options;
+  }
+  DllPlugin.prototype.apply = function(compiler) {
+    compiler.plugin('entry-option', function(context, entry) {
+      function itemToPlugin(item, name) {
+        if(Array.isArray(item))
+          return new DllEntryPlugin(context, item, name);
+        else
+          return new SingleEntryPlugin(context, item, name); // <-- added by us
+      }
+      if(typeof entry === 'object') {
+        Object.keys(entry).forEach(function(name) {
+          compiler.apply(itemToPlugin(entry[name], name));
+        });
+      } else {
+        compiler.apply(itemToPlugin(entry, 'main'));
+      }
+      return true;
+    });
+    compiler.apply(new LibManifestPlugin(this.options));
+  };
+  return DllPlugin;
+})();
+
+
+
 var staticPrefix = 'src/sentry/static/sentry',
     distPath = staticPrefix + '/dist';
 
@@ -139,7 +176,7 @@ var config = {
     ],
   },
   plugins: [
-    new webpack.DllPlugin({
+    new SentryDllPlugin({
       path: path.join(distPath, '[name]-manifest.json'),
       name: '[name]',
     }),
