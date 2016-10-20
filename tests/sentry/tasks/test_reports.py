@@ -227,7 +227,7 @@ def test_calendar_range():
 
 
 class ReportTestCase(TestCase):
-    def test_integration(self, has_feature):
+    def test_integration(self):
         Project.objects.all().delete()
 
         now = datetime(2016, 9, 12, tzinfo=pytz.utc)
