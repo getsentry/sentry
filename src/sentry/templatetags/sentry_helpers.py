@@ -37,7 +37,7 @@ from sentry.utils.javascript import to_json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
 from six.moves import range
-from six.moves.urllib.parse import quote, urlencode
+from six.moves.urllib.parse import quote, urlencode, urlparse
 
 SentryVersion = namedtuple('SentryVersion', [
     'current', 'latest', 'update_available', 'build',
@@ -68,6 +68,13 @@ def multiply(x, y):
 def absolute_uri(path='', *args):
     from sentry.utils.http import absolute_uri
     return absolute_uri(path.format(*args))
+
+
+@register.simple_tag
+def system_origin():
+    from sentry.utils.http import absolute_uri
+    url = urlparse(absolute_uri())
+    return '%s://%s' % (url.scheme, url.netloc)
 
 
 @register.filter
