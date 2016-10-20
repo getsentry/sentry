@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 import pytz
 from django.utils import dateformat, timezone
 
-from sentry import features
 from sentry.app import tsdb
 from sentry.models import (
     Activity, GroupStatus, Organization, OrganizationStatus, Project, Release,
@@ -585,9 +584,6 @@ def prepare_reports(dry_run=False, *args, **kwargs):
 def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
     organization = _get_organization_queryset().get(id=organization_id)
 
-    if not features.has('organizations:reports:prepare', organization):
-        return
-
     backend.prepare(timestamp, duration, organization)
 
     # If an OrganizationMember row doesn't have an associated user, this is
@@ -769,7 +765,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         reports,
     )
 
-    if not dry_run and features.has('organizations:reports:deliver', organization):
+    if not dry_run:
         message.send()
 
 
@@ -873,8 +869,7 @@ def build_project_breakdown_series(reports):
 def to_context(organization, interval, reports):
     report = reduce(merge_reports, reports.values())
     series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
-
-    context = {
+    return {
         'series': {
             'points': series,
             'maximum': max(sum(point) for timestamp, point in series),
@@ -904,15 +899,11 @@ def to_context(organization, interval, reports):
         'projects': {
             'series': build_project_breakdown_series(reports),
         },
-    }
-
-    if features.has('organizations:reports:calendar', organization):
-        context['calendar'] = to_calendar(
+        'calendar': to_calendar(
             interval,
             report.calendar_series,
-        )
-
-    return context
+        ),
+    }
 
 
 def get_percentile(values, percentile):
