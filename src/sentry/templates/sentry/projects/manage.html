@@ -234,7 +234,7 @@
           <a href="{% url 'sentry-project-issue-tracking' project.organization.slug project.slug %}">{% trans "Issue Tracking" %}</a>
       </li>
       <li{% if page == 'notification' %} class="active"{% endif %}>
-          <a href="{% url 'sentry-project-notification-tools' project.organization.slug project.slug %}">{% trans "Notification Tools" %}</a>
+          <a href="{% url 'sentry-project-notification-tools' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
       </li>
     </ul>
   {% endwith %}
