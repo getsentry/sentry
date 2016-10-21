@@ -283,7 +283,13 @@ def fetch_release_file(filename, release):
         # it down to None
         result = None
     else:
-        result = (result[0], zlib.decompress(result[1]), result[2], result[3])
+        # Previous caches would be a 3-tuple instead of a 4-tuple,
+        # so this is being maintained for backwards compatibility
+        try:
+            encoding = result[3]
+        except IndexError:
+            encoding = None
+        result = (result[0], zlib.decompress(result[1]), result[2], encoding)
 
     return result
 
