@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['SourceProcessor']
 
+import codecs
 import logging
 import re
 import base64
@@ -11,10 +12,10 @@ import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
-from django.utils.encoding import force_text
 from collections import namedtuple
 from os.path import splitext
 from requests.exceptions import RequestException, Timeout
+from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 from libsourcemap import from_json as view_from_json
 
@@ -65,8 +66,8 @@ MAX_URL_LENGTH = 150
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
 
-# UrlResult.body **must** be unicode
-UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
+# UrlResult.body **must** be bytes
+UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body', 'encoding'])
 
 logger = logging.getLogger(__name__)
 
@@ -175,7 +176,7 @@ def discover_sourcemap(result):
     sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
-        parsed_body = result.body.split(u'\n')
+        parsed_body = result.body.split('\n')
         # Source maps are only going to exist at either the top or bottom of the document.
         # Technically, there isn't anything indicating *where* it should exist, so we
         # are generous and assume it's somewhere either in the first or last 5 lines.
@@ -188,7 +189,7 @@ def discover_sourcemap(result):
         # We want to scan each line sequentially, and the last one found wins
         # This behavior is undocumented, but matches what Chrome and Firefox do.
         for line in possibilities:
-            if line[:21] in (u'//# sourceMappingURL=', u'//@ sourceMappingURL='):
+            if line[:21] in ('//# sourceMappingURL=', '//@ sourceMappingURL='):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
 
@@ -272,36 +273,17 @@ def fetch_release_file(filename, release):
             cache.set(cache_key, -1, 3600)
             result = None
         else:
-            try:
-                result = (releasefile.file.headers, body.decode('utf-8'), 200)
-            except UnicodeDecodeError:
-                error = {
-                    'type': EventError.JS_INVALID_SOURCE_ENCODING,
-                    'value': 'utf8',
-                    'url': expose_url(releasefile.name),
-                }
-                raise CannotFetchSource(error)
-            else:
-                # Write the compressed version to cache, but return the deflated version
-                cache.set(cache_key, (releasefile.file.headers, z_body, 200), 3600)
+            headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
+            encoding = get_encoding_from_headers(headers)
+            result = (headers, body, 200, encoding)
+            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
         result = None
     else:
-        # We got a cache hit, but the body is compressed, so we
-        # need to decompress it before handing it off
-        body = zlib.decompress(result[1])
-        try:
-            result = (result[0], body.decode('utf-8'), result[2])
-        except UnicodeDecodeError:
-            error = {
-                'type': EventError.JS_INVALID_SOURCE_ENCODING,
-                'value': 'utf8',
-                'url': expose_url(releasefile.name),
-            }
-            raise CannotFetchSource(error)
+        result = (result[0], zlib.decompress(result[1]), result[2], result[3])
 
     return result
 
@@ -333,10 +315,15 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
         if result is not None:
+            # Previous caches would be a 3-tuple instead of a 4-tuple,
+            # so this is being maintained for backwards compatibility
+            try:
+                encoding = result[3]
+            except IndexError:
+                encoding = None
             # We got a cache hit, but the body is compressed, so we
             # need to decompress it before handing it off
-            body = zlib.decompress(result[1])
-            result = (result[0], force_text(body), result[2])
+            result = (result[0], zlib.decompress(result[1]), result[2], encoding)
 
     if result is None:
         # lock down domains that are problematic
@@ -440,10 +427,10 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 body = b''.join(contents)
                 z_body = zlib.compress(body)
                 headers = {k.lower(): v for k, v in response.headers.items()}
-                text_body = body.decode(response.encoding or 'utf-8', 'replace')
+                encoding = response.encoding
 
-                cache.set(cache_key, (headers, z_body, response.status_code), 60)
-                result = (headers, text_body, response.status_code)
+                cache.set(cache_key, (headers, z_body, response.status_code, encoding), 60)
+                result = (headers, body, response.status_code, encoding)
             finally:
                 if response is not None:
                     response.close()
@@ -473,13 +460,14 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             }
             raise CannotFetchSource(error)
 
-    # Make sure the file we're getting back is six.text_type, if it's not,
-    # it's either some encoding that we don't understand, or it's binary
-    # data which we can't process.
-    if not isinstance(result[1], six.text_type):
+    # Make sure the file we're getting back is six.binary_type. The only
+    # reason it'd not be binary would be from old cached blobs, so
+    # for compatibility with current cached files, let's coerce back to
+    # binary and say utf8 encoding.
+    if not isinstance(result[1], six.binary_type):
         try:
-            result = (result[0], result[1].decode('utf8'), result[2])
-        except UnicodeDecodeError:
+            result = (result[0], result[1].encode('utf8'), None)
+        except UnicodeEncodeError:
             error = {
                 'type': EventError.JS_INVALID_SOURCE_ENCODING,
                 'value': 'utf8',
@@ -487,18 +475,35 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             }
             raise CannotFetchSource(error)
 
-    return UrlResult(url, result[0], result[1])
+    return UrlResult(url, result[0], result[1], result[3])
+
+
+def is_utf8(encoding):
+    if encoding is None:
+        return True
+    try:
+        return codecs.lookup(encoding).name == 'utf-8'
+    except LookupError:
+        # Encoding is entirely unknown, so definitely not utf-8
+        return False
 
 
 def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
         body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
-        # TODO(mattrobenolt): this is returning unicodes, and there's no
-        # reason we need to do this. We operate on this payload as bytes.
         result = fetch_file(url, project=project, release=release,
                             allow_scraping=allow_scraping)
         body = result.body
+
+        # This is just a quick sanity check, but doesn't guarantee
+        if not is_utf8(result.encoding):
+            error = {
+                'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                'value': 'utf8',
+                'url': expose_url(url),
+            }
+            raise CannotFetchSource(error)
 
     try:
         return view_from_json(body)
@@ -863,7 +868,7 @@ class SourceProcessor(object):
             cache.add_error(filename, exc.data)
             return
 
-        cache.add(filename, result.body.split('\n'))
+        cache.add(filename, result.body, result.encoding)
         cache.alias(result.url, filename)
 
         sourcemap_url = discover_sourcemap(result)
@@ -890,21 +895,13 @@ class SourceProcessor(object):
         sourcemaps.add(sourcemap_url, sourcemap_view)
 
         # cache any inlined sources
-        # inline_sources = sourcemap_view.get_inline_content_sources(sourcemap_url)
         for src_id, source in sourcemap_view.iter_sources():
-            # TODO(mattrobenolt): This is slightly less than ideal,
-            # but it's the simplest path for now.
-            # Ideally, we would do this lazily.
-            content = sourcemap_view.get_source_contents(src_id)
-            if content is not None:
-                # TODO(mattrobenolt): This is gross. libsourcemap returns back
-                # bytes, and our internal stuff assumed unicode. So everything else in
-                # the pipeline assumes unicode and working with bytes is harder.
-                # So let's coerce here to unicodes just to conform to API for both,
-                # but remove this and handle bytes down the line when done.
-                if isinstance(content, six.binary_type):
-                    content = content.decode('utf-8', errors='replace')
-                self.cache.add(urljoin(sourcemap_url, source), content.split(u'\n'))
+            if sourcemap_view.has_source_contents(src_id):
+                self.cache.add(
+                    urljoin(sourcemap_url, source),
+                    lambda view=sourcemap_view, id=src_id: view.get_source_contents(id),
+                    None,
+                )
 
     def populate_source_cache(self, frames, release):
         """

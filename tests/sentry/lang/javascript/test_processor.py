@@ -13,12 +13,13 @@ from requests.exceptions import RequestException
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.lang.javascript.processor import (
     BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
-    SourceProcessor, trim_line, UrlResult, fetch_release_file
+    SourceProcessor, trim_line, UrlResult, fetch_release_file, CannotFetchSource,
+    UnparseableSourcemap,
 )
 from sentry.lang.javascript.errormapping import (
     rewrite_exception, REACT_MAPPING_URL
 )
-from sentry.models import File, Release, ReleaseFile
+from sentry.models import File, Release, ReleaseFile, EventError
 from sentry.testutils import TestCase
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
@@ -42,7 +43,9 @@ class FetchReleaseFileTest(TestCase):
             type='release.file',
             headers={'Content-Type': 'application/json; charset=utf-8'},
         )
-        file.putfile(six.BytesIO(unicode_body.encode('utf-8')))
+
+        binary_body = unicode_body.encode('utf-8')
+        file.putfile(six.BytesIO(binary_body))
 
         ReleaseFile.objects.create(
             name='file.min.js',
@@ -53,11 +56,12 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('file.min.js', release)
 
-        assert type(result[1]) is six.text_type
+        assert type(result[1]) is six.binary_type
         assert result == (
-            {'Content-Type': 'application/json; charset=utf-8'},
-            unicode_body,
-            200
+            {'content-type': 'application/json; charset=utf-8'},
+            binary_body,
+            200,
+            'utf-8',
         )
 
         # test with cache hit, which should be compressed
@@ -130,7 +134,8 @@ class FetchFileTest(TestCase):
         mock_fetch_release_file.return_value = (
             {'content-type': 'application/json'},
             'foo',
-            200
+            200,
+            None,
         )
 
         release = Release.objects.create(project=self.project, version='1')
@@ -138,21 +143,9 @@ class FetchFileTest(TestCase):
         result = fetch_file('/example.js', release=release)
         assert result.url == '/example.js'
         assert result.body == 'foo'
-        assert isinstance(result.body, six.text_type)
+        assert isinstance(result.body, six.binary_type)
         assert result.headers == {'content-type': 'application/json'}
-
-    @patch('sentry.lang.javascript.processor.fetch_release_file')
-    def test_non_unicode_release_file(self, mock_fetch_release_file):
-        mock_fetch_release_file.return_value = (
-            {'content-type': 'application/octet-stream'},
-            '\xffff',  # This is some random binary data
-            200
-        )
-
-        release = Release.objects.create(project=self.project, version='1')
-
-        with pytest.raises(BadSource):
-            fetch_file('/example.js', release=release)
+        assert result.encoding is None
 
     @responses.activate
     def test_unicode_body(self):
@@ -165,8 +158,9 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result.url == 'http://example.com'
-        assert result.body == u'"fôo bar"'
+        assert result.body == '"f\xc3\xb4o bar"'
         assert result.headers == {'content-type': 'application/json; charset=utf-8'}
+        assert result.encoding == 'utf-8'
 
         # ensure we use the cached result
         result2 = fetch_file('http://example.com')
@@ -179,38 +173,38 @@ class FetchFileTest(TestCase):
 class DiscoverSourcemapTest(TestCase):
     # discover_sourcemap(result)
     def test_simple(self):
-        result = UrlResult('http://example.com', {}, '')
+        result = UrlResult('http://example.com', {}, '', None)
         assert discover_sourcemap(result) is None
 
         result = UrlResult('http://example.com', {
             'x-sourcemap': 'http://example.com/source.map.js'
-        }, '')
+        }, '', None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
         result = UrlResult('http://example.com', {
             'sourcemap': 'http://example.com/source.map.js'
-        }, '')
+        }, '', None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)')
+        result = UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)')
+        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js')
+        result = UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js', None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js')
+        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js', None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js')
+        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js', None)
         assert discover_sourcemap(result) == 'http://example.com/source2.map.js'
 
-        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/')
+        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', None)
         assert discover_sourcemap(result) == 'http://example.com/app.map.js'
 
-        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/')
+        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/', None)
         with self.assertRaises(AssertionError):
             discover_sourcemap(result)
 
@@ -245,14 +239,32 @@ class GenerateModuleTest(TestCase):
         assert generate_module('~/app/components/projectHeader/projectSelector.jsx') == 'app/components/projectHeader/projectSelector'
 
 
-class FetchBase64SourcemapTest(TestCase):
-    def test_simple(self):
+class FetchSourcemapTest(TestCase):
+    def test_simple_base64(self):
         smap_view = fetch_sourcemap(base64_sourcemap)
         tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
 
         assert list(smap_view) == tokens
         assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
+
+    @responses.activate
+    def test_simple_non_utf8(self):
+        responses.add(responses.GET, 'http://example.com', body='{}',
+                      content_type='application/json; charset=NOPE')
+
+        with pytest.raises(CannotFetchSource) as exc:
+            fetch_sourcemap('http://example.com')
+
+        assert exc.value.data['type'] == EventError.JS_INVALID_SOURCE_ENCODING
+
+    @responses.activate
+    def test_garbage_json(self):
+        responses.add(responses.GET, 'http://example.com', body='xxxx',
+                      content_type='application/json')
+
+        with pytest.raises(UnparseableSourcemap):
+            fetch_sourcemap('http://example.com')
 
 
 class TrimLineTest(TestCase):

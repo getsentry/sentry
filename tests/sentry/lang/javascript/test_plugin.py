@@ -142,6 +142,7 @@ class JavascriptIntegrationTest(TestCase):
         }
 
         mock_fetch_file.return_value.body = '\n'.join('hello world')
+        mock_fetch_file.return_value.encoding = None
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200
@@ -197,6 +198,7 @@ class JavascriptIntegrationTest(TestCase):
 
         mock_fetch_file.return_value.url = 'http://example.com/test.min.js'
         mock_fetch_file.return_value.body = '\n'.join('<generated source>')
+        mock_fetch_file.return_value.encoding = None
 
         resp = self._postWithHeader(data)
         assert resp.status_code, 200

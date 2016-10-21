@@ -20,7 +20,34 @@ class SourceCache(object):
 
     def get(self, url):
         url = self._get_canonical_url(url)
-        return self._cache.get(url)
+        try:
+            parsed, rv = self._cache[url]
+        except KeyError:
+            return None
+
+        # We have already gotten this file and we've
+        # decoded the response, so just return
+        if parsed:
+            return rv
+
+        # Otherwise, we have a 2-tuple that needs to be applied
+        body, encoding = rv
+
+        # Our body is lazily evaluated if it
+        # comes from libsourcemap
+        if callable(body):
+            body = body()
+
+        try:
+            body = body.decode(encoding or 'utf8', 'replace').split(u'\n')
+        except LookupError:
+            # We got an encoding that python doesn't support,
+            # so let's just coerce it to utf8
+            body = body.decode('utf8', 'replace').split(u'\n')
+
+        # Set back a marker to indicate we've parsed this url
+        self._cache[url] = (True, body)
+        return body
 
     def get_errors(self, url):
         url = self._get_canonical_url(url)
@@ -35,9 +62,12 @@ class SourceCache(object):
         else:
             self._aliases[u2] = u1
 
-    def add(self, url, source):
+    def add(self, url, source, encoding=None):
         url = self._get_canonical_url(url)
-        self._cache[url] = source
+        # Insert into the cache, an unparsed (source, encoding)
+        # tuple. This allows the source to be split and decoded
+        # on demand when first accessed.
+        self._cache[url] = (False, (source, encoding))
 
     def add_error(self, url, error):
         url = self._get_canonical_url(url)
@@ -56,8 +86,8 @@ class SourceMapCache(object):
     def link(self, url, sourcemap_url):
         self._mapping[url] = sourcemap_url
 
-    def add(self, sourcemap_url, sourcemap_index):
-        self._cache[sourcemap_url] = sourcemap_index
+    def add(self, sourcemap_url, sourcemap_view):
+        self._cache[sourcemap_url] = sourcemap_view
 
     def get(self, sourcemap_url):
         return self._cache.get(sourcemap_url)
