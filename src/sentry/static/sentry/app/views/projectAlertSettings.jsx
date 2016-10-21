@@ -4,7 +4,6 @@ import underscore from 'underscore';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
-import PluginConfig from '../components/pluginConfig';
 import {FormState, RangeField} from '../components/forms';
 import {t, tct} from '../locale';
 
@@ -136,43 +135,6 @@ const ProjectDigestSettings = React.createClass({
   },
 });
 
-const InactivePlugins = React.createClass({
-  propTypes: {
-    plugins: React.PropTypes.array.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired,
-  },
-
-  enablePlugin(plugin) {
-    return this.props.onEnablePlugin(plugin, true);
-  },
-
-  render() {
-    let plugins = this.props.plugins;
-    if (plugins.length === 0)
-      return null;
-    return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Inactive Integrations')}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <ul className="integration-list">
-            {plugins.map((plugin) => {
-              return (
-                <li key={plugin.id}>
-                  <button onClick={this.enablePlugin.bind(this, plugin)} className={`ref-plugin-enable-${plugin.id}`}>
-                    {plugin.name}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
-    );
-  }
-});
-
 const ProjectAlertSettings = React.createClass({
   propTypes: {
     // these are not declared as required of issues with cloned elements
@@ -231,9 +193,7 @@ const ProjectAlertSettings = React.createClass({
 
   render() {
     let {orgId, projectId} = this.props.params;
-    let organization = this.props.organization;
     let project = this.state.project;
-    let plugins = project.plugins.filter(p => p.type == 'notification');
     return (
       <div>
         <a href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
@@ -269,20 +229,15 @@ const ProjectAlertSettings = React.createClass({
           }}
           onSave={this.onDigestsChange} />
 
-        {plugins.filter(p => p.enabled).map((data) => {
-          return (
-            <PluginConfig
-              data={data}
-              organization={organization}
-              project={project}
-              key={data.id}
-              onDisablePlugin={this.onDisablePlugin.bind(this, data)} />
-          );
-        })}
-
-        <InactivePlugins
-          plugins={plugins.filter(p => !p.enabled)}
-          onEnablePlugin={this.enablePlugin} />
+        <div className="alert alert-block alert-info">
+          {tct(
+            'To edit the settings for a notification integration ' +
+            'you may do so from your [link:notification tool settings].',
+            {
+              link: <a href={`/${orgId}/${projectId}/settings/notification-tools/`} />
+            }
+          )}
+        </div>
 
       </div>
     );

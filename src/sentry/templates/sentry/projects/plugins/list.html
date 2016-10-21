@@ -18,7 +18,7 @@
                   <th class="align-right">Enabled</th>
               </thead>
               <tbody>
-                  {% for plugin, is_enabled in project|get_plugins_with_status %}
+                  {% for plugin, is_enabled in plugins_with_status %}
                       <tr class="{{ plugin.get_title|slugify }}">
                           <td colspan="2">
                               <div class="integration-icon"></div>

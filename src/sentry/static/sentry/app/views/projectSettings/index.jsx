@@ -91,7 +91,6 @@ const ProjectSettings = React.createClass({
               <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>
             }
             <li><a href={`${settingsUrlRoot}/tags/`}>{t('Tags')}</a></li>
-            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
             <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>{t('Saved Searches')}</ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>{t('Debug Symbols')}</ListLink>
@@ -112,9 +111,8 @@ const ProjectSettings = React.createClass({
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
             <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
-            {project.plugins.filter(p => p.enabled).map((plugin) => {
-              return <li key={plugin.id}><a href={`${settingsUrlRoot}/plugins/${plugin.id}/`}>{plugin.name}</a></li>;
-            })}
+            <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
+            <li><a href={`${settingsUrlRoot}/notification-tools/`}>{t('Notification Tools')}</a></li>
           </ul>
         </div>
         <div className="col-md-10">

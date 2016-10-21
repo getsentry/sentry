@@ -52,7 +52,6 @@ from sentry.web.frontend.organization_member_settings import \
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
-from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_keys import ProjectKeysView
 from sentry.web.frontend.project_plugin_configure import \
     ProjectPluginConfigureView
@@ -368,8 +367,11 @@ urlpatterns += patterns(
         ProjectSettingsView.as_view(),
         name='sentry-manage-project'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/issue-tracking/$',
-        ProjectIssueTrackingView.as_view(),
+        ProjectPluginsView.as_view(), kwargs={'type': 'issue-tracking'},
         name='sentry-project-issue-tracking'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/notification-tools/$',
+        ProjectPluginsView.as_view(), kwargs={'type': 'notification'},
+        name='sentry-project-notification-tools'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/release-tracking/$',
         ProjectReleaseTrackingView.as_view(),
         name='sentry-project-release-tracking'),
@@ -393,7 +395,7 @@ urlpatterns += patterns(
         name='sentry-enable-project-key'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/$',
-        ProjectPluginsView.as_view(),
+        ProjectPluginsView.as_view(), kwargs={},
         name='sentry-manage-project-plugins'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/(?P<slug>[\w_-]+)/$',
         ProjectPluginConfigureView.as_view(),

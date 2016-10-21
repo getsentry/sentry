@@ -125,11 +125,3 @@ def get_plugins(project):
         if plugin.has_project_conf():
             results.append(plugin)
     return results
-
-
-@register.filter
-def get_plugins_with_status(project):
-    return [
-        (plugin, safe_execute(plugin.is_enabled, project, _with_transaction=False))
-        for plugin in plugins.configurable_for_project(project, version=None)
-    ]
