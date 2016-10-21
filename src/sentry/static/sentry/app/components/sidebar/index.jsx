@@ -192,6 +192,11 @@ const Sidebar = React.createClass({
           currentPanel={this.state.currentPanel}
           onShowPanel={()=>this.togglePanel('statusupdate')}
           hidePanel={()=>this.hidePanel()} />
+        <li>
+          <a title="Support" href={`/organizations/${org.slug}/support/`}>
+            <span className="icon icon-support" />
+          </a>
+        </li>
       </ul>
 
       {/* Panel bodies */}
