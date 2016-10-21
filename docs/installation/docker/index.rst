@@ -163,7 +163,7 @@ A large amount of Sentry's work is managed via background workers::
     docker run \
       --detach \
       --name sentry-worker-01 \
-      sentry-onpremise
+      sentry-onpremise \
       run worker
 
 See :doc:`../../queue` for more details on configuring workers.
@@ -176,7 +176,7 @@ Sentry also needs a cron process::
     docker run \
       --detch \
       --name sentry-cron \
-      sentry-onpremise
+      sentry-onpremise \
       run cron
 
 It's recommended to only run one of them at the time or you will see
