@@ -35,10 +35,6 @@ SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
 SENTRY_QUOTAS = 'sentry.quotas.redis.RedisQuota'
 SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 
-SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
-SENTRY_FILESTORE_OPTIONS = {
-    'location': '/tmp/sentry-files',
-}
 LOGIN_REDIRECT_URL = SENTRY_URL_PREFIX + '/'
 
 SENTRY_WEB_HOST = '127.0.0.1'
@@ -65,4 +61,6 @@ SENTRY_OPTIONS.update({
     'mail.port': 25,
     'mail.use-tls': False,
     'mail.from': 'sentry@getsentry.com',
+    'filestore.backend': 'filesystem',
+    'filestore.options': {'location': '/tmp/sentry-files'},
 })

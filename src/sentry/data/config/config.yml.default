@@ -44,3 +44,20 @@ redis.clusters:
       0:
         host: 127.0.0.1
         port: 6379
+
+################
+# File storage #
+################
+
+# Uploaded media uses these `filestore` settings. The available
+# backends are either `filesystem` or `s3`.
+
+filestore.backend: 'filesystem'
+filestore.options:
+  location: '/tmp/sentry-files'
+
+# filestore.backend: 's3'
+# filestore.options:
+#   access_key: 'AKIXXXXXX'
+#   secret_key: 'XXXXXXX'
+#   bucket_name: 's3-bucket-name'
