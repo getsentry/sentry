@@ -41,33 +41,15 @@
 
 # determine if any of the files were modified
 def checkFiles(files_array)
-    matches = []
-    files_array.each do |file_name|
-        if git.modified_files.include?(file_name)
-            matches << file_name
-        end
-    end
-    return matches
+    return files_array.select { |f| git.modified_files.include?(f) }
 end
 
 def checkFilesPattern(pattern)
-    matches = []
-    if git.modified_files.find do |e|
-        if pattern =~ e
-            matches << e
-        end
-    end
-    return matches
+    return git.modified_files.find { |f| pattern =~ f }
 end
 
 def checkContents(pattern)
-    matches = []
-    git.modified_files.each do |file_name|
-        if git.diff_for_file[file_name].patch =~ pattern
-            matches << file_name
-        end
-    end
-    return matches
+    return git.modified_files.select { |f| git.diff_for_file[f].patch =~ pattern }
 end
 
 # Warn about changes to dependencies or the build process
