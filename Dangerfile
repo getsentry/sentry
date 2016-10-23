@@ -40,33 +40,42 @@
 @S_SECURITY_CONTENT_PATTERN ||= /auth|login|password|permission|token|secret|security|scope|api_key|apikey|KEY|sudo/
 
 # determine if any of the files were modified
-def didModify(files_array)
-    did_modify_files = false
+def checkFiles(files_array)
+    matches = []
     files_array.each do |file_name|
         if git.modified_files.include?(file_name)
-            did_modify_files = true
+            matches << file_name
         end
     end
-    return did_modify_files
+    return matches
 end
 
-def didModifyPattern(pattern)
-    did_modify_files = false
-    if git.modified_files.find { |e| pattern =~ e }
-        did_modify_files = true
+def checkFilesPattern(pattern)
+    matches = []
+    if git.modified_files.find do |e|
+        if pattern =~ e
+            matches << e
+        end
     end
-    return did_modify_files
+    return matches
 end
 
-def hasMatchingContentChanges(pattern)
-    return github.pr_diff =~ pattern
+def checkContents(pattern)
+    matches = []
+    git.modified_files.each do |file_name|
+        if git.diff_for_file[file_name].patch =~ pattern
+            matches << file_name
+        end
+    end
+    return matches
 end
 
 # Warn about changes to dependencies or the build process
 warn("Changes to build requirements") if didModify(@S_BUILD_FILES)
 
 # Warn about changes to dependencies or the build process
-if didModifyPattern(@S_SECURITY_FILE_PATTERN) || hasMatchingContentChanges(@S_SECURITY_CONTENT_PATTERN)
+securityMatches = checkFiles(@S_SECURITY_FILE_PATTERN) + checkContents(@S_SECURITY_CONTENT_PATTERN)
+if securityMatches
     unless github.pr_labels.include?("Security")
         github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
             :labels => github.pr_labels + ["Security"],
@@ -77,8 +86,13 @@ if didModifyPattern(@S_SECURITY_FILE_PATTERN) || hasMatchingContentChanges(@S_SE
     # make this failing
     # securityTeam = github.api.organization_teams('getsentry')[0]
     # Make a note about contributors not in the organization
-    # unless github.api.team_member?(securityTeam.id, github.pr_author)
+    # unless github.api.team_member?(securityTeam.id, github.pr_author
     warn("Changes require @getsentry/security sign-off")
+    message = "### Security concerns found\n\n"
+    securityMatches.each do |m|
+        message << "- #{m}\n"
+    end
+    markdown(message)
 end
 
 # Make it more obvious that a PR is a work in progress and shouldn"t be merged yet
@@ -91,6 +105,6 @@ warn("Big PR -- consider splitting it up into multiple changesets") if git.lines
 fail("Do not modify the License") if @S_LICENSE_FILES && didModify(@S_LICENSE_FILES)
 
 # Reasonable commits must update CHANGES
-if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && didModifyPattern(@S_CHANGES_REQUIRED_PATTERNS)
+if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS)
     fail("You need to update CHANGES due to the size of this PR")
 end
