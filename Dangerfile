@@ -53,7 +53,7 @@ def checkContents(pattern)
 end
 
 # Warn about changes to dependencies or the build process
-warn("Changes to build requirements") if didModify(@S_BUILD_FILES)
+warn("Changes to build requirements") if checkFiles(@S_BUILD_FILES)
 
 # Warn about changes to dependencies or the build process
 securityMatches = checkFiles(@S_SECURITY_FILE_PATTERN) + checkContents(@S_SECURITY_CONTENT_PATTERN)
@@ -84,7 +84,7 @@ warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]"
 warn("Big PR -- consider splitting it up into multiple changesets") if git.lines_of_code > @S_BIG_PR_LINES
 
 # License is immutable
-fail("Do not modify the License") if @S_LICENSE_FILES && didModify(@S_LICENSE_FILES)
+fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_FILES)
 
 # Reasonable commits must update CHANGES
 if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS)
