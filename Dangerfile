@@ -56,7 +56,7 @@ end
 warn("Changes to build requirements") if checkFiles(@S_BUILD_FILES)
 
 # Warn about changes to dependencies or the build process
-securityMatches = checkFiles(@S_SECURITY_FILE_PATTERN) + checkContents(@S_SECURITY_CONTENT_PATTERN)
+securityMatches = checkFilesPattern(@S_SECURITY_FILE_PATTERN) + checkContents(@S_SECURITY_CONTENT_PATTERN)
 if securityMatches
     unless github.pr_labels.include?("Security")
         github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
