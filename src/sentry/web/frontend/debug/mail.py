@@ -445,17 +445,6 @@ def report(request):
                 date_started=dt,
             )
 
-    release_instances = {}
-
-    def make_release_id_generator():
-        release_generator = make_release_generator()
-        while True:
-            release = next(release_generator)
-            release_instances[release.id] = release
-            yield release.id
-
-    release_id_generator = make_release_id_generator()
-
     def build_issue_summaries():
         summaries = []
         for i in range(3):
@@ -463,14 +452,6 @@ def report(request):
                 int(random.weibullvariate(10, 1) * random.paretovariate(0.5))
             )
         return summaries
-
-    def build_release_list():
-        return reports.trim_release_list([
-            (
-                next(release_id_generator),
-                max(1, int(random.weibullvariate(20, 0.15))),
-            ) for _ in range(random.randint(0, 10))
-        ])
 
     def build_usage_summary():
         return (
@@ -517,7 +498,6 @@ def report(request):
             series,
             aggregates,
             build_issue_summaries(),
-            build_release_list(),
             build_usage_summary(),
             build_calendar_data(project),
         )
