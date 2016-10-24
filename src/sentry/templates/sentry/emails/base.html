@@ -8,6 +8,8 @@
 
   {% include "sentry/emails/email-styles.html" %}
 
+  {% block head %}{% endblock %}
+
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
 <div class="preheader">{% block preheader %}{% endblock %}</div>
