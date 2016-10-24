@@ -45,7 +45,7 @@ def checkFiles(files_array)
 end
 
 def checkFilesPattern(pattern)
-    git.modified_files.find { |f| pattern =~ f }
+    git.modified_files.select { |f| pattern =~ f }
 end
 
 def checkContents(pattern)
