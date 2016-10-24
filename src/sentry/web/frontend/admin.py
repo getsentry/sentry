@@ -17,7 +17,6 @@ import pkg_resources
 import six
 from django.conf import settings
 from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
@@ -111,12 +110,12 @@ def edit_user(request, user_id):
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     form = ChangeUserForm(request.POST or None, instance=user)
     if form.is_valid():
         user = form.save()
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     project_list = Project.objects.filter(
         status=0,
@@ -137,12 +136,12 @@ def edit_user(request, user_id):
 @csrf_protect
 def remove_user(request, user_id):
     if six.text_type(user_id) == six.text_type(request.user.id):
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     form = RemoveUserForm(request.POST or None)
     if form.is_valid():
@@ -151,7 +150,7 @@ def remove_user(request, user_id):
         else:
             User.objects.filter(pk=user.pk).update(is_active=False)
 
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     context = csrf(request)
     context.update({
