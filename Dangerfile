@@ -49,7 +49,7 @@ def checkFilesPattern(pattern)
 end
 
 def checkContents(pattern)
-    git.modified_files.select { |f| git.diff_for_file[f].patch =~ pattern }
+    git.modified_files.select { |f| git.diff_for_file(f).patch =~ pattern }
 end
 
 # Warn about changes to dependencies or the build process
