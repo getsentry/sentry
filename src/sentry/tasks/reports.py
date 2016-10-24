@@ -16,8 +16,8 @@ from django.utils import dateformat, timezone
 
 from sentry.app import tsdb
 from sentry.models import (
-    Activity, GroupStatus, Organization, OrganizationStatus, Project,
-    Team, User, UserOption
+    Activity, GroupStatus, Organization, OrganizationStatus, Project, Team,
+    User, UserOption
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
