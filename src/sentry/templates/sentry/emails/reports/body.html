@@ -3,7 +3,142 @@
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
-{% block bodyclass %}weekly-report{% endblock %}
+{% block head %}
+
+  {{ block.super }}
+
+  <style type="text/css">
+
+    .container {
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    .header td {
+      text-align: right;
+      font-size: 14px;
+    }
+
+    td, th {
+      text-align: left;
+    }
+
+    .legend {
+      font-size: 14px;
+      text-align: right;
+    }
+
+    .legend span {
+      width: 16px;
+      height: 16px;
+      vertical-align: bottom;
+      display: inline-block;
+      margin: 0 5px 0 15px;
+      border-radius: 3px;
+      color: #fff;
+    }
+
+    .issue-graph {
+      table-layout: fixed;
+    }
+
+    .issue-graph .graph > td,
+    .issue-graph .labels > td {
+      padding-right: 5px;
+    }
+
+    .issue-graph .labels td {
+      padding-top: 3px;
+      font-size: 10px;
+      text-align: center;
+      color: #848296;
+    }
+
+    .legend .all,
+    .issue-graph-bar .all {
+      background-color: #ebe9f7;
+    }
+
+    .legend .resolved,
+    .issue-graph-bar .resolved {
+      background-color: #6C5FC7;
+    }
+
+    .issues-resolved .issues-resolved-column {
+      width: 33.3%;
+      text-align: right;
+    }
+
+    .issues-resolved .empty {
+      display: block;
+      text-align: center;
+    }
+
+    .issues-resolved .issues-resolved-column-left {
+      padding-right: 15px;
+      vertical-align: bottom;
+    }
+
+    .issues-resolved .issues-resolved-column-middle {
+      padding-left: 20px;
+      padding-right: 20px;
+      border-left: 1px solid #D6DBE4;
+      border-right: 1px solid #D6DBE4;
+    }
+
+    .issues-resolved .issues-resolved-column .stat {
+      font-size: 35px;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+
+    .issues-resolved .issues-resolved-column .stat img {
+      vertical-align: middle;
+    }
+
+    .issue-graph, .issue-graph-bar {
+      margin-bottom: 0;
+    }
+
+    .issue-graph-bar td {
+      font-size: 0;
+    }
+
+    .user-impact-stat table {
+      width: 90px;
+      height: 90px;
+      margin: 0 18px 0 0;
+    }
+
+    .user-impact-stat td {
+      margin: 0;
+      padding: 0;
+    }
+
+    .user-impact-stat img {
+      display: block;
+    }
+
+    .user-impact-stat td.count {
+      text-align: center;
+      line-height: 1;
+      font-size: 32px;
+      vertical-align: middle;
+      color: #6C5FC7;
+      width: 64px;
+      max-width: 64px;
+      overflow: hidden;
+    }
+
+    .user-impact-text {
+      font-size: 18px;
+      font-weight: 500;
+      padding-right: 20px;
+    }
+
+  </style>
+
+{% endblock %}
 
 {% block header %}
   <table>
