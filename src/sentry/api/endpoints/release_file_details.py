@@ -4,7 +4,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
@@ -68,6 +68,7 @@ class ReleaseFileSerializer(serializers.Serializer):
 
 class ReleaseFileDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
+    permission_classes = (ProjectReleasePermission,)
 
     @attach_scenarios([retrieve_file_scenario])
     def get(self, request, project, version, file_id):
