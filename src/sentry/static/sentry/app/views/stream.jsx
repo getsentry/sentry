@@ -548,7 +548,7 @@ const Stream = React.createClass({
       body = this.renderLoading();
     } else if (this.state.error) {
       body = (<LoadingError
-        message={this.state.error === 'malformed query' ? t('Your search query could not be parsed.') : undefined}
+        message={this.state.error}
         onRetry={this.fetchData} />);
     } else if (!project.firstEvent) {
       body = this.renderAwaitingEvents();

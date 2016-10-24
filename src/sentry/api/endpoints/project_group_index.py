@@ -146,8 +146,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if query:
             try:
                 query_kwargs.update(parse_query(project, query, request.user))
-            except InvalidQuery:
-                raise ValidationError('malformed query')
+            except InvalidQuery as e:
+                raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
         return query_kwargs
 

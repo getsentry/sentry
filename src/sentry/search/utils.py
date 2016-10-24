@@ -40,14 +40,15 @@ def get_user_tag(project, key, value):
         )[0]
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
-
+    except DataError:
+        raise InvalidQuery('malformed user query')
     return euser.tag_value
 
 
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, IndexError):
         raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag not in ('+', '-'):
@@ -89,7 +90,7 @@ def parse_datetime_comparison(value):
 def parse_datetime_value(value):
     try:
         return _parse_datetime_value(value)
-    except ValueError:
+    except (ValueError, IndexError):
         raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
@@ -160,6 +161,7 @@ def tokenize_query(query):
     }
     """
     results = defaultdict(list)
+    tags = (['query', 'is', 'assigned', 'bookmarks', 'first-release', 'release', 'user', 'has', 'age', 'event.timestamp'])
 
     tokens = query.split(' ')
     tokens_iter = iter(tokens)
@@ -192,6 +194,8 @@ def tokenize_query(query):
         key, value = token.split(':', 1)
         if not value:
             results['query'].append(token)
+            if key in tags:
+                raise InvalidQuery(u'query \'{}:\' has no arguments (query terms are space delimted)'.format(key))
             continue
 
         if value[0] == '"':
@@ -216,69 +220,66 @@ def parse_query(project, query, user):
     tokens = tokenize_query(query)
 
     results = {'tags': {}, 'query': []}
-    try:
-        for key, token_list in six.iteritems(tokens):
-            for value in token_list:
-                if key == 'query':
-                    results['query'].append(value)
-                elif key == 'is':
-                    if value == 'unassigned':
-                        results['unassigned'] = True
-                    elif value == 'assigned':
-                        results['unassigned'] = False
-                    else:
-                        try:
-                            results['status'] = STATUS_CHOICES[value]
-                        except KeyError:
-                            pass
-                elif key == 'assigned':
-                    if value == 'me':
-                        results['assigned_to'] = user
-                    else:
-                        try:
-                            results['assigned_to'] = find_users(value)[0]
-                        except IndexError:
-                            # XXX(dcramer): hacky way to avoid showing any results when
-                            # an invalid user is entered
-                            results['assigned_to'] = User(id=0)
-                elif key == 'bookmarks':
-                    if value == 'me':
-                        results['bookmarked_by'] = user
-                    else:
-                        try:
-                            results['bookmarked_by'] = find_users(value)[0]
-                        except IndexError:
-                            # XXX(dcramer): hacky way to avoid showing any results when
-                            # an invalid user is entered
-                            results['bookmarked_by'] = User(id=0)
-                elif key == 'first-release':
-                    results['first_release'] = parse_release(project, value)
-                elif key == 'release':
-                    results['tags']['sentry:release'] = parse_release(project, value)
-                elif key == 'user':
-                    if ':' in value:
-                        comp, value = value.split(':', 1)
-                    else:
-                        comp = 'id'
-                    results['tags']['sentry:user'] = get_user_tag(
-                        project, comp, value)
-                elif key == 'has':
-                    if value == 'user':
-                        value = 'sentry:user'
-                    elif value == 'release':
-                        value = 'sentry:release'
-                    results['tags'][value] = ANY
-                elif key == 'age':
-                    results.update(get_date_params(value, 'age_from', 'age_to'))
-                elif key.startswith('user.'):
-                    results['tags']['sentry:user'] = get_user_tag(
-                        project, key.split('.', 1)[1], value)
-                elif key == 'event.timestamp':
-                    results.update(get_date_params(value, 'date_from', 'date_to'))
+    for key, token_list in six.iteritems(tokens):
+        for value in token_list:
+            if key == 'query':
+                results['query'].append(value)
+            elif key == 'is':
+                if value == 'unassigned':
+                    results['unassigned'] = True
+                elif value == 'assigned':
+                    results['unassigned'] = False
                 else:
-                    results['tags'][key] = value
-    except DataError:
-        raise InvalidQuery('malformed query')
+                    try:
+                        results['status'] = STATUS_CHOICES[value]
+                    except KeyError:
+                        raise InvalidQuery('unknown status code')
+            elif key == 'assigned':
+                if value == 'me':
+                    results['assigned_to'] = user
+                else:
+                    try:
+                        results['assigned_to'] = find_users(value)[0]
+                    except IndexError:
+                        # XXX(dcramer): hacky way to avoid showing any results when
+                        # an invalid user is entered
+                        results['assigned_to'] = User(id=0)
+            elif key == 'bookmarks':
+                if value == 'me':
+                    results['bookmarked_by'] = user
+                else:
+                    try:
+                        results['bookmarked_by'] = find_users(value)[0]
+                    except IndexError:
+                        # XXX(dcramer): hacky way to avoid showing any results when
+                        # an invalid user is entered
+                        results['bookmarked_by'] = User(id=0)
+            elif key == 'first-release':
+                results['first_release'] = parse_release(project, value)
+            elif key == 'release':
+                results['tags']['sentry:release'] = parse_release(project, value)
+            elif key == 'user':
+                if ':' in value:
+                    comp, value = value.split(':', 1)
+                else:
+                    comp = 'id'
+                results['tags']['sentry:user'] = get_user_tag(
+                    project, comp, value)
+            elif key == 'has':
+                if value == 'user':
+                    value = 'sentry:user'
+                elif value == 'release':
+                    value = 'sentry:release'
+                results['tags'][value] = ANY
+            elif key == 'age':
+                results.update(get_date_params(value, 'age_from', 'age_to'))
+            elif key.startswith('user.'):
+                results['tags']['sentry:user'] = get_user_tag(
+                    project, key.split('.', 1)[1], value)
+            elif key == 'event.timestamp':
+                results.update(get_date_params(value, 'date_from', 'date_to'))
+            else:
+                results['tags'][key] = value
 
     results['query'] = ' '.join(results['query'])
 
