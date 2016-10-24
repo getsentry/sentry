@@ -53,11 +53,11 @@ def checkContents(pattern)
 end
 
 # Warn about changes to dependencies or the build process
-warn("Changes to build requirements") if !checkFiles(@S_BUILD_FILES).empty?
+warn("Changes to build requirements") if checkFiles(@S_BUILD_FILES).any?
 
 # Warn about changes to dependencies or the build process
 securityMatches = checkFilesPattern(@S_SECURITY_FILE_PATTERN) + checkContents(@S_SECURITY_CONTENT_PATTERN)
-if !securityMatches.empty?
+if securityMatches.any?
     unless github.pr_labels.include?("Security")
         github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
             :labels => github.pr_labels + ["Security"],
@@ -84,9 +84,9 @@ warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]"
 warn("Big PR -- consider splitting it up into multiple changesets") if git.lines_of_code > @S_BIG_PR_LINES
 
 # License is immutable
-fail("Do not modify the License") if @S_LICENSE_FILES && !checkFiles(@S_LICENSE_FILES).empty?
+fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_FILES).any?
 
 # Reasonable commits must update CHANGES
-if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && !checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).empty?
+if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
     fail("You need to update CHANGES due to the size of this PR")
 end
