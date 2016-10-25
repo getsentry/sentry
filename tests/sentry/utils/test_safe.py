@@ -15,6 +15,10 @@ class TrimTest(TestCase):
             a_very_long_string[:507] + '...',
         ]
 
+    def test_nonascii(self):
+        assert trim({'x': '\xc3\xbc'}) == {'x': '\xc3\xbc'}
+        assert trim(['x', '\xc3\xbc']) == ['x', '\xc3\xbc']
+
 
 class TrimDictTest(TestCase):
     def test_large_dict(self):
