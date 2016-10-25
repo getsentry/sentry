@@ -24,6 +24,8 @@ _LOGIN_URL = None
 
 SSO_SESSION_KEY = 'sso'
 
+MFA_SESSION_KEY = 'mfa'
+
 
 class AuthUserPasswordExpired(Exception):
 
@@ -178,23 +180,36 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=False, after_2fa=None,
+def login(request, user, passed_2fa=None, after_2fa=None,
           organization_id=None):
-    """This logs a user in for the sesion and current request.  If 2FA is
-    enabled this method will start the 2FA flow and return False, otherwise
-    it will return True.  If `passed_2fa` is set to `True` then the 2FA flow
-    is set to be finalized (user passed the flow).
+    """
+    This logs a user in for the sesion and current request.
+
+    If 2FA is enabled this method will start the MFA flow and return False as
+    required.  If `passed_2fa` is set to `True` then the 2FA flow is set to be
+    finalized (user passed the flow).
+
+    If the session has already resolved MFA in the past, it will automatically
+    detect it from the session.
 
     Optionally `after_2fa` can be set to a URL which will be used to override
     the regular session redirect target directly after the 2fa flow.
+
+    Returns boolean indicating if the user was logged in.
     """
     has_2fa = Authenticator.objects.user_has_2fa(user)
+    if passed_2fa is None:
+        passed_2fa = (
+            request.session.get(MFA_SESSION_KEY, '') == six.text_type(user.id)
+        )
+
     if has_2fa and not passed_2fa:
         request.session['_pending_2fa'] = [user.id, time()]
         if after_2fa is not None:
             request.session['_after_2fa'] = after_2fa
         return False
 
+    request.session[MFA_SESSION_KEY] = six.text_type(user.id)
     request.session.pop('_pending_2fa', None)
 
     # Check for expired passwords here after we cleared the 2fa flow.
