@@ -37,7 +37,7 @@
 
 # set the patterns to watch and warn about if they need security review
 @S_SECURITY_FILE_PATTERN ||= /Dangerfile|(auth|login|permission|email|account|admin|twofactor|sudo).*\.py/
-@S_SECURITY_CONTENT_PATTERN ||= /auth|login|password|permission|token|secret|security|scope|api_key|apikey|KEY|sudo/
+@S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|KEY|sudo/
 
 # determine if any of the files were modified
 def checkFiles(files_array)
