@@ -116,7 +116,11 @@ def get_sdk_from_apple_system_info(info):
     if not info:
         return None
     try:
-        sdk_name = APPLE_SDK_MAPPING[info['system_name']]
+        # Support newer mapping in old format.
+        if info['system_name'] in KNOWN_DSYM_TYPES:
+            sdk_name = info['system_name']
+        else:
+            sdk_name = APPLE_SDK_MAPPING[info['system_name']]
         system_version = tuple(int(x) for x in (
             info['system_version'] + '.0' * 3).split('.')[:3])
     except (ValueError, LookupError):
