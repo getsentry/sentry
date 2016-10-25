@@ -137,7 +137,6 @@ class S3Boto3StorageFile(File):
         if buffer_size is not None:
             self.buffer_size = buffer_size
         self._write_counter = 0
-        self._lock = Lock()
 
     @property
     def size(self):
@@ -308,6 +307,8 @@ class S3Boto3Storage(Storage):
         if not self.config:
             self.config = Config(s3={'addressing_style': self.addressing_style},
                                  signature_version=self.signature_version)
+
+        self._lock = Lock()
 
     @property
     def connection(self):
