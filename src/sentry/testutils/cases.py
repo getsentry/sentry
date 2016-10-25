@@ -42,7 +42,7 @@ from sentry.models import GroupMeta, ProjectOption
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
-from sentry.utils.auth import mark_sso_complete
+from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
@@ -113,7 +113,7 @@ class BaseTestCase(Fixtures, Exam):
         login(request, user)
         request.user = user
         if organization_id:
-            mark_sso_complete(organization_id)
+            request.session[SSO_SESSION_KEY] = six.text_type(organization_id)
 
         # Save the session values.
         self.save_session()
