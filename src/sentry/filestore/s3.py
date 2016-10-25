@@ -41,6 +41,7 @@ import posixpath
 import mimetypes
 from gzip import GzipFile
 from tempfile import SpooledTemporaryFile
+from threading import Lock
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
@@ -136,6 +137,7 @@ class S3Boto3StorageFile(File):
         if buffer_size is not None:
             self.buffer_size = buffer_size
         self._write_counter = 0
+        self._lock = Lock()
 
     @property
     def size(self):
@@ -314,15 +316,16 @@ class S3Boto3Storage(Storage):
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
         # and http://docs.python-requests.org/en/latest/user/advanced/#proxies
         if self._connection is None:
-            self._connection = self.connection_class(
-                self.connection_service_name,
-                aws_access_key_id=self.access_key,
-                aws_secret_access_key=self.secret_key,
-                region_name=self.region_name,
-                use_ssl=self.use_ssl,
-                endpoint_url=self.endpoint_url,
-                config=self.config
-            )
+            with self._lock:
+                self._connection = self.connection_class(
+                    self.connection_service_name,
+                    aws_access_key_id=self.access_key,
+                    aws_secret_access_key=self.secret_key,
+                    region_name=self.region_name,
+                    use_ssl=self.use_ssl,
+                    endpoint_url=self.endpoint_url,
+                    config=self.config
+                )
         return self._connection
 
     @property
