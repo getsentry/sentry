@@ -9,6 +9,36 @@ from django.conf import settings
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 
 
+def _sso_params(member):
+    """
+    Return a tuple of (has_sso, sso_is_valid) for a given member.
+    """
+    # TODO(dcramer): we want to optimize this access pattern as its several
+    # network hops and needed in a lot of places
+    try:
+        auth_provider = AuthProvider.objects.get(
+            organization=member.organization_id,
+        )
+    except AuthProvider.DoesNotExist:
+        sso_is_valid = True
+        has_sso = False
+    else:
+        has_sso = True
+        if auth_provider.flags.allow_unlinked:
+            sso_is_valid = True
+        else:
+            try:
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    user=member.user_id,
+                )
+            except AuthIdentity.DoesNotExist:
+                sso_is_valid = False
+            else:
+                sso_is_valid = auth_identity.is_valid(member)
+    return has_sso, sso_is_valid
+
+
 class BaseAccess(object):
     is_active = False
     sso_is_valid = False
@@ -52,13 +82,15 @@ class Access(BaseAccess):
     # TODO(dcramer): this is still a little gross, and ideally backend access
     # would be based on the same scopes as API access so theres clarity in
     # what things mean
-    def __init__(self, scopes, is_active, teams, memberships, sso_is_valid):
+    def __init__(self, scopes, is_active, teams, memberships, sso_is_valid,
+                 has_sso):
         self.teams = teams
         self.memberships = memberships
         self.scopes = scopes
 
         self.is_active = is_active
         self.sso_is_valid = sso_is_valid
+        self.has_sso = has_sso
 
 
 def from_request(request, organization, scopes=None):
@@ -66,13 +98,26 @@ def from_request(request, organization, scopes=None):
         return DEFAULT
 
     if request.is_superuser():
+        # we special case superuser so that if they're a member of the org
+        # they must still follow SSO checks, but they gain global access
+        try:
+            member = OrganizationMember.objects.get(
+                user=request.user,
+                organization=organization,
+            )
+        except OrganizationMember.DoesNotExist:
+            has_sso, sso_is_valid = False, True
+        else:
+            has_sso, sso_is_valid = _sso_params(member)
+
         team_list = list(organization.team_set.all())
         return Access(
             scopes=scopes if scopes is not None else settings.SENTRY_SCOPES,
             is_active=True,
             teams=team_list,
             memberships=team_list,
-            sso_is_valid=True,
+            sso_is_valid=sso_is_valid,
+            has_sso=has_sso,
         )
     return from_user(request.user, organization, scopes=scopes)
 
@@ -101,25 +146,7 @@ def from_user(user, organization, scopes=None):
 def from_member(member, scopes=None):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
-    try:
-        auth_provider = AuthProvider.objects.get(
-            organization=member.organization_id,
-        )
-    except AuthProvider.DoesNotExist:
-        sso_is_valid = True
-    else:
-        if auth_provider.flags.allow_unlinked:
-            sso_is_valid = True
-        else:
-            try:
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=auth_provider,
-                    user=member.user_id,
-                )
-            except AuthIdentity.DoesNotExist:
-                sso_is_valid = False
-            else:
-                sso_is_valid = auth_identity.is_valid(member)
+    has_sso, sso_is_valid = _sso_params(member)
 
     team_memberships = member.get_teams()
     if member.organization.flags.allow_joinleave:
@@ -134,6 +161,7 @@ def from_member(member, scopes=None):
 
     return Access(
         is_active=True,
+        has_sso=has_sso,
         sso_is_valid=sso_is_valid,
         scopes=scopes,
         memberships=team_memberships,
@@ -142,24 +170,11 @@ def from_member(member, scopes=None):
 
 
 class NoAccess(BaseAccess):
-    @property
-    def sso_is_valid(self):
-        return True
-
-    @property
-    def is_active(self):
-        return False
-
-    @property
-    def teams(self):
-        return ()
-
-    @property
-    def memberships(self):
-        return ()
-
-    @property
-    def scopes(self):
-        return frozenset()
+    has_sso = False
+    sso_is_valid = True
+    is_active = False
+    teams = ()
+    memberships = ()
+    scopes = frozenset()
 
 DEFAULT = NoAccess()

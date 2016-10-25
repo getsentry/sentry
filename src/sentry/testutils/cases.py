@@ -42,6 +42,7 @@ from sentry.models import GroupMeta, ProjectOption
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
+from sentry.utils.auth import mark_sso_complete
 
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
@@ -103,7 +104,7 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[session_cookie] = self.session.session_key
         self.client.cookies[session_cookie].update(cookie_data)
 
-    def login_as(self, user):
+    def login_as(self, user, organization_id=None):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = HttpRequest()
@@ -111,6 +112,8 @@ class BaseTestCase(Fixtures, Exam):
 
         login(request, user)
         request.user = user
+        if organization_id:
+            mark_sso_complete(organization_id)
 
         # Save the session values.
         self.save_session()
