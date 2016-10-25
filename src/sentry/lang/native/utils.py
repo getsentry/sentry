@@ -10,12 +10,14 @@ APPLE_SDK_MAPPING = {
     'iPhone OS': 'iOS',
     'tvOS': 'tvOS',
     'Mac OS': 'macOS',
+    'watchOS': 'watchOS',
 }
 
 KNOWN_DSYM_TYPES = {
     'iOS': 'macho',
     'tvOS': 'macho',
-    'macOS': 'macho'
+    'macOS': 'macho',
+    'watchOS': 'macho',
 }
 
 
