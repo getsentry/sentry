@@ -10,26 +10,20 @@ which is not suitable for production use.
 File System Backend
 -------------------
 
-.. code-block:: python
+.. code-block:: yaml
 
-    SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
-    SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
+    filestore.backend: 'filesystem'
+    filestore.options:
+      location: '/tmp/sentry-files'
 
 
 S3 Backend
 ----------
 
-S3 is supported through a third party library called `django-storages <https://django-storages.readthedocs.io/en/latest/>`_:
+.. code-block:: yaml
 
-.. code-block:: bash
-
-    $ pip install django-storages
-
-.. code-block:: python
-
-    SENTRY_FILESTORE = 'storages.backends.s3boto.S3BotoStorage'
-    SENTRY_FILESTORE_OPTIONS = {
-        'access_key': '...',
-        'secret_key': '...',
-        'bucket_name': '...',
-    }
+    filestore.backend: 's3'
+    filestore.options:
+      access_key: '...'
+      secret_key: '...'
+      bucket_name: '...'
