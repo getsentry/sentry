@@ -354,6 +354,8 @@ def apply_legacy_settings(settings):
         ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
         ('SENTRY_SMTP_HOSTNAME', 'mail.reply-hostname'),
         ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
+        ('SENTRY_FILESTORE', 'filestore.backend'),
+        ('SENTRY_FILESTORE_OPTIONS', 'filestore.options'),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(

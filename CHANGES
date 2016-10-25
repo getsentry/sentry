@@ -5,6 +5,9 @@ Version 8.10 (Unreleased)
 - Replaced the ``events`` queue with ``events.{preprocess,process,save}_event``.
 - Added Danger (danger/danger) for monitoring various PR requirements.
 - Enabled organization weekly report emails for all organizations.
+- Add S3 filestore backend.
+- ``SENTRY_FILESTORE`` deprecated and replaced with ``filestore.backend``
+- ``SENTRY_FILESTORE_OPTIONS`` deprecated and replaced with ``filestore.options``
 
 API Changes
 ~~~~~~~~~~~

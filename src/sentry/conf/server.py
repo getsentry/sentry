@@ -608,6 +608,16 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'boto3': {
+            'level': 'WARNING',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'botocore': {
+            'level': 'WARNING',
+            'handlers': ['console'],
+            'propagate': False,
+        },
     }
 }
 
@@ -754,6 +764,11 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     'console': 'django.core.mail.backends.console.EmailBackend',
 }
 
+SENTRY_FILESTORE_ALIASES = {
+    'filesystem': 'django.core.files.storage.FileSystemStorage',
+    's3': 'sentry.filestore.s3.S3Boto3Storage',
+}
+
 # set of backends that do not support needing SMTP mail.* settings
 # This list is a bit fragile and hardcoded, but it's unlikely that
 # a user will be using a different backend that also mandates SMTP
@@ -840,11 +855,6 @@ SENTRY_TSDB_ROLLUPS = (
     (3600, 24 * 7),  # 7 days at 1 hour
     (3600 * 24, 90),  # 90 days at 1 day
 )
-
-
-# File storage
-SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
-SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
 
 # Internal metrics
 SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'

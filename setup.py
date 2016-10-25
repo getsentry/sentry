@@ -87,6 +87,7 @@ tests_require = [
 
 
 install_requires = [
+    'boto3>=1.4.1,<1.5',
     'celery>=3.1.8,<3.1.19',
     'click>=5.0,<7.0',
     # 'cryptography>=1.3,<1.4',

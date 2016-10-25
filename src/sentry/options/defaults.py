@@ -79,3 +79,7 @@ register('auth.ip-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITI
 register('auth.user-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 
 register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# Filestore
+register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)
+register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=FLAG_NOSTORE)

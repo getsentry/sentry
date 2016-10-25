@@ -33,6 +33,20 @@ ONE_DAY = 60 * 60 * 24
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 
 
+def get_storage():
+    from sentry import options
+    backend = options.get('filestore.backend')
+    options = options.get('filestore.options')
+
+    try:
+        backend = settings.SENTRY_FILESTORE_ALIASES[backend]
+    except KeyError:
+        pass
+
+    storage = get_storage_class(backend)
+    return storage(**options)
+
+
 class FileBlob(Model):
     __core__ = False
 
@@ -81,7 +95,7 @@ class FileBlob(Model):
 
             blob.path = cls.generate_unique_path(blob.timestamp)
 
-            storage = blob.get_storage()
+            storage = get_storage()
             storage.save(blob.path, fileobj)
             blob.save()
 
@@ -104,17 +118,10 @@ class FileBlob(Model):
                 self.deletefile(commit=False)
             super(FileBlob, self).delete(*args, **kwargs)
 
-    def get_storage(self):
-        backend = settings.SENTRY_FILESTORE
-        options = settings.SENTRY_FILESTORE_OPTIONS
-
-        storage = get_storage_class(backend)
-        return storage(**options)
-
     def deletefile(self, commit=False):
         assert self.path
 
-        storage = self.get_storage()
+        storage = get_storage()
         storage.delete(self.path)
 
         self.path = None
@@ -132,7 +139,7 @@ class FileBlob(Model):
         """
         assert self.path
 
-        storage = self.get_storage()
+        storage = get_storage()
         return storage.open(self.path)
 
 
