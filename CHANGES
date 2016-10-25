@@ -8,6 +8,7 @@ Version 8.10 (Unreleased)
 - Add S3 filestore backend.
 - ``SENTRY_FILESTORE`` deprecated and replaced with ``filestore.backend``
 - ``SENTRY_FILESTORE_OPTIONS`` deprecated and replaced with ``filestore.options``
+- Add watchOS support for cocoa interface.
 
 API Changes
 ~~~~~~~~~~~
