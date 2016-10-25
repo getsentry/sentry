@@ -69,9 +69,12 @@ if securityMatches.any?
     # securityTeam = github.api.organization_teams('getsentry')[0]
     # Make a note about contributors not in the organization
     # unless github.api.team_member?(securityTeam.id, github.pr_author
+    warn("Changes require @getsentry/security sign-off")
+    message = "### Security concerns found\n\n"
     securityMatches.to_set.each do |m|
-        warn("Change to ``#{m}`` requires @getsentry/security sign-off", file: m)
+        message << "- #{m}\n"
     end
+    markdown(message)
 end
 
 # Make it more obvious that a PR is a work in progress and shouldn"t be merged yet
