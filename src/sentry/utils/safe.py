@@ -12,6 +12,7 @@ import six
 
 from django.conf import settings
 from django.db import transaction
+from django.utils.encoding import force_text
 
 from sentry.utils.strings import truncatechars
 
@@ -64,7 +65,7 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
         for k, v in six.iteritems(value):
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
-            _size += len(six.text_type(trim_v)) + 1
+            _size += len(force_text(trim_v)) + 1
             if _size >= max_size:
                 break
 
@@ -74,7 +75,7 @@ def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
         for v in value:
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
-            _size += len(six.text_type(trim_v))
+            _size += len(force_text(trim_v))
             if _size >= max_size:
                 break
 
