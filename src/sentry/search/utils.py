@@ -41,7 +41,7 @@ def get_user_tag(project, key, value):
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
     except DataError:
-        raise InvalidQuery('malformed user query')
+        raise InvalidQuery(u'malformed \'{}:\' query \'{}\'.'.format(key, value))
     return euser.tag_value
 
 
@@ -147,6 +147,27 @@ def get_date_params(value, from_field, to_field):
         })
     return result
 
+reserved_tag_names = frozenset([
+    'query',
+    'is',
+    'assigned',
+    'bookmarks',
+    'first-release',
+    'release',
+    'level',
+    'user',
+    'user.id',
+    'user.ip',
+    'has',
+    'age',
+    'environment',
+    'browser',
+    'device',
+    'os',
+    'os.name',
+    'url',
+    'event.timestamp'])
+
 
 def tokenize_query(query):
     """
@@ -161,7 +182,6 @@ def tokenize_query(query):
     }
     """
     results = defaultdict(list)
-    tags = (['query', 'is', 'assigned', 'bookmarks', 'first-release', 'release', 'user', 'has', 'age', 'event.timestamp'])
 
     tokens = query.split(' ')
     tokens_iter = iter(tokens)
@@ -194,8 +214,8 @@ def tokenize_query(query):
         key, value = token.split(':', 1)
         if not value:
             results['query'].append(token)
-            if key in tags:
-                raise InvalidQuery(u'query \'{}:\' has no arguments (query terms are space delimted)'.format(key))
+            if key in reserved_tag_names:
+                raise InvalidQuery(u'query term \'{}:\' found no arguments. (Terms are space delimted)'.format(key))
             continue
 
         if value[0] == '"':
@@ -233,7 +253,7 @@ def parse_query(project, query, user):
                     try:
                         results['status'] = STATUS_CHOICES[value]
                     except KeyError:
-                        raise InvalidQuery('unknown status code')
+                        raise InvalidQuery(u'\'is:\' had unknown status code \'{}\'.'.format(value))
             elif key == 'assigned':
                 if value == 'me':
                     results['assigned_to'] = user
