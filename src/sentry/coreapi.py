@@ -214,6 +214,12 @@ class ClientApiHelper(object):
         if not auth.public_key:
             raise APIUnauthorized('Invalid api key')
 
+        # Make sure the key even looks valid first, since it's
+        # possible to get some garbage input here causing further
+        # issues trying to query it from cache or the database.
+        if not ProjectKey.looks_like_api_key(auth.public_key):
+            raise APIUnauthorized('Invalid api key')
+
         try:
             pk = ProjectKey.objects.get_from_cache(public_key=auth.public_key)
         except ProjectKey.DoesNotExist:

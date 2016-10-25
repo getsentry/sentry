@@ -96,6 +96,10 @@ class ProjectFromAuthTest(BaseAPITest):
         auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
         self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
 
+    def test_nonascii_key(self):
+        auth = Auth({'sentry_key': '\xc3\xbc'})
+        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+
 
 class ProcessFingerprintTest(BaseAPITest):
     def test_invalid_as_string(self):
