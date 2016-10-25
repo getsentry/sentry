@@ -22,6 +22,8 @@ logger = logging.getLogger('sentry.auth')
 
 _LOGIN_URL = None
 
+SSO_SESSION_KEY = 'sso'
+
 
 class AuthUserPasswordExpired(Exception):
 
@@ -140,6 +142,17 @@ def is_valid_redirect(url):
     return True
 
 
+def mark_sso_complete(request, organization_id):
+    sso = request.session.get(SSO_SESSION_KEY, '').split(',')
+    sso.append(six.text_type(organization_id))
+    request.session[SSO_SESSION_KEY] = ','.join(sso)
+
+
+def has_completed_sso(request, organization_id):
+    sso = request.session.get(SSO_SESSION_KEY, '').split(',')
+    return six.text_type(organization_id) in sso
+
+
 def find_users(username, with_valid_password=True, is_active=None):
     """
     Return a list of users that match a username
@@ -165,7 +178,8 @@ def find_users(username, with_valid_password=True, is_active=None):
     return []
 
 
-def login(request, user, passed_2fa=False, after_2fa=None):
+def login(request, user, passed_2fa=False, after_2fa=None,
+          organization_id=None):
     """This logs a user in for the sesion and current request.  If 2FA is
     enabled this method will start the 2FA flow and return False, otherwise
     it will return True.  If `passed_2fa` is set to `True` then the 2FA flow
@@ -200,6 +214,8 @@ def login(request, user, passed_2fa=False, after_2fa=None):
     if not hasattr(user, 'backend'):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
     _login(request, user)
+    if organization_id:
+        mark_sso_complete(request, organization_id)
     log_auth_success(request, user.username)
     return True
 
