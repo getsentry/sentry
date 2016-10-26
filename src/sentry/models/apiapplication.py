@@ -46,8 +46,8 @@ class ApiApplication(Model):
     grant_type = BoundedPositiveIntegerField(
         default=0,
         choices=[
-            (ApiGrantType.authorization_code, _('Authorization code')),
-            (ApiGrantType.implicit, _('Implicit')),
+            (ApiGrantType.authorization_code, 'authorization_code'),
+            (ApiGrantType.implicit, 'implicit'),
             # (ApiGrantType.password, _('Resource owner password-based')),
             # (ApiGrantType.client_credentials, _('Client credentials')),
         ],

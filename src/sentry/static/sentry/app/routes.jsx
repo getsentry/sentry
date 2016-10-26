@@ -3,8 +3,10 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 
 import HookStore from './stores/hookStore';
 
+import ApiApplications from './views/apiApplications';
 import ApiDashboard from './views/apiDashboard';
 import ApiNewToken from './views/apiNewToken';
+import ApiTokens from './views/apiTokens';
 import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
 import AdminOrganizations from './views/adminOrganizations';
@@ -92,8 +94,11 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-      <Route path="/api/" component={errorHandler(ApiDashboard)} />
-      <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
+      <Route path="/api/" component={errorHandler(ApiDashboard)}>
+        <IndexRoute component={errorHandler(ApiTokens)} />
+        <Route path="/api/applications/" component={errorHandler(ApiApplications)} />
+        <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
+      </Route>
 
       <Route path="/manage/" component={errorHandler(Admin)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
