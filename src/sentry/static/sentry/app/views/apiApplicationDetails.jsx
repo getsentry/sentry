@@ -142,7 +142,11 @@ const ApiApplicationDetails = React.createClass({
               <div className="control-group">
                 <label htmlFor="api-key">Client Secret</label>
                 <div className="form-control disabled">
-                  <AutoSelectText>{app.clientSecret || '(hidden)'}</AutoSelectText>
+                  {app.clientSecret ?
+                    <AutoSelectText>{app.clientSecret}</AutoSelectText>
+                  :
+                    <em>hidden</em>
+                  }
                 </div>
                 <p className="help-block">
                   Your secret is only available briefly after application creation. Make sure to save this value!
