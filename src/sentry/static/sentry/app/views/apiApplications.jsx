@@ -54,7 +54,7 @@ const ApiApplicationRow = React.createClass({
       <tr>
         <td>
           <h4 style={{marginBottom: 5}}>
-            <Link to={`/api-applications/${app.id}/`}>{app.name}</Link>
+            <Link to={`/api/applications/${app.id}/`}>{app.name}</Link>
           </h4>
           <small style={{color: '#999'}}>{app.clientID}</small>
         </td>
