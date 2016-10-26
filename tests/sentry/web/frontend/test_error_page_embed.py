@@ -14,7 +14,7 @@ class ErrorPageEmbedTest(TestCase):
     def setUp(self):
         super(ErrorPageEmbedTest, self).setUp()
         self.project = self.create_project()
-        self.project.update_option('sentry:origins', 'example.com')
+        self.project.update_option('sentry:origins', ['example.com'])
         self.key = self.create_project_key(self.project)
         self.event_id = uuid4().hex
         self.path = '%s?eventId=%s&dsn=%s' % (

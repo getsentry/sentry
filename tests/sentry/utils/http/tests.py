@@ -52,7 +52,7 @@ class GetOriginsTestCase(TestCase):
 
     def test_project(self):
         project = Project.objects.get()
-        project.update_option('sentry:origins', ['http://foo.example'])
+        project.update_option('sentry:origins', [u'http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
@@ -60,7 +60,7 @@ class GetOriginsTestCase(TestCase):
 
     def test_project_and_setting(self):
         project = Project.objects.get()
-        project.update_option('sentry:origins', ['http://foo.example'])
+        project.update_option('sentry:origins', [u'http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
             result = get_origins(project)
@@ -189,6 +189,28 @@ class IsValidOriginTestCase(TestCase):
         assert result is True
 
         result = self.isValidOrigin('sp://custom-thing.bizbaz/foo/bar', ['sp://*.foobar'])
+        assert result is False
+
+    def test_unicode(self):
+        result = self.isValidOrigin(u'http://l\xf8calhost', [u'*.l\xf8calhost'])
+        assert result is True
+
+    def test_punycode(self):
+        result = self.isValidOrigin('http://xn--lcalhost-54a', [u'*.l\xf8calhost'])
+        assert result is True
+        result = self.isValidOrigin('http://xn--lcalhost-54a', [u'*.xn--lcalhost-54a'])
+        assert result is True
+        result = self.isValidOrigin(u'http://l\xf8calhost', [u'*.xn--lcalhost-54a'])
+        assert result is True
+        result = self.isValidOrigin('http://l\xc3\xb8calhost', [u'*.xn--lcalhost-54a'])
+        assert result is True
+        result = self.isValidOrigin('http://xn--lcalhost-54a', [u'l\xf8calhost'])
+        assert result is True
+        result = self.isValidOrigin('http://xn--lcalhost-54a:80', [u'l\xf8calhost:80'])
+        assert result is True
+
+    def test_unparseable_uri(self):
+        result = self.isValidOrigin('http://example.com', ['.'])
         assert result is False
 
 

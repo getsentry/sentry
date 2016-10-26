@@ -93,6 +93,20 @@ def parse_uri_match(value):
     else:
         domain, path = value, '*'
 
+    if ':' in domain:
+        domain, port = value.split(':', 1)
+    else:
+        port = None
+
+    # we need to coerce our unicode inputs into proper
+    # idna/punycode encoded representation for normalization.
+    if type(domain) == six.binary_type:
+        domain = domain.decode('utf8')
+    domain = domain.encode('idna')
+
+    if port:
+        domain = '%s:%s' % (domain, port)
+
     return ParsedUriMatch(scheme, domain, path)
 
 
@@ -132,14 +146,27 @@ def is_valid_origin(origin, project=None, allowed=None):
     if origin == 'null':
         return False
 
+    if type(origin) == six.binary_type:
+        origin = origin.decode('utf-8')
+
     parsed = urlparse(origin)
 
     # There is no hostname, so the header is probably invalid
     if parsed.hostname is None:
         return False
 
+    parsed_hostname = parsed.hostname.encode('idna')
+    if parsed.port:
+        parsed_netloc = '%s:%d' % (parsed_hostname, parsed.port)
+    else:
+        parsed_netloc = parsed_hostname
+
     for value in allowed:
-        bits = parse_uri_match(value)
+        try:
+            bits = parse_uri_match(value)
+        except UnicodeError:
+            # We hit a bad uri, so ignore this value
+            continue
 
         # scheme supports exact and any match
         if bits.scheme not in ('*', parsed.scheme):
@@ -147,10 +174,10 @@ def is_valid_origin(origin, project=None, allowed=None):
 
         # domain supports exact, any, and prefix match
         if bits.domain[:2] == '*.':
-            if parsed.hostname.endswith(bits.domain[1:]) or parsed.hostname == bits.domain[2:]:
+            if parsed_hostname.endswith(bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
                 return True
             continue
-        elif bits.domain not in ('*', parsed.hostname, parsed.netloc):
+        elif bits.domain not in ('*', parsed_hostname, parsed_netloc):
             continue
 
         # path supports exact, any, and suffix match (with or without *)
