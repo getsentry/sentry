@@ -8,4 +8,6 @@ def chunked(iterator, size):
         if len(chunk) == size:
             yield chunk
             chunk = []
-    yield chunk
+
+    if chunk:
+        yield chunk
