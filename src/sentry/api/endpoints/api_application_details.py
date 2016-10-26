@@ -49,7 +49,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.object
             instance.update(**result)
-            return Response(serialize(instance, request.user), status=201)
+            return Response(serialize(instance, request.user), status=200)
         return Response(serializer.errors, status=400)
 
     def delete(self, request, app_id):

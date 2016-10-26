@@ -18,7 +18,7 @@ class ApiApplicationDetailsTest(APITestCase):
         self.login_as(self.user)
         url = reverse('sentry-api-0-api-application-details', args=[app.id])
         response = self.client.get(url)
-        assert response.status_code == 200, response.content
+        assert response.status_code == 200, (response.status_code, response.content)
         assert response.data['id'] == six.text_type(app.id)
 
 
@@ -32,7 +32,7 @@ class ApiApplicationUpdateTest(APITestCase):
         self.login_as(self.user)
         url = reverse('sentry-api-0-api-application-details', args=[app.id])
         response = self.client.put(url, data={'name': 'foobaz'})
-        assert response.status_code == 200, response.content
+        assert response.status_code == 200, (response.status_code, response.content)
         assert response.data['id'] == six.text_type(app.id)
 
         app = ApiApplication.objects.get(id=app.id)
