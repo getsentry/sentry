@@ -7,7 +7,6 @@ import AutoSelectText from '../components/autoSelectText';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import NarrowLayout from '../components/narrowLayout';
 import {t, tct} from '../locale';
 
 const ApiTokenRow = React.createClass({

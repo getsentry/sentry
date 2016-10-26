@@ -4,6 +4,7 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import HookStore from './stores/hookStore';
 
 import ApiApplications from './views/apiApplications';
+import ApiApplicationDetails from './views/apiApplicationDetails';
 import ApiDashboard from './views/apiDashboard';
 import ApiNewToken from './views/apiNewToken';
 import ApiTokens from './views/apiTokens';
@@ -97,6 +98,7 @@ function routes() {
       <Route path="/api/" component={errorHandler(ApiDashboard)}>
         <IndexRoute component={errorHandler(ApiTokens)} />
         <Route path="/api/applications/" component={errorHandler(ApiApplications)} />
+        <Route path="/api/applications/:appId/" component={errorHandler(ApiApplicationDetails)} />
         <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
       </Route>
 

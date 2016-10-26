@@ -347,7 +347,7 @@ urlpatterns += patterns(
         name='sentry-api-docs-redirect'),
 
     url(r'^api/$', react_page_view, name='sentry-api'),
-    url(r'^api/new-token/$', react_page_view),
+    url(r'^api/[^0]+/', react_page_view),
 
     url(r'^out/$', OutView.as_view()),
 

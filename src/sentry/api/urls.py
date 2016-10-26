@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.conf.urls import include, patterns, url
 
 from .endpoints.api_applications import ApiApplicationsEndpoint
+from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -110,6 +111,9 @@ urlpatterns = patterns(
     url(r'^api-applications/$',
         ApiApplicationsEndpoint.as_view(),
         name='sentry-api-0-api-applications'),
+    url(r'^api-applications/(?P<app_id>[^\/]+)/$',
+        ApiApplicationDetailsEndpoint.as_view(),
+        name='sentry-api-0-api-application-details'),
     url(r'^api-tokens/$',
         ApiTokensEndpoint.as_view(),
         name='sentry-api-0-api-tokens'),

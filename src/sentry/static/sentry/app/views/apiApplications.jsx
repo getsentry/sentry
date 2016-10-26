@@ -1,14 +1,12 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {Link} from 'react-router';
+import {Link, History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
-import AutoSelectText from '../components/autoSelectText';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import NarrowLayout from '../components/narrowLayout';
-import {t, tct} from '../locale';
+import {t} from '../locale';
 
 const ApiApplicationRow = React.createClass({
   propTypes: {
@@ -33,7 +31,7 @@ const ApiApplicationRow = React.createClass({
       loading: true,
     }, () => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      this.api.request(`/api-applications/${app.id}`, {
+      this.api.request(`/api-applications/${app.id}/`, {
         method: 'DELETE',
         success: (data) => {
           this.props.onRemove();
@@ -55,8 +53,10 @@ const ApiApplicationRow = React.createClass({
     return (
       <tr>
         <td>
-          <small><AutoSelectText>{app.clientID}</AutoSelectText></small>
-          <small style={{color: '#999'}}>{app.clientSecret}</small>
+          <h4 style={{marginBottom: 5}}>
+            <Link to={`/api-applications/${app.id}/`}>{app.name}</Link>
+          </h4>
+          <small style={{color: '#999'}}>{app.clientID}</small>
         </td>
         <td style={{width: 32}}>
           <a onClick={this.onRemove.bind(this, app)}
@@ -71,7 +71,7 @@ const ApiApplicationRow = React.createClass({
 });
 
 const ApiApplications = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, History],
 
   getInitialState() {
     return {
@@ -114,6 +114,7 @@ const ApiApplications = React.createClass({
   createApplication() {
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request('/api-applications/', {
+      method: 'POST',
       success: (app) => {
         IndicatorStore.remove(loadingIndicator);
         this.history.pushState(null, `/api/applications/${app.id}/`);
@@ -122,7 +123,7 @@ const ApiApplications = React.createClass({
         IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
       }
     });
-  }
+  },
 
   onRemoveApplication(app) {
     this.setState({
