@@ -67,6 +67,7 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
             serialize_field(project, plugin, c)
             for c in plugin.get_config(
                 project=project,
+                user=request.user,
             )
         ]
 

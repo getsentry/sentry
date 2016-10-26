@@ -301,6 +301,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.github.GithubBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
+    'social_auth.backends.asana.AsanaBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -362,7 +363,8 @@ AUTH_PROVIDERS = {
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
     'trello': 'Trello',
-    'bitbucket': 'Bitbucket'
+    'bitbucket': 'Bitbucket',
+    'asana': 'Asana'
 }
 
 import random
