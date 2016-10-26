@@ -41,7 +41,7 @@ def get_user_tag(project, key, value):
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
     except DataError:
-        raise InvalidQuery(u'malformed \'{}:\' query \'{}\'.'.format(key, value))
+        raise InvalidQuery(u"malformed '{}:' query '{}'.".format(key, value))
     return euser.tag_value
 
 
@@ -215,7 +215,7 @@ def tokenize_query(query):
         if not value:
             results['query'].append(token)
             if key in reserved_tag_names:
-                raise InvalidQuery(u'query term \'{}:\' found no arguments. (Terms are space delimted)'.format(key))
+                raise InvalidQuery(u"query term '{}:' found no arguments. (Terms are space delimited)".format(key))
             continue
 
         if value[0] == '"':
@@ -253,7 +253,7 @@ def parse_query(project, query, user):
                     try:
                         results['status'] = STATUS_CHOICES[value]
                     except KeyError:
-                        raise InvalidQuery(u'\'is:\' had unknown status code \'{}\'.'.format(value))
+                        raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
                 if value == 'me':
                     results['assigned_to'] = user
