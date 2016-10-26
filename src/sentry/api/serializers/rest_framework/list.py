@@ -24,3 +24,9 @@ class ListField(WritableField):
         if self.child is None:
             return data
         return [self.child.from_native(x) for x in data]
+
+    def run_validators(self, value):
+        super(ListField, self).run_validators(value)
+        if self.child is not None:
+            for cv in value:
+                self.child.run_validators(cv)

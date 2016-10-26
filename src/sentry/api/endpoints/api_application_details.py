@@ -7,11 +7,33 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ApiApplication, ApiApplicationStatus
 
 
 class ApiApplicationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
+    redirectUris = ListField(
+        child=serializers.URLField(max_length=255),
+        required=False,
+    )
+    allowedOrigins = ListField(
+        # TODO(dcramer): make this validate origins
+        child=serializers.CharField(max_length=255),
+        required=False,
+    )
+    homepageUrl = serializers.URLField(
+        max_length=255,
+        required=False,
+    )
+    termsUrl = serializers.URLField(
+        max_length=255,
+        required=False,
+    )
+    privacyUrl = serializers.URLField(
+        max_length=255,
+        required=False,
+    )
 
 
 class ApiApplicationDetailsEndpoint(Endpoint):
@@ -26,7 +48,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         try:
             instance = ApiApplication.objects.get(
                 owner=request.user,
-                id=app_id,
+                client_id=app_id,
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
@@ -38,17 +60,31 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         try:
             instance = ApiApplication.objects.get(
                 owner=request.user,
-                id=app_id,
+                client_id=app_id,
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ApiApplicationSerializer(data=request.DATA)
+        serializer = ApiApplicationSerializer(data=request.DATA, partial=True)
 
         if serializer.is_valid():
             result = serializer.object
-            instance.update(**result)
+            kwargs = {}
+            if 'name' in result:
+                kwargs['name'] = result['name']
+            if 'allowedOrigins' in result:
+                kwargs['allowed_origins'] = '\n'.join(result['allowedOrigins'])
+            if 'redirectUris' in result:
+                kwargs['redirect_uris'] = '\n'.join(result['redirectUris'])
+            if 'homepageUrl' in result:
+                kwargs['homepage_url'] = result['homepageUrl']
+            if 'privacyUrl' in result:
+                kwargs['privacy_url'] = result['privacyUrl']
+            if 'termsUrl' in result:
+                kwargs['terms_url'] = result['termsUrl']
+            if kwargs:
+                instance.update(**kwargs)
             return Response(serialize(instance, request.user), status=200)
         return Response(serializer.errors, status=400)
 
@@ -56,7 +92,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         try:
             instance = ApiApplication.objects.get(
                 owner=request.user,
-                id=app_id,
+                client_id=app_id,
                 status=ApiApplicationStatus.active,
             )
         except ApiApplication.DoesNotExist:

@@ -1,16 +1,17 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
+import {History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
-import {FormState, TextField} from '../components/forms';
+import {FormState, TextField, TextareaField} from '../components/forms';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
 const ApiApplicationDetails = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, History],
 
   getInitialState() {
     return {
@@ -30,6 +31,17 @@ const ApiApplicationDetails = React.createClass({
     this.setState(this.getInitialState(), this.fetchData);
   },
 
+  getFormData(app) {
+    return {
+      name: app.name,
+      homepageUrl: app.homepageUrl,
+      privacyUrl: app.privacyUrl,
+      termsUrl: app.termsUrl,
+      allowedOrigins: app.allowedOrigins.join('\n'),
+      redirectUris: app.redirectUris.join('\n'),
+    };
+  },
+
   fetchData() {
     this.setState({
       loading: true,
@@ -41,7 +53,7 @@ const ApiApplicationDetails = React.createClass({
           loading: false,
           error: false,
           app: data,
-          formData: {...data},
+          formData: {...this.getFormData(data)},
           errors: {},
         });
       },
@@ -72,15 +84,21 @@ const ApiApplicationDetails = React.createClass({
       state: FormState.SAVING,
     }, () => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      let formData = this.state.formData;
       this.api.request(`/api-applications/${this.props.params.appId}/`, {
         method: 'PUT',
-        data: this.state.formData,
+        data: {
+          ...formData,
+          allowedOrigins: formData.allowedOrigins.split('\n').filter(v => v),
+          redirectUris: formData.redirectUris.split('\n').filter(v => v),
+        },
         success: (data) => {
           this.setState({
             state: FormState.READY,
-            formData: {...data},
+            formData: {...this.getFormData(data)},
             errors: {},
           });
+          this.history.pushState(null, '/api/applications/');
         },
         error: (error) => {
           this.setState({
@@ -152,6 +170,58 @@ const ApiApplicationDetails = React.createClass({
                   Your secret is only available briefly after application creation. Make sure to save this value!
                 </p>
               </div>
+
+              <TextField
+                key="homepageUrl"
+                name="homepageUrl"
+                label={t('Homepage')}
+                placeholder={t('e.g. http://example.com')}
+                value={this.state.formData.homepageUrl}
+                help="An optional link to your website's homepage"
+                required={false}
+                error={errors.homepageUrl}
+                onChange={this.onFieldChange.bind(this, 'homepageUrl')} />
+              <TextField
+                key="privacyUrl"
+                name="privacyUrl"
+                label={t('Privacy Policy')}
+                placeholder={t('e.g. http://example.com/privacy')}
+                value={this.state.formData.privacyUrl}
+                help="An optional link to your Privacy Policy"
+                required={false}
+                error={errors.privacyUrl}
+                onChange={this.onFieldChange.bind(this, 'privacyUrl')} />
+              <TextField
+                key="termsUrl"
+                name="termsUrl"
+                label={t('Terms of Service')}
+                placeholder={t('e.g. http://example.com/terms')}
+                value={this.state.formData.termsUrl}
+                help="An optional link to your Terms of Service"
+                required={false}
+                error={errors.termsUrl}
+                onChange={this.onFieldChange.bind(this, 'termsUrl')} />
+
+              <TextareaField
+                key="redirectUris"
+                name="redirectUris"
+                label={t('Authorized Redirect URIs')}
+                value={this.state.formData.redirectUris}
+                required={false}
+                help={t('Separate multiple entries with a newline.')}
+                placeholder={t('e.g. https://example.com/oauth/complete')}
+                error={errors.redirectUris}
+                onChange={this.onFieldChange.bind(this, 'redirectUris')} />
+              <TextareaField
+                key="allowedOrigins"
+                name="allowedOrigins"
+                label={t('Authorized JavaScript Origins')}
+                value={this.state.formData.allowedOrigins}
+                required={false}
+                help={t('Separate multiple entries with a newline.')}
+                placeholder={t('e.g. example.com')}
+                error={errors.allowedOrigins}
+                onChange={this.onFieldChange.bind(this, 'allowedOrigins')} />
             </fieldset>
             <fieldset className="form-actions">
               <button type="submit" className="btn btn-primary"

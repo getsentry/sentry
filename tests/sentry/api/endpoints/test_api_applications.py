@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import ApiApplication
@@ -27,8 +25,8 @@ class ApiApplicationsListTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['id'] == six.text_type(app1.id)
-        assert response.data[1]['id'] == six.text_type(app2.id)
+        assert response.data[0]['id'] == app1.client_id
+        assert response.data[1]['id'] == app2.client_id
 
 
 class ApiApplicationsCreateTest(APITestCase):
@@ -38,6 +36,6 @@ class ApiApplicationsCreateTest(APITestCase):
         response = self.client.post(url, data={})
         assert response.status_code == 201
         assert ApiApplication.objects.get(
-            id=response.data['id'],
+            client_id=response.data['id'],
             owner=self.user,
         )

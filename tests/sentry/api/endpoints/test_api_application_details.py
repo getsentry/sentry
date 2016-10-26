@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from django.core.urlresolvers import reverse
 
 from sentry.models import ApiApplication, ApiApplicationStatus
@@ -16,10 +14,10 @@ class ApiApplicationDetailsTest(APITestCase):
         )
 
         self.login_as(self.user)
-        url = reverse('sentry-api-0-api-application-details', args=[app.id])
+        url = reverse('sentry-api-0-api-application-details', args=[app.client_id])
         response = self.client.get(url)
         assert response.status_code == 200, (response.status_code, response.content)
-        assert response.data['id'] == six.text_type(app.id)
+        assert response.data['id'] == app.client_id
 
 
 class ApiApplicationUpdateTest(APITestCase):
@@ -30,10 +28,10 @@ class ApiApplicationUpdateTest(APITestCase):
         )
 
         self.login_as(self.user)
-        url = reverse('sentry-api-0-api-application-details', args=[app.id])
+        url = reverse('sentry-api-0-api-application-details', args=[app.client_id])
         response = self.client.put(url, data={'name': 'foobaz'})
         assert response.status_code == 200, (response.status_code, response.content)
-        assert response.data['id'] == six.text_type(app.id)
+        assert response.data['id'] == app.client_id
 
         app = ApiApplication.objects.get(id=app.id)
         assert app.name == 'foobaz'
@@ -47,7 +45,7 @@ class ApiApplicationDeleteTest(APITestCase):
         )
 
         self.login_as(self.user)
-        url = reverse('sentry-api-0-api-application-details', args=[app.id])
+        url = reverse('sentry-api-0-api-application-details', args=[app.client_id])
         response = self.client.delete(url)
         assert response.status_code == 204, response.content
 

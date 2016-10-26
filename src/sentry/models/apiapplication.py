@@ -18,13 +18,6 @@ class ApiApplicationStatus(object):
     inactive = 1
 
 
-class ApiGrantType(object):
-    authorization_code = 1
-    implicit = 2
-    password = 3
-    client_credentials = 4
-
-
 class ApiApplication(Model):
     __core__ = True
 
@@ -43,16 +36,12 @@ class ApiApplication(Model):
         (ApiApplicationStatus.inactive, _('Inactive')),
     ), db_index=True)
     allowed_origins = models.TextField(blank=True, null=True)
-    grant_type = BoundedPositiveIntegerField(
-        default=0,
-        choices=[
-            (ApiGrantType.authorization_code, 'authorization_code'),
-            (ApiGrantType.implicit, 'implicit'),
-            # (ApiGrantType.password, _('Resource owner password-based')),
-            # (ApiGrantType.client_credentials, _('Client credentials')),
-        ],
-    )
     redirect_uris = models.TextField()
+
+    homepage_url = models.URLField(null=True)
+    privacy_url = models.URLField(null=True)
+    terms_url = models.URLField(null=True)
+
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=(
@@ -77,10 +66,7 @@ class ApiApplication(Model):
         return self.status == ApiApplicationStatus.ACTIVE
 
     def is_allowed_response_type(self, value):
-        if value == 'code':
-            return self.grant_type == ApiGrantType.authorization_code
-        elif value == 'token':
-            return self.grant_type == ApiGrantType.implicit
+        return value in ('code', 'token')
 
     def is_valid_redirect_uri(self, value):
         for ruri in self.redirect_uris.split('\n'):

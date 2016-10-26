@@ -120,6 +120,7 @@ const ApiApplications = React.createClass({
         this.history.pushState(null, `/api/applications/${app.id}/`);
       },
       error: (error) => {
+        IndicatorStore.remove(loadingIndicator);
         IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
       }
     });
