@@ -8,7 +8,6 @@ sentry.runner.commands.plugins
 from __future__ import absolute_import, print_function
 
 import click
-import six
 
 
 @click.group()
@@ -21,4 +20,9 @@ def list():
     "List all installed plugins"
     from pkg_resources import iter_entry_points
     for ep in iter_entry_points('sentry.plugins'):
-        click.echo(six.text_type(ep.dist))
+        click.echo(u'%s: %s %s (%s)' % (
+            ep.name,
+            ep.dist.project_name,
+            ep.dist.version,
+            ep.dist.location,
+        ))
