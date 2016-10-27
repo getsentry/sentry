@@ -7,5 +7,7 @@ def chunked(iterator, size):
         chunk.append(item)
         if len(chunk) == size:
             yield chunk
-            del chunk[:]
-    yield chunk
+            chunk = []
+
+    if chunk:
+        yield chunk
