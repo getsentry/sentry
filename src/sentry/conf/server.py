@@ -1003,6 +1003,37 @@ SENTRY_SCOPES = set([
     'event:delete',
 ])
 
+SENTRY_SCOPE_SETS = (
+    (
+        ('org:delete', 'Read, write, and admin access to organization details.'),
+        ('org:write', 'Read and write access to organization details.'),
+        ('org:read', 'Read access to organization details.'),
+    ),
+    (
+        ('member:delete', 'Read, write, and admin access to organization members.'),
+        ('member:write', 'Read and write access to organization members.'),
+        ('member:read', 'Read access to organization members.'),
+    ),
+    (
+        ('team:delete', 'Read, write, and admin access to teams.'),
+        ('team:write', 'Read and write access to teams.'),
+        ('team:read', 'Read access to teams.'),
+    ),
+    (
+        ('project:delete', 'Read, write, and admin access to projects.'),
+        ('project:write', 'Read and write access to projects.'),
+        ('project:read', 'Read access to projects.'),
+    ),
+    (
+        ('project:releases', 'read, write, and admin access to project releases.'),
+    ),
+    (
+        ('event:delete', 'Read, write, and admin access to events.'),
+        ('event:write', 'Read and write access to events.'),
+        ('event:read', 'Read access to events.'),
+    ),
+)
+
 SENTRY_DEFAULT_ROLE = 'member'
 
 # Roles are ordered, which represents a sort-of hierarchy, as well as how
