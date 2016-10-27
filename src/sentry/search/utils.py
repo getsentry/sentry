@@ -10,6 +10,7 @@ from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, Release, User
 from sentry.search.base import ANY, EMPTY
 from sentry.utils.auth import find_users
+from django.db import DataError
 
 
 class InvalidQuery(Exception):
@@ -39,14 +40,15 @@ def get_user_tag(project, key, value):
         )[0]
     except (KeyError, IndexError):
         return u'{}:{}'.format(key, value)
-
+    except DataError:
+        raise InvalidQuery(u"malformed '{}:' query '{}'.".format(key, value))
     return euser.tag_value
 
 
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
-    except (ValueError, TypeError):
+    except (ValueError, TypeError, IndexError):
         raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag not in ('+', '-'):
@@ -88,7 +90,7 @@ def parse_datetime_comparison(value):
 def parse_datetime_value(value):
     try:
         return _parse_datetime_value(value)
-    except ValueError:
+    except (ValueError, IndexError):
         raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
@@ -145,6 +147,27 @@ def get_date_params(value, from_field, to_field):
         })
     return result
 
+reserved_tag_names = frozenset([
+    'query',
+    'is',
+    'assigned',
+    'bookmarks',
+    'first-release',
+    'release',
+    'level',
+    'user',
+    'user.id',
+    'user.ip',
+    'has',
+    'age',
+    'environment',
+    'browser',
+    'device',
+    'os',
+    'os.name',
+    'url',
+    'event.timestamp'])
+
 
 def tokenize_query(query):
     """
@@ -191,6 +214,8 @@ def tokenize_query(query):
         key, value = token.split(':', 1)
         if not value:
             results['query'].append(token)
+            if key in reserved_tag_names:
+                raise InvalidQuery(u"query term '{}:' found no arguments. (Terms are space delimited)".format(key))
             continue
 
         if value[0] == '"':
@@ -215,7 +240,6 @@ def parse_query(project, query, user):
     tokens = tokenize_query(query)
 
     results = {'tags': {}, 'query': []}
-
     for key, token_list in six.iteritems(tokens):
         for value in token_list:
             if key == 'query':
@@ -229,7 +253,7 @@ def parse_query(project, query, user):
                     try:
                         results['status'] = STATUS_CHOICES[value]
                     except KeyError:
-                        pass
+                        raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
                 if value == 'me':
                     results['assigned_to'] = user

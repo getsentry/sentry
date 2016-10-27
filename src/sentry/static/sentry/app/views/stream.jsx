@@ -343,9 +343,11 @@ const Stream = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
-      error: () => {
+      error: (err) => {
+        let error = err.responseJSON || true;
+        error = error.detail || true;
         this.setState({
-          error: true,
+          error,
           dataLoading: false
         });
       },
@@ -542,11 +544,12 @@ const Stream = React.createClass({
     let body;
 
     let project = this.getProject();
-
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
-      body = (<LoadingError onRetry={this.fetchData} />);
+      body = (<LoadingError
+        message={this.state.error}
+        onRetry={this.fetchData} />);
     } else if (!project.firstEvent) {
       body = this.renderAwaitingEvents();
     } else if (this.state.groupIds.length > 0) {
