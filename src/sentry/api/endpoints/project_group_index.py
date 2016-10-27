@@ -23,6 +23,7 @@ from sentry.models import (
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
+from sentry.search.utils import InvalidQuery
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.cursors import Cursor
@@ -143,7 +144,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         query = request.GET.get('query', 'is:unresolved').strip()
         if query:
-            query_kwargs.update(parse_query(project, query, request.user))
+            try:
+                query_kwargs.update(parse_query(project, query, request.user))
+            except InvalidQuery as e:
+                raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
         return query_kwargs
 

@@ -66,6 +66,7 @@ const MenuItem = React.createClass({
       children = this.renderAnchor();
     }
 
+
     return (
       <li role="presentation" title={null} href={null}
         className={classNames(this.props.className, classes)}
@@ -77,4 +78,3 @@ const MenuItem = React.createClass({
 });
 
 export default MenuItem;
-
