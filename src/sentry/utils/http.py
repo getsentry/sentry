@@ -155,7 +155,12 @@ def is_valid_origin(origin, project=None, allowed=None):
     if parsed.hostname is None:
         return False
 
-    parsed_hostname = parsed.hostname.encode('idna')
+    try:
+        parsed_hostname = parsed.hostname.encode('idna')
+    except UnicodeError:
+        # We sometimes shove in some garbage input here, so just opting to ignore and carry on
+        parsed_hostname = parsed.hostname
+
     if parsed.port:
         parsed_netloc = '%s:%d' % (parsed_hostname, parsed.port)
     else:
