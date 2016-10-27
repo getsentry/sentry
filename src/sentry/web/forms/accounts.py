@@ -449,11 +449,18 @@ class NotificationSettingsForm(forms.Form):
         label=_('Subscribe to alerts for projects by default'),
         required=False,
     )
+
     workflow_notifications = forms.BooleanField(
         label=_('Receive updates for all issues by default'),
-        help_text=_('You\'ll always receive notifications if you\'re explicitly participating on an issue.'),
         required=False,
     )
+
+    subscribe_on_action = forms.BooleanField(
+        label=_('Automatically subscribe on participation'),
+        help_text=_("When enabled, you'll automatically be subscribed to issues when commenting, bookmarking, or changing their resolution status."),
+        required=False,
+    )
+
     self_notifications = forms.BooleanField(
         label=_('Receive notifications about my own activity'),
         help_text=_('Enable this if you wish to receive emails for your own actions, as well as others.'),
@@ -488,6 +495,13 @@ class NotificationSettingsForm(forms.Form):
             ) == UserOptionValue.all_conversations
         )
 
+        self.fields['subscribe_on_action'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='subscribe_on_action',
+            default='1'
+        ) == '1'
+
         self.fields['self_notifications'].initial = UserOption.objects.get_value(
             user=self.user,
             project=None,
@@ -518,6 +532,13 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='self_notifications',
             value='1' if self.cleaned_data['self_notifications'] else '0',
+        )
+
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='subscribe_on_action',
+            value='1' if self.cleaned_data['subscribe_on_action'] else '0',
         )
 
         if self.cleaned_data.get('workflow_notifications') is True:
