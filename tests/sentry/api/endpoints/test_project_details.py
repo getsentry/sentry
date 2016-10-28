@@ -21,6 +21,18 @@ class ProjectDetailsTest(APITestCase):
         assert response.status_code == 200
         assert response.data['id'] == six.text_type(project.id)
 
+    def test_bail_on_xorg(self):
+        # Should return a 404 and not a 403. See https://github.com/getsentry/sentry/issues/3807
+        project = self.project  # force creation
+        user = self.create_user('bar@example.com')
+        self.login_as(user=user)
+        url = reverse('sentry-api-0-project-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.get(url)
+        assert response.status_code == 404
+
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
         self.login_as(user=self.user)
