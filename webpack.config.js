@@ -87,6 +87,7 @@ var entry = {
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
     'crypto-js/md5',
+    'history',
     'jed',
     'jquery',
     'marked',

@@ -56,6 +56,7 @@ export default {
       DefaultIssuePlugin: plugins.DefaultIssuePlugin
     },
 
+    createHistory: require('history/lib/createBrowserHistory'),
     AvatarSettings: require('../app/components/avatarSettings'),
     i18n: require('../app/locale'),
     ConfigStore: require('../app/stores/configStore'),
