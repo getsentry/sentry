@@ -9,12 +9,13 @@ from __future__ import absolute_import
 
 import six
 import logging
+from time import time
 
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse, resolve
-from time import time
+from sudo.utils import is_safe_url
 
 from sentry.models import User, Authenticator
 
@@ -124,20 +125,18 @@ def get_login_redirect(request, default=None):
     if not login_url:
         return default
 
-    if not is_valid_redirect(login_url):
+    if not is_valid_redirect(login_url, host=request.get_host()):
         login_url = default
 
     return login_url
 
 
-def is_valid_redirect(url):
+def is_valid_redirect(url, host=None):
     if not url:
-        return False
-    if url.startswith(('http://', 'https://')):
         return False
     if url.startswith(get_login_url()):
         return False
-    return True
+    return is_safe_url(url, host=host)
 
 
 def find_users(username, with_valid_password=True, is_active=None):
