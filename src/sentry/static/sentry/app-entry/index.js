@@ -37,6 +37,7 @@ jQuery.ajaxSetup({
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
+// NOTE: everything here is used by a Django template
 export default {
   jQuery: jQuery,
   moment: require('moment'),
@@ -48,7 +49,6 @@ export default {
   underscore: require('underscore'),
 
   Sentry: {
-    api: require('../app/api'),
     routes: require('../app/routes'),
     plugins: {
       add: plugins.add,
@@ -56,45 +56,20 @@ export default {
       DefaultIssuePlugin: plugins.DefaultIssuePlugin
     },
 
-    createHistory: require('history/lib/createBrowserHistory'),
-    Alerts: require('../app/components/alerts'),
-    AlertActions: require('../app/actions/alertActions'),
     AvatarSettings: require('../app/components/avatarSettings'),
-    mixins: {
-      ApiMixin: require('../app/mixins/apiMixin'),
-      TooltipMixin: require('../app/mixins/tooltip')
-    },
-    BarChart: require('../app/components/barChart'),
     i18n: require('../app/locale'),
     ConfigStore: require('../app/stores/configStore'),
-    Count: require('../app/components/count'),
-    DateTime: require('../app/components/dateTime'),
-    DropdownLink: require('../app/components/dropdownLink'),
     FlotChart: require('../app/components/flotChart'),
     Form: require('../app/components/forms/form'),
     FormState: require('../app/components/forms/index').FormState,
-    HookStore: require('../app/stores/hookStore'),
     Indicators: require('../app/components/indicators'),
-    IndicatorStore: require('../app/stores/indicatorStore'),
-    LoadingError: require('../app/components/loadingError'),
-    LoadingIndicator: require('../app/components/loadingIndicator'),
-    ListLink: require('../app/components/listLink'),
-    MenuItem: require('../app/components/menuItem'),
-    OrganizationHomeContainer: require('../app/components/organizations/homeContainer'),
     OrganizationsLoader: require('../app/components/organizations/organizationsLoader'),
-    Pagination: require('../app/components/pagination'),
     PluginConfig: require('../app/components/pluginConfig'),
     ProjectIssueTracking: require('../app/views/projectIssueTracking'),
     ProjectSelector: require('../app/components/projectHeader/projectSelector'),
     RuleEditor: require('../app/views/ruleEditor'),
     Sidebar: require('../app/components/sidebar'),
-    StackedBarChart: require('../app/components/stackedBarChart'),
-    TimeSince: require('../app/components/timeSince'),
-    TodoList: require('../app/components/todos'),
     U2fEnrollment: require('../app/components/u2fenrollment'),
-    U2fSign: require('../app/components/u2fsign'),
-    utils: {
-      errorHandler: require('../app/utils/errorHandler')
-    }
+    U2fSign: require('../app/components/u2fsign')
   }
 };
