@@ -19,7 +19,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
     GroupSubscription, GroupSubscriptionReason, GroupSnooze, GroupStatus,
-    Release, TagKey,
+    Release, TagKey, UserOption,
 )
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import parse_query
@@ -376,11 +376,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     ), False
 
                 if acting_user:
-                    GroupSubscription.objects.subscribe(
+                    subscribe_on_action = UserOption.objects.get_value(
                         user=acting_user,
-                        group=group,
-                        reason=GroupSubscriptionReason.status_change,
-                    )
+                        project=None,
+                        key='subscribe_on_action',
+                        default='1',
+                    ) == '1'
+                    if subscribe_on_action:
+                        GroupSubscription.objects.subscribe(
+                            user=acting_user,
+                            group=group,
+                            reason=GroupSubscriptionReason.status_change,
+                        )
 
                 if created:
                     activity = Activity.objects.create(
@@ -430,11 +437,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
                     if acting_user:
-                        GroupSubscription.objects.subscribe(
+                        subscribe_on_action = UserOption.objects.get_value(
                             user=acting_user,
-                            group=group,
-                            reason=GroupSubscriptionReason.status_change,
-                        )
+                            project=None,
+                            key='subscribe_on_action',
+                            default='1',
+                        ) == '1'
+                        if subscribe_on_action:
+                            GroupSubscription.objects.subscribe(
+                                user=acting_user,
+                                group=group,
+                                reason=GroupSubscriptionReason.status_change,
+                            )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -514,11 +528,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     # before sending notifications on bulk changes
                     if not is_bulk:
                         if acting_user:
-                            GroupSubscription.objects.subscribe(
+                            subscribe_on_action = UserOption.objects.get_value(
                                 user=acting_user,
-                                group=group,
-                                reason=GroupSubscriptionReason.status_change,
-                            )
+                                project=None,
+                                key='subscribe_on_action',
+                                default='1',
+                            ) == '1'
+                            if subscribe_on_action:
+                                GroupSubscription.objects.subscribe(
+                                    user=acting_user,
+                                    group=group,
+                                    reason=GroupSubscriptionReason.status_change,
+                                )
                         activity.send_notification()
 
         if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
@@ -545,11 +566,18 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     group=group,
                     user=acting_user,
                 )
-                GroupSubscription.objects.subscribe(
+                subscribe_on_action = UserOption.objects.get_value(
                     user=acting_user,
-                    group=group,
-                    reason=GroupSubscriptionReason.bookmark,
-                )
+                    project=None,
+                    key='subscribe_on_action',
+                    default='1',
+                ) == '1'
+                if subscribe_on_action:
+                    GroupSubscription.objects.subscribe(
+                        user=acting_user,
+                        group=group,
+                        reason=GroupSubscriptionReason.bookmark,
+                    )
         elif result.get('isBookmarked') is False:
             GroupBookmark.objects.filter(
                 group__in=group_ids,

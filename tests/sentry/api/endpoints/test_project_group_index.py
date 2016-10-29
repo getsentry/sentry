@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from sentry.models import (
     Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupSubscription, GroupStatus, Release
+    GroupSnooze, GroupSubscription, GroupStatus, Release, UserOption
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -681,6 +681,40 @@ class GroupUpdateTest(APITestCase):
             to_object_id=group2.id,
             transaction_id='abc123',
         )
+
+    def test_no_subscribe_on_action(self):
+        group = self.create_group()
+
+        # Required for "resolvedInNextRelease" status.
+        Release.objects.create(project=self.project)
+
+        UserOption.objects.set_value(
+            user=self.user,
+            key='subscribe_on_action',
+            project=None,
+            value='0',
+        )
+
+        self.login_as(user=self.user)
+
+        payloads = [
+            {"status": "resolvedInNextRelease"},
+            {"status": "resolved"},
+            {"status": "ignored"},
+            {"isBookmarked": True},
+        ]
+
+        for payload in payloads:
+            assert self.client.put(
+                '{url}?id={group.id}'.format(url=self.path, group=group),
+                data=payload,
+                format='json'
+            ).status_code == 200
+
+            assert GroupSubscription.objects.filter(
+                user=self.user,
+                group=group,
+            ).count() == 0
 
 
 class GroupDeleteTest(APITestCase):

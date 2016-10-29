@@ -10,6 +10,7 @@ Version 8.10 (Unreleased)
 - ``SENTRY_FILESTORE_OPTIONS`` deprecated and replaced with ``filestore.options``
 - Add watchOS support for cocoa interface.
 - Fix support for internationalized Origins and raven-js.
+- Allow the ability to disable implicit subscription to workflow notifications.
 
 API Changes
 ~~~~~~~~~~~
