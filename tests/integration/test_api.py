@@ -18,6 +18,8 @@ class AuthenticationTest(AuthProviderTestCase):
                                     teams=[team])
         setattr(member.flags, 'sso:linked', True)
         member.save()
+        group = self.create_group(project=project)
+        self.create_event(group=group)
 
         auth_provider = AuthProvider.objects.create(
             organization=organization,
@@ -36,6 +38,9 @@ class AuthenticationTest(AuthProviderTestCase):
             '/api/0/organizations/{}/'.format(organization.slug),
             '/api/0/projects/{}/{}/'.format(organization.slug, project.slug),
             '/api/0/teams/{}/{}/'.format(organization.slug, team.slug),
+            '/api/0/issues/{}/'.format(group.id),
+            # this uses the internal API, which once upon a time was broken
+            '/api/0/issues/{}/events/latest/'.format(group.id),
         )
 
         for path in paths:

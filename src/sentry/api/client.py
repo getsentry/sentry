@@ -60,11 +60,13 @@ class ApiClient(object):
                 mock_request.is_superuser = lambda: request.is_superuser()
             else:
                 mock_request.is_superuser = lambda: is_superuser
+            mock_request.session = request.session
         else:
             mock_request.auth = auth
             mock_request.user = user
             mock_request.is_sudo = lambda: is_sudo
             mock_request.is_superuser = lambda: is_superuser
+            mock_request.session = {}
 
         if request:
             # superuser checks require access to IP
