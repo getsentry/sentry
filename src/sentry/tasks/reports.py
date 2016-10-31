@@ -496,6 +496,9 @@ class RedisReportBackend(ReportBackend):
         return zlib.compress(json.dumps(list(report)))
 
     def __decode(self, value):
+        if value is None:
+            return None
+
         return Report(*json.loads(zlib.decompress(value)))
 
     def prepare(self, timestamp, duration, organization):
