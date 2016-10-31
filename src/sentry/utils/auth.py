@@ -147,7 +147,11 @@ def is_valid_redirect(url):
 def mark_sso_complete(request, organization_id):
     # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
     # or enabling SSO invalidates this)
-    sso = request.session.get(SSO_SESSION_KEY, '').split(',')
+    sso = request.session.get(SSO_SESSION_KEY, '')
+    if sso:
+        sso = sso.split(',')
+    else:
+        sso = []
     sso.append(six.text_type(organization_id))
     request.session[SSO_SESSION_KEY] = ','.join(sso)
     request.session.modified = True

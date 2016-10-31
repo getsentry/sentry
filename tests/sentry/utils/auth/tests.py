@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
 
@@ -60,18 +61,19 @@ class LoginTest(TestCase):
         request = HttpRequest()
         request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.session = self.session
+        request.user = AnonymousUser()
         if next:
             request.session['_next'] = next
         return request
 
     def test_simple(self):
         request = self.make_request()
-        login(request, self.user)
+        assert login(request, self.user)
         assert request.user == self.user
 
     def test_with_organization(self):
         org = self.create_organization(name='foo', owner=self.user)
         request = self.make_request()
-        login(request, self.user, organization_id=org.id)
+        assert login(request, self.user, organization_id=org.id)
         assert request.user == self.user
         assert request.session['sso'] == six.text_type(org.id)
