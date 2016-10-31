@@ -217,8 +217,9 @@ def login(request, user, passed_2fa=None, after_2fa=None,
         return False
 
     # TODO(dcramer): this needs to be bound based on MFA options
-    request.session[MFA_SESSION_KEY] = six.text_type(user.id)
-    request.session.modified = True
+    if passed_2fa:
+        request.session[MFA_SESSION_KEY] = six.text_type(user.id)
+        request.session.modified = True
 
     mfa_state = request.session.pop('_pending_2fa', ())
     if organization_id is None and len(mfa_state) == 3:
