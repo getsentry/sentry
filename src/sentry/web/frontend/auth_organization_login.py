@@ -65,7 +65,8 @@ class AuthOrganizationLoginView(BaseView):
             return self.redirect(auth.get_login_redirect(request))
 
         elif login_form.is_valid():
-            auth.login(request, login_form.get_user())
+            auth.login(request, login_form.get_user(),
+                       organization_id=organization.id)
 
             return self.redirect(auth.get_login_redirect(request))
 

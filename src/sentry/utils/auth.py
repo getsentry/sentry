@@ -57,7 +57,7 @@ def get_pending_2fa_user(request):
     if rv is None:
         return
 
-    user_id, created_at = rv
+    user_id, created_at = rv[:2]
     if created_at < time() - 60 * 5:
         return None
 
@@ -145,9 +145,16 @@ def is_valid_redirect(url):
 
 
 def mark_sso_complete(request, organization_id):
-    sso = request.session.get(SSO_SESSION_KEY, '').split(',')
+    # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
+    # or enabling SSO invalidates this)
+    sso = request.session.get(SSO_SESSION_KEY, '')
+    if sso:
+        sso = sso.split(',')
+    else:
+        sso = []
     sso.append(six.text_type(organization_id))
     request.session[SSO_SESSION_KEY] = ','.join(sso)
+    request.session.modified = True
 
 
 def has_completed_sso(request, organization_id):
@@ -204,13 +211,19 @@ def login(request, user, passed_2fa=None, after_2fa=None,
         )
 
     if has_2fa and not passed_2fa:
-        request.session['_pending_2fa'] = [user.id, time()]
+        request.session['_pending_2fa'] = [user.id, time(), organization_id]
         if after_2fa is not None:
             request.session['_after_2fa'] = after_2fa
         return False
 
-    request.session[MFA_SESSION_KEY] = six.text_type(user.id)
-    request.session.pop('_pending_2fa', None)
+    # TODO(dcramer): this needs to be bound based on MFA options
+    if passed_2fa:
+        request.session[MFA_SESSION_KEY] = six.text_type(user.id)
+        request.session.modified = True
+
+    mfa_state = request.session.pop('_pending_2fa', ())
+    if organization_id is None and len(mfa_state) == 3:
+        organization_id = mfa_state[2]
 
     # Check for expired passwords here after we cleared the 2fa flow.
     # While this means that users will have to pass 2fa before they can
@@ -231,14 +244,15 @@ def login(request, user, passed_2fa=None, after_2fa=None,
     _login(request, user)
     if organization_id:
         mark_sso_complete(request, organization_id)
-    log_auth_success(request, user.username)
+    log_auth_success(request, user.username, organization_id)
     return True
 
 
-def log_auth_success(request, username):
+def log_auth_success(request, username, organization_id=None):
     logger.info('user.auth.success', extra={
         'ip_address': request.META['REMOTE_ADDR'],
         'username': username,
+        'organization_id': organization_id,
     })
 
 

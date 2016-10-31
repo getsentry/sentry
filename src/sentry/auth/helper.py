@@ -498,7 +498,10 @@ class AuthHelper(object):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         # XXX(dcramer): this is repeated from above
-        auth.login(self.request, user, organization_id=self.organization.id)
+        if not auth.login(request, user,
+                          after_2fa=request.build_absolute_uri(),
+                          organization_id=self.organization.id):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
 
@@ -534,7 +537,10 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user, organization_id=self.organization.id)
+        if not auth.login(self.request, user,
+                          after_2fa=self.request.build_absolute_uri(),
+                          organization_id=self.organization.id):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
 
