@@ -519,6 +519,10 @@ class EventManager(object):
             if value_u not in message:
                 message = u'{} {}'.format(message, value_u)
 
+        if culprit and culprit not in message:
+            culprit_u = force_text(culprit, errors='replace')
+            message = u'{} {}'.format(message, culprit_u)
+
         message = trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH)
 
         event.message = message

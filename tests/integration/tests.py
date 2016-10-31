@@ -138,7 +138,7 @@ class RavenIntegrationTest(TransactionTestCase):
         group = Group.objects.get()
         assert group.event_set.count() == 1
         instance = group.event_set.get()
-        assert instance.message == 'foo'
+        assert instance.data['sentry.interfaces.Message']['message'] == 'foo'
 
 
 class SentryRemoteTest(TestCase):
