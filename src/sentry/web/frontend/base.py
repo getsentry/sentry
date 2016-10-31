@@ -3,12 +3,10 @@ from __future__ import absolute_import
 import logging
 import six
 
-from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import View
 from sudo.views import redirect_to_sudo
@@ -21,8 +19,6 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.web.helpers import render_to_response
-
-ERR_MISSING_SSO_LINK = _('You need to link your account with the SSO provider to continue.')
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('sentry.audit.ui')
@@ -299,8 +295,11 @@ class OrganizationView(BaseView):
     def has_permission(self, request, organization, *args, **kwargs):
         if organization is None:
             return False
-        if self.valid_sso_required and not request.access.sso_is_valid:
-            return False
+        if self.valid_sso_required:
+            if not request.access.sso_is_valid:
+                return False
+            if self.needs_sso(request, organization):
+                return False
         if self.required_scope and not request.access.has_scope(self.required_scope):
             logger.info('User %s does not have %s permission to access organization %s',
                 request.user, self.required_scope, organization)
@@ -334,23 +333,33 @@ class OrganizationView(BaseView):
         return False
 
     def handle_permission_required(self, request, organization, *args, **kwargs):
-        needs_link = (
-            organization and request.user.is_authenticated()
-            and self.valid_sso_required and not request.access.sso_is_valid
-        )
-
-        auth.initiate_login(request, next_url=request.get_full_path())
-
-        if needs_link:
-            messages.add_message(
-                request, messages.ERROR,
-                ERR_MISSING_SSO_LINK,
-            )
+        if self.needs_sso(request, organization):
+            logger.info('access.must-sso', extra={
+                'organization_id': organization.id,
+                'user_id': request.user.id,
+            })
+            auth.initiate_login(request, next_url=request.get_full_path())
             redirect_uri = reverse('sentry-auth-organization',
                                    args=[organization.slug])
         else:
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
+
+    def needs_sso(self, request, organization):
+        if not organization:
+            return False
+        # XXX(dcramer): this branch should really never hit
+        if not request.user.is_authenticated():
+            return False
+        if not self.valid_sso_required:
+            return False
+        if not request.access.requires_sso:
+            return False
+        if not auth.has_completed_sso(request, organization.id):
+            return True
+        if not request.access.sso_is_valid:
+            return True
+        return False
 
     def convert_args(self, request, organization_slug=None, *args, **kwargs):
         active_organization = self.get_active_organization(
