@@ -99,7 +99,7 @@ class TwoFactorAuthView(BaseView):
 
     def handle(self, request):
         user = auth.get_pending_2fa_user(request)
-        if user is None or request.user.is_authenticated():
+        if user is None or not request.user.is_authenticated():
             return HttpResponseRedirect(auth.get_login_url())
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user)

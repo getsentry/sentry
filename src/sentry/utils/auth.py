@@ -214,6 +214,7 @@ def login(request, user, passed_2fa=None, after_2fa=None,
         request.session['_pending_2fa'] = [user.id, time(), organization_id]
         if after_2fa is not None:
             request.session['_after_2fa'] = after_2fa
+        request.session.modified = True
         return False
 
     # TODO(dcramer): this needs to be bound based on MFA options
