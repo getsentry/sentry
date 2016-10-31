@@ -18,6 +18,7 @@ API Changes
 - Add ``/organizations/{org}/repositories/`` endpoint.
 - Add ``/organizations/{org}/repositories/{repo}/commits/`` endpoint.
 - Add ``/projects/{org}/{project}/releases/{version}/commits/`` endpoint.
+- SSO restrictions are now applied across session-based API authentication.
 
 Schema Changes
 ~~~~~~~~~~~~~~
