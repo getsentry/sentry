@@ -19,6 +19,8 @@ from functools import partial
 from operator import attrgetter
 from random import randrange
 
+import lxml
+import toronado
 from django.conf import settings
 from django.core.mail import get_connection as _get_connection
 from django.core.mail import send_mail as _send_mail
@@ -27,7 +29,6 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
-from toronado import from_string as inline_css
 
 from sentry import options
 from sentry.logging import LoggingFormat
@@ -43,6 +44,14 @@ from sentry.web.helpers import render_to_string
 MAX_RECIPIENTS = 5
 
 logger = logging.getLogger('sentry.mail')
+
+
+def inline_css(value):
+    tree = lxml.html.document_fromstring(value)
+    toronado.inline(tree)
+    # CSS media query support is inconistent when the DOCTYPE declaration is
+    # missing, so we force it to HTML5 here.
+    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
 
 
 class _CaseInsensitiveSigner(Signer):
