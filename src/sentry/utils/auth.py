@@ -243,14 +243,15 @@ def login(request, user, passed_2fa=None, after_2fa=None,
     _login(request, user)
     if organization_id:
         mark_sso_complete(request, organization_id)
-    log_auth_success(request, user.username)
+    log_auth_success(request, user.username, organization_id)
     return True
 
 
-def log_auth_success(request, username):
+def log_auth_success(request, username, organization_id=None):
     logger.info('user.auth.success', extra={
         'ip_address': request.META['REMOTE_ADDR'],
         'username': username,
+        'organization_id': organization_id or '',
     })
 
 
