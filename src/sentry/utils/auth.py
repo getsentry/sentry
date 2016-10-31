@@ -57,7 +57,11 @@ def get_pending_2fa_user(request):
     if rv is None:
         return
 
-    user_id, created_at = rv
+    try:
+        user_id, created_at, _ = rv
+    except ValueError:
+        # legacy mfa tokens
+        user_id, created_at = rv
     if created_at < time() - 60 * 5:
         return None
 
