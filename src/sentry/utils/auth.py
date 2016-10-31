@@ -145,9 +145,12 @@ def is_valid_redirect(url):
 
 
 def mark_sso_complete(request, organization_id):
+    # TODO(dcramer): this needs to be bound based on SSO options (e.g. changing
+    # or enabling SSO invalidates this)
     sso = request.session.get(SSO_SESSION_KEY, '').split(',')
     sso.append(six.text_type(organization_id))
     request.session[SSO_SESSION_KEY] = ','.join(sso)
+    request.session.modified = True
 
 
 def has_completed_sso(request, organization_id):
@@ -204,13 +207,18 @@ def login(request, user, passed_2fa=None, after_2fa=None,
         )
 
     if has_2fa and not passed_2fa:
-        request.session['_pending_2fa'] = [user.id, time()]
+        request.session['_pending_2fa'] = [user.id, time(), organization_id]
         if after_2fa is not None:
             request.session['_after_2fa'] = after_2fa
         return False
 
+    # TODO(dcramer): this needs to be bound based on MFA options
     request.session[MFA_SESSION_KEY] = six.text_type(user.id)
-    request.session.pop('_pending_2fa', None)
+    request.session.modified = True
+
+    mfa_state = request.session.pop('_pending_2fa', None)
+    if organization_id is None and len(mfa_state) == 3:
+        organization_id = mfa_state[2]
 
     # Check for expired passwords here after we cleared the 2fa flow.
     # While this means that users will have to pass 2fa before they can
