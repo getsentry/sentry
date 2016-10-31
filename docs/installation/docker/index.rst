@@ -174,7 +174,7 @@ Starting the Cron Process
 Sentry also needs a cron process::
 
     docker run \
-      --detch \
+      --detach \
       --name sentry-cron \
       sentry-onpremise \
       run cron
