@@ -7,7 +7,6 @@ from sentry.testutils import AuthProviderTestCase
 from sentry.utils.auth import SSO_SESSION_KEY
 
 
-# TODO(dcramer): this is an integration test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_sso_auth_required(self):
         user = self.create_user('foo@example.com', is_superuser=False)
