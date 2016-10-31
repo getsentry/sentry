@@ -23,7 +23,7 @@ class TeamPermission(OrganizationPermission):
         if not result:
             return result
 
-        if not (request.user and request.user.is_authenticated() and request.auth):
+        if not (request.user and request.user.is_authenticated()) and request.auth:
             if request.auth is ROOT_KEY:
                 return True
             return request.auth.organization_id == team.organization.id
