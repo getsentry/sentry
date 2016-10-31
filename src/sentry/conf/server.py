@@ -297,6 +297,10 @@ else:
 
 AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
+    # TODO(dcramer): remove social auth backends in 8.11
+    'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend',
 )
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
