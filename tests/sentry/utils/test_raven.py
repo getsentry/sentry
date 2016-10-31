@@ -19,7 +19,8 @@ class SentryInternalClientTest(TestCase):
             client.captureMessage('internal client test')
 
         event = Event.objects.get()
-        assert event.message == 'internal client test'
+        assert event.data['sentry.interfaces.Message']['message'] == \
+            'internal client test'
         assert send.call_count == 0
 
     @patch.object(SentryInternalClient, 'is_enabled', Mock(return_value=True))
@@ -31,7 +32,8 @@ class SentryInternalClientTest(TestCase):
                     client.captureMessage('internal client test')
 
                 event = Event.objects.get()
-                assert event.message == 'internal client test'
+                assert event.data['sentry.interfaces.Message']['message'] == \
+                    'internal client test'
 
                 # Make sure that the event also got sent upstream
                 assert send.call_count == 1
