@@ -700,6 +700,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     projects = list(projects)
 
     inclusion_predicates = [
+        lambda interval, (project, report): report is not None,
         has_valid_aggregates,
     ]
 
@@ -708,7 +709,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
             lambda item: all(predicate(interval, item) for predicate in inclusion_predicates),
             zip(
                 projects,
-                backend.fetch(  # TODO: This should handle missing data gracefully, maybe?
+                backend.fetch(
                     timestamp,
                     duration,
                     organization,
