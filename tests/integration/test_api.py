@@ -13,7 +13,8 @@ class AuthenticationTest(AuthProviderTestCase):
         organization = self.create_organization(name='foo')
         team = self.create_team(name='bar', organization=organization)
         project = self.create_project(name='baz', organization=organization)
-        member = self.create_member(user=user, organization=organization)
+        member = self.create_member(user=user, organization=organization,
+                                    teams=[team])
         setattr(member.flags, 'sso:linked', True)
         member.save()
 
@@ -40,13 +41,13 @@ class AuthenticationTest(AuthProviderTestCase):
             # we should be redirecting the user to the authentication form as they
             # haven't verified this specific organization
             resp = self.client.get(path)
-            assert resp.status_code == 401
+            assert resp.status_code == 401, (resp.status_code, resp.content)
 
         # superuser should still require SSO as they're a member of the org
         user.update(is_superuser=True)
         for path in paths:
             resp = self.client.get(path)
-            assert resp.status_code == 401
+            assert resp.status_code == 401, (resp.status_code, resp.content)
 
         # XXX(dcramer): using internal API as exposing a request object is hard
         self.session[SSO_SESSION_KEY] = six.text_type(organization.id)
@@ -55,4 +56,4 @@ class AuthenticationTest(AuthProviderTestCase):
         # now that SSO is marked as complete, we should be able to access dash
         for path in paths:
             resp = self.client.get(path)
-            assert resp.status_code == 200
+            assert resp.status_code == 200, (path, resp.status_code, resp.content)
