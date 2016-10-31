@@ -232,6 +232,19 @@
 
   </style>
 
+  <style type="text/css" inline="false">
+
+    @media only screen and (max-device-width: 480px) {
+
+      .project-breakdown .col-filtered,
+      .project-breakdown .col-rate-limited {
+        display: none;
+      }
+
+    }
+
+  </style>
+
 {% endblock %}
 
 {% block header %}
@@ -396,8 +409,8 @@
           <th style="width: 1em;"></th>
           <th style="width: 7em;" class="numeric">Events</th>
           <th>Project</th>
-          <th style="width: 7em;" class="numeric">Filtered</th>
-          <th style="width: 7em;" class="numeric">Rate Limited</th>
+          <th style="width: 7em;" class="numeric col-filtered">Filtered</th>
+          <th style="width: 7em;" class="numeric col-rate-limited">Rate Limited</th>
         </tr>
       </thead>
       <tbody>
@@ -410,8 +423,8 @@
           <td>
               {% if key.url %}<a href="{{ key.url }}" style="font-weight: bold;">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
           </td>
-          <td class="numeric">{{ key.data.filtered|small_count:1 }}</td>
-          <td class="numeric">{{ key.data.rate_limited|small_count:1 }}</td>
+          <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
+          <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
