@@ -65,7 +65,6 @@
     }
 
     .issues-resolved .issues-resolved-column {
-      width: 33.3%;
       text-align: right;
     }
 
@@ -274,7 +273,7 @@
 
   <table class="issues-resolved">
     <tr>
-      <td class="issues-resolved-column issues-resolved-column-left">
+      <td width="33%" class="issues-resolved-column issues-resolved-column-left">
         <table class="issue-graph">
           <tr class="graph">
           {% with report.series.maximum as max %}
@@ -304,25 +303,31 @@
           </tr>
         </table>
       </td>
-      {% for label, change in report.comparisons %}
-      <td class="issues-resolved-column {% if not forloop.last %}issues-resolved-column-middle{% endif %}">
-          {% if change %}
-            <div class="stat">
-            {% if change >= 0 %}
-                <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
-            {% else %}
-                <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
-            {% endif %}
-            {% with change|multiply:"100"|absolute_value as percentage %}
-                {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
-            {% endwith %}
-            </div>
-            <small>{% if change >= 0 %}more{% else %}less{% endif %} than {{ label }}</small>
-          {% else %}
-            <small class="empty">There is not enough data to compare to {{ label }}.</small>
-          {% endif %}
+      <td width="66%">
+        <table width="100%" style="margin: 0;">
+          <tr>
+            {% for label, change in report.comparisons %}
+              <td width="50%" class="issues-resolved-column {% if not forloop.last %}issues-resolved-column-middle{% endif %}">
+                {% if change %}
+                  <div class="stat">
+                  {% if change >= 0 %}
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
+                  {% else %}
+                      <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
+                  {% endif %}
+                  {% with change|multiply:"100"|absolute_value as percentage %}
+                      {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
+                  {% endwith %}
+                  </div>
+                  <small>{% if change >= 0 %}more{% else %}less{% endif %} than {{ label }}</small>
+                {% else %}
+                  <small class="empty">There is not enough data to compare to {{ label }}.</small>
+                {% endif %}
+              </td>
+            {% endfor %}
+        </tr>
+        </table>
       </td>
-      {% endfor %}
     </tr>
   </table>
 
