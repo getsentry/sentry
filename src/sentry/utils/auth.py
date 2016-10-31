@@ -251,7 +251,7 @@ def log_auth_success(request, username, organization_id=None):
     logger.info('user.auth.success', extra={
         'ip_address': request.META['REMOTE_ADDR'],
         'username': username,
-        'organization_id': organization_id or '',
+        'organization_id': organization_id,
     })
 
 
