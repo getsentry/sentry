@@ -430,7 +430,8 @@ class AuthHelper(object):
                 ).exists()
                 if has_membership:
                     if not auth.login(request, existing_user,
-                                      after_2fa=request.build_absolute_uri()):
+                                      after_2fa=request.build_absolute_uri(),
+                                      organization_id=self.organization.id):
                         return HttpResponseRedirect(auth.get_login_redirect(
                             self.request))
                     # assume they've confirmed they want to attach the identity

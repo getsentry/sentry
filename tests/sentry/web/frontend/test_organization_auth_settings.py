@@ -122,7 +122,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
-        self.login_as(self.user)
+        self.login_as(self.user, organization_id=organization.id)
 
         with self.feature('organizations:sso'):
             resp = self.client.post(path, {'op': 'disable'})

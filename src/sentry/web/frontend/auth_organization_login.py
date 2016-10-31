@@ -57,7 +57,7 @@ class AuthOrganizationLoginView(BaseView):
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-            auth.login(request, user)
+            auth.login(request, user, organization_id=organization.id)
 
             # can_register should only allow a single registration
             request.session.pop('can_register', None)
