@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from rest_framework.exceptions import NotAuthenticated
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, logger
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
@@ -46,6 +46,10 @@ class OrganizationPermission(ScopedPermission):
             request.access = access.from_request(request, organization)
             # session auth needs to confirm various permissions
             if request.user.is_authenticated() and self.needs_sso(request, organization):
+                logger.info('access.must-sso', extra={
+                    'organization_id': organization.id,
+                    'user_id': request.user.id,
+                })
                 raise NotAuthenticated(detail='Must login via SSO')
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
