@@ -58,7 +58,7 @@ class GetLoginRedirectTest(TestCase):
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
-        request.session = {}
+        request.session = self.session
         if next:
             request.session['_next'] = next
         return request
@@ -69,7 +69,7 @@ class LoginTest(TestCase):
         assert request.user == self.user
 
     def test_with_organization(self):
-        org = self.create_organization('foo', owner=self.user)
+        org = self.create_organization(name='foo', owner=self.user)
         request = self.make_request()
         login(request, self.user, organization_id=org.id)
         assert request.user == self.user
