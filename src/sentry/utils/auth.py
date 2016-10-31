@@ -216,7 +216,7 @@ def login(request, user, passed_2fa=None, after_2fa=None,
     request.session[MFA_SESSION_KEY] = six.text_type(user.id)
     request.session.modified = True
 
-    mfa_state = request.session.pop('_pending_2fa', None)
+    mfa_state = request.session.pop('_pending_2fa', ())
     if organization_id is None and len(mfa_state) == 3:
         organization_id = mfa_state[2]
 
