@@ -296,13 +296,16 @@ else:
     LOGIN_URL = reverse_lazy('sentry-login')
 
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.github.GithubBackend',
-    'social_auth.backends.bitbucket.BitbucketBackend',
-    'social_auth.backends.trello.TrelloBackend',
     'sentry.utils.auth.EmailAuthBackend',
 )
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
+
+SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
+    'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend',
+)
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
