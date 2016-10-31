@@ -58,6 +58,7 @@ class GetLoginRedirectTest(TestCase):
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
+        request.META['REMOTE_ADDR'] = '127.0.0.1'
         request.session = self.session
         if next:
             request.session['_next'] = next
