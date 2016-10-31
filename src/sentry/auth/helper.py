@@ -468,7 +468,8 @@ class AuthHelper(object):
                 # If there is no 2fa we don't need to do this and can just
                 # go on.
                 if not auth.login(request, login_form.get_user(),
-                                  after_2fa=request.build_absolute_uri()):
+                                  after_2fa=request.build_absolute_uri(),
+                                  organization_id=self.organization.id):
                     return HttpResponseRedirect(auth.get_login_redirect(
                         self.request))
             else:
@@ -496,7 +497,8 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user)
+        # XXX(dcramer): this is repeated from above
+        auth.login(self.request, user, organization_id=self.organization.id)
 
         self.clear_session()
 
@@ -532,7 +534,7 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user)
+        auth.login(self.request, user, organization_id=self.organization.id)
 
         self.clear_session()
 
