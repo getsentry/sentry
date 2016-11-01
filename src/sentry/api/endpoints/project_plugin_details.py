@@ -3,15 +3,18 @@ from __future__ import absolute_import
 import six
 
 from django import forms
+from django.core.urlresolvers import reverse
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.exceptions import PluginError
+from sentry.exceptions import PluginError, PluginIdentityRequired
 from sentry.plugins import plugins
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.plugin import PluginWithConfigSerializer, serialize_field
+from sentry.api.serializers.models.plugin import (
+    PluginSerializer, PluginWithConfigSerializer, serialize_field
+)
 
 ERR_ALWAYS_ENABLED = 'This plugin is always enabled.'
 ERR_FIELD_REQUIRED = 'This field is required.'
@@ -29,8 +32,13 @@ class ProjectPluginDetailsEndpoint(ProjectEndpoint):
     def get(self, request, project, plugin_id):
         plugin = self._get_plugin(plugin_id)
 
-        context = serialize(
-            plugin, request.user, PluginWithConfigSerializer(project))
+        try:
+            context = serialize(
+                plugin, request.user, PluginWithConfigSerializer(project))
+        except PluginIdentityRequired as e:
+            context = serialize(plugin, request.user, PluginSerializer(project))
+            context['config_error'] = e.message
+            context['auth_url'] = reverse('socialauth_associate', args=[plugin.slug])
 
         return Response(context)
 

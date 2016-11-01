@@ -297,10 +297,11 @@ else:
 
 AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
-    # TODO(dcramer): remove social auth backends in 8.11
+    # TODO(dcramer): we can't remove these until we rewrite more of social auth
     'social_auth.backends.github.GithubBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
+    'social_auth.backends.asana.AsanaBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
