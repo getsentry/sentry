@@ -11,6 +11,7 @@ Version 8.10 (Unreleased)
 - Add watchOS support for cocoa interface.
 - Fix support for internationalized Origins and raven-js.
 - SSO is now enforced to access data within any org that has it set as a requirement.
+- Improved rendering of weekly report email on mobile devices.
 
 API Changes
 ~~~~~~~~~~~
