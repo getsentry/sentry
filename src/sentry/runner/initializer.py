@@ -15,19 +15,6 @@ from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def install_plugin_apps(settings):
-    # entry_points={
-    #    'sentry.apps': [
-    #         'phabricator = sentry_phabricator'
-    #     ],
-    # },
-    from pkg_resources import iter_entry_points
-    installed_apps = list(settings.INSTALLED_APPS)
-    for ep in iter_entry_points('sentry.apps'):
-        installed_apps.append(ep.module_name)
-    settings.INSTALLED_APPS = tuple(installed_apps)
-
-
 def register_plugins(settings):
     from pkg_resources import iter_entry_points
     from sentry.plugins import register
@@ -223,8 +210,6 @@ def initialize_app(config, skip_backend_validation=False):
     apply_legacy_settings(settings)
 
     bind_cache_to_option_store()
-
-    install_plugin_apps(settings)
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
