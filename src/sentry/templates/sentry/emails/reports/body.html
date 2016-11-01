@@ -236,6 +236,10 @@
       padding-right: 20px;
     }
 
+    #history-calendars h4 {
+      margin-bottom: 0px;
+    }
+
   </style>
 
   <style type="text/css" inline="false">
@@ -308,10 +312,6 @@
       .issues-resolved .issues-resolved-column-right .stat img {
         width: 16px !important;
         height: 8px !important;
-      }
-
-      #history-calendars h4 {
-        margin-bottom: 0px !important;
       }
 
       .spectrum {
@@ -525,7 +525,7 @@
         <th style="width: 300px;">
           <h4>3 Month History</h4>
         </th>
-        <td class="spectrum">
+        <td class="spectrum" style="vertical-align: bottom;">
           Less Events
           <div class="range">{% for color in report.calendar.legend %}<span style="background-color: {{ color }}">&nbsp;</span>{% endfor %}</div>
           More Events
