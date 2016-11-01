@@ -1,6 +1,7 @@
 Version 8.10 (Unreleased)
 -------------------------
 
+- New and improved UI.
 - Removed previously deprecated ``sentry celery`` command.
 - Replaced the ``events`` queue with ``events.{preprocess,process,save}_event``.
 - Added Danger (danger/danger) for monitoring various PR requirements.
