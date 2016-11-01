@@ -38,6 +38,10 @@
       color: #fff;
     }
 
+    .graph .bar {
+      margin-bottom: 0;
+    }
+
     .graph .bar td,
     .graph .bar th {
       line-height: 0;
@@ -107,11 +111,10 @@
     }
 
     .project-breakdown {
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
 
     .project-breakdown .graph {
-      margin-bottom: 10px;
       table-layout: fixed;
     }
 
@@ -468,14 +471,16 @@
               {% empty %}
                 <tr>
                   <td height="1" style="background-color: #ebe9f7;"></td>
-                </td>
-              {% endfor %}
-              <tr>
-                <td class="label">
-                  {{ timestamp|date:duration.date_format }}
                 </tr>
-              </td>
+              {% endfor %}
             </table>
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for timestamp, values in series.points %}
+          <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+            {{ timestamp|date:duration.date_format }}
           </td>
         {% endfor %}
       </tr>
