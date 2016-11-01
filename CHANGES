@@ -1,5 +1,8 @@
-Version 8.10 (Unreleased)
+Version 8.11 (Unreleased)
 -------------------------
+
+Version.8.10
+------------
 
 - New and improved UI.
 - Removed previously deprecated ``sentry celery`` command.
