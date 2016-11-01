@@ -75,6 +75,8 @@ class Importer(object):
         # install the custom settings for this app
         load_settings(self.config_path, settings=settings_mod, silent=True)
 
+        install_plugin_apps('sentry.apps', settings_mod)
+
         return settings_mod
 
 
@@ -96,6 +98,19 @@ def load_settings(mod_or_filename, settings, silent=False):
         conf = mod_or_filename
 
     add_settings(conf, settings=settings)
+
+
+def install_plugin_apps(entry_point, settings):
+    # entry_points={
+    #    'sentry.apps': [
+    #         'phabricator = sentry_phabricator'
+    #     ],
+    # },
+    from pkg_resources import iter_entry_points
+    installed_apps = list(settings.INSTALLED_APPS)
+    for ep in iter_entry_points(entry_point):
+        installed_apps.append(ep.module_name)
+    settings.INSTALLED_APPS = tuple(installed_apps)
 
 
 def add_settings(mod, settings):
