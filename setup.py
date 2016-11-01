@@ -23,10 +23,11 @@ any application.
 :license: BSD, see LICENSE for more details.
 """
 from __future__ import absolute_import
+import sys
 
-# if sys.version_info[:2] != (2, 7):
-#     print 'Error: Sentry requires Python 2.7'
-#     sys.exit(1)
+if sys.version_info[:2] != (2, 7):
+    print 'Error: Sentry requires Python 2.7'
+    sys.exit(1)
 
 import os
 import os.path
@@ -48,7 +49,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.10.0.dev0'
+VERSION = '8.10.0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
