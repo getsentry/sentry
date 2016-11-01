@@ -31,3 +31,5 @@ class AuthTest(AcceptanceTestCase):
 
         self.enter_auth(email, password)
         self.browser.snapshot(name='login success')
+        self.login()
+        secret_key = 'foo bar'  # NOQA
