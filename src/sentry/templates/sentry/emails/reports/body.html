@@ -38,6 +38,15 @@
       color: #fff;
     }
 
+    .graph .bar {
+      margin-bottom: 0;
+    }
+
+    .graph .bar td,
+    .graph .bar th {
+      line-height: 0;
+    }
+
     .issue-graph {
       table-layout: fixed;
     }
@@ -54,13 +63,13 @@
       color: #848296;
     }
 
-    .legend .all,
-    .issue-graph-bar .all {
+    #events-seen .legend .all,
+    #events-seen .bar .all {
       background-color: #ebe9f7;
     }
 
-    .legend .resolved,
-    .issue-graph-bar .resolved {
+    #events-seen .legend .resolved,
+    #events-seen .bar .resolved {
       background-color: #6C5FC7;
     }
 
@@ -93,20 +102,19 @@
       vertical-align: middle;
     }
 
-    .issue-graph, .issue-graph-bar {
+    .issue-graph, .issue-graph .bar {
       margin-bottom: 0;
     }
 
-    .issue-graph-bar td {
+    .issue-graph .bar td {
       font-size: 0;
     }
 
     .project-breakdown {
-      margin-bottom: 40px;
+      margin-bottom: 20px;
     }
 
     .project-breakdown .graph {
-      margin-bottom: 10px;
       table-layout: fixed;
     }
 
@@ -228,6 +236,10 @@
       padding-right: 20px;
     }
 
+    #history-calendars h4 {
+      margin-bottom: 0px;
+    }
+
   </style>
 
   <style type="text/css" inline="false">
@@ -253,7 +265,7 @@
         text-align: center !important;
       }
 
-      .issue-graph-bar .all {
+      #events-seen .bar .all {
         background-color: #6C5FC7 !important;
       }
 
@@ -302,17 +314,9 @@
         height: 8px !important;
       }
 
-      #history-calendars h4 {
-        margin-bottom: 0px !important;
-      }
-
       .spectrum {
         margin: 20px 0 0 !important;
         text-align: center !important;
-      }
-
-      .spectrum .range span {
-        width: 10px !important;
       }
 
     }
@@ -363,7 +367,7 @@
             {% with report.series.maximum as max %}
             {% for timestamp, metrics in report.series.points %}
               <td valign="bottom" style="width: {% widthratio 1 report.series.points|length 100 %}%">
-                <table class="issue-graph-bar">
+                <table class="bar">
                   {% if metrics.resolved or metrics.unresolved %}
                     <tr>
                       <td class="all" height="{% widthratio metrics.unresolved max 52 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
@@ -459,7 +463,7 @@
       <tr>
         {% for timestamp, values in series.points %}
         <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
-            <table>
+            <table class="bar">
               {% for key, count in values %}
                 <tr>
                   <td height="{% widthratio count series.maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
@@ -467,14 +471,16 @@
               {% empty %}
                 <tr>
                   <td height="1" style="background-color: #ebe9f7;"></td>
-                </td>
-              {% endfor %}
-              <tr>
-                <td class="label">
-                  {{ timestamp|date:duration.date_format }}
                 </tr>
-              </td>
+              {% endfor %}
             </table>
+          </td>
+        {% endfor %}
+      </tr>
+      <tr>
+        {% for timestamp, values in series.points %}
+          <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+            {{ timestamp|date:duration.date_format }}
           </td>
         {% endfor %}
       </tr>
@@ -519,7 +525,7 @@
         <th style="width: 300px;">
           <h4>3 Month History</h4>
         </th>
-        <td class="spectrum">
+        <td class="spectrum" style="vertical-align: bottom;">
           Less Events
           <div class="range">{% for color in report.calendar.legend %}<span style="background-color: {{ color }}">&nbsp;</span>{% endfor %}</div>
           More Events
