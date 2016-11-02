@@ -126,7 +126,7 @@ class AuthLoginView(BaseView):
     def handle(self, request):
         next_uri = request.GET.get(REDIRECT_FIELD_NAME, None)
         if request.user.is_authenticated():
-            if auth.is_valid_redirect(next_uri):
+            if auth.is_valid_redirect(next_uri, host=request.get_host()):
                 return self.redirect(next_uri)
             return self.redirect_to_org(request)
 

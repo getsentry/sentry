@@ -37,6 +37,8 @@ class EmailAuthBackendTest(TestCase):
 class GetLoginRedirectTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
+        request.META['SERVER_NAME'] = 'testserver'
+        request.META['SERVER_PORT'] = '80'
         request.session = {}
         request.user = self.user
         if next:
