@@ -13,6 +13,8 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.models import Event, EventTag, Group, TagKey, TagValue
 from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
+from rest_framework.response import Response
+from sentry.search.utils import InvalidQuery
 
 
 @scenario('ListAvailableSamples')
@@ -94,7 +96,10 @@ class GroupEventsEndpoint(GroupEndpoint):
 
         query = request.GET.get('query')
         if query:
-            query_kwargs = parse_query(group.project, query, request.user)
+            try:
+                query_kwargs = parse_query(group.project, query, request.user)
+            except InvalidQuery as exc:
+                return Response({'detail': six.text_type(exc)}, status=400)
 
             if query_kwargs['query']:
                 events = events.filter(
