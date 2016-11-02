@@ -82,9 +82,11 @@ const GroupEvents = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (error) => {
+      error: (err) => {
+        let error = err.responseJSON || true;
+        error = error.detail || true;
         this.setState({
-          error: true,
+          error,
           loading: false
         });
       }
@@ -215,7 +217,7 @@ const GroupEvents = React.createClass({
     if (this.state.loading)
       body = <LoadingIndicator />;
     else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
+      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     else if (this.state.eventList.length > 0)
       body = this.renderResults();
     else if (this.state.query && this.state.query !== '')
