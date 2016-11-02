@@ -132,6 +132,18 @@ def parse_datetime_expression(value):
     return parse_datetime_value(value)
 
 
+def parse_user_value(value, user):
+    if value == 'me':
+        return user
+
+    try:
+        return find_users(value)[0]
+    except IndexError:
+        # XXX(dcramer): hacky way to avoid showing any results when
+        # an invalid user is entered
+        return User(id=0)
+
+
 def get_date_params(value, from_field, to_field):
     date_from, date_to = parse_datetime_expression(value)
     result = {}
@@ -255,25 +267,11 @@ def parse_query(project, query, user):
                     except KeyError:
                         raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
-                if value == 'me':
-                    results['assigned_to'] = user
-                else:
-                    try:
-                        results['assigned_to'] = find_users(value)[0]
-                    except IndexError:
-                        # XXX(dcramer): hacky way to avoid showing any results when
-                        # an invalid user is entered
-                        results['assigned_to'] = User(id=0)
+                results['assigned_to'] = parse_user_value(value, user)
             elif key == 'bookmarks':
-                if value == 'me':
-                    results['bookmarked_by'] = user
-                else:
-                    try:
-                        results['bookmarked_by'] = find_users(value)[0]
-                    except IndexError:
-                        # XXX(dcramer): hacky way to avoid showing any results when
-                        # an invalid user is entered
-                        results['bookmarked_by'] = User(id=0)
+                results['bookmarked_by'] = parse_user_value(value, user)
+            elif key == 'subscribed':
+                results['subscribed_by'] = parse_user_value(value, user)
             elif key == 'first-release':
                 results['first_release'] = parse_release(project, value)
             elif key == 'release':

@@ -67,13 +67,13 @@ class DjangoSearchBackend(SearchBackend):
 
     def _build_queryset(self, project, query=None, status=None, tags=None,
                         bookmarked_by=None, assigned_to=None, first_release=None,
-                        sort_by='date', unassigned=None,
+                        sort_by='date', unassigned=None, subscribed_by=None,
                         age_from=None, age_from_inclusive=True,
                         age_to=None, age_to_inclusive=True,
                         date_from=None, date_from_inclusive=True,
                         date_to=None, date_to_inclusive=True,
                         cursor=None, limit=None):
-        from sentry.models import Event, Group, GroupStatus
+        from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
 
@@ -113,6 +113,15 @@ class DjangoSearchBackend(SearchBackend):
         elif unassigned in (True, False):
             queryset = queryset.filter(
                 assignee_set__isnull=unassigned,
+            )
+
+        if subscribed_by:
+            queryset = queryset.filter(
+                id__in=GroupSubscription.objects.filter(
+                    project=project,
+                    user=subscribed_by,
+                    is_active=True,
+                ),
             )
 
         if first_release:
