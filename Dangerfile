@@ -42,6 +42,10 @@
 # dont ever match against changes in these files
 @S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|south_migrations|CHANGES|tests/
 
+@S_BACKPORTED_FILES ||= [
+    "src/sentry/auth/password_validation.py",
+]
+
 # determine if any of the files were modified
 def checkFiles(files_array)
     files_array.select { |f| git.modified_files.include?(f) }
@@ -94,6 +98,9 @@ warn("Big PR -- consider splitting it up into multiple changesets") if git.lines
 
 # License is immutable
 fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_FILES).any?
+
+# Notify about modifications to files that we've backported explicitly
+warn("This change includes modification to a file that was backported from newer Django.") if @S_BACKPORTED_FILES && checkFiles(@S_BACKPORTED_FILES).any?
 
 # Reasonable commits must update CHANGES
 if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?

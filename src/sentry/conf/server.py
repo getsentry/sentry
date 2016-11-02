@@ -303,6 +303,15 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.trello.TrelloBackend',
 )
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'sentry.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 6,
+        },
+    },
+]
+
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
