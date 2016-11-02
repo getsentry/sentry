@@ -235,6 +235,10 @@ def login(request, user, passed_2fa=None, after_2fa=None,
     if user.is_password_expired:
         raise AuthUserPasswordExpired(user)
 
+    # If this User has a nonce value, we need to bind into the session.
+    if user.session_nonce is not None:
+        request.session['_nonce'] = user.session_nonce
+
     # If there is no authentication backend, just attach the first
     # one and hope it goes through.  This apparently is a thing we
     # have been doing for a long time, just moved it to a more
