@@ -17,7 +17,8 @@ const ActionLink = React.createClass({
     onlyIfBulk: React.PropTypes.bool,
     selectAllActive: React.PropTypes.bool.isRequired, // "select all" checkbox
     tooltip: React.PropTypes.string,
-    extraDescription: React.PropTypes.string
+    extraDescription: React.PropTypes.string,
+    irreversible: React.PropTypes.bool
   },
 
   mixins: [
@@ -34,6 +35,7 @@ const ActionLink = React.createClass({
       onlyIfBulk: false,
       disabled: false,
       extraDescription: null,
+      irreversible: true,
     };
   },
 
@@ -111,7 +113,7 @@ const ActionLink = React.createClass({
           <div className="modal-body">
             <p><strong>{confirmationQuestion}</strong></p>
             {this.props.extraDescription}
-            <p>{t('This action cannot be undone.')}</p>
+            {this.props.irreversible ? <p>{t('This action cannot be undone.')}</p> : ''}
           </div>
           <div className="modal-footer">
             <button type="button" className="btn btn-default"
