@@ -164,6 +164,7 @@ reserved_tag_names = frozenset([
     'is',
     'assigned',
     'bookmarks',
+    'subscribed',
     'first-release',
     'release',
     'level',
