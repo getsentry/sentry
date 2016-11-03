@@ -48,10 +48,6 @@ class Select2Field extends InputField {
 
   componentDidMount() {
     jQuery(this.refs.input).select2().on('change', this.onChange);
-
-    // TODO(jess): upgrade select2 so we can just do
-    // dropdownParent: $('.modal-dialog') as a supported option
-    jQuery('.modal').removeAttr('tabindex');
   }
 
   componentWillUnmount() {
