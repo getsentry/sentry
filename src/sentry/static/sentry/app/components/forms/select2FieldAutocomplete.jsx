@@ -12,9 +12,6 @@ export default class Select2FieldAutocomplete extends InputField {
     let separator = this.props.url.includes('?') ? '&' : '?';
     let url = this.props.url + separator + 'autocomplete_field=' + this.props.name;
 
-    // TODO(jess): upgrade select2 so we can just do
-    // dropdownParent: $('.modal-dialog') as a supported option
-    $('.modal').removeAttr('tabindex');
     $el.select2({
       placeholder: this.props.placeholder || 'Start typing to search for an issue',
       minimumInputLength: 1,
