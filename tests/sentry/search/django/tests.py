@@ -211,6 +211,29 @@ class DjangoSearchBackendTest(TestCase):
         assert len(results) == 1
         assert results[0] == self.group1
 
+    def test_last_seen_filter(self):
+        results = self.backend.query(
+            self.project1,
+            last_seen_from=self.group1.last_seen,
+        )
+        assert len(results) == 1
+        assert results[0] == self.group1
+
+        results = self.backend.query(
+            self.project1,
+            last_seen_to=self.group2.last_seen + timedelta(minutes=1),
+        )
+        assert len(results) == 1
+        assert results[0] == self.group2
+
+        results = self.backend.query(
+            self.project1,
+            last_seen_from=self.group1.last_seen,
+            last_seen_to=self.group1.last_seen + timedelta(minutes=1),
+        )
+        assert len(results) == 1
+        assert results[0] == self.group1
+
     def test_date_filter(self):
         results = self.backend.query(
             self.project1,
