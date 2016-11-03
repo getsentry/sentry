@@ -86,6 +86,10 @@ class RiakClient(object):
         )
 
     def get(self, bucket, key, headers=None, **kwargs):
+        if headers is None:
+            headers = {}
+        headers['accept-encoding'] = 'gzip'  # urllib3 will automatically decompress
+
         return self.manager.urlopen(
             'GET', self.build_url(bucket, key, kwargs),
             headers=headers,
