@@ -135,6 +135,11 @@ class RoundRobinStrategy(object):
         return connections[self.i % len(connections)]
 
 
+class FirstStrategy(object):
+    def next(self, connections):
+        return connections[0]
+
+
 class ConnectionManager(object):
     """
     A thread-safe multi-host http connection manager.
@@ -142,7 +147,6 @@ class ConnectionManager(object):
     def __init__(self, hosts=DEFAULT_NODES, strategy=RoundRobinStrategy, randomize=True,
                  timeout=3, cooldown=5, max_retries=None, tcp_keepalive=True):
         assert hosts
-        self.strategy = strategy()
         self.dead_connections = []
         self.timeout = timeout
         self.cooldown = cooldown
@@ -159,6 +163,16 @@ class ConnectionManager(object):
         if randomize:
             shuffle(self.connections)
 
+        # If we have a single connection, we can short-circuit some logic
+        self.single_connection = len(hosts) == 1
+
+        # If we only have one connection, let's override and use a more optimized
+        # strategy
+        if self.single_connection:
+            strategy = FirstStrategy
+
+        self.strategy = strategy()
+
         # Lock needed when mutating the alive/dead list of connections
         self._lock = Lock()
 
@@ -169,12 +183,12 @@ class ConnectionManager(object):
         options = {
             'timeout': self.timeout,
             'strict': True,
-            'retries': 2,
+            'retries': host.get('retries', 2),
             # Max of 5 connections open per host
             # this is arbitrary. The # of connections can burst
             # above 5 if needed becuase we're also setting
             # block=False
-            'maxsize': 5,
+            'maxsize': host.get('maxsize', 5),
             'block': False,
         }
         if self.tcp_keepalive:
@@ -247,6 +261,15 @@ class ConnectionManager(object):
         """
         Mark a connection as dead.
         """
+
+        # If we are operating with only a single connection,
+        # it's futile to mark the connection as dead since it'll
+        # just flap between active and dead with no value. In the
+        # event of one connection, we just want to keep retrying
+        # in hopes that it'll eventually work.
+        if self.single_connection:
+            return
+
         timeout = time() + self.cooldown
         with self._lock:
             self.dead_connections.append((conn, timeout))
