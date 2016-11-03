@@ -4,7 +4,9 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.models import GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue, GroupSubscription
+from sentry.models import (
+    GroupAssignee, GroupBookmark, GroupStatus, GroupSubscription, GroupTagValue
+)
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase

@@ -9,15 +9,14 @@ sentry.search.django.backend
 from __future__ import absolute_import
 
 import six
-
 from django.db import router
 from django.db.models import Q
 
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.search.base import ANY, EMPTY, SearchBackend
 from sentry.search.django.constants import (
-    SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
-    MSSQL_ENGINES, ORACLE_SORT_CLAUSES
+    MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES,
+    SORT_CLAUSES, SQLITE_SORT_CLAUSES
 )
 from sentry.utils.db import get_db_engine
 

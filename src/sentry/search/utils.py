@@ -1,16 +1,16 @@
 from __future__ import absolute_import, division, print_function
 
-import six
-
 from collections import defaultdict
 from datetime import datetime, timedelta
+
+import six
+from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, Release, User
 from sentry.search.base import ANY, EMPTY
 from sentry.utils.auth import find_users
-from django.db import DataError
 
 
 class InvalidQuery(Exception):
