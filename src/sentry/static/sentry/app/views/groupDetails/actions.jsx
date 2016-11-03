@@ -119,6 +119,9 @@ const GroupActions = React.createClass({
     let hasRelease = defined(group.lastRelease);
     let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
 
+    // account for both old and new style plugins
+    let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
+
     return (
       <div className="group-actions">
         <CustomSnoozeModal
@@ -252,7 +255,7 @@ const GroupActions = React.createClass({
         {group.pluginIssues && group.pluginIssues.map((plugin) => {
           return <IssuePluginActions key={plugin.slug} plugin={plugin}/>;
         })}
-        {!group.pluginIssues.length &&
+        {!hasIssueTracking &&
           <a href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
              className={'btn btn-default btn-sm btn-config-issue-tracking'}>
             {t('Link Issue Tracker')}
