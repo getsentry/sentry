@@ -1,6 +1,8 @@
 Version 8.11 (Unreleased)
 -------------------------
 
+- Added the ability to subscribe and unsubscribe from issues from the stream view.
+
 Version 8.10
 ------------
 
