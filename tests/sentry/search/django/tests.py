@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from datetime import datetime, timedelta
 
-from sentry.models import GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue
+from sentry.models import GroupAssignee, GroupBookmark, GroupStatus, GroupTagValue, GroupSubscription
 from sentry.search.base import ANY
 from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
@@ -93,6 +93,20 @@ class DjangoSearchBackendTest(TestCase):
             user=self.user,
             group=self.group2,
             project=self.group2.project,
+        )
+
+        GroupSubscription.objects.create(
+            user=self.user,
+            group=self.group1,
+            project=self.group1.project,
+            is_active=True,
+        )
+
+        GroupSubscription.objects.create(
+            user=self.user,
+            group=self.group2,
+            project=self.group2.project,
+            is_active=False,
         )
 
     def test_query(self):
@@ -233,3 +247,11 @@ class DjangoSearchBackendTest(TestCase):
         results = self.backend.query(self.project1, assigned_to=self.user)
         assert len(results) == 1
         assert results[0] == self.group2
+
+    def test_subscribed_by(self):
+        results = self.backend.query(
+            self.group1.project,
+            subscribed_by=self.user,
+        )
+        assert len(results) == 1
+        assert results[0] == self.group1

@@ -115,13 +115,13 @@ class DjangoSearchBackend(SearchBackend):
                 assignee_set__isnull=unassigned,
             )
 
-        if subscribed_by:
+        if subscribed_by is not None:
             queryset = queryset.filter(
                 id__in=GroupSubscription.objects.filter(
                     project=project,
                     user=subscribed_by,
                     is_active=True,
-                ),
+                ).values_list('group'),
             )
 
         if first_release:
