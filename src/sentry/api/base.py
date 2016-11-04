@@ -150,7 +150,11 @@ class Endpoint(APIView):
         if settings.SENTRY_API_RESPONSE_DELAY:
             time.sleep(settings.SENTRY_API_RESPONSE_DELAY / 1000.0)
 
-        origin = request.META.get('HTTP_ORIGIN')
+        origin = request.META.get('HTTP_ORIGIN', 'null')
+        # A "null" value should be treated as no Origin for us.
+        # See RFC6454 for more information on this behavior.
+        if origin == 'null':
+            origin = None
 
         try:
             if origin and request.auth:
