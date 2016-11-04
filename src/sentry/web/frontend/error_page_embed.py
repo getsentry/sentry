@@ -17,7 +17,7 @@ from sentry.models import (
 )
 from sentry.web.helpers import render_to_response
 from sentry.utils import json
-from sentry.utils.http import is_valid_origin
+from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.validators import is_event_id
 
 GENERIC_ERROR = _('An unknown error occurred while submitting your report. Please try again.')
@@ -57,7 +57,7 @@ class ErrorPageEmbedView(View):
         return key
 
     def _get_origin(self, request):
-        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+        return origin_from_request(request)
 
     def _json_response(self, request, context=None, status=200):
         if context:

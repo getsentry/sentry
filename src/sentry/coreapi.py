@@ -37,7 +37,7 @@ from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
-from sentry.utils.http import is_valid_ip
+from sentry.utils.http import is_valid_ip, origin_from_request
 from sentry.utils.strings import decompress
 from sentry.utils.validators import is_float, is_event_id
 
@@ -208,7 +208,7 @@ class ClientApiHelper(object):
         """
         Returns either the Origin or Referer value from the request headers.
         """
-        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+        return origin_from_request(request)
 
     def project_from_auth(self, auth):
         if not auth.public_key:

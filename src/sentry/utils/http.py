@@ -215,3 +215,19 @@ def is_valid_ip(ip_address, project):
             return False
 
     return True
+
+
+def origin_from_request(request):
+    """
+    Returns either the Origin or Referer value from the request headers,
+    ignoring "null" Origins.
+    """
+    rv = request.META.get('HTTP_ORIGIN', 'null')
+    # In some situation, an Origin header may be the literal value
+    # "null". This means that the Origin header was stripped for
+    # privacy reasons, but we should ignore this value entirely.
+    # Behavior is specified in RFC6454. In either case, we should
+    # treat a "null" Origin as a nonexistent one and fallback to Referer.
+    if rv in ('', 'null'):
+        rv = request.META.get('HTTP_REFERER')
+    return rv

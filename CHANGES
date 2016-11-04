@@ -1,6 +1,8 @@
 Version 8.11 (Unreleased)
 -------------------------
 
+- Ignore a ``null`` ``Origin`` header for authentication.
+
 Version 8.10
 ------------
 

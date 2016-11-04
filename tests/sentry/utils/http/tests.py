@@ -5,12 +5,14 @@ from __future__ import absolute_import
 import mock
 
 from exam import fixture
+from django.http import HttpRequest
 
 from sentry import options
 from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
     is_same_domain, is_valid_origin, get_origins, absolute_uri, is_valid_ip,
+    origin_from_request,
 )
 
 
@@ -230,3 +232,28 @@ class IsValidIPTestCase(TestCase):
     def test_match_blacklist_range(self):
         assert not self.is_valid_ip('127.0.0.1', ['127.0.0.0/8'])
         assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
+
+
+class OriginFromRequestTestCase(TestCase):
+    def test_nothing(self):
+        request = HttpRequest()
+        assert origin_from_request(request) is None
+
+    def test_origin(self):
+        request = HttpRequest()
+        request.META['HTTP_ORIGIN'] = 'http://example.com'
+        request.META['HTTP_REFERER'] = 'nope'
+        assert origin_from_request(request) == 'http://example.com'
+
+    def test_referer(self):
+        request = HttpRequest()
+        request.META['HTTP_REFERER'] = 'http://example.com'
+        assert origin_from_request(request) == 'http://example.com'
+
+    def test_null_origin(self):
+        request = HttpRequest()
+        request.META['HTTP_ORIGIN'] = 'null'
+        assert origin_from_request(request) is None
+
+        request.META['HTTP_REFERER'] = 'http://example.com'
+        assert origin_from_request(request) == 'http://example.com'
