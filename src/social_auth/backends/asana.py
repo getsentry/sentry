@@ -48,8 +48,10 @@ class AsanaAuth(BaseOAuth2):
         """Loads user data from service"""
         headers = {'Authorization': 'Bearer %s' % access_token}
         try:
-            return requests.get(ASANA_USER_DETAILS_URL,
-                                headers=headers).json()['data']
+            resp = requests.get(ASANA_USER_DETAILS_URL,
+                                headers=headers)
+            resp.raise_for_status()
+            return resp.json()['data']
         except ValueError:
             return None
 
@@ -59,14 +61,18 @@ class AsanaAuth(BaseOAuth2):
         params = self.auth_complete_params(self.validate_state())
         try:
             response = requests.post(self.ACCESS_TOKEN_URL, data=params,
-                              headers=self.auth_headers()).json()
+                              headers=self.auth_headers())
+            response.raise_for_status()
         except requests.exceptions.HTTPError as e:
             if e.code == 400:
                 raise AuthCanceled(self)
             else:
                 raise
-        except (ValueError, KeyError):
-            raise AuthUnknownError(self)
+        else:
+            try:
+                response = response.json()
+            except (ValueError, KeyError):
+                raise AuthUnknownError(self)
 
         response.pop('data')
         self.process_error(response)
@@ -78,6 +84,7 @@ class AsanaAuth(BaseOAuth2):
         params = cls.refresh_token_params(token)
         response = requests.post(cls.ACCESS_TOKEN_URL, data=params,
                                  headers=cls.auth_headers())
+        response.raise_for_status()
         return response.json()
 
 # Backend definition
