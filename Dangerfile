@@ -36,27 +36,36 @@
 @S_LICENSE_FILES ||= ["LICENSE"]
 
 # set the patterns to watch and warn about if they need security review
-@S_SECURITY_FILE_PATTERN ||= /Dangerfile|(auth|login|permission|email|account|admin|twofactor|sudo).*\.py/
-@S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|KEY|sudo/
+@S_SECURITY_FILE_PATTERN ||= /Dangerfile|(auth|login|permission|email|twofactor|sudo).*\.py/
+# content changes within the diff
+@S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|sudo/
+# dont ever match against changes in these files
+@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py/
 
 # determine if any of the files were modified
 def checkFiles(files_array)
     files_array.select { |f| git.modified_files.include?(f) }
 end
 
-def checkFilesPattern(pattern)
-    git.modified_files.select { |f| pattern =~ f }
+def checkFilesPattern(pattern, exclude = nil)
+    git.modified_files.select do |f|
+        next(false) if exclude && exclude =~ f
+        next(pattern =~ f)
+    end
 end
 
-def checkContents(pattern)
-    git.modified_files.select { |f| git.diff_for_file(f).patch =~ pattern }
+def checkContents(pattern, exclude = nil)
+    git.modified_files.select do |f|
+        next(false) if exclude && exclude =~ f
+        next(git.diff_for_file(f).patch =~ pattern)
+    end
 end
 
 # Warn about changes to dependencies or the build process
 warn("Changes to build requirements") if checkFiles(@S_BUILD_FILES).any?
 
 # Warn about changes to dependencies or the build process
-securityMatches = checkFilesPattern(@S_SECURITY_FILE_PATTERN) + checkContents(@S_SECURITY_CONTENT_PATTERN)
+securityMatches = checkFilesPattern(@S_SECURITY_FILE_PATTERN, @S_SECURITY_EXCLUDE_FILES) + checkContents(@S_SECURITY_CONTENT_PATTERN, @S_SECURITY_EXCLUDE_FILES)
 if securityMatches.any?
     unless github.pr_labels.include?("Security")
         github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
