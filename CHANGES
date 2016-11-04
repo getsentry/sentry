@@ -2,6 +2,7 @@ Version 8.11 (Unreleased)
 -------------------------
 
 - Ignore a ``null`` ``Origin`` header for authentication.
+- Added the ability to search for issues that you are subscribed to from the stream view.
 
 Version 8.10
 ------------
