@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -23,26 +23,40 @@ from sentry.utils.safe import safe_execute
 @register(Group)
 class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
-        default_subscribed = UserOption.objects.get_value(
+        results = {group.id: None for group in item_list}
+
+        subscriptions = GroupSubscription.objects.filter(
+            group__in=results.keys(),
             user=user,
-            project=None,
-            key='workflow:notifications',
         )
-        if default_subscribed == UserOptionValue.participating_only:
-            subscriptions = set(GroupSubscription.objects.filter(
-                group__in=item_list,
+
+        for subscription in subscriptions:
+            results[subscription.group_id] = subscription.is_active
+
+        projects = defaultdict(set)
+        for group in item_list:
+            if results[group.id] is None:
+                projects[group.project].add(group.id)
+
+        if projects:
+            default = UserOption.objects.get_value(
                 user=user,
-                is_active=True,
-            ).values_list('group_id', flat=True))
-        else:
-            subscriptions = set([i.id for i in item_list]).difference(
-                GroupSubscription.objects.filter(
-                    group__in=item_list,
-                    user=user,
-                    is_active=False,
-                ).values_list('group_id', flat=True),
+                project=None,
+                key='workflow:notifications',
             )
-        return subscriptions
+
+            for project, group_ids in projects.items():
+                is_subscribed = UserOption.objects.get_value(
+                    user=user,
+                    project=project,
+                    key='workflow:notifications',
+                    default=default,
+                ) == UserOptionValue.all_conversations
+
+                for group_id in group_ids:
+                    results[group_id] = is_subscribed
+
+        return set(group_id for group_id, is_subscribed in results.items() if is_subscribed)
 
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
