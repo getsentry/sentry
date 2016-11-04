@@ -9,15 +9,14 @@ sentry.search.django.backend
 from __future__ import absolute_import
 
 import six
-
 from django.db import router
 from django.db.models import Q
 
 from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.search.base import ANY, EMPTY, SearchBackend
 from sentry.search.django.constants import (
-    SORT_CLAUSES, SQLITE_SORT_CLAUSES, MYSQL_SORT_CLAUSES, MSSQL_SORT_CLAUSES,
-    MSSQL_ENGINES, ORACLE_SORT_CLAUSES
+    MSSQL_ENGINES, MSSQL_SORT_CLAUSES, MYSQL_SORT_CLAUSES, ORACLE_SORT_CLAUSES,
+    SORT_CLAUSES, SQLITE_SORT_CLAUSES
 )
 from sentry.utils.db import get_db_engine
 
@@ -67,13 +66,13 @@ class DjangoSearchBackend(SearchBackend):
 
     def _build_queryset(self, project, query=None, status=None, tags=None,
                         bookmarked_by=None, assigned_to=None, first_release=None,
-                        sort_by='date', unassigned=None,
+                        sort_by='date', unassigned=None, subscribed_by=None,
                         age_from=None, age_from_inclusive=True,
                         age_to=None, age_to_inclusive=True,
                         date_from=None, date_from_inclusive=True,
                         date_to=None, date_to_inclusive=True,
                         cursor=None, limit=None):
-        from sentry.models import Event, Group, GroupStatus
+        from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
 
@@ -113,6 +112,15 @@ class DjangoSearchBackend(SearchBackend):
         elif unassigned in (True, False):
             queryset = queryset.filter(
                 assignee_set__isnull=unassigned,
+            )
+
+        if subscribed_by is not None:
+            queryset = queryset.filter(
+                id__in=GroupSubscription.objects.filter(
+                    project=project,
+                    user=subscribed_by,
+                    is_active=True,
+                ).values_list('group'),
             )
 
         if first_release:
