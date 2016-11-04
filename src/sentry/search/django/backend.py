@@ -69,6 +69,8 @@ class DjangoSearchBackend(SearchBackend):
                         sort_by='date', unassigned=None, subscribed_by=None,
                         age_from=None, age_from_inclusive=True,
                         age_to=None, age_to_inclusive=True,
+                        last_seen_from=None, last_seen_from_inclusive=True,
+                        last_seen_to=None, last_seen_to_inclusive=True,
                         date_from=None, date_from_inclusive=True,
                         date_to=None, date_to_inclusive=True,
                         cursor=None, limit=None):
@@ -151,6 +153,20 @@ class DjangoSearchBackend(SearchBackend):
                     params['first_seen__lte'] = age_to
                 else:
                     params['first_seen__lt'] = age_to
+            queryset = queryset.filter(**params)
+
+        if last_seen_from or last_seen_to:
+            params = {}
+            if last_seen_from:
+                if last_seen_from_inclusive:
+                    params['last_seen__gte'] = last_seen_from
+                else:
+                    params['last_seen__gt'] = last_seen_from
+            if last_seen_to:
+                if last_seen_to_inclusive:
+                    params['last_seen__lte'] = last_seen_to
+                else:
+                    params['last_seen__lt'] = last_seen_to
             queryset = queryset.filter(**params)
 
         if date_from or date_to:

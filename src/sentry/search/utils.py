@@ -173,6 +173,7 @@ reserved_tag_names = frozenset([
     'user.ip',
     'has',
     'age',
+    'last_seen',
     'environment',
     'browser',
     'device',
@@ -292,6 +293,8 @@ def parse_query(project, query, user):
                 results['tags'][value] = ANY
             elif key == 'age':
                 results.update(get_date_params(value, 'age_from', 'age_to'))
+            elif key == 'last_seen':
+                results.update(get_date_params(value, 'last_seen_from', 'last_seen_to'))
             elif key.startswith('user.'):
                 results['tags']['sentry:user'] = get_user_tag(
                     project, key.split('.', 1)[1], value)
