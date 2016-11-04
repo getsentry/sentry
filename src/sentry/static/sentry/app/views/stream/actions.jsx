@@ -324,15 +324,15 @@ const StreamActions = React.createClass({
                     }
                     confirmLabel={
                       this.state.allInQuerySelected
-                        ? t('Mute all issues')
+                        ? t('Ignore all issues')
                         : (count) =>
-                            tn('Mute %d selected issue',
-                               'Mute %d selected issues',
+                            tn('Ignore %d selected issue',
+                               'Ignore %d selected issues',
                                count)
                     }
                     onlyIfBulk={true}
                     selectAllActive={this.state.pageSelected}>
-                   {t('Set status to: Muted')}
+                   {t('Set status to: Ignored')}
                   </ActionLink>
                 </MenuItem>
                 <MenuItem divider={true} />
