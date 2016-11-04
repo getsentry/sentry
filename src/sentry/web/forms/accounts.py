@@ -446,12 +446,14 @@ class NotificationSettingsForm(forms.Form):
     )
 
     subscribe_by_default = forms.BooleanField(
-        label=_('Subscribe to alerts for projects by default'),
+        label=_('Automatically subscribe to alerts for new projects'),
+        help_text=_("When enabled, you'll automatically subscribe to alerts when you create or join a project."),
         required=False,
     )
+
     workflow_notifications = forms.BooleanField(
-        label=_('Receive updates for all issues by default'),
-        help_text=_('You\'ll always receive notifications if you\'re explicitly participating on an issue.'),
+        label=_('Automatically subscribe to workflow notifications for new projects'),
+        help_text=_("When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."),
         required=False,
     )
     self_notifications = forms.BooleanField(

@@ -73,11 +73,26 @@
           <li>{% trans "Resolution" %}</li>
         </ul>
 
+        <p>
+          {% blocktrans %}
+            When workflow notifications are enabled for a project, you'll
+            receive an email when your teammates perform any of these actions.
+          {% endblocktrans %}
+        </p>
+
         {{ settings_form.workflow_notifications|as_crispy_field }}
 
         {{ settings_form.self_notifications|as_crispy_field }}
 
-        <p>{% blocktrans %}You may subscribe (or unsubscribe) from individual issues on their respective pages.{% endblocktrans %}</p>
+        <p>
+          {% blocktrans %}
+            You'll always receive notifications from issues that you're
+            subscribed to. You may subscribe (or unsubscribe) from individual
+            issues on their respective pages. You'll be automatically
+            subscribed when participating on an issue by taking one of the
+            actions listed above.
+          {% endblocktrans %}
+        </p>
 
         <hr />
 
