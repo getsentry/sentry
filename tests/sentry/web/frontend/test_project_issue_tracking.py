@@ -24,5 +24,5 @@ class ProjectIssueTrackingTest(TestCase):
         self.login_as(self.owner)
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/project-issue-tracking.html')
+        self.assertTemplateUsed(resp, 'sentry/projects/plugins/list.html')
         assert resp.context['project'] == self.project
