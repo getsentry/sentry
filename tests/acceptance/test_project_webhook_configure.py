@@ -52,4 +52,4 @@ class ProjectAlertSettingsTest(AcceptanceTestCase):
         self.browser.get(self.path1)
         self.browser.wait_until('.ref-plugin-config-webhooks')
         self.browser.wait_until_not('.loading-indicator')
-        self.browser.snapshot('project alert settings webhooks enabled')
+        self.browser.snapshot('project webhooks configuration')
