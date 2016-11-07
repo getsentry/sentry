@@ -80,6 +80,9 @@ const HomeSidebar = React.createClass({
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/rate-limits/`}>{t('Rate Limits')}</ListLink>
               }
+              {features.has('repos') && access.has('org:write') &&
+                <ListLink to={`/organizations/${orgId}/repos/`}>{t('Repositories')}</ListLink>
+              }
               {access.has('org:write') &&
                 <li><a href={`/organizations/${orgId}/settings/`}>{t('Settings')}</a></li>
               }

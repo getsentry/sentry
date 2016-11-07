@@ -10,6 +10,9 @@ from __future__ import absolute_import
 
 import logging
 
+from django.db.models import get_model
+
+from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
@@ -305,6 +308,42 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
         'object_id': tagkey_id,
         'transaction_id': transaction_id,
         'model': TagKey.__name__,
+    })
+
+
+@instrumented_task(name='sentry.tasks.deletion.generic_delete', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry(exclude=(DeleteAborted,))
+def generic_delete(app_label, model_name, object_id, transaction_id=None,
+                   continuous=True, actor_id=None, **kwargs):
+    from sentry.models import User
+
+    model = get_model(app_label, model_name)
+
+    try:
+        instance = model.objects.get(id=object_id)
+    except model.DoesNotExist:
+        return
+
+    if instance.status == ObjectStatus.VISIBLE:
+        raise DeleteAborted
+
+    if instance.status == ObjectStatus.PENDING_DELETE:
+        if actor_id:
+            actor = User.objects.get(id=actor_id)
+        else:
+            actor = None
+        instance.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+        pending_delete.send(sender=model, instance=instance, actor=actor)
+
+    # TODO(dcramer): it'd be nice if we could collect relations here and
+    # cascade efficiently
+    instance_id = instance.id
+    instance.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': instance_id,
+        'transaction_id': transaction_id,
+        'model': model.__name__,
     })
 
 
