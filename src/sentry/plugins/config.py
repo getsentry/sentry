@@ -10,6 +10,7 @@ from sentry.utils.forms import form_to_config
 from .validators import DEFAULT_VALIDATORS
 
 
+
 class PluginConfigMixin(object):
     asset_key = None
     assets = []

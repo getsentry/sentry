@@ -173,7 +173,29 @@ class IssueTrackingPlugin2(Plugin):
 
         return self.auth_provider in get_auth_providers()
 
-    def validate_form(self, fields, form_data):
+    def validate_form(self, config, form_data):
+        cleaned = {}
+        errors = {}
+        for field in config:
+            key = field['name']
+            value = form_data.get(key)
+
+            if field.get('required') and not value:
+                errors[key] = ERR_FIELD_REQUIRED
+
+            try:
+                value = plugin.validate_config_field(
+                    project=project,
+                    name=key,
+                    value=value,
+                    actor=request.user,
+                )
+            except (forms.ValidationError, serializers.ValidationError, PluginError) as e:
+                errors[key] = e.message
+
+            if not errors.get(key):
+                cleaned[key] = value
+
         errors = {}
         for field in fields:
             if field.get('required', True) and not field.get('readonly'):
