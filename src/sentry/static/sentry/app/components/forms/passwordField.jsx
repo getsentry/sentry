@@ -39,18 +39,18 @@ class PasswordField extends InputField {
 
     if (this.state.editing) {
       return (
-        <div className="row">
-          <div className="col-md-10">
+        <div className="form-password editing">
+          <div style={{width: '85%', display: 'inline-block'}}>
             {super.getField()}
           </div>
-          <div className="col-md-2" style={{lineHeight: '37px'}}>
+          <div style={{lineHeight: '37px', marginLeft: '10px', display: 'inline-block'}}>
             <a href="#" onClick={this.cancelEdit}>Cancel</a>
           </div>
         </div>
       );
     } else {
       return (
-        <div>
+        <div className="form-password saved">
           <span>{this.props.prefix + '********************'}</span>
           {!this.props.disabled &&
             <a href="#" style={{marginLeft: '10px'}}
