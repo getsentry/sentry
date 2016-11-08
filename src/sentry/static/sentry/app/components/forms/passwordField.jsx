@@ -40,10 +40,10 @@ class PasswordField extends InputField {
     if (this.state.editing) {
       return (
         <div className="form-password editing">
-          <div style={{width: '85%', display: 'inline-block'}}>
+          <div>
             {super.getField()}
           </div>
-          <div style={{lineHeight: '37px', marginLeft: '10px', display: 'inline-block'}}>
+          <div>
             <a href="#" onClick={this.cancelEdit}>Cancel</a>
           </div>
         </div>
@@ -53,8 +53,7 @@ class PasswordField extends InputField {
         <div className="form-password saved">
           <span>{this.props.prefix + '********************'}</span>
           {!this.props.disabled &&
-            <a href="#" style={{marginLeft: '10px'}}
-               onClick={this.startEdit}>Edit</a>}
+            <a href="#" onClick={this.startEdit}>Edit</a>}
         </div>
       );
     }
