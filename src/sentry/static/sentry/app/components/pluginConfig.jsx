@@ -84,24 +84,6 @@ const PluginConfig = React.createClass({
 
   render() {
     let data = this.props.data;
-    if (data.config_error) {
-      let authUrl = data.auth_url;
-      if (authUrl.indexOf('?') === -1) {
-        authUrl += '?next=' + encodeURIComponent(document.location.pathname);
-      } else {
-        authUrl += '&next=' + encodeURIComponent(document.location.pathname);
-      }
-      return (
-        <div>
-          <div className="alert alert-warning m-b-1">
-            {data.config_error}
-          </div>
-          <a className="btn btn-primary" href={authUrl}>
-            Associate Identity
-          </a>
-        </div>
-      );
-    }
 
     return (
       <div className={`box ref-plugin-config-${data.id}`}>
