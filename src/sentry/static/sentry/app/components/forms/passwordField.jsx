@@ -51,7 +51,7 @@ class PasswordField extends InputField {
     } else {
       return (
         <div className="form-password saved">
-          <span>{this.props.prefix + '********************'}</span>
+          <span>{this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}</span>
           {!this.props.disabled &&
             <a href="#" onClick={this.startEdit}>Edit</a>}
         </div>
