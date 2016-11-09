@@ -12,12 +12,24 @@ from sentry.models import (
 from sentry.web.frontend.base import ProjectView
 
 
+# Prevent execution of arbitrary Excel functions from user input.
+# See:
+#   https://www.owasp.org/index.php/CSV_Excel_Macro_Injection
+#   http://www.contextis.com/resources/blog/comma-separated-vulnerabilities/
+def clean(value):
+    if not value:
+        return value
+    if value[0] in ('=', '+', '-', '@'):
+        value = "'" + value
+    return value.rstrip()
+
+
 # Python 2 doesn't support unicode with CSV, but Python 3 does via
 # the encoding param
 if six.PY3:
     def get_row(row):
         return (
-            row.value,
+            clean(row.value),
             six.text_type(row.times_seen),
             row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
@@ -25,7 +37,7 @@ if six.PY3:
 else:
     def get_row(row):
         return (
-            row.value.encode('utf-8'),
+            clean(row.value.encode('utf-8')),
             six.text_type(row.times_seen),
             row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
             row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
