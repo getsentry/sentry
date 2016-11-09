@@ -2,9 +2,8 @@ import React from 'react';
 
 import Avatar from '../../components/avatar';
 import PropTypes from '../../proptypes';
-import Device from './interfaces/device';
 import {t} from '../../locale';
-import {objectIsEmpty} from '../../utils';
+import {objectIsEmpty, deviceNameMapper} from '../../utils';
 
 const generateClassName = function(name) {
   return name.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/\-+$/, '');
@@ -107,7 +106,7 @@ const DeviceSummary = React.createClass({
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3><Device model={data.model}></Device></h3>
+        <h3>{deviceNameMapper(data.model)}</h3>
         <p>{data.arch || data.model_id || ''}</p>
       </div>
     );
