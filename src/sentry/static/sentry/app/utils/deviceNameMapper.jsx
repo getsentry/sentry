@@ -1,10 +1,5 @@
-import React from 'react';
-
-const Device = React.createClass({
-  propTypes: {
-    model: React.PropTypes.string.isRequired,
-  },
-  deviceLookUpTable: {
+export default function(model) {
+  const deviceLookUpTable = {
     'iPhone9,4': 'iPhone 7 Plus',
     'iPhone9,3': 'iPhone 7',
     'iPhone9,2': 'iPhone 7 Plus',
@@ -67,19 +62,6 @@ const Device = React.createClass({
     'AppleTV5,3': 'Apple TV',
     'Watch1,1': 'Apple Watch',
     'Watch1,2': 'Apple Watch',
-  },
-  getDeviceName(model) {
-    return this.deviceLookUpTable[model] === undefined ? model : this.deviceLookUpTable[model];
-  },
-  render() {
-    let model = this.props.model;
-
-    return (
-      <span>
-        {this.getDeviceName(model)}
-      </span>
-    );
-  }
-});
-
-export default Device;
+  };
+  return deviceLookUpTable[model] === undefined ? model : deviceLookUpTable[model];
+}
