@@ -2,6 +2,7 @@ import React from 'react';
 
 import Avatar from '../../components/avatar';
 import PropTypes from '../../proptypes';
+import Device from './interfaces/device';
 import {t} from '../../locale';
 import {objectIsEmpty} from '../../utils';
 
@@ -106,7 +107,7 @@ const DeviceSummary = React.createClass({
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{data.model}</h3>
+        <h3><Device model={data.model}></Device></h3>
         <p>{data.arch || data.model_id || ''}</p>
       </div>
     );
