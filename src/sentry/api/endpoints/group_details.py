@@ -335,7 +335,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             GroupHash.objects.filter(group=group).delete()
             delete_group.apply_async(
                 kwargs={'object_id': group.id},
-                countdown=3600,
             )
 
         return Response(status=202)
