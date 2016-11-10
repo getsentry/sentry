@@ -5,6 +5,7 @@ Version 8.11 (Unreleased)
 - Added the ability to search for issues that you are subscribed to from the stream view.
 - Added the ability to search issues by their last seen timestamp.
 - Improved UI for password and API key fields used in integrations
+- Fixed bug where API responses would include incorrect `isSubscribed` values for issues.
 
 Version 8.10
 ------------

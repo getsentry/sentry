@@ -2,9 +2,10 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -23,26 +24,62 @@ from sentry.utils.safe import safe_execute
 @register(Group)
 class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
-        default_subscribed = UserOption.objects.get_value(
+        results = {group.id: None for group in item_list}
+
+        # First, the easy part -- if there is a subscription record associated
+        # with the group, we can just use that to know if a user is subscribed
+        # or not.
+        subscriptions = GroupSubscription.objects.filter(
+            group__in=results.keys(),
             user=user,
-            project=None,
-            key='workflow:notifications',
         )
-        if default_subscribed == UserOptionValue.participating_only:
-            subscriptions = set(GroupSubscription.objects.filter(
-                group__in=item_list,
-                user=user,
-                is_active=True,
-            ).values_list('group_id', flat=True))
-        else:
-            subscriptions = set([i.id for i in item_list]).difference(
-                GroupSubscription.objects.filter(
-                    group__in=item_list,
+
+        for subscription in subscriptions:
+            results[subscription.group_id] = subscription.is_active
+
+        # For any group that doesn't have a subscription associated with it,
+        # we'll need to fall back to the project's option value, so here we
+        # collect all of the projects to look up, and keep a set of groups that
+        # are part of that project. (Note that the common -- but not only --
+        # case here is that all groups are part of the same project.)
+        projects = defaultdict(set)
+        for group in item_list:
+            if results[group.id] is None:
+                projects[group.project].add(group.id)
+
+        if projects:
+            # NOTE: This doesn't use `values_list` because that bypasses field
+            # value decoding, so the `value` field would not be unpickled.
+            options = {
+                option.project_id: option.value
+                for option in
+                UserOption.objects.filter(
+                    Q(project__in=projects.keys()) | Q(project__isnull=True),
                     user=user,
-                    is_active=False,
-                ).values_list('group_id', flat=True),
-            )
-        return subscriptions
+                    key='workflow:notifications',
+                )
+            }
+
+            # This is the user's default value for any projects that don't have
+            # the option value specifically recorded. (The default "all
+            # conversations" value is convention.)
+            default = options.get(None, UserOptionValue.all_conversations)
+
+            # If you're subscribed to all notifications for the project, that
+            # means you're subscribed to all of the groups. Otherwise you're
+            # not subscribed to any of these leftover groups.
+            for project, group_ids in projects.items():
+                is_subscribed = options.get(
+                    project.id,
+                    default,
+                ) == UserOptionValue.all_conversations
+
+                for group_id in group_ids:
+                    results[group_id] = is_subscribed
+
+        # These are the IDs of all of the groups that the user is subscribed to
+        # that were part of the original candidate list.
+        return {group_id for group_id, is_subscribed in results.items() if is_subscribed}
 
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
