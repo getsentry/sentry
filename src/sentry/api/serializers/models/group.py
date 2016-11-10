@@ -73,7 +73,7 @@ class GroupSerializer(Serializer):
 
         # These are the IDs of all of the groups that the user is subscribed to
         # that were part of the original candidate list.
-        return set(group_id for group_id, is_subscribed in results.items() if is_subscribed)
+        return {group_id for group_id, is_subscribed in results.items() if is_subscribed}
 
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
