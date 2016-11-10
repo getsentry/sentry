@@ -63,5 +63,9 @@ export default function(model) {
     'Watch1,1': 'Apple Watch',
     'Watch1,2': 'Apple Watch',
   };
-  return deviceLookUpTable[model] === undefined ? model : deviceLookUpTable[model];
+
+  const modelIdentifier = model.split(' ')[0];
+  const modelId = model.split(' ').splice(1).join(' ');
+  const modelName = deviceLookUpTable[modelIdentifier];
+  return modelName === undefined ? model : modelName + ' ' + modelId;
 }
