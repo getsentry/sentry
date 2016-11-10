@@ -25,6 +25,9 @@ class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
         results = {group.id: None for group in item_list}
 
+        # First, the easy part -- if there is a subscription record associated
+        # with the group, we can just use that to know if a user is subscribed
+        # or not.
         subscriptions = GroupSubscription.objects.filter(
             group__in=results.keys(),
             user=user,
@@ -33,12 +36,20 @@ class GroupSerializer(Serializer):
         for subscription in subscriptions:
             results[subscription.group_id] = subscription.is_active
 
+        # For any group that doesn't have a subscription associated with it,
+        # we'll need to fall back to the project's option value, so here we
+        # collect all of the projects to look up, and keep a set of groups that
+        # are part of that project. (Note that the common -- but not only --
+        # case here is that all groups are part of the same project.)
         projects = defaultdict(set)
         for group in item_list:
             if results[group.id] is None:
                 projects[group.project].add(group.id)
 
         if projects:
+            # This is the user's default value for any projects that don't have
+            # the option value specifically recorded. (The default "all
+            # conversations" value is convention.)
             default = UserOption.objects.get_value(
                 user=user,
                 project=None,
@@ -46,6 +57,9 @@ class GroupSerializer(Serializer):
                 default=UserOptionValue.all_conversations,
             )
 
+            # If you're subscribed to all notifications for the project, that
+            # means you're subscribed to all of the groups. Otherwise you're
+            # not subscribed to any of these leftover groups.
             for project, group_ids in projects.items():
                 is_subscribed = UserOption.objects.get_value(
                     user=user,
@@ -57,6 +71,8 @@ class GroupSerializer(Serializer):
                 for group_id in group_ids:
                     results[group_id] = is_subscribed
 
+        # These are the IDs of all of the groups that the user is subscribed to
+        # that were part of the original candidate list.
         return set(group_id for group_id, is_subscribed in results.items() if is_subscribed)
 
     def get_attrs(self, item_list, user):
