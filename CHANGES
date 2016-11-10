@@ -25,6 +25,11 @@ Version 8.11
 - Added 'transaction' tag which automatically populates from explicit culprits.
 - Added beginnings of repository management to UI (behind `organizations:repos` feature).
 
+SDKs
+~~~~
+
+- The `repos` interface has been added.
+
 Schema Changes
 ~~~~~~~~~~~~~~
 
