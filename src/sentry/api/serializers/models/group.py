@@ -47,25 +47,30 @@ class GroupSerializer(Serializer):
                 projects[group.project].add(group.id)
 
         if projects:
+            # NOTE: This doesn't use `values_list` because that bypasses field
+            # value decoding, so the `value` field would not be unpickled.
+            options = {
+                option.project_id: option.value
+                for option in
+                UserOption.objects.filter(
+                    user=user,
+                    project__in=set(projects.keys()) | set([None]),
+                    key='workflow:notifications',
+                )
+            }
+
             # This is the user's default value for any projects that don't have
             # the option value specifically recorded. (The default "all
             # conversations" value is convention.)
-            default = UserOption.objects.get_value(
-                user=user,
-                project=None,
-                key='workflow:notifications',
-                default=UserOptionValue.all_conversations,
-            )
+            default = options.get(None, UserOptionValue.all_conversations)
 
             # If you're subscribed to all notifications for the project, that
             # means you're subscribed to all of the groups. Otherwise you're
             # not subscribed to any of these leftover groups.
             for project, group_ids in projects.items():
-                is_subscribed = UserOption.objects.get_value(
-                    user=user,
-                    project=project,
-                    key='workflow:notifications',
-                    default=default,
+                is_subscribed = options.get(
+                    project.id,
+                    default,
                 ) == UserOptionValue.all_conversations
 
                 for group_id in group_ids:
