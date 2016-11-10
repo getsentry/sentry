@@ -40,7 +40,7 @@
 # content changes within the diff
 @S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|sudo/
 # dont ever match against changes in these files
-@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|south_migrations/
+@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|south_migrations|CHANGES|tests/
 
 # determine if any of the files were modified
 def checkFiles(files_array)
