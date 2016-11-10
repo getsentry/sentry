@@ -5,6 +5,7 @@ import six
 from collections import defaultdict, namedtuple
 from datetime import timedelta
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -53,8 +54,8 @@ class GroupSerializer(Serializer):
                 option.project_id: option.value
                 for option in
                 UserOption.objects.filter(
+                    Q(project__in=projects.keys()) | Q(project__isnull=True),
                     user=user,
-                    project__in=set(projects.keys()) | set([None]),
                     key='workflow:notifications',
                 )
             }
