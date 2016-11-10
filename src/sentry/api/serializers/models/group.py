@@ -43,6 +43,7 @@ class GroupSerializer(Serializer):
                 user=user,
                 project=None,
                 key='workflow:notifications',
+                default=UserOptionValue.all_conversations,
             )
 
             for project, group_ids in projects.items():
