@@ -369,16 +369,16 @@ def resolve_frame_symbols(data):
             )
         })
 
-    processed_frames = []
     with sym:
         for stacktrace, container in stacktraces:
             store_raw = False
+
+            new_frames = list(stacktrace['frames'])
             for idx, frame in enumerate(stacktrace['frames']):
                 if 'image_addr' not in frame or \
                    'instruction_addr' not in frame or \
                    'symbol_addr' not in frame:
                     continue
-                store_raw = True
                 try:
                     sfrm = sym.symbolize_frame({
                         'object_name': frame.get('package'),
@@ -388,26 +388,30 @@ def resolve_frame_symbols(data):
                     }, sdk_info, report_error=report_error)
                     if not sfrm:
                         continue
+                    new_frame = dict(frame)
                     # XXX: log here if symbol could not be found?
-                    frame['function'] = sfrm.get('symbol_name') or \
-                        frame.get('function') or '<unknown>'
-                    frame['abs_path'] = sfrm.get('filename') or None
-                    if frame['abs_path']:
-                        frame['filename'] = posixpath.basename(frame['abs_path'])
+                    new_frame['function'] = sfrm.get('symbol_name') or \
+                        new_frame.get('function') or '<unknown>'
+                    new_frame['abs_path'] = sfrm.get('filename') or None
+                    if new_frame['abs_path']:
+                        new_frame['filename'] = posixpath.basename(new_frame['abs_path'])
                     if sfrm.get('line') is not None:
-                        frame['lineno'] = sfrm['line']
+                        new_frame['lineno'] = sfrm['line']
                     else:
-                        frame['instruction_offset'] = \
+                        new_frame['instruction_offset'] = \
                             parse_addr(sfrm['instruction_addr']) - \
                             parse_addr(sfrm['symbol_addr'])
                     if sfrm.get('column') is not None:
-                        frame['colno'] = sfrm['column']
-                    frame['package'] = sfrm['object_name'] or frame.get('package')
-                    frame['symbol_addr'] = '0x%x' % parse_addr(sfrm['symbol_addr'])
-                    frame['instruction_addr'] = '0x%x' % parse_addr(
+                        new_frame['colno'] = sfrm['column']
+                    new_frame['package'] = sfrm['object_name'] or new_frame.get('package')
+                    new_frame['symbol_addr'] = '0x%x' % parse_addr(sfrm['symbol_addr'])
+                    new_frame['instruction_addr'] = '0x%x' % parse_addr(
                         sfrm['instruction_addr'])
-                    frame['in_app'] = is_in_app(frame)
-                    processed_frames.append(frame)
+                    new_frame['in_app'] = is_in_app(new_frame)
+
+                    if new_frame != frame:
+                        new_frames[idx] = new_frame
+                        store_raw = True
                 except Exception:
                     logger.exception('Failed to symbolicate')
                     errors.append({
@@ -420,6 +424,9 @@ def resolve_frame_symbols(data):
                 container['raw_stacktrace'] = {
                     'frames': stacktrace['frames'],
                 }
+
+            # Put the new frames in
+            stacktrace['frames'] = new_frames
 
     if errors:
         data.setdefault('errors', []).extend(errors)

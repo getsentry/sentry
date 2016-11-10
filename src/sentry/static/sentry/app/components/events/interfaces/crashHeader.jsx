@@ -8,7 +8,7 @@ const CrashHeader = React.createClass({
     title: React.PropTypes.string,
     beforeTitle: React.PropTypes.any,
     group: PropTypes.Group.isRequired,
-    platform: PropTypes.string,
+    platform: React.PropTypes.string,
     thread: React.PropTypes.object,
     exception: React.PropTypes.object,
     stacktrace: React.PropTypes.object,
@@ -44,11 +44,19 @@ const CrashHeader = React.createClass({
     );
   },
 
+  getOriginalButtonLabel() {
+    if (this.platform === 'javascript' || this.platform === 'node') {
+      return t('Original');
+    } else {
+      return t('Symbolicated');
+    }
+  },
+
   getMinifiedButtonLabel() {
     if (this.platform === 'javascript' || this.platform === 'node') {
       return t('Minified');
     } else {
-      return t('Stripped');
+      return t('Unsymbolicated');
     }
   },
 
@@ -104,7 +112,7 @@ const CrashHeader = React.createClass({
         <div className="btn-group">
           {this.hasMinified() &&
             [
-              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('original')}>{t('Original')}</a>,
+              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('original')}>{this.getOriginalButtonLabel()}</a>,
               <a key="minified" className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('minified')}>{this.getMinifiedButtonLabel()}</a>
             ]
           }
