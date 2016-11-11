@@ -157,6 +157,32 @@ ValueError: hello world
         context = inst.get_api_context()
         assert not context['hasSystemFrames']
 
+    def test_context_with_raw_stacks(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foobar',
+            'raw_stacktrace': {'frames': [{
+                'filename': None,
+                'lineno': 1,
+                'function': '<redacted>',
+                'in_app': True,
+            }]},
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.c',
+                'lineno': 1,
+                'function': 'main',
+                'in_app': True,
+            }]},
+        }]))
+
+        self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_api_context()
+        assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'
+        assert context['values'][0]['rawStacktrace']['frames'][0]['function'] == '<redacted>'
+
 
 class SingleExceptionTest(TestCase):
     @fixture
