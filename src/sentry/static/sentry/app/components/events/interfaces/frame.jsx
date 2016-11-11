@@ -245,6 +245,7 @@ const Frame = React.createClass({
     }
     return (
       <a
+        key="expander"
         title={t('Toggle context')}
         onClick={this.toggleContext}
         className="btn btn-sm btn-default btn-toggle">
