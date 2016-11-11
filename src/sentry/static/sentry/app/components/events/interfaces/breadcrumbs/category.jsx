@@ -2,7 +2,7 @@ import React from 'react';
 
 const Category = React.createClass({
   propTypes: {
-    value: React.PropTypes.string.isRequired,
+    value: React.PropTypes.string,
     title: React.PropTypes.string,
     hideIfEmpty: React.PropTypes.bool
   },
