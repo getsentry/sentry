@@ -202,7 +202,7 @@ const GroupActions = React.createClass({
                 <a onClick={this.onSnooze.bind(this, Snooze.ONEWEEK)}>{t('for 1 week')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.customSnoozeClicked.bind(this)}>{t('until custom date...')}</a>
+                <a onClick={this.customSnoozeClicked}>{t('until custom date...')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
                 <a onClick={this.onUpdate.bind(this, {status: 'ignored'})}>{t('forever')}</a>
