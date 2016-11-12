@@ -400,6 +400,30 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         assert result == []
 
+    def test_get_hash_uses_symbol_instead_of_function(self):
+        interface = Frame.to_python({
+            'module': 'libfoo',
+            'function': 'int main()',
+            'symbol': '_main',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'libfoo',
+            '_main',
+        ])
+
+    def test_get_hash_skips_symbol_if_unknown(self):
+        interface = Frame.to_python({
+            'module': 'libfoo',
+            'function': 'main',
+            'symbol': '?',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'libfoo',
+            'main',
+        ])
+
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
         event = mock.Mock(spec=Event())

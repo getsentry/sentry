@@ -103,6 +103,27 @@ ValueError: hello world
         context = inst.get_api_context()
         assert context['hasSystemFrames']
 
+    def test_context_with_symbols(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'function': 'myfunc',
+                'symbol': 'Class.myfunc',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+        }]))
+
+        self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_api_context()
+        assert context['values'][0]['stacktrace']['frames'][
+            0]['symbol'] == 'Class.myfunc'
+
     def test_context_with_only_system_frames(self):
         inst = Exception.to_python(dict(values=[{
             'type': 'ValueError',
