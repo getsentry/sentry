@@ -18,6 +18,7 @@
     "file-loader": "0.8.4",
     "gettext-parser": "1.1.1",
     "history": "1.13.0",
+    "ios-device-list": "^1.1.17",
     "jed": "^1.1.0",
     "jquery": "2.1.4",
     "js-cookie": "2.0.4",
