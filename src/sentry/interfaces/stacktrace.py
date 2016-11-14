@@ -165,6 +165,8 @@ def remove_filename_outliers(filename):
 
 def remove_module_outliers(module):
     """Remove things that augment the module but really should not."""
+    if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
+        return 'sun.reflect.GeneratedMethodAccessor'
     return _java_enhancer_re.sub(r'\1<auto>', module)
 
 

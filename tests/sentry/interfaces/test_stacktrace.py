@@ -244,6 +244,17 @@ class StacktraceTest(TestCase):
             'jipJipManagementApplication',
         ])
 
+    def test_get_hash_ignores_sun_java_generated_methods(self):
+        interface = Frame.to_python({
+            'module': 'sun.reflect.GeneratedMethodAccessor12345',
+            'function': 'invoke',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'sun.reflect.GeneratedMethodAccessor',
+            'invoke',
+        ])
+
     def test_get_hash_sanitizes_erb_templates(self):
         # This is Ruby specific
         interface = Frame.to_python({

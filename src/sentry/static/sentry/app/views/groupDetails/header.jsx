@@ -132,9 +132,9 @@ const GroupHeader = React.createClass({
                   </Link>
                 </span>
               }
-              {group.annotations.map((annotation) => {
+              {group.annotations.map((annotation, i) => {
                 return (
-                  <span className="event-annotation"
+                  <span className="event-annotation" key={i}
                       dangerouslySetInnerHTML={{__html: annotation}} />
                 );
               })}

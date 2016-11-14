@@ -8,14 +8,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-11-02 00:55+0000\n"
-"PO-Revision-Date: 2016-11-02 00:57+0000\n"
+"POT-Creation-Date: 2016-11-09 20:22+0000\n"
+"PO-Revision-Date: 2016-11-09 20:22+0000\n"
 "Last-Translator: mattrobenolt <m@robenolt.com>\n"
 "Language-Team: Hungarian (http://www.transifex.com/getsentry/sentry/language/hu/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.2.0\n"
+"Generated-By: Babel 2.3.4\n"
 "Language: hu\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -414,8 +414,8 @@ msgstr ""
 msgid "Stacktrace (most recent call last):"
 msgstr ""
 
-#: models/apikey.py:55 models/project.py:87 models/projectkey.py:54
-#: models/team.py:95
+#: models/apikey.py:55 models/project.py:88 models/projectkey.py:54
+#: models/team.py:107
 msgid "Active"
 msgstr ""
 
@@ -431,9 +431,10 @@ msgstr ""
 msgid "Info"
 msgstr "Infó"
 
-#: models/authenticator.py:172 templates/sentry/organization-members.html:127
-#: templates/sentry/organization-members.html:132
+#: models/authenticator.py:172
 #: static/sentry/app/components/activity/note.jsx:36
+#: templates/sentry/organization-members.html:127
+#: templates/sentry/organization-members.html:132
 msgid "Remove"
 msgstr ""
 
@@ -578,13 +579,13 @@ msgstr ""
 msgid "Visible"
 msgstr ""
 
-#: models/organization.py:81 models/project.py:88 models/tagkey.py:68
-#: models/team.py:96
+#: models/organization.py:81 models/project.py:89 models/tagkey.py:68
+#: models/team.py:108
 msgid "Pending Deletion"
 msgstr ""
 
-#: models/organization.py:82 models/project.py:89 models/tagkey.py:69
-#: models/team.py:97
+#: models/organization.py:82 models/project.py:90 models/tagkey.py:69
+#: models/team.py:109
 msgid "Deletion in Progress"
 msgstr ""
 
@@ -713,8 +714,8 @@ msgstr ""
 msgid "Re-enter the information, and submit the form again."
 msgstr ""
 
-#: templates/sentry/404.html:5
 #: static/sentry/app/components/errors/notFound.jsx:10
+#: templates/sentry/404.html:5
 msgid "Page Not Found"
 msgstr "Lap Nem Található"
 
@@ -782,7 +783,7 @@ msgstr ""
 #: templates/sentry/auth-confirm-identity.html:43
 #: templates/sentry/auth-link-login.html:7
 #: templates/sentry/auth-link-login.html:31 templates/sentry/login.html:7
-#: templates/sentry/login.html.py:12 templates/sentry/login.html:38
+#: templates/sentry/login.html:38 templates/sentry/login.html.py:12
 #: templates/sentry/organization-login.html:7
 #: templates/sentry/organization-login.html:32
 #: templates/sentry/organization-login.html:55
@@ -818,8 +819,8 @@ msgstr "Hozzáadhaz egy felhasználót a felhasználói nevével ha már rendelk
 msgid "Add Member"
 msgstr "Tag hozzáadása"
 
-#: templates/sentry/create-organization.html:6
 #: static/sentry/app/components/sidebar/organizationSelector.jsx:84
+#: templates/sentry/create-organization.html:6
 msgid "New Organization"
 msgstr "Új szervezet"
 
@@ -838,9 +839,9 @@ msgstr ""
 msgid "Create Organization"
 msgstr ""
 
+#: static/sentry/app/components/organizations/homeContainer.jsx:37
 #: templates/sentry/create-project.html:8
 #: templates/sentry/projects/cannot_create_teams.html:5
-#: static/sentry/app/components/organizations/homeContainer.jsx:37
 msgid "New Project"
 msgstr "Ú projekt"
 
@@ -868,8 +869,8 @@ msgstr ""
 msgid "Create Project"
 msgstr ""
 
-#: templates/sentry/create-team.html:7
 #: static/sentry/app/components/organizations/homeContainer.jsx:47
+#: templates/sentry/create-team.html:7
 msgid "New Team"
 msgstr "Új csapat"
 
@@ -895,10 +896,10 @@ msgstr ""
 msgid "If you'd like to help, tell us what happened below."
 msgstr ""
 
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:120
 #: templates/sentry/error-page-embed.html:265 web/forms/__init__.py:19
 #: web/forms/accounts.py:242 web/forms/add_project.py:15
 #: web/forms/add_team.py:13
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:120
 msgid "Name"
 msgstr "Neve"
 
@@ -918,8 +919,8 @@ msgstr ""
 msgid "Submit Crash Report"
 msgstr ""
 
-#: templates/sentry/error-page-embed.html:279
 #: static/sentry/app/components/alertMessage.jsx:35
+#: templates/sentry/error-page-embed.html:279
 msgid "Close"
 msgstr "Bezárás"
 
@@ -927,21 +928,20 @@ msgstr "Bezárás"
 msgid "Crash reports powered by <a href=\\"
 msgstr ""
 
-#: templates/sentry/layout.html:226
+#: static/sentry/app/components/footer.jsx:25 templates/sentry/layout.html:226
 #: templates/sentry/project-release-tracking.html:117
-#: static/sentry/app/components/footer.jsx:25
 msgid "API"
 msgstr "API"
 
-#: templates/sentry/layout.html:227 static/sentry/app/components/footer.jsx:26
+#: static/sentry/app/components/footer.jsx:26 templates/sentry/layout.html:227
 msgid "Docs"
 msgstr ""
 
-#: templates/sentry/layout.html:228 static/sentry/app/components/footer.jsx:27
+#: static/sentry/app/components/footer.jsx:27 templates/sentry/layout.html:228
 msgid "Contribute"
 msgstr ""
 
-#: templates/sentry/layout.html:229 static/sentry/app/components/footer.jsx:29
+#: static/sentry/app/components/footer.jsx:29 templates/sentry/layout.html:229
 msgid "Migrate to SaaS"
 msgstr ""
 
@@ -984,33 +984,33 @@ msgstr "API kulcs beállítások"
 msgid "Key"
 msgstr "Kulcs"
 
+#: static/sentry/app/views/teamSettings.jsx:96
+#: templates/sentry/account/appearance.html:37
+#: templates/sentry/account/emails.html:71
+#: templates/sentry/account/notifications.html:167
+#: templates/sentry/account/settings.html:72
+#: templates/sentry/admin/users/edit.html:20
 #: templates/sentry/organization-api-key-settings.html:50
 #: templates/sentry/organization-member-settings.html:85
 #: templates/sentry/organization-settings.html:46
-#: templates/sentry/account/appearance.html:37
-#: templates/sentry/account/emails.html:71
-#: templates/sentry/account/notifications.html:152
-#: templates/sentry/account/settings.html:72
-#: templates/sentry/admin/users/edit.html:20
 #: templates/sentry/partial/_form.html:17
 #: templates/sentry/projects/edit_key.html:74
 #: templates/sentry/projects/manage.html:111
 #: templates/sentry/projects/manage_tags.html:50
 #: templates/sentry/projects/quotas.html:38
-#: static/sentry/app/views/teamSettings.jsx:96
 msgid "Save Changes"
 msgstr "Módosítások mentése"
 
+#: static/sentry/app/components/organizations/homeSidebar.jsx:75
+#: templates/sentry/bases/organization.html:69
 #: templates/sentry/organization-api-keys.html:7
 #: templates/sentry/organization-api-keys.html:19
-#: templates/sentry/bases/organization.html:69
-#: static/sentry/app/components/organizations/homeSidebar.jsx:75
 msgid "API Keys"
 msgstr "API kulcsok"
 
-#: templates/sentry/organization-auth-settings.html:5
-#: templates/sentry/bases/organization.html:60
 #: static/sentry/app/components/organizations/homeSidebar.jsx:72
+#: templates/sentry/bases/organization.html:60
+#: templates/sentry/organization-auth-settings.html:5
 msgid "Auth"
 msgstr ""
 
@@ -1023,9 +1023,9 @@ msgstr "Részletek"
 msgid "Basics"
 msgstr "Alapok"
 
+#: static/sentry/app/views/stream/searchBar.jsx:75
 #: templates/sentry/organization-member-details.html:40
 #: templates/sentry/organization-member-settings.html:44
-#: static/sentry/app/views/stream/searchBar.jsx:75
 msgid "Status"
 msgstr "Állapot"
 
@@ -1034,10 +1034,10 @@ msgstr "Állapot"
 msgid "Added"
 msgstr "Hozzáadva"
 
+#: static/sentry/app/views/teamMembers.jsx:92
 #: templates/sentry/organization-member-details.html:64
 #: templates/sentry/organization-members.html:77
 #: templates/sentry/partial/members/_roles.html:5
-#: static/sentry/app/views/teamMembers.jsx:92
 msgid "Role"
 msgstr "Szerep"
 
@@ -1062,21 +1062,21 @@ msgstr ""
 msgid "Resend Invite"
 msgstr "Meghívó újraküldése"
 
+#: static/sentry/app/components/sidebar/organizationSelector.jsx:75
+#: templates/sentry/bases/organization.html:48
 #: templates/sentry/organization-members.html:8
 #: templates/sentry/organization-members.html:24
-#: templates/sentry/bases/organization.html:48
-#: static/sentry/app/components/sidebar/organizationSelector.jsx:75
 msgid "Members"
 msgstr "Tagok"
 
+#: static/sentry/app/views/teamMembers.jsx:79
 #: templates/sentry/organization-members.html:15
 #: templates/sentry/organization-members.html:20
-#: static/sentry/app/views/teamMembers.jsx:79
 msgid "Invite Member"
 msgstr "Tagok meghívása"
 
-#: templates/sentry/organization-members.html:19
 #: static/sentry/app/views/teamMembers.jsx:78
+#: templates/sentry/organization-members.html:19
 msgid "You do not have enough permission to add new members"
 msgstr ""
 
@@ -1088,8 +1088,8 @@ msgstr ""
 msgid "All pending access requests have been taken care of."
 msgstr ""
 
+#: static/sentry/app/views/teamMembers.jsx:91
 #: templates/sentry/organization-members.html:75
-#: static/sentry/app/views/organizationAuditLog.jsx:181
 msgid "Member"
 msgstr "Tag"
 
@@ -1097,9 +1097,9 @@ msgstr "Tag"
 msgid "Two-factor auth not enabled"
 msgstr ""
 
+#: static/sentry/app/views/groupDetails/header.jsx:193
 #: templates/sentry/organization-members.html:121
 #: templates/sentry/projects/keys.html:25
-#: static/sentry/app/views/groupDetails/header.jsx:193
 msgid "Details"
 msgstr "Részletek"
 
@@ -1125,23 +1125,23 @@ msgstr ""
 msgid "Thanks for using Sentry! We hope to see you again soon!"
 msgstr ""
 
+#: static/sentry/app/views/projectSettings/index.jsx:94
 #: templates/sentry/project-issue-tracking.html:7
 #: templates/sentry/project-issue-tracking.html:10
 #: templates/sentry/projects/manage.html:198
-#: static/sentry/app/views/projectSettings/index.jsx:94
 msgid "Issue Tracking"
 msgstr ""
 
+#: static/sentry/app/views/projectAlertSettings.jsx:156
 #: templates/sentry/project-issue-tracking.html:41
 #: templates/sentry/project-release-tracking.html:95
-#: static/sentry/app/views/projectAlertSettings.jsx:156
 msgid "Inactive Integrations"
 msgstr ""
 
+#: static/sentry/app/views/projectSettings/index.jsx:95
 #: templates/sentry/project-release-tracking.html:7
 #: templates/sentry/project-release-tracking.html:10
 #: templates/sentry/projects/manage.html:201
-#: static/sentry/app/views/projectSettings/index.jsx:95
 msgid "Release Tracking"
 msgstr "Verzió követés"
 
@@ -1162,9 +1162,9 @@ msgstr ""
 msgid "Reactivate Account"
 msgstr ""
 
+#: templates/sentry/bases/account.html:31
 #: templates/sentry/remove-account.html:7
 #: templates/sentry/remove-account.html:49
-#: templates/sentry/bases/account.html:31
 msgid "Close Account"
 msgstr ""
 
@@ -1180,17 +1180,17 @@ msgstr ""
 msgid "If you continue, the following organizations will be removed:"
 msgstr ""
 
-#: templates/sentry/remove-account.html:50
-#: templates/sentry/remove-organization.html:36
-#: templates/sentry/unsubscribe-issue-notifications.html:17
+#: static/sentry/app/components/customSnoozeModal.jsx:103
 #: templates/sentry/account/email_unsubscribe_project.html:23
 #: templates/sentry/account/twofactor/enroll_sms.html:37
 #: templates/sentry/account/twofactor/enroll_totp.html:41
 #: templates/sentry/account/twofactor/enroll_u2f.html:18
 #: templates/sentry/admin/users/remove.html:19
 #: templates/sentry/projects/remove.html:30
+#: templates/sentry/remove-account.html:50
+#: templates/sentry/remove-organization.html:36
 #: templates/sentry/teams/remove.html:40
-#: static/sentry/app/components/customSnoozeModal.jsx:103
+#: templates/sentry/unsubscribe-issue-notifications.html:17
 msgid "Cancel"
 msgstr "Mégse"
 
@@ -1219,20 +1219,20 @@ msgid ""
 "turning back."
 msgstr ""
 
-#: templates/sentry/twofactor.html:6 templates/sentry/account/twofactor.html:6
+#: templates/sentry/account/twofactor.html:6 templates/sentry/twofactor.html:6
 msgid "Two-Factor Authentication"
 msgstr ""
 
-#: templates/sentry/twofactor.html:36 templates/sentry/account/sudo.html:68
 #: static/sentry/app/views/installWizard.jsx:86
+#: templates/sentry/account/sudo.html:68 templates/sentry/twofactor.html:36
 msgid "Continue"
 msgstr "Folytatás"
 
-#: templates/sentry/unsubscribe-issue-notifications.html:7
-#: templates/sentry/unsubscribe-issue-notifications.html:16
+#: static/sentry/app/components/group/sidebar.jsx:113
 #: templates/sentry/account/email_unsubscribe_project.html:7
 #: templates/sentry/account/email_unsubscribe_project.html:22
-#: static/sentry/app/components/group/sidebar.jsx:113
+#: templates/sentry/unsubscribe-issue-notifications.html:7
+#: templates/sentry/unsubscribe-issue-notifications.html:16
 msgid "Unsubscribe"
 msgstr "Leiratkozás"
 
@@ -1241,8 +1241,8 @@ msgstr "Leiratkozás"
 msgid "Appearance"
 msgstr "Megjelenés"
 
-#: templates/sentry/account/appearance.html:15
 #: static/sentry/app/components/projectHeader/index.jsx:40
+#: templates/sentry/account/appearance.html:15
 msgid "Events"
 msgstr "Események"
 
@@ -1295,9 +1295,9 @@ msgstr "Nincsenek identitások ehhez a felhasználói fiókhoz rendelve."
 msgid "Identity"
 msgstr ""
 
+#: static/sentry/app/views/projectSettings/index.jsx:89
 #: templates/sentry/account/notifications.html:57
 #: templates/sentry/projects/manage.html:187
-#: static/sentry/app/views/projectSettings/index.jsx:89
 msgid "Alerts"
 msgstr ""
 
@@ -1315,8 +1315,8 @@ msgstr ""
 msgid "Assignment"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:71
 #: static/sentry/app/views/groupDetails/header.jsx:196
+#: templates/sentry/account/notifications.html:71
 msgid "Comments"
 msgstr "Megjegyzések"
 
@@ -1328,33 +1328,46 @@ msgstr ""
 msgid "Resolution"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:80
+#: templates/sentry/account/notifications.html:77
 msgid ""
-"You may subscribe (or unsubscribe) from individual issues on their "
-"respective pages."
+"\n"
+"            When workflow notifications are enabled for a project, you'll\n"
+"            receive an email when your teammates perform any of these actions.\n"
+"          "
 msgstr ""
 
-#: templates/sentry/account/notifications.html:84
+#: templates/sentry/account/notifications.html:88
+msgid ""
+"\n"
+"            You'll always receive notifications from issues that you're\n"
+"            subscribed to. You may subscribe (or unsubscribe) from individual\n"
+"            issues on their respective pages. You'll be automatically\n"
+"            subscribed when participating on an issue by taking one of the\n"
+"            actions listed above.\n"
+"          "
+msgstr ""
+
+#: templates/sentry/account/notifications.html:99
 msgid "Weekly Reports"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:86
+#: templates/sentry/account/notifications.html:101
 msgid ""
 "Reports contain a summary of what's happened within your organization over "
 "the last week."
 msgstr ""
 
-#: templates/sentry/account/notifications.html:92
+#: templates/sentry/account/notifications.html:107
 msgid "Fine Tuning"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:109
-#: templates/sentry/admin/users/edit.html:39
 #: static/sentry/app/views/organizationStats/projectTable.jsx:46
+#: templates/sentry/account/notifications.html:124
+#: templates/sentry/admin/users/edit.html:39
 msgid "Project"
 msgstr "Projekt"
 
-#: templates/sentry/account/notifications.html:111
+#: templates/sentry/account/notifications.html:126
 msgid "Email Address"
 msgstr "E-mail cím"
 
@@ -1366,9 +1379,9 @@ msgstr ""
 msgid "Two-factor authenticaton"
 msgstr ""
 
+#: static/sentry/app/views/stream/savedSearchSelector.jsx:210
 #: templates/sentry/account/security.html:13
 #: templates/sentry/bases/admin.html:22
-#: static/sentry/app/views/stream/savedSearchSelector.jsx:210
 msgid "Manage"
 msgstr ""
 
@@ -1500,10 +1513,10 @@ msgstr ""
 msgid "Send Confirmation Code"
 msgstr "Ellenőrző kód küldése"
 
+#: static/sentry/app/components/linkWithConfirmation.jsx:55
 #: templates/sentry/account/twofactor/enroll_sms.html:41
 #: templates/sentry/account/twofactor/enroll_totp.html:42
 #: templates/sentry/admin/users/remove.html:19
-#: static/sentry/app/components/linkWithConfirmation.jsx:55
 msgid "Confirm"
 msgstr "Jóváhagyás"
 
@@ -1525,9 +1538,9 @@ msgstr "Nem"
 msgid "Server Status"
 msgstr "Kiszolgáló állapot"
 
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:99
 #: templates/sentry/admin/status/env.html:12
 #: templates/sentry/bases/admin.html:15
-#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:99
 msgid "Environment"
 msgstr "Környezet"
 
@@ -1551,9 +1564,9 @@ msgstr ""
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
 msgstr ""
 
+#: static/sentry/app/views/projectSettings/index.jsx:85
 #: templates/sentry/admin/status/env.html:40
 #: templates/sentry/projects/manage.html:181
-#: static/sentry/app/views/projectSettings/index.jsx:85
 msgid "Configuration"
 msgstr "Beállítások"
 
@@ -1609,9 +1622,9 @@ msgstr ""
 msgid "Send a test email to %(email)s"
 msgstr "Teszt e-mail küldése a %(email)s címre"
 
+#: static/sentry/app/components/events/packageData.jsx:28
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/bases/admin.html:16
-#: static/sentry/app/components/events/packageData.jsx:28
 msgid "Packages"
 msgstr "Csomagok"
 
@@ -1640,9 +1653,9 @@ msgstr "Felhasználó eltávolítása"
 msgid "Cannot remove yourself"
 msgstr "Nem távolíthatod el magadat"
 
+#: static/sentry/app/views/adminProjects.jsx:36
 #: templates/sentry/admin/users/edit.html:30
 #: templates/sentry/bases/admin.html:25
-#: static/sentry/app/views/adminProjects.jsx:36
 msgid "Projects"
 msgstr "Projektek"
 
@@ -1654,19 +1667,19 @@ msgstr "Napi események"
 msgid "New User"
 msgstr "Új felhasználó"
 
+#: static/sentry/app/components/sidebar/organizationSelector.jsx:72
 #: templates/sentry/bases/account.html:7 templates/sentry/bases/admin.html:18
 #: templates/sentry/bases/organization.html:79
-#: static/sentry/app/components/sidebar/organizationSelector.jsx:72
 msgid "Settings"
 msgstr "Beállítások"
 
-#: templates/sentry/bases/account.html:16 templates/sentry/bases/modal.html:18
 #: static/sentry/app/components/sidebar/userNav.jsx:44
+#: templates/sentry/bases/account.html:16 templates/sentry/bases/modal.html:18
 msgid "Sign out"
 msgstr "Kilépés"
 
-#: templates/sentry/bases/account.html:35 web/forms/accounts.py:47
 #: static/sentry/app/components/sidebar/userNav.jsx:39
+#: templates/sentry/bases/account.html:35 web/forms/accounts.py:47
 msgid "Account"
 msgstr "Felhasználó"
 
@@ -1674,8 +1687,8 @@ msgstr "Felhasználó"
 msgid "Avatar"
 msgstr ""
 
-#: templates/sentry/bases/account.html:38
 #: static/sentry/app/components/group/sidebar.jsx:105
+#: templates/sentry/bases/account.html:38
 msgid "Notifications"
 msgstr "Értesítések"
 
@@ -1687,8 +1700,8 @@ msgstr ""
 msgid "Security"
 msgstr ""
 
-#: templates/sentry/bases/admin.html:7 web/forms/__init__.py:32
 #: static/sentry/app/components/sidebar/userNav.jsx:42
+#: templates/sentry/bases/admin.html:7 web/forms/__init__.py:32
 msgid "Admin"
 msgstr "Admin"
 
@@ -1696,8 +1709,8 @@ msgstr "Admin"
 msgid "System"
 msgstr "Rendszer"
 
-#: templates/sentry/bases/admin.html:12
 #: static/sentry/app/components/projectHeader/index.jsx:46
+#: templates/sentry/bases/admin.html:12
 msgid "Overview"
 msgstr "Áttekintés"
 
@@ -1709,13 +1722,13 @@ msgstr "Puffer"
 msgid "Mail"
 msgstr ""
 
-#: templates/sentry/bases/admin.html:24
 #: static/sentry/app/components/sidebar/organizationSelector.jsx:62
+#: templates/sentry/bases/admin.html:24
 msgid "Organizations"
 msgstr "Szervezetek"
 
-#: templates/sentry/bases/admin.html:26
 #: static/sentry/app/views/stream/actions.jsx:389
+#: templates/sentry/bases/admin.html:26
 msgid "Users"
 msgstr "Felhasználók"
 
@@ -1727,51 +1740,51 @@ msgstr "Pluginek"
 msgid "Organization Settings"
 msgstr "Szervezet beállítások"
 
-#: templates/sentry/bases/organization.html:20
 #: static/sentry/app/components/organizations/homeSidebar.jsx:40
+#: templates/sentry/bases/organization.html:20
 msgid "Dashboard"
 msgstr "Munka asztal"
 
-#: templates/sentry/bases/organization.html:25
 #: static/sentry/app/components/organizations/homeSidebar.jsx:44
+#: templates/sentry/bases/organization.html:25
 msgid "Projects & Teams"
 msgstr "Projektek & Csapatok"
 
-#: templates/sentry/bases/organization.html:31
 #: static/sentry/app/views/organizationStats/index.jsx:243
+#: templates/sentry/bases/organization.html:31
 msgid "Stats"
 msgstr "Statisztikák"
 
-#: templates/sentry/bases/organization.html:36
 #: static/sentry/app/components/projectHeader/index.jsx:34
+#: templates/sentry/bases/organization.html:36
 msgid "Issues"
 msgstr "Problémák"
 
-#: templates/sentry/bases/organization.html:38
 #: static/sentry/app/components/organizations/homeSidebar.jsx:52
+#: templates/sentry/bases/organization.html:38
 msgid "Assigned to Me"
 msgstr "Hozzám rendeltek"
 
-#: templates/sentry/bases/organization.html:39
 #: static/sentry/app/components/organizations/homeSidebar.jsx:53
+#: templates/sentry/bases/organization.html:39
 msgid "Bookmarks"
 msgstr "Könyvjelzők"
 
-#: templates/sentry/bases/organization.html:40
 #: static/sentry/app/components/organizations/homeSidebar.jsx:54
+#: templates/sentry/bases/organization.html:40
 msgid "History"
 msgstr "Előtörténet"
 
-#: templates/sentry/bases/organization.html:75
 #: static/sentry/app/components/organizations/homeSidebar.jsx:78
+#: templates/sentry/bases/organization.html:75
 msgid "Audit Log"
 msgstr ""
 
+#: static/sentry/app/views/organizationRateLimits/index.jsx:113
 #: templates/sentry/bases/organization.html:76
 #: templates/sentry/projects/manage.html:191
 #: templates/sentry/projects/quotas.html:7
 #: templates/sentry/projects/quotas.html:10
-#: static/sentry/app/views/projectSettings/index.jsx:91
 msgid "Rate Limits"
 msgstr ""
 
@@ -1801,17 +1814,17 @@ msgstr ""
 msgid "Test Configuration"
 msgstr ""
 
+#: static/sentry/app/components/pagination.jsx:42
 #: templates/sentry/partial/_pager.html:5
 #: templates/sentry/users/details.html:42
 #: templates/sentry/users/details.html:59
-#: static/sentry/app/components/pagination.jsx:42
 msgid "Previous"
 msgstr "Előző"
 
+#: static/sentry/app/components/pagination.jsx:48
 #: templates/sentry/partial/_pager.html:6
 #: templates/sentry/users/details.html:43
 #: templates/sentry/users/details.html:60
-#: static/sentry/app/components/pagination.jsx:48
 msgid "Next"
 msgstr "Következő"
 
@@ -1823,18 +1836,18 @@ msgstr "URL"
 msgid "Method"
 msgstr "Metódus"
 
-#: templates/sentry/partial/interfaces/http_email.html:19
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:126
+#: templates/sentry/partial/interfaces/http_email.html:19
 msgid "Query"
 msgstr "Lekérés"
 
-#: templates/sentry/partial/interfaces/http_email.html:27
 #: static/sentry/app/components/events/interfaces/richHttpContent.jsx:77
+#: templates/sentry/partial/interfaces/http_email.html:27
 msgid "Fragment"
 msgstr "Töredék"
 
-#: templates/sentry/partial/interfaces/user_email.html:13
 #: static/sentry/app/components/events/contextSummary.jsx:82
+#: templates/sentry/partial/interfaces/user_email.html:13
 msgid "ID:"
 msgstr "ID:"
 
@@ -1842,8 +1855,8 @@ msgstr "ID:"
 msgid "IP Address:"
 msgstr "IP Cím:"
 
-#: templates/sentry/partial/interfaces/user_email.html:25
 #: static/sentry/app/components/events/contextSummary.jsx:84
+#: templates/sentry/partial/interfaces/user_email.html:25
 msgid "Username:"
 msgstr "Felhasználó név:"
 
@@ -1863,13 +1876,13 @@ msgstr ""
 msgid "Link Existing"
 msgstr ""
 
-#: templates/sentry/plugins/bases/issue/create_issue.html:46
 #: static/sentry/app/plugins/components/issueActions.jsx:179
+#: templates/sentry/plugins/bases/issue/create_issue.html:46
 msgid "Create Issue"
 msgstr ""
 
-#: templates/sentry/plugins/bases/issue/create_issue.html:64
 #: static/sentry/app/plugins/components/issueActions.jsx:205
+#: templates/sentry/plugins/bases/issue/create_issue.html:64
 msgid "Link Issue"
 msgstr ""
 
@@ -1917,9 +1930,9 @@ msgid ""
 " in."
 msgstr ""
 
+#: static/sentry/app/views/projectInstall/overview.jsx:59
 #: templates/sentry/projects/edit_key.html:40
 #: templates/sentry/projects/keys.html:53
-#: static/sentry/app/views/projectInstall/overview.jsx:59
 msgid "DSN"
 msgstr "DSN"
 
@@ -1948,9 +1961,9 @@ msgstr "Titkos kulcs"
 msgid "Project ID"
 msgstr "Projekt ID"
 
+#: static/sentry/app/views/projectSettings/index.jsx:110
 #: templates/sentry/projects/keys.html:6
 #: templates/sentry/projects/keys.html:15
-#: static/sentry/app/views/projectSettings/index.jsx:110
 msgid "Client Keys"
 msgstr "Kliens kulcsok"
 
@@ -1958,8 +1971,8 @@ msgstr "Kliens kulcsok"
 msgid "Generate New Key"
 msgstr "Új kulcs generálása"
 
-#: templates/sentry/projects/keys.html:30
 #: static/sentry/app/components/pluginConfig.jsx:96
+#: templates/sentry/projects/keys.html:30
 msgid "Disable"
 msgstr "Letilt"
 
@@ -1977,8 +1990,8 @@ msgid ""
 ">Content-Security-Policy</code> header."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:32
 #: static/sentry/app/components/projectHeader/index.jsx:75
+#: templates/sentry/projects/manage.html:32
 msgid "Project Settings"
 msgstr "Projekt beállítások"
 
@@ -2030,50 +2043,50 @@ msgid ""
 "customized per-project."
 msgstr ""
 
-#: templates/sentry/projects/manage.html:184
 #: static/sentry/app/views/projectSettings/index.jsx:87
+#: templates/sentry/projects/manage.html:184
 msgid "General"
 msgstr ""
 
+#: static/sentry/app/components/events/eventTags.jsx:31
 #: templates/sentry/projects/manage.html:195
 #: templates/sentry/projects/manage_tags.html:7
 #: templates/sentry/projects/manage_tags.html:10
-#: static/sentry/app/components/events/eventTags.jsx:31
 msgid "Tags"
 msgstr "Címkék"
 
-#: templates/sentry/projects/manage.html:204
 #: static/sentry/app/views/projectSettings/index.jsx:96
+#: templates/sentry/projects/manage.html:204
 msgid "Saved Searches"
 msgstr "Mentett keresések"
 
-#: templates/sentry/projects/manage.html:207
 #: static/sentry/app/views/projectSettings/index.jsx:97
+#: templates/sentry/projects/manage.html:207
 msgid "Debug Symbols"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:210
 #: static/sentry/app/views/projectSettings/index.jsx:99
+#: templates/sentry/projects/manage.html:210
 msgid "Data"
 msgstr "Adat"
 
-#: templates/sentry/projects/manage.html:213
 #: static/sentry/app/views/projectSettings/index.jsx:104
+#: templates/sentry/projects/manage.html:213
 msgid "Error Tracking"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:217
 #: static/sentry/app/views/projectSettings/index.jsx:106
+#: templates/sentry/projects/manage.html:217
 msgid "CSP Reports"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:221
 #: static/sentry/app/components/projectHeader/index.jsx:51
+#: templates/sentry/projects/manage.html:221
 msgid "User Feedback"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:224
 #: static/sentry/app/views/projectSettings/index.jsx:109
+#: templates/sentry/projects/manage.html:224
 msgid "Inbound Filters"
 msgstr ""
 
@@ -2081,14 +2094,14 @@ msgstr ""
 msgid "Client Keys (DSN)"
 msgstr ""
 
+#: static/sentry/app/views/projectSettings/index.jsx:112
 #: templates/sentry/projects/manage.html:231
 #: templates/sentry/projects/plugins/list.html:10
-#: static/sentry/app/views/projectSettings/index.jsx:112
 msgid "Integrations"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:234
 #: static/sentry/app/views/projectSettings/index.jsx:114
+#: templates/sentry/projects/manage.html:234
 msgid "All Integrations"
 msgstr ""
 
@@ -2176,9 +2189,9 @@ msgstr ""
 msgid "Team List"
 msgstr ""
 
+#: static/sentry/app/views/teamDetails.jsx:92
 #: templates/sentry/teams/remove.html:7 templates/sentry/teams/remove.html:12
 #: templates/sentry/teams/remove.html:39
-#: static/sentry/app/views/teamDetails.jsx:92
 msgid "Remove Team"
 msgstr ""
 
@@ -2210,8 +2223,8 @@ msgstr "0 perce"
 msgid "just now"
 msgstr "éppen most"
 
-#: templatetags/sentry_helpers.py:197
 #: static/sentry/app/views/projectDashboard.jsx:135
+#: templatetags/sentry_helpers.py:197
 msgid "1 day"
 msgstr "1 napja"
 
@@ -2364,38 +2377,44 @@ msgid "Designate an alternative email address to send email notifications to."
 msgstr ""
 
 #: web/forms/accounts.py:449
-msgid "Subscribe to alerts for projects by default"
+msgid "Automatically subscribe to alerts for new projects"
 msgstr ""
 
-#: web/forms/accounts.py:453
-msgid "Receive updates for all issues by default"
-msgstr ""
-
-#: web/forms/accounts.py:454
+#: web/forms/accounts.py:450
 msgid ""
-"You'll always receive notifications if you're explicitly participating on an"
-" issue."
+"When enabled, you'll automatically subscribe to alerts when you create or "
+"join a project."
 msgstr ""
 
-#: web/forms/accounts.py:458
+#: web/forms/accounts.py:455
+msgid "Automatically subscribe to workflow notifications for new projects"
+msgstr ""
+
+#: web/forms/accounts.py:456
+msgid ""
+"When enabled, you'll automatically subscribe to workflow notifications when "
+"you create or join a project."
+msgstr ""
+
+#: web/forms/accounts.py:460
 msgid "Receive notifications about my own activity"
 msgstr ""
 
-#: web/forms/accounts.py:459
+#: web/forms/accounts.py:461
 msgid ""
 "Enable this if you wish to receive emails for your own actions, as well as "
 "others."
 msgstr ""
 
-#: web/forms/accounts.py:591
+#: web/forms/accounts.py:593
 msgid "One-time password"
 msgstr "Egyszeri belépési jelszó"
 
-#: web/forms/accounts.py:592
+#: web/forms/accounts.py:594
 msgid "Code from authenticator"
 msgstr ""
 
-#: web/forms/accounts.py:600
+#: web/forms/accounts.py:602
 msgid "Sentry account password"
 msgstr ""
 
@@ -2431,8 +2450,8 @@ msgstr "pl. 127.0.0.1 vagy 10.0.0.0/8"
 msgid "Minimum delivery frequency"
 msgstr ""
 
-#: web/forms/projects.py:21
 #: static/sentry/app/views/projectAlertSettings.jsx:105
+#: web/forms/projects.py:21
 msgid "Notifications will be delivered at most this often."
 msgstr ""
 
@@ -2440,8 +2459,8 @@ msgstr ""
 msgid "Maximum delivery frequency"
 msgstr ""
 
-#: web/forms/projects.py:27
 #: static/sentry/app/views/projectAlertSettings.jsx:119
+#: web/forms/projects.py:27
 msgid "Notifications will be delivered at least this often."
 msgstr ""
 
@@ -2576,9 +2595,9 @@ msgstr ""
 msgid "Allowed Domains"
 msgstr "Engedélyezett domének"
 
+#: static/sentry/app/views/projectCspSettings.jsx:97
 #: web/frontend/organization_api_key_settings.py:16
 #: web/frontend/project_settings.py:31 web/frontend/project_settings.py:81
-#: static/sentry/app/views/projectCspSettings.jsx:97
 msgid "Separate multiple entries with a newline."
 msgstr ""
 
@@ -2634,9 +2653,9 @@ msgstr "A beállítások el lettek mentve."
 msgid "The name of your organization. i.e. My Company"
 msgstr ""
 
+#: static/sentry/app/views/teamSettings.jsx:88
 #: web/frontend/organization_settings.py:18
 #: web/frontend/project_settings.py:26
-#: static/sentry/app/views/teamSettings.jsx:88
 msgid "Short name"
 msgstr "Rövid név"
 
@@ -2923,14 +2942,6 @@ msgstr ""
 msgid "Done"
 msgstr "Kész"
 
-#: static/sentry/app/components/organizations/homeContainer.jsx:35
-msgid "You do not have enough permission to create new projects"
-msgstr ""
-
-#: static/sentry/app/components/organizations/homeContainer.jsx:46
-msgid "You do not have enough permission to create new teams"
-msgstr ""
-
 #: static/sentry/app/components/loadingError.jsx:12
 msgid "There was an error loading data."
 msgstr ""
@@ -2938,6 +2949,14 @@ msgstr ""
 #: static/sentry/app/components/loadingError.jsx:27
 msgid "Retry"
 msgstr "Újra"
+
+#: static/sentry/app/components/organizations/homeContainer.jsx:35
+msgid "You do not have enough permission to create new projects"
+msgstr ""
+
+#: static/sentry/app/components/organizations/homeContainer.jsx:46
+msgid "You do not have enough permission to create new teams"
+msgstr ""
 
 #: static/sentry/app/components/bases/pluginComponentBase.jsx:81
 msgid "Saving changes.."
@@ -3170,6 +3189,10 @@ msgstr "Kért művelet:"
 msgid "Avatar Type"
 msgstr ""
 
+#: static/sentry/app/components/avatarCropper.jsx:358
+msgid "Change Photo"
+msgstr "Fotó megváltoztatása"
+
 #: static/sentry/app/views/apiDashboard.jsx:127
 msgid "You haven't created any authentication tokens yet."
 msgstr ""
@@ -3209,10 +3232,6 @@ msgstr ""
 msgid "Scopes"
 msgstr ""
 
-#: static/sentry/app/components/avatarCropper.jsx:358
-msgid "Change Photo"
-msgstr "Fotó megváltoztatása"
-
 #: static/sentry/app/views/adminSettings.jsx:149
 msgid "Your changes were saved, and will propagate to services shortly."
 msgstr ""
@@ -3237,6 +3256,38 @@ msgstr ""
 msgid "Getting a list of all of your organizations."
 msgstr ""
 
+#: static/sentry/app/views/groupEvents.jsx:115
+msgid "Sorry, no events match your search query."
+msgstr "Sajnálom, nincsen a keresési feltételeknek megfelelő esemény."
+
+#: static/sentry/app/views/groupEvents.jsx:124
+msgid "There don't seem to be any events yet."
+msgstr "Nincs egy esemény sem jelenleg."
+
+#: static/sentry/app/views/groupHashes.jsx:104
+msgid "ID"
+msgstr "ID"
+
+#: static/sentry/app/views/groupEvents.jsx:200
+msgid "User"
+msgstr "Felhasználó"
+
+#: static/sentry/app/views/groupEvents.jsx:236
+msgid "search event message or tags"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails.jsx:162
+msgid "The issue you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/groupHashes.jsx:83
+msgid "There don't seem to be any hashes for this issue."
+msgstr ""
+
+#: static/sentry/app/views/groupTags.jsx:100
+msgid "More Details"
+msgstr "További részletek"
+
 #: static/sentry/app/views/groupTagValues.jsx:124
 msgid "%2$d unique historical value"
 msgid_plural "%2$d unique historical values"
@@ -3251,58 +3302,12 @@ msgstr ""
 msgid "Value"
 msgstr "Érték"
 
-#: static/sentry/app/views/groupHashes.jsx:83
-msgid "There don't seem to be any hashes for this issue."
-msgstr ""
-
-#: static/sentry/app/views/groupEvents.jsx:189
-msgid "ID"
-msgstr "ID"
-
-#: static/sentry/app/views/groupTags.jsx:100
-msgid "More Details"
-msgstr "További részletek"
-
 #: static/sentry/app/views/groupUserReports.jsx:110
 msgid "No user reports have been collected for this event."
 msgstr ""
 
 #: static/sentry/app/views/projectUserReports.jsx:165
 msgid "Learn how to integrate User Feedback"
-msgstr ""
-
-#: static/sentry/app/views/organizationDetails.jsx:134
-msgid "Loading data for your organization."
-msgstr ""
-
-#: static/sentry/app/views/organizationDetails.jsx:143
-msgid "The organization you were looking for was not found."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails.jsx:162
-msgid "The issue you were looking for was not found."
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
-msgid ""
-"You don't have any teams for this organization yet. Get started by "
-"[link:creating your first team]."
-msgstr ""
-
-#: static/sentry/app/views/groupEvents.jsx:113
-msgid "Sorry, no events match your search query."
-msgstr "Sajnálom, nincsen a keresési feltételeknek megfelelő esemény."
-
-#: static/sentry/app/views/groupEvents.jsx:122
-msgid "There don't seem to be any events yet."
-msgstr "Nincs egy esemény sem jelenleg."
-
-#: static/sentry/app/views/groupEvents.jsx:198
-msgid "User"
-msgstr "Felhasználó"
-
-#: static/sentry/app/views/groupEvents.jsx:234
-msgid "search event message or tags"
 msgstr ""
 
 #: static/sentry/app/views/organizationDashboard.jsx:48
@@ -3313,9 +3318,63 @@ msgstr "Továbbiak megjelenítése"
 msgid "No new issues have been seen in the last week."
 msgstr ""
 
-#: static/sentry/app/views/projectChooser.jsx:60
-msgid "Choose a project"
-msgstr "Válassz projektet"
+#: static/sentry/app/views/organizationAuditLog.jsx:128
+msgid "No results found."
+msgstr "Nincs találat."
+
+#: static/sentry/app/views/organizationAuditLog.jsx:165
+msgid "Any"
+msgstr "Bármelyik"
+
+#: static/sentry/app/views/organizationAuditLog.jsx:175
+msgid "Sentry keeps track of important events within your organization."
+msgstr ""
+
+#: static/sentry/app/views/organizationAuditLog.jsx:182
+msgid "Action"
+msgstr "Művelet"
+
+#: static/sentry/app/views/organizationAuditLog.jsx:183
+msgid "IP"
+msgstr "IP"
+
+#: static/sentry/app/views/organizationAuditLog.jsx:184
+msgid "Time"
+msgstr "Idő"
+
+#: static/sentry/app/views/organizationDetails.jsx:134
+msgid "Loading data for your organization."
+msgstr ""
+
+#: static/sentry/app/views/organizationDetails.jsx:143
+msgid "The organization you were looking for was not found."
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/allTeamsList.jsx:41
+msgid ""
+"You don't have any teams for this organization yet. Get started by "
+"[link:creating your first team]."
+msgstr ""
+
+#: static/sentry/app/components/bases/pluginComponentBase.jsx:100
+msgid "Unable to save changes. Please try again."
+msgstr ""
+
+#: static/sentry/app/views/projectAlertRules.jsx:64
+msgid "Edit Rule"
+msgstr ""
+
+#: static/sentry/app/views/projectAlertRules.jsx:180
+msgid "There are no alerts configured for this project."
+msgstr ""
+
+#: static/sentry/app/views/projectAlertSettings.jsx:242
+msgid "New Alert Rule"
+msgstr ""
+
+#: static/sentry/app/views/projectAlertSettings.jsx:249
+msgid "Rules"
+msgstr "Szabályok"
 
 #: static/sentry/app/views/projectAlertSettings.jsx:79
 msgid "Digests"
@@ -3329,17 +3388,25 @@ msgstr ""
 msgid "Maximum delivery interval"
 msgstr ""
 
-#: static/sentry/app/components/bases/pluginComponentBase.jsx:100
-msgid "Unable to save changes. Please try again."
+#: static/sentry/app/views/projectChooser.jsx:60
+msgid "Choose a project"
+msgstr "Válassz projektet"
+
+#: static/sentry/app/views/projectDashboard.jsx:126
+msgid "1 hour"
+msgstr "1 óra"
+
+#: static/sentry/app/views/projectDashboard.jsx:143
+msgid "1 week"
+msgstr "1 hét"
+
+#: static/sentry/app/views/projectDashboard.jsx:155
+msgid "Trending Issues"
 msgstr ""
 
-#: static/sentry/app/views/projectAlertRules.jsx:210
-msgid "New Alert Rule"
-msgstr ""
-
-#: static/sentry/app/views/projectAlertRules.jsx:217
-msgid "Rules"
-msgstr "Szabályok"
+#: static/sentry/app/views/releaseDetails.jsx:139
+msgid "New Issues"
+msgstr "Új problémák"
 
 #: static/sentry/app/views/projectCspSettings.jsx:87
 msgid "Use Default Ignored Sources"
@@ -3358,32 +3425,12 @@ msgstr ""
 msgid "Integration"
 msgstr "Integráció"
 
-#: static/sentry/app/views/projectDashboard.jsx:126
-msgid "1 hour"
-msgstr "1 óra"
-
-#: static/sentry/app/views/projectDashboard.jsx:143
-msgid "1 week"
-msgstr "1 hét"
-
-#: static/sentry/app/views/projectDashboard.jsx:155
-msgid "Trending Issues"
-msgstr ""
-
-#: static/sentry/app/views/releaseDetails.jsx:139
-msgid "New Issues"
-msgstr "Új problémák"
-
-#: static/sentry/app/views/projectAlertRules.jsx:64
-msgid "Edit Rule"
-msgstr ""
-
-#: static/sentry/app/views/projectAlertRules.jsx:180
-msgid "There are no alerts configured for this project."
-msgstr ""
-
 #: static/sentry/app/views/projectFilters.jsx:169
 msgid "Inbound Data Filters"
+msgstr ""
+
+#: static/sentry/app/views/projectDetails.jsx:190
+msgid "The project you were looking for was not found."
 msgstr ""
 
 #: static/sentry/app/views/projectInstall/overview.jsx:50
@@ -3420,6 +3467,23 @@ msgstr "Keretrendszerek"
 msgid "Languages"
 msgstr "Nyelvek"
 
+#: static/sentry/app/views/projectInstall/platform.jsx:98
+msgid "Generic"
+msgstr "Általános"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:120
+msgid "Full Documentation"
+msgstr "Teljes dokumentáció"
+
+#: static/sentry/app/views/projectInstall/platform.jsx:123
+#, python-format
+msgid "Configure %(integration)s"
+msgstr ""
+
+#: static/sentry/app/views/projectInstall/platform.jsx:152
+msgid "Got it! Take me to the Issue Stream."
+msgstr ""
+
 #: static/sentry/app/views/projectDebugSymbols.jsx:72
 msgid "There are no debug symbols for this project."
 msgstr ""
@@ -3444,43 +3508,8 @@ msgstr "Feltöltés ideje"
 msgid "Size"
 msgstr "Méret"
 
-#: static/sentry/app/views/projectDetails.jsx:190
-msgid "The project you were looking for was not found."
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:98
-msgid "Generic"
-msgstr "Általános"
-
-#: static/sentry/app/views/projectInstall/platform.jsx:120
-msgid "Full Documentation"
-msgstr "Teljes dokumentáció"
-
-#: static/sentry/app/views/projectInstall/platform.jsx:123
-#, python-format
-msgid "Configure %(integration)s"
-msgstr ""
-
-#: static/sentry/app/views/projectInstall/platform.jsx:152
-msgid "Got it! Take me to the Issue Stream."
-msgstr ""
-
-#: static/sentry/app/views/releaseAllEvents.jsx:20
-msgid "View all events seen in this release in the stream"
-msgstr ""
-
-#: static/sentry/app/views/projectUserReportSettings.jsx:87
-msgid "Show Sentry Branding"
-msgstr ""
-
-#: static/sentry/app/views/projectUserReportSettings.jsx:88
-msgid ""
-"Show \"powered by Sentry\" within the feedback dialog. We appreciate you "
-"helping get the word out about Sentry! <3"
-msgstr ""
-
-#: static/sentry/app/views/releaseNewEvents.jsx:20
-msgid "View new events seen in this release in the stream"
+#: static/sentry/app/views/projectSavedSearches.jsx:207
+msgid "There are no saved searches for this project."
 msgstr ""
 
 #: static/sentry/app/views/projectUserReports.jsx:155
@@ -3495,49 +3524,19 @@ msgstr ""
 msgid "All Issues"
 msgstr "Minden probléma"
 
-#: static/sentry/app/components/group/seenInfo.jsx:85
-msgid "Release"
-msgstr "Kiadás"
-
-#: static/sentry/app/views/releaseDetails.jsx:115
-msgid "First Event"
-msgstr "Első esemény"
-
-#: static/sentry/app/views/projectReleases/index.jsx:177
-msgid "Last Event"
-msgstr "Utolsó esemény"
-
-#: static/sentry/app/views/releaseDetails.jsx:141
-msgid "Artifacts"
+#: static/sentry/app/views/releaseAllEvents.jsx:20
+msgid "View all events seen in this release in the stream"
 msgstr ""
 
-#: static/sentry/app/views/teamSettings.jsx:81
-msgid "e.g. API Team"
+#: static/sentry/app/views/projectUserReportSettings.jsx:87
+msgid "Show Sentry Branding"
 msgstr ""
 
-#: static/sentry/app/views/organizationAuditLog.jsx:128
-msgid "No results found."
-msgstr "Nincs találat."
-
-#: static/sentry/app/views/organizationAuditLog.jsx:165
-msgid "Any"
-msgstr "Bármelyik"
-
-#: static/sentry/app/views/organizationAuditLog.jsx:175
-msgid "Sentry keeps track of important events within your organization."
+#: static/sentry/app/views/projectUserReportSettings.jsx:88
+msgid ""
+"Show \"powered by Sentry\" within the feedback dialog. We appreciate you "
+"helping get the word out about Sentry! <3"
 msgstr ""
-
-#: static/sentry/app/views/organizationAuditLog.jsx:182
-msgid "Action"
-msgstr "Művelet"
-
-#: static/sentry/app/views/organizationAuditLog.jsx:183
-msgid "IP"
-msgstr "IP"
-
-#: static/sentry/app/views/organizationAuditLog.jsx:184
-msgid "Time"
-msgstr "Idő"
 
 #: static/sentry/app/views/releaseArtifacts.jsx:75
 msgid "Removing artifact.."
@@ -3563,6 +3562,30 @@ msgstr ""
 msgid "Are you sure you want to remove this artifact?"
 msgstr ""
 
+#: static/sentry/app/views/releaseNewEvents.jsx:20
+msgid "View new events seen in this release in the stream"
+msgstr ""
+
+#: static/sentry/app/components/group/seenInfo.jsx:85
+msgid "Release"
+msgstr "Kiadás"
+
+#: static/sentry/app/views/releaseDetails.jsx:115
+msgid "First Event"
+msgstr "Első esemény"
+
+#: static/sentry/app/views/projectReleases/index.jsx:177
+msgid "Last Event"
+msgstr "Utolsó esemény"
+
+#: static/sentry/app/views/releaseDetails.jsx:141
+msgid "Artifacts"
+msgstr ""
+
+#: static/sentry/app/views/teamSettings.jsx:81
+msgid "e.g. API Team"
+msgstr ""
+
 #: static/sentry/app/views/stream.jsx:510
 msgid "Or see a sample Javascript event"
 msgstr ""
@@ -3583,7 +3606,7 @@ msgstr "Telepítési útmutatók"
 msgid "Sorry, no events match your filters."
 msgstr "Sajnálom, nincs a szűrésnek megfelelő esemény."
 
-#: static/sentry/app/views/groupDetails/actions.jsx:230
+#: static/sentry/app/views/groupDetails/actions.jsx:233
 msgid "More"
 msgstr "Több"
 
@@ -3619,10 +3642,6 @@ msgstr ""
 msgid "Set Call Signs"
 msgstr ""
 
-#: static/sentry/app/views/projectSavedSearches.jsx:207
-msgid "There are no saved searches for this project."
-msgstr ""
-
 #: static/sentry/app/components/u2finterface.jsx:133
 msgid "Support"
 msgstr ""
@@ -3655,53 +3674,13 @@ msgstr ""
 msgid "No recent updates from the Sentry team."
 msgstr ""
 
-#: static/sentry/app/components/activity/feed.jsx:122
-msgid "Nothing to show here, move along."
-msgstr "Nincs itt semmi látnivaló, menj tovább."
-
 #: static/sentry/app/components/sidebar/incidents.jsx:41
 msgid "Recent status updates"
 msgstr ""
 
-#: static/sentry/app/views/organizationRateLimits/index.jsx:36
-msgid "Saving.."
-msgstr "Mentés.."
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:71
-msgid ""
-"Your organization is limited to [strong:[maxRate] events per minute]. When "
-"this rate is exceeded the system will begin discarding data until the next "
-"interval."
-msgstr ""
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:80
-msgid "Max percentage a single project may send"
-msgstr ""
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:85
-msgid ""
-"The maximum percentage of your quota an individual project can consume."
-msgstr ""
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:91
-msgid "Apply Changes"
-msgstr "Módosítások érvényesítése"
-
-#: static/sentry/app/views/organizationRateLimits/index.jsx:119
-msgid "There are no rate limits configured for your organization."
-msgstr ""
-
-#: static/sentry/app/views/projectEvents/index.jsx:142
-msgid "There don't seem to be any events."
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:255
-msgid "Events per minute"
-msgstr ""
-
-#: static/sentry/app/views/organizationStats/index.jsx:279
-msgid "Events by Project"
-msgstr ""
+#: static/sentry/app/components/activity/feed.jsx:122
+msgid "Nothing to show here, move along."
+msgstr "Nincs itt semmi látnivaló, menj tovább."
 
 #: static/sentry/app/views/organizationTeams/index.jsx:74
 msgid "Your Teams"
@@ -3738,6 +3717,46 @@ msgstr "Verziók"
 #: static/sentry/app/views/projectReleases/index.jsx:174
 msgid "New Events"
 msgstr "Új események"
+
+#: static/sentry/app/views/organizationStats/index.jsx:255
+msgid "Events per minute"
+msgstr ""
+
+#: static/sentry/app/views/organizationStats/index.jsx:279
+msgid "Events by Project"
+msgstr ""
+
+#: static/sentry/app/views/projectEvents/index.jsx:142
+msgid "There don't seem to be any events."
+msgstr ""
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:36
+msgid "Saving.."
+msgstr "Mentés.."
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:71
+msgid ""
+"Your organization is limited to [strong:[maxRate] events per minute]. When "
+"this rate is exceeded the system will begin discarding data until the next "
+"interval."
+msgstr ""
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:80
+msgid "Max percentage a single project may send"
+msgstr ""
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:85
+msgid ""
+"The maximum percentage of your quota an individual project can consume."
+msgstr ""
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:91
+msgid "Apply Changes"
+msgstr "Módosítások érvényesítése"
+
+#: static/sentry/app/views/organizationRateLimits/index.jsx:119
+msgid "There are no rate limits configured for your organization."
+msgstr ""
 
 #: static/sentry/app/views/groupActivity/index.jsx:37
 #, python-format
@@ -3839,19 +3858,6 @@ msgstr[1] ""
 msgid "Removing comment.."
 msgstr "Megjegyzés elvtávolítása.."
 
-#: static/sentry/app/components/events/eventEntries.jsx:92
-msgid "There was an error rendering this data."
-msgstr ""
-
-#: static/sentry/app/components/events/eventEntries.jsx:121
-#, python-format
-msgid "This event was reported with an old version of the %s SDK."
-msgstr ""
-
-#: static/sentry/app/components/events/eventEntries.jsx:124
-msgid "Learn More"
-msgstr ""
-
 #: static/sentry/app/options.jsx:14
 msgid "Outbound email"
 msgstr ""
@@ -3937,6 +3943,51 @@ msgstr "SMTP jelszó"
 msgid "Use TLS?"
 msgstr "Használjunk TLS -t?"
 
+#: static/sentry/app/components/group/sidebar.jsx:65
+msgid "External Issues"
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:107
+msgid ""
+"You're subscribed to this issue and will get notified when updates happen."
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:109
+msgid "You're not subscribed in this issue."
+msgstr ""
+
+#: static/sentry/app/components/group/sidebar.jsx:113
+msgid "Subscribe"
+msgstr ""
+
+#: static/sentry/app/components/events/eventEntries.jsx:92
+msgid "There was an error rendering this data."
+msgstr ""
+
+#: static/sentry/app/components/events/eventEntries.jsx:121
+#, python-format
+msgid "This event was reported with an old version of the %s SDK."
+msgstr ""
+
+#: static/sentry/app/components/events/eventEntries.jsx:124
+msgid "Learn More"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:21
+#, python-format
+msgid "This issue has been ignored until %s"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:26
+msgid "This issue has been ignored"
+msgstr ""
+
+#: static/sentry/app/components/mutedBox.jsx:28
+msgid ""
+"You will not be notified of any changes and it will not show up by default "
+"in feeds."
+msgstr ""
+
 #: static/sentry/app/views/installWizard.jsx:183
 #, python-format
 msgid ""
@@ -3961,97 +4012,17 @@ msgstr "Sentry beállítások"
 msgid "Welcome to Sentry"
 msgstr "Üdvözöllek a Sentry -ben"
 
-#: static/sentry/app/components/group/sidebar.jsx:65
-msgid "External Issues"
-msgstr ""
+#: static/sentry/app/components/events/eventsPerHour.jsx:124
+msgid "View Stats"
+msgstr "Statisztika megjelenítése"
 
-#: static/sentry/app/components/group/sidebar.jsx:107
-msgid ""
-"You're subscribed to this issue and will get notified when updates happen."
-msgstr ""
+#: static/sentry/app/components/events/eventsPerHour.jsx:125
+msgid "Events Per Hour"
+msgstr "Események óránként"
 
-#: static/sentry/app/components/group/sidebar.jsx:109
-msgid "You're not subscribed in this issue."
-msgstr ""
-
-#: static/sentry/app/components/group/sidebar.jsx:113
-msgid "Subscribe"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:91
-msgid "Oldest"
-msgstr "Legrégebbi"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:105
-msgid "Older"
-msgstr "Régebbi"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:114
-msgid "Newer"
-msgstr "Újabb"
-
-#: static/sentry/app/views/groupDetails/eventToolbar.jsx:121
-msgid "Newest"
-msgstr "Legújabb"
-
-#: static/sentry/app/components/groupListHeader.jsx:10
-msgid "Event"
-msgstr "Esemény"
-
-#: static/sentry/app/components/mutedBox.jsx:21
-#, python-format
-msgid "This issue has been ignored until %s"
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:26
-msgid "This issue has been ignored"
-msgstr ""
-
-#: static/sentry/app/components/mutedBox.jsx:28
-msgid ""
-"You will not be notified of any changes and it will not show up by default "
-"in feeds."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/header.jsx:147
-msgid "Issue #"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:82
-msgid "Assigned"
-msgstr "Hozzárendelt"
-
-#: static/sentry/app/views/groupDetails/header.jsx:180
-msgid "Share this event"
-msgstr "Esemény megosztása"
-
-#: static/sentry/app/views/groupDetails/header.jsx:205
-msgid "Related Events"
-msgstr "Kapcsolódó események"
-
-#: static/sentry/app/stores/groupStore.jsx:220
-msgid "Unable to change assignee. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:244
-msgid "Unable to delete events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:255
-msgid "The selected events have been scheduled for deletion."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:274
-msgid "Unable to merge events. Please try again."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:291
-msgid "The selected events have been scheduled for merge."
-msgstr ""
-
-#: static/sentry/app/stores/groupStore.jsx:323
-msgid "Unable to update events. Please try again."
-msgstr ""
+#: static/sentry/app/views/projectDashboard/eventList.jsx:108
+msgid "No data available."
+msgstr "Nem érhető el adat."
 
 #: static/sentry/app/views/organizationTeams/allTeamsRow.jsx:50
 msgid "There was an error while trying to join the team."
@@ -4081,18 +4052,6 @@ msgstr "Hozzáférés kérése"
 msgid "Team Settings"
 msgstr "Csapat beállítások"
 
-#: static/sentry/app/views/projectDashboard/eventList.jsx:108
-msgid "No data available."
-msgstr "Nem érhető el adat."
-
-#: static/sentry/app/components/events/eventsPerHour.jsx:124
-msgid "View Stats"
-msgstr "Statisztika megjelenítése"
-
-#: static/sentry/app/components/events/eventsPerHour.jsx:125
-msgid "Events Per Hour"
-msgstr "Események óránként"
-
 #: static/sentry/app/components/missingProjectMembership.jsx:62
 #, python-format
 msgid "To view this data you must first join the %s team."
@@ -4111,6 +4070,78 @@ msgstr ""
 msgid "Please confirm"
 msgstr "Jóváhagyás szükséges"
 
+#: static/sentry/app/views/groupDetails/header.jsx:147
+msgid "Issue #"
+msgstr ""
+
+#: static/sentry/app/views/stream/searchBar.jsx:82
+msgid "Assigned"
+msgstr "Hozzárendelt"
+
+#: static/sentry/app/views/groupDetails/header.jsx:180
+msgid "Share this event"
+msgstr "Esemény megosztása"
+
+#: static/sentry/app/views/groupDetails/header.jsx:205
+msgid "Related Events"
+msgstr "Kapcsolódó események"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:91
+msgid "Oldest"
+msgstr "Legrégebbi"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:105
+msgid "Older"
+msgstr "Régebbi"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:114
+msgid "Newer"
+msgstr "Újabb"
+
+#: static/sentry/app/views/groupDetails/eventToolbar.jsx:121
+msgid "Newest"
+msgstr "Legújabb"
+
+#: static/sentry/app/components/groupListHeader.jsx:10
+msgid "Event"
+msgstr "Esemény"
+
+#: static/sentry/app/views/stream/filters.jsx:76
+msgid "Search for events, users, tags, and everything else."
+msgstr ""
+
+#: static/sentry/app/views/stream/sidebar.jsx:107
+msgid "Text"
+msgstr "Szöveg"
+
+#: static/sentry/app/views/stream/sidebar.jsx:111
+msgid "Search title and culprit text body"
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:220
+msgid "Unable to change assignee. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:244
+msgid "Unable to delete events. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:255
+msgid "The selected events have been scheduled for deletion."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:274
+msgid "Unable to merge events. Please try again."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:291
+msgid "The selected events have been scheduled for merge."
+msgstr ""
+
+#: static/sentry/app/stores/groupStore.jsx:323
+msgid "Unable to update events. Please try again."
+msgstr ""
+
 #: static/sentry/app/views/stream/actions.jsx:93
 msgid "Removing events.."
 msgstr ""
@@ -4127,7 +4158,7 @@ msgstr ""
 msgid "This will apply to ALL issues in this project!"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:149
+#: static/sentry/app/views/groupDetails/actions.jsx:152
 msgid "Resolve"
 msgstr "Megoldva"
 
@@ -4158,7 +4189,7 @@ msgstr[1] ""
 msgid "Set Status to Resolved"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:212
+#: static/sentry/app/views/groupDetails/actions.jsx:215
 msgid "Bookmark"
 msgstr "Könyvjelző"
 
@@ -4283,18 +4314,18 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:327
-msgid "Mute all issues"
-msgstr "Minden probléma némítása"
+msgid "Ignore all issues"
+msgstr ""
 
 #: static/sentry/app/views/stream/actions.jsx:329
 #, python-format
-msgid "Mute %d selected issue"
-msgid_plural "Mute %d selected issues"
+msgid "Ignore %d selected issue"
+msgid_plural "Ignore %d selected issues"
 msgstr[0] ""
 msgstr[1] ""
 
 #: static/sentry/app/views/stream/actions.jsx:335
-msgid "Set status to: Muted"
+msgid "Set status to: Ignored"
 msgstr ""
 
 #: static/sentry/app/views/stream/actions.jsx:347
@@ -4342,21 +4373,21 @@ msgstr[1] ""
 msgid "Select all issues matching this search query."
 msgstr ""
 
-#: static/sentry/app/views/stream/filters.jsx:76
-msgid "Search for events, users, tags, and everything else."
-msgstr ""
-
-#: static/sentry/app/views/stream/sidebar.jsx:107
-msgid "Text"
-msgstr "Szöveg"
-
-#: static/sentry/app/views/stream/sidebar.jsx:111
-msgid "Search title and culprit text body"
-msgstr ""
-
 #: static/sentry/app/components/actionOverlay.jsx:52
 msgid "Do this later …"
 msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
+msgid "Events Per Minute"
+msgstr "Események percenként"
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
+msgid "Rejected in last 24h"
+msgstr ""
+
+#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
+msgid "View all stats"
+msgstr "Minden statisztika megjelenítése"
 
 #: static/sentry/app/views/organizationStats/projectTable.jsx:47
 msgid "Accepted"
@@ -4378,28 +4409,12 @@ msgstr ""
 msgid "Total"
 msgstr "Összesen"
 
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:87
-msgid "Events Per Minute"
-msgstr "Események percenként"
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:89
-msgid "Rejected in last 24h"
-msgstr ""
-
-#: static/sentry/app/views/organizationTeams/organizationStatOverview.jsx:93
-msgid "View all stats"
-msgstr "Minden statisztika megjelenítése"
-
 #: static/sentry/app/components/projectHeader/index.jsx:67
 msgid "Unstar Project"
 msgstr ""
 
 #: static/sentry/app/components/projectHeader/index.jsx:69
 msgid "Star Project"
-msgstr ""
-
-#: static/sentry/app/plugins/components/settings.jsx:105
-msgid "An unknown error occurred. Need help with this? [link:Contact support]"
 msgstr ""
 
 #: static/sentry/app/views/organizationTeams/expandedTeamList.jsx:65
@@ -4424,44 +4439,8 @@ msgid ""
 "[link:creating your first team]."
 msgstr ""
 
-#: static/sentry/app/components/activity/noteInput.jsx:15
-msgid "Unknown error. Please try again."
-msgstr "Ismeretlen hiba. Kérlek próbáld meg később."
-
-#: static/sentry/app/components/activity/noteInput.jsx:106
-msgid "Posting comment.."
-msgstr "Megjegyzés elküldése.."
-
-#: static/sentry/app/components/activity/noteInput.jsx:140
-msgid "Updating comment.."
-msgstr "Megjegyzés frissítése.."
-
-#: static/sentry/app/components/activity/noteInput.jsx:221
-msgid "Save Comment"
-msgstr "Megjegyzés mentése"
-
-#: static/sentry/app/components/activity/noteInput.jsx:221
-msgid "Post Comment"
-msgstr "Megjegyzés elküldése"
-
-#: static/sentry/app/components/activity/note.jsx:32
-msgid "Edit"
-msgstr "Szerkesztés"
-
-#: static/sentry/app/components/activity/noteInput.jsx:228
-msgid "Write"
-msgstr "Írás"
-
-#: static/sentry/app/components/activity/noteInput.jsx:231
-msgid "Preview"
-msgstr "Előnézet"
-
-#: static/sentry/app/components/activity/noteInput.jsx:235
-msgid "Markdown supported"
-msgstr "Markdonw szintakszis engedélyezett"
-
-#: static/sentry/app/components/activity/noteInput.jsx:243
-msgid "Add details or updates to this event"
+#: static/sentry/app/plugins/components/settings.jsx:105
+msgid "An unknown error occurred. Need help with this? [link:Contact support]"
 msgstr ""
 
 #: static/sentry/app/plugins/components/issueActions.jsx:86
@@ -4488,9 +4467,53 @@ msgstr ""
 msgid "Unlink Issue"
 msgstr ""
 
-#: static/sentry/app/components/events/extraData.jsx:27
-msgid "Additional Data"
-msgstr "További adat"
+#: static/sentry/app/components/activity/noteInput.jsx:15
+msgid "Unknown error. Please try again."
+msgstr "Ismeretlen hiba. Kérlek próbáld meg később."
+
+#: static/sentry/app/components/activity/noteInput.jsx:106
+msgid "Posting comment.."
+msgstr "Megjegyzés elküldése.."
+
+#: static/sentry/app/components/activity/noteInput.jsx:140
+msgid "Updating comment.."
+msgstr "Megjegyzés frissítése.."
+
+#: static/sentry/app/components/activity/noteInput.jsx:220
+msgid "Save Comment"
+msgstr "Megjegyzés mentése"
+
+#: static/sentry/app/components/activity/noteInput.jsx:220
+msgid "Post Comment"
+msgstr "Megjegyzés elküldése"
+
+#: static/sentry/app/components/activity/note.jsx:32
+msgid "Edit"
+msgstr "Szerkesztés"
+
+#: static/sentry/app/components/activity/noteInput.jsx:227
+msgid "Write"
+msgstr "Írás"
+
+#: static/sentry/app/components/activity/noteInput.jsx:230
+msgid "Preview"
+msgstr "Előnézet"
+
+#: static/sentry/app/components/activity/noteInput.jsx:234
+msgid "Markdown supported"
+msgstr "Markdonw szintakszis engedélyezett"
+
+#: static/sentry/app/components/activity/noteInput.jsx:242
+msgid "Add details or updates to this event"
+msgstr ""
+
+#: static/sentry/app/components/group/tagDistributionMeter.jsx:122
+msgid "Other"
+msgstr "Egyéb"
+
+#: static/sentry/app/components/group/tagDistributionMeter.jsx:135
+msgid "No recent data."
+msgstr "Nincs újabb adat."
 
 #: static/sentry/app/components/events/errors.jsx:43
 msgid "Hide"
@@ -4507,6 +4530,10 @@ msgid_plural "There were %d errors encountered while processing this event"
 msgstr[0] ""
 msgstr[1] ""
 
+#: static/sentry/app/components/events/extraData.jsx:27
+msgid "Additional Data"
+msgstr "További adat"
+
 #: static/sentry/app/components/events/sdk.jsx:22
 msgid "SDK"
 msgstr "SDK"
@@ -4514,6 +4541,14 @@ msgstr "SDK"
 #: static/sentry/app/components/events/device.jsx:36
 msgid "Device"
 msgstr "Eszköz"
+
+#: static/sentry/app/components/events/interfaces/message.jsx:23
+msgid "Message"
+msgstr "Üzenet"
+
+#: static/sentry/app/components/events/interfaces/message.jsx:29
+msgid "Params"
+msgstr "Paraméterek"
 
 # this means "rich" rendering (fancy tables)
 #: static/sentry/app/components/events/interfaces/request.jsx:73
@@ -4524,13 +4559,25 @@ msgstr "Gazdag"
 msgid "Stacktrace"
 msgstr ""
 
-#: static/sentry/app/components/events/interfaces/message.jsx:23
-msgid "Message"
-msgstr "Üzenet"
+#: static/sentry/app/components/events/interfaces/template.jsx:25
+msgid "Template"
+msgstr "Sablon"
 
-#: static/sentry/app/components/events/interfaces/message.jsx:29
-msgid "Params"
-msgstr "Paraméterek"
+#: static/sentry/app/components/events/interfaces/csp.jsx:54
+msgid "Report"
+msgstr "Riport"
+
+#: static/sentry/app/components/events/interfaces/crashHeader.jsx:90
+msgid "Raw"
+msgstr "Nyers"
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:56
+msgid "Help"
+msgstr "Súgó"
+
+#: static/sentry/app/components/events/interfaces/csp.jsx:58
+msgid "CSP Report"
+msgstr "CSP Riport"
 
 #: static/sentry/app/components/events/contextSummary.jsx:46
 msgid "Version:"
@@ -4560,34 +4607,6 @@ msgstr "Ismeretlen böngésző"
 msgid "Unknown Runtime"
 msgstr "Ismeretlen futási környezet"
 
-#: static/sentry/app/components/events/interfaces/breadcrumbs.jsx:76
-msgid "Sorry, no breadcrumbs match your search query."
-msgstr ""
-
-#: static/sentry/app/components/events/interfaces/breadcrumbs.jsx:145
-msgid "Search breadcrumbs..."
-msgstr ""
-
-#: static/sentry/app/components/events/interfaces/template.jsx:25
-msgid "Template"
-msgstr "Sablon"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:54
-msgid "Report"
-msgstr "Riport"
-
-#: static/sentry/app/components/events/interfaces/crashHeader.jsx:90
-msgid "Raw"
-msgstr "Nyers"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:56
-msgid "Help"
-msgstr "Súgó"
-
-#: static/sentry/app/components/events/interfaces/csp.jsx:58
-msgid "CSP Report"
-msgstr "CSP Riport"
-
 #: static/sentry/app/components/group/releaseStats.jsx:184
 msgid "Last 24 Hours"
 msgstr "Elmúlt 24 óra"
@@ -4604,13 +4623,21 @@ msgstr "Először megtekintve"
 msgid "Last seen"
 msgstr "Utoljára megtekintve"
 
-#: static/sentry/app/components/group/tagDistributionMeter.jsx:122
-msgid "Other"
-msgstr "Egyéb"
+#: static/sentry/app/components/events/interfaces/breadcrumbs.jsx:76
+msgid "Sorry, no breadcrumbs match your search query."
+msgstr ""
 
-#: static/sentry/app/components/group/tagDistributionMeter.jsx:135
-msgid "No recent data."
-msgstr "Nincs újabb adat."
+#: static/sentry/app/components/events/interfaces/breadcrumbs.jsx:145
+msgid "Search breadcrumbs..."
+msgstr ""
+
+#: static/sentry/app/components/groupListHeader.jsx:13
+msgid "Last 24 hours"
+msgstr "Legutóbbi 24 óra"
+
+#: static/sentry/app/components/groupListHeader.jsx:15
+msgid "events"
+msgstr "események"
 
 #: static/sentry/app/components/assigneeSelector.jsx:201
 msgid "No matching users found."
@@ -4624,87 +4651,37 @@ msgstr "Felhasználó szűrés"
 msgid "Clear Assignee"
 msgstr "Hozzárendelés törlése"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:38
-msgid "Delete event.."
-msgstr "Esemény törlése.."
+#: static/sentry/app/views/stream/searchBar.jsx:68
+msgid "Tag"
+msgstr "Címke"
 
-#: static/sentry/app/views/groupDetails/actions.jsx:132
-msgid ""
-"This event is resolved due to the Auto Resolve configuration for this "
-"project"
+#: static/sentry/app/views/stream/searchBar.jsx:69
+msgid "key/value pair associated to an issue"
+msgstr "kulcs/érték párok ehhez a problémához rendelve"
+
+#: static/sentry/app/views/stream/searchBar.jsx:76
+msgid "State of an issue"
+msgstr "Probléma állapota"
+
+#: static/sentry/app/views/stream/searchBar.jsx:83
+msgid "team member assigned to an issue"
+msgstr "csapat tag ehhez a problémához rendelve"
+
+#: static/sentry/app/views/stream/searchBar.jsx:89
+msgid "Bookmarked By"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:137
-msgid "Unresolve"
-msgstr "Nincs megoldva"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:160
-msgid "Resolved in next release"
-msgstr "Következő verzióban lesz megoldva"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:166
-msgid "Snooze notifications until this issue reoccurs in a future release."
+#: static/sentry/app/views/stream/searchBar.jsx:90
+msgid "team member who bookmarked an issue"
 msgstr ""
 
-#: static/sentry/app/views/groupDetails/actions.jsx:164
-msgid "Set up release tracking in order to use this feature."
-msgstr "Állítsd be a kiadás követést ehhez a funkció eléréséhez."
-
-#: static/sentry/app/views/groupDetails/actions.jsx:165
-msgid "Resolved in next release."
-msgstr "Következő verzióban lesz megoldva."
-
-#: static/sentry/app/views/groupDetails/actions.jsx:177
-msgid "Remove Ignored Status"
+#: static/sentry/app/views/stream/searchBar.jsx:96
+msgid "or paste an event id to jump straight to it"
 msgstr ""
 
-#: static/sentry/app/components/customSnoozeModal.jsx:105
-msgid "Ignore"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:190
-msgid "for 30 minutes"
-msgstr "30 percre"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:193
-msgid "for 2 hours"
-msgstr "2 órára"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:196
-msgid "for 24 hours"
-msgstr "24 órára"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:199
-msgid "for 1 week"
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:202
-msgid "until custom date..."
-msgstr ""
-
-#: static/sentry/app/views/groupDetails/actions.jsx:205
-msgid "forever"
-msgstr "örökre"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:220
-msgid "Delete"
-msgstr "Törlés"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:221
-msgid "Deleting this event is permanent. Are you sure you wish to continue?"
-msgstr "Az esemény törlés művelet végleges. Biztos, hogy folytatni szeretnéd?"
-
-#: static/sentry/app/views/groupDetails/actions.jsx:258
-msgid "Link Issue Tracker"
-msgstr ""
-
-#: static/sentry/app/components/groupListHeader.jsx:13
-msgid "Last 24 hours"
-msgstr "Legutóbbi 24 óra"
-
-#: static/sentry/app/components/groupListHeader.jsx:15
-msgid "events"
-msgstr "események"
+#: static/sentry/app/views/stream/sortOptions.jsx:59
+msgid "Sort by"
+msgstr "Rendezés"
 
 #: static/sentry/app/components/issues/snoozeAction.jsx:49
 msgid "zZz"
@@ -4721,14 +4698,6 @@ msgstr "2 órája"
 #: static/sentry/app/components/issues/snoozeAction.jsx:60
 msgid "Forever"
 msgstr "Mindörökké"
-
-#: static/sentry/app/views/stream/actionLink.jsx:114
-msgid "This action cannot be undone."
-msgstr "Ezt a műveletet nem lehet visszavonni."
-
-#: static/sentry/app/views/stream/sortOptions.jsx:59
-msgid "Sort by"
-msgstr "Rendezés"
 
 #: static/sentry/app/components/activity/item.jsx:58
 msgid "[author] commented on [link:an issue]"
@@ -4810,6 +4779,84 @@ msgstr ""
 msgid "[author] released version [version]"
 msgstr ""
 
+#: static/sentry/app/views/stream/actionLink.jsx:114
+msgid "This action cannot be undone."
+msgstr "Ezt a műveletet nem lehet visszavonni."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:38
+msgid "Delete event.."
+msgstr "Esemény törlése.."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:135
+msgid ""
+"This event is resolved due to the Auto Resolve configuration for this "
+"project"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:140
+msgid "Unresolve"
+msgstr "Nincs megoldva"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:163
+msgid "Resolved in next release"
+msgstr "Következő verzióban lesz megoldva"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:169
+msgid "Snooze notifications until this issue reoccurs in a future release."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:167
+msgid "Set up release tracking in order to use this feature."
+msgstr "Állítsd be a kiadás követést ehhez a funkció eléréséhez."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:168
+msgid "Resolved in next release."
+msgstr "Következő verzióban lesz megoldva."
+
+#: static/sentry/app/views/groupDetails/actions.jsx:180
+msgid "Remove Ignored Status"
+msgstr ""
+
+#: static/sentry/app/components/customSnoozeModal.jsx:105
+msgid "Ignore"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:193
+msgid "for 30 minutes"
+msgstr "30 percre"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:196
+msgid "for 2 hours"
+msgstr "2 órára"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:199
+msgid "for 24 hours"
+msgstr "24 órára"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:202
+msgid "for 1 week"
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:205
+msgid "until custom date..."
+msgstr ""
+
+#: static/sentry/app/views/groupDetails/actions.jsx:208
+msgid "forever"
+msgstr "örökre"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:223
+msgid "Delete"
+msgstr "Törlés"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:224
+msgid "Deleting this event is permanent. Are you sure you wish to continue?"
+msgstr "Az esemény törlés művelet végleges. Biztos, hogy folytatni szeretnéd?"
+
+#: static/sentry/app/views/groupDetails/actions.jsx:261
+msgid "Link Issue Tracker"
+msgstr ""
+
 #: static/sentry/app/views/stream/savedSearchSelector.jsx:205
 msgid "Save Current Search"
 msgstr "Jelenlegi keresés mentése"
@@ -4840,34 +4887,6 @@ msgstr "Egyéni keresés"
 msgid "There don't seem to be any saved searches yet."
 msgstr "Úgy tűnik nincs egy mentett keresés sem."
 
-#: static/sentry/app/views/stream/searchBar.jsx:68
-msgid "Tag"
-msgstr "Címke"
-
-#: static/sentry/app/views/stream/searchBar.jsx:69
-msgid "key/value pair associated to an issue"
-msgstr "kulcs/érték párok ehhez a problémához rendelve"
-
-#: static/sentry/app/views/stream/searchBar.jsx:76
-msgid "State of an issue"
-msgstr "Probléma állapota"
-
-#: static/sentry/app/views/stream/searchBar.jsx:83
-msgid "team member assigned to an issue"
-msgstr "csapat tag ehhez a problémához rendelve"
-
-#: static/sentry/app/views/stream/searchBar.jsx:89
-msgid "Bookmarked By"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:90
-msgid "team member who bookmarked an issue"
-msgstr ""
-
-#: static/sentry/app/views/stream/searchBar.jsx:96
-msgid "or paste an event id to jump straight to it"
-msgstr ""
-
 #: static/sentry/app/components/bases/pluginComponentBase.jsx:68
 msgid "An error occurred."
 msgstr ""
@@ -4880,10 +4899,6 @@ msgstr ""
 msgid "Are you sure you wish to delete this comment?"
 msgstr "Biztosan szeretnéd törölni ezt a megjegyzést?"
 
-#: static/sentry/app/components/clippedBox.jsx:68
-msgid "Show more"
-msgstr "Több mutatása"
-
 #: static/sentry/app/components/events/errorItem.jsx:29
 msgid "Collapse"
 msgstr "Összecsuk"
@@ -4892,21 +4907,9 @@ msgstr "Összecsuk"
 msgid "Expand"
 msgstr "Kinyit"
 
-#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:72
-msgid "Query String"
-msgstr "Lekérdezés szövege"
-
-#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:83
-msgid "Body"
-msgstr "Törzs"
-
-#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:89
-msgid "Cookies"
-msgstr "Sütik"
-
-#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:94
-msgid "Headers"
-msgstr "Fejlécek"
+#: static/sentry/app/components/clippedBox.jsx:68
+msgid "Show more"
+msgstr "Több mutatása"
 
 #: static/sentry/app/components/events/interfaces/crashHeader.jsx:74
 msgid "Exception"
@@ -4940,17 +4943,25 @@ msgstr "Eredeti"
 msgid "Minified"
 msgstr ""
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:85
-msgid "Source Map"
-msgstr "Forrás térkép"
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:72
+msgid "Query String"
+msgstr "Lekérdezés szövege"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:235
-msgid "No additional details are available for this frame."
-msgstr ""
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:83
+msgid "Body"
+msgstr "Törzs"
 
-#: static/sentry/app/components/events/interfaces/frame.jsx:248
-msgid "Toggle context"
-msgstr ""
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:89
+msgid "Cookies"
+msgstr "Sütik"
+
+#: static/sentry/app/components/events/interfaces/richHttpContent.jsx:94
+msgid "Headers"
+msgstr "Fejlécek"
+
+#: static/sentry/app/components/group/seenInfo.jsx:71
+msgid "When"
+msgstr "Mikor"
 
 #: static/sentry/app/components/customSnoozeModal.jsx:65
 msgid "Ignore until:"
@@ -4968,16 +4979,24 @@ msgstr ""
 msgid "Please enter a valid date in the future"
 msgstr ""
 
-#: static/sentry/app/components/group/seenInfo.jsx:71
-msgid "When"
-msgstr "Mikor"
-
 #: static/sentry/app/components/group/issuePluginActions.jsx:41
 msgid "Create New Issue"
 msgstr ""
 
 #: static/sentry/app/components/group/issuePluginActions.jsx:42
 msgid "Link with Existing Issue"
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:85
+msgid "Source Map"
+msgstr "Forrás térkép"
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:235
+msgid "No additional details are available for this frame."
+msgstr ""
+
+#: static/sentry/app/components/events/interfaces/frame.jsx:248
+msgid "Toggle context"
 msgstr ""
 
 #: static/sentry/app/components/events/interfaces/stacktraceContent.jsx:34
