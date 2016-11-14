@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from collections import defaultdict, namedtuple
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils import timezone
@@ -13,13 +13,13 @@ from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupSubscription,
-    GroupStatus, GroupTagKey, UserOption, UserOptionValue, GroupSubscriptionReason,
+    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus,
+    GroupSubscription, GroupSubscriptionReason, GroupTagKey, UserOption,
+    UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
-
 
 REASON_MAP = {
     GroupSubscriptionReason.comment: 'commented',

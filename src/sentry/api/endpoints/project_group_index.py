@@ -1,33 +1,34 @@
 from __future__ import absolute_import, division, print_function
 
-import six
-
 from datetime import timedelta
+from uuid import uuid4
+
+import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
-from uuid import uuid4
 
-from sentry.app import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer, serialize_subscription_details
+from sentry.api.serializers.models.group import (
+    StreamGroupSerializer, serialize_subscription_details
+)
+from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSubscription, GroupSubscriptionReason, GroupSnooze, GroupStatus,
-    Release, TagKey,
+    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
-from sentry.search.utils import parse_query
-from sentry.search.utils import InvalidQuery
+from sentry.search.utils import InvalidQuery, parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
