@@ -5,7 +5,7 @@ import Count from '../components/count';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {percent} from '../utils';
+import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
 const GroupTags = React.createClass({
@@ -85,7 +85,7 @@ const GroupTags = React.createClass({
                   to={`/${orgId}/${projectId}/`}
                   query={{query: tag.key + ':' + '"' + tagValue.value + '"'}}>
                 <span className="tag-bar-background" style={{width: pct + '%'}}></span>
-                <span className="tag-bar-label">{tagValue.name}</span>
+                <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
               </Link>
             </li>
