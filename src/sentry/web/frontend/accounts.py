@@ -213,7 +213,7 @@ def account_settings(request):
                 user_email.set_hash()
                 user_email.save()
             user.send_confirm_email_singular(user_email)
-            msg = _('A confirmation email has been sent to %s.' % user_email.email)
+            msg = _('A confirmation email has been sent to %s.') % user_email.email
             messages.add_message(
                 request,
                 messages.SUCCESS,
@@ -426,7 +426,7 @@ def show_emails(request):
                 user_email.set_hash()
                 user_email.save()
             user.send_confirm_email_singular(user_email)
-            msg = _('A confirmation email has been sent to %s.' % user_email.email)
+            msg = _('A confirmation email has been sent to %s.') % user_email.email
             messages.add_message(
                 request,
                 messages.SUCCESS,
@@ -448,7 +448,7 @@ def show_emails(request):
                 new_email.save()
             # send confirmation emails to any non verified emails
             user.send_confirm_email_singular(new_email)
-            msg = _('A confirmation email has been sent to %s.' % new_email.email)
+            msg = _('A confirmation email has been sent to %s.') % new_email.email
             messages.add_message(
                 request,
                 messages.SUCCESS,
