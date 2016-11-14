@@ -172,6 +172,7 @@ DEFAULT_SCRUBBED_FIELDS = (
     'apikey',
     'access_token',
     'auth',
+    'credentials',
 )
 
 VALID_PLATFORMS = set([
