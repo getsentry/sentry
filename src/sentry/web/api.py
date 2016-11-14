@@ -193,7 +193,7 @@ class APIView(BaseView):
                 project = project_
                 helper.context.bind_project(project)
             elif project_ != project:
-                raise APIError('Two different project were specified')
+                raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
             Raven.tags_context(helper.context.get_tags_context())
@@ -464,7 +464,7 @@ class CspReportView(StoreView):
 
         project_ = helper.project_from_auth(auth)
         if project_ != project:
-            raise APIError('Two different project were specified')
+            raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
         Raven.tags_context(helper.context.get_tags_context())

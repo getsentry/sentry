@@ -38,7 +38,7 @@ class ProjectStatus(object):
 
 class ProjectManager(BaseManager):
     # TODO(dcramer): we might want to cache this per user
-    def get_for_user(self, team, user, _skip_team_check=False):
+    def get_for_user(self, team, user, scope=None, _skip_team_check=False):
         from sentry.models import Team
 
         if not (user and user.is_authenticated()):
@@ -48,6 +48,7 @@ class ProjectManager(BaseManager):
             team_list = Team.objects.get_for_user(
                 organization=team.organization,
                 user=user,
+                scope=scope,
             )
 
             try:
