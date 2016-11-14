@@ -14,7 +14,7 @@ from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
     GroupResolutionStatus, GroupSeen, GroupSnooze, GroupSubscription,
-    GroupStatus, GroupTagKey, UserOption, UserOptionValue
+    GroupStatus, GroupTagKey, UserOption, UserOptionValue, GroupSubscriptionReason,
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
@@ -23,6 +23,13 @@ from sentry.utils.safe import safe_execute
 
 @register(Group)
 class GroupSerializer(Serializer):
+    REASON_MAP = {
+        GroupSubscriptionReason.comment: 'commented',
+        GroupSubscriptionReason.assigned: 'assigned',
+        GroupSubscriptionReason.bookmark: 'bookmarked',
+        GroupSubscriptionReason.status_change: 'changed_status',
+    }
+
     def _get_subscriptions(self, item_list, user):
         results = {group.id: None for group in item_list}
 
@@ -35,7 +42,7 @@ class GroupSerializer(Serializer):
         )
 
         for subscription in subscriptions:
-            results[subscription.group_id] = subscription.is_active
+            results[subscription.group_id] = (subscription.is_active, subscription)
 
         # For any group that doesn't have a subscription associated with it,
         # we'll need to fall back to the project's option value, so here we
@@ -75,11 +82,11 @@ class GroupSerializer(Serializer):
                 ) == UserOptionValue.all_conversations
 
                 for group_id in group_ids:
-                    results[group_id] = is_subscribed
+                    results[group_id] = (is_subscribed, None)
 
         # These are the IDs of all of the groups that the user is subscribed to
         # that were part of the original candidate list.
-        return {group_id for group_id, is_subscribed in results.items() if is_subscribed}
+        return results
 
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
@@ -101,7 +108,7 @@ class GroupSerializer(Serializer):
         else:
             bookmarks = set()
             seen_groups = {}
-            subscriptions = set()
+            subscriptions = defaultdict(lambda: (False, None))
 
         assignees = dict(
             (a.group_id, a.user)
@@ -145,7 +152,7 @@ class GroupSerializer(Serializer):
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
-                'is_subscribed': item.id in subscriptions,
+                'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
@@ -181,6 +188,14 @@ class GroupSerializer(Serializer):
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
 
+        is_subscribed, subscription = attrs['subscription']
+        if is_subscribed and subscription is not None:
+            subscription_details = {
+                'reason': self.REASON_MAP.get(subscription.reason, 'unknown'),
+            }
+        else:
+            subscription_details = None
+
         return {
             'id': six.text_type(obj.id),
             'shareId': obj.get_share_id(),
@@ -206,7 +221,8 @@ class GroupSerializer(Serializer):
             'numComments': obj.num_comments,
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
-            'isSubscribed': attrs['is_subscribed'],
+            'isSubscribed': is_subscribed,
+            'subscriptionDetails': subscription_details,
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
