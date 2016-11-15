@@ -8,6 +8,7 @@ Version 8.11 (Unreleased)
 - Fixed bug where API responses would include incorrect `isSubscribed` values for issues.
 - Added support for switching to unsymbolicated tracebacks in cocoa.
 - Invalidate user sessions when changing password and 2fa settings.
+- Add configurable password validators to enforce password strength.
 
 Schema Changes
 ~~~~~~~~~~~~~~
