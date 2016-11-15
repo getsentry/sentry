@@ -102,6 +102,7 @@ class SettingsTest(TestCase):
         assert user.name == params['name']
 
     def test_can_change_password_with_password(self):
+        old_nonce = self.user.session_nonce
         self.login_as(self.user)
 
         params = self.params()
@@ -112,6 +113,7 @@ class SettingsTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('foobar')
+        assert user.session_nonce != old_nonce
 
     def test_cannot_change_password_with_invalid_password(self):
         self.login_as(self.user)
@@ -261,6 +263,7 @@ class RecoverPasswordConfirmTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/account/recover/failure.html')
 
     def test_change_password(self):
+        old_nonce = self.user.session_nonce
         resp = self.client.post(self.path, {
             'password': 'bar',
             'confirm_password': 'bar'
@@ -268,6 +271,7 @@ class RecoverPasswordConfirmTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('bar')
+        assert user.session_nonce != old_nonce
 
 
 class ConfirmEmailSendTest(TestCase):

@@ -61,6 +61,8 @@ class User(BaseModel, AbstractBaseUser):
         _('date of last password change'), null=True,
         help_text=_('The date the password was changed last.'))
 
+    session_nonce = models.CharField(max_length=12, null=True)
+
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
 
     objects = UserManager(cache_fields=['pk'])
@@ -232,6 +234,12 @@ class User(BaseModel, AbstractBaseUser):
         super(User, self).set_password(raw_password)
         self.last_password_change = timezone.now()
         self.is_password_expired = False
+
+    def refresh_session_nonce(self, request=None):
+        from django.utils.crypto import get_random_string
+        self.session_nonce = get_random_string(12)
+        if request is not None:
+            request.session['_nonce'] = self.session_nonce
 
     def get_orgs(self):
         from sentry.models import (

@@ -97,6 +97,7 @@ def recover_confirm(request, user_id, hash):
             form = ChangePasswordRecoverForm(request.POST)
             if form.is_valid():
                 user.set_password(form.cleaned_data['password'])
+                user.refresh_session_nonce(request)
                 user.save()
 
                 # Ugly way of doing this, but Django requires the backend be set
@@ -174,7 +175,7 @@ def account_settings(request):
     user = request.user
 
     form = AccountSettingsForm(
-        user, request.POST or None,
+        user, request, request.POST or None,
         initial={
             'email': UserEmail.get_primary_email(user).email,
             'username': user.username,

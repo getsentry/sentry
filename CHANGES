@@ -7,6 +7,12 @@ Version 8.11 (Unreleased)
 - Improved UI for password and API key fields used in integrations
 - Fixed bug where API responses would include incorrect `isSubscribed` values for issues.
 - Added support for switching to unsymbolicated tracebacks in cocoa.
+- Invalidate user sessions when changing password and 2fa settings.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``User.session_nonce`` column.
 
 Version 8.10
 ------------

@@ -254,8 +254,9 @@ class AccountSettingsForm(forms.Form):
         required=False,
     )
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user, request, *args, **kwargs):
         self.user = user
+        self.request = request
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
         needs_password = user.has_usable_password()
@@ -315,6 +316,7 @@ class AccountSettingsForm(forms.Form):
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
             self.user.set_password(self.cleaned_data['new_password'])
+            self.user.refresh_session_nonce(self.request)
 
         self.user.name = self.cleaned_data['name']
 
