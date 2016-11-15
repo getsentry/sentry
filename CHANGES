@@ -9,6 +9,9 @@ Version 8.11 (Unreleased)
 - Added support for switching to unsymbolicated tracebacks in cocoa.
 - Invalidate user sessions when changing password and 2fa settings.
 - Add configurable password validators to enforce password strength.
+- Send email to specific email when adding a new email rather than sending to all unverified email addresses.
+- Allow user to resend email verification to primary email address.
+
 
 Schema Changes
 ~~~~~~~~~~~~~~
