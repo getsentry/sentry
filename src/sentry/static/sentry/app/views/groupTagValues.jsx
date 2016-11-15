@@ -8,7 +8,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import TimeSince from '../components/timeSince';
-import {isUrl, percent} from '../utils';
+import {isUrl, percent, deviceNameMapper} from '../utils';
 import {t, tn} from '../locale';
 
 const GroupTagValues = React.createClass({
@@ -102,7 +102,7 @@ const GroupTagValues = React.createClass({
             <Link
                 to={`/${orgId}/${projectId}/`}
                 query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
-              {tagValue.name}
+              {deviceNameMapper(tagValue.name)}
             </Link>
             {isUrl(tagValue.value) &&
               <a href={tagValue.value} className="external-icon">
