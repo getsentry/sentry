@@ -143,6 +143,7 @@ def start_confirm_email(request):
             email_to_send = UserEmail.objects.get(user=request.user, email=email)
         except UserEmail.DoesNotExist:
             msg = _('There was an error confirming your email.')
+            level = messages.ERROR
         else:
             request.user.send_confirm_email_singular(email_to_send)
             msg = _('A verification email has been sent to %s.') % (email)
