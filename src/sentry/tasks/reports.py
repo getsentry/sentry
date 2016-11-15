@@ -550,7 +550,15 @@ def prepare_reports(dry_run=False, *args, **kwargs):
     name='sentry.tasks.reports.prepare_organization_report',
     queue='reports.prepare')
 def prepare_organization_report(timestamp, duration, organization_id, dry_run=False):
-    organization = _get_organization_queryset().get(id=organization_id)
+    try:
+        organization = _get_organization_queryset().get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning('reports.organization.missing', extra={
+            'timestamp': timestamp,
+            'duration': duration,
+            'organization_id': organization_id,
+        })
+        return
 
     backend.prepare(timestamp, duration, organization)
 
@@ -673,7 +681,16 @@ def has_valid_aggregates(interval, (project, report)):
     name='sentry.tasks.reports.deliver_organization_user_report',
     queue='reports.deliver')
 def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
-    organization = _get_organization_queryset().get(id=organization_id)
+    try:
+        organization = _get_organization_queryset().get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning('reports.organization.missing', extra={
+            'timestamp': timestamp,
+            'duration': duration,
+            'organization_id': organization_id,
+        })
+        return
+
     user = User.objects.get(id=user_id)
 
     if not user_subscribed_to_organization_reports(user, organization):
