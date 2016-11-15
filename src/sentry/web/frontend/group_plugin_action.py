@@ -2,6 +2,7 @@ from __future__ import absolute_import, division
 
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from sudo.utils import is_safe_url
 
 from sentry.models import Group, GroupMeta
 from sentry.plugins import plugins
@@ -25,8 +26,10 @@ class GroupPluginActionView(ProjectView):
         if response:
             return response
 
-        redirect = request.META.get('HTTP_REFERER') or '/{}/{}/'.format(
-            organization.slug,
-            group.project.slug,
-        )
+        redirect = request.META.get('HTTP_REFERER', '')
+        if not is_safe_url(redirect, host=request.get_host()):
+            redirect = '/{}/{}/'.format(
+                organization.slug,
+                group.project.slug,
+            )
         return HttpResponseRedirect(redirect)
