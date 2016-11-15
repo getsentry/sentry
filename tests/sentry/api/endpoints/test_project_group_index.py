@@ -540,6 +540,9 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'isSubscribed': True,
+            'subscriptionDetails': {
+                'reason': 'unknown',
+            },
         }
 
         assert GroupSubscription.objects.filter(

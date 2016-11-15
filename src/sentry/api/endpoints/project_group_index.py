@@ -12,9 +12,8 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import (
-    StreamGroupSerializer, serialize_subscription_details
-)
+from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
+from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
@@ -580,12 +579,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     },
                 )
 
-            # XXX: This is a bit of a hack, maybe this method shouldn't take
-            # the GroupSubscription instance at all...?
-            result['subscriptionDetails'] = serialize_subscription_details(
-                result['isSubscribed'],
-                GroupSubscription(reason=GroupSubscriptionReason.unknown),
-            )
+            result['subscriptionDetails'] = {
+                'reason': SUBSCRIPTION_REASON_MAP.get(
+                    GroupSubscriptionReason.unknown,
+                    'unknown',
+                ),
+            }
 
         if result.get('isPublic'):
             queryset.update(is_public=True)

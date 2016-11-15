@@ -21,7 +21,8 @@ from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
-REASON_MAP = {
+
+SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: 'commented',
     GroupSubscriptionReason.assigned: 'assigned',
     GroupSubscriptionReason.bookmark: 'bookmarked',
@@ -29,18 +30,8 @@ REASON_MAP = {
 }
 
 
-def serialize_subscription_details(is_subscribed, subscription):
-    if is_subscribed and subscription is not None:
-        return {
-            'reason': REASON_MAP.get(subscription.reason, 'unknown'),
-        }
-    else:
-        return None
-
-
 @register(Group)
 class GroupSerializer(Serializer):
-
     def _get_subscriptions(self, item_list, user):
         results = {group.id: None for group in item_list}
 
@@ -227,10 +218,12 @@ class GroupSerializer(Serializer):
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'isSubscribed': is_subscribed,
-            'subscriptionDetails': serialize_subscription_details(
-                is_subscribed,
-                subscription,
-            ),
+            'subscriptionDetails': {
+                'reason': SUBSCRIPTION_REASON_MAP.get(
+                    subscription.reason,
+                    'unknown',
+                ),
+            } if is_subscribed and subscription is not None else None,
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
