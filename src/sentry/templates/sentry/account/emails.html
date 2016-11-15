@@ -54,9 +54,12 @@
               {% endif %}
             </td>
   		    	<td style="text-align:center">
-  			    	<input type='hidden' name='email' value={{ email.email }}>
-  				    <button type='submit' name='remove' class='btn btn-danger btn-sm remove'><span class="icon-trash"></span></button>
-  			    </td>
+              <form action="" method="post">
+                {% csrf_token %}
+                <input type='hidden' name='email' value='{{ email.email }}'>
+                <button type='submit' name='remove' class='btn btn-danger btn-sm remove'><span class="icon-trash"></span></button>
+              </form>
+          </td>
   		    </tr>
 		    </tbody>
 	    {% endfor %}
