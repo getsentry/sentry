@@ -13,7 +13,7 @@ from sentry.app import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import StreamGroupSerializer, serialize_subscription_details
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
@@ -562,12 +562,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if result.get('isSubscribed') in (True, False):
             is_subscribed = result['isSubscribed']
             for group in group_list:
+                # NOTE: Subscribing without an initiating event (assignment,
+                # commenting, etc.) clears out the previous subscription reason
+                # to avoid showing confusing messaging as a result of this
+                # action. It'd be jarring to go directly from "you are not
+                # subscribed" to "you were subscribed due since you were
+                # assigned" just by clicking the "subscribe" button (and you
+                # may no longer be assigned to the issue anyway.)
                 GroupSubscription.objects.create_or_update(
                     user=acting_user,
                     group=group,
                     project=project,
-                    values={'is_active': is_subscribed},
+                    values={
+                        'is_active': is_subscribed,
+                        'reason': GroupSubscriptionReason.unknown,
+                    },
                 )
+
+            # XXX: This is a bit of a hack, maybe this method shouldn't take
+            # the GroupSubscription instance at all...?
+            result['subscriptionDetails'] = serialize_subscription_details(
+                result['isSubscribed'],
+                GroupSubscription(reason=GroupSubscriptionReason.unknown),
+            )
 
         if result.get('isPublic'):
             queryset.update(is_public=True)
