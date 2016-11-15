@@ -39,7 +39,7 @@
                     {% for plugin, is_enabled in plugins_with_status %}
                         <tr class="{{ plugin.get_title|slugify }}">
                             <td colspan="2">
-                                <div class="integration-icon"></div>
+                                <div class="icon-integration icon-{{ plugin.get_title|slugify }}"></div>
                                 <h5>{{ plugin.get_title }} {% if plugin.version %}<span>v{{ plugin.version }}</span>{% else %}<span><em>{% trans "n/a" %}</em></span>{% endif %}</h5>
                                 <p>
                                 {% if plugin.author %}
