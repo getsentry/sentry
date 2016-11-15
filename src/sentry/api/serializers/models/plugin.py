@@ -41,6 +41,7 @@ class PluginWithConfigSerializer(PluginSerializer):
             serialize_field(self.project, obj, c)
             for c in obj.get_config(
                 project=self.project,
+                user=user
             )
         ]
         return d

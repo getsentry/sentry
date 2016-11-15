@@ -1,5 +1,6 @@
 Version 8.11 (Unreleased)
 -------------------------
+- add Asana to supported auth backends in social auth (for plugins)
 
 - Ignore a ``null`` ``Origin`` header for authentication.
 - Added the ability to search for issues that you are subscribed to from the stream view.
