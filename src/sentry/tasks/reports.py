@@ -845,10 +845,22 @@ def build_project_breakdown_series(reports):
         ],
     )
 
+    legend = [key for key, value in reversed(selections)]
     return {
         'points': [(to_datetime(timestamp), value) for timestamp, value in series],
         'maximum': max(sum(count for key, count in value) for timestamp, value in series),
-        'legend': [key for key, value in reversed(selections)],
+        'legend': {
+            'rows': legend,
+            'total': Key(
+                'Total',
+                None,
+                None,
+                reduce(
+                    merge_mappings,
+                    [key.data for key in legend]
+                ),
+            ),
+        },
     }
 
 
