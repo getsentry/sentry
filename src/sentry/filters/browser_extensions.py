@@ -37,7 +37,7 @@ EXTENSION_EXC_SOURCES = re.compile('|'.join((
     r'eatdifferent\.com\.woopra-ns\.com',
     r'static\.woopra\.com\/js\/woopra\.js',
     # Chrome extensions
-    r'^chrome:\/\/',
+    r'^chrome(?:-extension)?:\/\/',
     # Cacaoweb
     r'127\.0\.0\.1:4001\/isrunning',
     # Other

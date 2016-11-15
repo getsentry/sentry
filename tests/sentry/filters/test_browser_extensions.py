@@ -47,6 +47,10 @@ class BrowserExtensionsFilterTest(TestCase):
         data = self.get_mock_data(exc_source='chrome://my-extension/or/something')
         assert self.apply_filter(data)
 
+    def test_filters_chrome_extensions_second_format(self):
+        data = self.get_mock_data(exc_source='chrome-extension://my-extension/or/something')
+        assert self.apply_filter(data)
+
     def test_does_not_filter_generic_data(self):
         data = self.get_mock_data()
         assert not self.apply_filter(data)
