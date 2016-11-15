@@ -54,3 +54,8 @@ class BrowserExtensionsFilterTest(TestCase):
     def test_does_not_filter_generic_data(self):
         data = self.get_mock_data()
         assert not self.apply_filter(data)
+
+    def test_filters_malformed_data(self):
+        data = self.get_mock_data()
+        data['sentry.interfaces.Exception'] = None
+        assert not self.apply_filter(data)
