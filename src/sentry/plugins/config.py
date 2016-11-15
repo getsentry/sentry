@@ -41,7 +41,7 @@ class PluginConfigMixin(object):
         return value
         ```
         """
-        for config in self.get_config(project=project):
+        for config in self.get_config(project=project, user=actor):
             if config['name'] != name:
                 continue
 
