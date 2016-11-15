@@ -139,10 +139,15 @@ def start_confirm_email(request):
 
     if 'primary-email' in request.POST:
         email = request.POST.get('email')
-        email_to_send = UserEmail.objects.get(user=request.user, email=email)
-        request.user.send_confirm_email_singular(email_to_send)
-        msg = _('A verification email has been sent to %s.') % (email)
-        messages.add_message(request, messages.SUCCESS, msg)
+        try:
+            email_to_send = UserEmail.objects.get(user=request.user, email=email)
+        except UserEmail.DoesNotExist:
+            msg = _('There was an error confirming your email.')
+        else:
+            request.user.send_confirm_email_singular(email_to_send)
+            msg = _('A verification email has been sent to %s.') % (email)
+            level = messages.SUCCESS
+        messages.add_message(request, level, msg)
         return HttpResponseRedirect(reverse('sentry-account-settings'))
     elif request.user.has_unverified_emails():
         request.user.send_confirm_emails()
