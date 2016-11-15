@@ -69,6 +69,28 @@ const GroupSidebar = React.createClass({
     }
   },
 
+  getNotificationText() {
+    let group = this.getGroup();
+    let reasons = new Map([
+      ['commented', t('You\'re subscribed to this issue since you have commented on this issue.')],
+      ['assigned', t('You\'re subscribed to this issue since you were assigned to this issue.')],
+      ['bookmarked', t('You\'re subscribed to this issue since you have bookmarked this issue.')],
+      ['changed_status', t('You\'re subscribed to this issue since you have changed the status of this issue.')],
+    ]);
+
+    if (group.isSubscribed) {
+      let reason = t('You\'re subscribed to this issue.');
+      if (group.subscriptionDetails) {
+        reason = reasons.get(group.subscriptionDetails.reason) || reason;
+      } else {
+        reason = t('You\'re subscribed to workflow notifications for this project.');
+      }
+      return reason + ' ' + t('You\'ll be notified when updates happen.');
+    } else {
+      return t('You\'re not subscribed to this issue.');
+    }
+  },
+
   render() {
     let project = this.getProject();
     let projectId = project.slug;
@@ -103,11 +125,7 @@ const GroupSidebar = React.createClass({
         }
 
         <h6><span>{t('Notifications')}</span></h6>
-        {group.isSubscribed ?
-          <p className="help-block">{t('You\'re subscribed to this issue and will get notified when updates happen.')}</p>
-        :
-          <p className="help-block">{t('You\'re not subscribed in this issue.')}</p>
-        }
+        <p className="help-block">{this.getNotificationText()}</p>
         <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
            onClick={this.toggleSubscription}>
           <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
