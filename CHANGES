@@ -13,6 +13,8 @@ Version 8.11 (Unreleased)
 - Send email to specific email when adding a new email rather than sending to all unverified email addresses.
 - Allow user to resend email verification to primary email address.
 
+- Added additional detail to subscription help text when viewing a group.
+
 Schema Changes
 ~~~~~~~~~~~~~~
 
