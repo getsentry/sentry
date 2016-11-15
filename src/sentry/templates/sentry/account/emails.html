@@ -73,6 +73,10 @@
     <br>
     {{ email_form.alt_email|as_crispy_field }}
 
+    {% if email_form.password %}
+      {{ email_form.password|as_crispy_field }}
+    {% endif %}
+
     <fieldset class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </fieldset>
