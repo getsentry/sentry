@@ -141,9 +141,10 @@
       font-weight: 500;
     }
 
-    .project-breakdown .summary tbody td {
+    .project-breakdown .summary th,
+    .project-breakdown .summary td {
       font-size: 14px;
-      padding: 10px 0 0 0;
+      padding: 5px 0;
     }
 
     .project-breakdown .summary .numeric {
@@ -497,20 +498,37 @@
         </tr>
       </thead>
       <tbody>
-      {% for key in series.legend %}
+      {% for key in series.legend.rows %}
         <tr>
           <td>
-            <span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>
+              {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
           </td>
           <td class="numeric">{{ key.data.events|small_count:1 }}</div>
           <td>
-              {% if key.url %}<a href="{{ key.url }}" style="font-weight: bold;">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+              {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
           </td>
           <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
           <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
+      {% if series.legend.rows|length > 1 %}
+        <tfoot>
+          {% with key=series.legend.total %}
+            <tr>
+              <td>
+                  {% if key.color %}<span style="background-color: {{ key.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
+              </td>
+              <td class="numeric">{{ key.data.events|small_count:1 }}</div>
+              <td>
+                  {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
+              </td>
+              <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
+              <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
+            </tr>
+          {% endwith %}
+        </tfoot>
+      {% endif %}
     </table>
     {% endwith %}
 
