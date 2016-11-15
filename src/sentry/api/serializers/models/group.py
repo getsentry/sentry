@@ -32,6 +32,11 @@ SUBSCRIPTION_REASON_MAP = {
 @register(Group)
 class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
+        """
+        Returns a mapping of group IDs to a two-tuple of (subscribed: bool,
+        subscription: GroupSubscription or None) for the provided user and
+        groups.
+        """
         results = {group.id: None for group in item_list}
 
         # First, the easy part -- if there is a subscription record associated
@@ -81,12 +86,9 @@ class GroupSerializer(Serializer):
                     project.id,
                     default,
                 ) == UserOptionValue.all_conversations
-
                 for group_id in group_ids:
                     results[group_id] = (is_subscribed, None)
 
-        # These are the IDs of all of the groups that the user is subscribed to
-        # that were part of the original candidate list.
         return results
 
     def get_attrs(self, item_list, user):
