@@ -194,19 +194,11 @@ const Sidebar = React.createClass({
           currentPanel={this.state.currentPanel}
           onShowPanel={()=>this.togglePanel('statusupdate')}
           hidePanel={()=>this.hidePanel()} />
-        {!config.isOnPremise ?
-          <li>
-            <a title="Support" href={`/organizations/${org.slug}/support/`}>
-              <span className="icon icon-support" />
-            </a>
-          </li>
-          :
-          <li>
-            <a title="Support" href="https://forum.sentry.io/" target="_blank">
-              <span className="icon icon-support" />
-            </a>
-          </li>
-        }
+        <li>
+          <a title="Support" href={!config.isOnPremise ? `/organizations/${org.slug}/support/` : 'https://forum.sentry.io/'}>
+            <span className="icon icon-support" />
+          </a>
+        </li>
       </ul>
 
       {/* Panel bodies */}
