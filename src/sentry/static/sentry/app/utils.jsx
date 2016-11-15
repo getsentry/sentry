@@ -212,6 +212,7 @@ export default {
   modelsEqual: modelsEqual,
   valueIsEqual: valueIsEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
+  deviceNameMapper: require('./utils/deviceNameMapper'),
   objectToArray: objectToArray,
 
   Collection: require('./utils/collection'),
