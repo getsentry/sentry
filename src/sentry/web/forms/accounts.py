@@ -326,8 +326,9 @@ class AccountSettingsForm(forms.Form):
         return value
 
     def clean_new_password(self):
-        new_password = self.cleaned_data['new_password']
-        password_validation.validate_password(new_password)
+        new_password = self.cleaned_data.get('new_password')
+        if new_password:
+            password_validation.validate_password(new_password)
         return new_password
 
     def save(self, commit=True):
