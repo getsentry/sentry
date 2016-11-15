@@ -54,13 +54,13 @@ class BrowserExtensionsFilter(Filter):
     def get_exception_value(self, data):
         try:
             return data['sentry.interfaces.Exception']['values'][0]['value']
-        except LookupError:
+        except (LookupError, TypeError):
             return ''
 
     def get_exception_source(self, data):
         try:
             return data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames'][-1]['abs_path']
-        except LookupError:
+        except (LookupError, TypeError):
             return ''
 
     def test(self, data):
