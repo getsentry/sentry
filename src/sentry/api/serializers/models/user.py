@@ -7,7 +7,9 @@ from django.conf import settings
 
 from sentry.app import env
 from sentry.api.serializers import Serializer, register
-from sentry.models import AuthIdentity, Authenticator, User, UserAvatar, UserOption
+from sentry.models import (
+    AuthIdentity, Authenticator, User, UserAvatar, UserOption, UserEmail,
+)
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -26,6 +28,16 @@ class UserSerializer(Serializer):
             results[item.user_id].append(item)
         return results
 
+    def _get_useremails(self, item_list, user):
+        queryset = UserEmail.objects.filter(
+            user__in=item_list,
+        )
+
+        results = {i.id: [] for i in item_list}
+        for item in queryset:
+            results[item.user_id].append(item)
+        return results
+
     def get_attrs(self, item_list, user):
         avatars = {
             a.user_id: a
@@ -34,6 +46,7 @@ class UserSerializer(Serializer):
             )
         }
         identities = self._get_identities(item_list, user)
+        emails = self._get_useremails(item_list, user)
 
         authenticators = Authenticator.objects.bulk_users_have_2fa([i.id for i in item_list])
 
@@ -43,6 +56,7 @@ class UserSerializer(Serializer):
                 'avatar': avatars.get(item.id),
                 'identities': identities.get(item.id),
                 'has2fa': authenticators[item.id],
+                'emails': emails[item.id],
             }
         return data
 
@@ -107,6 +121,12 @@ class UserSerializer(Serializer):
                 'dateSynced': i.last_synced,
                 'dateVerified': i.last_verified,
             } for i in attrs['identities']]
+
+        d['emails'] = [{
+            'id': six.text_type(e.id),
+            'email': e.email,
+            'is_verified': e.is_verified,
+        } for e in attrs['emails']]
 
         return d
 
