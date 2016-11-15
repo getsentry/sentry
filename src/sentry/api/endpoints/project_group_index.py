@@ -12,8 +12,9 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import SUBSCRIPTION_REASON_MAP
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import (
+    SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
+)
 from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update

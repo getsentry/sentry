@@ -21,7 +21,6 @@ from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
-
 SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.comment: 'commented',
     GroupSubscriptionReason.assigned: 'assigned',
