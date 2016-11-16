@@ -1,7 +1,6 @@
 Version 8.11 (Unreleased)
 -------------------------
 - add Asana to supported auth backends in social auth (for plugins)
-
 - Ignore a ``null`` ``Origin`` header for authentication.
 - Added the ability to search for issues that you are subscribed to from the stream view.
 - Added the ability to search issues by their last seen timestamp.
@@ -12,6 +11,7 @@ Version 8.11 (Unreleased)
 - Add configurable password validators to enforce password strength.
 - Send email to specific email when adding a new email rather than sending to all unverified email addresses.
 - Allow user to resend email verification to primary email address.
+- Consolidated integration settings pages and added icons for other tools
 
 Schema Changes
 ~~~~~~~~~~~~~~
