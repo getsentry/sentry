@@ -64,7 +64,8 @@ var entry = {
     'flot/jquery.flot.time',
     'flot-tooltip/jquery.flot.tooltip',
     'vendor/simple-slider/simple-slider',
-    'underscore'
+    'underscore',
+    'ios-device-list'
   ],
 
   // css

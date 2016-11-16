@@ -43,5 +43,9 @@ class PluginError(Exception):
     pass
 
 
+class PluginIdentityRequired(PluginError):
+    pass
+
+
 class InvalidIdentity(Exception):
     pass

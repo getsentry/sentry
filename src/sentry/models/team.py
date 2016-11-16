@@ -24,12 +24,12 @@ from sentry.utils.retries import TimedRetryPolicy
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, organization, user, with_projects=False):
+    def get_for_user(self, organization, user, scope=None, with_projects=False):
         """
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.models import (
-            OrganizationMemberTeam, Project, ProjectStatus
+            OrganizationMemberTeam, Project, ProjectStatus, OrganizationMember,
         )
 
         if not user.is_authenticated():
@@ -42,12 +42,24 @@ class TeamManager(BaseManager):
 
         if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
-
         else:
+            try:
+                om = OrganizationMember.objects.get(
+                    user=user,
+                    organization=organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                # User is not a member of the organization at all
+                return []
+
+            # If a scope is passed through, make sure this scope is
+            # available on the OrganizationMember object.
+            if scope is not None and scope not in om.get_scopes():
+                return []
+
             team_list = list(base_team_qs.filter(
                 id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user,
-                    organizationmember__organization=organization,
+                    organizationmember=om,
                     is_active=True,
                 ).values_list('team'),
             ))

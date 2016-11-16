@@ -16,6 +16,7 @@ from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect, Http404, HttpResponse
+from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
@@ -97,6 +98,7 @@ def recover_confirm(request, user_id, hash):
             form = ChangePasswordRecoverForm(request.POST)
             if form.is_valid():
                 user.set_password(form.cleaned_data['password'])
+                user.refresh_session_nonce(request)
                 user.save()
 
                 # Ugly way of doing this, but Django requires the backend be set
@@ -121,6 +123,7 @@ def recover_confirm(request, user_id, hash):
 
 
 @login_required
+@require_http_methods(["POST"])
 def start_confirm_email(request):
     from sentry.app import ratelimiter
 
@@ -134,8 +137,20 @@ def start_confirm_email(request):
             status=429,
         )
 
-    has_unverified_emails = request.user.has_unverified_emails()
-    if has_unverified_emails:
+    if 'primary-email' in request.POST:
+        email = request.POST.get('email')
+        try:
+            email_to_send = UserEmail.objects.get(user=request.user, email=email)
+        except UserEmail.DoesNotExist:
+            msg = _('There was an error confirming your email.')
+            level = messages.ERROR
+        else:
+            request.user.send_confirm_email_singular(email_to_send)
+            msg = _('A verification email has been sent to %s.') % (email)
+            level = messages.SUCCESS
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse('sentry-account-settings'))
+    elif request.user.has_unverified_emails():
         request.user.send_confirm_emails()
         unverified_emails = [e.email for e in request.user.get_unverified_emails()]
         msg = _('A verification email has been sent to %s.') % (', ').join(unverified_emails)
@@ -174,7 +189,7 @@ def account_settings(request):
     user = request.user
 
     form = AccountSettingsForm(
-        user, request.POST or None,
+        user, request, request.POST or None,
         initial={
             'email': UserEmail.get_primary_email(user).email,
             'username': user.username,
@@ -203,10 +218,15 @@ def account_settings(request):
             else:
                 user_email.set_hash()
                 user_email.save()
-            user.send_confirm_emails()
+            user.send_confirm_email_singular(user_email)
+            msg = _('A confirmation email has been sent to %s.') % user_email.email
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                msg)
 
         messages.add_message(
-            request, messages.SUCCESS, 'Your settings were saved.')
+            request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)
 
     context = csrf(request)
@@ -215,6 +235,7 @@ def account_settings(request):
         'page': 'settings',
         'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'email': UserEmail.get_primary_email(user),
     })
     return render_to_response('sentry/account/settings.html', context, request)
 
@@ -410,7 +431,12 @@ def show_emails(request):
             else:
                 user_email.set_hash()
                 user_email.save()
-            user.send_confirm_emails()
+            user.send_confirm_email_singular(user_email)
+            msg = _('A confirmation email has been sent to %s.') % user_email.email
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                msg)
         alternative_email = email_form.cleaned_data['alt_email']
         # check if this alternative email already exists for user
         if alternative_email and not UserEmail.objects.filter(user=user, email=alternative_email):
@@ -427,10 +453,15 @@ def show_emails(request):
                 new_email.set_hash()
                 new_email.save()
             # send confirmation emails to any non verified emails
-            user.send_confirm_emails()
+            user.send_confirm_email_singular(new_email)
+            msg = _('A confirmation email has been sent to %s.') % new_email.email
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                msg)
 
         messages.add_message(
-            request, messages.SUCCESS, 'Your settings were saved.')
+            request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)
 
     context = csrf(request)

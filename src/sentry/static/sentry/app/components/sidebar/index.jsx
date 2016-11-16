@@ -13,6 +13,7 @@ import OrganizationSelector from './organizationSelector';
 import SidebarPanel from '../sidebarPanel';
 import TodoList from '../todos';
 import IssueList from '../issueList';
+import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
 
@@ -145,6 +146,7 @@ const Sidebar = React.createClass({
 
   renderBody() {
     let org = this.getOrganization();
+    let config = ConfigStore.getConfig();
 
     if (!org) {
       // When no organization, just render Sentry logo at top
@@ -193,7 +195,7 @@ const Sidebar = React.createClass({
           onShowPanel={()=>this.togglePanel('statusupdate')}
           hidePanel={()=>this.hidePanel()} />
         <li>
-          <a title="Support" href={`/organizations/${org.slug}/support/`}>
+          <a title="Support" href={!config.isOnPremise ? `/organizations/${org.slug}/support/` : 'https://forum.sentry.io/'}>
             <span className="icon icon-support" />
           </a>
         </li>

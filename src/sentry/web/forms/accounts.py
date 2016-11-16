@@ -17,6 +17,7 @@ from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
+from sentry.auth import password_validation
 from sentry.app import ratelimiter
 from sentry.constants import LANGUAGES
 from sentry.models import (
@@ -174,6 +175,11 @@ class RegistrationForm(forms.ModelForm):
             raise forms.ValidationError(_('An account is already registered with that email address.'))
         return value.lower()
 
+    def clean_password(self):
+        password = self.cleaned_data['password']
+        password_validation.validate_password(password)
+        return password
+
     def save(self, commit=True):
         user = super(RegistrationForm, self).save(commit=False)
         user.email = user.username
@@ -206,6 +212,11 @@ class RecoverPasswordForm(forms.Form):
 class ChangePasswordRecoverForm(forms.Form):
     password = forms.CharField(widget=forms.PasswordInput())
 
+    def clean_password(self):
+        password = self.cleaned_data['password']
+        password_validation.validate_password(password)
+        return password
+
 
 class EmailForm(forms.Form):
     primary_email = forms.EmailField(label=_('Primary Email'))
@@ -216,9 +227,21 @@ class EmailForm(forms.Form):
         help_text='Designate an alternative email for this account',
     )
 
+    password = forms.CharField(
+        label=_('Current password'),
+        widget=forms.PasswordInput(),
+        help_text=_('You will need to enter your current account password to make changes.'),
+        required=True,
+    )
+
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(EmailForm, self).__init__(*args, **kwargs)
+
+        needs_password = user.has_usable_password()
+
+        if not needs_password:
+            del self.fields['password']
 
     def save(self, commit=True):
 
@@ -237,6 +260,14 @@ class EmailForm(forms.Form):
 
         return self.user
 
+    def clean_password(self):
+        value = self.cleaned_data.get('password')
+        if value and not self.user.check_password(value):
+            raise forms.ValidationError(_('The password you entered is not correct.'))
+        elif not value:
+            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+        return value
+
 
 class AccountSettingsForm(forms.Form):
     name = forms.CharField(required=True, label=_('Name'), max_length=30)
@@ -246,6 +277,7 @@ class AccountSettingsForm(forms.Form):
         label=_('New password'),
         widget=forms.PasswordInput(),
         required=False,
+        # help_text=password_validation.password_validators_help_text_html(),
     )
     password = forms.CharField(
         label=_('Current password'),
@@ -254,8 +286,9 @@ class AccountSettingsForm(forms.Form):
         required=False,
     )
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self, user, request, *args, **kwargs):
         self.user = user
+        self.request = request
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
         needs_password = user.has_usable_password()
@@ -312,9 +345,16 @@ class AccountSettingsForm(forms.Form):
             raise forms.ValidationError('You must confirm your current password to make changes.')
         return value
 
+    def clean_new_password(self):
+        new_password = self.cleaned_data.get('new_password')
+        if new_password:
+            password_validation.validate_password(new_password)
+        return new_password
+
     def save(self, commit=True):
         if self.cleaned_data.get('new_password'):
             self.user.set_password(self.cleaned_data['new_password'])
+            self.user.refresh_session_nonce(self.request)
 
         self.user.name = self.cleaned_data['name']
 

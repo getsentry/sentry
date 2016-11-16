@@ -297,11 +297,21 @@ else:
 
 AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
-    # TODO(dcramer): remove social auth backends in 8.11
+    # TODO(dcramer): we can't remove these until we rewrite more of social auth
     'social_auth.backends.github.GithubBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
+    'social_auth.backends.asana.AsanaBackend',
 )
+
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'sentry.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 6,
+        },
+    },
+]
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
@@ -309,6 +319,7 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     'social_auth.backends.github.GithubBackend',
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
+    'social_auth.backends.asana.AsanaBackend',
 )
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -348,12 +359,14 @@ AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
+    'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
 }
 
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
     'trello': 'Trello',
-    'bitbucket': 'Bitbucket'
+    'bitbucket': 'Bitbucket',
+    'asana': 'Asana'
 }
 
 import random

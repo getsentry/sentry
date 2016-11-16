@@ -125,6 +125,8 @@ class TwoFactorSettingsView(BaseView):
                 # that case just go to the overview page of 2fa
                 next = reverse('sentry-account-settings-2fa')
             else:
+                request.user.refresh_session_nonce(self.request)
+                request.user.save()
                 if Authenticator.objects.auto_add_recovery_codes(request.user):
                     next = reverse('sentry-account-settings-2fa-recovery')
         return HttpResponseRedirect(next)

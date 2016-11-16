@@ -41,6 +41,7 @@ class PluginWithConfigSerializer(PluginSerializer):
             serialize_field(self.project, obj, c)
             for c in obj.get_config(
                 project=self.project,
+                user=user
             )
         ]
         return d
@@ -61,5 +62,8 @@ def serialize_field(project, plugin, field):
     }
     if field.get('type') != 'secret':
         data['value'] = plugin.get_option(field['name'], project)
+    else:
+        data['has_saved_value'] = bool(field.get('has_saved_value', False))
+        data['prefix'] = field.get('prefix', '')
 
     return data

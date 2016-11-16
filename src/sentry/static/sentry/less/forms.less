@@ -129,3 +129,23 @@ textarea.form-control[disabled] {
   margin-left: 5px;
   font-size: 80%;
 }
+
+.form-password {
+  &.editing {
+    div:first-child {
+      width: 85%;
+      display: inline-block;
+    }
+    div:last-child {
+      line-height: 37px;
+      margin-left: 10px;
+      display: inline-block;
+    }
+  }
+
+  &.saved {
+    a {
+      margin-left: 10px;
+    }
+  }
+}

@@ -37,7 +37,7 @@ EXTENSION_EXC_SOURCES = re.compile('|'.join((
     r'eatdifferent\.com\.woopra-ns\.com',
     r'static\.woopra\.com\/js\/woopra\.js',
     # Chrome extensions
-    r'^chrome:\/\/',
+    r'^chrome(?:-extension)?:\/\/',
     # Cacaoweb
     r'127\.0\.0\.1:4001\/isrunning',
     # Other
@@ -54,13 +54,13 @@ class BrowserExtensionsFilter(Filter):
     def get_exception_value(self, data):
         try:
             return data['sentry.interfaces.Exception']['values'][0]['value']
-        except LookupError:
+        except (LookupError, TypeError):
             return ''
 
     def get_exception_source(self, data):
         try:
             return data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames'][-1]['abs_path']
-        except LookupError:
+        except (LookupError, TypeError):
             return ''
 
     def test(self, data):

@@ -64,6 +64,8 @@ def pytest_configure(config):
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
 
+    settings.AUTH_PASSWORD_VALIDATORS = []
+
     # Replace real sudo middleware with our mock sudo middleware
     # to assert that the user is always in sudo mode
     middleware = list(settings.MIDDLEWARE_CLASSES)
