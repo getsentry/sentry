@@ -1,11 +1,11 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LanguageNav from './languageNav';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import NotFound from '../../components/errors/notFound';
+import Link from '../../components/link';
 import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
@@ -150,11 +150,11 @@ const ProjectInstallPlatform = React.createClass({
             // Using <a /> instead of <Link /> as hashchange events are not
             // triggered when switching views within React Router
             <p>
-              <a
-                href={`/${orgId}/${projectId}/#welcome`}
+              <Link
+                to={`/${orgId}/${projectId}/#welcome`}
                 className="btn btn-primary btn-lg">
                   {t('Got it! Take me to the Issue Stream.')}
-              </a>
+              </Link>
             </p>}
         </div>
       </div>
