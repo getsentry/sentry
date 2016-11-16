@@ -19,7 +19,14 @@ const ERROR_TYPES = {
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND'
 };
 
-const ProjectBase = React.createClass({
+/**
+ * Higher-order component that sets `project` and `team` as child context
+ * values to be accessed by child elements.
+ *
+ * Additionally delays rendering of children until project XHR has finished
+ * and context is populated.
+ */
+const ProjectContext = React.createClass({
   propTypes: {
     projectId: React.PropTypes.string,
     orgId: React.PropTypes.string
@@ -217,4 +224,4 @@ const ProjectBase = React.createClass({
   }
 });
 
-export default ProjectBase;
+export default ProjectContext;
