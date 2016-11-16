@@ -33,7 +33,6 @@ import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
-import ProjectCreation from './views/projects/projectCreation';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
@@ -124,7 +123,6 @@ function routes() {
         <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
         <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
 
-        <Route path="/organizations/:orgId/projects/_new/" component={errorHandler(ProjectCreation)} />
         <Route path="/organizations/:orgId/projects/choose/" component={errorHandler(ProjectChooser)} />
         <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
         <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
