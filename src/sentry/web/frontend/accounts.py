@@ -218,12 +218,12 @@ def account_settings(request):
             else:
                 user_email.set_hash()
                 user_email.save()
-            user.send_confirm_email_singular(user_email)
-            msg = _('A confirmation email has been sent to %s.') % user_email.email
-            messages.add_message(
-                request,
-                messages.SUCCESS,
-                msg)
+                user.send_confirm_email_singular(user_email)
+                msg = _('A confirmation email has been sent to %s.') % user_email.email
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    msg)
 
         messages.add_message(
             request, messages.SUCCESS, _('Your settings were saved.'))
@@ -431,12 +431,12 @@ def show_emails(request):
             else:
                 user_email.set_hash()
                 user_email.save()
-            user.send_confirm_email_singular(user_email)
-            msg = _('A confirmation email has been sent to %s.') % user_email.email
-            messages.add_message(
-                request,
-                messages.SUCCESS,
-                msg)
+                user.send_confirm_email_singular(user_email)
+                msg = _('A confirmation email has been sent to %s.') % user_email.email
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    msg)
         alternative_email = email_form.cleaned_data['alt_email']
         # check if this alternative email already exists for user
         if alternative_email and not UserEmail.objects.filter(user=user, email=alternative_email):
