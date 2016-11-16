@@ -12,17 +12,19 @@ const GettingStartedBody = React.createClass({
 
   render() {
     let {project, organization} = this.context;
+    let style = {marginLeft: '-15px', marginTop: '-10px'};
     return (
       <div>
         <div className="sub-header flex flex-container flex-vertically-centered">
-          <div className="p-t-1">
+          <div className="p-t-1 p-b-1">
             <ProjectSelector
               organization={organization}
-              projectId={project.slug}/>
+              projectId={project.slug}
+              />
           </div>
         </div>
         <div className="container">
-          <div className="content">
+          <div className="content" style={style}>
             <ProjectDocsContext>
               {this.props.children}
             </ProjectDocsContext>
