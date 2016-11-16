@@ -15,7 +15,7 @@ class AddOrganizationMemberForm(BaseOrganizationMemberForm):
     user = UserField()
 
     class Meta:
-        fields = ('user',)
+        fields = ('user', 'role')
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
