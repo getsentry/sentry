@@ -23,10 +23,10 @@ const GroupSidebar = React.createClass({
   ],
 
   subscriptionReasons: {
-    commented: t('You\'re subscribed to this issue since you have commented on this issue.'),
-    assigned: t('You\'re subscribed to this issue since you were assigned to this issue.'),
-    bookmarked: t('You\'re subscribed to this issue since you have bookmarked this issue.'),
-    changed_status: t('You\'re subscribed to this issue since you have changed the status of this issue.'),
+    commented: t('You\'re receiving updates because you have commented on this issue.'),
+    assigned: t('You\'re receiving updates because you were assigned to this issue.'),
+    bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
+    changed_status: t('You\'re receiving updates because you have changed the status of this issue.'),
   },
 
   toggleSubscription() {
@@ -80,16 +80,16 @@ const GroupSidebar = React.createClass({
     let group = this.getGroup();
 
     if (group.isSubscribed) {
-      let result = t('You\'re subscribed to this issue.');
+      let result = t('You\'re receiving updates because you are subscribed to this issue.');
       if (group.subscriptionDetails) {
         let reason = group.subscriptionDetails.reason;
         if (this.subscriptionReasons.hasOwnProperty(reason)) {
           result = this.subscriptionReasons[reason];
         }
       } else {
-        result = t('You\'re subscribed to workflow notifications for this project.');
+        result = t('You\'re receiving updates because you are subscribed to workflow notifications for this project.');
       }
-      return result + ' ' + t('You\'ll be notified when updates happen.');
+      return result;
     } else {
       return t('You\'re not subscribed to this issue.');
     }
