@@ -40,7 +40,8 @@ import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
 import ProjectFilters from './views/projectFilters';
-import ProjectInstall from './views/projectInstall';
+import ProjectGettingStarted from './views/projectInstall/gettingStarted';
+import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
@@ -132,7 +133,7 @@ function routes() {
 
         {hooksOrgRoutes}
 
-        <Route path=":projectId/settings/install/" component={errorHandler(ProjectInstall)}>
+        <Route path=":projectId/getting-started/" component={errorHandler(ProjectGettingStarted)}>
           <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
         </Route>
@@ -157,6 +158,10 @@ function routes() {
             <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
             <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
             <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
+            <Route path="install/" component={errorHandler(ProjectDocsContext)}>
+              <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
+              <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
+            </Route>
           </Route>
           <Redirect from="group/:groupId/" to="issues/:groupId/" />
           <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}

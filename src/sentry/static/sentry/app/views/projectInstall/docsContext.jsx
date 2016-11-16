@@ -1,13 +1,12 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
-import ProjectSelector from '../../components/projectHeader/projectSelector';
 import ProjectState from '../../mixins/projectState';
 
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const ProjectInstallLayout = React.createClass({
+const ProjectDocsContext = React.createClass({
   mixins: [
     ApiMixin,
     ProjectState
@@ -45,7 +44,7 @@ const ProjectInstallLayout = React.createClass({
     });
   },
 
-  renderBody() {
+  render() {
     if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
@@ -55,29 +54,7 @@ const ProjectInstallLayout = React.createClass({
     return React.cloneElement(this.props.children, {
       platformData: data // {...this.props}
     });
-  },
-
-  render() {
-    let org = this.context.organization;
-    let project = this.context.project;
-    if (!project) return null;
-    return (
-      <div>
-        <div className="sub-header flex flex-container flex-vertically-centered">
-          <div className="p-t-1">
-            <ProjectSelector
-              organization={org}
-              projectId={project.slug}/>
-          </div>
-        </div>
-        <div className="container">
-          <div className="content">
-            {this.renderBody()}
-          </div>
-        </div>
-      </div>
-    );
   }
 });
 
-export default ProjectInstallLayout;
+export default ProjectDocsContext;

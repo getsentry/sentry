@@ -23,6 +23,7 @@ const ProjectInstallPlatform = React.createClass({
     let key = params.platform;
     let integration;
     let platform;
+
     props.platformData.platforms.forEach((p_item) => {
       if (integration) {
         return;
@@ -54,6 +55,10 @@ const ProjectInstallPlatform = React.createClass({
       this.setState(this.getInitialState(nextProps), this.fetchData);
       $(window).scrollTop(0);
     }
+  },
+
+  isGettingStarted() {
+    return location.href.indexOf('getting-started') > 0;
   },
 
   fetchData() {
@@ -106,7 +111,6 @@ const ProjectInstallPlatform = React.createClass({
 
   renderBody() {
     let {integration, platform} = this.state;
-    let queryParams = this.props.location.query;
     let {orgId, projectId} = this.props.params;
 
     if (!integration || !platform) {
@@ -142,7 +146,7 @@ const ProjectInstallPlatform = React.createClass({
             <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
           )}
 
-          {queryParams.hasOwnProperty('signup') ?
+          {this.isGettingStarted() &&
             // Using <a /> instead of <Link /> as hashchange events are not
             // triggered when switching views within React Router
             <p>
@@ -151,10 +155,7 @@ const ProjectInstallPlatform = React.createClass({
                 className="btn btn-primary btn-lg">
                   {t('Got it! Take me to the Issue Stream.')}
               </a>
-            </p>
-          :
-            null
-          }
+            </p>}
         </div>
       </div>
     );
