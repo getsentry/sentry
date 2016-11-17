@@ -310,6 +310,9 @@ class StoreView(APIView):
 
         remote_addr = request.META['REMOTE_ADDR']
 
+        if project.organization.flags.suspended:
+            raise APIForbidden('This account has been suspended')
+
         data = LazyData(
             data=data,
             content_encoding=request.META.get('HTTP_CONTENT_ENCODING', ''),
