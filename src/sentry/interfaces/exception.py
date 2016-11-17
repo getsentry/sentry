@@ -203,6 +203,9 @@ class Exception(Interface):
         if not data['values']:
             raise InterfaceValidationError("No 'values' present")
 
+        if not isinstance(data['values'], list):
+            raise InterfaceValidationError("Invalid value for 'values'")
+
         has_system_frames = cls.data_has_system_frames(data)
 
         kwargs = {
