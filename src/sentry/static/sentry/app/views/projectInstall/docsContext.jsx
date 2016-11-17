@@ -1,27 +1,24 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
+import ProjectState from '../../mixins/projectState';
+
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const ProjectInstall = React.createClass({
-  propTypes: {
-    setProjectNavSection: React.PropTypes.func
-  },
-
+const ProjectDocsContext = React.createClass({
   mixins: [
-    ApiMixin
+    ApiMixin,
+    ProjectState
   ],
 
   getInitialState() {
     return {
       loading: true,
-      platformList: null
+      platformList: null,
+      project: null,
+      team: null
     };
-  },
-
-  componentWillMount() {
-    this.props.setProjectNavSection('settings');
   },
 
   componentDidMount() {
@@ -29,7 +26,14 @@ const ProjectInstall = React.createClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props.params;
+    let org = this.context.organization;
+    if (!org) {
+      return;
+    }
+
+    let orgId = org.slug;
+    let projectId = this.context.project.slug;
+
     this.api.request(`/projects/${orgId}/${projectId}/docs/`, {
       success: (data) => {
         this.setState({
@@ -53,4 +57,4 @@ const ProjectInstall = React.createClass({
   }
 });
 
-export default ProjectInstall;
+export default ProjectDocsContext;

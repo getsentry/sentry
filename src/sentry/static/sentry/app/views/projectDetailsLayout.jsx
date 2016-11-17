@@ -1,6 +1,5 @@
 import React from 'react';
 
-import ProjectContext from './projects/projectContext';
 import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
 
@@ -49,17 +48,4 @@ const ProjectDetailsLayout = React.createClass({
   }
 });
 
-const ProjectDetails = React.createClass({
-  render() {
-    let {projectId, orgId} = this.props.params;
-    return (
-      <ProjectContext orgId={orgId} projectId={projectId}>
-        <ProjectDetailsLayout>
-          {this.props.children}
-        </ProjectDetailsLayout>
-      </ProjectContext>
-    );
-  }
-});
-
-export default ProjectDetails;
+export default ProjectDetailsLayout;

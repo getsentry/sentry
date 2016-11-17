@@ -89,7 +89,7 @@ class CreateProjectView(OrganizationView):
                 'name': form.cleaned_data['name'],
             }, request=request)
 
-            install_uri = absolute_uri('/{}/{}/settings/install/'.format(
+            install_uri = absolute_uri('/{}/{}/getting-started/'.format(
                 organization.slug,
                 response.data['slug'],
             ))
