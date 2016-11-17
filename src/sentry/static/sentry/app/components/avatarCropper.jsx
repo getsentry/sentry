@@ -235,7 +235,7 @@ const AvatarCropper = React.createClass({
     if (img.naturalWidth < this.MIN_DIMENSION ||
           img.naturalHeight < this.MIN_DIMENSION) {
       return ('Please upload an image larger than ' +
-              this.MIN_DIMENSION + 'px by ' + this.MIN_DIMENSION + 'px.');
+              (this.MIN_DIMENSION - 1) + 'px by ' + (this.MIN_DIMENSION - 1) + 'px.');
     }
     if (img.naturalWidth > this.MAX_DIMENSION ||
           img.naturalHeight > this.MAX_DIMENSION) {
