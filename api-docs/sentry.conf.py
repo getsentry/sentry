@@ -52,7 +52,7 @@ SENTRY_OPTIONS.update({
         },
     },
     'system.secret-key': 'super secret secret key',
-    'system.admin-email': 'admin@getsentry.com',
+    'system.admin-email': 'admin@sentry.io',
     'system.url-prefix': SENTRY_URL_PREFIX,
     'mail.backend': 'django.core.mail.backends.smtp.EmailBackend',
     'mail.host': 'localhost',
@@ -60,7 +60,7 @@ SENTRY_OPTIONS.update({
     'mail.username': '',
     'mail.port': 25,
     'mail.use-tls': False,
-    'mail.from': 'sentry@getsentry.com',
+    'mail.from': 'sentry@sentry.io',
     'filestore.backend': 'filesystem',
     'filestore.options': {'location': '/tmp/sentry-files'},
 })
