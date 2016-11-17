@@ -26,10 +26,6 @@ const ProjectDetailsLayout = React.createClass({
     });
   },
 
-  getTitle() {
-    return 'TODO FIX THIS TITLE';
-  },
-
   render() {
     if (!this.context.project)
       return null;

@@ -31,7 +31,7 @@ const ProjectDocsContext = React.createClass({
       return;
     }
 
-    let orgId = this.context.organization.slug;
+    let orgId = org.slug;
     let projectId = this.context.project.slug;
 
     this.api.request(`/projects/${orgId}/${projectId}/docs/`, {
