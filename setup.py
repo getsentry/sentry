@@ -185,7 +185,7 @@ setup(
     name='sentry',
     version=VERSION,
     author='Sentry',
-    author_email='hello@getsentry.com',
+    author_email='hello@sentry.io',
     url='https://sentry.io',
     description='A realtime logging and aggregation server.',
     long_description=open(os.path.join(ROOT, 'README.rst')).read(),
