@@ -11,7 +11,7 @@ install-python:
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
-	@hash yarn 2> /dev/null || npm install yarn
+	@hash yarn 2> /dev/null || npm install -g yarn
 	yarn install
 
 install-python-tests:
