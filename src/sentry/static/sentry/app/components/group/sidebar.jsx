@@ -6,7 +6,7 @@ import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
 
 const GroupSidebar = React.createClass({
   propTypes: {
@@ -87,7 +87,9 @@ const GroupSidebar = React.createClass({
           result = this.subscriptionReasons[reason];
         }
       } else {
-        result = t('You\'re receiving updates because you are subscribed to workflow notifications for this project.');
+        result = tct('You\'re receiving updates because you are [link:subscribed to workflow notifications] for this project.', {
+          link: <a href="/account/settings/notifications/" />,
+        });
       }
       return result;
     } else {
