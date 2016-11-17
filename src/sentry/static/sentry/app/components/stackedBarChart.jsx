@@ -108,9 +108,7 @@ const StackedBarChart = React.createClass({
   timeLabelAsHour(point) {
     let timeMoment = moment(point.x * 1000);
     let nextMoment = timeMoment.clone().add(59, 'minute');
-    let format = (
-      this.use24Hours() ? 'HH:mm' : 'LT'
-    );
+    let format = this.use24Hours() ? 'HH:mm' : 'LT';
 
     return (
       '<span>' +
@@ -133,9 +131,7 @@ const StackedBarChart = React.createClass({
   timeLabelAsRange(interval, point) {
     let timeMoment = moment(point.x * 1000);
     let nextMoment = timeMoment.clone().add(interval - 1, 'second');
-    let format = (
-      this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a'
-    );
+    let format = this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
 
     return (
       '<span>' +
