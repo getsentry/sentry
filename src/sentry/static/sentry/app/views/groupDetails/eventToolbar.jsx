@@ -53,9 +53,7 @@ let GroupEventToolbar  = React.createClass({
     let evt = this.props.event;
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
-    let format = (
-      options.clock24Hours ? 'HH:mm:ss z' : 'LTS z'
-    );
+    let format = options.clock24Hours ? 'HH:mm:ss z' : 'LTS z';
     let dateCreated = moment(evt.dateCreated);
     let resp = (
       '<dl class="flat" style="text-align:left;margin:0;min-width:200px">' +

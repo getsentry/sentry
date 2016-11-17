@@ -2,6 +2,7 @@ import moment from 'moment';
 import React from 'react';
 import {intcomma, valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
+import ConfigStore from '../stores/configStore.jsx';
 
 const StackedBarChart = React.createClass({
   propTypes: {
@@ -93,6 +94,12 @@ const StackedBarChart = React.createClass({
     return !valueIsEqual(this.props, nextProps, true);
   },
 
+  use24Hours() {
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    return options.clock24Hours;
+  },
+
   floatFormat(number, places) {
     let multi = Math.pow(10, places);
     return parseInt(number * multi, 10) / multi;
@@ -101,11 +108,12 @@ const StackedBarChart = React.createClass({
   timeLabelAsHour(point) {
     let timeMoment = moment(point.x * 1000);
     let nextMoment = timeMoment.clone().add(59, 'minute');
+    let format = this.use24Hours() ? 'HH:mm' : 'LT';
 
     return (
       '<span>' +
         timeMoment.format('LL') + '<br />' +
-        timeMoment.format('LT') + '  &#8594; ' + nextMoment.format('LT') +
+        timeMoment.format(format) + '  &#8594; ' + nextMoment.format(format) +
       '</span>'
     );
   },
@@ -123,12 +131,13 @@ const StackedBarChart = React.createClass({
   timeLabelAsRange(interval, point) {
     let timeMoment = moment(point.x * 1000);
     let nextMoment = timeMoment.clone().add(interval - 1, 'second');
+    let format = this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
 
     return (
       '<span>' +
         // e.g. Aug 23rd, 12:50 pm
-        timeMoment.format('MMM Do, h:mm a') +
-        ' &#8594 ' + nextMoment.format('MMM Do, h:mm a') +
+        timeMoment.format(format) +
+        ' &#8594 ' + nextMoment.format(format) +
       '</span>'
     );
   },
