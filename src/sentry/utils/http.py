@@ -26,6 +26,13 @@ def absolute_uri(url=None):
     return urljoin(options.get('system.url-prefix').rstrip('/') + '/', url.lstrip('/'))
 
 
+def origin_from_url(url):
+    if not url:
+        return url
+    url = urlparse(url)
+    return '%s://%s' % (url.scheme, url.netloc)
+
+
 def safe_urlencode(params, doseq=0):
     """
     UTF-8-safe version of safe_urlencode
@@ -229,5 +236,5 @@ def origin_from_request(request):
     # Behavior is specified in RFC6454. In either case, we should
     # treat a "null" Origin as a nonexistent one and fallback to Referer.
     if rv in ('', 'null'):
-        rv = request.META.get('HTTP_REFERER')
+        rv = origin_from_url(request.META.get('HTTP_REFERER'))
     return rv
