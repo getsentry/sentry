@@ -247,7 +247,7 @@ class OriginFromRequestTestCase(TestCase):
 
     def test_referer(self):
         request = HttpRequest()
-        request.META['HTTP_REFERER'] = 'http://example.com'
+        request.META['HTTP_REFERER'] = 'http://example.com/foo/bar'
         assert origin_from_request(request) == 'http://example.com'
 
     def test_null_origin(self):
