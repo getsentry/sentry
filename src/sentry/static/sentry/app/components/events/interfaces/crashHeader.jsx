@@ -45,7 +45,7 @@ const CrashHeader = React.createClass({
   },
 
   getOriginalButtonLabel() {
-    if (this.platform === 'javascript' || this.platform === 'node') {
+    if (this.props.platform === 'javascript' || this.props.platform === 'node') {
       return t('Original');
     } else {
       return t('Symbolicated');
@@ -53,7 +53,7 @@ const CrashHeader = React.createClass({
   },
 
   getMinifiedButtonLabel() {
-    if (this.platform === 'javascript' || this.platform === 'node') {
+    if (this.props.platform === 'javascript' || this.props.platform === 'node') {
       return t('Minified');
     } else {
       return t('Unsymbolicated');
