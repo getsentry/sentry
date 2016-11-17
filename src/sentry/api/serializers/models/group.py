@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
 
-import six
-
 from collections import defaultdict, namedtuple
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils import timezone
@@ -13,17 +13,30 @@ from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupSubscription,
-    GroupStatus, GroupTagKey, UserOption, UserOptionValue
+    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus,
+    GroupSubscription, GroupSubscriptionReason, GroupTagKey, UserOption,
+    UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
+SUBSCRIPTION_REASON_MAP = {
+    GroupSubscriptionReason.comment: 'commented',
+    GroupSubscriptionReason.assigned: 'assigned',
+    GroupSubscriptionReason.bookmark: 'bookmarked',
+    GroupSubscriptionReason.status_change: 'changed_status',
+}
+
 
 @register(Group)
 class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
+        """
+        Returns a mapping of group IDs to a two-tuple of (subscribed: bool,
+        subscription: GroupSubscription or None) for the provided user and
+        groups.
+        """
         results = {group.id: None for group in item_list}
 
         # First, the easy part -- if there is a subscription record associated
@@ -35,7 +48,7 @@ class GroupSerializer(Serializer):
         )
 
         for subscription in subscriptions:
-            results[subscription.group_id] = subscription.is_active
+            results[subscription.group_id] = (subscription.is_active, subscription)
 
         # For any group that doesn't have a subscription associated with it,
         # we'll need to fall back to the project's option value, so here we
@@ -73,13 +86,10 @@ class GroupSerializer(Serializer):
                     project.id,
                     default,
                 ) == UserOptionValue.all_conversations
-
                 for group_id in group_ids:
-                    results[group_id] = is_subscribed
+                    results[group_id] = (is_subscribed, None)
 
-        # These are the IDs of all of the groups that the user is subscribed to
-        # that were part of the original candidate list.
-        return {group_id for group_id, is_subscribed in results.items() if is_subscribed}
+        return results
 
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
@@ -101,7 +111,7 @@ class GroupSerializer(Serializer):
         else:
             bookmarks = set()
             seen_groups = {}
-            subscriptions = set()
+            subscriptions = defaultdict(lambda: (False, None))
 
         assignees = dict(
             (a.group_id, a.user)
@@ -145,7 +155,7 @@ class GroupSerializer(Serializer):
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
-                'is_subscribed': item.id in subscriptions,
+                'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
@@ -181,6 +191,8 @@ class GroupSerializer(Serializer):
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
 
+        is_subscribed, subscription = attrs['subscription']
+
         return {
             'id': six.text_type(obj.id),
             'shareId': obj.get_share_id(),
@@ -206,7 +218,13 @@ class GroupSerializer(Serializer):
             'numComments': obj.num_comments,
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
-            'isSubscribed': attrs['is_subscribed'],
+            'isSubscribed': is_subscribed,
+            'subscriptionDetails': {
+                'reason': SUBSCRIPTION_REASON_MAP.get(
+                    subscription.reason,
+                    'unknown',
+                ),
+            } if is_subscribed and subscription is not None else None,
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }

@@ -22,6 +22,13 @@ const GroupSidebar = React.createClass({
     GroupState
   ],
 
+  subscriptionReasons: {
+    commented: t('You\'re receiving updates because you have commented on this issue.'),
+    assigned: t('You\'re receiving updates because you were assigned to this issue.'),
+    bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
+    changed_status: t('You\'re receiving updates because you have changed the status of this issue.'),
+  },
+
   toggleSubscription() {
     let group = this.props.group;
     let project = this.getProject();
@@ -69,6 +76,25 @@ const GroupSidebar = React.createClass({
     }
   },
 
+  getNotificationText() {
+    let group = this.getGroup();
+
+    if (group.isSubscribed) {
+      let result = t('You\'re receiving updates because you are subscribed to this issue.');
+      if (group.subscriptionDetails) {
+        let reason = group.subscriptionDetails.reason;
+        if (this.subscriptionReasons.hasOwnProperty(reason)) {
+          result = this.subscriptionReasons[reason];
+        }
+      } else {
+        result = t('You\'re receiving updates because you are subscribed to workflow notifications for this project.');
+      }
+      return result;
+    } else {
+      return t('You\'re not subscribed to this issue.');
+    }
+  },
+
   render() {
     let project = this.getProject();
     let projectId = project.slug;
@@ -103,11 +129,7 @@ const GroupSidebar = React.createClass({
         }
 
         <h6><span>{t('Notifications')}</span></h6>
-        {group.isSubscribed ?
-          <p className="help-block">{t('You\'re subscribed to this issue and will get notified when updates happen.')}</p>
-        :
-          <p className="help-block">{t('You\'re not subscribed in this issue.')}</p>
-        }
+        <p className="help-block">{this.getNotificationText()}</p>
         <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
            onClick={this.toggleSubscription}>
           <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}

@@ -1,33 +1,34 @@
 from __future__ import absolute_import, division, print_function
 
-import six
-
 from datetime import timedelta
+from uuid import uuid4
+
+import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
-from uuid import uuid4
 
-from sentry.app import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import (
+    SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
+)
+from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSubscription, GroupSubscriptionReason, GroupSnooze, GroupStatus,
-    Release, TagKey,
+    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
-from sentry.search.utils import parse_query
-from sentry.search.utils import InvalidQuery
+from sentry.search.utils import InvalidQuery, parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -562,12 +563,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if result.get('isSubscribed') in (True, False):
             is_subscribed = result['isSubscribed']
             for group in group_list:
+                # NOTE: Subscribing without an initiating event (assignment,
+                # commenting, etc.) clears out the previous subscription reason
+                # to avoid showing confusing messaging as a result of this
+                # action. It'd be jarring to go directly from "you are not
+                # subscribed" to "you were subscribed due since you were
+                # assigned" just by clicking the "subscribe" button (and you
+                # may no longer be assigned to the issue anyway.)
                 GroupSubscription.objects.create_or_update(
                     user=acting_user,
                     group=group,
                     project=project,
-                    values={'is_active': is_subscribed},
+                    values={
+                        'is_active': is_subscribed,
+                        'reason': GroupSubscriptionReason.unknown,
+                    },
                 )
+
+            result['subscriptionDetails'] = {
+                'reason': SUBSCRIPTION_REASON_MAP.get(
+                    GroupSubscriptionReason.unknown,
+                    'unknown',
+                ),
+            }
 
         if result.get('isPublic'):
             queryset.update(is_public=True)
