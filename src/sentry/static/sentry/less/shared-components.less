@@ -3377,12 +3377,18 @@ ul.tag-list {
     &.python .platformicon {
       background: darken(@blue, 6);
     }
+    &.python-pylons .platformicon:before { content: "\e602"; }
+    &.python-pyramid .platformicon:before { content: "\e602"; }
+    &.python-tornado .platformicon:before { content: "\e602"; }
+    &.python-rq .platformicon:before { content: "\e602"; }
 
     &.javascript .platformicon {
       background: @yellow;
       color: #111;
       text-shadow: none;
     }
+    &.javascript-backbone .platformicon:before { content: "\e600"; }
+    &.javascript-vue .platformicon:before { content: "\e600"; }
 
     &.ruby .platformicon,
     &.rails .platformicon,
@@ -3390,6 +3396,7 @@ ul.tag-list {
       background: @red;
       color: #fff;
     }
+    &.ruby-rack .platformicon:before { content: "\e604"; }
 
     &.javascript-angular2 .platformicon {
       background: @blue;
@@ -3402,10 +3409,15 @@ ul.tag-list {
     &.java .platformicon {
       background: @orange;
     }
+    &.java-log4j .platformicon:before { content: "\e608"; }
+    &.java-log4j2 .platformicon:before { content: "\e608"; }
+    &.java-logback .platformicon:before { content: "\e608"; }
 
     &.php .platformicon {
       background: @purple;
     }
+    &.php-symfony2 .platformicon:before { content: "\e601"; }
+    &.php-monolog .platformicon:before { content: "\e601"; }
 
     &.python-django .platformicon {
       background: @green;
@@ -3414,6 +3426,10 @@ ul.tag-list {
     &.node .platformicon {
       background: #90C541;
     }
+
+    &.node-express .platformicon:before { content: "\e609"; }
+    &.node-connect .platformicon:before { content: "\e609"; }
+    &.node-koa .platformicon:before { content: "\e609"; }
 
     &.objc .platformicon,
     &.cocoa .platformicon, {
@@ -3437,6 +3453,7 @@ ul.tag-list {
       line-height: 52px;
       text-shadow: none;
     }
+    &.go-http .platformicon:before { content: "\e606"; }
 
     &.javascript-react .platformicon {
       background: #2d2d2d;
