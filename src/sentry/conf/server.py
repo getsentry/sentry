@@ -408,7 +408,6 @@ CELERY_IMPORTS = (
     'sentry.tasks.collect_project_platforms',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
-    'sentry.tasks.dsymcache',
     'sentry.tasks.email',
     'sentry.tasks.merge',
     'sentry.tasks.options',
