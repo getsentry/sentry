@@ -26,7 +26,7 @@ from social_auth.models import UserSocialAuth
 from sudo.decorators import sudo_required
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, Project, UserOption, Authenticator
+    User, UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
 from sentry.signals import email_verified
 from sentry.web.decorators import login_required, signed_auth_required
@@ -202,11 +202,19 @@ def account_settings(request):
 
         form.save()
 
-        # remove previously valid email address
+        # update notification settings for those set to primary email with new primary email
+        alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+
+        if alert_email == old_email:
+            UserOption.objects.set_value(user=user, project=None, key='alert_email', value=user.email)
+        options = UserOption.objects.filter(user=user, key='mail:email')
+        for option in [o for o in options if o.value == old_email]:
+            option.value = user.email
+            option.save()
+
         # TODO(dcramer): we should maintain validation here when we support
         # multiple email addresses
         if request.user.email != old_email:
-            UserEmail.objects.filter(user=user, email=old_email).delete()
             try:
                 with transaction.atomic():
                     user_email = UserEmail.objects.create(
@@ -394,14 +402,10 @@ def disconnect_identity(request, identity_id):
 @login_required
 def show_emails(request):
     user = request.user
+    emails = user.emails.all()
+    email_form = EmailForm(user, request.POST or None)
     primary_email = UserEmail.get_primary_email(user)
-    alt_emails = user.emails.all().exclude(email=primary_email.email)
-
-    email_form = EmailForm(user, request.POST or None,
-        initial={
-            'primary_email': primary_email.email,
-        },
-    )
+    alt_emails = emails.exclude(email=primary_email.email)
 
     if 'remove' in request.POST:
         email = request.POST.get('email')
@@ -409,17 +413,20 @@ def show_emails(request):
         del_email.delete()
         return HttpResponseRedirect(request.path)
 
-    if email_form.is_valid():
-        old_email = user.email
+    if 'primary' in request.POST:
+        new_primary = request.POST.get('new_primary_email')
+        if new_primary != user.email:
 
-        email_form.save()
+            # update notification settings for those set to primary email with new primary email
+            alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
 
-        if user.email != old_email:
-            useroptions = UserOption.objects.filter(user=user, value=old_email)
-            for option in useroptions:
+            if alert_email == user.email:
+                UserOption.objects.set_value(user=user, project=None, key='alert_email', value=new_primary)
+            options = UserOption.objects.filter(user=user, key='mail:email')
+            for option in [o for o in options if o.value == user.email]:
                 option.value = user.email
                 option.save()
-            UserEmail.objects.filter(user=user, email=old_email).delete()
+
             try:
                 with transaction.atomic():
                     user_email = UserEmail.objects.create(
@@ -437,6 +444,18 @@ def show_emails(request):
                     request,
                     messages.SUCCESS,
                     msg)
+
+            new_username = user.email == user.username
+
+            user.email = new_primary
+
+            if new_username and not User.objects.filter(username__iexact=new_primary).exists():
+                user.username = user.email
+            user.save()
+        return HttpResponseRedirect(request.path)
+
+    if email_form.is_valid():
+
         alternative_email = email_form.cleaned_data['alt_email']
         # check if this alternative email already exists for user
         if alternative_email and not UserEmail.objects.filter(user=user, email=alternative_email):
@@ -452,7 +471,7 @@ def show_emails(request):
             else:
                 new_email.set_hash()
                 new_email.save()
-            # send confirmation emails to any non verified emails
+
             user.send_confirm_email_singular(new_email)
             msg = _('A confirmation email has been sent to %s.') % new_email.email
             messages.add_message(

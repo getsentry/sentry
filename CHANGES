@@ -67,6 +67,8 @@ Version 8.9
 - Added weekly report emails behind feature flag.
 - Rebrand Rules as Alerts / Alert Rules.
 - Add frequency to Alerts.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
 
 Schema Changes
 ~~~~~~~~~~~~~~

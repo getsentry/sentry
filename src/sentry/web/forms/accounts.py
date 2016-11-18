@@ -219,7 +219,6 @@ class ChangePasswordRecoverForm(forms.Form):
 
 
 class EmailForm(forms.Form):
-    primary_email = forms.EmailField(label=_('Primary Email'))
 
     alt_email = forms.EmailField(
         label=_('New Email'),
@@ -254,11 +253,6 @@ class EmailForm(forms.Form):
 
         if new_username and not User.objects.filter(username__iexact=self.user.email).exists():
             self.user.username = self.user.email
-
-        if commit:
-            self.user.save()
-
-        return self.user
 
     def clean_password(self):
         value = self.cleaned_data.get('password')
@@ -600,7 +594,8 @@ class ProjectEmailOptionsForm(forms.Form):
         specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
         emails.extend([user.email, alert_email, specified_email])
 
-        choices = [(email, email) for email in set(emails) if email is not None]
+        choices = [(email, email) for email in sorted(set(emails)) if email]
+
         self.fields['email'].choices = choices
 
         self.fields['alert'].initial = has_alerts
