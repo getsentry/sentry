@@ -54,7 +54,7 @@ class CreateProjectTest(TestCase):
 
         assert project.team == team
 
-        redirect_uri = '/{}/{}/settings/install/'.format(organization.slug, project.slug)
+        redirect_uri = '/{}/{}/getting-started/'.format(organization.slug, project.slug)
         assert resp['Location'] == absolute_uri(redirect_uri)
 
     def test_multiple_teams(self):
@@ -73,5 +73,5 @@ class CreateProjectTest(TestCase):
 
         assert project.team == team
 
-        redirect_uri = '/{}/{}/settings/install/'.format(organization.slug, project.slug)
+        redirect_uri = '/{}/{}/getting-started/'.format(organization.slug, project.slug)
         assert resp['Location'] == absolute_uri(redirect_uri)

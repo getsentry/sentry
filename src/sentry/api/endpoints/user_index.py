@@ -28,7 +28,8 @@ class UserIndexEndpoint(Endpoint):
                     queryset = queryset.filter(
                         Q(name__icontains=value) |
                         Q(username__icontains=value) |
-                        Q(email__icontains=value)
+                        Q(email__icontains=value) |
+                        Q(emails__email__icontains=value)
                     )
                 elif key == 'name':
                     queryset = queryset.filter(

@@ -117,7 +117,7 @@ const Confirmation = React.createClass({
     return (
       <div className="ob-confirmation" onClick={this.dismiss}>
         <h3>{t('Need help?')}</h3>
-        <p><a href="mailto:support@getsentry.com?subject=Help with onboarding">{t('Ask us!')}</a> &middot; <a onClick={this.skip}>{t('Skip')}</a></p>
+        <p><a href="mailto:support@sentry.io?subject=Help with onboarding">{t('Ask us!')}</a> &middot; <a onClick={this.skip}>{t('Skip')}</a></p>
       </div>
     );
   }

@@ -170,7 +170,7 @@ const RuleEditor = React.createClass({
 
             <div className="node-frequency-selector">
               <h6>
-                {tct('Perform these actions at most once every [frequency]', {
+                {tct('Perform these actions at most once every [frequency] for an issue.', {
                   frequency: (
                     <SelectInput ref="frequency"
                           className={(this.hasError('frequency') ? ' error' : '')}

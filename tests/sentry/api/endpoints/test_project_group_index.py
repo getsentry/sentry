@@ -1,16 +1,16 @@
 from __future__ import absolute_import
 
-import six
-
 from datetime import timedelta
+from uuid import uuid4
+
+import six
 from django.utils import timezone
 from exam import fixture
 from mock import patch
-from uuid import uuid4
 
 from sentry.models import (
-    Activity, EventMapping, Group, GroupHash, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupSubscription, GroupStatus, Release
+    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, Release
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -540,6 +540,9 @@ class GroupUpdateTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {
             'isSubscribed': True,
+            'subscriptionDetails': {
+                'reason': 'unknown',
+            },
         }
 
         assert GroupSubscription.objects.filter(

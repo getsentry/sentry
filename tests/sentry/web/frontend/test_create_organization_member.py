@@ -60,7 +60,7 @@ class CreateOrganizationMemberTest(TestCase):
         with self.settings(SENTRY_ENABLE_INVITES=True), self.tasks():
             resp = self.client.post(path, {
                 'email': 'foo@example.com',
-                'role': 'member',
+                'role': 'admin',
                 'teams': [team.id, ]
             })
         assert resp.status_code == 302
@@ -71,7 +71,7 @@ class CreateOrganizationMemberTest(TestCase):
         )
 
         assert member.user is None
-        assert member.role == 'member'
+        assert member.role == 'admin'
 
         om_teams = OrganizationMemberTeam.objects.filter(
             organizationmember=member
@@ -126,7 +126,7 @@ class CreateOrganizationMemberTest(TestCase):
         with self.settings(SENTRY_ENABLE_INVITES=False):
             resp = self.client.post(path, {
                 'user': 'foo@example.com',
-                'role': 'member'
+                'role': 'admin'
             })
         assert resp.status_code == 302
 
@@ -136,6 +136,7 @@ class CreateOrganizationMemberTest(TestCase):
         )
 
         assert member.email is None
+        assert member.role == 'admin'
 
         redirect_uri = reverse('sentry-organization-members', args=[organization.slug])
         assert resp['Location'] == 'http://testserver' + redirect_uri
