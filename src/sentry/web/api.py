@@ -22,7 +22,7 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
     LazyData
 )
-from sentry.models import Project, OrganizationOption
+from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received
 )
@@ -197,6 +197,12 @@ class APIView(BaseView):
 
             helper.context.bind_auth(auth)
             Raven.tags_context(helper.context.get_tags_context())
+
+            # Explicitly bind Organization so we don't implicitly query it later
+            # this just allows us to comfortably assure that `project.organization` is safe.
+            # This also allows us to pull the object from cache, instead of being
+            # implicitly fetched from database.
+            project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
             if auth.version != '2.0':
                 if not auth.secret_key:
