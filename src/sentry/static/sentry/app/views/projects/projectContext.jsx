@@ -78,6 +78,21 @@ const ProjectContext = React.createClass({
     if (prevProps.projectId !== this.props.projectId) {
       this.fetchData();
     }
+
+    // Call forceUpdate() on <DocumentTitle/> if either project or organization
+    // state has changed. This is because <DocumentTitle/>'s shouldComponentUpdate()
+    // returns false unless props differ; meaning context changes for project/org
+    // do NOT trigger renders for <DocumentTitle/> OR any subchildren. The end result
+    // being that child elements that listen for context changes on project/org will
+    // NOT update (without this hack).
+    // See: https://github.com/gaearon/react-document-title/issues/35
+
+    // intentionally shallow comparing references
+    if (prevState.project !== this.state.project ||
+      prevState.organization !== this.state.organization) {
+      let docTitle = this.refs.docTitle;
+      if (docTitle) docTitle.forceUpdate();
+    }
   },
 
   remountComponent() {
@@ -220,7 +235,7 @@ const ProjectContext = React.createClass({
   },
 
   render() {
-    return <DocumentTitle title={this.getTitle()}>{this.renderBody()}</DocumentTitle>;
+    return <DocumentTitle ref="docTitle" title={this.getTitle()}>{this.renderBody()}</DocumentTitle>;
   }
 });
 
