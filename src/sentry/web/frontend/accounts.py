@@ -208,7 +208,9 @@ def account_settings(request):
         if alert_email == old_email:
             UserOption.objects.set_value(user=user, project=None, key='alert_email', value=user.email)
         options = UserOption.objects.filter(user=user, key='mail:email')
-        for option in [o for o in options if o.value == old_email]:
+        for option in options:
+            if option.value != old_email:
+                continue
             option.value = user.email
             option.save()
 
@@ -414,8 +416,16 @@ def show_emails(request):
         return HttpResponseRedirect(request.path)
 
     if 'primary' in request.POST:
-        new_primary = request.POST.get('new_primary_email')
-        if new_primary != user.email:
+        new_primary = request.POST.get('new_primary_email').lower()
+
+        if User.objects.filter(username__iexact=new_primary).exclude(id=user.id).exists()\
+                or User.objects.filter(email__iexact=new_primary).exclude(id=user.id).exists():
+            messages.add_message(request,
+                messages.ERROR,
+                _("That email is already in use for another user")
+            )
+
+        elif new_primary != user.email:
 
             # update notification settings for those set to primary email with new primary email
             alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
@@ -423,31 +433,21 @@ def show_emails(request):
             if alert_email == user.email:
                 UserOption.objects.set_value(user=user, project=None, key='alert_email', value=new_primary)
             options = UserOption.objects.filter(user=user, key='mail:email')
-            for option in [o for o in options if o.value == user.email]:
-                option.value = user.email
+            for option in options:
+                if option.value != user.email:
+                    continue
+                option.value = new_primary
                 option.save()
-
-            try:
-                with transaction.atomic():
-                    user_email = UserEmail.objects.create(
-                        user=user,
-                        email=user.email,
-                    )
-            except IntegrityError:
-                pass
-            else:
-                user_email.set_hash()
-                user_email.save()
-                user.send_confirm_email_singular(user_email)
-                msg = _('A confirmation email has been sent to %s.') % user_email.email
-                messages.add_message(
-                    request,
-                    messages.SUCCESS,
-                    msg)
 
             new_username = user.email == user.username
 
             user.email = new_primary
+
+            msg = _('Your settings were saved')
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                msg)
 
             if new_username and not User.objects.filter(username__iexact=new_primary).exists():
                 user.username = user.email
@@ -456,9 +456,9 @@ def show_emails(request):
 
     if email_form.is_valid():
 
-        alternative_email = email_form.cleaned_data['alt_email']
+        alternative_email = email_form.cleaned_data['alt_email'].lower()
         # check if this alternative email already exists for user
-        if alternative_email and not UserEmail.objects.filter(user=user, email=alternative_email):
+        if alternative_email and not UserEmail.objects.filter(user=user, email__iexact=alternative_email):
             # create alternative email for user
             try:
                 with transaction.atomic():
@@ -472,12 +472,12 @@ def show_emails(request):
                 new_email.set_hash()
                 new_email.save()
 
-            user.send_confirm_email_singular(new_email)
-            msg = _('A confirmation email has been sent to %s.') % new_email.email
-            messages.add_message(
-                request,
-                messages.SUCCESS,
-                msg)
+                user.send_confirm_email_singular(new_email)
+                msg = _('A confirmation email has been sent to %s.') % new_email.email
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    msg)
 
         messages.add_message(
             request, messages.SUCCESS, _('Your settings were saved.'))

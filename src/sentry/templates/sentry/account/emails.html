@@ -77,12 +77,6 @@
     {{ email_form.alt_email|as_crispy_field }}
 
     {% if email_form.password %}
-      {% with email_form.password as field %}
-        {{ field|as_crispy_field }}
-      {% endwith %}
-    {% endif %}
-
-    {% if email_form.password %}
       {{ email_form.password|as_crispy_field }}
     {% endif %}
 

@@ -242,18 +242,6 @@ class EmailForm(forms.Form):
         if not needs_password:
             del self.fields['password']
 
-    def save(self, commit=True):
-
-        if self.cleaned_data['primary_email'] != self.user.email:
-            new_username = self.user.email == self.user.username
-        else:
-            new_username = False
-
-        self.user.email = self.cleaned_data['primary_email']
-
-        if new_username and not User.objects.filter(username__iexact=self.user.email).exists():
-            self.user.username = self.user.email
-
     def clean_password(self):
         value = self.cleaned_data.get('password')
         if value and not self.user.check_password(value):
@@ -317,7 +305,14 @@ class AccountSettingsForm(forms.Form):
         return self.cleaned_data[field]
 
     def clean_email(self):
-        return self._clean_managed_field('email')
+        value = self._clean_managed_field('email').lower()
+        if User.objects.filter(email__iexact=value).exclude(id=self.user.id).exists()\
+                or User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+            raise forms.ValidationError(
+                _("There was an error adding %s: that email is already in use")
+                % self.cleaned_data['email']
+            )
+        return value
 
     def clean_name(self):
         return self._clean_managed_field('name')
