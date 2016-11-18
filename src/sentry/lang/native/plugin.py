@@ -393,7 +393,7 @@ def resolve_frame_symbols(data):
                     # XXX: log here if symbol could not be found?
                     symbol = sfrm.get('symbol_name') or \
                         new_frame.get('function') or '<unknown>'
-                    function = demangle_symbol(symbol)
+                    function = demangle_symbol(symbol, simplified=True)
 
                     new_frame['function'] = function
 
