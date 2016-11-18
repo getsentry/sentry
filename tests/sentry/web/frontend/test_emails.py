@@ -36,7 +36,6 @@ class EmailsTest(TestCase):
         user.set_password('something')
         user.save()
         resp = self.client.post(self.path, data={
-            'primary_email': user.email,
             'alt_email': 'hello@gmail.com',
             'password': 'something'},
             follow=True
@@ -53,14 +52,13 @@ class EmailsTest(TestCase):
         user.save()
         resp = self.client.post(self.path, data={
             'alt_email': 'hello@gmail.com',
-            'password': 'something',
         },
             follow=True
         )
         assert resp.status_code == 200
-        self.assertIn('hello@gmail.com', resp.content)
+        self.assertIn('This field is required', resp.content)
         emails = UserEmail.objects.filter(user=user)
-        assert 'hello@gmail.com' in ([email.email for email in emails])
+        assert 'hello@gmail.com' not in ([email.email for email in emails])
 
     def test_create_alt_email_without_usable_pw(self):
         user = self.create_user('foo@example.com')
@@ -73,9 +71,9 @@ class EmailsTest(TestCase):
             follow=True
         )
         assert resp.status_code == 200
-        self.assertIn('This field is required', resp.content)
+        self.assertIn('hello@gmail.com', resp.content)
         emails = UserEmail.objects.filter(user=user)
-        assert 'hello@gmail.com' not in ([email.email for email in emails])
+        assert 'hello@gmail.com' in ([email.email for email in emails])
 
     def test_remove_alt_email(self):
         user = self.create_user('foo@example.com')
@@ -91,13 +89,11 @@ class EmailsTest(TestCase):
     def test_change_primary_email(self):
         user = self.create_user('foo@example.com')
         self.login_as(user)
-        user.set_password('something')
-        user.save()
         resp = self.client.get(self.path)
         self.assertIn('foo@example.com', resp.content)
         resp = self.client.post(self.path,
-            {'primary_email': 'bar@example.com',
-             'password': 'something'},
+            {'primary': '',
+             'new_primary_email': 'bar@example.com'},
             follow=True
         )
         self.assertIn('bar@example.com', resp.content)
