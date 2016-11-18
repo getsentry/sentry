@@ -14,6 +14,7 @@ Version 8.11 (Unreleased)
 - Allow user to resend email verification to primary email address.
 - Added additional detail to subscription help text when viewing a group.
 - Cleaner install UI when creating a new project.
+- Added worker local background task support.  This can be configured by the `RECURRING_SERVICE_TASKS` config.
 
 Schema Changes
 ~~~~~~~~~~~~~~
