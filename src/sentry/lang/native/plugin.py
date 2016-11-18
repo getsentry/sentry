@@ -7,6 +7,7 @@ import time
 import logging
 import posixpath
 
+from symsynd.demangle import demangle_symbol
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer
@@ -390,8 +391,17 @@ def resolve_frame_symbols(data):
                         continue
                     new_frame = dict(frame)
                     # XXX: log here if symbol could not be found?
-                    new_frame['function'] = sfrm.get('symbol_name') or \
+                    symbol = sfrm.get('symbol_name') or \
                         new_frame.get('function') or '<unknown>'
+                    function = demangle_symbol(symbol)
+
+                    new_frame['function'] = function
+
+                    # If we demangled something, store the original in the
+                    # symbol portion of the frame
+                    if function != symbol:
+                        new_frame['symbol'] = symbol
+
                     new_frame['abs_path'] = sfrm.get('filename') or None
                     if new_frame['abs_path']:
                         new_frame['filename'] = posixpath.basename(new_frame['abs_path'])
