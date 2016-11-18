@@ -511,14 +511,6 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
-    # Disabled for the time being:
-    # 'clear-old-cached-dsyms': {
-    #     'task': 'sentry.tasks.clear_old_cached_dsyms',
-    #     'schedule': timedelta(minutes=60),
-    #     'options': {
-    #         'expires': 3600,
-    #     },
-    # },
     'collect-project-platforms': {
         'task': 'sentry.tasks.collect_project_platforms',
         'schedule': timedelta(days=1),
@@ -544,6 +536,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 60 * 3,
         },
     },
+}
+
+RECURRING_SERVICE_TASKS = {
+    'sentry.lang.native.dsymcache.clear_cache_task': {
+        'interval': 10,
+        'jitter': 0.1,
+    }
 }
 
 # Sentry logs to two major places: stdout, and it's internal project.
