@@ -42,7 +42,7 @@
     "react-document-title": "1.0.4",
     "react-dom": "15.3.2",
     "react-lazy-load": "3.0.10",
-    "react-router": "2.0.0",
+    "react-router": "2.8.1",
     "react-sparklines": "1.6.0",
     "react-sticky": "5.0.4",
     "reflux": "0.4.1",
