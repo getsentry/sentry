@@ -248,6 +248,10 @@ class FetchSourcemapTest(TestCase):
         assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
+    def test_broken_base64(self):
+        with pytest.raises(UnparseableSourcemap):
+            fetch_sourcemap('data:application/json;base64,xxx')
+
     @responses.activate
     def test_simple_non_utf8(self):
         responses.add(responses.GET, 'http://example.com', body='{}',
