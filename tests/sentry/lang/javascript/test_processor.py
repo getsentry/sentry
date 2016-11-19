@@ -248,6 +248,14 @@ class FetchSourcemapTest(TestCase):
         assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
+    def test_base64_without_padding(self):
+        smap_view = fetch_sourcemap(base64_sourcemap.rstrip('='))
+        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+
+        assert list(smap_view) == tokens
+        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == u'/test.js'
+
     def test_broken_base64(self):
         with pytest.raises(UnparseableSourcemap):
             fetch_sourcemap('data:application/json;base64,xxx')
