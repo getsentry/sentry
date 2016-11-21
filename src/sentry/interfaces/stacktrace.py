@@ -245,11 +245,12 @@ class Frame(Interface):
     def to_python(cls, data):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
+        symbol = data.get('symbol')
         function = data.get('function')
         module = data.get('module')
         package = data.get('package')
 
-        for name in ('abs_path', 'filename', 'function', 'module',
+        for name in ('abs_path', 'filename', 'symbol', 'function', 'module',
                      'package'):
             v = data.get(name)
             if v is not None and not isinstance(v, six.string_types):
@@ -272,10 +273,16 @@ class Frame(Interface):
                 filename = abs_path
 
         if not (filename or function or module or package):
-            raise InterfaceValidationError("No 'filename' or 'function' or 'module' or 'package'")
+            raise InterfaceValidationError("No 'filename' or 'function' or "
+                                           "'module' or 'package'")
 
+        # For legacy reasons
         if function == '?':
             function = None
+
+        # For consistency reasons
+        if symbol == '?':
+            symbol = None
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
@@ -325,6 +332,7 @@ class Frame(Interface):
             'function': trim(function, 256),
             'package': package,
             'image_addr': to_hex_addr(data.get('image_addr')),
+            'symbol': trim(symbol, 256),
             'symbol_addr': to_hex_addr(data.get('symbol_addr')),
             'instruction_addr': to_hex_addr(data.get('instruction_addr')),
             'instruction_offset': instruction_offset,
@@ -394,6 +402,8 @@ class Frame(Interface):
             # (likely due to a bad JavaScript error) we should just
             # bail on recording this frame
             return output
+        elif self.symbol:
+            output.append(self.symbol)
         elif self.function:
             if self.is_unhashable_function():
                 output.append('<function>')
@@ -414,6 +424,7 @@ class Frame(Interface):
             'instructionOffset': self.instruction_offset,
             'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
+            'symbol': self.symbol,
             'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
