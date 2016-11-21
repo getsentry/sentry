@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -126,7 +126,7 @@ const TokenForm = React.createClass({
 });
 
 const ApiNewToken = React.createClass({
-  mixins: [ApiMixin, History],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -140,11 +140,11 @@ const ApiNewToken = React.createClass({
   },
 
   onCancel() {
-    this.history.pushState(null, '/api/');
+    browserHistory.pushState(null, '/api/');
   },
 
   onSave() {
-    this.history.pushState(null, '/api/');
+    browserHistory.pushState(null, '/api/');
   },
 
   render() {

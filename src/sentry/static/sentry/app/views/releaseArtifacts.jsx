@@ -1,5 +1,4 @@
 import React from 'react';
-import {History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import FileSize from '../components/fileSize';
@@ -16,10 +15,7 @@ const ReleaseArtifacts = React.createClass({
     release: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    History
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
