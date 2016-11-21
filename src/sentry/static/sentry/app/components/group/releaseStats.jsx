@@ -1,5 +1,5 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
@@ -33,8 +33,7 @@ const GroupReleaseStats = React.createClass({
 
   mixins: [
     ApiMixin,
-    GroupState,
-    History,
+    GroupState
   ],
 
   getDefaultProps() {
@@ -136,7 +135,7 @@ const GroupReleaseStats = React.createClass({
     let queryParams = Object.assign({}, this.props.location.query);
     queryParams.environment = env;
 
-    this.history.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
 
   render() {

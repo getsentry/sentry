@@ -496,7 +496,15 @@ def is_utf8(encoding):
 
 def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
-        body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
+        try:
+            body = base64.b64decode(
+                url[BASE64_PREAMBLE_LENGTH:] + (b'=' * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
+            )
+        except TypeError as e:
+            raise UnparseableSourcemap({
+                'url': '<base64>',
+                'reason': e.message,
+            })
     else:
         result = fetch_file(url, project=project, release=release,
                             allow_scraping=allow_scraping)

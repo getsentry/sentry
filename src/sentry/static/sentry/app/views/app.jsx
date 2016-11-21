@@ -24,6 +24,10 @@ function getAlertTypeForProblem(problem) {
 }
 
 const App = React.createClass({
+  childContextTypes: {
+    location: React.PropTypes.object
+  },
+
   mixins: [
     ApiMixin
   ],
@@ -33,6 +37,12 @@ const App = React.createClass({
       loading: false,
       error: false,
       needsUpgrade: ConfigStore.get('needsUpgrade'),
+    };
+  },
+
+  getChildContext() {
+    return {
+      location: this.props.location
     };
   },
 

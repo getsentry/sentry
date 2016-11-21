@@ -1,5 +1,5 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
 import CustomSnoozeModal from '../../components/customSnoozeModal';
@@ -24,7 +24,6 @@ const GroupActions = React.createClass({
   mixins: [
     ApiMixin,
     GroupState,
-    History,
     TooltipMixin({
       selector: '.tip',
       container: 'body',
@@ -45,7 +44,7 @@ const GroupActions = React.createClass({
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
 
-        this.history.pushState(null, `/${org.slug}/${project.slug}/`);
+        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
       }
     });
   },

@@ -1,5 +1,5 @@
 import React from 'react';
-import {History, Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
@@ -14,8 +14,7 @@ import {t} from '../locale';
 const GroupEvents = React.createClass({
   mixins: [
     ApiMixin,
-    GroupState,
-    History
+    GroupState
   ],
 
   getInitialState() {
@@ -49,7 +48,7 @@ const GroupEvents = React.createClass({
       targetQueryParams.query = query;
 
     let {groupId, orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
   },
 
   getEndpoint() {

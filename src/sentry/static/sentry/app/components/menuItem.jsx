@@ -31,8 +31,7 @@ const MenuItem = React.createClass({
     if (this.props.to) {
       return (
         <Link
-            to={this.props.to}
-            query={this.props.query}
+            to={{pathname: this.props.to, query: this.props.query}}
             title={this.props.title}
             onClick={this.handleClick}
             className={this.props.linkClassName}

@@ -1,5 +1,4 @@
 import React from 'react';
-import {History} from 'react-router';
 import OrganizationState from '../mixins/organizationState';
 import {t} from '../locale';
 import requiredAdminActions from '../components/requiredAdminActions';
@@ -10,7 +9,12 @@ const ActionOverlay = React.createClass({
     actionId: React.PropTypes.string.isRequired,
     isLoading: React.PropTypes.bool
   },
-  mixins: [OrganizationState, History],
+
+  contextTypes: {
+    router: React.PropTypes.object.isRequired
+  },
+
+  mixins: [OrganizationState],
 
   componentWillMount() {
     let action = this.getAction();
@@ -25,7 +29,7 @@ const ActionOverlay = React.createClass({
 
   dismiss() {
     // is this the right thing?
-    this.context.history.goBack();
+    this.context.router.goBack();
   },
 
   onDoThisLater(event) {

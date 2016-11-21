@@ -1,5 +1,4 @@
 import React from 'react';
-import {History} from 'react-router';
 import $ from 'jquery';
 import {t} from '../locale';
 
@@ -7,10 +6,7 @@ import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/todos';
 
 const ProjectChooser = React.createClass({
-  mixins: [
-    OrganizationState,
-    History
-  ],
+  mixins: [OrganizationState],
 
   componentWillMount() {
     $(document.body).addClass('narrow');
