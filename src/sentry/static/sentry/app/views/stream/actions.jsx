@@ -338,6 +338,61 @@ const StreamActions = React.createClass({
                 <MenuItem divider={true} />
                 <MenuItem noAnchor={true}>
                   <ActionLink
+                    className="action-subscribe"
+                    disabled={!this.state.anySelected}
+                    onAction={this.onUpdate.bind(this, {isSubscribed: true})}
+                    extraDescription={extraDescription}
+                    confirmationQuestion={
+                      this.state.allInQuerySelected
+                        ? t('Are you sure you want to subscribe to all issues matching this search query?')
+                        : (count) =>
+                             tn('Are you sure you want to subscribe to this %d issue?',
+                                'Are you sure you want to subscribe to these %d issues?',
+                                count)
+                    }
+                    confirmLabel={
+                      this.state.allInQuerySelected
+                        ? t('Subscribe to all issues')
+                        : (count) =>
+                            tn('Subscribe to %d selected issue',
+                               'Subscribe to %d selected issues',
+                               count)
+                    }
+                    onlyIfBulk={true}
+                    selectAllActive={this.state.pageSelected}
+                    irreversible={false}>
+                   {t('Subscribe')}
+                  </ActionLink>
+                  <ActionLink
+                    className="action-unsubscribe"
+                    disabled={!this.state.anySelected}
+                    onAction={this.onUpdate.bind(this, {isSubscribed: false})}
+                    extraDescription={extraDescription}
+                    confirmationQuestion={
+                      this.state.allInQuerySelected
+                        ? t('Are you sure you want to unsubscribe from all issues matching this search query?')
+                        : (count) =>
+                             tn('Are you sure you want to unsubscribe from this %d issue?',
+                                'Are you sure you want to unsubscribe from these %d issues?',
+                                count)
+                    }
+                    confirmLabel={
+                      this.state.allInQuerySelected
+                        ? t('Unsubscribe from all issues')
+                        : (count) =>
+                            tn('Unsubscribe from %d selected issue',
+                               'Unsubscribe from %d selected issues',
+                               count)
+                    }
+                    onlyIfBulk={true}
+                    selectAllActive={this.state.pageSelected}
+                    irreversible={false}>
+                   {t('Unsubscribe')}
+                  </ActionLink>
+                </MenuItem>
+                <MenuItem divider={true} />
+                <MenuItem noAnchor={true}>
+                  <ActionLink
                     className="action-delete"
                     disabled={!this.state.anySelected || this.state.allInQuerySelected}
                     onAction={this.onDelete}

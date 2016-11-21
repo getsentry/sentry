@@ -21,6 +21,8 @@ Schema Changes
 - Added ``User.session_nonce`` column.
 - Added support for recording symbols separately in frames independent of the function.
 
+- Added the ability to subscribe and unsubscribe from issues from the stream view.
+
 Version 8.10
 ------------
 
