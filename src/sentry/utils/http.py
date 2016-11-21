@@ -128,6 +128,7 @@ def is_valid_origin(origin, project=None, allowed=None):
     - *: allow any domain
     - *.domain.com: matches domain.com and all subdomains, on any port
     - domain.com: matches domain.com on any port
+    - *:port: wildcard on hostname, but explicit match on port
     """
     if allowed is None:
         allowed = get_origins(project)
@@ -169,9 +170,15 @@ def is_valid_origin(origin, project=None, allowed=None):
         parsed_hostname = parsed.hostname
 
     if parsed.port:
-        parsed_netloc = '%s:%d' % (parsed_hostname, parsed.port)
+        domain_matches = (
+            '*', parsed_hostname,
+            # Explicit hostname + port name
+            '%s:%d' % (parsed_hostname, parsed.port),
+            # Wildcard hostname with explicit port
+            '*:%d' % parsed.port,
+        )
     else:
-        parsed_netloc = parsed_hostname
+        domain_matches = ('*', parsed_hostname)
 
     for value in allowed:
         try:
@@ -189,7 +196,7 @@ def is_valid_origin(origin, project=None, allowed=None):
             if parsed_hostname.endswith(bits.domain[1:]) or parsed_hostname == bits.domain[2:]:
                 return True
             continue
-        elif bits.domain not in ('*', parsed_hostname, parsed_netloc):
+        elif bits.domain not in domain_matches:
             continue
 
         # path supports exact, any, and suffix match (with or without *)
