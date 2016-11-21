@@ -9,6 +9,7 @@ import shutil
 
 from sentry import options
 from sentry.models import find_dsym_file
+from sentry.utils.recurring import register_recurring
 
 
 ONE_DAY = 60 * 60 * 24
@@ -118,3 +119,8 @@ class DSymCache(object):
 
 
 dsymcache = DSymCache()
+
+
+@register_recurring(services=['worker'])
+def clear_cache_task():
+    dsymcache.clear_old_entries()

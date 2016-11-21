@@ -97,6 +97,9 @@ def web(bind, workers, upgrade, with_lock, noinput):
             else:
                 raise
 
+    from sentry.utils.recurring import run_recurring_for_service
+    run_recurring_for_service('web')
+
     from sentry.services.http import SentryHTTPServer
     SentryHTTPServer(
         host=bind[0],
@@ -119,6 +122,9 @@ def smtp(bind, upgrade, noinput):
             'sentry.runner.commands.upgrade.upgrade',
             verbosity=0, noinput=noinput,
         )
+
+    from sentry.utils.recurring import run_recurring_for_service
+    run_recurring_for_service('smtp')
 
     from sentry.services.smtp import SentrySMTPServer
     SentrySMTPServer(
@@ -156,6 +162,9 @@ def worker(**options):
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+
+    from sentry.utils.recurring import run_recurring_for_service
+    run_recurring_for_service('worker')
 
     from sentry.celery import app
     worker = app.Worker(
@@ -195,6 +204,9 @@ def cron(**options):
     from django.conf import settings
     if settings.CELERY_ALWAYS_EAGER:
         raise click.ClickException('Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers.')
+
+    from sentry.utils.recurring import run_recurring_for_service
+    run_recurring_for_service('cron')
 
     from sentry.celery import app
     app.Beat(
