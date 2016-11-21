@@ -5,7 +5,6 @@ import six
 from symsynd.driver import Driver, SymbolicationError
 from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name
-from symsynd.demangle import demangle_symbol
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
@@ -85,7 +84,7 @@ class Symbolizer(object):
     def symbolize_app_frame(self, frame):
         img = self.images.get(frame['object_addr'])
         new_frame = self.symsynd_symbolizer.symbolize_frame(
-            frame, silent=False)
+            frame, silent=False, demangle=False)
         if new_frame is not None:
             return self._process_frame(new_frame, img)
 
@@ -99,7 +98,6 @@ class Symbolizer(object):
         if symbol is None:
             return
 
-        symbol = demangle_symbol(symbol) or symbol
         rv = dict(frame, symbol_name=symbol, filename=None,
                   line=0, column=0, uuid=img['uuid'],
                   object_name=img['name'])
