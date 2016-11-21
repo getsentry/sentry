@@ -106,3 +106,6 @@ warn("This change includes modification to a file that was backported from newer
 if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
     fail("You need to update CHANGES due to the size of this PR")
 end
+
+# Find maximum two reviewers
+mention.run(2, [], [])
