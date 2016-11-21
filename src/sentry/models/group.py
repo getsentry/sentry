@@ -287,7 +287,10 @@ class Group(Model):
             raise cls.DoesNotExist
         if not (project_id.isdigit() and group_id.isdigit()):
             raise cls.DoesNotExist
-        return cls.objects.get(project=project_id, id=group_id)
+        return get_group_with_redirect(
+            group_id,
+            queryset=cls.objects.filter(project=project_id),
+        )[0]
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
