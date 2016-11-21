@@ -53,6 +53,7 @@ import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
+import ReleaseOverview from './views/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
@@ -143,7 +144,8 @@ function routes() {
           <Route path="events/" component={errorHandler(ProjectEvents)} />
           <Route path="releases/" component={errorHandler(ProjectReleases)} />
           <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}>
-            <IndexRoute component={errorHandler(ReleaseNewEvents)} />
+            <IndexRoute component={errorHandler(ReleaseOverview)} />
+            <Route path="new-events/" component={errorHandler(ReleaseNewEvents)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
           </Route>
