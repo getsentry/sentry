@@ -1,5 +1,5 @@
 import React from 'react';
-import {Link, History} from 'react-router';
+import {Link} from 'react-router';
 import jQuery from 'jquery';
 import ApiMixin from '../mixins/apiMixin';
 import Count from '../components/count';
@@ -14,7 +14,6 @@ import {t, tn} from '../locale';
 const GroupTagValues = React.createClass({
   mixins: [
     ApiMixin,
-    History,
     GroupState
   ],
 
@@ -100,8 +99,10 @@ const GroupTagValues = React.createClass({
           </td>
           <td>
             <Link
-                to={`/${orgId}/${projectId}/`}
-                query={{query: tagKey.key + ':' + '"' + tagValue.value + '"'}}>
+                to={{
+                  pathname: `/${orgId}/${projectId}/`,
+                  query: {query: tagKey.key + ':' + '"' + tagValue.value + '"'}
+                }}>
               {deviceNameMapper(tagValue.name)}
             </Link>
             {isUrl(tagValue.value) &&

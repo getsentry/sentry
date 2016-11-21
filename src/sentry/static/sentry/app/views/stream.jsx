@@ -1,6 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
@@ -36,7 +36,6 @@ const Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    History,
     ApiMixin,
     ProjectState
   ],
@@ -220,7 +219,7 @@ const Stream = React.createClass({
     this.setState({
       savedSearchList: savedSearchList,
     });
-    this.history.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
   },
 
   getQueryState(props) {
@@ -331,7 +330,7 @@ const Stream = React.createClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          return void this.history.pushState(null,
+          return void browserHistory.pushState(null,
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
         }
 
@@ -481,7 +480,7 @@ const Stream = React.createClass({
       `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/` :
       `/${params.orgId}/${params.projectId}/`);
 
-    this.history.pushState(null, path, queryParams);
+    browserHistory.pushState(null, path, queryParams);
   },
 
   renderGroupNodes(ids, statsPeriod) {

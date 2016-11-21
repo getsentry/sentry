@@ -1,6 +1,6 @@
 import React from 'react';
 import $ from 'jquery';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DropdownLink from './dropdownLink';
@@ -142,7 +142,7 @@ const ResultGrid = React.createClass({
     sortOptions: React.PropTypes.array,
   },
 
-  mixins: [ApiMixin, History],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -239,7 +239,7 @@ const ResultGrid = React.createClass({
 
     e.preventDefault();
 
-    this.history.pushState(null, this.props.path, targetQueryParams);
+    browserHistory.pushState(null, this.props.path, targetQueryParams);
   },
 
   onQueryChange(evt) {

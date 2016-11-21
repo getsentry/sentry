@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import React from 'react';
-import {Link, History} from 'react-router';
+import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DateTime from '../../components/dateTime';
 import Avatar from '../../components/avatar';
@@ -16,10 +16,7 @@ const ProjectEvents = React.createClass({
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [
-    ApiMixin,
-    History
-  ],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -59,7 +56,7 @@ const ProjectEvents = React.createClass({
       targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/events/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/events/`, targetQueryParams);
   },
 
   fetchData() {

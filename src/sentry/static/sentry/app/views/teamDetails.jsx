@@ -1,5 +1,5 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DropdownLink from '../components/dropdownLink';
@@ -14,7 +14,6 @@ import {t} from '../locale';
 const TeamDetails = React.createClass({
   mixins: [
     ApiMixin,
-    History,
     OrganizationState
   ],
 
@@ -65,7 +64,7 @@ const TeamDetails = React.createClass({
     let team = this.state.team;
     if (data.slug !== team.slug) {
       let orgId = this.props.params.orgId;
-      this.history.pushState(null, `/organizations/${orgId}/teams/${data.slug}/settings/`);
+      browserHistory.pushState(null, `/organizations/${orgId}/teams/${data.slug}/settings/`);
     } else {
       Object.assign({}, team, data);
       this.setState({team: team});

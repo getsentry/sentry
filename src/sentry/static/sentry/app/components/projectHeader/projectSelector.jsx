@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import jQuery from 'jquery';
 
 import ApiMixin from '../../mixins/apiMixin';
@@ -25,10 +25,7 @@ const ProjectSelector = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    History,
-  ],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -221,7 +218,7 @@ const ProjectSelector = React.createClass({
       if (this.state.currentIndex > -1) {
         let url = this.getProjectUrlProps(projects[this.state.currentIndex][1]);
         if (url.to) {
-          this.history.pushState(null, url.to);
+          browserHistory.pushState(null, url.to);
         } else if (url.href) {
           window.location = url.href;
         }

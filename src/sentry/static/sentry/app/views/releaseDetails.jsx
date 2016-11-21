@@ -132,10 +132,10 @@ const ReleaseDetails = React.createClass({
               </div>
             </div>
             <ul className="nav nav-tabs">
-              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`} isActive={(to)=> {
+              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`} isActive={(loc) => {
                 // react-router isActive will return true for any route that is part of the active route
                 // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
-                return to === this.context.location.pathname;
+                return loc.pathname === this.props.location.pathname;
               }}>{t('New Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>{t('All Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>{t('Artifacts')}</ListLink>

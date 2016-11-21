@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
@@ -52,7 +52,6 @@ const EVENT_TYPES = [
 const OrganizationAuditLog = React.createClass({
   mixins: [
     ApiMixin,
-    History,
     OrganizationState,
   ],
 
@@ -120,7 +119,7 @@ const OrganizationAuditLog = React.createClass({
     let queryParams = {
       event: value,
     };
-    this.history.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
 
   renderResults() {

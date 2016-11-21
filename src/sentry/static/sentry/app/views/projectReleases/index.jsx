@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
@@ -17,10 +17,7 @@ const ProjectReleases = React.createClass({
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [
-    ApiMixin,
-    History
-  ],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -60,7 +57,7 @@ const ProjectReleases = React.createClass({
       targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
   },
 
   fetchData() {

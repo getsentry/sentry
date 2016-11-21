@@ -13,9 +13,10 @@ const ReleaseNewEvents = React.createClass({
     return (
       <div>
         <div className="alert alert-block">
-          <Link to={`/${orgId}/${projectId}/`} query={{
-            query: 'first-release:' + this.context.release.version
-          }}>
+          <Link to={{
+                  pathname: `/${orgId}/${projectId}/`,
+                  query: {query: 'first-release:' + this.context.release.version}
+                }}>
             <span className="icon icon-open"></span>
             {t('View new events seen in this release in the stream')}
           </Link>

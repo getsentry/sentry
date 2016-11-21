@@ -86,7 +86,7 @@ const ProjectSettings = React.createClass({
           <ul className="nav nav-stacked">
             <li><a href={`${settingsUrlRoot}/`}>{t('General')}</a></li>
             <ListLink to={`/${orgId}/${projectId}/settings/alerts/`}
-                      isActive={to => path.indexOf(to) === 0}>{t('Alerts')}</ListLink>
+                      isActive={loc => path.indexOf(loc.pathname) === 0}>{t('Alerts')}</ListLink>
             {features.has('quotas') &&
               <li><a href={`${settingsUrlRoot}/quotas/`}>{t('Rate Limits')}</a></li>
             }
@@ -98,7 +98,7 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">{t('Data')}</h6>
           <ul className="nav nav-stacked">
-            <ListLink to={rootInstallPath} isActive={(to) => {
+            <ListLink to={rootInstallPath} isActive={(loc) => {
               // Because react-router 1.0 removes router.isActive(route)
               return path === rootInstallPath || /install\/[\w\-]+\/$/.test(path);
             }}>{t('Error Tracking')}</ListLink>
