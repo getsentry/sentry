@@ -336,7 +336,7 @@ class MessageBuilder(object):
                 headers.setdefault('References', thread.msgid)
 
         msg = EmailMultiAlternatives(
-            subject=subject,
+            subject=subject.splitlines()[0],
             body=self.__render_text_body(),
             from_email=self.from_email,
             to=(to,),

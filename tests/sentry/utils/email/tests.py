@@ -299,6 +299,17 @@ class MessageBuilderTest(TestCase):
 
         assert 'List-Id' not in message
 
+    def test_stripped_newline(self):
+        msg = MessageBuilder(
+            subject='Foo\r\nBar',
+            body='hello world',
+            html_body='<b>hello world</b',
+        )
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject == 'Foo'
+
 
 class MiscTestCase(TestCase):
     def test_get_from_email_domain(self):
