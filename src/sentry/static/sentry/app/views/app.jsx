@@ -12,6 +12,10 @@ import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationStore from '../stores/organizationStore';
 
+// kick off select2 jquery initialization
+/* eslint no-unused-vars:0*/
+import select2 from 'select2';
+
 import {t} from '../locale';
 
 function getAlertTypeForProblem(problem) {

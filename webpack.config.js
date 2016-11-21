@@ -5,6 +5,43 @@ var path = require('path'),
     webpack = require('webpack'),
     ExtractTextPlugin = require('extract-text-webpack-plugin');
 
+/*
+ * Custom version of DllPlugin that falls back to SingleEntryPlugin
+ * for non-library entry points (e.g. sentry.js/app.js) - this is
+ * required to build both application builds AND dll/library builds
+ */
+var SentryDllPlugin = (function () {
+  var DllEntryPlugin = require('webpack/lib/DllEntryPlugin');
+  var LibManifestPlugin = require('webpack/lib/LibManifestPlugin');
+  var SingleEntryPlugin = require('webpack/lib/SingleEntryPlugin');
+
+  function DllPlugin(options) {
+    this.options = options;
+  }
+  DllPlugin.prototype.apply = function(compiler) {
+    compiler.plugin('entry-option', function(context, entry) {
+      function itemToPlugin(item, name) {
+        if(Array.isArray(item))
+          return new DllEntryPlugin(context, item, name);
+        else
+          return new SingleEntryPlugin(context, item, name); // <-- added by us
+      }
+      if(typeof entry === 'object') {
+        Object.keys(entry).forEach(function(name) {
+          compiler.apply(itemToPlugin(entry[name], name));
+        });
+      } else {
+        compiler.apply(itemToPlugin(entry, 'main'));
+      }
+      return true;
+    });
+    compiler.apply(new LibManifestPlugin(this.options));
+  };
+  return DllPlugin;
+})();
+
+
+
 var staticPrefix = 'src/sentry/static/sentry',
     distPath = staticPrefix + '/dist';
 
@@ -39,7 +76,10 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
 
 var entry = {
   // js
-  'app': 'app',
+  'sentry': 'app-entry',
+  'components': [
+    'app'
+  ],
   'vendor': [
     'babel-core/polyfill',
     'bootstrap/js/dropdown',
@@ -47,6 +87,7 @@ var entry = {
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
     'crypto-js/md5',
+    'history',
     'jed',
     'jquery',
     'marked',
@@ -69,9 +110,11 @@ var entry = {
   ],
 
   // css
-  // NOTE: this will also create an empty 'sentry.js' file
+  // NOTE: this will also create an empty 'styles.js' file
   // TODO: figure out how to not generate this
-  'sentry': 'less/sentry.less'
+  'styles': [
+    'less/sentry.less'
+  ]
 };
 
 // dynamically iterate over locale files and add to `entry` config
@@ -135,6 +178,10 @@ var config = {
     ],
   },
   plugins: [
+    new SentryDllPlugin({
+      path: path.join(distPath, '[name]-manifest.json'),
+      name: '[name]',
+    }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
     }),
@@ -177,7 +224,7 @@ var config = {
     path: distPath,
     filename: '[name].js',
     libraryTarget: 'var',
-    library: 'exports',
+    library: '[name]',
     sourceMapFilename: '[name].js.map',
   },
   devtool: IS_PRODUCTION ?
