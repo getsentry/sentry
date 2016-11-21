@@ -225,7 +225,7 @@ def rehash_group_events(group_id, transaction_id=None, **kwargs):
         }
     )
 
-    delete_group.delay(group.id)
+    delete_group.delay(group.id, transaction_id=transaction_id)
 
 
 def _get_event_environment(event, project, cache):
