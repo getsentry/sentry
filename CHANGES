@@ -19,6 +19,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``User.session_nonce`` column.
+- Added support for recording symbols separately in frames independent of the function.
 
 Version 8.10
 ------------
