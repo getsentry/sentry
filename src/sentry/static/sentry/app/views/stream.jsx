@@ -502,12 +502,6 @@ const Stream = React.createClass({
   renderAwaitingEvents() {
     let org = this.getOrganization();
     let project = this.getProject();
-    let sampleLink = null;
-
-    if (this.state.groupIds.length > 0) {
-      let sampleIssueId = this.state.groupIds[0];
-      sampleLink = <p><Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>{t('Or see a sample Javascript event')}</Link></p>;
-    }
 
     return (
       <div className="box awaiting-events">
@@ -516,7 +510,6 @@ const Stream = React.createClass({
           <h3>{t('Waiting for events…')}</h3>
           <p>{tct('Our error robot is waiting to [cross:devour] receive your first event.', {cross: <span className="strikethrough"/>})}</p>
           <p><Link to={`/${org.slug}/${project.slug}/getting-started/`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
-          {sampleLink}
         </div>
       </div>
     );

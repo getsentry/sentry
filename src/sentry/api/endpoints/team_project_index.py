@@ -10,7 +10,6 @@ from sentry.api.serializers import serialize
 from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.signals import project_created
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.samples import create_sample_event
 
 
 @scenario('ListTeamProjects')
@@ -131,8 +130,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             )
 
             project_created.send(project=project, user=request.user, sender=self)
-
-            create_sample_event(project, platform='javascript')
 
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
