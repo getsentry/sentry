@@ -17,6 +17,7 @@ class DatadogMetricsBackendTest(TestCase):
         self.backend.incr('foo', instance='bar')
         mock_incr.assert_called_once_with(
             'sentrytest.foo', 1,
+            sample_rate=1,
             tags=['instance:bar'],
             host=get_hostname(),
         )
