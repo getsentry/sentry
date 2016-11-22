@@ -19,7 +19,7 @@ const ExceptionContent = React.createClass({
     let children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
-          <h5 style={{marginBottom: 5}}>
+          <h5 className="break-word" style={{marginBottom: 5}}>
             <span>{exc.type}</span>
           </h5>
           {exc.value &&
