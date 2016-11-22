@@ -1,3 +1,4 @@
+/*eslint react/jsx-key:0*/
 import React from 'react';
 import _ from 'underscore';
 
@@ -15,10 +16,18 @@ const UserContextType = React.createClass({
     let children = [];
 
     // Handle our native attributes special
-    user.id && builtins.push(['ID', user.id]);
-    user.email && builtins.push(['Email', user.email]);
-    user.username && builtins.push(['Username', user.username]);
-    user.ip_address && builtins.push(['IP Address', user.ip_address]);
+    user.id && builtins.push(['ID', <pre>{user.id}</pre>]);
+    user.email && builtins.push([
+      'Email',
+      <pre>
+        {user.email}
+        <a href={`mailto:${user.email}`} className="external-icon">
+          <em className="icon-envelope" />
+        </a>
+      </pre>
+    ]);
+    user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
+    user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {
@@ -30,7 +39,16 @@ const UserContextType = React.createClass({
         <div className="pull-left">
           <Avatar user={user} size={96} gravatar={false} />
         </div>
-        <KeyValueList data={builtins} isContextData={false} />
+        <table className="key-value table">
+          {builtins.map(([key, value]) => {
+            return (
+              <tr key={key}>
+                <td className="key" key="0">{key}</td>
+                <td className="value" key="1">{value}</td>
+              </tr>
+            );
+          })}
+        </table>
         {children &&
           <KeyValueList data={children} isContextData={true} />
         }
