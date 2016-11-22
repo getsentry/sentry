@@ -135,6 +135,11 @@ def pytest_configure(config):
 
     plugins.register(TestIssuePlugin2)
 
+    from sentry.plugins import bindings
+    from sentry.plugins.providers.dummy import DummyRepositoryProvider
+
+    bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
+
     from sentry.utils.redis import clusters
 
     with clusters.get('default').all() as client:
