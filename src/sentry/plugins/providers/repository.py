@@ -55,6 +55,7 @@ class RepositoryProvider(ProviderMixin):
         repo = Repository.objects.create(
             organization_id=organization.id,
             name=result['name'],
+            external_id=result.get('external_id'),
             url=result.get('url'),
             config=result.get('config') or {},
             provider=self.id,
