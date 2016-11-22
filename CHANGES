@@ -15,6 +15,7 @@ Version 8.11 (Unreleased)
 - Add Asana to supported auth backends in social auth (for plugins)
 - Cleaner install UI when creating a new project.
 - Added support for recording symbols separately in frames independent of the function.
+- Reduce noisy Postgres logs from inserting duplicate onboarding rows.
 
 Schema Changes
 ~~~~~~~~~~~~~~
