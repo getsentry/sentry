@@ -27,7 +27,7 @@ logger = logging.getLogger('sentry.deletions.async')
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, Repository
+        Commit, CommitAuthor, CommitFileChange, Repository
     )
 
     try:
@@ -52,7 +52,9 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
             )
         return
 
-    model_list = (OrganizationMember, Commit, CommitAuthor, Repository)
+    model_list = (
+        OrganizationMember, CommitFileChange, Commit, CommitAuthor, Repository,
+    )
 
     has_more = delete_objects(
         model_list,
