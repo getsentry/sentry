@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
     Event, EventMapping, EventTag,
@@ -10,7 +11,7 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import (
     delete_group, delete_organization, delete_project, delete_tag_key,
-    delete_team
+    delete_team, generic_delete
 )
 from sentry.testutils import TestCase
 
@@ -226,3 +227,36 @@ class DeleteGroupTest(TestCase):
         ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
+
+
+class GenericDeleteTest(TestCase):
+    def test_does_not_delete_visible(self):
+        project = self.create_project(
+            status=ObjectStatus.VISIBLE,
+        )
+
+        with self.tasks():
+            generic_delete('sentry', 'project', object_id=project.id)
+
+        project = Project.objects.get(id=project.id)
+        assert project.status == ObjectStatus.VISIBLE
+
+    def test_transitions_to_in_progress(self):
+        project = self.create_project(
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        generic_delete('sentry', 'project', object_id=project.id)
+
+        project = Project.objects.get(id=project.id)
+        assert project.status == ObjectStatus.DELETION_IN_PROGRESS
+
+    def test_deletes(self):
+        project = self.create_project(
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        with self.tasks():
+            generic_delete('sentry', 'project', object_id=project.id)
+
+        assert not Project.objects.filter(id=project.id).exists()
