@@ -241,16 +241,6 @@ class GenericDeleteTest(TestCase):
         project = Project.objects.get(id=project.id)
         assert project.status == ObjectStatus.VISIBLE
 
-    def test_transitions_to_in_progress(self):
-        project = self.create_project(
-            status=ObjectStatus.PENDING_DELETION,
-        )
-
-        generic_delete('sentry', 'project', object_id=project.id)
-
-        project = Project.objects.get(id=project.id)
-        assert project.status == ObjectStatus.DELETION_IN_PROGRESS
-
     def test_deletes(self):
         project = self.create_project(
             status=ObjectStatus.PENDING_DELETION,
