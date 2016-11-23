@@ -86,7 +86,7 @@ class ProjectFromAuthTest(BaseAPITest):
     def test_valid_with_key(self):
         auth = Auth({'sentry_key': self.pk.public_key})
         result = self.helper.project_from_auth(auth)
-        self.assertEquals(result, self.project)
+        self.assertEquals(result, self.project.id)
 
     def test_invalid_key(self):
         auth = Auth({'sentry_key': 'z'})

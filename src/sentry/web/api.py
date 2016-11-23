@@ -188,11 +188,9 @@ class APIView(BaseView):
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
-                if not project_:
-                    raise APIError('Unable to identify project')
-                project = project_
+                project = Project.objects.get_from_cache(id=project_)
                 helper.context.bind_project(project)
-            elif project_ != project:
+            elif project_ != project.id:
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
@@ -469,7 +467,7 @@ class CspReportView(StoreView):
         auth = helper.auth_from_request(request)
 
         project_ = helper.project_from_auth(auth)
-        if project_ != project:
+        if project_ != project.id:
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
