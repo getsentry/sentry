@@ -37,7 +37,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
                 }
             )
             if rows_affected or created:
-                check_for_onboarding_complete(organization)
+                check_for_onboarding_complete(organization.id)
             return Response(status=204)
 
         return Response(status=404)
