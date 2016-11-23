@@ -210,7 +210,7 @@ class ClientApiHelper(object):
         """
         return origin_from_request(request)
 
-    def project_from_auth(self, auth):
+    def project_id_from_auth(self, auth):
         if not auth.public_key:
             raise APIUnauthorized('Invalid api key')
 

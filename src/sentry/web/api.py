@@ -184,13 +184,13 @@ class APIView(BaseView):
         else:
             auth = self._parse_header(request, helper, project)
 
-            project_ = helper.project_from_auth(auth)
+            project_id = helper.project_id_from_auth(auth)
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
-                project = Project.objects.get_from_cache(id=project_)
+                project = Project.objects.get_from_cache(id=project_id)
                 helper.context.bind_project(project)
-            elif project_ != project.id:
+            elif project_id != project.id:
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
@@ -466,8 +466,8 @@ class CspReportView(StoreView):
         # `sentry_version` to be set in querystring
         auth = helper.auth_from_request(request)
 
-        project_ = helper.project_from_auth(auth)
-        if project_ != project.id:
+        project_id = helper.project_id_from_auth(auth)
+        if project_id != project.id:
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
