@@ -39,9 +39,9 @@ from __future__ import absolute_import
 import os
 import posixpath
 import mimetypes
+import threading
 from gzip import GzipFile
 from tempfile import SpooledTemporaryFile
-from threading import Lock
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured, SuspiciousOperation
@@ -52,9 +52,23 @@ from django.utils.six.moves.urllib import parse as urlparse
 from django.utils.six import BytesIO
 from django.utils.timezone import localtime
 
-from boto3 import resource
+from boto3.session import Session
 from botocore.client import Config
 from botocore.exceptions import ClientError
+
+_thread_local_connection = threading.local()
+
+
+def _get_thread_local_session():
+    try:
+        return _thread_local_connection.session
+    except AttributeError:
+        rv = _thread_local_connection.session = Session()
+        return rv
+
+
+def resource(*args, **kwargs):
+    return _get_thread_local_session().resource(*args, **kwargs)
 
 
 def safe_join(base, *paths):
@@ -308,8 +322,6 @@ class S3Boto3Storage(Storage):
             self.config = Config(s3={'addressing_style': self.addressing_style},
                                  signature_version=self.signature_version)
 
-        self._lock = Lock()
-
     @property
     def connection(self):
         # TODO: Support host, port like in s3boto
@@ -317,16 +329,15 @@ class S3Boto3Storage(Storage):
         # urllib/requests libraries read. See https://github.com/boto/boto3/issues/338
         # and http://docs.python-requests.org/en/latest/user/advanced/#proxies
         if self._connection is None:
-            with self._lock:
-                self._connection = self.connection_class(
-                    self.connection_service_name,
-                    aws_access_key_id=self.access_key,
-                    aws_secret_access_key=self.secret_key,
-                    region_name=self.region_name,
-                    use_ssl=self.use_ssl,
-                    endpoint_url=self.endpoint_url,
-                    config=self.config
-                )
+            self._connection = self.connection_class(
+                self.connection_service_name,
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+                region_name=self.region_name,
+                use_ssl=self.use_ssl,
+                endpoint_url=self.endpoint_url,
+                config=self.config
+            )
         return self._connection
 
     @property
