@@ -79,26 +79,26 @@ class AuthFromRequestTest(BaseAPITest):
             self.helper.auth_from_request(request)
 
 
-class ProjectFromAuthTest(BaseAPITest):
+class ProjectIdFromAuthTest(BaseAPITest):
     def test_invalid_if_missing_key(self):
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, Auth({}))
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, Auth({}))
 
     def test_valid_with_key(self):
         auth = Auth({'sentry_key': self.pk.public_key})
-        result = self.helper.project_from_auth(auth)
-        self.assertEquals(result, self.project)
+        result = self.helper.project_id_from_auth(auth)
+        self.assertEquals(result, self.project.id)
 
     def test_invalid_key(self):
         auth = Auth({'sentry_key': 'z'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
     def test_invalid_secret(self):
         auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
     def test_nonascii_key(self):
         auth = Auth({'sentry_key': '\xc3\xbc'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
 
 class ProcessFingerprintTest(BaseAPITest):
