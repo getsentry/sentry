@@ -35,6 +35,7 @@ import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
+import ProjectReprocessingSettings from './views/projectReprocessingSettings';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
@@ -156,6 +157,7 @@ function routes() {
             <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
             <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
             <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
+            <Route path="reprocessing/" component={errorHandler(ProjectReprocessingSettings)} />
             <Route path="install/" component={errorHandler(ProjectDocsContext)}>
               <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
               <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>

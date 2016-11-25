@@ -560,6 +560,19 @@ const Stream = React.createClass({
     return body;
   },
 
+  renderHoldEventBar() {
+    return (
+      <div className="hold-elements">
+        <div className="btn-group btn-group-sm pull-right">
+          <button className="btn btn-sm btn-primary">Fix This</button>
+          <button className="btn btn-sm btn-primary">Show Events</button>
+        </div>
+        There are <strong>42</strong> events from <strong>2</strong> releases
+        currently on hold. <a href="#">(What does this mean?)</a>
+      </div>
+    );
+  },
+
   render() {
     // global loading
     if (this.state.loading) {
@@ -612,6 +625,7 @@ const Stream = React.createClass({
                 </div>
               </div>
             </Sticky>
+            {this.renderHoldEventBar()}
             {this.renderStreamBody()}
             <Pagination pageLinks={this.state.pageLinks}/>
           </div>
