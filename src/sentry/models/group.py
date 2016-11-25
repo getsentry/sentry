@@ -84,14 +84,6 @@ def get_group_with_redirect(id, queryset=None):
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
-    def processed_only(self):
-        """Only returns events that are not on hold."""
-        return self.exclude(status=GroupStatus.ON_HOLD)
-
-    def on_hold_only(self):
-        """Only returns events that are on hold."""
-        return self.filter(status=GroupStatus.ON_HOLD)
-
     def by_qualified_short_id(self, org, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:

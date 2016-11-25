@@ -404,7 +404,7 @@ class EventManager(object):
 
         data = self.data.copy()
 
-        on_hold = data.pop('on_hold')
+        on_hold = data.pop('on_hold', False)
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
