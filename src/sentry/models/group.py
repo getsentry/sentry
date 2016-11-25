@@ -190,8 +190,8 @@ class Group(Model):
 
     # Indicates the on-hold status.  It has three values:
     #   None        the group is not on hold through regular processing
-    #   False       the group is not on hold due to reprocessing that
-    #               fixed an event that used to be on hold
+    #   False       the group is not on hold because it was on hold before
+    #               but explicitly accepted in the UI. ("Accept" button)
     #   True        the group is on hold
     on_hold = models.NullBooleanField(null=True)
 
@@ -254,7 +254,16 @@ class Group(Model):
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
 
     def is_ignored(self):
+        if self.is_transient():
+            return True
         return self.get_status() == GroupStatus.IGNORED
+
+    def is_transient(self):
+        """Anything that is on-hold is also transient.  Transient groups are
+        considered temporary and should not trigger notifications, do not
+        allow issues to be filed etc.
+        """
+        return bool(self.on_hold)
 
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
@@ -263,6 +272,9 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
+        if self.is_transient():
+            return GroupStatus.IGNORED
+
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
