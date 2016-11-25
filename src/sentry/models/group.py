@@ -52,6 +52,7 @@ class GroupStatus(object):
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
+    ON_HOLD = 6
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -85,11 +86,11 @@ class GroupManager(BaseManager):
 
     def processed_only(self):
         """Only returns events that are not on hold."""
-        return self.exclude(on_hold=True)
+        return self.exclude(status=GroupStatus.ON_HOLD)
 
     def on_hold_only(self):
         """Only returns events that are on hold."""
-        return self.filter(on_hold=True)
+        return self.filter(status=GroupStatus.ON_HOLD)
 
     def by_qualified_short_id(self, org, short_id):
         match = _short_id_re.match(short_id.strip())
@@ -191,14 +192,6 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-
-    # Indicates the on-hold status.  It has three values:
-    #   None        the group is not on hold through regular processing
-    #   False       the group is not on hold because it was on hold before
-    #               but explicitly accepted in the UI. ("Accept" button)
-    #   True        the group is on hold
-    on_hold = models.NullBooleanField(null=True)
-
     objects = GroupManager()
 
     class Meta:
@@ -267,7 +260,7 @@ class Group(Model):
         considered temporary and should not trigger notifications, do not
         allow issues to be filed etc.
         """
-        return bool(self.on_hold)
+        return self.status == GroupStatus.ON_HOLD
 
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
@@ -276,9 +269,6 @@ class Group(Model):
         return self.get_status() == GroupStatus.RESOLVED
 
     def get_status(self):
-        if self.is_transient():
-            return GroupStatus.IGNORED
-
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
