@@ -50,8 +50,7 @@ class GroupSerializerTest(TestCase):
     def test_is_ignored_on_hold(self):
         user = self.create_user()
         group = self.create_group(
-            status=GroupStatus.RESOLVED,
-            on_hold=True,
+            status=GroupStatus.ON_HOLD,
         )
 
         result = serialize(group, user)
