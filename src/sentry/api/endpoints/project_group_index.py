@@ -186,7 +186,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:resolved"`` is assumed.)
-        :qparam bool includeOnHold: include events that are on hold.
+        :qparam bool includeOnHold: include events that are on hold.  This is
+                                    only used when filtering by status is not
+                                    used.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
