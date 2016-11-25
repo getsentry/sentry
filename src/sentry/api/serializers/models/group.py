@@ -168,30 +168,28 @@ class GroupSerializer(Serializer):
         status = obj.status
         status_details = {}
 
-        if obj.on_hold:
-            status = GroupStatus.IGNORED
+        if attrs['ignore_duration']:
+            if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
+                status = GroupStatus.UNRESOLVED
+            else:
+                status_details['ignoreUntil'] = attrs['ignore_duration']
+        elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+            status = GroupStatus.RESOLVED
+            status_details['autoResolved'] = True
+        if status == GroupStatus.RESOLVED:
+            status_label = 'resolved'
+            if attrs['pending_resolution']:
+                status_details['inNextRelease'] = True
+        elif status == GroupStatus.IGNORED:
+            status_label = 'ignored'
+        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
+            status_label = 'pending_deletion'
+        elif status == GroupStatus.PENDING_MERGE:
+            status_label = 'pending_merge'
+        elif status == GroupStatus.ON_HOLD:
             status_label = 'on_hold'
         else:
-            if attrs['ignore_duration']:
-                if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
-                    status = GroupStatus.UNRESOLVED
-                else:
-                    status_details['ignoreUntil'] = attrs['ignore_duration']
-            elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
-                status = GroupStatus.RESOLVED
-                status_details['autoResolved'] = True
-            if status == GroupStatus.RESOLVED:
-                status_label = 'resolved'
-                if attrs['pending_resolution']:
-                    status_details['inNextRelease'] = True
-            elif status == GroupStatus.IGNORED:
-                status_label = 'ignored'
-            elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
-                status_label = 'pending_deletion'
-            elif status == GroupStatus.PENDING_MERGE:
-                status_label = 'pending_merge'
-            else:
-                status_label = 'unresolved'
+            status_label = 'unresolved'
 
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
