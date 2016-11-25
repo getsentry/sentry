@@ -456,6 +456,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
             result['statusDetails'] = {}
 
+        elif result.get('status') == 'on_hold':
+            return Response('{"detail": "Cannot put events on hold from '
+                            'the API"}', status=400)
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
