@@ -83,6 +83,10 @@ def get_group_with_redirect(id, queryset=None):
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
+    def processed(self):
+        """Only returns events that are not on hold."""
+        return self.exclude(on_hold=True)
+
     def by_qualified_short_id(self, org, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:
@@ -183,6 +187,13 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
+
+    # Indicates the on-hold status.  It has three values:
+    #   None        the group is not on hold through regular processing
+    #   False       the group is not on hold due to reprocessing that
+    #               fixed an event that used to be on hold
+    #   True        the group is on hold
+    on_hold = models.NullBooleanField(null=True)
 
     objects = GroupManager()
 
