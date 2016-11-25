@@ -234,6 +234,9 @@ class EventManager(object):
         # First we pull out our top-level (non-data attr) kwargs
         data = self.data
 
+        # Do not put the group on hold for now.
+        data['on_hold'] = False
+
         if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
         elif data['level'] not in LOG_LEVELS:
@@ -401,6 +404,8 @@ class EventManager(object):
 
         data = self.data.copy()
 
+        on_hold = data.pop('on_hold')
+
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
         level = data.pop('level')
@@ -565,6 +570,14 @@ class EventManager(object):
                 'metadata': event_metadata,
             },
         })
+
+        # If we want to put the group on hold we mark the group as such.
+        # In theory this should only ever happen on new groups or for
+        # groups that are already on hold.  However in case something
+        # breaks internally we want to make sure that we never
+        # accidentally set a group that is on hold to not be on hold.
+        if on_hold:
+            group_kwargs['on_hold'] = True
 
         if release:
             release = Release.get_or_create(
