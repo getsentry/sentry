@@ -161,6 +161,8 @@ class GroupSerializer(Serializer):
                 'user_count': user_counts.get(item.id, 0),
                 'ignore_duration': ignore_durations.get(item.id),
                 'pending_resolution': pending_resolutions.get(item.id),
+                'is_transient': item.is_transient(),
+                'on_hold': bool(item.on_hold),
             }
         return result
 
