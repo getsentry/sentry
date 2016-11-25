@@ -13,11 +13,18 @@ class BasicPreprocessorPlugin(Plugin2):
             del data['extra']
             return data
 
+        def put_on_hold(data):
+            data['on_hold'] = True
+            return data
+
         if data.get('platform') == 'mattlang':
             return [remove_extra, lambda x: None]
 
         if data.get('platform') == 'noop':
             return [lambda data: data]
+
+        if data.get('platform') == 'holdmeclose':
+            return [put_on_hold]
 
         return []
 
@@ -109,6 +116,36 @@ class StoreTasksTest(PluginTestCase):
 
         # The event did not mutate, so we shouldn't reset it in cache
         mock_default_cache.set.call_count == 0
+
+        mock_save_event.delay.assert_called_once_with(
+            cache_key='e:1', data=None, start_time=1,
+        )
+
+    @mock.patch('sentry.tasks.store.save_event')
+    @mock.patch('sentry.tasks.store.default_cache')
+    def test_process_event_on_hold(self, mock_default_cache, mock_save_event):
+        project = self.create_project()
+
+        data = {
+            'project': project.id,
+            'platform': 'holdmeclose',
+            'message': 'test',
+            'extra': {'foo': 'bar'},
+        }
+
+        mock_default_cache.get.return_value = data
+
+        process_event(cache_key='e:1', start_time=1)
+
+        mock_default_cache.set.assert_called_once_with(
+            'e:1', {
+                'project': project.id,
+                'platform': 'holdmeclose',
+                'message': 'test',
+                'extra': {'foo': 'bar'},
+                'on_hold': True,
+            }, 3600
+        )
 
         mock_save_event.delay.assert_called_once_with(
             cache_key='e:1', data=None, start_time=1,
