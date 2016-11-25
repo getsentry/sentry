@@ -577,7 +577,7 @@ class EventManager(object):
         # breaks internally we want to make sure that we never
         # accidentally set a group that is on hold to not be on hold.
         if on_hold:
-            group_kwargs['on_hold'] = True
+            group_kwargs['status'] = GroupStatus.ON_HOLD
 
         if release:
             release = Release.get_or_create(
