@@ -161,34 +161,37 @@ class GroupSerializer(Serializer):
                 'user_count': user_counts.get(item.id, 0),
                 'ignore_duration': ignore_durations.get(item.id),
                 'pending_resolution': pending_resolutions.get(item.id),
-                'is_transient': item.is_transient(),
-                'on_hold': bool(item.on_hold),
             }
         return result
 
     def serialize(self, obj, attrs, user):
         status = obj.status
         status_details = {}
-        if attrs['ignore_duration']:
-            if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
-                status = GroupStatus.UNRESOLVED
-            else:
-                status_details['ignoreUntil'] = attrs['ignore_duration']
-        elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
-            status = GroupStatus.RESOLVED
-            status_details['autoResolved'] = True
-        if status == GroupStatus.RESOLVED:
-            status_label = 'resolved'
-            if attrs['pending_resolution']:
-                status_details['inNextRelease'] = True
-        elif status == GroupStatus.IGNORED:
-            status_label = 'ignored'
-        elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
-            status_label = 'pending_deletion'
-        elif status == GroupStatus.PENDING_MERGE:
-            status_label = 'pending_merge'
+
+        if obj.on_hold:
+            status = GroupStatus.IGNORED
+            status_label = 'on_hold'
         else:
-            status_label = 'unresolved'
+            if attrs['ignore_duration']:
+                if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
+                    status = GroupStatus.UNRESOLVED
+                else:
+                    status_details['ignoreUntil'] = attrs['ignore_duration']
+            elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+                status = GroupStatus.RESOLVED
+                status_details['autoResolved'] = True
+            if status == GroupStatus.RESOLVED:
+                status_label = 'resolved'
+                if attrs['pending_resolution']:
+                    status_details['inNextRelease'] = True
+            elif status == GroupStatus.IGNORED:
+                status_label = 'ignored'
+            elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
+                status_label = 'pending_deletion'
+            elif status == GroupStatus.PENDING_MERGE:
+                status_label = 'pending_merge'
+            else:
+                status_label = 'unresolved'
 
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
@@ -221,6 +224,7 @@ class GroupSerializer(Serializer):
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'isSubscribed': is_subscribed,
+            'isTransient': obj.is_transient(),
             'subscriptionDetails': {
                 'reason': SUBSCRIPTION_REASON_MAP.get(
                     subscription.reason,
