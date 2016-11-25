@@ -150,6 +150,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             except InvalidQuery as e:
                 raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
+        query_kwargs['include_on_hold'] = request.GET.get('includeOnHold') == '1'
+
         return query_kwargs
 
     # bookmarks=0/1
@@ -184,6 +186,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:resolved"`` is assumed.)
+        :qparam bool includeOnHold: include events that are on hold.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
