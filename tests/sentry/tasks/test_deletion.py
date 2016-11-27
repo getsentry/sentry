@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
@@ -236,7 +238,8 @@ class GenericDeleteTest(TestCase):
         )
 
         with self.tasks():
-            generic_delete('sentry', 'project', object_id=project.id)
+            with pytest.raises(DeleteAborted):
+                generic_delete('sentry', 'project', object_id=project.id)
 
         project = Project.objects.get(id=project.id)
         assert project.status == ObjectStatus.VISIBLE
