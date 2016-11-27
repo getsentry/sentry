@@ -18,6 +18,7 @@ Version 8.11 (Unreleased)
 - Reduce noisy Postgres logs from inserting duplicate onboarding rows.
 - Added export action to group tag details.
 - Improved display of user tags.
+- Added 'transaction' tag which automatically populates from explicit culprits.
 
 Schema Changes
 ~~~~~~~~~~~~~~
