@@ -330,7 +330,7 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None,
     if instance.status == ObjectStatus.VISIBLE:
         raise DeleteAborted
 
-    if instance.status == ObjectStatus.PENDING_DELETE:
+    if instance.status == ObjectStatus.PENDING_DELETION:
         if actor_id:
             actor = User.objects.get(id=actor_id)
         else:
