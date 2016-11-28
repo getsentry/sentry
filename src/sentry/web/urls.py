@@ -198,6 +198,10 @@ urlpatterns += patterns(
     url(r'^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
+    # Load plugin urls before anything else, as they include API endpoints as
+    # well as generic server URLs
+    url(r'', include('sentry.plugins.urls')),
+
     # API
     url(r'^api/0/', include('sentry.api.urls')),
     url(r'^api/hooks/mailgun/inbound/', MailgunInboundWebhookView.as_view(),
@@ -453,7 +457,7 @@ urlpatterns += patterns(
         name='sentry-api-crossdomain-xml'),
 
     # plugins
-    url(r'^plugins/', include('sentry.plugins.base.urls')),
+    url(r'^plugins/', include('sentry.plugins.urls')),
 
     # Generic API
     url(r'^share/(?:group|issue)/(?P<share_id>[\w_-]+)/$', GenericReactPageView.as_view(auth_required=False),

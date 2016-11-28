@@ -4,6 +4,8 @@ __all__ = ['PluginConfigMixin']
 
 import six
 
+from django.conf.urls import include, url
+
 from sentry.exceptions import PluginError
 from sentry.utils.forms import form_to_config
 
@@ -81,8 +83,47 @@ class PluginConfigMixin(object):
         """
         return config
 
+    def get_urls(self):
+        """
+        """
+        patterns = []
+        result = self.get_project_urls()
+        if result:
+            patterns.append(
+                url(r'^api/0/projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/',
+                    include(result))
+            )
+        result = self.get_project_urls()
+        if result:
+            patterns.append(
+                url(r'^api/0/organizations/(?P<organization_slug>[^\/]+)/',
+                    include(result))
+            )
+        result = self.get_project_urls()
+        if result:
+            patterns.append(
+                url(r'^api/0/issues/(?P<issue_id>\d+)/',
+                    include(result))
+            )
+        result = self.get_url_module()
+        if result:
+            patterns.append(result)
+        return patterns
+
     def get_group_urls(self):
         return []
 
     def get_project_urls(self):
         return []
+
+    def get_organization_urls(self):
+        return []
+
+    def get_organization_option(self, name, organization, default=None):
+        from sentry.models import OrganizationOption
+
+        return OrganizationOption.objects.get_value(
+            organization=organization,
+            key='{}:{}'.format(self.conf_key, name),
+            default=default,
+        )

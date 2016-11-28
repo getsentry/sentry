@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from django.conf.urls import url
 
 from sentry.plugins import Plugin2
-from sentry.plugins.base.project_api_urls import load_plugin_urls
+from sentry.plugins.urls import load_plugin_urls
 from sentry.plugins.base.response import JSONResponse
 
 
@@ -17,7 +17,7 @@ def test_json_response_with_status_kwarg():
     assert resp.status_code == 400
 
 
-def test_load_plugin_urls():
+def test_load_project_plugin_urls():
     class BadPluginA(Plugin2):
         def get_project_urls(self):
             assert False

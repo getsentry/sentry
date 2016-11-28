@@ -25,7 +25,7 @@ def load_plugin_urls(plugins):
     urlpatterns = patterns('')
     for plugin in plugins:
         try:
-            urls = plugin.get_group_urls()
+            urls = plugin.get_urls()
             if not urls:
                 continue
             urls = [ensure_url(u) for u in urls]

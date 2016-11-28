@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.conf.urls import include, patterns, url
+from django.conf.urls import patterns, url
 
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -321,8 +321,6 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$',
         ProjectPluginDetailsEndpoint.as_view(),
         name='sentry-api-0-project-plugin-details'),
-    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins?/',
-        include('sentry.plugins.base.project_api_urls')),
 
     # Groups
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/$',
@@ -367,9 +365,6 @@ urlpatterns = patterns(
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/(?:user-feedback|user-reports)/$',
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
-    # Load plugin group urls
-    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugins?/',
-        include('sentry.plugins.base.group_api_urls')),
 
     url(r'^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$',
         SharedGroupDetailsEndpoint.as_view(),
@@ -402,7 +397,6 @@ urlpatterns = patterns(
     url(r'^$',
         IndexEndpoint.as_view(),
         name='sentry-api-index'),
-
 
     url(r'^',
         CatchallEndpoint.as_view(),
