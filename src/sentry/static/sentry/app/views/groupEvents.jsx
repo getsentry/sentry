@@ -159,9 +159,13 @@ const GroupEvents = React.createClass({
             </h5>
           </td>
           {tagList.map((tag) => {
+            let tagValue = tagMap[tag.key];
+            if (tag.key == 'device') {
+              tagValue = deviceNameMapper(tagMap[tag.key]);
+            }
             return (
               <td key={tag.key}>
-                {deviceNameMapper(tagMap[tag.key])}
+                {tagValue}
               </td>
             );
           })}
