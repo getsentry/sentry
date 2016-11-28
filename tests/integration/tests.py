@@ -396,6 +396,11 @@ class SentryRemoteTest(TestCase):
 
         assert instance.message == 'hello'
 
+    def test_reject_for_suspended(self):
+        self.organization.suspend()
+        resp = self._postWithHeader({'message': 'hello'})
+        assert resp.status_code == 403, (resp.status_code, resp.get('X-Sentry-Error'))
+
 
 class DepdendencyTest(TestCase):
     def raise_import_error(self, package):

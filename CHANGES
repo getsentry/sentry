@@ -24,6 +24,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``User.session_nonce`` column.
+- Addded ``Suspension`` model.
 
 Version 8.10
 ------------

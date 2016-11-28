@@ -94,6 +94,7 @@ class Organization(Model):
         ('enhanced_privacy', 'Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.'),
         ('disable_shared_issues', 'Disable sharing of limited details on issues to anonymous users.'),
         ('early_adopter', 'Enable early adopter status, gaining access to features prior to public release.'),
+        ('suspended', 'Enable to flag organization as suspended'),
     ), default=1)
 
     objects = OrganizationManager(cache_fields=(
@@ -276,3 +277,21 @@ class Organization(Model):
             type='org.confirm_delete',
             context=context,
         ).send_async([o.email for o in owners])
+
+    def suspend(self, **kwargs):
+        assert not self.flags.suspended
+
+        self.flags.suspended = True
+        self.save()
+
+        if 'owner_id' not in kwargs:
+            kwargs['owner_id'] = self.get_default_owner().id
+
+        if 'owner_email' not in kwargs:
+            kwargs['owner_email'] = self.get_default_owner().email
+
+        from sentry.models import Suspension
+        Suspension.objects.create(
+            organization_id=self.id,
+            **kwargs
+        )
