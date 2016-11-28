@@ -138,6 +138,7 @@ const ReleaseDetails = React.createClass({
                 return loc.pathname === this.props.location.pathname;
               }}>{t('New Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>{t('All Issues')}</ListLink>
+              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>{t('Commit Log')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>{t('Artifacts')}</ListLink>
             </ul>
           </div>

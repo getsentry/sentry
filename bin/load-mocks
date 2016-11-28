@@ -3,6 +3,7 @@ from sentry.runner import configure
 configure()
 
 import itertools
+import petname
 import six
 
 from datetime import datetime, timedelta
@@ -19,7 +20,8 @@ from sentry.app import tsdb, buffer
 from sentry.models import (
     Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
-    GroupRelease, Environment, ReleaseEnvironment
+    GroupRelease, Environment, Repository, ReleaseCommit, ReleaseEnvironment,
+    Commit, CommitAuthor
 )
 from sentry.signals import mocks_loaded
 from sentry.utils.hashlib import md5_text
@@ -199,6 +201,63 @@ def create_sample_time_series(event, release=None):
         now = now - timedelta(hours=1)
 
 
+def create_release(project, user=None):
+    release, created = Release.objects.get_or_create(
+        version=sha1(uuid4().bytes).hexdigest(),
+        project=project,
+    )
+
+    if not created:
+        return release
+
+    ReleaseFile.objects.get_or_create(
+        project=project,
+        release=release,
+        name='an-example.js',
+        file=File.objects.get_or_create(
+            name='an-example.js',
+            type='release.file',
+            checksum='abcde' * 8,
+            size=13043,
+        )[0],
+    )
+
+    repo = Repository.objects.get_or_create(
+        organization_id=project.organization_id,
+        name=project.slug,
+    )[0]
+
+    commit = Commit.objects.get_or_create(
+        organization_id=project.organization_id,
+        repository_id=repo.id,
+        key=sha1(uuid4().bytes).hexdigest(),
+        defaults={
+            'message': petname.Generate(8, ' ').title(),
+            'author': CommitAuthor.objects.get_or_create(
+                organization_id=project.organization_id,
+                name='Fizzle Bottoms',
+                email='fbottoms@example.com',
+            )[0]
+        },
+    )[0]
+
+    ReleaseCommit.objects.create(
+        project_id=project.id,
+        release=release,
+        commit=commit,
+        order=0,
+    )
+
+    Activity.objects.create(
+        type=Activity.RELEASE,
+        project=project,
+        ident=release.version,
+        user=user,
+        data={'version': release.version},
+    )
+
+    return release
+
 def main(num_events=1):
     user = User.objects.filter(is_superuser=True)[0]
 
@@ -264,30 +323,7 @@ def main(num_events=1):
                 }
             )
 
-            release = Release.objects.get_or_create(
-                version=sha1(uuid4().bytes).hexdigest(),
-                project=project,
-            )[0]
-
-            ReleaseFile.objects.get_or_create(
-                project=project,
-                release=release,
-                name='an-example.js',
-                file=File.objects.get_or_create(
-                    name='an-example.js',
-                    type='release.file',
-                    checksum='abcde' * 8,
-                    size=13043,
-                )[0],
-            )
-
-            Activity.objects.create(
-                type=Activity.RELEASE,
-                project=project,
-                ident=release.version,
-                user=user,
-                data={'version': release.version},
-            )
+            release = create_release(project, user)
 
             # Add a bunch of additional dummy events to support pagination
             last_event = None

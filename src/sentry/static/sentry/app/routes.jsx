@@ -51,6 +51,7 @@ import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
+import ReleaseCommits from './views/releaseCommits';
 import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import RouteNotFound from './views/routeNotFound';
@@ -146,6 +147,7 @@ function routes() {
             <IndexRoute component={errorHandler(ReleaseNewEvents)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
+            <Route path="commits/" component={errorHandler(ReleaseCommits)} />
           </Route>
           <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
