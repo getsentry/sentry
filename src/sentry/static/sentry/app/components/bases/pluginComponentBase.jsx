@@ -74,11 +74,6 @@ class PluginComponentBase extends React.Component {
     if (this.state.state == FormState.SAVING) {
       return;
     }
-    // XXX(dcramer): due to the way all of these hooks are implemented, we cant
-    // easily apply semantics in things like onSubmit
-    if (args[0].preventDefault) {
-      args[0].preventDefault();
-    }
     callback = callbackWithArgs(callback, ...args);
     this.setState({
       state: FormState.SAVING,
