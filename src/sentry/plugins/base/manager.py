@@ -37,6 +37,12 @@ class PluginManager(InstanceManager):
                 continue
             yield plugin
 
+    def exists(self, slug):
+        for plugin in self.all(version=None):
+            if plugin.slug == slug:
+                return True
+        return False
+
     def for_project(self, project, version=1):
         for plugin in self.all(version=version):
             if not safe_execute(plugin.is_enabled, project,
@@ -51,10 +57,7 @@ class PluginManager(InstanceManager):
             yield plugin
 
     def get(self, slug):
-        for plugin in self.all(version=1):
-            if plugin.slug == slug:
-                return plugin
-        for plugin in self.all(version=2):
+        for plugin in self.all(version=None):
             if plugin.slug == slug:
                 return plugin
         raise KeyError(slug)

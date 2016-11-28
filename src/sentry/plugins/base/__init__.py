@@ -7,12 +7,15 @@ sentry.plugins.base
 """
 from __future__ import absolute_import, print_function
 
-from sentry.plugins.base.manager import PluginManager
-from sentry.plugins.base.notifier import *  # NOQA
-from sentry.plugins.base.response import *  # NOQA
-from sentry.plugins.base.structs import *  # NOQA
-from sentry.plugins.base.v1 import *  # NOQA
-from sentry.plugins.base.v2 import *  # NOQA
+from .bindings import BindingManager
+from .manager import PluginManager
+from .notifier import *  # NOQA
+from .response import *  # NOQA
+from .structs import *  # NOQA
+from .v1 import *  # NOQA
+from .v2 import *  # NOQA
+
+bindings = BindingManager()
 
 plugins = PluginManager()
 register = plugins.register

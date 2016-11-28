@@ -678,6 +678,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': True,
     'organizations:create': True,
+    'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
     'projects:global-events': False,
