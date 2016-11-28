@@ -1030,6 +1030,10 @@ STATUS_PAGE_API_HOST = 'statuspage.io'
 
 SENTRY_ONPREMISE = True
 
+# Whether we should look at X-Forwarded-For header or not
+# when checking REMOTE_ADDR ip addresses
+SENTRY_USE_X_FORWARDED_FOR = True
+
 
 def get_raven_config():
     return {
