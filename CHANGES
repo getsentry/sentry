@@ -1,6 +1,7 @@
 Version 8.11 (Unreleased)
 -------------------------
 - add Asana to supported auth backends in social auth (for plugins)
+
 - Ignore a ``null`` ``Origin`` header for authentication.
 - Added the ability to search for issues that you are subscribed to from the stream view.
 - Added the ability to search issues by their last seen timestamp.
@@ -13,13 +14,18 @@ Version 8.11 (Unreleased)
 - Allow user to resend email verification to primary email address.
 - Consolidated integration settings pages and added icons for other tools
 - Added additional detail to subscription help text when viewing a group.
+- Add Asana to supported auth backends in social auth (for plugins)
 - Cleaner install UI when creating a new project.
+- Added support for recording symbols separately in frames independent of the function.
+- Reduce noisy Postgres logs from inserting duplicate onboarding rows.
+- Added export action to group tag details.
+- Improved display of user tags.
+- Added 'transaction' tag which automatically populates from explicit culprits.
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``User.session_nonce`` column.
-- Added support for recording symbols separately in frames independent of the function.
 
 Version 8.10
 ------------

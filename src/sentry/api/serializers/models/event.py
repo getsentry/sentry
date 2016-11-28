@@ -109,7 +109,7 @@ class EventSerializer(Serializer):
         # TODO(dcramer): move release serialization here
         d = {
             'id': six.text_type(obj.id),
-            'groupID': six.text_type(obj.group.id),
+            'groupID': six.text_type(obj.group_id),
             'eventID': six.text_type(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],
