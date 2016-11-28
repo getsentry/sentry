@@ -27,39 +27,37 @@
     {% endif %}
 
     {% if plugins_with_status %}
-      <form method="POST">
-          {% csrf_token %}
-          <div class="panel panel-default">
-            <table class="table integrations simple">
-                <thead>
-                    <th colspan="2">Integration</th>
-                    <th class="align-right">Enabled</th>
-                </thead>
-                <tbody>
-                    {% for plugin, is_enabled in plugins_with_status %}
-                        <tr class="{{ plugin.get_title|slugify }}">
-                            <td colspan="2">
-                                <div class="icon-integration icon-{{ plugin.get_title|slugify }}"></div>
-                                <h5>{{ plugin.get_title }} {% if plugin.version %}<span>v{{ plugin.version }}</span>{% else %}<span><em>{% trans "n/a" %}</em></span>{% endif %}</h5>
-                                <p>
-                                {% if plugin.author %}
-                                    {% if plugin.author_url %}<a href="{{ plugin.author_url }}">{{ plugin.author }}</a>{% else %}{{ plugin.author }}{% endif %}
-                                {% endif %}
-                                {% if plugin.has_project_conf %} &middot; <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug plugin.slug %}">Configure plugin</a>{% endif %}
-                                </p>
-                            </td>
-                            <td class="align-right">
-                                <input type="checkbox" name="plugin" value="{{ plugin.slug }}"{% if is_enabled %} checked="checked"{% endif %}/>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-          </div>
-          <div class="form-actions" style="border: 0">
-              <input type="submit" class="btn btn-primary pull-right" value="Save Changes">
-          </div>
-      </form>
+      <div class="panel panel-default">
+        <table class="table integrations simple">
+            <tbody>
+              <tr>
+                {% for plugin, is_enabled in plugins_with_status %}
+                    <td class="{{ plugin.get_title|slugify }} {% if not is_enabled %}disabled{% endif %}">
+                      {% if plugin.has_project_conf %}
+                        <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug plugin.slug %}"
+                           class="icon-integration icon-{{ plugin.get_title|slugify }}"></a>
+                        <h5>{{ plugin.get_title }}</h5>
+                      {% else %}
+                        <form method="POST">
+                          {% csrf_token %}
+                          <input type="hidden" name="op" value="{% if is_enabled %}disable{% else %}enable{% endif %}" />
+                          <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
+                          <button type="submit" class="icon-integration icon-{{ plugin.get_title|slugify }}"></button>
+                        </form>
+                        <h5>{{ plugin.get_title }}</h5>
+                      {% endif %}
+                    </td>
+                    {% if forloop.last %}
+                      </tr>
+                    {% else %}
+                      {% if forloop.counter|divisibleby:"3" %}
+                        </tr><tr>
+                      {% endif %}
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+      </div>
     {% else %}
       <div class="alert alert-info alert-block">
         <p>
@@ -67,4 +65,13 @@
         </p>
       </div>
     {% endif %}
+  <script type="text/javascript">
+    (function() {
+      $('form').on('submit', function(ev) {
+        // TODO(jess): move this to modal once this page is in react
+        var op = $(ev.target).find('[name="op"]').val();
+        return window.confirm('Are you sure you want to ' + op + ' this plugin?');
+      });
+    })();
+  </script>
 {% endblock %}

@@ -227,14 +227,14 @@
   {% with project|get_plugins as plugins %}
     <h6 class="nav-header">{% trans "Integrations" %}</h6>
     <ul class="nav nav-stacked">
-      <li class="{% if page == 'plugins' %} active{% endif %}">
-        <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "All Integrations" %}</a>
-      </li>
       <li{% if page == 'issue-tracking' %} class="active"{% endif %}>
           <a href="{% url 'sentry-project-issue-tracking' project.organization.slug project.slug %}">{% trans "Issue Tracking" %}</a>
       </li>
       <li{% if page == 'notification' %} class="active"{% endif %}>
           <a href="{% url 'sentry-project-notification-tools' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
+      </li>
+      <li class="{% if page == 'plugins' %} active{% endif %}">
+        <a href="{% url 'sentry-manage-project-plugins' project.organization.slug project.slug %}">{% trans "All" %}</a>
       </li>
     </ul>
   {% endwith %}

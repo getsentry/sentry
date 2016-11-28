@@ -328,6 +328,10 @@ table.table {
     line-height: 1 !important;
   }
 
+  td.disabled {
+    opacity: .5;
+  }
+
   th {
     font-weight: 600 !important;
     border-width: 1px !important;
@@ -438,21 +442,23 @@ table.table.key-value {
 }
 
 table.integrations {
-  td, th {
+  td {
     padding: 20px !important;
-  }
-
-  td:first-child {
-    position: relative;
-    padding-left: 78px !important;
+    border: 1px solid #f1eff3;
+    width: 33%;
+    text-align: center;
+    a {
+      display: inline-block;
+    }
   }
 
   .icon-integration {
-    position: absolute;
-    top: 15px;
-    left: 16px;
     .square(48px);
     border-radius: 2px;
+    border: 0;
+    /* this is so that there aren't gray boxes before load */
+    background-color: #fff;
+    display: inline-block;
   }
 
   .auto-tag-browsers,

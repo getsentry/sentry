@@ -110,9 +110,9 @@ const ProjectSettings = React.createClass({
           </ul>
           <h6 className="nav-header">{t('Integrations')}</h6>
           <ul className="nav nav-stacked">
-            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All Integrations')}</a></li>
             <li><a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a></li>
             <li><a href={`${settingsUrlRoot}/notification-tools/`}>{t('Notifications')}</a></li>
+            <li><a href={`${settingsUrlRoot}/plugins/`}>{t('All')}</a></li>
           </ul>
         </div>
         <div className="col-md-10">
