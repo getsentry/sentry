@@ -4,6 +4,7 @@ from django.core.urlresolvers import reverse
 from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
+from sentry.exceptions import PluginError
 from sentry.models import Repository
 from sentry.plugins.config import ConfigValidator
 
@@ -46,11 +47,16 @@ class RepositoryProvider(ProviderMixin):
         except Exception as e:
             return self.handle_api_error(e)
 
-        result = self.create_repository(
-            organization=organization,
-            data=config,
-            actor=request.user,
-        )
+        try:
+            result = self.create_repository(
+                organization=organization,
+                data=config,
+                actor=request.user,
+            )
+        except PluginError as e:
+            return Response({
+                'errors': {'__all__': e.message},
+            }, status=400)
 
         repo = Repository.objects.create(
             organization_id=organization.id,
