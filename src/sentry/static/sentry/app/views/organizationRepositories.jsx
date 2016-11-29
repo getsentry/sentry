@@ -31,7 +31,7 @@ class AddRepositoryLink extends PluginComponentBase {
 
     ['onOpen',
      'onCancel',
-     'onSubmit',
+     'formSubmit',
      'changeField'].map(method => this[method] = this[method].bind(this));
   }
 
@@ -41,6 +41,13 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onCancel() {
     this.setState({isModalOpen: false});
+  }
+
+  formSubmit(ev) {
+    // since this doesn't use the Form component, wrap onSubmit
+    // in a function that calls preventDefault
+    ev.preventDefault();
+    this.onSubmit();
   }
 
   onSubmit() {
@@ -79,7 +86,7 @@ class AddRepositoryLink extends PluginComponentBase {
     let errors = this.state.error.errors || {};
     let provider = this.props.provider;
     return (
-      <form onSubmit={this.onSubmit}>
+      <form onSubmit={this.formSubmit}>
         {errors.__all__ &&
           <div className="alert alert-error alert-block" key="_errors">
             <p>{errors.__all__}</p>
