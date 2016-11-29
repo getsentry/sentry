@@ -74,6 +74,9 @@
     {% if ACCESS.org_write %}
       <li><a href="{% absolute_uri '/organizations/{}/audit-log/' organization.slug %}">{% trans "Audit Log" %}</a></li>
       <li><a href="{% absolute_uri '/organizations/{}/rate-limits/' organization.slug %}">{% trans "Rate Limits" %}</li></a>
+      {% feature organizations:repos organization %}
+        <li><a href="{% absolute_uri '/organizations/{}/repos/' organization.slug %}">{% trans "Repositories" %}</li></a>
+      {% endfeature %}
       <li class="{% block org_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-settings' organization.slug %}">
           {% trans "Settings" %}
