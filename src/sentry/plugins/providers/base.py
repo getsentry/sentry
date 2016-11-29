@@ -33,6 +33,9 @@ class ProviderMixin(object):
         if self.auth_provider is None:
             return None
 
+        if not user.is_authenticated():
+            return None
+
         return UserSocialAuth.objects.filter(
             user=user,
             provider=self.auth_provider,
