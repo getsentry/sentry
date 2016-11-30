@@ -1,46 +1,76 @@
 from __future__ import absolute_import
 
-import csv
-import six
-
-from django.http import Http404, StreamingHttpResponse
-from django.utils.text import slugify
+from django.http import Http404
 
 from sentry.models import (
-    GroupTagValue, TagKey, TagKeyStatus, Group, get_group_with_redirect
+    EventUser, GroupTagValue, TagKey, TagKeyStatus, Group, get_group_with_redirect
 )
 from sentry.web.frontend.base import ProjectView
+from sentry.web.frontend.mixins.csv import CsvMixin
+from sentry.utils.query import RangeQuerySetWrapper
 
 
-# Python 2 doesn't support unicode with CSV, but Python 3 does via
-# the encoding param
-if six.PY3:
-    def get_row(row):
-        return (
-            row.value,
-            six.text_type(row.times_seen),
-            row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-        )
-else:
-    def get_row(row):
-        return (
-            row.value.encode('utf-8'),
-            six.text_type(row.times_seen),
-            row.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            row.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-        )
+def attach_eventuser(project_id):
+    def wrapped(items):
+        users = EventUser.for_tags(project_id, [i.value for i in items])
+        for item in items:
+            item._eventuser = users.get(item.value)
+    return wrapped
 
 
-# csv.writer doesn't provide a non-file interface
-# https://docs.djangoproject.com/en/1.9/howto/outputting-csv/#streaming-large-csv-files
-class Echo(object):
-    def write(self, value):
-        return value
-
-
-class GroupTagExportView(ProjectView):
+class GroupTagExportView(ProjectView, CsvMixin):
     required_scope = 'event:read'
+
+    def get_header(self, key):
+        if key == 'user':
+            return self.get_user_header()
+        return self.get_generic_header()
+
+    def get_row(self, item, key):
+        if key == 'user':
+            return self.get_user_row(item)
+        return self.get_generic_row(item)
+
+    def get_generic_header(self):
+        return (
+            'value',
+            'times_seen',
+            'last_seen',
+            'first_seen',
+        )
+
+    def get_generic_row(self, item):
+        return (
+            item.value,
+            item.times_seen,
+            item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        )
+
+    def get_user_header(self):
+        return (
+            'value',
+            'id',
+            'email',
+            'username',
+            'ip_address',
+            'times_seen',
+            'last_seen',
+            'first_seen',
+        )
+
+    def get_user_row(self, item):
+        euser = item._eventuser
+        return (
+            item.value,
+            euser.ident if euser else '',
+            euser.email if euser else '',
+            euser.username if euser else '',
+            euser.ip_address if euser else '',
+            item.times_seen,
+            item.last_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            item.first_seen.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+        )
 
     def get(self, request, organization, project, team, group_id, key):
         try:
@@ -68,23 +98,22 @@ class GroupTagExportView(ProjectView):
         except TagKey.DoesNotExist:
             raise Http404
 
-        queryset = GroupTagValue.objects.filter(
-            group=group,
-            key=lookup_key,
+        if key == 'user':
+            callbacks = [attach_eventuser(project.id)]
+        else:
+            callbacks = []
+
+        queryset = RangeQuerySetWrapper(
+            GroupTagValue.objects.filter(
+                group=group,
+                key=lookup_key,
+            ),
+            callbacks=callbacks,
         )
 
-        def row_iter():
-            yield ('value', 'times_seen', 'last_seen', 'first_seen')
-            for row in queryset.iterator():
-                yield get_row(row)
+        filename = '{}-{}'.format(
+            group.qualified_short_id or group.id,
+            key,
+        )
 
-        pseudo_buffer = Echo()
-        writer = csv.writer(pseudo_buffer)
-        response = StreamingHttpResponse(
-            (writer.writerow(r) for r in row_iter()),
-            content_type='text/csv',
-        )
-        response['Content-Disposition'] = 'attachment; filename="{}-{}.csv"'.format(
-            group.qualified_short_id or group.id, slugify(key)
-        )
-        return response
+        return self.to_csv_response(queryset, filename, key=key)

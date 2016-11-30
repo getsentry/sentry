@@ -300,6 +300,13 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
     Attempts to fetch from the cache.
     """
+    # If our url has been truncated, it'd be impossible to fetch
+    # so we check for this early and bail
+    if url[-3:] == '...':
+        raise CannotFetchSource({
+            'type': EventError.JS_MISSING_SOURCE,
+            'url': expose_url(url),
+        })
     if release:
         with metrics.timer('sourcemaps.release_file'):
             result = fetch_release_file(url, release)

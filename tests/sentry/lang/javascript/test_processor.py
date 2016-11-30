@@ -21,6 +21,7 @@ from sentry.lang.javascript.errormapping import (
 )
 from sentry.models import File, Release, ReleaseFile, EventError
 from sentry.testutils import TestCase
+from sentry.utils.strings import truncatechars
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
@@ -168,6 +169,15 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result == result2
+
+    @responses.activate
+    def test_truncated(self):
+        url = truncatechars('http://example.com', 3)
+        with pytest.raises(CannotFetchSource) as exc:
+            fetch_file(url)
+
+        assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
+        assert exc.value.data['url'] == url
 
 
 class DiscoverSourcemapTest(TestCase):

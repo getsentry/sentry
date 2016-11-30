@@ -17,11 +17,27 @@ Version 8.11 (Unreleased)
 - Added support for recording symbols separately in frames independent of the function.
 - Reduce noisy Postgres logs from inserting duplicate onboarding rows.
 - Added device icons for Apple Watch and Apple TV
+- Added export action to group tag details.
+- Improved display of user tags.
+- Added 'transaction' tag which automatically populates from explicit culprits.
+- Added beginnings of repository management to UI (behind `organizations:repos` feature).
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``User.session_nonce`` column.
+- Added ``CommitFileChange`` model.
+- Added ``Repository.url`` column.
+- Added ``Repository.provider`` column.
+- Added ``Repository.config`` column.
+- Added ``Repository.external_id`` column.
+- Added ``Repository.status`` column.
+
+API Changes
+~~~~~~~~~~~
+
+- Added ``/organizations/{org}/config/repos/`` endpoint.
+- Added ``/organizations/{org}/repos/{repo}/`` endpoint.
 
 Version 8.10
 ------------
@@ -42,8 +58,8 @@ Version 8.10
 API Changes
 ~~~~~~~~~~~
 
-- Add ``/organizations/{org}/repositories/`` endpoint.
-- Add ``/organizations/{org}/repositories/{repo}/commits/`` endpoint.
+- Add ``/organizations/{org}/repos/`` endpoint.
+- Add ``/organizations/{org}/repos/{repo}/commits/`` endpoint.
 - Add ``/projects/{org}/{project}/releases/{version}/commits/`` endpoint.
 - SSO restrictions are now applied across session-based API authentication.
 

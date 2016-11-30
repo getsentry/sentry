@@ -79,6 +79,12 @@ Below is a sample production ready configuration for Nginx with Sentry::
       }
     }
 
+If you're using SSL, you'll also need to set the following in ``sentry.conf.py``:
+
+.. code-block:: python
+
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 
 Hosting Sentry at a Subpath
 ----------------------------

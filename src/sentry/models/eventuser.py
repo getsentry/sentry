@@ -42,6 +42,25 @@ class EventUser(Model):
     def attr_from_keyword(cls, keyword):
         return KEYWORD_MAP[keyword]
 
+    @classmethod
+    def for_tags(cls, project_id, values):
+        """
+        Finds matching EventUser objects from a list of tag values.
+
+        Return a dictionary of {tag_value: event_user}.
+        """
+        hashes = [
+            md5_text(v.split(':', 1)[-1]).hexdigest()
+            for v in values
+        ]
+        return {
+            e.tag_value: e
+            for e in cls.objects.filter(
+                project=project_id,
+                hash__in=hashes,
+            )
+        }
+
     def save(self, *args, **kwargs):
         assert self.ident or self.username or self.email or self.ip_address, \
             'No identifying value found for user'
