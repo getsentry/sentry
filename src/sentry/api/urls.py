@@ -41,7 +41,9 @@ from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskE
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
+from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
+from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
@@ -154,6 +156,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/audit-logs/$',
         OrganizationAuditLogsEndpoint.as_view(),
         name='sentry-api-0-organization-audit-logs'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/config/repos/$',
+        OrganizationConfigRepositoriesEndpoint.as_view(),
+        name='sentry-api-0-organization-config-repositories'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
         OrganizationIssuesNewEndpoint.as_view(),
         name='sentry-api-0-organization-issues-new'),
@@ -184,6 +189,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/$',
         OrganizationRepositoriesEndpoint.as_view(),
         name='sentry-api-0-organization-repositories'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/$',
+        OrganizationRepositoryDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-repository-details'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$',
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-repository-commits'),

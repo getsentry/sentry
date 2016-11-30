@@ -34,7 +34,7 @@ event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
 event_dropped = BetterSignal(providing_args=["ip", "data", "project"])
 event_filtered = BetterSignal(providing_args=["ip", "data", "project"])
 event_received = BetterSignal(providing_args=["ip", "project"])
-pending_delete = BetterSignal(providing_args=["instance"])
+pending_delete = BetterSignal(providing_args=['instance', 'actor'])
 event_processed = BetterSignal(providing_args=['project', 'group', 'event'])
 
 # Organization Onboarding Signals

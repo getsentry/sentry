@@ -40,7 +40,7 @@
 # content changes within the diff
 @S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|sudo/
 # dont ever match against changes in these files
-@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|south_migrations|CHANGES|tests/
+@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests/
 
 @S_BACKPORTED_FILES ||= [
     "src/sentry/auth/password_validation.py",
