@@ -16,6 +16,7 @@ Version 8.11 (Unreleased)
 - Cleaner install UI when creating a new project.
 - Added support for recording symbols separately in frames independent of the function.
 - Reduce noisy Postgres logs from inserting duplicate onboarding rows.
+- Added device icons for Apple Watch and Apple TV
 - Added export action to group tag details.
 - Improved display of user tags.
 - Added 'transaction' tag which automatically populates from explicit culprits.
