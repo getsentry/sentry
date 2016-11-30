@@ -29,6 +29,8 @@ class Release(Model):
     """
     __core__ = False
 
+    organization = FlexibleForeignKey('sentry.Organization', null=True, blank=True)
+    projects = models.ManyToManyField('sentry.Project', related_name='releases')
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
