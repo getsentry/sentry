@@ -128,7 +128,7 @@ install_requires = [
     'PyYAML>=3.11,<3.12',
     'raven>=5.29.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
-    'requests[security]>=2.9.1,<2.12.0',
+    'requests[security]>=2.9.1,<2.13.0',
     'selenium==3.0.0b3',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.10.0,<1.11.0',
