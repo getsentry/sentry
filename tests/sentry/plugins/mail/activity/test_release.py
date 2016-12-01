@@ -41,8 +41,10 @@ class ReleaseTestCase(TestCase):
         self.release = Release.objects.create(
             version='a' * 40,
             project_id=self.project.id,
+            organization=self.project.organization,
             date_released=timezone.now(),
         )
+        self.release.projects.add(self.project)
         repository = Repository.objects.create(
             organization_id=self.org.id,
             name=self.project.name,

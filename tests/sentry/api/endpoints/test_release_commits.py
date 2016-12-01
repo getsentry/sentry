@@ -13,8 +13,10 @@ class ReleaseCommitsListTest(APITestCase):
         )
         release = Release.objects.create(
             project=project,
+            organization=project.organization,
             version='1',
         )
+        release.projects.add(project)
         repo = Repository.objects.create(
             organization_id=project.organization_id,
             name=project.name,

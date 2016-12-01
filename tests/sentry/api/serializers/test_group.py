@@ -50,8 +50,10 @@ class GroupSerializerTest(TestCase):
     def test_resolved_in_next_release(self):
         release = Release.objects.create(
             project=self.project,
+            organization=self.project.organization,
             version='a',
         )
+        release.projects.add(self.project)
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,
@@ -68,8 +70,10 @@ class GroupSerializerTest(TestCase):
     def test_resolved_in_next_release_expired_resolution(self):
         release = Release.objects.create(
             project=self.project,
+            organization=self.project.organization,
             version='a',
         )
+        release.projects.add(self.project)
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,

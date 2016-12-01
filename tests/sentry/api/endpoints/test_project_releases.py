@@ -17,24 +17,35 @@ class ProjectReleaseListTest(APITestCase):
 
         release1 = Release.objects.create(
             project=project1,
+            organization=project1.organization,
             version='1',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
+        release1.projects.add(project1)
+
         release2 = Release.objects.create(
             project=project1,
+            organization=project1.organization,
             version='2',
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
         )
+        release2.projects.add(project1)
+
         release3 = Release.objects.create(
             project=project1,
+            organization=project1.organization,
             version='3',
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
         )
-        Release.objects.create(
+        release3.projects.add(project1)
+
+        release4 = Release.objects.create(
             project=project2,
+            organization=project2.organization,
             version='1',
         )
+        release4.projects.add(project2)
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project1.organization.slug,
@@ -56,9 +67,11 @@ class ProjectReleaseListTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization=project.organization,
             version='foobar',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
+        release.projects.add(project)
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,
@@ -104,7 +117,10 @@ class ProjectReleaseCreateTest(APITestCase):
 
         project = self.create_project(name='foo')
 
-        Release.objects.create(version='1.2.1', project=project)
+        release = Release.objects.create(version='1.2.1',
+                                         project=project,
+                                         organization=project.organization)
+        release.projects.add(project)
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,

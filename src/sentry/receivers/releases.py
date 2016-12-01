@@ -18,9 +18,11 @@ def ensure_release_exists(instance, created, **kwargs):
         with transaction.atomic():
             release = Release.objects.create(
                 project=instance.project,
+                organization=instance.project.organization,
                 version=instance.value,
                 date_added=instance.first_seen,
             )
+            release.projects.add(instance.project)
     except IntegrityError:
         pass
     else:

@@ -292,8 +292,10 @@ class EventManagerTest(TransactionTestCase):
         old_release = Release.objects.create(
             version='a',
             project=self.project,
+            organization=self.project.organization,
             date_added=timezone.now() - timedelta(minutes=30),
         )
+        old_release.projects.add(self.project)
 
         manager = EventManager(self.make_event(
             event_id='a' * 32,

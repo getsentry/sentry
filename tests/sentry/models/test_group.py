@@ -112,7 +112,9 @@ class GroupTest(TestCase):
         release = Release.objects.create(
             version='a',
             project=project,
+            organization=project.organization,
         )
+        release.projects.add(project)
         group = self.create_group(
             project=project,
             first_release=release,

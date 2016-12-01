@@ -33,7 +33,9 @@ class ResolveGroupResolutions(TestCase):
         release = Release.objects.create(
             version='a',
             project=self.project,
+            organization=self.project.organization,
         )
+        release.projects.add(self.project)
 
         mock_delay.assert_called_once_with(
             release_id=release.id,

@@ -308,10 +308,14 @@ class MockUtils(object):
         from sentry.models import Release, Activity
         if version is None:
             version = os.urandom(20).encode('hex')
-        release = Release.objects.get_or_create(
+        release, created = Release.objects.get_or_create(
             version=version,
             project=project,
-        )[0]
+        )
+        if created:
+            release.organization = project.organization
+            release.save()
+            release.projects.add(project)
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
