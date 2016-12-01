@@ -264,13 +264,15 @@ def main(num_events=1):
                 }
             )
 
-            release = Release.objects.get_or_create(
+            release, created = Release.objects.get_or_create(
                 version=sha1(uuid4().bytes).hexdigest(),
                 project=project,
-                organization=project.organization
-            )[0]
+            )
 
-            release.projects.add(project)
+            if created:
+                release.organization = project.organization
+                release.save()
+                release.projects.add(project)
 
             ReleaseFile.objects.get_or_create(
                 project=project,
