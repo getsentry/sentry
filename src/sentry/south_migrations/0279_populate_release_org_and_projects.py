@@ -3,16 +3,14 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName".
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
-        # TODO: use RangeQuerySetWrapperWithProgressBar
-        for r in orm.Release.objects.all().select_related('project'):
+        qs = orm.Release.objects.all().select_related('project')
+        for r in RangeQuerySetWrapperWithProgressBar(qs):
             r.organization_id = r.project.organization_id
             r.projects.add(r.project)
             r.save()
