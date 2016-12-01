@@ -17,7 +17,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release1 = Release.objects.create(
             project=project1,
-            organization=project1.organization,
+            organization_id=project1.organization_id,
             version='1',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
@@ -25,7 +25,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release2 = Release.objects.create(
             project=project1,
-            organization=project1.organization,
+            organization_id=project1.organization_id,
             version='2',
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
         )
@@ -33,7 +33,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release3 = Release.objects.create(
             project=project1,
-            organization=project1.organization,
+            organization_id=project1.organization_id,
             version='3',
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
@@ -42,7 +42,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release4 = Release.objects.create(
             project=project2,
-            organization=project2.organization,
+            organization_id=project2.organization_id,
             version='1',
         )
         release4.projects.add(project2)
@@ -67,7 +67,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='foobar',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
@@ -119,7 +119,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
         release = Release.objects.create(version='1.2.1',
                                          project=project,
-                                         organization=project.organization)
+                                         organization_id=project.organization_id)
         release.projects.add(project)
 
         url = reverse('sentry-api-0-project-releases', kwargs={

@@ -35,7 +35,7 @@ class ReleaseHook(object):
             values=values,
         )
         if created:
-            release.organization = self.project.organization
+            release.organization_id = self.project.organization_id
             release.save()
             release.projects.add(self.project)
 
@@ -54,7 +54,7 @@ class ReleaseHook(object):
             version=version,
         )
         if created:
-            release.organization = self.project.organization
+            release.organization_id = self.project.organization_id
             release.save()
             release.projects.add(project)
 
@@ -122,7 +122,7 @@ class ReleaseHook(object):
             values=values,
         )
         if created:
-            release.organization = self.project.organization
+            release.organization_id = self.project.organization_id
             release.save()
             release.projects.add(self.project)
         activity = Activity.objects.create(

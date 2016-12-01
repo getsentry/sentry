@@ -31,7 +31,7 @@ class GroupDetailsTest(APITestCase):
         group = self.create_group()
         release = Release.objects.create(
             project=group.project,
-            organization=group.project.organization,
+            organization_id=group.project.organization_id,
             version='1.0',
         )
         release.projects.add(group.project)

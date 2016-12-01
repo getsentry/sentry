@@ -313,7 +313,7 @@ class MockUtils(object):
             project=project,
         )
         if created:
-            release.organization = project.organization
+            release.organization_id = project.organization_id
             release.save()
             release.projects.add(project)
         Activity.objects.create(

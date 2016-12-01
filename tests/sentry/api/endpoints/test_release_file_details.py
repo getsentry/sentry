@@ -16,7 +16,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -52,7 +52,7 @@ class ReleaseFileUpdateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -94,7 +94,7 @@ class ReleaseFileDeleteTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)

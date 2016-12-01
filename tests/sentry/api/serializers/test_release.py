@@ -16,7 +16,7 @@ class ReleaseSerializerTest(TestCase):
         project = self.create_project()
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version=uuid4().hex,
             new_groups=1,
         )
@@ -47,7 +47,7 @@ class ReleaseSerializerTest(TestCase):
         project = self.create_project()
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version=uuid4().hex,
         )
         release.projects.add(project)

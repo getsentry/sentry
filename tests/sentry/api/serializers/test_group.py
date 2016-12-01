@@ -50,7 +50,7 @@ class GroupSerializerTest(TestCase):
     def test_resolved_in_next_release(self):
         release = Release.objects.create(
             project=self.project,
-            organization=self.project.organization,
+            organization_id=self.project.organization_id,
             version='a',
         )
         release.projects.add(self.project)
@@ -70,7 +70,7 @@ class GroupSerializerTest(TestCase):
     def test_resolved_in_next_release_expired_resolution(self):
         release = Release.objects.create(
             project=self.project,
-            organization=self.project.organization,
+            organization_id=self.project.organization_id,
             version='a',
         )
         release.projects.add(self.project)

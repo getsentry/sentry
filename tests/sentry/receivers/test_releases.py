@@ -33,7 +33,7 @@ class ResolveGroupResolutions(TestCase):
         release = Release.objects.create(
             version='a',
             project=self.project,
-            organization=self.project.organization,
+            organization_id=self.project.organization_id,
         )
         release.projects.add(self.project)
 

@@ -18,7 +18,7 @@ def ensure_release_exists(instance, created, **kwargs):
         with transaction.atomic():
             release = Release.objects.create(
                 project=instance.project,
-                organization=instance.project.organization,
+                organization_id=instance.project.organization_id,
                 version=instance.value,
                 date_added=instance.first_seen,
             )

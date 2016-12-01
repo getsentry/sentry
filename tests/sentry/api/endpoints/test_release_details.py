@@ -16,7 +16,7 @@ class ReleaseDetailsTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -39,7 +39,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -64,7 +64,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -95,7 +95,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -129,7 +129,7 @@ class ReleaseDeleteTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)
@@ -160,7 +160,7 @@ class ReleaseDeleteTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='1',
         )
         release.projects.add(project)

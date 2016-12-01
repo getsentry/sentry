@@ -270,7 +270,7 @@ def main(num_events=1):
             )
 
             if created:
-                release.organization = project.organization
+                release.organization_id = project.organization_id
                 release.save()
                 release.projects.add(project)
 

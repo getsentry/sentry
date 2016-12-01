@@ -456,7 +456,7 @@ class JavascriptIntegrationTest(TestCase):
         project = self.project
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='abc',
         )
         release.projects.add(project)

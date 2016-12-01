@@ -36,7 +36,7 @@ class FetchReleaseFileTest(TestCase):
         project = self.project
         release = Release.objects.create(
             project=project,
-            organization=project.organization,
+            organization_id=project.organization_id,
             version='abc',
         )
         release.projects.add(project)
@@ -143,7 +143,7 @@ class FetchFileTest(TestCase):
 
         release = Release.objects.create(project=self.project,
                                          version='1',
-                                         organization=self.project.organization)
+                                         organization_id=self.project.organization_id)
         release.projects.add(self.project)
 
         result = fetch_file('/example.js', release=release)

@@ -13,7 +13,7 @@ class GetOrCreateTest(TestCase):
         group = self.create_group(project=project)
         release = Release.objects.create(version='abc',
                                          project=project,
-                                         organization=project.organization)
+                                         organization_id=project.organization_id)
         release.projects.add(project)
         env = Environment.objects.create(project_id=project.id, name='prod')
         datetime = timezone.now()

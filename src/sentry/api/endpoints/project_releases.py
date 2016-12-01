@@ -142,7 +142,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     # experiences
                     release, created = Release.objects.create(
                         project=project,
-                        organization=project.organization,
+                        organization_id=project.organization_id,
                         version=result['version'],
                         ref=result.get('ref'),
                         url=result.get('url'),

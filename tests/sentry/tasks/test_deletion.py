@@ -104,7 +104,7 @@ class DeleteProjectTest(TestCase):
         GroupMeta.objects.create(group=group, key='foo', value='bar')
         release = Release.objects.create(version='a' * 32,
                                          project=project,
-                                         organization=project.organization)
+                                         organization_id=project.organization_id)
         release.projects.add(project)
         GroupResolution.objects.create(group=group, release=release)
         repo = Repository.objects.create(
