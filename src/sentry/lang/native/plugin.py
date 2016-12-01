@@ -372,6 +372,14 @@ def resolve_frame_symbols(data):
             logger.debug('Failed to symbolicate',
                          exc_info=(exc_type, exc_value, tb))
 
+    def record_broken_symbolication(frame):
+        release = data.get('release')
+        if not release:
+            return
+        img = sym.get_app_image_for_frame(frame)
+        if img is None:
+            return
+
     with sym:
         for stacktrace, container in stacktraces:
             store_raw = False
