@@ -439,7 +439,7 @@ def report(request):
             yield Release(
                 id=next(id_sequence),
                 project=p,
-                organization=p.organization,
+                organization_id=p.organization_id,
                 version=''.join([
                     random.choice('0123456789abcdef') for _ in range(40)
                 ]),
