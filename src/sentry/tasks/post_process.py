@@ -172,7 +172,7 @@ def index_event_tags(project_id, event_id, tags, group_id=None, **kwargs):
         )
 
         tagvalue, _ = TagValue.objects.get_or_create(
-            project=Project.objects.get(id=project_id),
+            project=Project(id=project_id),
             key=key,
             value=value,
         )
