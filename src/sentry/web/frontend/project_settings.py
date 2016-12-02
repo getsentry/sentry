@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import re
+
 from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -35,10 +37,12 @@ class EditProjectForm(forms.ModelForm):
         required=True,
     )
     token_header = forms.CharField(
-        label=_('Security token name'),
+        label=_('Security token header'),
         help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
-        required=True,
-        initial='X-Sentry-Token',
+        widget=forms.TextInput(attrs={
+            'placeholder': _('X-Sentry-Token'),
+        }),
+        required=False,
     )
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
         min_value=0, max_value=168, step_value=1,
@@ -196,6 +200,24 @@ class EditProjectForm(forms.ModelForm):
                                         'using that slug' % other.name)
         return slug
 
+    def clean_token(self):
+        token = self.cleaned_data.get('token')
+        if not token:
+            return
+        token_re = r'^[-a-zA-Z0-9+/= ]{1,255}$'
+        if not re.match(token_re, token):
+            raise forms.ValidationError('Invalid security token, must be: %s' % token_re)
+        return token
+
+    def clean_token_header(self):
+        token_header = self.cleaned_data.get('token_header')
+        if not token_header:
+            return
+        header_re = r'^[a-zA-Z0-9-]{1,20}$'
+        if not re.match(header_re, token_header):
+            raise forms.ValidationError('Invalid header value, must be: %s' % header_re)
+        return token_header
+
 
 class ProjectSettingsView(ProjectView):
     required_scope = 'project:write'
@@ -222,6 +244,7 @@ class ProjectSettingsView(ProjectView):
             initial={
                 'origins': '\n'.join(project.get_option('sentry:origins', ['*'])),
                 'token': security_token,
+                'token_header': project.get_option('sentry:token_header'),
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
@@ -244,6 +267,7 @@ class ProjectSettingsView(ProjectView):
             for opt in (
                 'origins',
                 'token',
+                'token_header',
                 'resolve_age',
                 'scrub_data',
                 'scrub_defaults',
