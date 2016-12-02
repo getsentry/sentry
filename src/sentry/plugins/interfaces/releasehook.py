@@ -33,7 +33,7 @@ class ReleaseHook(object):
             version=version,
             project=self.project,
             values=values,
-            defaults={'organization_id': self.project.organization_id}
+            defaults={'organization': self.project.organization_id}
         )
         if created:
             release.projects.add(self.project)
@@ -118,7 +118,7 @@ class ReleaseHook(object):
             version=version,
             project=self.project,
             values=values,
-            defaults={'organization_id': self.project.organization_id}
+            defaults={'organization': self.project.organization_id}
         )
         if created:
             release.projects.add(self.project)
