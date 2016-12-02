@@ -33,10 +33,9 @@ class ReleaseHook(object):
             version=version,
             project=self.project,
             values=values,
+            defaults={'organization_id': self.project.organization_id}
         )
         if created:
-            release.organization_id = self.project.organization_id
-            release.save()
             release.projects.add(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
@@ -52,10 +51,9 @@ class ReleaseHook(object):
         release, created = Release.objects.get_or_create(
             project=project,
             version=version,
+            defaults={'organization_id': self.project.organization_id}
         )
         if created:
-            release.organization_id = self.project.organization_id
-            release.save()
             release.projects.add(project)
 
         with transaction.atomic():
@@ -120,10 +118,9 @@ class ReleaseHook(object):
             version=version,
             project=self.project,
             values=values,
+            defaults={'organization_id': self.project.organization_id}
         )
         if created:
-            release.organization_id = self.project.organization_id
-            release.save()
             release.projects.add(self.project)
         activity = Activity.objects.create(
             type=Activity.RELEASE,

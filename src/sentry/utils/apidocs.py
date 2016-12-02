@@ -311,10 +311,9 @@ class MockUtils(object):
         release, created = Release.objects.get_or_create(
             version=version,
             project=project,
+            defaults={'organization_id': project.organization_id}
         )
         if created:
-            release.organization_id = project.organization_id
-            release.save()
             release.projects.add(project)
         Activity.objects.create(
             type=Activity.RELEASE,
