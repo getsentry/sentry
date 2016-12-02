@@ -159,4 +159,5 @@ class DetailedUserSerializer(UserSerializer):
             'dateCreated': a.created_at,
             'dateUsed': a.last_used_at,
         } for a in attrs['authenticators']]
+        d['hasUsablePassword'] = obj.has_usable_password()
         return d
