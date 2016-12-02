@@ -1,7 +1,7 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) 2015 THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# 
+#
 # Translators:
 # Antoine Lubineau <antoine@lubignon.info>, 2014-2016
 # Benjamin Oertel <ben@punchtab.com>, 2012
@@ -912,7 +912,7 @@ msgstr "Les équipes permettent de regrouper l'accès des membres à un domaine 
 
 #: templates/sentry/error-page-embed.html:258
 msgid "It looks like we're having <span>some internal</span> issues."
-msgstr ""
+msgstr "Il semblerait que nous ayons rencontré un <span>problème interne<span>"
 
 #: templates/sentry/error-page-embed.html:259
 msgid "Our team has been notified."
@@ -2602,7 +2602,7 @@ msgstr "Certains champs ne sont pas valides. Veuillez corriger les erreurs et r�
 
 #: web/frontend/error_page_embed.py:25
 msgid "Your feedback has been sent. Thank you!"
-msgstr ""
+msgstr "Votre retour a bien été envoyé. Merci !"
 
 #: web/frontend/error_page_embed.py:30
 msgid "Jane Doe"
