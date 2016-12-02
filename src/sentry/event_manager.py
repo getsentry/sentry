@@ -34,6 +34,7 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
+from sentry.reprocessing import store_processing_issues
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
@@ -571,6 +572,8 @@ class EventManager(object):
             },
         })
 
+        processing_issues = data.pop('processing_issues', [])
+
         # If we want to put the group on hold we mark the group as such.
         # In theory this should only ever happen on new groups or for
         # groups that are already on hold.  However in case something
@@ -594,6 +597,9 @@ class EventManager(object):
             release=release,
             **group_kwargs
         )
+
+        if processing_issues:
+            store_processing_issues(processing_issues, group, release)
 
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
