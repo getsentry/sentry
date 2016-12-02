@@ -1,6 +1,12 @@
 Version 8.12 (Unreleased)
 -------------------------
 
+SDKs
+~~~~
+
+- The `repos` interface has been added.
+
+
 Version 8.11
 ------------
 
@@ -24,11 +30,6 @@ Version 8.11
 - Improved display of user tags.
 - Added 'transaction' tag which automatically populates from explicit culprits.
 - Added beginnings of repository management to UI (behind `organizations:repos` feature).
-
-SDKs
-~~~~
-
-- The `repos` interface has been added.
 
 Schema Changes
 ~~~~~~~~~~~~~~
