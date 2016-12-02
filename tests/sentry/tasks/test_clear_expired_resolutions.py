@@ -23,7 +23,7 @@ class ClearExpiredResolutionsTest(TestCase):
             organization_id=project.organization_id,
             version='a',
         )
-        old_release.projects.add(project)
+        old_release.add_project(project)
 
         group1 = self.create_group(
             project=project,
@@ -48,7 +48,7 @@ class ClearExpiredResolutionsTest(TestCase):
             version='b',
             date_added=timezone.now() + timedelta(minutes=1),
         )
-        new_release.projects.add(project)
+        new_release.add_project(project)
 
         group2 = self.create_group(
             status=GroupStatus.UNRESOLVED,

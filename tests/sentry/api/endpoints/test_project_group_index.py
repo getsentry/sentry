@@ -340,7 +340,7 @@ class GroupUpdateTest(APITestCase):
         release = Release.objects.create(project=self.project,
                                          organization_id=self.project.organization_id,
                                          version='a')
-        release.projects.add(self.project)
+        release.add_project(self.project)
 
         group = self.create_group(
             checksum='a' * 32,

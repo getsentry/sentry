@@ -34,7 +34,7 @@ class GroupDetailsTest(APITestCase):
             organization_id=group.project.organization_id,
             version='1.0',
         )
-        release.projects.add(group.project)
+        release.add_project(group.project)
         GroupTagValue.objects.create(
             group=group,
             project=group.project,

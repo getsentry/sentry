@@ -18,7 +18,7 @@ class ReleaseFilesListTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         releasefile = ReleaseFile.objects.create(
             project=project,
@@ -54,7 +54,7 @@ class ReleaseFileCreateTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -89,7 +89,7 @@ class ReleaseFileCreateTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -113,7 +113,7 @@ class ReleaseFileCreateTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -139,7 +139,7 @@ class ReleaseFileCreateTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -166,7 +166,7 @@ class ReleaseFileCreateTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,

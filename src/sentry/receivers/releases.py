@@ -22,7 +22,7 @@ def ensure_release_exists(instance, created, **kwargs):
                 version=instance.value,
                 date_added=instance.first_seen,
             )
-            release.projects.add(instance.project)
+            release.add_project(instance.project)
     except IntegrityError:
         pass
     else:

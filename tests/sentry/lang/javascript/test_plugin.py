@@ -459,7 +459,7 @@ class JavascriptIntegrationTest(TestCase):
             organization_id=project.organization_id,
             version='abc',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         # file.min.js
         # ------------

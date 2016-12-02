@@ -114,7 +114,7 @@ class GroupTest(TestCase):
             project=project,
             organization_id=project.organization_id,
         )
-        release.projects.add(project)
+        release.add_project(project)
         group = self.create_group(
             project=project,
             first_release=release,

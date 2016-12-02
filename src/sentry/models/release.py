@@ -9,17 +9,31 @@ from __future__ import absolute_import, print_function
 
 import re
 
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
+    FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
+
+
+class ReleaseProject(BaseModel):
+    __core__ = False
+
+    id = BoundedAutoField(primary_key=True)
+    project = FlexibleForeignKey('sentry.Project', null=True)
+    release = FlexibleForeignKey('sentry.Release')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_release_project'
+        unique_together = (('project', 'release'),)
 
 
 class Release(Model):
@@ -30,7 +44,8 @@ class Release(Model):
     __core__ = False
 
     organization = FlexibleForeignKey('sentry.Organization', null=True, blank=True)
-    projects = models.ManyToManyField('sentry.Project', related_name='releases')
+    projects = models.ManyToManyField('sentry.Project', related_name='releases',
+                                      through='sentry.ReleaseProject')
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
@@ -89,12 +104,11 @@ class Release(Model):
                 version=version,
                 defaults={
                     'date_added': date_added,
+                    'organization_id': project.organization_id
                 },
             )
             if created:
-                release.projects.add(project)
-                release.organization = project.organization
-                release.save()
+                release.add_project(project)
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
@@ -106,3 +120,9 @@ class Release(Model):
         if _sha1_re.match(self.version):
             return self.version[:12]
         return self.version
+
+    def add_project(self, project):
+        try:
+            ReleaseProject.objects.create(project=project, release=self)
+        except IntegrityError:
+            pass

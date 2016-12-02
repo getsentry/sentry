@@ -20,7 +20,7 @@ class ReleaseSerializerTest(TestCase):
             version=uuid4().hex,
             new_groups=1,
         )
-        release.projects.add(project)
+        release.add_project(project)
         TagValue.objects.create(
             project=release.project,
             key='sentry:release',
@@ -50,7 +50,7 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id,
             version=uuid4().hex,
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         result = serialize(release, user)
         assert result['version'] == release.version

@@ -271,7 +271,7 @@ def main(num_events=1):
             )
 
             if created:
-                release.projects.add(project)
+                release.add_project(project)
 
             ReleaseFile.objects.get_or_create(
                 project=project,

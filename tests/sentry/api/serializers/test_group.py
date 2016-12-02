@@ -53,7 +53,7 @@ class GroupSerializerTest(TestCase):
             organization_id=self.project.organization_id,
             version='a',
         )
-        release.projects.add(self.project)
+        release.add_project(self.project)
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,
@@ -73,7 +73,7 @@ class GroupSerializerTest(TestCase):
             organization_id=self.project.organization_id,
             version='a',
         )
-        release.projects.add(self.project)
+        release.add_project(self.project)
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,

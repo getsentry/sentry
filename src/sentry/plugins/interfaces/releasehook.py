@@ -36,7 +36,7 @@ class ReleaseHook(object):
             defaults={'organization': self.project.organization_id}
         )
         if created:
-            release.projects.add(self.project)
+            release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -54,7 +54,7 @@ class ReleaseHook(object):
             defaults={'organization_id': self.project.organization_id}
         )
         if created:
-            release.projects.add(project)
+            release.add_project(project)
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -121,7 +121,7 @@ class ReleaseHook(object):
             defaults={'organization': self.project.organization_id}
         )
         if created:
-            release.projects.add(self.project)
+            release.add_project(self.project)
         activity = Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,

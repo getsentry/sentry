@@ -39,7 +39,7 @@ class FetchReleaseFileTest(TestCase):
             organization_id=project.organization_id,
             version='abc',
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         file = File.objects.create(
             name='file.min.js',
@@ -144,7 +144,7 @@ class FetchFileTest(TestCase):
         release = Release.objects.create(project=self.project,
                                          version='1',
                                          organization_id=self.project.organization_id)
-        release.projects.add(self.project)
+        release.add_project(self.project)
 
         result = fetch_file('/example.js', release=release)
         assert result.url == '/example.js'

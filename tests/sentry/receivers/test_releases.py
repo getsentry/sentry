@@ -35,7 +35,7 @@ class ResolveGroupResolutions(TestCase):
             project=self.project,
             organization_id=self.project.organization_id,
         )
-        release.projects.add(self.project)
+        release.add_project(self.project)
 
         mock_delay.assert_called_once_with(
             release_id=release.id,

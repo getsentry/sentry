@@ -16,7 +16,7 @@ class ReleaseCommitsListTest(APITestCase):
             organization_id=project.organization_id,
             version='1',
         )
-        release.projects.add(project)
+        release.add_project(project)
         repo = Repository.objects.create(
             organization_id=project.organization_id,
             name=project.name,

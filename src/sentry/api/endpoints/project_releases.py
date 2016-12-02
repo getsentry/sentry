@@ -150,7 +150,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
-                    release.projects.add(project)
+                    release.add_project(project)
             except IntegrityError:
                 release, created = Release.objects.get(
                     project=project,

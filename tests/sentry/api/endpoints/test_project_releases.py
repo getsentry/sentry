@@ -21,7 +21,7 @@ class ProjectReleaseListTest(APITestCase):
             version='1',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
-        release1.projects.add(project1)
+        release1.add_project(project1)
 
         release2 = Release.objects.create(
             project=project1,
@@ -29,7 +29,7 @@ class ProjectReleaseListTest(APITestCase):
             version='2',
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
         )
-        release2.projects.add(project1)
+        release2.add_project(project1)
 
         release3 = Release.objects.create(
             project=project1,
@@ -38,14 +38,14 @@ class ProjectReleaseListTest(APITestCase):
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
             date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
         )
-        release3.projects.add(project1)
+        release3.add_project(project1)
 
         release4 = Release.objects.create(
             project=project2,
             organization_id=project2.organization_id,
             version='1',
         )
-        release4.projects.add(project2)
+        release4.add_project(project2)
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project1.organization.slug,
@@ -71,7 +71,7 @@ class ProjectReleaseListTest(APITestCase):
             version='foobar',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,
@@ -120,7 +120,7 @@ class ProjectReleaseCreateTest(APITestCase):
         release = Release.objects.create(version='1.2.1',
                                          project=project,
                                          organization_id=project.organization_id)
-        release.projects.add(project)
+        release.add_project(project)
 
         url = reverse('sentry-api-0-project-releases', kwargs={
             'organization_slug': project.organization.slug,

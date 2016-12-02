@@ -105,7 +105,7 @@ class DeleteProjectTest(TestCase):
         release = Release.objects.create(version='a' * 32,
                                          project=project,
                                          organization_id=project.organization_id)
-        release.projects.add(project)
+        release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
         repo = Repository.objects.create(
             organization_id=project.organization_id,

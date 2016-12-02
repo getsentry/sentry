@@ -14,7 +14,7 @@ class GetOrCreateTest(TestCase):
         release = Release.objects.create(version='abc',
                                          project=project,
                                          organization_id=project.organization_id)
-        release.projects.add(project)
+        release.add_project(project)
         env = Environment.objects.create(project_id=project.id, name='prod')
         datetime = timezone.now()
 
