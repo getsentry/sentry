@@ -1,6 +1,12 @@
 Version 8.12 (Unreleased)
 -------------------------
 
+SDKs
+~~~~
+
+- The `repos` interface has been added.
+
+
 Version 8.11
 ------------
 
