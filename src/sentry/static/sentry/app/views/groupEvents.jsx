@@ -10,6 +10,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import SearchBar from '../components/searchBar.jsx';
 import {t} from '../locale';
+import {deviceNameMapper} from '../utils';
 
 const GroupEvents = React.createClass({
   mixins: [
@@ -160,7 +161,7 @@ const GroupEvents = React.createClass({
           {tagList.map((tag) => {
             return (
               <td key={tag.key}>
-                {tagMap[tag.key]}
+                {tag.key === 'device' ? deviceNameMapper(tagMap[tag.key]) : tagMap[tag.key]}
               </td>
             );
           })}
