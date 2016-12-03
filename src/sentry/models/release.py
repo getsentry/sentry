@@ -9,13 +9,12 @@ from __future__ import absolute_import, print_function
 
 import re
 
-from django.db import models, IntegrityError
+from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
-    FlexibleForeignKey, Model, sane_repr
+    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -23,11 +22,10 @@ from sentry.utils.hashlib import md5_text
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 
 
-class ReleaseProject(BaseModel):
+class ReleaseProject(Model):
     __core__ = False
 
-    id = BoundedAutoField(primary_key=True)
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project = FlexibleForeignKey('sentry.Project')
     release = FlexibleForeignKey('sentry.Release')
 
     class Meta:
@@ -45,7 +43,7 @@ class Release(Model):
 
     organization = FlexibleForeignKey('sentry.Organization', null=True, blank=True)
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
-                                      through='sentry.ReleaseProject')
+                                      through=ReleaseProject)
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
@@ -123,6 +121,7 @@ class Release(Model):
 
     def add_project(self, project):
         try:
-            ReleaseProject.objects.create(project=project, release=self)
+            with transaction.atomic():
+                ReleaseProject.objects.create(project=project, release=self)
         except IntegrityError:
             pass
