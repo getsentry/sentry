@@ -8,6 +8,7 @@ sentry.models.event
 from __future__ import absolute_import
 
 import six
+import string
 import warnings
 
 from collections import OrderedDict
@@ -23,6 +24,7 @@ from sentry.db.models import (
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
 from sentry.utils.safe import safe_execute
+from sentry.utils.strings import truncatechars
 
 
 class Event(Model):
@@ -264,8 +266,46 @@ class Event(Model):
         return ''
 
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            six.text_type(self.get_tag('level')).upper().encode('utf-8'),
-            self.title.encode('utf-8')
-        )
+        template = self.project.get_option('mail:subject_template')
+        if template:
+            template = EventTemplate(template)
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return truncatechars(template.render(self).encode('utf-8'), 128)
+
+
+class EventTemplate(string.Template):
+    def convert_name(self, name, event):
+        if name == 'project':
+            return event.project.get_full_name()
+        elif name == 'projectID':
+            return event.project.slug
+        elif name == 'orgID':
+            return event.organization.slug
+        elif name == 'level':
+            return six.text_type(event.get_tag('level')).upper()
+        elif name == 'environment':
+            return six.text_type(event.get_tag('environment') or '')
+        elif name == 'release':
+            return six.text_type(event.get_tag('sentry:release') or '')
+        elif name == 'title':
+            return event.title
+        elif name == 'transaction':
+            return six.text_type(event.get_tag('transaction') or '')
+        return ''
+
+    def render(self, event):
+        def convert(mo):
+            named = mo.group('named') or mo.group('braced')
+            if named is not None:
+                return self.convert_name(named, event)
+            if mo.group('escaped') is not None:
+                return self.delimiter
+            if mo.group('invalid') is not None:
+                return mo.group()
+            raise ValueError('Unrecognized named group in pattern',
+                             self.pattern)
+        return self.pattern.sub(convert, self.template)
+
+
+DEFAULT_SUBJECT_TEMPLATE = EventTemplate('[$project] $level: $title')

@@ -35,6 +35,7 @@ Version 8.12
 - Fixed usage (and propagation) of ``Group.first_release``.
 - The + and - datetime search helpers now work with ranges (e.g. ``<=``).
 - Added the ability to download artifacts from releases.
+- Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 
 SDKs
 ~~~~

@@ -5,10 +5,10 @@ import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
 import PluginConfig from '../components/pluginConfig';
-import {FormState, RangeField} from '../components/forms';
+import {FormState, RangeField, TextField} from '../components/forms';
 import {t, tct} from '../locale';
 
-const ProjectDigestSettings = React.createClass({
+const DigestSettings = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
@@ -136,6 +136,113 @@ const ProjectDigestSettings = React.createClass({
   },
 });
 
+const GeneralSettings = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    initialData: React.PropTypes.object,
+    onSave: React.PropTypes.func.isRequired
+  },
+
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      formData: Object.assign({}, this.props.initialData),
+      errors: {},
+    };
+  },
+
+  onFieldChange(name, value) {
+    this.setState({
+      formData: {
+        ...this.state.formData,
+        [name]: value,
+      }
+    });
+  },
+
+  onSubmit(e) {
+    e.preventDefault();
+
+    if (this.state.state == FormState.SAVING) {
+      return;
+    }
+    this.setState({
+      state: FormState.SAVING,
+    }, () => {
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      let {orgId, projectId} = this.props;
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        method: 'PUT',
+        data: this.state.formData,
+        success: (data) => {
+          this.props.onSave(data);
+          this.setState({
+            state: FormState.READY,
+            errors: {},
+          });
+        },
+        error: (error) => {
+          this.setState({
+            state: FormState.ERROR,
+            errors: error.responseJSON,
+          });
+        },
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
+    });
+  },
+
+
+  render() {
+    let isSaving = this.state.state === FormState.SAVING;
+    let {errors, formData} = this.state;
+    let hasChanges = !underscore.isEqual(this.props.initialData, formData);
+    return (
+      <div className="box">
+        <div className="box-header">
+          <h3>{t('General')}</h3>
+        </div>
+
+        <div className="box-content with-padding">
+          <form onSubmit={this.onSubmit} className="form-stacked">
+            {this.state.state === FormState.ERROR &&
+              <div className="alert alert-error alert-block">
+                {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
+              </div>
+            }
+            <TextField
+                key="subjectPrefix"
+                label={t('Subject prefix')}
+                value={formData.subjectPrefix}
+                required={false}
+                error={errors.subjectPrefix}
+                onChange={this.onFieldChange.bind(this, 'subjectPrefix')}
+                help="Sentry will prefix all emails for this project with the given value." />
+
+            <TextField
+                key="subjectTemplate"
+                label={t('Subject template')}
+                value={formData.subjectTemplate}
+                required={false}
+                error={errors.subjectTemplate}
+                onChange={this.onFieldChange.bind(this, 'subjectTemplate')}
+                help="The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $level, $environment, $release, $transaction, and $title." />
+
+            <fieldset className="form-actions align-right">
+              <button type="submit" className="btn btn-primary"
+                      disabled={isSaving || !hasChanges}>{t('Save Changes')}</button>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    );
+  },
+});
+
 const InactivePlugins = React.createClass({
   propTypes: {
     plugins: React.PropTypes.array.isRequired,
@@ -201,6 +308,17 @@ const ProjectAlertSettings = React.createClass({
     });
   },
 
+  onGeneralChange(data) {
+    // TODO(dcramer): propagate this in a more correct way
+    this.setState({
+      project: {
+        ...this.state.project,
+        subjectPrefix: data.subjectPrefix,
+        subjectTemplate: data.subjectTemplate,
+      },
+    });
+  },
+
   enablePlugin(plugin) {
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId} = this.props.params;
@@ -260,7 +378,16 @@ const ProjectAlertSettings = React.createClass({
           )}
         </div>
 
-        <ProjectDigestSettings
+        <GeneralSettings
+          orgId={orgId}
+          projectId={projectId}
+          initialData={{
+            'subjectPrefix': project.subjectPrefix,
+            'subjectTemplate': project.subjectTemplate
+          }}
+          onSave={this.onGeneralChange} />
+
+        <DigestSettings
           orgId={orgId}
           projectId={projectId}
           initialData={{

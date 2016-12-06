@@ -30,6 +30,19 @@ class EventTest(TestCase):
         assert event1.get_email_subject() == '[foo Bar] INFO: Foo bar'
         assert event2.get_email_subject() == '[foo Bar] ERROR: Foo bar'
 
+    def test_email_subject_with_template(self):
+        self.project.update_option('mail:subject_template', '$project $title')
+
+        event1 = self.create_event(
+            event_id='a' * 32, group=self.group, tags={
+                'level': 'info',
+                'environment': 'production',
+            },
+            message='baz',
+        )
+
+        assert event1.get_email_subject() == 'foo Bar baz'
+
 
 class EventGetLegacyMessageTest(TestCase):
     def test_message(self):
