@@ -514,7 +514,7 @@ class Frame(Interface):
                     self.function or '?',
                     trim_package(self.package),
                 )
-            if self.filename and self.function:
+            if self.filename and self.function and self.in_app:
                 return '%s (%s)' % (
                     self.function,
                     self.filename
@@ -836,6 +836,6 @@ class Stacktrace(Interface):
                 cluprit = frame.get_culprit_string(platform=platform, strict=strict)
                 if cluprit:
                     return cluprit
-            elif default is None and not strict:
-                default = frame.get_culprit_string(platform=platform)
+            elif default is None and strict is False:
+                default = frame.get_culprit_string(platform=platform, strict=strict)
         return default
