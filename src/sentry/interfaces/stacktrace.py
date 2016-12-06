@@ -821,14 +821,14 @@ class Stacktrace(Interface):
 
     def get_culprit_string(self, platform=None):
         if platform in ('objc', 'cocoa'):
-            strict_culprit = self.extract_culprit_from_frames(reversed(self.frames), platform=platform, strict=True)
+            strict_culprit = self.extract_culprit_from_frames(platform=platform, strict=True)
             if strict_culprit:  # if we find a symbolicated function/file we use it
                 return strict_culprit
-        return self.extract_culprit_from_frames(reversed(self.frames), platform=platform)  # else return first in_app frame function
+        return self.extract_culprit_from_frames(platform=platform)  # else return first in_app frame function
 
-    def extract_culprit_from_frames(self, frames, platform=None, strict=False):
+    def extract_culprit_from_frames(self, platform=None, strict=False):
         default = None
-        for frame in frames:
+        for frame in reversed(self.frames):
             if frame.in_app:
                 cluprit = frame.get_culprit_string(platform=platform, strict=strict)
                 if cluprit:
