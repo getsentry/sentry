@@ -64,12 +64,6 @@ def trim_package(pkg):
     return pkg
 
 
-def trim_filename(fn):
-    if not fn:
-        return '?'
-    return fn.rsplit('/', 1)[-1]
-
-
 def to_hex_addr(addr):
     if addr is None:
         return None
@@ -513,14 +507,7 @@ class Frame(Interface):
         if self.platform is not None:
             platform = self.platform
         if platform in ('objc', 'cocoa'):
-            if self.filename:
-                loc = trim_filename(self.filename)
-            else:
-                loc = trim_package(self.package)
-            return '%s (%s)' % (
-                self.function or '?',
-                loc,
-            )
+            return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
