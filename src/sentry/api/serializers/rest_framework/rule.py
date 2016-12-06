@@ -49,7 +49,7 @@ class RuleSerializer(serializers.Serializer):
     conditions = ListField(
         child=RuleNodeField(type='condition/event'),
     )
-    frequency = serializers.IntegerField(min_value=5, max_value=1440)
+    frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
     def save(self, rule):
         rule.project = self.context['project']
