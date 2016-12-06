@@ -383,10 +383,10 @@ class StacktraceTest(TestCase):
                 'package': '/foo/bar/baz.dylib',
                 'lineno': 1,
                 'in_app': True,
-                'function': 'fooBar',
+                'function': '-[CRLCrashAsyncSafeThread crash]',
             }
         ]))
-        assert stacktrace.get_culprit_string(platform='cocoa') == 'fooBar (baz.c)'
+        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_exclude_libswiftCore_from_in_app(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
@@ -418,10 +418,10 @@ class StacktraceTest(TestCase):
                 'filename': 'Mycontroller.swift',
                 'package': '/foo/bar/MyApp',
                 'in_app': True,
-                'function': 'fooBar3',
+                'function': '-[CRLCrashAsyncSafeThread crash]',
             }
         ]))
-        assert stacktrace.get_culprit_string(platform='cocoa') == 'fooBar3 (Mycontroller.swift)'
+        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_get_hash_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python({
