@@ -406,13 +406,6 @@ class StacktraceTest(TestCase):
                 'filename': 'foo/baz.c',
                 'package': '/foo/bar/libswiftCore.dylib',
                 'lineno': 1,
-                'in_app': True,
-                'function': 'fooBar',
-            },
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/libswiftCore.dylib',
-                'lineno': 1,
                 'in_app': False,
                 'function': 'fooBar',
             },
