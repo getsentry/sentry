@@ -64,6 +64,12 @@ def trim_package(pkg):
     return pkg
 
 
+def trim_filename(fn):
+    if not fn:
+        return '?'
+    return fn.rsplit('/', 1)[-1]
+
+
 def to_hex_addr(addr):
     if addr is None:
         return None
@@ -500,24 +506,21 @@ class Frame(Interface):
             'context_line': self.context_line,
         }).strip('\n')
 
-    def get_culprit_string(self, platform=None, strict=False):
+    def get_culprit_string(self, platform=None):
         # If this frame has a platform, we use it instead of the one that
         # was passed in (as that one comes from the exception which might
         # not necessarily be the same platform).
         if self.platform is not None:
             platform = self.platform
         if platform in ('objc', 'cocoa'):
-            if not strict:
-                return '%s (%s)' % (
-                    self.function or '?',
-                    trim_package(self.package),
-                )
-            if self.filename and self.function and self.in_app:
-                return '%s (%s)' % (
-                    self.function,
-                    self.filename
-                )
-            return ''
+            if self.filename:
+                loc = trim_filename(self.filename)
+            else:
+                loc = trim_package(self.package)
+            return '%s (%s)' % (
+                self.function or '?',
+                loc,
+            )
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
@@ -820,19 +823,12 @@ class Stacktrace(Interface):
         return '\n'.join(result)
 
     def get_culprit_string(self, platform=None):
-        if platform in ('objc', 'cocoa'):
-            strict_culprit = self.extract_culprit_from_frames(platform=platform, strict=True)
-            if strict_culprit:  # if we find a symbolicated function/file we use it
-                return strict_culprit
-        return self.extract_culprit_from_frames(platform=platform)  # else return first in_app frame function
-
-    def extract_culprit_from_frames(self, platform=None, strict=False):
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
-                cluprit = frame.get_culprit_string(platform=platform, strict=strict)
-                if cluprit:
-                    return cluprit
-            elif default is None and strict is False:
-                default = frame.get_culprit_string(platform=platform, strict=strict)
+                culprit = frame.get_culprit_string(platform=platform)
+                if culprit:
+                    return culprit
+            elif default is None:
+                default = frame.get_culprit_string(platform=platform)
         return default
