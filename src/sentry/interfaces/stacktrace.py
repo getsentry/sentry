@@ -316,6 +316,8 @@ class Frame(Interface):
 
         try:
             in_app = validate_bool(data.get('in_app'), False)
+            if package is not None and 'libswiftCore' in package:
+                in_app = False
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
@@ -500,17 +502,24 @@ class Frame(Interface):
             'context_line': self.context_line,
         }).strip('\n')
 
-    def get_culprit_string(self, platform=None):
+    def get_culprit_string(self, platform=None, strict=False):
         # If this frame has a platform, we use it instead of the one that
         # was passed in (as that one comes from the exception which might
         # not necessarily be the same platform).
         if self.platform is not None:
             platform = self.platform
         if platform in ('objc', 'cocoa'):
-            return '%s (%s)' % (
-                self.function or '?',
-                trim_package(self.package),
-            )
+            if not strict:
+                return '%s (%s)' % (
+                    self.function or '?',
+                    trim_package(self.package),
+                )
+            if self.filename and self.function:
+                return '%s (%s)' % (
+                    self.function,
+                    self.filename
+                )
+            return ''
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
@@ -813,10 +822,20 @@ class Stacktrace(Interface):
         return '\n'.join(result)
 
     def get_culprit_string(self, platform=None):
+        if platform in ('objc', 'cocoa'):  # we do not reverse the frames on cocoa
+            strict_culprit = self.extract_culprit_from_frames(self.frames, platform=platform, strict=True)
+            if strict_culprit:  # if we find a symbolicated function/file we use it
+                return strict_culprit
+            return self.extract_culprit_from_frames(self.frames, platform=platform)  # else return first in_app frame function
+        return self.extract_culprit_from_frames(reversed(self.frames), platform=platform)
+
+    def extract_culprit_from_frames(self, frames, platform=None, strict=False):
         default = None
-        for frame in reversed(self.frames):
+        for frame in frames:
             if frame.in_app:
-                return frame.get_culprit_string(platform=platform)
-            elif default is None:
+                cluprit = frame.get_culprit_string(platform=platform, strict=strict)
+                if cluprit:
+                    return cluprit
+            elif default is None and not strict:
                 default = frame.get_culprit_string(platform=platform)
         return default
