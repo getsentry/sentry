@@ -22,6 +22,20 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
+def batched_queryset_iter(*args, **kwargs):
+    batch_size = kwargs.pop('batch_size', 100)
+    qsw = RangeQuerySetWrapper(*args, **kwargs)
+    batch = []
+    for item in qsw:
+        if len(batch) < batch_size:
+            batch.append(item)
+        else:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
 class RangeQuerySetWrapper(object):
     """
     Iterates through a queryset by chunking results by ``step`` and using GREATER THAN

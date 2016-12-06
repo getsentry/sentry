@@ -13,6 +13,7 @@ import logging
 from raven.contrib.django.models import client as Raven
 from time import time
 
+from sentry.models import Event
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -27,7 +28,8 @@ error_logger = logging.getLogger('sentry.errors.events')
     time_limit=65,
     soft_time_limit=60,
 )
-def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
+def preprocess_event(cache_key=None, data=None, start_time=None,
+                     reprocesses_event_id=None, **kwargs):
     from sentry.plugins import plugins
 
     if cache_key:
@@ -51,14 +53,16 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
         for processor in (processors or ()):
             # On the first processor found, we just defer to the process_event
             # queue to handle the actual work.
-            process_event.delay(cache_key=cache_key, start_time=start_time)
+            process_event.delay(cache_key=cache_key, start_time=start_time,
+                                reprocesses_event_id=reprocesses_event_id)
             return
 
     # If we get here, that means the event had no preprocessing needed to be done
     # so we can jump directly to save_event
     if cache_key:
         data = None
-    save_event.delay(cache_key=cache_key, data=data, start_time=start_time)
+    save_event.delay(cache_key=cache_key, data=data, start_time=start_time,
+                     reprocesses_event_id=reprocesses_event_id)
 
 
 @instrumented_task(
@@ -67,7 +71,8 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, **kwargs):
+def process_event(cache_key, start_time=None, reprocesses_event_id=None,
+                  **kwargs):
     from sentry.plugins import plugins
 
     data = default_cache.get(cache_key)
@@ -103,7 +108,8 @@ def process_event(cache_key, start_time=None, **kwargs):
 @instrumented_task(
     name='sentry.tasks.store.save_event',
     queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None,
+               reprocesses_event_id=None, **kwargs):
     """
     Saves an event to the database.
     """
@@ -111,6 +117,16 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
 
     if cache_key:
         data = default_cache.get(cache_key)
+
+    # If we are reprocessing an old event we just delete it here.
+    # XXX(mitsuhiko): this is most likely completely wrong.
+    if reprocesses_event_id is not None:
+        try:
+            event = Event.objects.get(pk=reprocesses_event_id)
+        except Event.DoesNotExist:
+            pass
+        else:
+            event.delete()
 
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
