@@ -316,8 +316,6 @@ class Frame(Interface):
 
         try:
             in_app = validate_bool(data.get('in_app'), False)
-            if package is not None and 'libswiftCore' in package:
-                in_app = False
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
