@@ -386,7 +386,7 @@ class StacktraceTest(TestCase):
                 'function': 'fooBar',
             }
         ]))
-        assert stacktrace.get_culprit_string(platform='cocoa') == 'fooBar (baz)'
+        assert stacktrace.get_culprit_string(platform='cocoa') == 'fooBar (baz.c)'
 
     def test_exclude_libswiftCore_from_in_app(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
