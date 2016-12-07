@@ -507,10 +507,7 @@ class Frame(Interface):
         if self.platform is not None:
             platform = self.platform
         if platform in ('objc', 'cocoa'):
-            return '%s (%s)' % (
-                self.function or '?',
-                trim_package(self.package),
-            )
+            return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
@@ -816,7 +813,9 @@ class Stacktrace(Interface):
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
-                return frame.get_culprit_string(platform=platform)
+                culprit = frame.get_culprit_string(platform=platform)
+                if culprit:
+                    return culprit
             elif default is None:
                 default = frame.get_culprit_string(platform=platform)
         return default
