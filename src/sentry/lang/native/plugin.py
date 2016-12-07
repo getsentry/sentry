@@ -383,47 +383,52 @@ def resolve_frame_symbols(data):
                    'symbol_addr' not in frame:
                     continue
                 try:
+                    # Construct a raw frame that is used by the symbolizer
+                    # backend.
+                    raw_frame = {
+                        'object_name': frame.get('package'),
+                        'object_addr': frame['image_addr'],
+                        'instruction_addr': frame['instruction_addr'],
+                        'symbol_addr': frame['symbol_addr'],
+                    }
+                    new_frame = dict(frame)
+
                     try:
-                        sfrm = sym.symbolize_frame({
-                            'object_name': frame.get('package'),
-                            'object_addr': frame['image_addr'],
-                            'instruction_addr': frame['instruction_addr'],
-                            'symbol_addr': frame['symbol_addr'],
-                        }, sdk_info)
+                        sfrm = sym.symbolize_frame(raw_frame, sdk_info)
                     except SymbolicationFailed:
                         report_error(*sys.exc_info())
-                        continue
-
-                    new_frame = dict(frame)
-                    # XXX: log here if symbol could not be found?
-                    symbol = sfrm.get('symbol_name') or \
-                        new_frame.get('function') or '<unknown>'
-                    function = demangle_symbol(symbol, simplified=True)
-
-                    new_frame['function'] = function
-
-                    # If we demangled something, store the original in the
-                    # symbol portion of the frame
-                    if function != symbol:
-                        new_frame['symbol'] = symbol
-
-                    new_frame['abs_path'] = sfrm.get('filename') or None
-                    if new_frame['abs_path']:
-                        new_frame['filename'] = posixpath.basename(new_frame['abs_path'])
-                    if sfrm.get('line') is not None:
-                        new_frame['lineno'] = sfrm['line']
                     else:
-                        new_frame['instruction_offset'] = \
-                            parse_addr(sfrm['instruction_addr']) - \
-                            parse_addr(sfrm['symbol_addr'])
-                    if sfrm.get('column') is not None:
-                        new_frame['colno'] = sfrm['column']
-                    new_frame['package'] = sfrm['object_name'] or new_frame.get('package')
-                    new_frame['symbol_addr'] = '0x%x' % parse_addr(sfrm['symbol_addr'])
-                    new_frame['instruction_addr'] = '0x%x' % parse_addr(
-                        sfrm['instruction_addr'])
-                    new_frame['in_app'] = sym.is_app_frame(sfrm)
+                        symbol = sfrm.get('symbol_name') or \
+                            new_frame.get('function') or '<unknown>'
+                        function = demangle_symbol(symbol, simplified=True)
 
+                        new_frame['function'] = function
+
+                        # If we demangled something, store the original in the
+                        # symbol portion of the frame
+                        if function != symbol:
+                            new_frame['symbol'] = symbol
+
+                        new_frame['abs_path'] = sfrm.get('filename') or None
+                        if new_frame['abs_path']:
+                            new_frame['filename'] = posixpath.basename(
+                                new_frame['abs_path'])
+                        if sfrm.get('line') is not None:
+                            new_frame['lineno'] = sfrm['line']
+                        else:
+                            new_frame['instruction_offset'] = \
+                                parse_addr(sfrm['instruction_addr']) - \
+                                parse_addr(sfrm['symbol_addr'])
+                        if sfrm.get('column') is not None:
+                            new_frame['colno'] = sfrm['column']
+                        new_frame['package'] = sfrm['object_name'] \
+                            or new_frame.get('package')
+                        new_frame['symbol_addr'] = '0x%x' % \
+                            parse_addr(sfrm['symbol_addr'])
+                        new_frame['instruction_addr'] = '0x%x' % parse_addr(
+                            sfrm['instruction_addr'])
+
+                    new_frame['in_app'] = sym.is_in_app(raw_frame)
                     if new_frame != frame:
                         new_frames[idx] = new_frame
                         store_raw = True
