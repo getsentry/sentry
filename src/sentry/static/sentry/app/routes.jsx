@@ -57,6 +57,7 @@ import ReleaseNewEvents from './views/releaseNewEvents';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
+import Styleguide from './views/styleguide';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
@@ -99,6 +100,7 @@ function routes() {
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
         <Route path="settings/" component={errorHandler(AdminSettings)} />
+        <Route path="styleguide/" component={errorHandler(Styleguide)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}
       </Route>
