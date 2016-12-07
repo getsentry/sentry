@@ -329,6 +329,8 @@ urlpatterns += patterns(
 
     url(r'^out/$', OutView.as_view()),
 
+    url(r'^styleguide/$', react_page_view),
+
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view,
         name='sentry-organization-home'),
