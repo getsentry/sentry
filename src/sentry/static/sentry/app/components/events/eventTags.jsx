@@ -32,7 +32,7 @@ const EventTags = React.createClass({
           type="tags"
           className="p-b-1"
           >
-        <Pills className="no-margin">
+        <Pills>
           {tags.map((tag) => {
             return (
               <Pill key={tag.key} name={tag.key}>
