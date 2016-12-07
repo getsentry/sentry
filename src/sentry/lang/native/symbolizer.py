@@ -32,7 +32,7 @@ class SymbolicationFailed(Exception):
         Exception.__init__(self)
         self.message = six.text_type(message)
         self.type = type
-        if is_fixable and image_uuid is not None:
+        if is_fixable and image_uuid is None:
             raise RuntimeError('Fixable symbolication failures require '
                                'an image UUID')
         self.image_uuid = image_uuid
