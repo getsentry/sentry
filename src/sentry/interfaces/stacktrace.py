@@ -325,7 +325,7 @@ class Frame(Interface):
             raise InterfaceValidationError("Invalid value for 'instruction_offset'")
 
         kwargs = {
-            'abs_path': trim(abs_path, 256),
+            'abs_path': trim(abs_path, 2048),
             'filename': trim(filename, 256),
             'platform': platform,
             'module': trim(module, 256),
