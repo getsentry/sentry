@@ -57,6 +57,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         ).select_related('user'))
 
         feature_list = []
+        if features.has('organizations:repos', obj, actor=user):
+            feature_list.append('repos')
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
         if features.has('organizations:callsigns', obj, actor=user):

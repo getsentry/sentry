@@ -678,6 +678,7 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': True,
     'organizations:create': True,
+    'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
     'projects:global-events': False,
@@ -753,6 +754,7 @@ SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
     'query': 'sentry.interfaces.query.Query',
+    'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -1028,6 +1030,10 @@ STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = 'statuspage.io'
 
 SENTRY_ONPREMISE = True
+
+# Whether we should look at X-Forwarded-For header or not
+# when checking REMOTE_ADDR ip addresses
+SENTRY_USE_X_FORWARDED_FOR = True
 
 
 def get_raven_config():

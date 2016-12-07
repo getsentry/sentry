@@ -9,7 +9,7 @@ import six
 
 from sentry.app import tsdb
 from sentry.rules.conditions.event_frequency import (
-    EventFrequencyCondition, EventUniqueUserFrequencyCondition, Interval
+    EventFrequencyCondition, EventUniqueUserFrequencyCondition
 )
 from sentry.testutils.cases import RuleTestCase
 
@@ -25,7 +25,7 @@ class FrequencyConditionMixin(object):
         event = self.get_event()
         value = 10
         rule = self.get_rule({
-            'interval': Interval.ONE_MINUTE,
+            'interval': '1m',
             'value': six.text_type(value),
         })
 
@@ -50,7 +50,7 @@ class FrequencyConditionMixin(object):
         event = self.get_event()
         value = 10
         rule = self.get_rule({
-            'interval': Interval.ONE_HOUR,
+            'interval': '1h',
             'value': six.text_type(value),
         })
 
@@ -75,7 +75,7 @@ class FrequencyConditionMixin(object):
         event = self.get_event()
         value = 10
         rule = self.get_rule({
-            'interval': Interval.ONE_DAY,
+            'interval': '1d',
             'value': six.text_type(value),
         })
 
@@ -99,7 +99,7 @@ class FrequencyConditionMixin(object):
 
         event = self.get_event()
         rule = self.get_rule({
-            'interval': Interval.ONE_MINUTE,
+            'interval': '1m',
             'value': six.text_type('0'),
         })
 
