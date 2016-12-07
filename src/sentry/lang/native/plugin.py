@@ -391,7 +391,7 @@ def resolve_frame_symbols(data):
                             'symbol_addr': frame['symbol_addr'],
                         }, sdk_info)
                     except SymbolicationFailed:
-                        report_error(sys.exc_info())
+                        report_error(*sys.exc_info())
                         continue
 
                     new_frame = dict(frame)
