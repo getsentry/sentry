@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import os
 import re
+import sys
 import six
 import time
 import logging
@@ -360,12 +361,16 @@ def resolve_frame_symbols(data):
     frame = None
     idx = -1
 
-    def report_error(e):
-        errors.append({
-            'type': EventError.NATIVE_INTERNAL_FAILURE,
-            'frame': frame,
-            'error': u'frame #%d: %s' % (idx, e)
-        })
+    def report_error(exc_type, exc_value, tb):
+        if exc_value.is_user_fixable or exc_value.is_sdk_failure:
+            errors.append({
+                'type': EventError.NATIVE_INTERNAL_FAILURE,
+                'frame': frame,
+                'error': u'frame #%d: %s' % (idx, exc_value)
+            })
+        if not exc_value.is_user_fixable:
+            logger.error('Failed to symbolicate',
+                         exc_info=(exc_type, exc_value, tb))
 
     with sym:
         for stacktrace, container in stacktraces:
@@ -385,9 +390,10 @@ def resolve_frame_symbols(data):
                             'instruction_addr': frame['instruction_addr'],
                             'symbol_addr': frame['symbol_addr'],
                         }, sdk_info)
-                    except SymbolicationFailed as e:
-                        report_error(e)
+                    except SymbolicationFailed:
+                        report_error(sys.exc_info())
                         continue
+
                     new_frame = dict(frame)
                     # XXX: log here if symbol could not be found?
                     symbol = sfrm.get('symbol_name') or \

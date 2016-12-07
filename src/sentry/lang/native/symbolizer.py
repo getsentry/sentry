@@ -18,6 +18,7 @@ APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/',
     '/private/var/containers/Bundle/Application/',
 )
+_sim_platform_re = re.compile(r'/\w+?Simulator\.platform/')
 _swift_framework_re = re.compile(r'/Frameworks/libswift([a-zA-Z0-9]+)\.dylib$')
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
@@ -28,16 +29,22 @@ class SymbolicationFailed(Exception):
     message = None
 
     def __init__(self, message=None, type=None, image_uuid=None,
-                 image_path=None, is_fixable=False):
+                 image_path=None):
         Exception.__init__(self)
         self.message = six.text_type(message)
         self.type = type
-        if is_fixable and image_uuid is None:
-            raise RuntimeError('Fixable symbolication failures require '
-                               'an image UUID')
         self.image_uuid = image_uuid
         self.image_path = image_path
-        self.is_fixable = is_fixable
+
+    @property
+    def is_user_fixable(self):
+        """These are errors that a user can fix themselves."""
+        return self.type in ('missing-dsym', 'bad-dsym')
+
+    @property
+    def is_sdk_failure(self):
+        """An error that most likely happened because of a bad SDK."""
+        return self.type == 'unknown-image'
 
     def __str__(self):
         rv = []
@@ -147,6 +154,12 @@ class Symbolizer(object):
             return False
         return True
 
+    def is_simulator_frame(self, frame):
+        fn = self._get_real_package(frame)
+        if fn is None:
+            return False
+        return _sim_platform_re.search(fn) is not None
+
     def symbolize_app_frame(self, frame, img):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
             raise SymbolicationFailed(
@@ -155,8 +168,7 @@ class Symbolizer(object):
                     'Frame references a missing dSYM file'
                 ),
                 image_uuid=img['uuid'],
-                image_path=self._get_real_package(frame),
-                is_fixable=True
+                image_path=self._get_real_package(frame)
             )
 
         try:
@@ -167,8 +179,7 @@ class Symbolizer(object):
                 type='bad-dsym',
                 message='Symbolication failed due to bad dsym: %s' % e,
                 image_uuid=img['uuid'],
-                image_path=self._get_real_package(frame),
-                is_fixable=True
+                image_path=self._get_real_package(frame)
             )
 
         if new_frame is None:
@@ -187,13 +198,20 @@ class Symbolizer(object):
         """Symbolizes a frame with system symbols only."""
         symbol = find_system_symbol(img, frame['instruction_addr'], sdk_info)
         if symbol is None:
-            raise SymbolicationFailed(
-                type='missing-system-dsym',
-                message=(
+            # Simulator frames cannot be symbolicated
+            if self.is_simulator_frame(frame):
+                type = 'simulator-frame'
+                message = 'Cannot symbolicate simulator system frames'
+            else:
+                type = 'misisng-system-dsym'
+                message = (
                     'Attempted to look up system in the system symbols but '
                     'no symbol could be found.  This might happen with beta '
                     'releases of SDKs'
-                ),
+                )
+            raise SymbolicationFailed(
+                type=type,
+                message=message,
                 image_uuid=img['uuid'],
                 image_path=self._get_real_package(frame)
             )
