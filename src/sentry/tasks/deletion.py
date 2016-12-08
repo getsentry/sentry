@@ -27,7 +27,7 @@ logger = logging.getLogger('sentry.deletions.async')
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, CommitFileChange, Repository
+        Commit, CommitAuthor, CommitFileChange, Release, Repository
     )
 
     try:
@@ -53,7 +53,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         return
 
     model_list = (
-        OrganizationMember, CommitFileChange, Commit, CommitAuthor, Repository,
+        OrganizationMember, CommitFileChange, Commit, CommitAuthor, Repository, Release
     )
 
     has_more = delete_objects(
@@ -125,7 +125,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
-        Release, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
+        ReleaseProject, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
         TagValue, UserReport, ReleaseEnvironment, Environment, ReleaseCommit
     )
 
@@ -192,7 +192,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
 
     # Release needs to handle deletes after Group is cleaned up as the foreign
     # key is protected
-    model_list = (Group, ReleaseFile, Release)
+    model_list = (Group, ReleaseFile, ReleaseProject)
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
         if has_more:

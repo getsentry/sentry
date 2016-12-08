@@ -16,9 +16,11 @@ class ReleaseSerializerTest(TestCase):
         project = self.create_project()
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version=uuid4().hex,
             new_groups=1,
         )
+        release.add_project(project)
         TagValue.objects.create(
             project=release.project,
             key='sentry:release',
@@ -45,8 +47,10 @@ class ReleaseSerializerTest(TestCase):
         project = self.create_project()
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version=uuid4().hex,
         )
+        release.add_project(project)
 
         result = serialize(release, user)
         assert result['version'] == release.version

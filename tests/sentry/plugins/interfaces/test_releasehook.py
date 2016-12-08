@@ -28,6 +28,22 @@ class StartReleaseTest(TestCase):
             version=version,
         )
         assert release.date_started
+        assert release.organization
+
+    def test_update_release(self):
+        project = self.create_project()
+        version = 'bbee5b51f84611e4b14834363b8514c2'
+        Release.objects.create(project=project, version=version)
+
+        hook = ReleaseHook(project)
+        hook.start_release(version)
+
+        release = Release.objects.get(
+            project=project,
+            version=version,
+        )
+        assert release.date_started
+        assert release.organization == project.organization
 
 
 class FinishReleaseTest(TestCase):
@@ -43,6 +59,22 @@ class FinishReleaseTest(TestCase):
             version=version,
         )
         assert release.date_released
+        assert release.organization
+
+    def test_update_release(self):
+        project = self.create_project()
+        version = 'bbee5b51f84611e4b14834363b8514c2'
+        Release.objects.create(project=project, version=version)
+
+        hook = ReleaseHook(project)
+        hook.start_release(version)
+
+        release = Release.objects.get(
+            project=project,
+            version=version,
+        )
+        assert release.date_started
+        assert release.organization == project.organization
 
 
 class SetCommitsTest(TestCase):

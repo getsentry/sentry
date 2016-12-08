@@ -102,7 +102,10 @@ class DeleteProjectTest(TestCase):
         group = self.create_group(project=project)
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
-        release = Release.objects.create(version='a' * 32, project=project)
+        release = Release.objects.create(version='a' * 32,
+                                         project=project,
+                                         organization_id=project.organization_id)
+        release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
         repo = Repository.objects.create(
             organization_id=project.organization_id,

@@ -16,8 +16,10 @@ class ReleaseDetailsTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-details', kwargs={
             'organization_slug': project.organization.slug,
@@ -37,8 +39,10 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-details', kwargs={
             'organization_slug': project.organization.slug,
@@ -60,8 +64,10 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-details', kwargs={
             'organization_slug': project.organization.slug,
@@ -89,8 +95,10 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-details', kwargs={
             'organization_slug': project.organization.slug,
@@ -121,8 +129,10 @@ class ReleaseDeleteTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
         ReleaseFile.objects.create(
             project=project,
             release=release,
@@ -150,8 +160,10 @@ class ReleaseDeleteTest(APITestCase):
         project = self.create_project(name='foo')
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
         self.create_group(first_release=release)
 
         url = reverse('sentry-api-0-release-details', kwargs={

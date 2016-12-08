@@ -49,8 +49,10 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='abcdef',
         )
+        release.add_project(project)
 
         GroupRelease.objects.create(
             release_id=release.id,
