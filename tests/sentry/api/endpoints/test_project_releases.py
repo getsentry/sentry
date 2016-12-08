@@ -111,6 +111,8 @@ class ProjectReleaseCreateTest(APITestCase):
             version=response.data['version'],
         )
         assert not release.owner
+        assert release.organization == project.organization
+        assert release.projects.first() == project
 
     def test_duplicate(self):
         self.login_as(user=self.user)
