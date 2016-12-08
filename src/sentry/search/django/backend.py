@@ -185,6 +185,10 @@ class DjangoSearchBackend(SearchBackend):
                     params['datetime__lt'] = date_to
 
             event_queryset = Event.objects.filter(**params)
+
+            if query:
+                event_queryset = event_queryset.filter(message__icontains=query)
+
             # limit to the first 1000 results
             group_ids = event_queryset.distinct().values_list(
                 'group_id',
