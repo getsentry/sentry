@@ -99,7 +99,7 @@ class GroupSubscriptionManager(BaseManager):
                     key='workflow:notifications',
                     project=group.project,
                     value=UserOptionValue.all_conversations,
-                )
+                ).values_list('user', flat=True)
             ).values_list('user', flat=True)
         )
 
