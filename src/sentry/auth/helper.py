@@ -624,6 +624,8 @@ class AuthHelper(object):
 
         self._handle_attach_identity(identity, om)
 
+        auth.mark_sso_complete(request, self.organization.id)
+
         AuditLogEntry.objects.create(
             organization=self.organization,
             actor=request.user,
