@@ -369,7 +369,7 @@ def resolve_frame_symbols(data):
                 'error': u'frame #%d: %s' % (idx, exc_value)
             })
         if not exc_value.is_user_fixable:
-            logger.error('Failed to symbolicate',
+            logger.debug('Failed to symbolicate',
                          exc_info=(exc_type, exc_value, tb))
 
     with sym:
