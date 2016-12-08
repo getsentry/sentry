@@ -2,7 +2,8 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 import styled from 'styled-components';
-import {Link} from 'react-router';
+
+import {NavHeader, NavItem} from '../../components/navigation';
 
 const Styleguide = React.createClass({
   componentWillMount() {
@@ -21,35 +22,57 @@ const Styleguide = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          <div className="container">
             <div className="content">
-              <Heading>Styleguide</Heading>
+              <Header>
+                <Container>
+                  <Logo><span className="icon-sentry-logo" /></Logo> Styleguide
+                </Container>
+              </Header>
+              <Container>
               <div className="row">
                 <div className="col-md-2">
-                  <h6 className="nav-header">Sections</h6>
-                  <ul className="nav nav-stacked">
-                    <li><Link to="/styleguide/" activeClassName="active">Components</Link></li>
-                    <li><Link to="/styleguide/type" activeClassName="active">Typography</Link></li>
-                    <li><Link to="/styleguide/type" activeClassName="active">Colors</Link></li>
-                    <li><Link to="/styleguide/icons" activeClassName="active">Icons</Link></li>
-                  </ul>
+                  <NavHeader>Sections</NavHeader>
+                  <NavItem to="/styleguide/">Components</NavItem>
+                  <NavItem to="/styleguide/type">Typography</NavItem>
+                  <NavItem to="/styleguide/colors">Colors</NavItem>
+                  <NavItem to="/styleguide/icons">Icons</NavItem>
                 </div>
                 <div className="col-md-10">
                   {this.props.children}
                 </div>
               </div>
+              </Container>
             </div>
           </div>
-        </div>
       </DocumentTitle>
     );
   }
 });
 
-const Heading = styled.h2`
+const Container = styled.div`
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 0 15px;
+`;
+
+const Header = styled.div`
+  background: #fbfbfc;
+  color: #161319;
   border-bottom: 1px solid #e2dee6;
-  padding: 30px 0;
+  padding: 12px 0;
   margin: 0 0 40px;
+  font-size: 19px;
+  line-height: 1;625471
+`;
+
+const Logo = styled.span`
+  color: #625471;
+  opacity: .75;
+  font-size: 20px;
+  margin-right: 4px;
+  line-height: 1;
+  position: relative;
+  top: 2px;
 `;
 
 export default Styleguide;

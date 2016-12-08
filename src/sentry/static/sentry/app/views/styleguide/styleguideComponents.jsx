@@ -7,12 +7,12 @@ import {docco} from 'react-syntax-highlighter/dist/styles';
 import Pills from '../../components/pills';
 import Pill from '../../components/pill';
 
+import {NavHeader, NavStacked, NavItem} from '../../components/navigation';
+
 const StyleguideComponents = React.createClass({
   render() {
     return (
       <div>
-        <h3>Components</h3>
-
         <Section>
           <Row>
             <Column>
@@ -68,14 +68,55 @@ const StyleguideComponents = React.createClass({
             </Column>
           </Row>
         </Section>
+
+        <Section>
+          <Row>
+            <Column>
+              <h2>NavStacked</h2>
+              <p>Sidebar-based navigation</p>
+
+              <NavHeader>Organization</NavHeader>
+              <NavStacked>
+                <NavItem to="/styleguide/">Dashboard</NavItem>
+                <NavItem to="/org/projects-and-teams">Projects & Teams</NavItem>
+                <NavItem to="/org/stats">Stats</NavItem>
+              </NavStacked>
+            </Column>
+            <Column>
+              <SyntaxHighlighter style={docco}>
+                {jsxToString(
+                  <div>
+                    <NavHeader>Organization</NavHeader>
+                    <NavStacked>
+                      <NavItem to="/org">Dashboard</NavItem>
+                      <NavItem to="/org/projects-and-teams">Projects & Teams</NavItem>
+                      <NavItem to="/org/stats">Stats</NavItem>
+                    </NavStacked>
+                  </div>
+                  ,
+                  {
+                      displayName: 'div'
+                  }
+                )}
+              </SyntaxHighlighter>
+            </Column>
+          </Row>
+        </Section>
       </div>
     );
   }
 });
 
+// Stylguide Styles
+
 const Section = styled.div`
   border-top: 1px solid #e2dee6;
   padding: 30px 0 10px;
+
+  &:first-child {
+    padding-top: 0;
+    border-top: 0;
+  }
 `;
 
 const Row = styled.div`
