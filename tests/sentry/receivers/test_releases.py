@@ -22,6 +22,8 @@ class EnsureReleaseExistsTest(TestCase):
         )
         assert release.version == tv.value
         assert release.project == self.project
+        assert release.organization == self.project.organization
+        assert release.projects.first() == self.project
 
         # ensure we dont hit some kind of error saving it again
         tv.save()
