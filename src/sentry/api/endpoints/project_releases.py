@@ -142,6 +142,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                     # experiences
                     release, created = Release.objects.create(
                         project=project,
+                        organization_id=project.organization_id,
                         version=result['version'],
                         ref=result.get('ref'),
                         url=result.get('url'),
@@ -149,6 +150,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
+                    release.add_project(project)
             except IntegrityError:
                 release, created = Release.objects.get(
                     project=project,
