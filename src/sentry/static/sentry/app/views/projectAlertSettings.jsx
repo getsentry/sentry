@@ -135,6 +135,43 @@ const ProjectDigestSettings = React.createClass({
   },
 });
 
+const PluginLinks = React.createClass({
+  propTypes: {
+     plugins: React.PropTypes.array.isRequired,
+     orgId: React.PropTypes.string.isRequired,
+     projectId: React.PropTypes.string.isRequired
+  },
+
+  renderPlugin(plugin) {
+    return (
+      <td className={plugin.id + (plugin.enabled ? '' : ' disabled')}>
+          <a href={'/' + (this.props.orgId + '/' + this.props.projectId +
+                    '/settings/plugins/' + plugin.id)}
+             className={'icon-integration icon-' + plugin.id}></a>
+          <h5>{plugin.name}</h5>
+      </td>
+    );
+  },
+
+  render() {
+    let tds = [];
+    let trs = [];
+    this.props.plugins.forEach((p, idx) => {
+      tds.push(this.renderPlugin(p));
+      if ((idx + 1) % 3 === 0 || idx === this.props.plugins.length - 1) {
+        trs.push(<tr key={idx}>{tds}</tr>);
+        tds = [];
+      }
+    });
+    return (
+      <table className="table integrations simple">
+          <tbody>{trs}</tbody>
+      </table>
+    );
+  }
+
+});
+
 const ProjectAlertSettings = React.createClass({
   propTypes: {
     // these are not declared as required of issues with cloned elements
@@ -161,34 +198,6 @@ const ProjectAlertSettings = React.createClass({
         digestsMaxDelay: data.digestsMaxDelay,
       },
     });
-  },
-
-  enablePlugin(plugin) {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/${plugin.id}/`, {
-      method: 'POST',
-      data: this.state.formData,
-      success: (data) => {
-        // TODO(dcramer): propagate this in a more correct way
-        plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-        plugin.enabled = true;
-        this.setState({project: this.state.project});
-      },
-      error: (error) => {
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
-
-  onDisablePlugin(plugin) {
-    // TODO(dcramer): propagate this in a more correct way
-    plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-    plugin.enabled = false;
-    this.setState({project: this.state.project});
   },
 
   render() {
@@ -229,15 +238,9 @@ const ProjectAlertSettings = React.createClass({
           }}
           onSave={this.onDigestsChange} />
 
-        <div className="alert alert-block alert-info">
-          {tct(
-            'To edit the settings for a notification integration ' +
-            'you may do so from your [link:notification tool settings].',
-            {
-              link: <a href={`/${orgId}/${projectId}/settings/notification-tools/`} />
-            }
-          )}
-        </div>
+        <PluginLinks
+          plugins={project.plugins.filter(p => p.type == 'notification')}
+          orgId={orgId} projectId={projectId}/>
 
       </div>
     );

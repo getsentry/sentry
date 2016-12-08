@@ -28,8 +28,10 @@ class ManageProjectPluginsTest(TestCase):
         self.login_as(self.user)
 
         resp = self.client.post(self.path, {
-            'plugin': ['os', 'urls'],
+            'op': 'enable',
+            'plugin': 'os'
         })
+
         assert resp.status_code == 302
 
         opts = dict(
@@ -43,5 +45,3 @@ class ManageProjectPluginsTest(TestCase):
             ),
         )
         assert opts.get('auto_tag:_operating_systems:enabled') is True
-        assert opts.get('auto_tag:_urls:enabled') is True
-        assert opts.get('mail:enabled') is False
