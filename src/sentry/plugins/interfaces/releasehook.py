@@ -29,11 +29,11 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
+        values.setdefault('organization', self.project.organization_id)
         release, created = Release.objects.create_or_update(
             version=version,
             project=self.project,
-            values=values,
-            defaults={'organization': self.project.organization_id}
+            values=values
         )
         if created:
             release.add_project(self.project)
@@ -114,11 +114,11 @@ class ReleaseHook(object):
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
+        values.setdefault('organization', self.project.organization_id)
         release, created = Release.objects.create_or_update(
             version=version,
             project=self.project,
-            values=values,
-            defaults={'organization': self.project.organization_id}
+            values=values
         )
         if created:
             release.add_project(self.project)
