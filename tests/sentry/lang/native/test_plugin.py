@@ -233,7 +233,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, frame):
+    def sym_app_frame(self, frame, img):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
