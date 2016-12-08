@@ -62,7 +62,7 @@ const Header = styled.div`
   padding: 12px 0;
   margin: 0 0 40px;
   font-size: 19px;
-  line-height: 1;625471
+  line-height: 1;
 `;
 
 const Logo = styled.span`
