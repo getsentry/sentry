@@ -839,6 +839,15 @@ class GenerateCulpritTest(TestCase):
         }
         assert generate_culprit(data) == 'PLZNOTME.py in ?'
 
+    def test_with_empty_stacktrace(self):
+        data = {
+            'sentry.interfaces.Stacktrace': None,
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'http://example.com'
+
     def test_with_only_http_interface(self):
         data = {
             'sentry.interfaces.Http': {
