@@ -86,6 +86,34 @@ class GroupSubscriptionManager(BaseManager):
             ).select_related('user')
         }
 
+        UserOption.objects.filter(
+            Q(project__isnull=True) | Q(project=group.project),
+            user__in=users,
+        )
+
+        # Find users which have notifications disabled
+        no_conversations = set(
+            UserOption.objects.filter(
+                Q(project__isnull=True) | Q(project=group.project),
+                user__in=users,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            ).exclude(
+                user__in=UserOption.objects.filter(
+                    user__in=users,
+                    key='workflow:notifications',
+                    project=group.project,
+                    value__in=[
+                        UserOptionValue.all_conversations,
+                        UserOptionValue.participating_only,
+                    ],
+                ).values_list('user', flat=True)
+            ).values_list('user', flat=True)
+        )
+
+        if no_conversations:
+            users = users.exclude(id__in=no_conversations)
+
         # Find users which by default do not subscribe.
         participating_only = set(
             UserOption.objects.filter(
@@ -98,7 +126,10 @@ class GroupSubscriptionManager(BaseManager):
                     user__in=users,
                     key='workflow:notifications',
                     project=group.project,
-                    value=UserOptionValue.all_conversations,
+                    value__in=[
+                        UserOptionValue.all_conversations,
+                        UserOptionValue.no_conversations,
+                    ],
                 ).values_list('user', flat=True)
             ).values_list('user', flat=True)
         )

@@ -21,6 +21,7 @@ class UserOptionValue(object):
     # 'workflow:notifications'
     all_conversations = '0'
     participating_only = '1'
+    no_conversations = '2'
 
 
 class UserOptionManager(BaseManager):
