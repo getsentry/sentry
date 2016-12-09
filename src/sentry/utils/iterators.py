@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import itertools
+
 
 def chunked(iterator, size):
     chunk = []
@@ -11,3 +13,10 @@ def chunked(iterator, size):
 
     if chunk:
         yield chunk
+
+
+def lookahead(iterator):
+    actual, ahead = itertools.tee(iterator)
+    next(ahead, None)
+    for value in actual:
+        yield value, next(ahead, None)
