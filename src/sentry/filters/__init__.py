@@ -10,13 +10,15 @@ from .manager import FilterManager  # NOQA
 
 from .localhost import LocalhostFilter
 from .browser_extensions import BrowserExtensionsFilter
-from .legacy_browsers import LegacyBrowsersFilter
+from .legacy_browsers import LegacyBrowsersFilter, IE8Filter, IE9Filter
 from .web_crawlers import WebCrawlersFilter
 
 default_manager = FilterManager()
 default_manager.register(LocalhostFilter)
 default_manager.register(BrowserExtensionsFilter)
 default_manager.register(LegacyBrowsersFilter)
+default_manager.register(IE8Filter)
+default_manager.register(IE9Filter)
 default_manager.register(WebCrawlersFilter)
 
 all = default_manager.all

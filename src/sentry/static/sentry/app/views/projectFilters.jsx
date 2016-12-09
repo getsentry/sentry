@@ -9,7 +9,7 @@ import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
 import marked from '../utils/marked';
 
-const FilterRow = React.createClass({
+const FilterSwitch = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
@@ -43,7 +43,7 @@ const FilterRow = React.createClass({
         active: !data.active,
       },
       success: (d, _, jqXHR) => {
-        this.props.onToggle(!data.active);
+        this.props.onToggle(data, !data.active);
         IndicatorStore.remove(loadingIndicator);
       },
       error: () => {
@@ -55,6 +55,38 @@ const FilterRow = React.createClass({
         IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
       }
     });
+  },
+
+  render() {
+    return(
+      <Switch size="lg"
+        isActive={this.props.data.active}
+        isLoading={this.state.loading}
+        toggle={this.toggle} />
+    );
+  }
+});
+
+const FilterRow = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    data: React.PropTypes.object.isRequired,
+    onToggle: React.PropTypes.func.isRequired,
+  },
+
+  mixins: [
+    ApiMixin,
+    TooltipMixin({
+      selector: '.tip'
+    })
+  ],
+
+  getInitialState() {
+    return {
+      loading: false,
+      error: false,
+    };
   },
 
   render() {
@@ -70,10 +102,15 @@ const FilterRow = React.createClass({
           }
         </td>
         <td style={{textAlign: 'right'}}>
-          <Switch size="lg"
-                  isActive={data.active}
-                  isLoading={this.state.loading}
-                  toggle={this.toggle} />
+          <FilterSwitch {...this.props}/>
+          {data.subFilters.map(filter => {
+            return (
+              <div>
+                <h5>{filter.name}</h5>
+                <FilterSwitch {...this.props} data={filter}/>
+              </div>
+            );
+          })}
         </td>
       </tr>
     );
@@ -115,9 +152,10 @@ const ProjectFilters = React.createClass({
   },
 
   onToggleFilter(filter, active) {
-    this.state.filterList.find(f => f.id === filter.id).active = active;
+    let stateFilter = this.state.filterList.find(f => f.id === filter.id);
+    stateFilter.active = active;
     this.setState({
-      filterList: this.state.filterList
+      filterList: [...this.state.filterList]
     });
   },
 
@@ -144,17 +182,29 @@ const ProjectFilters = React.createClass({
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
+
+    let topLevelFilters = this.state.filterList.filter(filter => {
+      return filter.id.indexOf(':') === -1;
+    });
+
+    topLevelFilters.forEach(topLevelFilter => {
+      let subFilters = this.state.filterList.filter(filter => {
+        return filter.id.startsWith(topLevelFilter.id + ':');
+      });
+      topLevelFilter.subFilters = subFilters;
+    });
+
     return (
       <table className="table">
         <tbody>
-          {this.state.filterList.map((filter) => {
+          {topLevelFilters.map((filter) => {
             return (
               <FilterRow
                 key={filter.id}
                 data={filter}
                 orgId={orgId}
                 projectId={projectId}
-                onToggle={this.onToggleFilter.bind(this, filter)} />
+                onToggle={this.onToggleFilter} />
             );
           })}
         </tbody>
