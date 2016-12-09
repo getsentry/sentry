@@ -103,34 +103,6 @@ class GetParticipantsTest(TestCase):
 
         assert users == {}
 
-    def test_project_overrides_defaults(self):
-        org = self.create_organization()
-        team = self.create_team(organization=org)
-        project = self.create_project(team=team, organization=org)
-        group = self.create_group(project=project)
-        user = self.create_user('foo@example.com')
-        self.create_member(user=user, organization=org, teams=[team])
-
-        UserOption.objects.create(
-            id=300,
-            user=user,
-            project=None,
-            key='workflow:notifications',
-            value=UserOptionValue.participating_only,
-        )
-
-        UserOption.objects.create(
-            id=301,
-            user=user,
-            project=project,
-            key='workflow:notifications',
-            value=UserOptionValue.all_conversations,
-        )
-
-        assert GroupSubscription.objects.get_participants(group=group) == {
-            user: GroupSubscriptionReason.implicit,
-        }
-
     def test_does_not_include_nonmember(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
