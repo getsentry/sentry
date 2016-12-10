@@ -162,8 +162,9 @@ def generate_culprit(data, platform=None):
             if e.get('stacktrace')
         ]
     except KeyError:
-        if 'sentry.interfaces.Stacktrace' in data:
-            stacktraces = [data['sentry.interfaces.Stacktrace']]
+        stacktrace = data.get('sentry.interfaces.Stacktrace')
+        if stacktrace:
+            stacktraces = [stacktrace]
         else:
             stacktraces = None
 

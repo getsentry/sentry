@@ -435,9 +435,11 @@ def report(request):
                     timestamp,
                 ),
             )
+            p = random.choice(projects)
             yield Release(
                 id=next(id_sequence),
-                project=random.choice(projects),
+                project=p,
+                organization_id=p.organization_id,
                 version=''.join([
                     random.choice('0123456789abcdef') for _ in range(40)
                 ]),

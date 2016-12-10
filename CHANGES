@@ -1,11 +1,19 @@
 Version 8.12 (Unreleased)
 -------------------------
 
+- Fix bug where some users would incorrectly not receive workflow notifications for projects they were subscribed to.
+- restructured dSYM processing.  It now records errors in the symbolication process
+  more accurately and will report system errors them to the internal logger.
+
 SDKs
 ~~~~
 
 - The `repos` interface has been added.
 
+Schema Changes
+~~~~~~~~~~~~~~
+- Added ``Release.organization`` column.
+- Added ``ReleaseProject`` model.
 
 Version 8.11
 ------------
