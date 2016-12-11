@@ -15,8 +15,10 @@ class ReleaseFilesListTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         releasefile = ReleaseFile.objects.create(
             project=project,
@@ -49,8 +51,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -82,8 +86,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -104,8 +110,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -128,8 +136,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,
@@ -153,8 +163,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         url = reverse('sentry-api-0-release-files', kwargs={
             'organization_slug': project.organization.slug,

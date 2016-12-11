@@ -292,8 +292,10 @@ class EventManagerTest(TransactionTestCase):
         old_release = Release.objects.create(
             version='a',
             project=self.project,
+            organization_id=self.project.organization_id,
             date_added=timezone.now() - timedelta(minutes=30),
         )
+        old_release.add_project(self.project)
 
         manager = EventManager(self.make_event(
             event_id='a' * 32,
@@ -836,6 +838,15 @@ class GenerateCulpritTest(TestCase):
             },
         }
         assert generate_culprit(data) == 'PLZNOTME.py in ?'
+
+    def test_with_empty_stacktrace(self):
+        data = {
+            'sentry.interfaces.Stacktrace': None,
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'http://example.com'
 
     def test_with_only_http_interface(self):
         data = {
