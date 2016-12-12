@@ -104,6 +104,9 @@ const GroupHeader = React.createClass({
     if (group.status === 'resolved') {
       className += ' isResolved';
     }
+    if (group.status === 'unprocessed') {
+      className += ' isUnprocessed';
+    }
 
     let groupId = group.id,
       projectId = this.getProject().slug,
@@ -116,6 +119,9 @@ const GroupHeader = React.createClass({
         <div className="row">
           <div className="col-sm-8">
             <h3>
+              {group.status === 'unprocessed' &&
+                <strong className="unprocessed-hint">UNPROCESSED</strong>
+              }
               <GroupTitle data={group} />
             </h3>
             <div className="event-message">
