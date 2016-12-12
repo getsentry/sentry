@@ -23,6 +23,42 @@ def record_processing_issue(event_data, type, key, release_bound=True,
     })
 
 
+def resolve_processing_issue(project, type, key=None):
+    """Resolves a processing issue.  This might trigger reprocessing."""
+    q = ProcessingIssueGroup.objects.filter(
+        issue__project=project,
+        issue__type=type,
+        group__status=GroupStatus.ON_HOLD
+    )
+    if key is not None:
+        q = q.filter(issue__key=key)
+
+    affected_groups = set()
+    affected_issues = set()
+    affected_pigs = []
+    for pig in q:
+        affected_groups.add(pig.group_id)
+        affected_issues.add(pig.issue_id)
+        affected_pigs.append(pig.id)
+
+    if not affected_groups:
+        return
+
+    ProcessingIssueGroup.objects.filter(pk__in=affected_pigs).delete()
+    ProcessingIssue.objects.filter(pk__in=affected_issues).delete()
+
+    q = ProcessingIssueGroup.objects.filter(
+        issue__project=project,
+        group__status=GroupStatus.ON_HOLD,
+        group__pk__in=list(affected_groups)
+    )
+    broken_groups = set(x.id for x in q)
+
+    for group_id in affected_groups:
+        if group_id not in broken_groups:
+            _trigger_group_reprocessing(group_id)
+
+
 def store_processing_issues(issues, group, release=None):
     for d in issues:
         issue = ProcessingIssue.objects.get_or_create(
@@ -39,31 +75,9 @@ def store_processing_issues(issues, group, release=None):
         )[0]
 
 
-def trigger_reprocessing(project, type, key=None):
-    """Triggers reprocessing of issues for the given project and type.  If
-    a key is given only groups matching that key are reprocessed.
-    """
-    q = ProcessingIssueGroup.objects.filter(
-        issue__project=project,
-        issue__type=type,
-        group__status=GroupStatus.ON_HOLD
-    )
-    if key is not None:
-        q = q.filter(issue__key=key)
-
-    for pig in q.select_related('group'):
-        pig.group.project = project
-        trigger_group_reprocessing(pig.group)
-
-
-def trigger_group_reprocessing(group):
+def _trigger_group_reprocessing(group_id):
     """Triggers reprocessing for an entire group."""
-    # Sanity check just in case
-    if group.status != GroupStatus.ON_HOLD:
-        return
-
-    q = Event.objects.filter(group=group)
-
+    q = Event.objects.filter(group_id=group_id)
     for events in batched_queryset_iter(q):
         Event.objects.bind_nodes(events, 'data')
         for event in events:
