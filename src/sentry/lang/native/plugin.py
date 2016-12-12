@@ -440,10 +440,12 @@ def resolve_frame_symbols(data):
                         new_frame['instruction_addr'] = '0x%x' % parse_addr(
                             sfrm['instruction_addr'])
 
+                    conceptionally_different = new_frame != frame
                     new_frame['in_app'] = sym.is_in_app(raw_frame)
                     if new_frame != frame:
                         new_frames[idx] = new_frame
-                        store_raw = True
+                        if conceptionally_different:
+                            store_raw = True
                 except Exception:
                     logger.exception('Failed to symbolicate')
                     errors.append({
