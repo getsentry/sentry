@@ -242,7 +242,7 @@ def handle_nan(value):
 
 class Frame(Interface):
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, raw=False):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
         symbol = data.get('symbol')
@@ -264,25 +264,27 @@ class Frame(Interface):
             if v is not None and not isinstance(v, six.string_types):
                 raise InterfaceValidationError("Invalid value for '%s'" % name)
 
-        # absolute path takes priority over filename
-        # (in the end both will get set)
-        if not abs_path:
-            abs_path = filename
-            filename = None
+        # Some of this processing should only be done for non raw frames
+        if not raw:
+            # absolute path takes priority over filename
+            # (in the end both will get set)
+            if not abs_path:
+                abs_path = filename
+                filename = None
 
-        if not filename and abs_path:
-            if is_url(abs_path):
-                urlparts = urlparse(abs_path)
-                if urlparts.path:
-                    filename = urlparts.path
+            if not filename and abs_path:
+                if is_url(abs_path):
+                    urlparts = urlparse(abs_path)
+                    if urlparts.path:
+                        filename = urlparts.path
+                    else:
+                        filename = abs_path
                 else:
                     filename = abs_path
-            else:
-                filename = abs_path
 
-        if not (filename or function or module or package):
-            raise InterfaceValidationError("No 'filename' or 'function' or "
-                                           "'module' or 'package'")
+            if not (filename or function or module or package):
+                raise InterfaceValidationError("No 'filename' or 'function' or "
+                                               "'module' or 'package'")
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
@@ -637,7 +639,7 @@ class Stacktrace(Interface):
 
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {})
+            Frame.to_python(f or {}, raw=raw)
             for f in data['frames']
         ]
 
