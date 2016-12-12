@@ -37,10 +37,10 @@ class GroupTest(TestCase):
         assert group.is_resolved()
 
     def test_is_transient(self):
-        group = self.create_group(status=GroupStatus.ON_HOLD)
+        group = self.create_group(status=GroupStatus.UNPROCESSED)
         assert group.is_transient()
         assert group.is_ignored()
-        assert group.get_status() == GroupStatus.ON_HOLD
+        assert group.get_status() == GroupStatus.UNPROCESSED
 
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert not group.is_transient()

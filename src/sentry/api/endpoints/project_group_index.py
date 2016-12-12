@@ -71,7 +71,7 @@ STATUS_CHOICES = {
     'unresolved': GroupStatus.UNRESOLVED,
     'ignored': GroupStatus.IGNORED,
     'resolvedInNextRelease': GroupStatus.UNRESOLVED,
-    'on_hold': GroupStatus.ON_HOLD,
+    'unprocessed': GroupStatus.UNPROCESSED,
 
     # TODO(dcramer): remove in 9.0
     'muted': GroupStatus.IGNORED,
@@ -151,7 +151,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             except InvalidQuery as e:
                 raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
-        query_kwargs['include_on_hold'] = request.GET.get('includeOnHold') == '1'
+        query_kwargs['include_unprocessed'] = request.GET.get('includeUnprocessed') == '1'
 
         return query_kwargs
 
@@ -187,9 +187,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:resolved"`` is assumed.)
-        :qparam bool includeOnHold: include events that are on hold.  This is
-                                    only used when filtering by status is not
-                                    used.
+        :qparam bool includeUnprocessed: include events that are unprocessed.
+                                         This is only used when filtering
+                                         by status is not used.
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
@@ -456,8 +456,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
             result['statusDetails'] = {}
 
-        elif result.get('status') == 'on_hold':
-            return Response('{"detail": "Cannot put events on hold from '
+        elif result.get('status') == 'unprocessed':
+            return Response('{"detail": "Cannot set events to unprocessed from '
                             'the API"}', status=400)
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
