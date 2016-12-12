@@ -60,6 +60,7 @@ class SingleException(Interface):
                 data['raw_stacktrace'],
                 has_system_frames=has_system_frames,
                 slim_frames=slim_frames,
+                raw=True
             )
         else:
             raw_stacktrace = None
