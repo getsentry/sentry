@@ -186,8 +186,8 @@ class GroupSerializer(Serializer):
             status_label = 'pending_deletion'
         elif status == GroupStatus.PENDING_MERGE:
             status_label = 'pending_merge'
-        elif status == GroupStatus.ON_HOLD:
-            status_label = 'on_hold'
+        elif status == GroupStatus.UNPROCESSED:
+            status_label = 'unprocessed'
         else:
             status_label = 'unresolved'
 

@@ -235,8 +235,8 @@ class EventManager(object):
         # First we pull out our top-level (non-data attr) kwargs
         data = self.data
 
-        # Do not put the group on hold for now.
-        data['on_hold'] = False
+        # Do not set the event to unprocessed by default
+        data['unprocessed'] = False
 
         if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
@@ -405,7 +405,7 @@ class EventManager(object):
 
         data = self.data.copy()
 
-        on_hold = data.pop('on_hold', False)
+        unprocessed = data.pop('unprocessed', False)
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
@@ -587,7 +587,7 @@ class EventManager(object):
             event=event,
             hashes=hashes,
             release=release,
-            on_hold=on_hold,
+            unprocessed=unprocessed,
             **group_kwargs
         )
 
@@ -799,7 +799,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, hashes, release, on_hold=False, **kwargs):
+    def _save_aggregate(self, event, hashes, release, unprocessed=False, **kwargs):
         project = event.project
 
         # attempt to find a matching hash
@@ -815,10 +815,13 @@ class EventManager(object):
         # should be better tested/reviewed
         if existing_group_id is None:
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
-            if on_hold:
-                kwargs['status'] = GroupStatus.ON_HOLD
+            if unprocessed:
+                kwargs['status'] = GroupStatus.UNPROCESSED
             with transaction.atomic():
-                short_id = project.next_short_id()
+                if unprocessed:
+                    short_id = None
+                else:
+                    short_id = project.next_short_id()
                 group, group_is_new = Group.objects.create(
                     project=project,
                     short_id=short_id,
@@ -863,7 +866,7 @@ class EventManager(object):
                 event=event,
                 data=kwargs,
                 release=release,
-                on_hold=on_hold,
+                unprocessed=unprocessed,
             )
         else:
             is_regression = False
@@ -876,7 +879,7 @@ class EventManager(object):
 
         return group, is_new, is_regression, is_sample
 
-    def _handle_regression(self, group, event, release, on_hold=False):
+    def _handle_regression(self, group, event, release, unprocessed=False):
         if not group.is_resolved():
             return
 
@@ -897,8 +900,8 @@ class EventManager(object):
             return
 
         group_status = GroupStatus.UNRESOLVED
-        if on_hold:
-            group_status = GroupStatus.ON_HOLD
+        if unprocessed:
+            group_status = GroupStatus.UNPROCESSED
 
         # we now think its a regression, rely on the database to validate that
         # no one beat us to this
@@ -969,7 +972,7 @@ class EventManager(object):
         return is_regression
 
     def _process_existing_aggregate(self, group, event, data, release,
-                                    on_hold=False):
+                                    unprocessed=False):
         date = max(event.datetime, group.last_seen)
         extra = {
             'last_seen': date,
@@ -984,7 +987,7 @@ class EventManager(object):
             extra['culprit'] = data['culprit']
 
         is_regression = self._handle_regression(group, event, release,
-                                                on_hold=on_hold)
+                                                unprocessed=unprocessed)
 
         group.last_seen = extra['last_seen']
 
