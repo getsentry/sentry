@@ -156,6 +156,7 @@ const SaveSearchButton = React.createClass({
 
 const SavedSearchSelector = React.createClass({
   propTypes: {
+    query: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     searchId: React.PropTypes.string,
@@ -168,7 +169,13 @@ const SavedSearchSelector = React.createClass({
 
   getTitle() {
     let searchId = this.props.searchId || null;
-    if (!searchId) return t('Custom Search');
+    if (!searchId) {
+      if ((this.props.query || '').trim() === 'is:unprocessed') {
+        return t('Unprocessed Issues');
+      } else {
+        return t('Custom Search');
+      }
+    }
     let results = this.props.savedSearchList.filter((search) => {
       return searchId === search.id;
     });
