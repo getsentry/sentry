@@ -634,9 +634,6 @@ class Stacktrace(Interface):
         if not isinstance(data['frames'], list):
             raise InterfaceValidationError("Invalid value for 'frames'")
 
-        if has_system_frames is None:
-            has_system_frames = cls.data_has_system_frames(data)
-
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
             Frame.to_python(f or {}, raw=raw)
@@ -644,6 +641,8 @@ class Stacktrace(Interface):
         ]
 
         if not raw:
+            if has_system_frames is None:
+                has_system_frames = cls.data_has_system_frames(data)
             for frame in frame_list:
                 if not has_system_frames:
                     frame.in_app = False
