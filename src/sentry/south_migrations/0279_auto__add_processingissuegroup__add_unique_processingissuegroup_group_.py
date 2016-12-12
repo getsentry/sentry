@@ -8,19 +8,6 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'ProcessingIssue'
-        db.create_table('sentry_processingissue', (
-            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('type', self.gf('django.db.models.fields.CharField')(max_length=60)),
-            ('key', self.gf('django.db.models.fields.CharField')(max_length=256)),
-            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
-        ))
-        db.send_create_signal('sentry', ['ProcessingIssue'])
-
-        # Adding unique constraint on 'ProcessingIssue', fields ['project', 'type', 'key']
-        db.create_unique('sentry_processingissue', ['project_id', 'type', 'key'])
-
         # Adding model 'ProcessingIssueGroup'
         db.create_table('sentry_processingissuegroup', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -34,19 +21,32 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ProcessingIssueGroup', fields ['group', 'release', 'issue']
         db.create_unique('sentry_processingissuegroup', ['group_id', 'release_id', 'issue_id'])
 
+        # Adding model 'ProcessingIssue'
+        db.create_table('sentry_processingissue', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('type', self.gf('django.db.models.fields.CharField')(max_length=60)),
+            ('key', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
+        ))
+        db.send_create_signal('sentry', ['ProcessingIssue'])
+
+        # Adding unique constraint on 'ProcessingIssue', fields ['project', 'type', 'key']
+        db.create_unique('sentry_processingissue', ['project_id', 'type', 'key'])
+
 
     def backwards(self, orm):
-        # Removing unique constraint on 'ProcessingIssueGroup', fields ['group', 'release', 'issue']
-        db.delete_unique('sentry_processingissuegroup', ['group_id', 'release_id', 'issue_id'])
-
         # Removing unique constraint on 'ProcessingIssue', fields ['project', 'type', 'key']
         db.delete_unique('sentry_processingissue', ['project_id', 'type', 'key'])
 
-        # Deleting model 'ProcessingIssue'
-        db.delete_table('sentry_processingissue')
+        # Removing unique constraint on 'ProcessingIssueGroup', fields ['group', 'release', 'issue']
+        db.delete_unique('sentry_processingissuegroup', ['group_id', 'release_id', 'issue_id'])
 
         # Deleting model 'ProcessingIssueGroup'
         db.delete_table('sentry_processingissuegroup')
+
+        # Deleting model 'ProcessingIssue'
+        db.delete_table('sentry_processingissue')
 
 
     models = {
@@ -132,7 +132,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 12, 9, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2016, 12, 19, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -583,8 +583,10 @@ class Migration(SchemaMigration):
             'date_started': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']", 'null': 'True', 'blank': 'True'}),
             'owner': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True', 'blank': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'projects': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'releases'", 'symmetrical': 'False', 'through': "orm['sentry.ReleaseProject']", 'to': "orm['sentry.Project']"}),
             'ref': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
             'version': ('django.db.models.fields.CharField', [], {'max_length': '64'})
@@ -612,6 +614,12 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'ident': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
             'name': ('django.db.models.fields.TextField', [], {}),
+            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"})
+        },
+        'sentry.releaseproject': {
+            'Meta': {'unique_together': "(('project', 'release'),)", 'object_name': 'ReleaseProject', 'db_table': "'sentry_release_project'"},
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"})
         },
@@ -713,7 +721,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'X6u2MOwD1qKIazvSq5c1t39ny18IwGGn'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'CWi64GipkacSCCN79HZHKor0dhiI9Fl0'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
