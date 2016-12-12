@@ -39,7 +39,7 @@ class SymbolicationFailed(Exception):
         self.type = type
         if image is not None:
             self.image_uuid = image['uuid']
-            self.image_path = image['path']
+            self.image_path = image['name']
             self.image_name = image['name'].rsplit('/', 1)[-1]
         else:
             self.image_uuid = None
