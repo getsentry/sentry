@@ -13,7 +13,7 @@ from symsynd.demangle import demangle_symbol
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
-from sentry.lang.native.utils import find_all_stacktraces, \
+from sentry.lang.native.utils import find_all_stacktraces, update_stacktrace, \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
     APPLE_SDK_MAPPING
@@ -74,6 +74,7 @@ def append_error(data, err):
 
 
 def process_posix_signal(data):
+    # XXX: kill me
     signal = data.get('signal', -1)
     signal_name = data.get('name')
     if signal_name is None:
@@ -87,6 +88,7 @@ def process_posix_signal(data):
 
 
 def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
+    # XXX: kill me
     rv = {}
     error = error or {}
 
@@ -137,6 +139,7 @@ def exception_from_apple_error_or_diagnosis(error, diagnosis=None):
 
 
 def is_in_app(frame, app_uuid=None):
+    # XXX: kill me
     if app_uuid is not None:
         frame_uuid = frame.get('uuid')
         if frame_uuid == app_uuid:
@@ -151,6 +154,7 @@ def is_in_app(frame, app_uuid=None):
 
 
 def convert_stacktrace(frames, system=None, notable_addresses=None):
+    # XXX: kill me
     app_uuid = None
     if system:
         app_uuid = system.get('app_uuid')
@@ -363,29 +367,22 @@ def resolve_frame_symbols(data):
     idx = -1
 
     def report_error(exc_type, exc_value, tb):
-        if exc_value.is_user_fixable or exc_value.is_sdk_failure:
+        e = exc_value
+        if e.is_user_fixable or e.is_sdk_failure:
             errors.append({
                 'type': EventError.NATIVE_INTERNAL_FAILURE,
                 'frame': frame,
-                'error': u'frame #%d: %s' % (idx, exc_value)
+                'error': u'frame #%d: %s' % (idx, e)
+            })
+            record_processing_issue(data, 'native', 'dsym:%s' % e.image_uuid, data={
+                'image_uuid': e.image_uuid,
+                'image_path': e.image_path,
+                'type': e.type,
+                'message': e.message,
             })
         if not exc_value.is_user_fixable:
             logger.debug('Failed to symbolicate',
                          exc_info=(exc_type, exc_value, tb))
-
-    def record_broken_symbolication(frame):
-        release = data.get('release')
-        if not release:
-            return
-        img = sym.get_app_image_for_frame(frame)
-        if img is None:
-            return
-        record_processing_issue(data, 'native', 'dsym:%s' % e.image_uuid, data={
-            'image_uuid': e.image_uuid,
-            'image_path': e.image_path,
-            'type': e.type,
-            'message': e.message,
-        })
 
     with sym:
         for stacktrace, container in stacktraces:
@@ -454,14 +451,8 @@ def resolve_frame_symbols(data):
                         'error': 'The symbolicator encountered an internal failure',
                     })
 
-            # Remember the raw stacktrace.
-            if store_raw and container is not None:
-                container['raw_stacktrace'] = {
-                    'frames': stacktrace['frames'],
-                }
-
-            # Put the new frames in
-            stacktrace['frames'] = new_frames
+            update_stacktrace(stacktrace, new_frames, container=container,
+                              store_raw=store_raw)
 
     if errors:
         data.setdefault('errors', []).extend(errors)

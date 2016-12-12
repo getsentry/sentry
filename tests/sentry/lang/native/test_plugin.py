@@ -54,6 +54,13 @@ class BasicResolvingIntegrationTest(TestCase):
 
     @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
+        self._do_test_frame_resolution('stacktrace', symbolize_frame)
+
+    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')
+    def test_frame_resolution_raw(self, symbolize_frame):
+        self._do_test_frame_resolution('raw_stacktrace', symbolize_frame)
+
+    def _do_test_frame_resolution(self, stacktrace_key, symbolize_frame):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -101,7 +108,7 @@ class BasicResolvingIntegrationTest(TestCase):
             "sentry.interfaces.Exception": {
                 "values": [
                     {
-                        "stacktrace": {
+                        stacktrace_key: {
                             "frames": [
                                 {
                                     "function": "<redacted>",
@@ -174,7 +181,7 @@ class BasicResolvingIntegrationTest(TestCase):
                 "values": [
                     {
                         "id": 39,
-                        "stacktrace": {
+                        stacktrace_key: {
                             "frames": [
                                 {
                                     "in_app": False,

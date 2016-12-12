@@ -39,10 +39,12 @@ class SymbolicationFailed(Exception):
         self.type = type
         if image is not None:
             self.image_uuid = image['uuid']
+            self.image_path = image['path']
             self.image_name = image['name'].rsplit('/', 1)[-1]
         else:
             self.image_uuid = None
             self.image_name = None
+            self.image_path = None
 
     @property
     def is_user_fixable(self):

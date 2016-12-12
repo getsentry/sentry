@@ -624,7 +624,8 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True):
+    def to_python(cls, data, has_system_frames=None, slim_frames=True,
+                  raw=False):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
@@ -640,11 +641,12 @@ class Stacktrace(Interface):
             for f in data['frames']
         ]
 
-        for frame in frame_list:
-            if not has_system_frames:
-                frame.in_app = False
-            elif frame.in_app is None:
-                frame.in_app = False
+        if not raw:
+            for frame in frame_list:
+                if not has_system_frames:
+                    frame.in_app = False
+                elif frame.in_app is None:
+                    frame.in_app = False
 
         kwargs = {
             'frames': frame_list,
