@@ -57,17 +57,26 @@ def find_stacktrace_referenced_images(debug_images, stacktraces):
 
 def find_all_stacktraces(data):
     """Given a data dictionary from an event this returns all
-    relevant stacktraces in a list.
+    relevant stacktraces in a list.  If a frame contains a raw_stacktrace
+    property it's preferred over the processed one.
     """
     rv = []
+
+    def _probe_for_stacktrace(container):
+        raw = container.get('raw_stacktrace')
+        if raw is not None:
+            rv.append((raw, container))
+        else:
+            processed = container.get('stacktrace')
+            if processed is not None:
+                rv.append((processed, container))
 
     exc_container = data.get('sentry.interfaces.Exception')
     if exc_container:
         for exc in exc_container['values']:
-            stacktrace = exc.get('stacktrace')
-            if stacktrace:
-                rv.append((stacktrace, exc))
+            _probe_for_stacktrace(exc)
 
+    # The legacy stacktrace interface does not support raw stacktraces
     stacktrace = data.get('sentry.interfaces.Stacktrace')
     if stacktrace:
         rv.append((stacktrace, None))
@@ -75,11 +84,36 @@ def find_all_stacktraces(data):
     threads = data.get('threads')
     if threads:
         for thread in threads['values']:
-            stacktrace = thread.get('stacktrace')
-            if stacktrace:
-                rv.append((stacktrace, thread))
+            _probe_for_stacktrace(thread)
 
     return rv
+
+
+def update_stacktrace(stacktrace, new_frames, container=None,
+                      store_raw=False):
+    """Utility function that can update a stacktrace with new frames
+    according to the reprocessing rules.  Best paired with
+    `find_all_stacktraces`.
+    """
+    # If we have a known stacktrace container, put us to the
+    # expected places
+    if container is not None:
+        # Update raw_stacktrace based on if we want to store stuff there.
+        if store_raw:
+            container['raw_stacktrace'] = {
+                'frames': stacktrace['frames']
+            }
+        else:
+            container.pop('raw_stacktrace', None)
+
+        # We make sure the stacktrace moves to the processed slot.
+        # If the input data was 'raw_stacktrace' we need to make
+        # sure it now moves into 'stacktrace' as we will place a
+        # new unprocessed stacktrace in that location.
+        container['stacktrace'] = stacktrace
+
+    # Put the new frames into the stacktrace object.
+    stacktrace['frames'] = new_frames
 
 
 def get_sdk_from_event(event):
