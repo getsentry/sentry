@@ -54,7 +54,7 @@ class SensitiveDataFilter(object):
         # social security numbers (US)
         r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
     ]), re.DOTALL)
-    URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[^:]+:)([^@]+)@')
+    URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[a-zA-Z0-9%_.-]+:)([a-zA-Z0-9%_.-]+)@')
 
     def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
         if fields:
