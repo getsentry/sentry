@@ -238,11 +238,6 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         result = proc.sanitize('foo', 'pg://matt:pass@localhost/1')
         assert result == 'pg://matt:%s@localhost/1' % FILTER_MASK
-        # Make sure we don't mess up any other url.
-        # This url specifically if passed through urlunsplit(urlsplit()),
-        # it'll change the value.
-        result = proc.sanitize('foo', 'postgres:///path')
-        assert result == 'postgres:///path'
         result = proc.sanitize('foo', "foo 'redis://redis:foo@localhost:6379/0' bar")
         assert result == "foo 'redis://redis:%s@localhost:6379/0' bar" % FILTER_MASK
         result = proc.sanitize('foo', "'redis://redis:foo@localhost:6379/0'")
@@ -251,6 +246,14 @@ class SensitiveDataFilterTest(TestCase):
         assert result == "foo redis://redis:%s@localhost:6379/0 bar" % FILTER_MASK
         result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
         assert result == "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (FILTER_MASK, FILTER_MASK)
+        # Make sure we don't mess up any other url.
+        # This url specifically if passed through urlunsplit(urlsplit()),
+        # it'll change the value.
+        result = proc.sanitize('foo', 'postgres:///path')
+        assert result == 'postgres:///path'
+        # Don't be too overly eager within JSON strings an catch the right field.
+        result = proc.sanitize('foo', '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:pass@localhost/1","d":"lol"}')
+        assert result == '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:%s@localhost/1","d":"lol"}' % FILTER_MASK
 
     def test_sanitize_http_body(self):
         data = {
