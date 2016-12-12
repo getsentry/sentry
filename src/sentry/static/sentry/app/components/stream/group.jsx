@@ -144,6 +144,9 @@ const StreamGroup = React.createClass({
     if (data.status === 'ignored') {
       className += ' isIgnored';
     }
+    if (data.status === 'unprocessed') {
+      className += ' isUnprocessed';
+    }
 
     className += ' type-' + data.type;
     className += ' level-' + data.level;
