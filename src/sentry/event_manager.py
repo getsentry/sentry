@@ -442,31 +442,44 @@ class EventManager(object):
             **kwargs
         )
 
-        tags = data.get('tags') or []
-        tags.append(('level', LOG_LEVELS[level]))
+        # convert this to a dict to ensure we're only storing one value per key
+        # as most parts of Sentry dont currently play well with multiple values
+        tags = dict(data.get('tags') or [])
+        tags['level'] = LOG_LEVELS[level]
         if logger_name:
-            tags.append(('logger', logger_name))
+            tags['logger'] = logger_name
         if server_name:
-            tags.append(('server_name', server_name))
+            tags['server_name'] = server_name
         if site:
-            tags.append(('site', site))
-        if release:
-            # TODO(dcramer): we should ensure we create Release objects
-            tags.append(('sentry:release', release))
+            tags['site'] = site
         if environment:
-            tags.append(('environment', environment))
+            tags['environment'] = environment
         if transaction_name:
-            tags.append(('transaction', transaction_name))
+            tags['transaction'] = transaction_name
+
+        if release:
+            # dont allow a conflicting 'release' tag
+            if 'release' in tags:
+                del tags['release']
+            tags['sentry:release'] = release
+
+        event_user = self._get_event_user(project, data)
+        if event_user:
+            # dont allow a conflicting 'user' tag
+            if 'user' in tags:
+                del tags['user']
+            tags['sentry:user'] = event_user.tag_value
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
                                       _with_transaction=False)
             if added_tags:
-                tags.extend(added_tags)
+                # plugins should not override user provided tags
+                for key, value in added_tags:
+                    tags.setdefault(key, value)
 
-        event_user = self._get_event_user(project, data)
-        if event_user:
-            tags.append(('sentry:user', event_user.tag_value))
+        # tags are stored as a tuple
+        tags = tags.items()
 
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
