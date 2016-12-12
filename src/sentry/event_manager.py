@@ -574,14 +574,6 @@ class EventManager(object):
 
         processing_issues = data.pop('processing_issues', [])
 
-        # If we want to put the group on hold we mark the group as such.
-        # In theory this should only ever happen on new groups or for
-        # groups that are already on hold.  However in case something
-        # breaks internally we want to make sure that we never
-        # accidentally set a group that is on hold to not be on hold.
-        if on_hold:
-            group_kwargs['status'] = GroupStatus.ON_HOLD
-
         if release:
             release = Release.get_or_create(
                 project=project,
@@ -595,6 +587,7 @@ class EventManager(object):
             event=event,
             hashes=hashes,
             release=release,
+            on_hold=on_hold,
             **group_kwargs
         )
 
@@ -806,7 +799,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, hashes, release, **kwargs):
+    def _save_aggregate(self, event, hashes, release, on_hold=False, **kwargs):
         project = event.project
 
         # attempt to find a matching hash
@@ -822,6 +815,8 @@ class EventManager(object):
         # should be better tested/reviewed
         if existing_group_id is None:
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
+            if on_hold:
+                kwargs['status'] = GroupStatus.ON_HOLD
             with transaction.atomic():
                 short_id = project.next_short_id()
                 group, group_is_new = Group.objects.create(
@@ -868,6 +863,7 @@ class EventManager(object):
                 event=event,
                 data=kwargs,
                 release=release,
+                on_hold=on_hold,
             )
         else:
             is_regression = False
@@ -880,7 +876,7 @@ class EventManager(object):
 
         return group, is_new, is_regression, is_sample
 
-    def _handle_regression(self, group, event, release):
+    def _handle_regression(self, group, event, release, on_hold=False):
         if not group.is_resolved():
             return
 
@@ -900,6 +896,10 @@ class EventManager(object):
         if not plugin_is_regression(group, event):
             return
 
+        group_status = GroupStatus.UNRESOLVED
+        if on_hold:
+            group_status = GroupStatus.ON_HOLD
+
         # we now think its a regression, rely on the database to validate that
         # no one beat us to this
         date = max(event.datetime, group.last_seen)
@@ -916,11 +916,11 @@ class EventManager(object):
             # explicitly set last_seen here as ``is_resolved()`` looks
             # at the value
             last_seen=date,
-            status=GroupStatus.UNRESOLVED
+            status=group_status
         ))
 
         group.active_at = date
-        group.status = GroupStatus.UNRESOLVED
+        group.status = group_status
 
         if is_regression and release:
             # resolutions are only valid if the state of the group is still
@@ -968,7 +968,8 @@ class EventManager(object):
 
         return is_regression
 
-    def _process_existing_aggregate(self, group, event, data, release):
+    def _process_existing_aggregate(self, group, event, data, release,
+                                    on_hold=False):
         date = max(event.datetime, group.last_seen)
         extra = {
             'last_seen': date,
@@ -982,7 +983,8 @@ class EventManager(object):
         if group.culprit != data['culprit']:
             extra['culprit'] = data['culprit']
 
-        is_regression = self._handle_regression(group, event, release)
+        is_regression = self._handle_regression(group, event, release,
+                                                on_hold=on_hold)
 
         group.last_seen = extra['last_seen']
 
