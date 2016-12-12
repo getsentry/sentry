@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import functools
 from datetime import datetime, timedelta
 
+import mock
 import pytest
 import pytz
 from django.core import mail
@@ -246,7 +247,14 @@ class ReportTestCase(TestCase):
 
         member_set = set(project.team.member_set.all())
 
-        with self.tasks():
+        with self.tasks(), \
+                mock.patch.object(tsdb, 'get_earliest_timestamp') as get_earliest_timestamp:
+            # Ensure ``get_earliest_timestamp`` is relative to the fixed
+            # "current" timestamp -- this prevents filtering out data points
+            # that would be considered expired relative to the *actual* current
+            # timestamp.
+            get_earliest_timestamp.return_value = to_timestamp(now - timedelta(days=60))
+
             prepare_reports(timestamp=to_timestamp(now))
             assert len(mail.outbox) == len(member_set) == 1
 
