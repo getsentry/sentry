@@ -167,6 +167,11 @@ const StreamGroup = React.createClass({
             data={data} />
           <div className="event-extra">
             <ul>
+              {data.status === 'unprocessed' &&
+                <li>
+                  <strong className="unprocessed-hint">UNPROCESSED</strong>
+                </li>
+              }
               {this.getFeatures().has('callsigns') && data.shortId &&
                 <li>
                   <ShortId shortId={data.shortId} />
