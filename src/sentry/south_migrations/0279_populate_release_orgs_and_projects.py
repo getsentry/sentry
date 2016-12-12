@@ -11,7 +11,8 @@ class Migration(DataMigration):
         "Write your forwards methods here."
         qs = orm.Release.objects.all().select_related('project')
         for r in RangeQuerySetWrapperWithProgressBar(qs):
-            orm.Release.objects.filter(id=r.id).update(organization=r.project.organization_id)
+            if not r.organization_id:
+                orm.Release.objects.filter(id=r.id).update(organization=r.project.organization_id)
 
             try:
                 with transaction.atomic():
