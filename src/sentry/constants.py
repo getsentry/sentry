@@ -51,11 +51,13 @@ SEARCH_SORT_OPTIONS = OrderedDict((
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_IGNORED = 2
+STATUS_UNPROCESSED = 6
 
 STATUS_CHOICES = {
     'resolved': STATUS_RESOLVED,
     'unresolved': STATUS_UNRESOLVED,
     'ignored': STATUS_IGNORED,
+    'unprocessed': STATUS_UNPROCESSED,
 
     # TODO(dcramer): remove in 9.0
     'muted': STATUS_IGNORED,

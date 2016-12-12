@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import ProcessingIssue, ProcessingIssueGroup, GroupStatus, \
-    Event
+from sentry.models import ProcessingIssue, ProcessingIssueGroup, Event
 from sentry.utils.query import batched_queryset_iter
 from sentry.tasks.store import preprocess_event
 
@@ -13,7 +12,7 @@ def record_processing_issue(event_data, type, key, release_bound=True,
     permit reprocessing when they are fixed.
     """
     if hold_group:
-        event_data['on_hold'] = True
+        event_data['unprocessed'] = True
     event_data.setdefault('processing_issues', []).append({
         'type': type,
         'key': key,
@@ -27,8 +26,7 @@ def resolve_processing_issue(project, type, key=None):
     """Resolves a processing issue.  This might trigger reprocessing."""
     q = ProcessingIssueGroup.objects.filter(
         issue__project=project,
-        issue__type=type,
-        group__status=GroupStatus.ON_HOLD
+        issue__type=type
     )
     if key is not None:
         q = q.filter(issue__key=key)
@@ -49,7 +47,6 @@ def resolve_processing_issue(project, type, key=None):
 
     q = ProcessingIssueGroup.objects.filter(
         issue__project=project,
-        group__status=GroupStatus.ON_HOLD,
         group__pk__in=list(affected_groups)
     )
     broken_groups = set(x.id for x in q)

@@ -14,7 +14,7 @@ class BasicPreprocessorPlugin(Plugin2):
             return data
 
         def put_on_hold(data):
-            data['on_hold'] = True
+            data['unprocessed'] = True
             return data
 
         if data.get('platform') == 'mattlang':
@@ -123,7 +123,7 @@ class StoreTasksTest(PluginTestCase):
 
     @mock.patch('sentry.tasks.store.save_event')
     @mock.patch('sentry.tasks.store.default_cache')
-    def test_process_event_on_hold(self, mock_default_cache, mock_save_event):
+    def test_process_event_unprocessed(self, mock_default_cache, mock_save_event):
         project = self.create_project()
 
         data = {
@@ -143,7 +143,7 @@ class StoreTasksTest(PluginTestCase):
                 'platform': 'holdmeclose',
                 'message': 'test',
                 'extra': {'foo': 'bar'},
-                'on_hold': True,
+                'unprocessed': True,
             }, 3600
         )
 

@@ -52,7 +52,7 @@ class GroupStatus(object):
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
-    ON_HOLD = 6
+    UNPROCESSED = 6
 
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
@@ -248,11 +248,11 @@ class Group(Model):
         return self.get_status() == GroupStatus.IGNORED
 
     def is_transient(self):
-        """Anything that is on-hold is also transient.  Transient groups are
+        """Anything that is unprocessed is also transient.  Transient groups are
         considered temporary and should not trigger notifications, do not
         allow issues to be filed etc.
         """
-        return self.status == GroupStatus.ON_HOLD
+        return self.status == GroupStatus.UNPROCESSED
 
     # TODO(dcramer): remove in 9.0 / after plugins no long ref
     is_muted = is_ignored
