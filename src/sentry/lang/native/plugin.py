@@ -377,6 +377,7 @@ def resolve_frame_symbols(data):
             record_processing_issue(data, 'native', 'dsym:%s' % e.image_uuid, data={
                 'image_uuid': e.image_uuid,
                 'image_path': e.image_path,
+                'image_arch': e.image_arch,
                 'type': e.type,
                 'message': e.message,
             })
