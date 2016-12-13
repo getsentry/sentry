@@ -49,7 +49,8 @@ class SymbolicationFailed(Exception):
     @property
     def is_user_fixable(self):
         """These are errors that a user can fix themselves."""
-        return self.type in ('missing-dsym', 'bad-dsym')
+        return self.type in ('missing-dsym', 'bad-dsym',
+                             'missing-symbol')
 
     @property
     def is_sdk_failure(self):
@@ -172,9 +173,6 @@ class Symbolizer(object):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
             raise SymbolicationFailed(
                 type='missing-dsym',
-                message=(
-                    'Frame references a missing dSYM file.'
-                ),
                 image=img
             )
 
@@ -184,16 +182,13 @@ class Symbolizer(object):
         except SymbolicationError as e:
             raise SymbolicationFailed(
                 type='bad-dsym',
-                message='Symbolication failed due to bad dsym: %s' % e,
+                message=six.text_type(e),
                 image=img
             )
 
         if new_frame is None:
             raise SymbolicationFailed(
                 type='missing-symbol',
-                message=(
-                    'Upon symbolication a frame could not be resolved.'
-                ),
                 image=img
             )
 
@@ -206,17 +201,10 @@ class Symbolizer(object):
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
                 type = 'simulator-frame'
-                message = 'Cannot symbolicate simulator system frames.'
             else:
                 type = 'missing-system-dsym'
-                message = (
-                    'Attempted to look up system in the system symbols but '
-                    'no symbol could be found.  This might happen with beta '
-                    'releases of SDKs.'
-                )
             raise SymbolicationFailed(
                 type=type,
-                message=message,
                 image=img
             )
 
@@ -229,11 +217,7 @@ class Symbolizer(object):
         img = self.images.get(frame['object_addr'])
         if img is None:
             raise SymbolicationFailed(
-                type='unknown-image',
-                message=(
-                    'The stacktrace referred to an object at an address '
-                    'that was not registered in the debug meta information.'
-                )
+                type='unknown-image'
             )
 
         # If we are dealing with a frame that is not bundled with the app

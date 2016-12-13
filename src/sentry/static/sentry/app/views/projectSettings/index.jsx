@@ -95,6 +95,7 @@ const ProjectSettings = React.createClass({
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
             <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>{t('Saved Searches')}</ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>{t('Debug Symbols')}</ListLink>
+            <ListLink to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('Processing Issues')}</ListLink>
           </ul>
           <h6 className="nav-header">{t('Data')}</h6>
           <ul className="nav nav-stacked">
