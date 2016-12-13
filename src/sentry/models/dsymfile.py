@@ -402,6 +402,8 @@ def create_files_from_macho_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
+    # yay. circular dependencies
+    from sentry.reprocessing import resolve_processing_issue
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad)
@@ -424,6 +426,8 @@ def create_files_from_macho_zip(fileobj, project=None):
             with open(filename, 'rb') as f:
                 rv.append((_create_macho_dsym_from_uuid(
                     project, cpu, uuid, f, os.path.basename(filename))))
+                resolve_processing_issue(project, 'native',
+                                         key='dsym:%s' % uuid)
         return rv
     finally:
         shutil.rmtree(scratchpad)
