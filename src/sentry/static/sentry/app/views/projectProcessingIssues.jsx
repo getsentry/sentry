@@ -113,6 +113,7 @@ const ProjectProcessingIssues = React.createClass({
   renderLocation(item) {
     let dsymUUID = null;
     let dsymName = null;
+    let dsymArch = null;
 
     if (item.type === 'native') {
       if (item.data.image_uuid) {
@@ -121,11 +122,15 @@ const ProjectProcessingIssues = React.createClass({
       if (item.data.image_path) {
         dsymName = <em>{this.getImageName(item.data.image_path)}</em>;
       }
+      if (item.data.image_arch) {
+        dsymArch = item.data.image_arch;
+      }
     }
 
     return (
       <span>
         {dsymUUID && <span> {dsymUUID}</span>}
+        {dsymArch && <span> {dsymArch}</span>}
         {dsymName && <span> (for {dsymName})</span>}
       </span>
     );

@@ -41,10 +41,13 @@ class SymbolicationFailed(Exception):
             self.image_uuid = image['uuid'].lower()
             self.image_path = image['name']
             self.image_name = image['name'].rsplit('/', 1)[-1]
+            self.image_arch = get_cpu_name(image['cpu_type'],
+                                           image['cpu_subtype'])
         else:
             self.image_uuid = None
             self.image_name = None
             self.image_path = None
+            self.image_arch = None
 
     @property
     def is_user_fixable(self):
