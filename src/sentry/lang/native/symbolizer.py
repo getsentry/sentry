@@ -38,7 +38,7 @@ class SymbolicationFailed(Exception):
         self.message = six.text_type(message)
         self.type = type
         if image is not None:
-            self.image_uuid = image['uuid']
+            self.image_uuid = image['uuid'].lower()
             self.image_path = image['name']
             self.image_name = image['name'].rsplit('/', 1)[-1]
         else:
@@ -154,12 +154,11 @@ class Symbolizer(object):
     def _is_app_frame(self, frame, img):
         if not self._is_app_bundled_frame(frame, img):
             return False
+        return not self._is_app_bundled_framework(frame, img)
+
+    def _is_app_bundled_framework(self, frame, img):
         fn = self._get_frame_package(frame, img)
-        # Ignore known frameworks
-        match = _known_app_bundled_frameworks_re.search(fn)
-        if match is not None:
-            return False
-        return True
+        return _known_app_bundled_frameworks_re.search(fn) is not None
 
     def _is_simulator_frame(self, frame, img):
         fn = self._get_frame_package(frame, img)
@@ -171,8 +170,12 @@ class Symbolizer(object):
 
     def symbolize_app_frame(self, frame, img):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
+            if self._is_app_bundled_framework(frame, img):
+                type = 'missing-sysbundled-dsym'
+            else:
+                type = 'missing-dsym'
             raise SymbolicationFailed(
-                type='missing-dsym',
+                type=type,
                 image=img
             )
 
