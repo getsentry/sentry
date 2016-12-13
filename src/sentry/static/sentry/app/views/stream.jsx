@@ -567,15 +567,14 @@ const Stream = React.createClass({
 
   renderProcessingIssuesHint() {
     let pi = this.state.processingIssues;
-    if (!pi || this.showingProcessingIssues()) {
+    if (!pi) {
       return null;
     }
 
+    let {orgId, projectId} = this.props.params;
     let issues = tn('%d problems', '%d problems', pi.affectedIssues);
     let groups = tn('%d group', '%d groups', pi.affectedGroups);
     let releases = tn('%d release', '%d releases', pi.affectedReleases);
-
-    let {orgId, projectId} = this.props.params;
 
     return (
       <div className="processing-issues">
@@ -585,8 +584,14 @@ const Stream = React.createClass({
           groups: groups,
           releases: releases,
         })}
+        {!this.showingProcessingIssues() &&
+          <span>
+            {' '}
+            <Link to={`/${orgId}/${projectId}/?query=is:unprocessed`}>{t('show affected issues')}</Link>
+            {' or '}
+          </span>}
         {' '}
-        <Link to={`/${orgId}/${projectId}/?query=is:unprocessed`}>{t('show affected issues')}</Link>
+        <Link to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('resolve problems')}</Link>
       </div>
     );
   },
