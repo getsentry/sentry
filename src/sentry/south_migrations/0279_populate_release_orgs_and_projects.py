@@ -2,13 +2,16 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, transaction, connection
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
+        if connection.vendor == 'sqlite':
+            transaction.set_autocommit(True)
+
         qs = orm.Release.objects.all().select_related('project')
         for r in RangeQuerySetWrapperWithProgressBar(qs):
             if not r.organization_id:
