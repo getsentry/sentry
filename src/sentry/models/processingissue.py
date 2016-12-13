@@ -10,18 +10,7 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, GzippedDictField, \
-    BaseManager
-
-
-class ReleaseProblemManager(BaseManager):
-
-    def record_problem(self, release, key, data):
-        return self.update_or_create(
-            release=release,
-            key=key,
-            defaults={'data': data},
-        )[0]
+from sentry.db.models import FlexibleForeignKey, Model, GzippedDictField
 
 
 class ProcessingIssue(Model):
@@ -30,8 +19,6 @@ class ProcessingIssue(Model):
     type = models.CharField(max_length=60)
     key = models.CharField(max_length=256)
     data = GzippedDictField()
-
-    objects = ReleaseProblemManager()
 
     class Meta:
         app_label = 'sentry'
