@@ -15,6 +15,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 - Added ``Release.organization`` column.
 - Added ``ReleaseProject`` model.
+- Added ``ReleaseCommit.organization_id`` column.
 
 Version 8.11
 ------------

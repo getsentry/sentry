@@ -87,6 +87,8 @@ class UpdateReleaseDetailsTest(APITestCase):
             release=release,
         ).select_related('commit', 'commit__author').order_by('order'))
         assert len(rc_list) == 2
+        for rc in rc_list:
+            assert rc.organization_id
 
     def test_activity_generation(self):
         self.login_as(user=self.user)
