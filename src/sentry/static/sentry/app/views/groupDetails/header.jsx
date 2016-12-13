@@ -120,7 +120,7 @@ const GroupHeader = React.createClass({
           <div className="col-sm-8">
             <h3>
               {group.status === 'unprocessed' &&
-                <strong className="unprocessed-hint">UNPROCESSED</strong>
+                <Link to={`/${orgId}/${projectId}/?query=is:unprocessed`} className="unprocessed-hint">UNPROCESSED</Link>
               }
               <GroupTitle data={group} />
             </h3>
