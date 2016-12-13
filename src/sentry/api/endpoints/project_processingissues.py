@@ -22,9 +22,17 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
             issue__project=project
         ).values('release').distinct().count()
 
-        return Response(serialize({
+        data = {
             'hasIssues': num_issues > 0 and num_groups > 0,
             'affectedIssues': num_issues,
             'affectedGroups': num_groups,
             'affectedReleases': num_releases,
-        }, request.user))
+        }
+
+        if request.GET.get('detailed') == '1':
+            q = ProcessingIssue.objects.with_num_groups().filter(
+                project=project
+            ).order_by('type')
+            data['issues'] = [serialize(x, request.user) for x in q]
+
+        return Response(serialize(data, request.user))
