@@ -448,6 +448,7 @@ class CliTestCase(TestCase):
 
 
 @pytest.mark.usefixtures('browser')
+@pytest.mark.withoutresponses
 class AcceptanceTestCase(TransactionTestCase):
     def save_session(self):
         self.session.save()

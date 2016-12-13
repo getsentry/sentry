@@ -79,6 +79,7 @@ tests_require = [
     # /cassandra
     'datadog',
     'pytest-cov>=1.8.0,<1.9.0',
+    'pytest-responses',
     'pytest-timeout>=0.5.0,<0.6.0',
     'pytest-xdist>=1.11.0,<1.12.0',
     'python-coveralls',
