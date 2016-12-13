@@ -33,27 +33,18 @@ const colors = {
   purpleDark:               '#4E3FB4',
 
   white:                    '#FFFFFF',
-  whiteDark:                '#FBFBFC',
-  whiteDarker:              '#F7F8F9',
-  whiteDarkest:             '#E6E9EC',
 
-  gray1:                    '#FBFBFC',
-  gray2:                    '#E2DEE6',
-  gray3:                    '#C9C0D1',
-  gray4:                    '#AFA3BB',
-  gray5:                    '#9586A5',
-  gray6:                    '#7C6A8E',
-  gray7:                    '#625471',
-  gray8:                    '#493E54',
-  gray9:                    '#2F2936',
-  gray10:                   '#161319',
+  gray10:                   '#FBFBFC',
+  gray20:                   '#E2DEE6',
+  gray30:                   '#C9C0D1',
+  gray40:                   '#AFA3BB',
+  gray50:                   '#9586A5',
+  gray60:                   '#7C6A8E',
+  gray70:                   '#625471',
+  gray80:                   '#493E54',
+  gray90:                   '#2F2936',
 
-  linkColor:                this.blue,
-  linkColorHover:           this.blueDark,
-
-  trim:                     'gray2',
-  trimLight:                '#D8D3DD',
-  trimDark:                 this.gray3,
+  black:                    '#161319',
 
   alertWarningBackground:   '#FFFDF7',
   alertWarningBorder:       '#E1D697',
@@ -67,5 +58,16 @@ const colors = {
   alertSuccessBackground:   '#F8FCF7',
   alertSuccessBorder:       '#BBD6B3',
 };
+
+// Trim
+
+colors.trim = colors.gray2;
+colors.trimLight = '#D8D3DD';
+colors.trimDark = colors.gray3;
+
+// Links
+
+colors.linkColor = colors.blue;
+colors.linkColorHover = colors.blueDark;
 
 export default colors;

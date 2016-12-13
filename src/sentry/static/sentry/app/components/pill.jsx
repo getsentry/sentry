@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import colors from '../style-utils';
 
 /*
 <Pills>
@@ -44,8 +45,8 @@ const PillValue = styled.div`
   padding: 4px 8px;
   min-width: 0;
   white-space: nowrap;
-  background: #fbfbfc;
-  border-left: 1px solid #d8d2de;
+  background: ${colors.gray10};
+  border-left: 1px solid ${colors.trimLight};
   border-radius: 0 3px 3px 0;
   font-family: Monaco, monospace;
   max-width: 100%;
@@ -73,7 +74,7 @@ const PillContainer = styled.div`
   margin: 0 10px 10px 0;
   border-radius: 1px;
   display: flex;
-  border: 1px solid #d8d2de;
+  border: 1px solid ${colors.trimLight};
   border-radius: 3px;
   box-shadow: 0 1px 2px rgba(0,0,0, .04);
   line-height: 1.2;
