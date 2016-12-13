@@ -8,6 +8,7 @@ from sentry.db.models import (
 class ReleaseCommit(Model):
     __core__ = False
 
+    organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
     release = FlexibleForeignKey('sentry.Release')
     commit = FlexibleForeignKey('sentry.Commit')

@@ -106,6 +106,7 @@ class ReleaseHook(object):
                 )[0]
 
                 ReleaseCommit.objects.create(
+                    organization_id=project.organization_id,
                     project_id=project.id,
                     release=release,
                     commit=commit,
