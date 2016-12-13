@@ -3,8 +3,10 @@ import React from 'react';
 import {Link} from 'react-router';
 import styled from 'styled-components';
 
+import colors from '../../style-utils';
+
 const BaseNavItem = styled(Link)`
-  color: #493e54;
+  color: ${colors.gray80};
   font-size: 16px;
   line-height: 1.5;
   padding: 0;
@@ -13,12 +15,12 @@ const BaseNavItem = styled(Link)`
   position: relative;
 
   &:hover {
-    color: #161319;
+    color: ${colors.black};
   }
 `;
 
 const NavItem = styled(({className, ...props}) => <BaseNavItem {...props} activeClassName={className} />)`
-  color: #161319;
+  color: ${colors.black};
   font-weight: 600;
 
   &:before {
@@ -28,7 +30,7 @@ const NavItem = styled(({className, ...props}) => <BaseNavItem {...props} active
     left: -30px;
     bottom: 3px;
     width: 4px;
-    background-color: #6C5FC7;
+    background-color: ${colors.purple};
     content: '';
   }
 `;
