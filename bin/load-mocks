@@ -19,7 +19,8 @@ from sentry.app import tsdb, buffer
 from sentry.models import (
     Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
-    GroupRelease, Environment, ReleaseEnvironment
+    GroupRelease, Environment, ReleaseEnvironment, ReleaseCommit, Commit, Repository,
+    CommitAuthor, CommitFileChange,
 )
 from sentry.signals import mocks_loaded
 from sentry.utils.hashlib import md5_text
@@ -283,6 +284,38 @@ def main(num_events=1):
                     checksum='abcde' * 8,
                     size=13043,
                 )[0],
+            )
+
+            commit = Commit.objects.get_or_create(
+                organization_id=org.id,
+                repository_id=Repository.objects.get_or_create(
+                    organization_id=org.id,
+                    name='Example Repo',
+                    provider='github',
+                    external_id='example/example',
+                )[0].id,
+                key='6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
+                author=CommitAuthor.objects.get_or_create(
+                    organization_id=org.id,
+                    name=user.name,
+                    email=user.email,
+                )[0],
+                message='real good stuff here\n\nWe did lots of good stuff over and over.'
+            )[0]
+
+            CommitFileChange.objects.get_or_create(
+                organization_id=org.id,
+                commit=commit,
+                filename='an-example.js',
+                type='M',
+            )
+
+            ReleaseCommit.objects.get_or_create(
+                organization_id=org.id,
+                project_id=project.id,
+                release=release,
+                commit=commit,
+                order=0,
             )
 
             Activity.objects.create(
