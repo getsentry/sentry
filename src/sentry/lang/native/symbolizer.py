@@ -170,6 +170,7 @@ class Symbolizer(object):
 
     def symbolize_app_frame(self, frame, img):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
+            # XXX: is this a good idea?
             if self._is_app_bundled_framework(frame, img):
                 type = 'missing-sysbundled-dsym'
             else:
