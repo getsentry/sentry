@@ -58,12 +58,9 @@ def resolve_processing_issue(project, type, key=None):
 
 def store_processing_issues(issues, group, release=None):
     for d in issues:
-        issue = ProcessingIssue.objects.get_or_create(
-            project=group.project,
-            type=d['type'],
-            key=d['key'],
-            defaults={'data': d['issue_data']},
-        )[0]
+        issue = ProcessingIssue.objects.upsert(
+            group.project, d['type'], d['key'], ts=group.last_seen,
+            data=d['issue_data'])
         ProcessingIssueGroup.objects.get_or_create(
             group=group,
             release=release,
