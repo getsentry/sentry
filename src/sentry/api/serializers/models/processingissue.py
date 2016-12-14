@@ -34,6 +34,8 @@ class ProcessingIssueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
+            'firstSeen': obj.first_seen,
+            'lastSeen': obj.last_seen,
             'affectedGroups': attrs['num_groups'],
             'type': obj.type,
             'key': obj.key,
