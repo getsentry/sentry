@@ -7,14 +7,9 @@ sentry.utils.files
 """
 from __future__ import absolute_import
 
-import zlib
 
-
-def compress_file(fp, level=6):
-    compressor = zlib.compressobj(level)
-    z_chunks = []
+def compress_file(fp):
     chunks = []
     for chunk in fp.chunks():
         chunks.append(chunk)
-        z_chunks.append(compressor.compress(chunk))
-    return (b''.join(z_chunks) + compressor.flush(), b''.join(chunks))
+    return b''.join(chunks)

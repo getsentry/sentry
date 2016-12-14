@@ -8,7 +8,6 @@ import re
 import base64
 import six
 import time
-import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
@@ -218,7 +217,7 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_key = 'releasefile:v1:%s:%s' % (
+    cache_key = 'releasefile:v2:%s:%s' % (
         release.id,
         md5_text(filename).hexdigest(),
     )
@@ -267,7 +266,7 @@ def fetch_release_file(filename, release):
         try:
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
-                    z_body, body = compress_file(fp)
+                    body = compress_file(fp)
         except Exception as e:
             logger.exception(six.text_type(e))
             cache.set(cache_key, -1, 3600)
@@ -276,20 +275,12 @@ def fetch_release_file(filename, release):
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
             result = (headers, body, 200, encoding)
-            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+            cache.set(cache_key, result, 3600)
 
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
         result = None
-    else:
-        # Previous caches would be a 3-tuple instead of a 4-tuple,
-        # so this is being maintained for backwards compatibility
-        try:
-            encoding = result[3]
-        except IndexError:
-            encoding = None
-        result = (result[0], zlib.decompress(result[1]), result[2], encoding)
 
     return result
 
@@ -313,7 +304,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     else:
         result = None
 
-    cache_key = 'source:cache:v3:%s' % (
+    cache_key = 'source:cache:v4:%s' % (
         md5_text(url).hexdigest(),
     )
 
@@ -327,16 +318,6 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
-        if result is not None:
-            # Previous caches would be a 3-tuple instead of a 4-tuple,
-            # so this is being maintained for backwards compatibility
-            try:
-                encoding = result[3]
-            except IndexError:
-                encoding = None
-            # We got a cache hit, but the body is compressed, so we
-            # need to decompress it before handing it off
-            result = (result[0], zlib.decompress(result[1]), result[2], encoding)
 
     if result is None:
         # lock down domains that are problematic
@@ -438,11 +419,10 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                     raise CannotFetchSource(error)
 
                 body = b''.join(contents)
-                z_body = zlib.compress(body)
                 headers = {k.lower(): v for k, v in response.headers.items()}
                 encoding = response.encoding
 
-                cache.set(cache_key, (headers, z_body, response.status_code, encoding), 60)
+                cache.set(cache_key, (headers, body, response.status_code, encoding), 60)
                 result = (headers, body, response.status_code, encoding)
             finally:
                 if response is not None:
