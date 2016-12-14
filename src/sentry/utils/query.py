@@ -139,6 +139,7 @@ class WithProgressBar(object):
                 yield item
                 pbar.update(idx)
             pbar.finish()
+            pbar.stdout.write(u'\U0001F389 \n')
 
 
 class EverythingCollector(Collector):
