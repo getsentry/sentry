@@ -5,6 +5,7 @@ Version 8.12 (Unreleased)
 - restructured dSYM processing.  It now records errors in the symbolication process
   more accurately and will report system errors them to the internal logger.
 - Added data migration to backfill legacy release data
+- Added data migration to backfill legacy commit data
 
 SDKs
 ~~~~
