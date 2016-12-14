@@ -62,14 +62,6 @@ const FilterRow = React.createClass({
   render() {
     let data = this.props.data;
 
-    // TODO(ckj): Figure out how to do this with styled-components
-
-    let filterStyles = {
-      position: 'absolute',
-      top: 10,
-      right: 12
-    };
-
     return (
       <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
         <div className="row">
@@ -94,7 +86,7 @@ const FilterRow = React.createClass({
                   <FilterGridIcon />
                   <h5>{filter.name}</h5>
                   <p className="help-block">{filter.description}</p>
-                  <FilterSwitch {...this.props} style={filterStyles} data={filter} size="lg"/>
+                  <FilterSwitch {...this.props} data={filter} size="lg"/>
                 </FilterGridItem>
               );
             })}
@@ -136,7 +128,7 @@ const FilterGridItem = styled.div`
   && .switch {
     background: #fff;
     position: absolute;
-    top: 18px;
+    top: 17px;
     right: 12px;
   }
 `;
