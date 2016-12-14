@@ -24,7 +24,7 @@ class ProcessingIssueManager(BaseManager):
         try:
             obj = self.get(project=project, type=type, key=key)
         except self.model.DoesNotExist:
-            obj = self.objects.get_or_create(
+            obj = self.get_or_create(
                 project=project,
                 type=type,
                 key=key,
