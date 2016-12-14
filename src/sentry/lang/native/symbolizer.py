@@ -30,6 +30,8 @@ SIM_APP_PATH = '/Containers/Bundle/Application/'
 
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
+    '<redacted>',
+    '<unknown>',
 ])
 
 
