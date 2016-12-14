@@ -31,7 +31,8 @@ const GroupTagValues = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.location.search !== this.props.location.search) {
+    if (prevProps.location.search !== this.props.location.search ||
+      prevProps.params.tagKey !== this.props.params.tagKey) {
       this.fetchData();
     }
   },
