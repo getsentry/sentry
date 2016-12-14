@@ -26,6 +26,7 @@ class GenericField extends React.Component {
       error: (this.props.formErrors || {})[config.name],
       disabled: config.readonly,
       key: config.name,
+      formState: this.props.formState,
       help: (
         (defined(config.help) && config.help !== '')
           ? <span dangerouslySetInnerHTML={{__html: config.help}}/>
@@ -70,6 +71,7 @@ GenericField.propTypes = {
     config: React.PropTypes.object.isRequired,
     formData: React.PropTypes.object,
     formErrors: React.PropTypes.object,
+    formState: React.PropTypes.string.isRequired,
     onChange: React.PropTypes.func,
 };
 
