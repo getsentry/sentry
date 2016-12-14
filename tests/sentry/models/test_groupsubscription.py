@@ -84,6 +84,18 @@ class GetParticipantsTest(TestCase):
             user: GroupSubscriptionReason.comment,
         }
 
+    def test_excludes_global_no_conversations(self):
+        raise NotImplementedError
+
+    def test_excludes_project_no_conversations(self):
+        raise NotImplementedError
+
+    def test_includes_project_participating_only(self):
+        # TODO: This also needs to test to ensure the project setting overrides
+        # the global setting, and needs to ensure that this doesn't false
+        # positive due to a ID overlap.
+        raise NotImplementedError
+
     def test_excludes_project_participating_only(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
