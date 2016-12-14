@@ -347,6 +347,7 @@ def preprocess_apple_crash_event(data):
 def resolve_frame_symbols(data):
     debug_meta = data['debug_meta']
     debug_images = debug_meta['images']
+    is_debug_build = debug_meta.get('is_debug_build')
     sdk_info = get_sdk_from_event(data)
 
     stacktraces = find_all_stacktraces(data)
@@ -361,7 +362,8 @@ def resolve_frame_symbols(data):
     referenced_images = find_stacktrace_referenced_images(
         debug_images, [x[0] for x in stacktraces])
     sym = Symbolizer(project, debug_images,
-                     referenced_images=referenced_images)
+                     referenced_images=referenced_images,
+                     is_debug_build=is_debug_build)
 
     frame = None
     idx = -1
@@ -402,6 +404,7 @@ def resolve_frame_symbols(data):
                         'object_name': frame.get('package'),
                         'object_addr': frame['image_addr'],
                         'instruction_addr': frame['instruction_addr'],
+                        'symbol_name': frame.get('function'),
                         'symbol_addr': frame['symbol_addr'],
                     }
                     new_frame = dict(frame)
