@@ -71,11 +71,30 @@ class GroupSubscriptionManager(BaseManager):
                 group=group,
                 is_active=False,
                 user__in=users,
-            ).values('user')
+            ).values_list('user')
+        )
+
+        # Neither are users who are ignoring the project.
+        users = users.exclude(
+            id__in=UserOption.objects.filter(
+                Q(project__isnull=True) | Q(project=group.project),
+                user__in=users,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            ).exclude(
+                user__in=UserOption.objects.filter(
+                    user__in=users,
+                    key='workflow:notifications',
+                    project=group.project,
+                ).exclude(
+                    value=UserOptionValue.no_conversations,
+                ).values_list('user'),
+            ).values_list('user')
         )
 
         # Fetch all of the users that have been explicitly associated with this
-        # issue.
+        # issue. (Remember that users who have ignored this group or project
+        # are already excluded.)
         participants = {
             subscription.user: subscription.reason
             for subscription in
@@ -86,7 +105,8 @@ class GroupSubscriptionManager(BaseManager):
             ).select_related('user')
         }
 
-        # Find users which by default do not subscribe.
+        # Find users which by default do not subscribe unless they are
+        # participating.
         participating_only = set(
             UserOption.objects.filter(
                 Q(project__isnull=True) | Q(project=group.project),
@@ -99,17 +119,20 @@ class GroupSubscriptionManager(BaseManager):
                     key='workflow:notifications',
                     project=group.project,
                     value=UserOptionValue.all_conversations,
-                )
+                ).values_list('user'),
             ).values_list('user', flat=True)
         )
 
+        # If there are users who don't subscribe unless they're participating,
+        # remove them from them from the users queryset.
         if participating_only:
-            excluded = participating_only.difference(participants.keys())
+            excluded = participating_only - set(u.id for u in participants.keys())
             if excluded:
                 users = users.exclude(id__in=excluded)
 
         results = {}
 
+        # The remaining users are at mininum implicit subscribers.
         for user in users:
             results[user] = GroupSubscriptionReason.implicit
 
