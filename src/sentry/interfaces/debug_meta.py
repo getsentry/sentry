@@ -55,9 +55,14 @@ class DebugMeta(Interface):
     def to_python(cls, data):
         if 'images' not in data:
             raise InterfaceValidationError('Missing key "images"')
+        is_debug_build = data.get('is_debug_build')
+        if is_debug_build is not None and not isinstance(is_debug_build, bool):
+            raise InterfaceValidationError('Invalid value for "is_debug_build"')
+
         return cls(
             images=[cls.normalize_image(x) for x in data['images']],
             sdk_info=cls.normalize_sdk_info(data.get('sdk_info')),
+            is_debug_build=is_debug_build,
         )
 
     @staticmethod
