@@ -11,55 +11,24 @@ import marked from '../utils/marked';
 
 const FilterSwitch = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
     onToggle: React.PropTypes.func.isRequired,
+    size: React.PropTypes.string.isRequired
   },
-
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip'
-    })
-  ],
 
   getInitialState() {
     return {
       loading: false,
-      error: false,
     };
   },
 
   toggle() {
-    if (this.state.loading)
-      return;
-
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/filters/${data.id}/`, {
-      method: 'PUT',
-      data: {
-        active: !data.active,
-      },
-      success: (d, _, jqXHR) => {
-        this.props.onToggle(data, !data.active);
-        IndicatorStore.remove(loadingIndicator);
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false
-        });
-        IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      }
-    });
+    this.props.onToggle(this.props.data, !this.props.data.active);
   },
 
   render() {
     return(
-      <Switch size="lg"
+      <Switch size={this.props.size}
         isActive={this.props.data.active}
         isLoading={this.state.loading}
         toggle={this.toggle} />
@@ -102,12 +71,14 @@ const FilterRow = React.createClass({
           }
         </td>
         <td style={{textAlign: 'right'}}>
-          <FilterSwitch {...this.props}/>
+          {data.subFilters.length > 0 && <h5>All Legacy Browsers</h5>}
+          <FilterSwitch {...this.props} size="lg"/>
           {data.subFilters.map(filter => {
             return (
-              <div>
+              <div className="subfilter">
                 <h5>{filter.name}</h5>
-                <FilterSwitch {...this.props} data={filter}/>
+                <p className="help-block">{filter.description}</p>
+                <FilterSwitch {...this.props} data={filter} size="lg"/>
               </div>
             );
           })}
@@ -152,10 +123,32 @@ const ProjectFilters = React.createClass({
   },
 
   onToggleFilter(filter, active) {
-    let stateFilter = this.state.filterList.find(f => f.id === filter.id);
-    stateFilter.active = active;
-    this.setState({
-      filterList: [...this.state.filterList]
+    if (this.state.loading)
+      return;
+
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/filters/${filter.id}/`, {
+      method: 'PUT',
+      data: {
+        active: !filter.active,
+      },
+      success: (d, _, jqXHR) => {
+        let stateFilter = this.state.filterList.find(f => f.id === filter.id);
+        stateFilter.active = active;
+        this.setState({
+          filterList: [...this.state.filterList]
+        });
+        IndicatorStore.remove(loadingIndicator);
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+        IndicatorStore.remove(loadingIndicator);
+        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+      }
     });
   },
 

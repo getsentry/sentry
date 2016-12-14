@@ -11,13 +11,14 @@ MIN_VERSIONS = {
     'Safari': 6,
     'Edge': 0,
     'Opera': 15,
+    'Android': 4,
 }
 
 
-class IE8Filter(Filter):
-    id = 'legacy-browsers:ie8'
-    name = 'IE8'
-    description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
+class AndroidFilter(Filter):
+    id = 'legacy-browsers:android'
+    name = 'Android'
+    description = 'Below Version 4'
     default = False
 
     def get_user_agent(self, data):
@@ -42,6 +43,53 @@ class IE8Filter(Filter):
 
         browser = ua['user_agent']
         if not browser['family']:
+            return False
+
+        if not browser['family'] == "Android":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 4:
+            return True
+
+        return False
+
+
+class IE8Filter(Filter):
+    id = 'legacy-browsers:ie8'
+    name = 'Internet Explorer'
+    description = 'Version 8'
+    default = False
+
+    def get_user_agent(self, data):
+        try:
+            for key, value in data['sentry.interfaces.Http']['headers']:
+                if key.lower() == 'user-agent':
+                    return value
+        except LookupError:
+            return ''
+
+    def test(self, data):
+        if data.get('platform') != 'javascript':
+            return False
+
+        value = self.get_user_agent(data)
+        if not value:
+            return False
+
+        ua = Parse(value)
+        if not ua:
+            return False
+
+        browser = ua['user_agent']
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "IE":
             return False
 
         try:
@@ -57,8 +105,8 @@ class IE8Filter(Filter):
 
 class IE9Filter(Filter):
     id = 'legacy-browsers:ie9'
-    name = 'IE9'
-    description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
+    name = 'Internet Explorer'
+    description = 'Version 9'
     default = False
 
     def get_user_agent(self, data):
@@ -83,6 +131,9 @@ class IE9Filter(Filter):
 
         browser = ua['user_agent']
         if not browser['family']:
+            return False
+
+        if not browser['family'] == "IE":
             return False
 
         try:
