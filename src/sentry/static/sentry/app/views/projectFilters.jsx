@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'styled-components';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -60,33 +61,94 @@ const FilterRow = React.createClass({
 
   render() {
     let data = this.props.data;
+
+    // TODO(ckj): Figure out how to do this with styled-components
+
+    let filterStyles = {
+      position: 'absolute',
+      top: 10,
+      right: 12
+    };
+
     return (
-      <tr>
-        <td>
-          <h5>{data.name}</h5>
-          {data.description &&
-            <small className="help-block" dangerouslySetInnerHTML={{
-              __html: marked(data.description)
-            }} />
-          }
-        </td>
-        <td style={{textAlign: 'right'}}>
-          {data.subFilters.length > 0 && <h5>All Legacy Browsers</h5>}
-          <FilterSwitch {...this.props} size="lg"/>
-          {data.subFilters.map(filter => {
-            return (
-              <div className="subfilter">
-                <h5>{filter.name}</h5>
-                <p className="help-block">{filter.description}</p>
-                <FilterSwitch {...this.props} data={filter} size="lg"/>
-              </div>
-            );
-          })}
-        </td>
-      </tr>
+      <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+        <div className="row">
+          <div className="col-md-9">
+            <h5 style={{marginBottom: 10}}>{data.name}</h5>
+            {data.description &&
+              <small className="help-block" dangerouslySetInnerHTML={{
+                __html: marked(data.description)
+              }} />
+            }
+          </div>
+          <div className="col-md-3 align-right">
+            {!data.subFilters.length > 0 && <FilterSwitch {...this.props} size="lg"/>}
+          </div>
+        </div>
+
+        {data.subFilters.length > 0 &&
+          <FilterGrid>
+            {data.subFilters.map(filter => {
+              return (
+                <FilterGridItem>
+                  <FilterGridIcon />
+                  <h5>{filter.name}</h5>
+                  <p className="help-block">{filter.description}</p>
+                  <FilterSwitch {...this.props} style={filterStyles} data={filter} size="lg"/>
+                </FilterGridItem>
+              );
+            })}
+          </FilterGrid>
+        }
+      </div>
     );
   }
 });
+
+// TODO(ckj): Make this its own generic component at some point
+
+const FilterGrid = styled.div`
+  display: flex;
+  margin-left: -5px;
+  margin-right: -5px;
+  margin-bottom: 20px;
+`;
+
+const FilterGridItem = styled.div`
+  flex: 1;
+  margin-left: 5px;
+  margin-right: 5px;
+  width: 25%;
+  background: #F7F8F9;
+  border-radius: 3px;
+  position: relative;
+  padding: 10px 65px 6px 58px;
+
+  && h5 {
+    font-size: 15px;
+    margin: 0 0 2px;
+  }
+
+  && p {
+    margin: 0;
+  }
+
+  && .switch {
+    background: #fff;
+    position: absolute;
+    top: 18px;
+    right: 12px;
+  }
+`;
+
+const FilterGridIcon = styled.div`
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 38px;
+  height: 38px;
+  background: rgba(0,0,0, .07);
+`;
 
 const ProjectFilters = React.createClass({
   mixins: [ApiMixin],
@@ -188,20 +250,18 @@ const ProjectFilters = React.createClass({
     });
 
     return (
-      <table className="table">
-        <tbody>
-          {topLevelFilters.map((filter) => {
-            return (
-              <FilterRow
-                key={filter.id}
-                data={filter}
-                orgId={orgId}
-                projectId={projectId}
-                onToggle={this.onToggleFilter} />
-            );
-          })}
-        </tbody>
-      </table>
+      <div>
+        {topLevelFilters.map((filter) => {
+          return (
+            <FilterRow
+              key={filter.id}
+              data={filter}
+              orgId={orgId}
+              projectId={projectId}
+              onToggle={this.onToggleFilter} />
+          );
+        })}
+      </div>
     );
   },
 
