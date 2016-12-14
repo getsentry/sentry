@@ -59,6 +59,11 @@ class EventSerializer(Serializer):
             sdk_interface = item.interfaces.get('sdk')
             if sdk_interface:
                 sdk_data = sdk_interface.get_api_context()
+                # we restrict SDK information to superusers due to the nature of
+                # privacy laws and IP sensitivity
+                # TODO(dcramer): make this respect 'enhanced privacy' org flag
+                if not user.is_superuser:
+                    sdk_data.pop('clientIP', None)
             else:
                 sdk_data = None
 
