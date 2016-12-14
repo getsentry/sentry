@@ -28,6 +28,10 @@ _known_app_bundled_frameworks_re = re.compile(r'''(?x)
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
 
+KNOWN_GARBAGE_SYMBOLS = set([
+    '_mh_execute_header',
+])
+
 
 @implements_to_string
 class SymbolicationFailed(Exception):
@@ -119,10 +123,12 @@ def make_symbolizer(project, binary_images, referenced_images=None):
 
 class Symbolizer(object):
 
-    def __init__(self, project, binary_images, referenced_images=None):
+    def __init__(self, project, binary_images, referenced_images=None,
+                 is_debug_build=None):
         self.symsynd_symbolizer = make_symbolizer(
             project, binary_images, referenced_images=referenced_images)
         self.images = dict((img['image_addr'], img) for img in binary_images)
+        self.is_debug_build = is_debug_build
 
     def __enter__(self):
         return self.symsynd_symbolizer.driver.__enter__()
@@ -154,14 +160,20 @@ class Symbolizer(object):
             return False
         return True
 
+    def _is_app_bundled_framework(self, frame, img):
+        fn = self._get_frame_package(frame, img)
+        return _known_app_bundled_frameworks_re.search(fn) is not None
+
     def _is_app_frame(self, frame, img):
         if not self._is_app_bundled_frame(frame, img):
             return False
         return not self._is_app_bundled_framework(frame, img)
 
-    def _is_app_bundled_framework(self, frame, img):
-        fn = self._get_frame_package(frame, img)
-        return _known_app_bundled_frameworks_re.search(fn) is not None
+    def _is_optional_app_bundled_framework(self, frame, img):
+        if not self._is_app_bundled_framework(frame, img):
+            return False
+        symbol_name = frame.get('symbol_name')
+        return symbol_name and symbol_name not in KNOWN_GARBAGE_SYMBOLS
 
     def _is_simulator_frame(self, frame, img):
         fn = self._get_frame_package(frame, img)
@@ -173,8 +185,12 @@ class Symbolizer(object):
 
     def symbolize_app_frame(self, frame, img):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
+            if self._is_optional_app_bundled_framework(frame, img):
+                type = 'missing-optionally-bundled-dsym'
+            else:
+                type = 'missing-dsym'
             raise SymbolicationFailed(
-                type='missing-dsym',
+                type=type,
                 image=img
             )
 
