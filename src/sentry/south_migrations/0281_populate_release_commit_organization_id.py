@@ -10,15 +10,14 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        qs = orm.ReleaseCommit.objects.all()
-        project_ids = {rc['project_id'] for rc in qs.values('project_id')}
-        projects = orm.Project.objects.filter(id__in=project_ids)
-        project_lookup = {}
-        for p in projects:
-            project_lookup[p.id] = p
-        for rc in RangeQuerySetWrapperWithProgressBar(qs):
-            organization_id = project_lookup[rc.project_id].organization_id
-            orm.ReleaseCommit.objects.filter(id=rc.id).update(organization_id=organization_id)
+        for rc in RangeQuerySetWrapperWithProgressBar(orm.ReleaseCommit.objects.all()):
+            orm.ReleaseCommit.objects.filter(
+                id=rc.id
+            ).update(
+                organization_id=orm.Project.objects.filter(
+                    id=rc.project_id
+                ).values_list('organization_id', flat=True)[0]
+            )
 
     def backwards(self, orm):
         "Write your backwards methods here."
