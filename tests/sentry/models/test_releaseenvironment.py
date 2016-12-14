@@ -30,6 +30,7 @@ class GetOrCreateTest(TestCase):
         )
 
         assert relenv.project_id == project.id
+        assert relenv.organization_id == project.organization_id
         assert relenv.release_id == release.id
         assert relenv.environment_id == env.id
 
