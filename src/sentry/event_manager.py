@@ -45,6 +45,25 @@ from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
 
 
+NON_STORED_DATA_KEYS = [
+    'unprocessed',
+    'event_id',
+    'level',
+    'culprit',
+    'logger',
+    'server_name',
+    'site',
+    'checksum',
+    'fingerprint',
+    'platform',
+    'release',
+    'environment',
+    'message',
+    'time_spent',
+    'timestamp',
+]
+
+
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
@@ -405,36 +424,38 @@ class EventManager(object):
 
         data = self.data.copy()
 
-        unprocessed = data.pop('unprocessed', False)
+        unprocessed = data.get('unprocessed', False)
 
         # First we pull out our top-level (non-data attr) kwargs
-        event_id = data.pop('event_id')
-        level = data.pop('level')
+        event_id = data.get('event_id')
+        level = data.get('level')
 
-        culprit = data.pop('culprit', None)
-        logger_name = data.pop('logger', None)
-        server_name = data.pop('server_name', None)
-        site = data.pop('site', None)
-        checksum = data.pop('checksum', None)
-        fingerprint = data.pop('fingerprint', None)
-        platform = data.pop('platform', None)
-        release = data.pop('release', None)
-        environment = data.pop('environment', None)
+        culprit = data.get('culprit', None)
+        logger_name = data.get('logger', None)
+        server_name = data.get('server_name', None)
+        site = data.get('site', None)
+        checksum = data.get('checksum', None)
+        fingerprint = data.get('fingerprint', None)
+        platform = data.get('platform', None)
+        release = data.get('release', None)
+        environment = data.get('environment', None)
+        message = data.get('message', '')
+        time_spent = data.get('time_spent', None)
 
-        # unused
-        time_spent = data.pop('time_spent', None)
-        message = data.pop('message', '')
-
-        if not culprit:
-            # if we generate an implicit culprit, lets not call it a
-            # transaction
-            transaction_name = None
-            culprit = generate_culprit(data, platform=platform)
-        else:
-            transaction_name = culprit
-
-        date = datetime.fromtimestamp(data.pop('timestamp'))
+        date = datetime.fromtimestamp(data.get('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
+
+        # Some processing for when things went well
+        if not unprocessed:
+            for key in NON_STORED_DATA_KEYS:
+                data.pop(key, None)
+            if not culprit:
+                # if we generate an implicit culprit, lets not call it a
+                # transaction
+                transaction_name = None
+                culprit = generate_culprit(data, platform=platform)
+            else:
+                transaction_name = culprit
 
         kwargs = {
             'platform': platform,
@@ -461,7 +482,7 @@ class EventManager(object):
             tags['site'] = site
         if environment:
             tags['environment'] = environment
-        if transaction_name:
+        if not unprocessed and transaction_name:
             tags['transaction'] = transaction_name
 
         if release:
@@ -490,31 +511,15 @@ class EventManager(object):
 
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
-        data['tags'] = tags
-
-        data['fingerprint'] = fingerprint or ['{{ default }}']
+        if not unprocessed:
+            data['tags'] = tags
+            data['fingerprint'] = fingerprint or ['{{ default }}']
 
         for path, iface in six.iteritems(event.interfaces):
             data['tags'].extend(iface.iter_tags())
             # Get rid of ephemeral interface data
             if iface.ephemeral:
                 data.pop(iface.get_path(), None)
-
-        # prioritize fingerprint over checksum as its likely the client defaulted
-        # a checksum whereas the fingerprint was explicit
-        if fingerprint:
-            hashes = [
-                md5_from_hash(h)
-                for h in get_hashes_from_fingerprint(event, fingerprint)
-            ]
-        elif checksum:
-            hashes = [checksum]
-            data['checksum'] = checksum
-        else:
-            hashes = [
-                md5_from_hash(h)
-                for h in get_hashes_for_event(event)
-            ]
 
         # TODO(dcramer): temp workaround for complexity
         data['message'] = message
@@ -535,6 +540,22 @@ class EventManager(object):
                     message,
                     data['sentry.interfaces.Message']['message'],
                 )
+
+        # prioritize fingerprint over checksum as its likely the client defaulted
+        # a checksum whereas the fingerprint was explicit
+        if fingerprint:
+            hashes = [
+                md5_from_hash(h)
+                for h in get_hashes_from_fingerprint(event, fingerprint)
+            ]
+        elif checksum:
+            hashes = [checksum]
+            data['checksum'] = checksum
+        else:
+            hashes = [
+                md5_from_hash(h)
+                for h in get_hashes_for_event(event)
+            ]
 
         if not message:
             message = ''
