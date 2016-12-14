@@ -91,10 +91,6 @@ const ProjectProcessingIssues = React.createClass({
   },
 
   getImageName(path) {
-    let match = path.match(/\/Frameworks\/(.*?)(\/|$)/);
-    if (match) {
-      return match[1];
-    }
     let pathSegments = path.split(/\//g);
     return pathSegments[pathSegments.length - 1];
   },
@@ -111,7 +107,7 @@ const ProjectProcessingIssues = React.createClass({
     );
   },
 
-  renderLocation(item) {
+  renderDetails(item) {
     let dsymUUID = null;
     let dsymName = null;
     let dsymArch = null;
@@ -143,7 +139,7 @@ const ProjectProcessingIssues = React.createClass({
         <thead>
           <tr>
             <th>{t('Problem')}</th>
-            <th>{t('Location')}</th>
+            <th>{t('Details')}</th>
             <th>{t('Issues')}</th>
             <th>{t('Last seen')}</th>
           </tr>
@@ -153,7 +149,7 @@ const ProjectProcessingIssues = React.createClass({
             return (
               <tr key={idx}>
                 <td>{this.renderProblem(item)}</td>
-                <td>{this.renderLocation(item)}</td>
+                <td>{this.renderDetails(item)}</td>
                 <td>{item.affectedGroups + ''}</td>
                 <td><DateTime date={item.lastSeen}/></td>
               </tr>
