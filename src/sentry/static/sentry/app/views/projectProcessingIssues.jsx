@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import DateTime from '../components/dateTime';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
@@ -144,6 +145,7 @@ const ProjectProcessingIssues = React.createClass({
             <th>{t('Problem')}</th>
             <th>{t('Location')}</th>
             <th>{t('Issues')}</th>
+            <th>{t('Last seen')}</th>
           </tr>
         </thead>
         <tbody>
@@ -153,6 +155,7 @@ const ProjectProcessingIssues = React.createClass({
                 <td>{this.renderProblem(item)}</td>
                 <td>{this.renderLocation(item)}</td>
                 <td>{item.affectedGroups + ''}</td>
+                <td><DateTime date={item.lastSeen}/></td>
               </tr>
             );
           })}
