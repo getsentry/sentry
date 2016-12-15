@@ -132,12 +132,11 @@ class GroupSubscriptionManager(BaseManager):
 
         results = {}
 
-        # The remaining users are at mininum implicit subscribers.
         for user in users:
-            results[user] = GroupSubscriptionReason.implicit
-
-        for user, reason in participants.items():
-            results[user] = reason
+            results[user] = participants.get(
+                user,
+                GroupSubscriptionReason.implicit,
+            )
 
         return results
 
