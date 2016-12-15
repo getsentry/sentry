@@ -14,13 +14,19 @@ class Migration(DataMigration):
             organization_id__isnull=True
         )
         for re in RangeQuerySetWrapperWithProgressBar(release_environments):
-            orm.ReleaseEnvironment.objects.filter(
-                id=re.id
-            ).update(
-                organization_id=orm.Project.objects.filter(
+            try:
+                org_id = orm.Project.objects.filter(
                     id=re.project_id
                 ).values_list('organization_id', flat=True)[0]
-            )
+            except IndexError:
+                pass
+            else:
+                orm.ReleaseEnvironment.objects.filter(
+                    id=re.id
+                ).update(
+                    organization_id=org_id
+                )
+
 
         release_files = orm.ReleaseFile.objects.filter(
             organization__isnull=True
