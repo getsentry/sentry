@@ -46,5 +46,6 @@ class SharedEventSerializerTest(TestCase):
         assert result.get('user') is None
         assert result.get('tags') is None
         assert 'sdk' not in result
+        assert 'errors' not in result
         for entry in result['entries']:
             assert entry['type'] != 'breadcrumbs'
