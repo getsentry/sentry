@@ -10,6 +10,18 @@ import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
 import marked from '../utils/marked';
 
+// TODO: Should there just be a filter.slug attribute?
+
+function slugify(text)
+{
+  return text.toString().toLowerCase()
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+    .replace(/^-+/, '')             // Trim - from start of text
+    .replace(/-+$/, '');            // Trim - from end of text
+}
+
 const FilterSwitch = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
@@ -73,7 +85,7 @@ const FilterRow = React.createClass({
               }} />
             }
           </div>
-          <div className="col-md-3 align-right">
+          <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
             {!data.subFilters.length > 0 && <FilterSwitch {...this.props} size="lg"/>}
           </div>
         </div>
@@ -83,7 +95,7 @@ const FilterRow = React.createClass({
             {data.subFilters.map(filter => {
               return (
                 <FilterGridItem>
-                  <FilterGridIcon />
+                  <FilterGridIcon className={ 'icon-' + slugify(filter.name)} />
                   <h5>{filter.name}</h5>
                   <p className="help-block">{filter.description}</p>
                   <FilterSwitch {...this.props} data={filter} size="lg"/>
@@ -139,7 +151,9 @@ const FilterGridIcon = styled.div`
   left: 10px;
   width: 38px;
   height: 38px;
-  background: rgba(0,0,0, .07);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 38px 38px;
 `;
 
 const ProjectFilters = React.createClass({
