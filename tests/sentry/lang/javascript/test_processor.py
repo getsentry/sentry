@@ -54,6 +54,7 @@ class FetchReleaseFileTest(TestCase):
             name='file.min.js',
             release=release,
             project=project,
+            organization_id=project.organization_id,
             file=file,
         )
 

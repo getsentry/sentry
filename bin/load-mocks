@@ -284,6 +284,7 @@ def main(num_events=1):
                     checksum='abcde' * 8,
                     size=13043,
                 )[0],
+                defaults={'organization_id': project.organization_id}
             )
 
             commit = Commit.objects.get_or_create(

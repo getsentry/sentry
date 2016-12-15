@@ -136,6 +136,7 @@ class ReleaseDeleteTest(APITestCase):
         )
         release.add_project(project)
         ReleaseFile.objects.create(
+            organization_id=project.organization_id,
             project=project,
             release=release,
             file=File.objects.create(

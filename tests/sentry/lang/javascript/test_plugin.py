@@ -477,6 +477,7 @@ class JavascriptIntegrationTest(TestCase):
             name='~/{}?foo=bar'.format(f_minified.name),
             release=release,
             project=project,
+            organization_id=project.organization_id,
             file=f_minified,
         )
 
@@ -494,6 +495,7 @@ class JavascriptIntegrationTest(TestCase):
             name='http://example.com/{}'.format(f1.name),
             release=release,
             project=project,
+            organization_id=project.organization_id,
             file=f1,
         )
 
@@ -510,6 +512,7 @@ class JavascriptIntegrationTest(TestCase):
             name='http://example.com/{}'.format(f2.name),
             release=release,
             project=project,
+            organization_id=project.organization_id,
             file=f2,
         )
 
@@ -528,6 +531,7 @@ class JavascriptIntegrationTest(TestCase):
             name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
             project=project,
+            organization_id=project.organization_id,
             file=f2_empty,
         )
 
@@ -544,6 +548,7 @@ class JavascriptIntegrationTest(TestCase):
             name='http://example.com/{}'.format(f_sourcemap.name),
             release=release,
             project=project,
+            organization_id=project.organization_id,
             file=f_sourcemap,
         )
 
