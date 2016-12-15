@@ -7,6 +7,7 @@ Version 8.12 (Unreleased)
 - Added data migration to backfill legacy release data
 - Added data migration to backfill legacy commit data
 - Added data migration to backfill legacy release file and environment data
+- Allow gziped/deflated JavaScript artifacts to be uploaded through the API.
 
 SDKs
 ~~~~
