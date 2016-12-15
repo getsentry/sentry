@@ -4,6 +4,8 @@ from rest_framework.response import Response
 
 from sentry import filters
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.exceptions import ResourceDoesNotExist
+from .project_filter_details import ProjectFilterSerializer
 
 
 class ProjectFiltersEndpoint(ProjectEndpoint):
@@ -25,5 +27,23 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
                 'description': filter.description,
                 'name': filter.name,
             })
+
         results.sort(key=lambda x: x['name'])
         return Response(results)
+
+    def put(self, request, project):
+        filter_ids = request.GET.getlist('id')
+        if filter_ids:
+            for filter_id in filter_ids:
+                try:
+                    filter = filters.get(filter_id)(project)
+                except filters.FilterNotRegistered:
+                    raise ResourceDoesNotExist
+
+                serializer = ProjectFilterSerializer(data=request.DATA, partial=True)
+                if not serializer.is_valid():
+                    return Response(serializer.errors, status=400)
+
+                if 'active' in serializer.object:
+                    filter.enable(serializer.object['active'])
+        return Response(status=201)

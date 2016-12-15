@@ -15,10 +15,101 @@ MIN_VERSIONS = {
 }
 
 
+class OperaFilter(Filter):
+    id = 'legacy-browsers:opera'
+    name = 'Opera'
+    description = 'Below Version 15'
+    slug = 'opera'
+    default = False
+
+    def get_user_agent(self, data):
+        try:
+            for key, value in data['sentry.interfaces.Http']['headers']:
+                if key.lower() == 'user-agent':
+                    return value
+        except LookupError:
+            return ''
+
+    def test(self, data):
+        if data.get('platform') != 'javascript':
+            return False
+
+        value = self.get_user_agent(data)
+        if not value:
+            return False
+
+        ua = Parse(value)
+        if not ua:
+            return False
+
+        browser = ua['user_agent']
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "Opera":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 15:
+            return True
+
+        return False
+
+
+class SafariFilter(Filter):
+    id = 'legacy-browsers:safari'
+    name = 'Safari'
+    description = 'Below Version 6'
+    slug = 'safari'
+    default = False
+
+    def get_user_agent(self, data):
+        try:
+            for key, value in data['sentry.interfaces.Http']['headers']:
+                if key.lower() == 'user-agent':
+                    return value
+        except LookupError:
+            return ''
+
+    def test(self, data):
+        if data.get('platform') != 'javascript':
+            return False
+
+        value = self.get_user_agent(data)
+        if not value:
+            return False
+
+        ua = Parse(value)
+        if not ua:
+            return False
+
+        browser = ua['user_agent']
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "Safari":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 6:
+            return True
+
+        return False
+
+
 class AndroidFilter(Filter):
     id = 'legacy-browsers:android'
     name = 'Android'
     description = 'Below Version 4'
+    slug = 'android'
     default = False
 
     def get_user_agent(self, data):
@@ -63,6 +154,7 @@ class IE8Filter(Filter):
     id = 'legacy-browsers:ie8'
     name = 'Internet Explorer'
     description = 'Version 8'
+    slug = 'internet-explorer'
     default = False
 
     def get_user_agent(self, data):
@@ -107,6 +199,7 @@ class IE9Filter(Filter):
     id = 'legacy-browsers:ie9'
     name = 'Internet Explorer'
     description = 'Version 9'
+    slug = 'internet-explorer'
     default = False
 
     def get_user_agent(self, data):

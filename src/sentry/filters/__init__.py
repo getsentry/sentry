@@ -10,7 +10,9 @@ from .manager import FilterManager  # NOQA
 
 from .localhost import LocalhostFilter
 from .browser_extensions import BrowserExtensionsFilter
-from .legacy_browsers import LegacyBrowsersFilter, IE8Filter, IE9Filter, AndroidFilter
+from .legacy_browsers import (
+    LegacyBrowsersFilter, IE8Filter, IE9Filter,
+    AndroidFilter, SafariFilter, OperaFilter)
 from .web_crawlers import WebCrawlersFilter
 
 default_manager = FilterManager()
@@ -20,6 +22,8 @@ default_manager.register(LegacyBrowsersFilter)
 default_manager.register(IE8Filter)
 default_manager.register(IE9Filter)
 default_manager.register(AndroidFilter)
+default_manager.register(SafariFilter)
+default_manager.register(OperaFilter)
 default_manager.register(WebCrawlersFilter)
 
 all = default_manager.all

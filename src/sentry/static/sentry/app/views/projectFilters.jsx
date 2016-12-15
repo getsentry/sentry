@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -71,6 +72,10 @@ const FilterRow = React.createClass({
     };
   },
 
+  onToggleSubfilters(active) {
+    this.props.onToggle(this.props.data.subFilters, active);
+  },
+
   render() {
     let data = this.props.data;
 
@@ -92,10 +97,14 @@ const FilterRow = React.createClass({
 
         {data.subFilters.length > 0 &&
           <FilterGrid>
+            <div>
+              <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>|
+              <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
+            </div>
             {data.subFilters.map(filter => {
               return (
                 <FilterGridItem>
-                  <FilterGridIcon className={ 'icon-' + slugify(filter.name)} />
+                  <FilterGridIcon className={ 'icon-' + slugify(filter.name) } />
                   <h5>{filter.name}</h5>
                   <p className="help-block">{filter.description}</p>
                   <FilterSwitch {...this.props} data={filter} size="lg"/>
@@ -174,7 +183,7 @@ const ProjectFilters = React.createClass({
   fetchData() {
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/filters/`, {
-      success: (data, _, jqXHR) => {
+      success: (data, textStatus, jqXHR) => {
         this.setState({
           error: false,
           loading: false,
@@ -190,20 +199,31 @@ const ProjectFilters = React.createClass({
     });
   },
 
-  onToggleFilter(filter, active) {
+  onToggleFilter(filters, active) {
+    if (!_.isArray(filters))
+      filters = [filters];
+
+    let filterIds = filters.map(f => f.id);
+
     if (this.state.loading)
       return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/filters/${filter.id}/`, {
+
+    let endpoint = `/projects/${orgId}/${projectId}/filters/`; // ?id=a&id=b
+    this.api.request(endpoint, {
+      query: {id: filterIds},
       method: 'PUT',
       data: {
-        active: !filter.active,
+        active: active,
       },
-      success: (d, _, jqXHR) => {
-        let stateFilter = this.state.filterList.find(f => f.id === filter.id);
-        stateFilter.active = active;
+      success: (d, textStatus, jqXHR) => {
+        filterIds.forEach(filterId => {
+          let stateFilter = this.state.filterList.find(f => f.id === filterId);
+          stateFilter.active = active;
+        });
+
         this.setState({
           filterList: [...this.state.filterList]
         });
