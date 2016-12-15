@@ -346,6 +346,36 @@ class GetParticipantsTest(TestCase):
                 reason=GroupSubscriptionReason.comment,
             )
 
+        subscription.delete()
+        clear_workflow_options()
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        )
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=group.project,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.implicit},
+                after={user: GroupSubscriptionReason.comment}):
+            subscription = GroupSubscription.objects.create(
+                user=user,
+                group=group,
+                project=project,
+                is_active=True,
+                reason=GroupSubscriptionReason.comment,
+            )
+
     def test_does_not_include_nonmember(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
