@@ -8,8 +8,8 @@ sentry.models.useroption
 from __future__ import absolute_import, print_function
 
 from celery.signals import task_postrun
-from django.core.signals import request_finished
 from django.conf import settings
+from django.core.signals import request_finished
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr

@@ -3,13 +3,14 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.utils import timezone
 from mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.models import (
-    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupSubscription,
-    GroupStatus, Release, UserOption, UserOptionValue
+    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupStatus,
+    GroupSubscription, Release, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
 

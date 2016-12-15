@@ -3,9 +3,9 @@
 from __future__ import absolute_import
 
 import functools
-import six
 
 import mock
+import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 

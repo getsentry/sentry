@@ -17,8 +17,8 @@ from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
-from sentry.auth import password_validation
 from sentry.app import ratelimiter
+from sentry.auth import password_validation
 from sentry.constants import LANGUAGES
 from sentry.models import (
     Organization, OrganizationStatus, User, UserOption, UserOptionValue

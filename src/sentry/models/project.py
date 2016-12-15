@@ -8,9 +8,9 @@ sentry.models.project
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 import warnings
 
+import six
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -27,7 +27,6 @@ from sentry.db.models.utils import slugify_instance
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-
 
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
