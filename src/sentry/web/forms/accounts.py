@@ -565,12 +565,20 @@ class NotificationSettingsForm(forms.Form):
             value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
-        UserOption.objects.set_value(
-            user=self.user,
-            project=None,
-            key='workflow:notifications',
-            value=self.cleaned_data['workflow_notifications'],
-        )
+        workflow_notifications_value = self.cleaned_data.get('workflow_notifications')
+        if not workflow_notifications_value:
+            UserOption.objects.unset_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+            )
+        else:
+            UserOption.objects.set_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                value=workflow_notifications_value,
+            )
 
 
 class ProjectEmailOptionsForm(forms.Form):
