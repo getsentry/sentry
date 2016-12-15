@@ -17,6 +17,7 @@ from requests.exceptions import RequestException, Timeout
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 from libsourcemap import from_json as view_from_json
+from urllib3.response import GzipDecoder, DeflateDecoder
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -31,7 +32,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
-from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -134,6 +134,17 @@ def trim_line(line, column=0):
         # we've snipped from the beginning
         line = u'{snip} ' + line
     return line
+
+
+# TODO(mattrobenolt): Generalize on this and leverage the urllib3
+# decoders inside coreapi as well so we have a unified method for
+# handling gzip/deflate decompression. urllib3 is pretty good at this.
+def get_content_decoder_from_headers(headers):
+    content_encoding = headers.get('content-encoding', '').lower()
+    if content_encoding == 'gzip':
+        return GzipDecoder()
+    if content_encoding == 'deflate':
+        return DeflateDecoder()
 
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
@@ -264,17 +275,30 @@ def fetch_release_file(filename, release):
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
         try:
+            body = []
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
-                    body = compress_file(fp)
+                    for chunk in fp.chunks():
+                        body.append(chunk)
+            body = b''.join(body)
         except Exception as e:
             logger.exception(six.text_type(e))
             cache.set(cache_key, -1, 3600)
             result = None
         else:
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
-            encoding = get_encoding_from_headers(headers)
-            result = (headers, body, 200, encoding)
+            # Handle gzip/deflate compression depending on Content-Encoding header
+            decoder = get_content_decoder_from_headers(headers)
+            if decoder:
+                try:
+                    body = decoder.decompress(body)
+                except Exception:
+                    raise CannotFetchSource({
+                        'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                        'value': headers.get('content-encoding'),
+                        'url': expose_url(filename),
+                    })
+            result = (headers, body, 200, get_encoding_from_headers(headers))
             cache.set(cache_key, result, 3600)
 
     elif result == -1:
