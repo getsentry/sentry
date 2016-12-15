@@ -27,6 +27,7 @@ class Migration(DataMigration):
                 organization=organization_id
             )
 
+        db.start_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."
