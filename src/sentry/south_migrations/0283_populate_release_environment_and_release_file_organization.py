@@ -10,6 +10,8 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
+        db.commit_transaction()
+
         for project_id, organization_id in WithProgressBar(orm.Project.objects.all().values_list('id', 'organization_id')):
             orm.ReleaseEnvironment.objects.filter(
                 project_id=project_id,
