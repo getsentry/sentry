@@ -495,7 +495,7 @@ class NotificationSettingsForm(forms.Form):
         label=_('Default workflow subscription level for new projects'),
         choices=[
             (UserOptionValue.all_conversations, "Receive workflow updates for all issues."),
-            (UserOptionValue.participating_only, "Recieve workflow updates for issues that I am participating in."),
+            (UserOptionValue.participating_only, "Receive workflow updates for issues that I am participating in."),
             (UserOptionValue.no_conversations, "Never receive workflow updates."),
         ],
         required=False,
