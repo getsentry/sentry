@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import functools
+
 from sentry.models import (
     GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
 )
@@ -85,10 +87,66 @@ class GetParticipantsTest(TestCase):
         }
 
     def test_excludes_global_no_conversations(self):
-        raise NotImplementedError
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(team=team, organization=org)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(user=user, organization=org, teams=[team])
+
+        GroupSubscription.objects.create(
+            user=user,
+            group=group,
+            project=project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        get_participants = functools.partial(
+            GroupSubscription.objects.get_participants,
+            group,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.comment},
+                after={}):
+            UserOption.objects.set_value(
+                user=user,
+                project=None,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
 
     def test_excludes_project_no_conversations(self):
-        raise NotImplementedError
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(team=team, organization=org)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(user=user, organization=org, teams=[team])
+
+        GroupSubscription.objects.create(
+            user=user,
+            group=group,
+            project=project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        get_participants = functools.partial(
+            GroupSubscription.objects.get_participants,
+            group,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.comment},
+                after={}):
+            UserOption.objects.set_value(
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
 
     def test_includes_project_participating_only(self):
         # TODO: This also needs to test to ensure the project setting overrides
