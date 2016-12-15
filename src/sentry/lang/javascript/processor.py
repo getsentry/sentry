@@ -8,6 +8,7 @@ import re
 import base64
 import six
 import time
+import zlib
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
@@ -17,7 +18,6 @@ from requests.exceptions import RequestException, Timeout
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 from libsourcemap import from_json as view_from_json
-from urllib3.response import GzipDecoder, DeflateDecoder
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -32,6 +32,7 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
+from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
@@ -136,17 +137,6 @@ def trim_line(line, column=0):
     return line
 
 
-# TODO(mattrobenolt): Generalize on this and leverage the urllib3
-# decoders inside coreapi as well so we have a unified method for
-# handling gzip/deflate decompression. urllib3 is pretty good at this.
-def get_content_decoder_from_headers(headers):
-    content_encoding = headers.get('content-encoding', '').lower()
-    if content_encoding == 'gzip':
-        return GzipDecoder()
-    if content_encoding == 'deflate':
-        return DeflateDecoder()
-
-
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     if not source:
         return [], '', []
@@ -228,7 +218,7 @@ def discover_sourcemap(result):
 
 
 def fetch_release_file(filename, release):
-    cache_key = 'releasefile:v2:%s:%s' % (
+    cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5_text(filename).hexdigest(),
     )
@@ -275,36 +265,31 @@ def fetch_release_file(filename, release):
         logger.debug('Found release artifact %r (id=%s, release_id=%s)',
                      filename, releasefile.id, release.id)
         try:
-            body = []
             with metrics.timer('sourcemaps.release_file_read'):
                 with releasefile.file.getfile() as fp:
-                    for chunk in fp.chunks():
-                        body.append(chunk)
-            body = b''.join(body)
+                    z_body, body = compress_file(fp)
         except Exception as e:
             logger.exception(six.text_type(e))
             cache.set(cache_key, -1, 3600)
             result = None
         else:
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
-            # Handle gzip/deflate compression depending on Content-Encoding header
-            decoder = get_content_decoder_from_headers(headers)
-            if decoder:
-                try:
-                    body = decoder.decompress(body)
-                except Exception:
-                    raise CannotFetchSource({
-                        'type': EventError.JS_INVALID_SOURCE_ENCODING,
-                        'value': headers.get('content-encoding'),
-                        'url': expose_url(filename),
-                    })
-            result = (headers, body, 200, get_encoding_from_headers(headers))
-            cache.set(cache_key, result, 3600)
+            encoding = get_encoding_from_headers(headers)
+            result = (headers, body, 200, encoding)
+            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
     elif result == -1:
         # We cached an error, so normalize
         # it down to None
         result = None
+    else:
+        # Previous caches would be a 3-tuple instead of a 4-tuple,
+        # so this is being maintained for backwards compatibility
+        try:
+            encoding = result[3]
+        except IndexError:
+            encoding = None
+        result = (result[0], zlib.decompress(result[1]), result[2], encoding)
 
     return result
 
@@ -328,7 +313,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     else:
         result = None
 
-    cache_key = 'source:cache:v4:%s' % (
+    cache_key = 'source:cache:v3:%s' % (
         md5_text(url).hexdigest(),
     )
 
@@ -342,6 +327,16 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
+        if result is not None:
+            # Previous caches would be a 3-tuple instead of a 4-tuple,
+            # so this is being maintained for backwards compatibility
+            try:
+                encoding = result[3]
+            except IndexError:
+                encoding = None
+            # We got a cache hit, but the body is compressed, so we
+            # need to decompress it before handing it off
+            result = (result[0], zlib.decompress(result[1]), result[2], encoding)
 
     if result is None:
         # lock down domains that are problematic
@@ -443,10 +438,11 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                     raise CannotFetchSource(error)
 
                 body = b''.join(contents)
+                z_body = zlib.compress(body)
                 headers = {k.lower(): v for k, v in response.headers.items()}
                 encoding = response.encoding
 
-                cache.set(cache_key, (headers, body, response.status_code, encoding), 60)
+                cache.set(cache_key, (headers, z_body, response.status_code, encoding), 60)
                 result = (headers, body, response.status_code, encoding)
             finally:
                 if response is not None:
