@@ -150,6 +150,7 @@ class SharedEventSerializer(EventSerializer):
         del result['user']
         del result['tags']
         del result['sdk']
+        del result['errors']
         result['entries'] = [
             e for e in result['entries']
             if e['type'] != 'breadcrumbs'
