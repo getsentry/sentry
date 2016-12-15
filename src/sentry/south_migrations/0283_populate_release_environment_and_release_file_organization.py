@@ -3,38 +3,28 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
 from django.db import models
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import WithProgressBar
 
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        release_environments = orm.ReleaseEnvironment.objects.filter(
-            organization_id__isnull=True
-        )
-        for re in RangeQuerySetWrapperWithProgressBar(release_environments):
-            try:
-                org_id = orm.Project.objects.filter(
-                    id=re.project_id
-                ).values_list('organization_id', flat=True)[0]
-            except IndexError:
-                pass
-            else:
-                orm.ReleaseEnvironment.objects.filter(
-                    id=re.id
-                ).update(
-                    organization_id=org_id
-                )
+        for project_id, organization_id in WithProgressBar(orm.Project.objects.all().values_list('id', 'organization_id')):
+            orm.ReleaseEnvironment.objects.filter(
+                project_id=project_id,
+                organization_id__isnull=True
+            ).update(
+                organization_id=organization_id
+            )
 
-
-        release_files = orm.ReleaseFile.objects.filter(
-            organization__isnull=True
-        ).select_related('project')
-        for rf in RangeQuerySetWrapperWithProgressBar(release_files):
             orm.ReleaseFile.objects.filter(
-                id=rf.id
-            ).update(organization=rf.project.organization_id)
+                project_id=project_id,
+                organization_id__isnull=True
+            ).update(
+                organization=organization_id
+            )
+
 
     def backwards(self, orm):
         "Write your backwards methods here."
