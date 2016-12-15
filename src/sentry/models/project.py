@@ -266,14 +266,3 @@ class Project(Model):
         else:
             is_enabled = bool(is_enabled)
         return is_enabled
-
-    def is_user_subscribed_to_workflow(self, user):
-        from sentry.models import UserOption, UserOptionValue
-
-        opt_value = UserOption.objects.get_value(
-            user, self, 'workflow:notifications', None)
-        if opt_value is None:
-            opt_value = UserOption.objects.get_value(
-                user, None, 'workflow:notifications',
-                UserOptionValue.all_conversations)
-        return opt_value == UserOptionValue.all_conversations
