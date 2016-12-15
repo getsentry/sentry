@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import pytest
 import responses
 import six
+import zlib
 from libsourcemap import Token
 
 from mock import patch
@@ -72,6 +73,126 @@ class FetchReleaseFileTest(TestCase):
         new_result = fetch_release_file('file.min.js', release)
 
         assert result == new_result
+
+    def test_deflate(self):
+        project = self.project
+        release = Release.objects.create(
+            project=project,
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'Content-Encoding': 'deflate'
+            },
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        file.putfile(six.BytesIO(zlib.compress(binary_body)))
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            project=project,
+            file=file,
+        )
+
+        result = fetch_release_file('file.min.js', release)
+
+        assert type(result[1]) is six.binary_type
+        assert result == (
+            {'content-type': 'application/json; charset=utf-8', 'content-encoding': 'deflate'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
+        # test with cache hit, which should be compressed
+        new_result = fetch_release_file('file.min.js', release)
+
+        assert result == new_result
+
+    def test_gzip(self):
+        project = self.project
+        release = Release.objects.create(
+            project=project,
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'Content-Encoding': 'gzip'
+            },
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        compressor = zlib.compressobj(6, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
+        file.putfile(six.BytesIO(b''.join([
+            compressor.compress(binary_body),
+            compressor.flush(),
+        ])))
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            project=project,
+            file=file,
+        )
+
+        result = fetch_release_file('file.min.js', release)
+
+        assert type(result[1]) is six.binary_type
+        assert result == (
+            {'content-type': 'application/json; charset=utf-8', 'content-encoding': 'gzip'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
+        # test with cache hit, which should be compressed
+        new_result = fetch_release_file('file.min.js', release)
+
+        assert result == new_result
+
+    def test_garbage_encoding(self):
+        project = self.project
+        release = Release.objects.create(
+            project=project,
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'Content-Encoding': 'gzip'
+            },
+        )
+
+        file.putfile(six.BytesIO('notgzipped'))
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            project=project,
+            file=file,
+        )
+
+        with pytest.raises(CannotFetchSource):
+            fetch_release_file('file.min.js', release)
 
 
 class FetchFileTest(TestCase):
