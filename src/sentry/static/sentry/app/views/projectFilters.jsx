@@ -76,8 +76,23 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   'ie9': {
     icon: 'internet-explorer',
-    helpText: 'Version 9 and lower',
+    helpText: 'Version 9',
     title: 'Internet Explorer',
+  },
+  'opera': {
+    icon: 'opera',
+    helpText: 'Version 14 and lower',
+    title: 'Opera',
+  },
+  'safari': {
+    icon: 'safari',
+    helpText: 'Version 5 and lower',
+    title: 'Safari',
+  },
+  'android': {
+    icon: 'android',
+    helpText: 'Version 3 and lower',
+    title: 'Android',
   },
 };
 

@@ -236,7 +236,10 @@ class LegacyBrowserFilterSerializer(serializers.Serializer):
     active = serializers.BooleanField()
     subfilters = MultipleChoiceField(choices=[
         'ie8',
-        'ie9'
+        'ie9',
+        'opera',
+        'android',
+        'safari'
     ])
 
 
@@ -368,7 +371,7 @@ class LegacyBrowsersFilter(Filter):
         except (TypeError, ValueError):
             return False
 
-        if major_browser_version <= 9:
+        if major_browser_version == 9:
             return True
 
         return False
@@ -387,7 +390,7 @@ class LegacyBrowsersFilter(Filter):
         except (TypeError, ValueError):
             return False
 
-        if major_browser_version == 8:
+        if major_browser_version <= 8:
             return True
 
         return False
