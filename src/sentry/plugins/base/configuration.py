@@ -3,9 +3,6 @@ from __future__ import absolute_import
 import logging
 import six
 
-from sentry import options
-from sentry.models import ProjectOption
-
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
 from django.template.loader import render_to_string
@@ -15,6 +12,37 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.http import Http404
 from requests.exceptions import HTTPError
+
+from sentry import options
+from sentry.api import client
+from sentry.api.serializers import serialize
+from sentry.models import ProjectOption
+from sentry.utils import json
+
+
+def react_plugin_config(plugin, project, request):
+    response = client.get('/projects/{}/{}/plugins/{}/'.format(
+        project.organization.slug,
+        project.slug,
+        plugin.slug,
+    ), request=request)
+
+    return mark_safe("""
+    <div id="ref-plugin-config"></div>
+    <script>
+    $(function(){
+        ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
+            project: %s,
+            organization: %s,
+            data: %s
+        }), document.getElementById('ref-plugin-config'));
+    });
+    </script>
+    """ % (
+        json.dumps_htmlsafe(serialize(project, request.user)),
+        json.dumps_htmlsafe(serialize(project.organization, request.user)),
+        json.dumps_htmlsafe(response.data)
+    ))
 
 
 def default_plugin_config(plugin, project, request):

@@ -22,6 +22,7 @@ from sentry.digests.notifications import (
     unsplit_key,
 )
 from sentry.plugins import Notification, Plugin
+from sentry.plugins.base.configuration import react_plugin_config
 from sentry.models import (
     ProjectOption,
     UserOption,
@@ -54,6 +55,9 @@ class NotificationPlugin(Plugin):
                    'already resolved event has changed back to unresolved.')
     # site_conf_form = NotificationConfigurationForm
     project_conf_form = NotificationConfigurationForm
+
+    def configure(self, project, request):
+        return react_plugin_config(self, project, request)
 
     def get_plugin_type(self):
         return 'notification'
