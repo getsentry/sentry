@@ -79,16 +79,4 @@
             </div>
         </div>
     </div>
-
-    {% if react_plugin %}
-        <script>
-        $(function(){
-            ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
-                project: {% serialize project %},
-                organization: {% serialize organization %},
-                data: {% serialize react_plugin %}
-            }), document.getElementById('issue_plugins'));
-        });
-        </script>
-    {% endif %}
 {% endblock %}
