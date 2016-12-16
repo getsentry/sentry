@@ -253,7 +253,7 @@ class LegacyBrowsersFilter(Filter):
             project=self.project,
             key='filters:{}'.format(self.id),
             default='1' if self.default else '0',
-        ) != '0'
+        )
 
     def enable(self, value=None):
         if value is None:

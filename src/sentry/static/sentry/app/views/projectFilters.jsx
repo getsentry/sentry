@@ -9,30 +9,22 @@ import Switch from '../components/switch';
 import {t} from '../locale';
 import marked from '../utils/marked';
 
-const FilterSwitch = React.createClass({
-  propTypes: {
-    data: React.PropTypes.object.isRequired,
-    onToggle: React.PropTypes.func.isRequired,
-    size: React.PropTypes.string.isRequired
-  },
+const FilterSwitch = function(props) {
+  return (
+    <Switch size={props.size}
+      isActive={props.data.active}
+      toggle={function () {
+        props.onToggle(props.data, !props.data.active);
+      }} />
+  );
+};
 
-  getInitialState() {
-    return {
-    };
-  },
+FilterSwitch.propTypes = {
+  data: React.PropTypes.object.isRequired,
+  onToggle: React.PropTypes.func.isRequired,
+  size: React.PropTypes.string.isRequired
+};
 
-  toggle() {
-    this.props.onToggle(this.props.data, !this.props.data.active);
-  },
-
-  render() {
-    return(
-      <Switch size={this.props.size}
-        isActive={this.props.data.active}
-        toggle={this.toggle} />
-    );
-  }
-});
 
 const FilterRow = React.createClass({
   propTypes: {
@@ -76,6 +68,11 @@ const FilterRow = React.createClass({
   }
 });
 
+const LEGACY_BROWSER_SUBFILTERS = [
+  'ie8',
+  'ie9'
+];
+
 const LegacyBrowserFilterRow = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
@@ -88,11 +85,20 @@ const LegacyBrowserFilterRow = React.createClass({
     return {
       loading: false,
       error: false,
+      subfilters: this.props.data.active === true
+        ? new Set(LEGACY_BROWSER_SUBFILTERS)
+        : new Set(this.props.data.active)
     };
   },
 
-  onToggleSubfilters(active) {
-    this.props.onToggle(this.props.data.subFilters, active);
+  onToggleSubfilters(subfilter) {
+    let {subfilters} = this.state;
+    if (subfilters.has(subfilter)) {
+      subfilters.delete(subfilter);
+    } else {
+      subfilters.add(subfilter);
+    }
+    this.props.onToggle(this.props.data, subfilters);
   },
 
   render() {
@@ -124,14 +130,14 @@ const LegacyBrowserFilterRow = React.createClass({
             <FilterGridIcon className="icon-internet-explorer"/>
             <h5>Internet Explorer</h5>
             <p className="help-block">Version 8 and lower</p>
-            <FilterSwitch {...this.props} data={{}} size="lg"/>
+            <Switch isActive={this.state.subfilters.has('ie8')} toggle={this.onToggleSubfilters.bind(this, 'ie8')} size="lg"/>
           </FilterGridItem>
 
           <FilterGridItem>
             <FilterGridIcon className="icon-internet-explorer"/>
             <h5>Internet Explorer</h5>
             <p className="help-block">Version 9 and lower</p>
-            <FilterSwitch {...this.props} data={{}} size="lg"/>
+            <Switch isActive={this.state.subfilters.has('ie9')} toggle={this.onToggleSubfilters.bind(this, 'ie9')} size="lg"/>
           </FilterGridItem>
         </FilterGrid>
       </div>
@@ -228,12 +234,16 @@ const ProjectFilters = React.createClass({
     let {orgId, projectId} = this.props.params;
 
     let endpoint = `/projects/${orgId}/${projectId}/filters/${filter.id}/`; // ?id=a&id=b
+
+    let data;
+    if (typeof active === 'boolean') {
+      data = {active: active};
+    } else {
+      data = {subfilters: active};
+    }
     this.api.request(endpoint, {
       method: 'PUT',
-      data: {
-        active: active,
-        subfilters: null,
-      },
+      data: data,
       success: (d, textStatus, jqXHR) => {
         let stateFilter = this.state.filterList.find(f => f.id === filter.id);
         stateFilter.active = active;
