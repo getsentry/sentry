@@ -261,8 +261,9 @@ class LegacyBrowsersFilter(Filter):
 
         option_val = '0'
         if 'active' in value:
-            option_val = '1' if value['active'] else '0'
-        elif 'subfilters' in value:
+            if value['active']:
+                option_val = '1'
+        elif 'subfilters' in value and len(value['subfilters']) > 0:
             option_val = set(value['subfilters'])
 
         ProjectOption.objects.set_value(

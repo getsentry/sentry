@@ -68,10 +68,20 @@ const FilterRow = React.createClass({
   }
 });
 
-const LEGACY_BROWSER_SUBFILTERS = [
-  'ie8',
-  'ie9'
-];
+const LEGACY_BROWSER_SUBFILTERS = {
+  'ie8': {
+    icon: 'internet-explorer',
+    helpText: 'Version 8 and lower',
+    title: 'Internet Explorer',
+  },
+  'ie9': {
+    icon: 'internet-explorer',
+    helpText: 'Version 9 and lower',
+    title: 'Internet Explorer',
+  },
+};
+
+const LEGACY_BROWSER_KEYS = Object.keys(LEGACY_BROWSER_SUBFILTERS);
 
 const LegacyBrowserFilterRow = React.createClass({
   propTypes: {
@@ -86,19 +96,29 @@ const LegacyBrowserFilterRow = React.createClass({
       loading: false,
       error: false,
       subfilters: this.props.data.active === true
-        ? new Set(LEGACY_BROWSER_SUBFILTERS)
+        ? new Set(LEGACY_BROWSER_KEYS)
         : new Set(this.props.data.active)
     };
   },
 
   onToggleSubfilters(subfilter) {
     let {subfilters} = this.state;
-    if (subfilters.has(subfilter)) {
+
+    if (subfilter === true) {
+      subfilters = new Set(LEGACY_BROWSER_KEYS);
+    } else if (subfilter === false) {
+      subfilters = new Set();
+    } else if (subfilters.has(subfilter)) {
       subfilters.delete(subfilter);
     } else {
       subfilters.add(subfilter);
     }
-    this.props.onToggle(this.props.data, subfilters);
+
+    this.setState({
+      subfilters: new Set(subfilters)
+    }, () => {
+      this.props.onToggle(this.props.data, subfilters);
+    });
   },
 
   render() {
@@ -115,9 +135,6 @@ const LegacyBrowserFilterRow = React.createClass({
               }} />
             }
           </div>
-          <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
-            <FilterSwitch {...this.props} size="lg"/>
-          </div>
         </div>
 
         <FilterGrid>
@@ -125,20 +142,17 @@ const LegacyBrowserFilterRow = React.createClass({
             <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>|
             <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
           </div>
-
-          <FilterGridItem>
-            <FilterGridIcon className="icon-internet-explorer"/>
-            <h5>Internet Explorer</h5>
-            <p className="help-block">Version 8 and lower</p>
-            <Switch isActive={this.state.subfilters.has('ie8')} toggle={this.onToggleSubfilters.bind(this, 'ie8')} size="lg"/>
-          </FilterGridItem>
-
-          <FilterGridItem>
-            <FilterGridIcon className="icon-internet-explorer"/>
-            <h5>Internet Explorer</h5>
-            <p className="help-block">Version 9 and lower</p>
-            <Switch isActive={this.state.subfilters.has('ie9')} toggle={this.onToggleSubfilters.bind(this, 'ie9')} size="lg"/>
-          </FilterGridItem>
+          {LEGACY_BROWSER_KEYS.map(key => {
+            let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+            return (
+              <FilterGridItem>
+                <FilterGridIcon className={'icon-' + subfilter.icon}/>
+                <h5>{subfilter.title}</h5>
+                <p className="help-block">{subfilter.helpText}</p>
+                <Switch isActive={this.state.subfilters.has(key)} toggle={this.onToggleSubfilters.bind(this, key)} size="lg"/>
+              </FilterGridItem>
+            );
+          })}
         </FilterGrid>
       </div>
     );

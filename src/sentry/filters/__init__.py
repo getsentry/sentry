@@ -17,11 +17,6 @@ default_manager = FilterManager()
 default_manager.register(LocalhostFilter)
 default_manager.register(BrowserExtensionsFilter)
 default_manager.register(LegacyBrowsersFilter)
-# default_manager.register(IE8Filter)
-# default_manager.register(IE9Filter)
-# default_manager.register(AndroidFilter)
-# default_manager.register(SafariFilter)
-# default_manager.register(OperaFilter)
 default_manager.register(WebCrawlersFilter)
 
 all = default_manager.all
