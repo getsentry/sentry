@@ -15,6 +15,7 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.exceptions import PluginError  # NOQA
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
+from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
@@ -37,6 +38,9 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 class IssueTrackingPlugin2(Plugin):
     auth_provider = None
     allowed_actions = ('create', 'link', 'unlink')
+
+    def configure(self, project, request):
+        return react_plugin_config(self, project, request)
 
     def get_plugin_type(self):
         return 'issue-tracking'
