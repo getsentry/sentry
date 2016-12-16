@@ -5,7 +5,7 @@ from .base import Filter
 from ua_parser.user_agent_parser import Parse
 from rest_framework import serializers
 from sentry.models import ProjectOption
-
+from sentry.api.fields import MultipleChoiceField
 
 MIN_VERSIONS = {
     'Chrome': 0,
@@ -230,23 +230,14 @@ class IE9Filter(Filter):
         if not browser['family']:
             return False
 
-        if not browser['family'] == "IE":
-            return False
-
-        try:
-            major_browser_version = int(browser['major'])
-        except (TypeError, ValueError):
-            return False
-
-        if major_browser_version == 9:
-            return True
-
-        return False
-
 
 class LegacyBrowserFilterSerializer(serializers.Serializer):
     # TODO: maybe find a serializer that handles multple values already
-    value = serializers.TextField()
+    active = serializers.BooleanField()
+    subfilters = MultipleChoiceField(choices=[
+        'ie8',
+        'ie9'
+    ])
 
 
 class LegacyBrowsersFilter(Filter):
@@ -263,6 +254,22 @@ class LegacyBrowsersFilter(Filter):
             key='filters:{}'.format(self.id),
             default='1' if self.default else '0',
         ) != '0'
+
+    def enable(self, value=None):
+        if value is None:
+            value = {}
+
+        option_val = '0'
+        if 'active' in value:
+            option_val = '1' if value['active'] else '0'
+        elif 'subfilters' in value:
+            option_val = set(value['subfilters'])
+
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:{}'.format(self.id),
+            value=option_val,
+        )
 
     def get_user_agent(self, data):
         try:
@@ -292,18 +299,97 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
+    def filter_opera(self, ua):
+        browser = ua['user_agent']
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "Opera":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 15:
+            return True
+
+        return False
+
+    def filter_safari(self, ua):
+        browser = ua['user_agent']
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "Safari":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 6:
+            return True
+
+        return False
+
+    def filter_android(self, ua):
+        browser = ua['user_agent']
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "Android":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version < 4:
+            return True
+
+        return False
+
+    def filter_ie9(self, ua):
+        browser = ua['user_agent']
+
+        if not browser['family']:
+            return False
+
+        if not browser['family'] == "IE":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version <= 9:
+            return True
+
+        return False
+
     def filter_ie8(self, ua):
-        pass
+        browser = ua['user_agent']
 
-    def enable(self, value=None):
-        if value is None:
-            value = {'value': []}
+        if not browser['family']:
+            return False
 
-        ProjectOption.objects.set_value(
-            project=self.project,
-            key='filters:{}'.format(self.id),
-            value=set(value['value'].split(',')) if value['value'] else '0',
-        )
+        if not browser['family'] == "IE":
+            return False
+
+        try:
+            major_browser_version = int(browser['major'])
+        except (TypeError, ValueError):
+            return False
+
+        if major_browser_version == 8:
+            return True
+
+        return False
 
     def test(self, data, opts):
         if data.get('platform') != 'javascript':

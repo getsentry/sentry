@@ -1,27 +1,13 @@
 import React from 'react';
 import styled from 'styled-components';
-import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Switch from '../components/switch';
-import TooltipMixin from '../mixins/tooltip';
 import {t} from '../locale';
 import marked from '../utils/marked';
-
-// TODO: Should there just be a filter.slug attribute?
-
-function slugify(text)
-{
-  return text.toString().toLowerCase()
-    .replace(/\s+/g, '-')           // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
-    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
-    .replace(/^-+/, '')             // Trim - from start of text
-    .replace(/-+$/, '');            // Trim - from end of text
-}
 
 const FilterSwitch = React.createClass({
   propTypes: {
@@ -32,7 +18,6 @@ const FilterSwitch = React.createClass({
 
   getInitialState() {
     return {
-      loading: false,
     };
   },
 
@@ -44,7 +29,6 @@ const FilterSwitch = React.createClass({
     return(
       <Switch size={this.props.size}
         isActive={this.props.data.active}
-        isLoading={this.state.loading}
         toggle={this.toggle} />
     );
   }
@@ -57,13 +41,6 @@ const FilterRow = React.createClass({
     data: React.PropTypes.object.isRequired,
     onToggle: React.PropTypes.func.isRequired,
   },
-
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip'
-    })
-  ],
 
   getInitialState() {
     return {
@@ -91,28 +68,72 @@ const FilterRow = React.createClass({
             }
           </div>
           <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
-            {!data.subFilters.length > 0 && <FilterSwitch {...this.props} size="lg"/>}
+            <FilterSwitch {...this.props} size="lg"/>
+          </div>
+        </div>
+      </div>
+    );
+  }
+});
+
+const LegacyBrowserFilterRow = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    data: React.PropTypes.object.isRequired,
+    onToggle: React.PropTypes.func.isRequired,
+  },
+
+  getInitialState() {
+    return {
+      loading: false,
+      error: false,
+    };
+  },
+
+  onToggleSubfilters(active) {
+    this.props.onToggle(this.props.data.subFilters, active);
+  },
+
+  render() {
+    let data = this.props.data;
+
+    return (
+      <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+        <div className="row">
+          <div className="col-md-9">
+            <h5 style={{marginBottom: 10}}>{data.name}</h5>
+            {data.description &&
+              <small className="help-block" dangerouslySetInnerHTML={{
+                __html: marked(data.description)
+              }} />
+            }
+          </div>
+          <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
+            <FilterSwitch {...this.props} size="lg"/>
           </div>
         </div>
 
-        {data.subFilters.length > 0 &&
-          <FilterGrid>
-            <div>
-              <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>|
-              <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
-            </div>
-            {data.subFilters.map(filter => {
-              return (
-                <FilterGridItem>
-                  <FilterGridIcon className={ 'icon-' + slugify(filter.name) } />
-                  <h5>{filter.name}</h5>
-                  <p className="help-block">{filter.description}</p>
-                  <FilterSwitch {...this.props} data={filter} size="lg"/>
-                </FilterGridItem>
-              );
-            })}
-          </FilterGrid>
-        }
+        <FilterGrid>
+          <div>
+            <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>|
+            <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
+          </div>
+
+          <FilterGridItem>
+            <FilterGridIcon className="icon-internet-explorer"/>
+            <h5>Internet Explorer</h5>
+            <p className="help-block">Version 8 and lower</p>
+            <FilterSwitch {...this.props} data={{}} size="lg"/>
+          </FilterGridItem>
+
+          <FilterGridItem>
+            <FilterGridIcon className="icon-internet-explorer"/>
+            <h5>Internet Explorer</h5>
+            <p className="help-block">Version 9 and lower</p>
+            <FilterSwitch {...this.props} data={{}} size="lg"/>
+          </FilterGridItem>
+        </FilterGrid>
       </div>
     );
   }
@@ -199,30 +220,23 @@ const ProjectFilters = React.createClass({
     });
   },
 
-  onToggleFilter(filters, active) {
-    if (!_.isArray(filters))
-      filters = [filters];
-
-    let filterIds = filters.map(f => f.id);
-
+  onToggleFilter(filter, active) {
     if (this.state.loading)
       return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {orgId, projectId} = this.props.params;
 
-    let endpoint = `/projects/${orgId}/${projectId}/filters/`; // ?id=a&id=b
+    let endpoint = `/projects/${orgId}/${projectId}/filters/${filter.id}/`; // ?id=a&id=b
     this.api.request(endpoint, {
-      query: {id: filterIds},
       method: 'PUT',
       data: {
         active: active,
+        subfilters: null,
       },
       success: (d, textStatus, jqXHR) => {
-        filterIds.forEach(filterId => {
-          let stateFilter = this.state.filterList.find(f => f.id === filterId);
-          stateFilter.active = active;
-        });
+        let stateFilter = this.state.filterList.find(f => f.id === filter.id);
+        stateFilter.active = active;
 
         this.setState({
           filterList: [...this.state.filterList]
@@ -264,28 +278,30 @@ const ProjectFilters = React.createClass({
   renderResults() {
     let {orgId, projectId} = this.props.params;
 
-    let topLevelFilters = this.state.filterList.filter(filter => {
-      return filter.id.indexOf(':') === -1;
-    });
+    // let topLevelFilters = this.state.filterList.filter(filter => {
+    //   return filter.id.indexOf(':') === -1;
+    // });
 
-    topLevelFilters.forEach(topLevelFilter => {
-      let subFilters = this.state.filterList.filter(filter => {
-        return filter.id.startsWith(topLevelFilter.id + ':');
-      });
-      topLevelFilter.subFilters = subFilters;
-    });
+    // topLevelFilters.forEach(topLevelFilter => {
+    //   let subFilters = this.state.filterList.filter(filter => {
+    //     return filter.id.startsWith(topLevelFilter.id + ':');
+    //   });
+    //   topLevelFilter.subFilters = subFilters;
+    // });
 
     return (
       <div>
-        {topLevelFilters.map((filter) => {
-          return (
-            <FilterRow
-              key={filter.id}
-              data={filter}
-              orgId={orgId}
-              projectId={projectId}
-              onToggle={this.onToggleFilter} />
-          );
+        {this.state.filterList.map(filter => {
+          let props = {
+            key: filter.id,
+            data: filter,
+            orgId: orgId,
+            projectId: projectId,
+            onToggle: this.onToggleFilter
+          };
+          return filter.id === 'legacy-browsers'
+            ? <LegacyBrowserFilterRow {...props}/>
+            : <FilterRow {...props}/>;
         })}
       </div>
     );

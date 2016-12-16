@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 
 class FilterSerializer(serializers.Serializer):
-    value = serializers.BooleanField()
+    active = serializers.BooleanField()
 
 
 class Filter(object):
@@ -29,12 +29,12 @@ class Filter(object):
 
     def enable(self, value=None):
         if value is None:
-            value = {'value': True}
+            value = {'active': True}
 
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:{}'.format(self.id),
-            value='1' if value['value'] else '0',
+            value='1' if value['active'] else '0',
         )
 
     def disable(self):
