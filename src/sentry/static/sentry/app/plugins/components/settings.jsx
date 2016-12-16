@@ -59,6 +59,7 @@ class PluginSettings extends PluginComponentBase {
           initialData[field.name] = field.value;
         });
         this.setState({
+          fieldList: data.config,
           formData: formData,
           initialData: initialData,
           errors: {}

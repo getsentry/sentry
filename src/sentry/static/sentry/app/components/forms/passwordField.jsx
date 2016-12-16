@@ -1,5 +1,6 @@
 import React from 'react';
 import InputField from './inputField';
+import {FormState} from '.';
 
 class PasswordField extends InputField {
   constructor(props) {
@@ -23,6 +24,15 @@ class PasswordField extends InputField {
     }, () => {
       this.props.onChange('');
     });
+  }
+
+  componentWillReceiveProps(nextProps) {
+    // close edit mode after successful save
+    if (this.props.formState === FormState.SAVING && nextProps.formState === FormState.READY) {
+      this.setState({
+        editing: false
+      });
+    }
   }
 
   startEdit(ev) {
