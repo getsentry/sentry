@@ -136,6 +136,34 @@ const LegacyBrowserFilterRow = React.createClass({
     });
   },
 
+  renderSubfilters() {
+    let entries = LEGACY_BROWSER_KEYS.map(key => {
+      let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+      return (
+        <div className="col-md-4">
+          <FilterGridItem>
+            <FilterGridIcon className={'icon-' + subfilter.icon}/>
+            <h5>{subfilter.title}</h5>
+            <p className="help-block">{subfilter.helpText}</p>
+            <Switch isActive={this.state.subfilters.has(key)} toggle={this.onToggleSubfilters.bind(this, key)} size="lg"/>
+          </FilterGridItem>
+        </div>
+      );
+    });
+
+    // reduce entries into rows of 3
+    let rows = entries.reduce((_rows, entry) => {
+      let last = _rows[_rows.length - 1];
+      if (last.length < 3)
+        last.push(entry);
+      else
+        _rows.push([entry]);
+      return _rows;
+    }, [[]]);
+
+    return rows.map((row, i) => <FilterGrid className="row" key={i}>{row}</FilterGrid>);
+  },
+
   render() {
     let data = this.props.data;
 
@@ -150,25 +178,17 @@ const LegacyBrowserFilterRow = React.createClass({
               }} />
             }
           </div>
+          <div className="col-md-3 align-right">
+            <FilterFilter>
+              <strong>Filter:</strong>
+              <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>
+              <span className="divider" />
+              <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
+            </FilterFilter>
+          </div>
         </div>
 
-        <FilterGrid>
-          <div>
-            <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>|
-            <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
-          </div>
-          {LEGACY_BROWSER_KEYS.map(key => {
-            let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
-            return (
-              <FilterGridItem>
-                <FilterGridIcon className={'icon-' + subfilter.icon}/>
-                <h5>{subfilter.title}</h5>
-                <p className="help-block">{subfilter.helpText}</p>
-                <Switch isActive={this.state.subfilters.has(key)} toggle={this.onToggleSubfilters.bind(this, key)} size="lg"/>
-              </FilterGridItem>
-            );
-          })}
-        </FilterGrid>
+        {this.renderSubfilters()}
       </div>
     );
   }
@@ -176,30 +196,38 @@ const LegacyBrowserFilterRow = React.createClass({
 
 // TODO(ckj): Make this its own generic component at some point
 
+const FilterFilter = styled.div`
+
+  && strong {
+    margin-right: 5px;
+  }
+
+  && .divider {
+    display: inline-block;
+    height: 16px;
+    border-left: 1px solid #f1f2f3;
+    margin: 0 5px;
+  }
+`;
+
 const FilterGrid = styled.div`
-  display: flex;
-  margin-left: -5px;
-  margin-right: -5px;
   margin-bottom: 20px;
 `;
 
 const FilterGridItem = styled.div`
-  flex: 1;
-  margin-left: 5px;
-  margin-right: 5px;
-  width: 25%;
   background: #F7F8F9;
   border-radius: 3px;
   position: relative;
   padding: 10px 65px 6px 58px;
 
   && h5 {
-    font-size: 15px;
+    font-size: 14px;
     margin: 0 0 2px;
   }
 
   && p {
     margin: 0;
+    font-size: 13px;
   }
 
   && .switch {
