@@ -3,6 +3,9 @@ from __future__ import absolute_import
 from .base import Filter
 
 from ua_parser.user_agent_parser import Parse
+from rest_framework import serializers
+from sentry.models import ProjectOption
+
 
 MIN_VERSIONS = {
     'Chrome': 0,
@@ -30,7 +33,7 @@ class OperaFilter(Filter):
         except LookupError:
             return ''
 
-    def test(self, data):
+    def test(self, data, filter_opts):
         if data.get('platform') != 'javascript':
             return False
 
@@ -196,7 +199,8 @@ class IE8Filter(Filter):
 
 
 class IE9Filter(Filter):
-    id = 'legacy-browsers:ie9'
+    id = 'legacy-browsers'
+    key = 'ie9'
     name = 'Internet Explorer'
     description = 'Version 9'
     slug = 'internet-explorer'
@@ -240,11 +244,25 @@ class IE9Filter(Filter):
         return False
 
 
+class LegacyBrowserFilterSerializer(serializers.Serializer):
+    # TODO: maybe find a serializer that handles multple values already
+    value = serializers.TextField()
+
+
 class LegacyBrowsersFilter(Filter):
     id = 'legacy-browsers'
     name = 'Filter out known errors from legacy browsers'
     description = 'Older browsers often give less accurate information, and while they may report valid issues, the context to understand them is incorrect or missing.'
     default = False
+    serializer_cls = LegacyBrowserFilterSerializer
+
+    def is_enabled(self):
+        # May be either a '1' or an iterable for new style
+        return ProjectOption.objects.get_value(
+            project=self.project,
+            key='filters:{}'.format(self.id),
+            default='1' if self.default else '0',
+        ) != '0'
 
     def get_user_agent(self, data):
         try:
@@ -254,18 +272,7 @@ class LegacyBrowsersFilter(Filter):
         except LookupError:
             return ''
 
-    def test(self, data):
-        if data.get('platform') != 'javascript':
-            return False
-
-        value = self.get_user_agent(data)
-        if not value:
-            return False
-
-        ua = Parse(value)
-        if not ua:
-            return False
-
+    def filter_default(self, ua):
         browser = ua['user_agent']
         if not browser['family']:
             return False
@@ -284,3 +291,48 @@ class LegacyBrowsersFilter(Filter):
             return True
 
         return False
+
+    def filter_ie8(self, ua):
+        pass
+
+    def enable(self, value=None):
+        if value is None:
+            value = {'value': []}
+
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:{}'.format(self.id),
+            value=set(value['value'].split(',')) if value['value'] else '0',
+        )
+
+    def test(self, data, opts):
+        if data.get('platform') != 'javascript':
+            return False
+
+        opts = ProjectOption.objects.get_value(
+            project=self.project,
+            key='filters:{}'.format(self.id),
+        )
+
+        value = self.get_user_agent(data)
+        if not value:
+            return False
+
+        ua = Parse(value)
+        if not ua:
+            return False
+
+        # handle old style config
+        if opts == '1':
+            return self.filter_default(ua)
+
+        # New style is not a simple boolean, but a list of
+        # specific filters to apply
+        for key in opts:
+            try:
+                fn = getattr(self, 'filter_' + key)
+            except AttributeError:
+                pass
+            else:
+                if fn(ua):
+                    return True

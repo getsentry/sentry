@@ -1,15 +1,10 @@
 from __future__ import absolute_import
 
-from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import filters
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-
-
-class ProjectFilterSerializer(serializers.Serializer):
-    active = serializers.BooleanField()
 
 
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
@@ -27,10 +22,11 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         except filters.FilterNotRegistered:
             raise ResourceDoesNotExist
 
-        serializer = ProjectFilterSerializer(data=request.DATA, partial=True)
+        serializer = filter.serializer_cls(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        if 'active' in serializer.object:
-            filter.enable(serializer.object['active'])
+        if 'value' in serializer.object:
+            filter.enable(serializer.object)
+
         return Response(status=201)
