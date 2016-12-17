@@ -201,6 +201,8 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
     elif isinstance(plugin, NotificationPlugin):
         task = OnboardingTask.NOTIFICATION_SERVICE
         status = OnboardingTaskStatus.COMPLETE
+    else:
+        return
 
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
