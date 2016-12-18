@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -151,17 +152,10 @@ const LegacyBrowserFilterRow = React.createClass({
       );
     });
 
-    // reduce entries into rows of 3
-    let rows = entries.reduce((_rows, entry) => {
-      let last = _rows[_rows.length - 1];
-      if (last.length < 3)
-        last.push(entry);
-      else
-        _rows.push([entry]);
-      return _rows;
-    }, [[]]);
+    // group entries into rows of 3
+    let rows = _.groupBy(entries, (entry, i) => Math.floor(i / 3));
 
-    return rows.map((row, i) => <FilterGrid className="row" key={i}>{row}</FilterGrid>);
+    return _.toArray(rows).map((row, i) => <FilterGrid className="row" key={i}>{row}</FilterGrid>);
   },
 
   render() {
