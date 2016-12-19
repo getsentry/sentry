@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {mount, shallow} from 'enzyme';
 
 import RichHttpContent from 'app/components/events/interfaces/richHttpContent';
 
@@ -140,6 +140,18 @@ describe('RichHttpContent', function () {
         env: {}
       };
       expect(() => shallow(<RichHttpContent data={data} />)).to.not.throw(URIError);
+    });
+
+    it('should not cause an invariant violation if data.data isn\'t a string', function() {
+      let data = {
+        query: '',
+        data: [{'foo': 'bar', 'baz': 1}],
+        headers: [],
+        cookies: [],
+        env: {}
+      };
+
+      expect(() => mount(<RichHttpContent data={data} />)).to.not.throw();
     });
   });
 });
