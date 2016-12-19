@@ -492,18 +492,19 @@ class NotificationSettingsForm(forms.Form):
     )
 
     workflow_notifications = forms.ChoiceField(
-        label=_('Default workflow subscription level for new projects'),
+        label=_('Preferred workflow subscription level for new projects'),
         choices=[
             (UserOptionValue.all_conversations, "Receive workflow updates for all issues."),
-            (UserOptionValue.participating_only, "Receive workflow updates for issues that I am participating in."),
+            (UserOptionValue.participating_only, "Receive workflow updates only for issues that I am participating in or have subscribed to."),
             (UserOptionValue.no_conversations, "Never receive workflow updates."),
         ],
+        help_text=_("This will be automatically set as your subscription preference when you create or join a project. It has no effect on existing projects."),
         required=False,
     )
 
     self_notifications = forms.BooleanField(
         label=_('Receive notifications about my own activity'),
-        help_text=_('Enable this if you wish to receive emails for your own actions, as well as others.'),
+        help_text=_('Enable this if you wish to receive emails for your own actions, in addition to the actions of others.'),
         required=False,
     )
 
@@ -585,9 +586,9 @@ class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
     workflow = forms.ChoiceField(
         choices=[
-            (UserOptionValue.no_conversations, 'No updates'),
+            (UserOptionValue.no_conversations, 'Nothing'),
             (UserOptionValue.participating_only, 'Participating'),
-            (UserOptionValue.all_conversations, 'All updates'),
+            (UserOptionValue.all_conversations, 'Everything'),
         ],
     )
     email = forms.ChoiceField(label="", choices=(), required=False,
