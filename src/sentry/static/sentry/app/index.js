@@ -43,6 +43,7 @@ export default {
   Raven: require('raven-js'),
   React: require('react'),
   ReactDOM: require('react-dom'),
+  ReactBootstrap: require('react-bootstrap'),
   Reflux: require('reflux'),
   Router: require('react-router'),
   underscore: require('underscore'),
