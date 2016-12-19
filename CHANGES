@@ -9,6 +9,12 @@ Version 8.12 (Unreleased)
 - Added data migration to backfill legacy release file and environment data
 - Allow gziped/deflated JavaScript artifacts to be uploaded through the API.
 - Shared issue view no longer shows SDK.
+- Added ``activeSince`` to search (uses ``active_at``).
+- Added ``firstSeen`` to search (uses ``first_seen``).
+- Added ``lastSeen`` to search (uses ``last_seen``).
+- Added ``firstRelease`` to search (uses ``first_release``).
+- Fixed usage (and propagation) of ``Group.first_release``.
+- The + and - datetime search helpers now work with ranges (e.g. ``<=``).
 
 SDKs
 ~~~~
