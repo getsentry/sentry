@@ -145,7 +145,7 @@ class GroupTransformer(Transformer):
         for g in objects:
             g.is_bookmarked = g.pk in bookmarks
             g.historical_data = [x[1] for x in historical_data.get(g.id, [])]
-            active_date = g.active_at or g.last_seen
+            active_date = g.active_at or g.first_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
             g.annotations = []
             for key in sorted(tag_keys):
