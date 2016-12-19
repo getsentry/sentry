@@ -268,44 +268,45 @@ class Event(Model):
     def get_email_subject(self):
         template = self.project.get_option('mail:subject_template')
         if template:
-            template = EventTemplate(template)
+            template = EventSubjectTemplate(template)
         else:
             template = DEFAULT_SUBJECT_TEMPLATE
-        return truncatechars(template.render(self).encode('utf-8'), 128)
+        return truncatechars(
+            template.safe_substitute(
+                EventSubjectTemplateData(self),
+            ).encode('utf-8'),
+            128,
+        )
 
 
-class EventTemplate(string.Template):
-    def convert_name(self, name, event):
-        if name == 'project':
-            return event.project.get_full_name()
+class EventSubjectTemplate(string.Template):
+    idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
+
+
+class EventSubjectTemplateData(object):
+    tag_aliases = {
+        'release': 'sentry:release',
+    }
+
+    def __init__(self, event):
+        self.event = event
+
+    def __getitem__(self, name):
+        if name.startswith('tag:'):
+            name = name[4:]
+            value = self.event.get_tag(self.tag_aliases.get(name, name))
+            if value is None:
+                raise KeyError
+            return six.text_type(value)
+        elif name == 'project':
+            return self.event.project.get_full_name()
         elif name == 'projectID':
-            return event.project.slug
+            return self.event.project.slug
         elif name == 'orgID':
-            return event.organization.slug
-        elif name == 'level':
-            return six.text_type(event.get_tag('level')).upper()
-        elif name == 'environment':
-            return six.text_type(event.get_tag('environment') or '')
-        elif name == 'release':
-            return six.text_type(event.get_tag('sentry:release') or '')
+            return self.event.organization.slug
         elif name == 'title':
-            return event.title
-        elif name == 'transaction':
-            return six.text_type(event.get_tag('transaction') or '')
-        return ''
-
-    def render(self, event):
-        def convert(mo):
-            named = mo.group('named') or mo.group('braced')
-            if named is not None:
-                return self.convert_name(named, event)
-            if mo.group('escaped') is not None:
-                return self.delimiter
-            if mo.group('invalid') is not None:
-                return mo.group()
-            raise ValueError('Unrecognized named group in pattern',
-                             self.pattern)
-        return self.pattern.sub(convert, self.template)
+            return self.event.title
+        raise KeyError
 
 
-DEFAULT_SUBJECT_TEMPLATE = EventTemplate('[$project] $level: $title')
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
