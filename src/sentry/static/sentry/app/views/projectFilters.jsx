@@ -1,5 +1,4 @@
 import React from 'react';
-import styled from 'styled-components';
 import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
@@ -142,12 +141,12 @@ const LegacyBrowserFilterRow = React.createClass({
       let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
       return (
         <div className="col-md-4">
-          <FilterGridItem>
-            <FilterGridIcon className={'icon-' + subfilter.icon}/>
+          <div className="filter-grid-item">
+            <div className={'filter-grid-icon icon-' + subfilter.icon} />
             <h5>{subfilter.title}</h5>
             <p className="help-block">{subfilter.helpText}</p>
             <Switch isActive={this.state.subfilters.has(key)} toggle={this.onToggleSubfilters.bind(this, key)} size="lg"/>
-          </FilterGridItem>
+          </div>
         </div>
       );
     });
@@ -155,7 +154,7 @@ const LegacyBrowserFilterRow = React.createClass({
     // group entries into rows of 3
     let rows = _.groupBy(entries, (entry, i) => Math.floor(i / 3));
 
-    return _.toArray(rows).map((row, i) => <FilterGrid className="row" key={i}>{row}</FilterGrid>);
+    return _.toArray(rows).map((row, i) => <div className="row m-b-1" key={i}>{row}</div>);
   },
 
   render() {
@@ -173,12 +172,12 @@ const LegacyBrowserFilterRow = React.createClass({
             }
           </div>
           <div className="col-md-3 align-right">
-            <FilterFilter>
+            <div className="filter-grid-filter">
               <strong>Filter:</strong>
               <a onClick={this.onToggleSubfilters.bind(this, true)}>All</a>
               <span className="divider" />
               <a onClick={this.onToggleSubfilters.bind(this, false)}>None</a>
-            </FilterFilter>
+            </div>
           </div>
         </div>
 
@@ -187,61 +186,6 @@ const LegacyBrowserFilterRow = React.createClass({
     );
   }
 });
-
-// TODO(ckj): Make this its own generic component at some point
-
-const FilterFilter = styled.div`
-
-  && strong {
-    margin-right: 5px;
-  }
-
-  && .divider {
-    display: inline-block;
-    height: 16px;
-    border-left: 1px solid #f1f2f3;
-    margin: 0 5px;
-  }
-`;
-
-const FilterGrid = styled.div`
-  margin-bottom: 20px;
-`;
-
-const FilterGridItem = styled.div`
-  background: #F7F8F9;
-  border-radius: 3px;
-  position: relative;
-  padding: 10px 65px 6px 58px;
-
-  && h5 {
-    font-size: 14px;
-    margin: 0 0 2px;
-  }
-
-  && p {
-    margin: 0;
-    font-size: 13px;
-  }
-
-  && .switch {
-    background: #fff;
-    position: absolute;
-    top: 17px;
-    right: 12px;
-  }
-`;
-
-const FilterGridIcon = styled.div`
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 38px;
-  height: 38px;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 38px 38px;
-`;
 
 const ProjectFilters = React.createClass({
   mixins: [ApiMixin],
