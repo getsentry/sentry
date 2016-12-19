@@ -230,7 +230,7 @@ const GeneralSettings = React.createClass({
                 required={false}
                 error={errors.subjectTemplate}
                 onChange={this.onFieldChange.bind(this, 'subjectTemplate')}
-                help="The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $level, $environment, $release, $transaction, and $title." />
+                help="The email subject to use (excluding the prefix) for individual alerts. Usable variables include: $project, $title, and ${tag:key}, such as ${tag:environment} or ${tag:release}." />
 
             <fieldset className="form-actions align-right">
               <button type="submit" className="btn btn-primary"
