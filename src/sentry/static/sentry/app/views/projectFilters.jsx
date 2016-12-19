@@ -339,17 +339,6 @@ const ProjectFilters = React.createClass({
   renderResults() {
     let {orgId, projectId} = this.props.params;
 
-    // let topLevelFilters = this.state.filterList.filter(filter => {
-    //   return filter.id.indexOf(':') === -1;
-    // });
-
-    // topLevelFilters.forEach(topLevelFilter => {
-    //   let subFilters = this.state.filterList.filter(filter => {
-    //     return filter.id.startsWith(topLevelFilter.id + ':');
-    //   });
-    //   topLevelFilter.subFilters = subFilters;
-    // });
-
     return (
       <div>
         {this.state.filterList.map(filter => {
