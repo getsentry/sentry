@@ -47,7 +47,7 @@ class MailPluginTest(TestCase):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
-        assert msg.subject == '[Sentry] [foo Bar] ERROR: Hello world'
+        assert msg.subject == '[Sentry] [foo Bar] error: Hello world'
         assert 'my rule' in msg.alternatives[0][0]
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
@@ -136,7 +136,7 @@ class MailPluginTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('reference'), group)
-        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+        assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
             self.team.name, self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
@@ -169,7 +169,7 @@ class MailPluginTest(TestCase):
 
         assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+        assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
             self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
@@ -236,7 +236,7 @@ class MailPluginTest(TestCase):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
+        assert msg.subject == u'[Sentry] [foo Bar] error: רונית מגן'
 
     def test_get_digest_subject(self):
         assert self.plugin.get_digest_subject(
