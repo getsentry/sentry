@@ -556,6 +556,7 @@ class EventManager(object):
             'level': level,
             'last_seen': date,
             'first_seen': date,
+            'active_at': date,
             'data': {
                 'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
                 'type': event_type.key,

@@ -73,6 +73,8 @@ class DjangoSearchBackend(SearchBackend):
                         last_seen_to=None, last_seen_to_inclusive=True,
                         date_from=None, date_from_inclusive=True,
                         date_to=None, date_to_inclusive=True,
+                        active_at_from=None, active_at_from_inclusive=True,
+                        active_at_to=None, active_at_to_inclusive=True,
                         cursor=None, limit=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
@@ -167,6 +169,20 @@ class DjangoSearchBackend(SearchBackend):
                     params['last_seen__lte'] = last_seen_to
                 else:
                     params['last_seen__lt'] = last_seen_to
+            queryset = queryset.filter(**params)
+
+        if active_at_from or active_at_to:
+            params = {}
+            if active_at_from:
+                if active_at_from_inclusive:
+                    params['active_at__gte'] = active_at_from
+                else:
+                    params['active_at__gt'] = active_at_from
+            if active_at_to:
+                if active_at_to_inclusive:
+                    params['active_at__lte'] = active_at_to
+                else:
+                    params['active_at__lt'] = active_at_to
             queryset = queryset.filter(**params)
 
         if date_from or date_to:

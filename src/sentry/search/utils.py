@@ -95,6 +95,10 @@ def parse_datetime_value(value):
 
 
 def _parse_datetime_value(value):
+    # this one is fuzzy, and not entirely correct
+    if value.startswith(('-', '+')):
+        return parse_datetime_range(value)
+
     # timezones are not supported and are assumed UTC
     if value[-1] == 'Z':
         value = value[:-1]
@@ -166,6 +170,7 @@ reserved_tag_names = frozenset([
     'bookmarks',
     'subscribed',
     'first-release',
+    'firstRelease',
     'release',
     'level',
     'user',
@@ -173,7 +178,10 @@ reserved_tag_names = frozenset([
     'user.ip',
     'has',
     'age',
+    'firstSeen',
+    'activeSince',
     'last_seen',
+    'lastSeen',
     'environment',
     'browser',
     'device',
@@ -274,7 +282,7 @@ def parse_query(project, query, user):
                 results['bookmarked_by'] = parse_user_value(value, user)
             elif key == 'subscribed':
                 results['subscribed_by'] = parse_user_value(value, user)
-            elif key == 'first-release':
+            elif key in ('first-release', 'firstRelease'):
                 results['first_release'] = parse_release(project, value)
             elif key == 'release':
                 results['tags']['sentry:release'] = parse_release(project, value)
@@ -291,10 +299,12 @@ def parse_query(project, query, user):
                 elif value == 'release':
                     value = 'sentry:release'
                 results['tags'][value] = ANY
-            elif key == 'age':
+            elif key in ('age', 'firstSeen'):
                 results.update(get_date_params(value, 'age_from', 'age_to'))
-            elif key == 'last_seen':
+            elif key in ('last_seen', 'lastSeen'):
                 results.update(get_date_params(value, 'last_seen_from', 'last_seen_to'))
+            elif key == 'activeSince':
+                results.update(get_date_params(value, 'active_at_from', 'active_at_to'))
             elif key.startswith('user.'):
                 results['tags']['sentry:user'] = get_user_tag(
                     project, key.split('.', 1)[1], value)

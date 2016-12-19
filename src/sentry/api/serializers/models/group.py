@@ -142,7 +142,7 @@ class GroupSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            active_date = item.active_at or item.last_seen
+            active_date = item.active_at or item.first_seen
 
             annotations = []
             for plugin in plugins.for_project(project=item.project, version=1):
