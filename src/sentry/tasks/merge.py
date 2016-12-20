@@ -23,7 +23,8 @@ delete_logger = logging.getLogger('sentry.deletions.async')
 @instrumented_task(name='sentry.tasks.merge.merge_group', queue='merge',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry
-def merge_group(from_object_id=None, to_object_id=None, transaction_id=None, **kwargs):
+def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
+                recursed=False, **kwargs):
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
         Activity, Group, GroupAssignee, GroupHash, GroupRuleStatus,
@@ -55,7 +56,7 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None, **k
         })
         return
 
-    if not kwargs.get('recursed'):
+    if not recursed:
         logger.info('merge.queued', extra={
             'transaction_id': transaction_id,
             'new_group_id': new_group.id,
