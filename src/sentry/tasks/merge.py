@@ -59,6 +59,8 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None, **k
         'transaction_id': transaction_id,
         'new_group_id': new_group.id,
         'old_group_id': group.id,
+        'new_event_id': new_group.event_set[0].id if len(new_group.event_set) else None,
+        'old_event_id': group.event_set[0].id if len(group.event_set) else None,
     })
 
     model_list = (
