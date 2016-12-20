@@ -97,7 +97,7 @@ def init_all_applications():
 
 init_all_applications()
 
-# Only create one instance of the ReactPageView since it's duplicated errywhere
+# Only create one instance of the ReactPageView since it's duplicated everywhere
 react_page_view = ReactPageView.as_view()
 
 urlpatterns = patterns('')
