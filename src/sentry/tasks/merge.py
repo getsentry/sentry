@@ -55,15 +55,17 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None, **k
         })
         return
 
-    logger.info('merge.queued', extra={
-        'transaction_id': transaction_id,
-        'new_group_id': new_group.id,
-        'old_group_id': group.id,
-        'new_event_id': new_group.event_set[0].id if len(new_group.event_set) else None,
-        'old_event_id': group.event_set[0].id if len(group.event_set) else None,
-        'new_hash_id': new_group.grouphash_set.first().id,
-        'old_hash_id': group.grouphash_set.first().id,
-    })
+    if not kwargs.get('recursed'):
+        logger.info('merge.queued', extra={
+            'transaction_id': transaction_id,
+            'new_group_id': new_group.id,
+            'old_group_id': group.id,
+            'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
+            'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
+            'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
+            'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
+
+        })
 
     model_list = (
         Activity, GroupAssignee, GroupHash, GroupRuleStatus, GroupSubscription,
@@ -84,6 +86,7 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None, **k
             from_object_id=from_object_id,
             to_object_id=to_object_id,
             transaction_id=transaction_id,
+            recursed=True,
         )
         return
 
