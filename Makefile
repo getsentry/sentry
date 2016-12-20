@@ -18,7 +18,7 @@ install-python-tests:
 
 develop-only: update-submodules install-python install-python-tests install-npm
 
-develop: update-submodules setup-git develop-only install-python-tests
+develop: develop-only setup-git
 	@echo ""
 
 dev-postgres: install-python
