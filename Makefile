@@ -11,7 +11,9 @@ install-python:
 
 install-npm:
 	@echo "--> Installing Node dependencies"
-	npm install
+	# we need these to happen explicitly due to NODE_ENV influencing it
+	npm install --only=prod
+	npm install --only=dev
 
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
