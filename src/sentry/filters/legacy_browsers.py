@@ -70,11 +70,7 @@ class LegacyBrowsersFilter(Filter):
         except LookupError:
             return ''
 
-    def filter_default(self, ua):
-        browser = ua['user_agent']
-        if not browser['family']:
-            return False
-
+    def filter_default(self, browser):
         try:
             minimum_version = MIN_VERSIONS[browser['family']]
         except KeyError:
@@ -90,11 +86,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_opera(self, ua):
-        browser = ua['user_agent']
-        if not browser['family']:
-            return False
-
+    def filter_opera(self, browser):
         if not browser['family'] == "Opera":
             return False
 
@@ -108,11 +100,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_safari(self, ua):
-        browser = ua['user_agent']
-        if not browser['family']:
-            return False
-
+    def filter_safari(self, browser):
         if not browser['family'] == "Safari":
             return False
 
@@ -126,11 +114,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_android(self, ua):
-        browser = ua['user_agent']
-        if not browser['family']:
-            return False
-
+    def filter_android(self, browser):
         if not browser['family'] == "Android":
             return False
 
@@ -144,12 +128,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_ie9(self, ua):
-        browser = ua['user_agent']
-
-        if not browser['family']:
-            return False
-
+    def filter_ie9(self, browser):
         if not browser['family'] == "IE":
             return False
 
@@ -163,12 +142,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_ie8(self, ua):
-        browser = ua['user_agent']
-
-        if not browser['family']:
-            return False
-
+    def filter_ie8(self, browser):
         if not browser['family'] == "IE":
             return False
 
@@ -199,17 +173,25 @@ class LegacyBrowsersFilter(Filter):
         if not ua:
             return False
 
+        browser = ua['user_agent']
+
+        if not browser['family']:
+            return False
+
         # handle old style config
         if opts == '1':
-            return self.filter_default(ua)
+            return self.filter_default(browser)
 
         # New style is not a simple boolean, but a list of
         # specific filters to apply
-        for key in opts:
-            try:
-                fn = getattr(self, 'filter_' + key)
-            except AttributeError:
-                pass
-            else:
-                if fn(ua):
-                    return True
+        if opts:
+            for key in opts:
+                try:
+                    fn = getattr(self, 'filter_' + key)
+                except AttributeError:
+                    pass
+                else:
+                    if fn(browser):
+                        return True
+
+        return False

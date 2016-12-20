@@ -19,6 +19,7 @@ Version 8.12
 - Fixed usage (and propagation) of ``Group.first_release``.
 - The + and - datetime search helpers now work with ranges (e.g. ``<=``).
 - Added the ability to download artifacts from releases.
+- Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 
 SDKs
 ~~~~
