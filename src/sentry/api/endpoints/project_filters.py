@@ -25,6 +25,5 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
                 'description': filter.description,
                 'name': filter.name,
             })
-
         results.sort(key=lambda x: x['name'])
         return Response(results)

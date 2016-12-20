@@ -37,9 +37,6 @@ class Filter(object):
             value='1' if value['active'] else '0',
         )
 
-    # def subfilters(self):
-    #     return []
-
     def disable(self):
         return self.enable(False)
 
