@@ -13,7 +13,6 @@ class GetOrCreateTest(TestCase):
         datetime = timezone.now()
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='abcdef',
         )

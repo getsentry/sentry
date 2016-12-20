@@ -337,8 +337,7 @@ class GroupUpdateTest(APITestCase):
         assert new_group4.status == GroupStatus.UNRESOLVED
 
     def test_set_resolved_in_next_release(self):
-        release = Release.objects.create(project=self.project,
-                                         organization_id=self.project.organization_id,
+        release = Release.objects.create(organization_id=self.project.organization_id,
                                          version='a')
         release.add_project(self.project)
 

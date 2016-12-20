@@ -16,8 +16,8 @@ def ensure_release_exists(instance, created, **kwargs):
 
     try:
         with transaction.atomic():
+            # TODO: org/version unique constraint required for this to work as intended
             release = Release.objects.create(
-                project=instance.project,
                 organization_id=instance.project.organization_id,
                 version=instance.value,
                 date_added=instance.first_seen,

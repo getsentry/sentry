@@ -21,7 +21,8 @@ class EventDetailsEndpoint(Endpoint):
             return None
         try:
             release = Release.objects.get(
-                project=event.project,
+                projects=event.project,
+                organization_id=event.project.organization_id,
                 version=version,
             )
         except Release.DoesNotExist:

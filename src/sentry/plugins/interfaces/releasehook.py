@@ -29,14 +29,16 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
-        values.setdefault('organization', self.project.organization_id)
-        release, created = Release.objects.create_or_update(
+        Release.objects.create_or_update(
             version=version,
-            project=self.project,
+            organization_id=self.project.organization_id,
             values=values
         )
-        if created:
-            release.add_project(self.project)
+        # TODO: version, org constraint
+        Release.objects.get(
+            version=version,
+            organization_id=self.project.organization_id
+        ).add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -48,13 +50,11 @@ class ReleaseHook(object):
         Calling this method will remove all existing commit history.
         """
         project = self.project
-        release, created = Release.objects.get_or_create(
-            project=project,
+        release = Release.objects.get_or_create(
+            organization_id=project.organization_id,
             version=version,
-            defaults={'organization_id': self.project.organization_id}
-        )
-        if created:
-            release.add_project(project)
+        )[0]
+        release.add_project(project)
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -115,14 +115,17 @@ class ReleaseHook(object):
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
-        values.setdefault('organization', self.project.organization_id)
-        release, created = Release.objects.create_or_update(
+        Release.objects.create_or_update(
             version=version,
-            project=self.project,
+            organization_id=self.project.organization_id,
             values=values
         )
-        if created:
-            release.add_project(self.project)
+        # TODO: version, org constraint
+        Release.objects.get(
+            version=version,
+            organization_id=self.project.organization_id
+        ).add_project(self.project)
+
         activity = Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,

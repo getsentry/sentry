@@ -24,7 +24,7 @@ class StartReleaseTest(TestCase):
         hook.start_release(version)
 
         release = Release.objects.get(
-            project=project,
+            organization_id=project.organization_id,
             version=version,
         )
         assert release.date_started
@@ -33,13 +33,15 @@ class StartReleaseTest(TestCase):
     def test_update_release(self):
         project = self.create_project()
         version = 'bbee5b51f84611e4b14834363b8514c2'
-        Release.objects.create(project=project, version=version)
+        r = Release.objects.create(organization_id=project.organization_id, version=version)
+        r.add_project(project)
 
         hook = ReleaseHook(project)
         hook.start_release(version)
 
         release = Release.objects.get(
-            project=project,
+            organization_id=project.organization_id,
+            projects=project,
             version=version,
         )
         assert release.date_started
@@ -55,7 +57,7 @@ class FinishReleaseTest(TestCase):
         hook.finish_release(version)
 
         release = Release.objects.get(
-            project=project,
+            organization_id=project.organization_id,
             version=version,
         )
         assert release.date_released
@@ -64,13 +66,14 @@ class FinishReleaseTest(TestCase):
     def test_update_release(self):
         project = self.create_project()
         version = 'bbee5b51f84611e4b14834363b8514c2'
-        Release.objects.create(project=project, version=version)
+        r = Release.objects.create(organization_id=project.organization_id, version=version)
+        r.add_project(project)
 
         hook = ReleaseHook(project)
         hook.start_release(version)
 
         release = Release.objects.get(
-            project=project,
+            projects=project,
             version=version,
         )
         assert release.date_started
@@ -98,7 +101,7 @@ class SetCommitsTest(TestCase):
         hook.set_commits(version, data_list)
 
         release = Release.objects.get(
-            project=project,
+            projects=project,
             version=version,
         )
         commit_list = list(Commit.objects.filter(

@@ -455,7 +455,6 @@ class JavascriptIntegrationTest(TestCase):
     def test_expansion_via_release_artifacts(self):
         project = self.project
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='abc',
         )

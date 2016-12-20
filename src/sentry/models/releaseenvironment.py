@@ -13,8 +13,8 @@ from sentry.db.models import (
 class ReleaseEnvironment(Model):
     __core__ = False
 
-    organization_id = BoundedPositiveIntegerField(db_index=True, null=True)
-    project_id = BoundedPositiveIntegerField(db_index=True)
+    organization_id = BoundedPositiveIntegerField(db_index=True)
+    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
     release_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(db_index=True)
     first_seen = models.DateTimeField(default=timezone.now)

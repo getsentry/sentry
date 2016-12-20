@@ -41,10 +41,10 @@ class Release(Model):
     """
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization', null=True, blank=True)
+    organization = FlexibleForeignKey('sentry.Organization')
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
                                       through=ReleaseProject)
-    project = FlexibleForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project', null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
     ref = models.CharField(max_length=64, null=True, blank=True)
@@ -71,13 +71,15 @@ class Release(Model):
 
     @classmethod
     def get(cls, project, version):
+        # TODO: should this be cached by organization now?
         cache_key = cls.get_cache_key(project.id, version)
 
         release = cache.get(cache_key)
         if release is None:
             try:
                 release = cls.objects.get(
-                    project=project,
+                    organization_id=project.organization_id,
+                    projects=project,
                     version=version,
                 )
             except cls.DoesNotExist:
@@ -91,22 +93,21 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added):
+        # TODO: should this be cached by organization now?
         cache_key = cls.get_cache_key(project.id, version)
 
         release = cache.get(cache_key)
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release, created = cls.objects.get_or_create(
-                project=project,
+            release = cls.objects.get_or_create(
+                organization_id=project.organization_id,
                 version=version,
                 defaults={
                     'date_added': date_added,
-                    'organization_id': project.organization_id
                 },
-            )
-            if created:
-                release.add_project(project)
+            )[0]
+            release.add_project(project)
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)

@@ -86,7 +86,8 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                project=project,
+                organization_id=project.organization_id,
+                projects=project,
                 version=version,
             )
         except Release.DoesNotExist:
@@ -135,7 +136,8 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                project=project,
+                organization_id=project.organization_id,
+                projects=project,
                 version=version,
             )
         except Release.DoesNotExist:
@@ -178,7 +180,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         try:
             with transaction.atomic():
                 releasefile = ReleaseFile.objects.create(
-                    organization_id=release.project.organization_id,
+                    organization_id=release.organization_id,
                     project=release.project,
                     release=release,
                     file=file,

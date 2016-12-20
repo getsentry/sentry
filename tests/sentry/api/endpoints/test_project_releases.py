@@ -16,7 +16,6 @@ class ProjectReleaseListTest(APITestCase):
         project2 = self.create_project(team=team, name='bar')
 
         release1 = Release.objects.create(
-            project=project1,
             organization_id=project1.organization_id,
             version='1',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
@@ -24,7 +23,6 @@ class ProjectReleaseListTest(APITestCase):
         release1.add_project(project1)
 
         release2 = Release.objects.create(
-            project=project1,
             organization_id=project1.organization_id,
             version='2',
             date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
@@ -32,7 +30,6 @@ class ProjectReleaseListTest(APITestCase):
         release2.add_project(project1)
 
         release3 = Release.objects.create(
-            project=project1,
             organization_id=project1.organization_id,
             version='3',
             date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
@@ -41,7 +38,6 @@ class ProjectReleaseListTest(APITestCase):
         release3.add_project(project1)
 
         release4 = Release.objects.create(
-            project=project2,
             organization_id=project2.organization_id,
             version='1',
         )
@@ -66,7 +62,6 @@ class ProjectReleaseListTest(APITestCase):
         project = self.create_project(team=team, name='foo')
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='foobar',
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
@@ -107,7 +102,6 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.data['version']
 
         release = Release.objects.get(
-            project=project,
             version=response.data['version'],
         )
         assert not release.owner
@@ -120,7 +114,6 @@ class ProjectReleaseCreateTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(version='1.2.1',
-                                         project=project,
                                          organization_id=project.organization_id)
         release.add_project(project)
 
@@ -177,7 +170,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.data['version'] == '1.2.3'
 
         release = Release.objects.get(
-            project=project,
+            organization_id=project.organization_id,
             version=response.data['version'],
         )
         assert not release.owner
@@ -200,7 +193,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.data['version']
 
         release = Release.objects.get(
-            project=project,
+            organization_id=project.organization_id,
             version=response.data['version'],
         )
         assert release.owner == self.user
@@ -226,7 +219,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.data['version']
 
         release = Release.objects.get(
-            project=project,
+            organization_id=project.organization_id,
             version=response.data['version'],
         )
 

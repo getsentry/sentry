@@ -79,7 +79,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         query = request.GET.get('query')
 
         queryset = Release.objects.filter(
-            project=project,
+            projects=project,
+            organization_id=project.organization_id
         ).select_related('owner')
 
         if query:
@@ -140,8 +141,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 with transaction.atomic():
                     # release creation is idempotent to simplify user
                     # experiences
+
+                    # TODO(jess): unique constraint on organization, version
                     release, created = Release.objects.create(
-                        project=project,
                         organization_id=project.organization_id,
                         version=result['version'],
                         ref=result.get('ref'),
@@ -150,15 +152,16 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
-                    release.add_project(project)
             except IntegrityError:
                 release, created = Release.objects.get(
-                    project=project,
+                    organization_id=project.organization_id,
                     version=result['version'],
                 ), False
                 was_released = bool(release.date_released)
             else:
                 was_released = False
+
+            release.add_project(project)
 
             commit_list = result.get('commits')
             if commit_list:

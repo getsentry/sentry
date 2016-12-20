@@ -15,7 +15,6 @@ class ReleaseDetailsTest(APITestCase):
 
         project = self.create_project(name='foo')
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -38,7 +37,6 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         project = self.create_project(name='foo')
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -63,7 +61,6 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -96,7 +93,6 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -130,7 +126,6 @@ class ReleaseDeleteTest(APITestCase):
 
         project = self.create_project(name='foo')
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -162,7 +157,6 @@ class ReleaseDeleteTest(APITestCase):
 
         project = self.create_project(name='foo')
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )

@@ -35,7 +35,6 @@ class FetchReleaseFileTest(TestCase):
     def test_unicode(self):
         project = self.project
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='abc',
         )
@@ -142,8 +141,7 @@ class FetchFileTest(TestCase):
             None,
         )
 
-        release = Release.objects.create(project=self.project,
-                                         version='1',
+        release = Release.objects.create(version='1',
                                          organization_id=self.project.organization_id)
         release.add_project(self.project)
 

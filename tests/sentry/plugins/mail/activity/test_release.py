@@ -40,7 +40,6 @@ class ReleaseTestCase(TestCase):
         )
         self.release = Release.objects.create(
             version='a' * 40,
-            project_id=self.project.id,
             organization_id=self.project.organization_id,
             date_released=timezone.now(),
         )

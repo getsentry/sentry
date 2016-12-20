@@ -12,7 +12,6 @@ class ReleaseCommitsListTest(APITestCase):
             name='foo',
         )
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
