@@ -107,7 +107,7 @@ const GroupTagValues = React.createClass({
                   query: {query: `${tagKey.key}:"${tagValue.value}"`}
                 }}>
               {tagKey.key === 'user' ? [
-                <Avatar user={tagValue} size={16} className="avatar" />,
+                <Avatar user={tagValue} size={20} className="avatar" />,
                 <span style={{marginLeft: 10}}>{this.getUserDisplayName(tagValue)}</span>
               ] :
                 deviceNameMapper(tagValue.name)
