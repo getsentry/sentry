@@ -8,7 +8,7 @@ coverage:
         target: 0%
   ignore:
   - src/sentry/lint/.*
-  - src/.*?/migrations/*
-  - src/.*?/south_migrations/*
+  - src/.*?/migrations/.*
+  - src/.*?/south_migrations/.*
 
 comment: false
