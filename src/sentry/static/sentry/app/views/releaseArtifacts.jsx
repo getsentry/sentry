@@ -108,24 +108,29 @@ const ReleaseArtifacts = React.createClass({
           <p>{t('There are no artifacts uploaded for this release.')}</p>
         </div>
       );
-
+    
     // TODO(dcramer): files should allow you to download them
     return (
       <div>
         <div className="release-group-header">
           <div className="row">
-            <div className="col-sm-9 col-xs-8">{'Name'}</div>
+            <div className="col-sm-8 col-xs-7">{'Name'}</div>
             <div className="col-sm-2 col-xs-2 align-right">{'Size'}</div>
-            <div className="col-sm-1 col-xs-2 align-right"></div>
+            <div className="col-sm-2 col-xs-3 align-right"></div>
           </div>
         </div>
         <div className="release-list">
         {this.state.fileList.map((file) => {
           return (
             <div className="release release-artifact row" key={file.id}>
-              <div className="col-sm-9 col-xs-8" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
+              <div className="col-sm-8 col-xs-7" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
               <div className="col-sm-2 col-xs-2 align-right"><FileSize bytes={file.size} /></div>
-              <div className="col-sm-1 col-xs-2 align-right">
+              <div className="col-sm-2 col-xs-3 align-right actions">
+                <a
+                  href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
+                  className="btn btn-sm btn-default">
+                  <span className="icon icon-open" />
+                </a>
                 <LinkWithConfirmation
                   className="btn btn-sm btn-default"
                   title={t('Delete artifact')}
