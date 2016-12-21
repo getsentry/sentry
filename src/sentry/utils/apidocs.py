@@ -338,7 +338,7 @@ class MockUtils(object):
         )
         f.putfile(StringIO(contents or ''))
         return ReleaseFile.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             release=release,
             file=f,
             name=path

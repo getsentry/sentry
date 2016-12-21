@@ -181,7 +181,6 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             with transaction.atomic():
                 releasefile = ReleaseFile.objects.create(
                     organization_id=release.organization_id,
-                    project=release.project,
                     release=release,
                     file=file,
                     name=full_name,

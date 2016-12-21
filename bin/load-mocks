@@ -272,7 +272,7 @@ def main(num_events=1):
             release.add_project(project)
 
             ReleaseFile.objects.get_or_create(
-                project=project,
+                organization_id=project.organization_id,
                 release=release,
                 name='an-example.js',
                 file=File.objects.get_or_create(
@@ -310,7 +310,6 @@ def main(num_events=1):
 
             ReleaseCommit.objects.get_or_create(
                 organization_id=org.id,
-                project_id=project.id,
                 release=release,
                 commit=commit,
                 order=0,

@@ -21,7 +21,6 @@ class ReleaseFilesListTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            project=project,
             release=release,
             file=File.objects.create(
                 name='application.js',

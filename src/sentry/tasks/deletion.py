@@ -27,7 +27,8 @@ logger = logging.getLogger('sentry.deletions.async')
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, CommitFileChange, Release, Repository
+        Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit, ReleaseEnvironment,
+        ReleaseFile, Repository
     )
 
     try:
@@ -53,7 +54,8 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
         return
 
     model_list = (
-        OrganizationMember, CommitFileChange, Commit, CommitAuthor, Repository, Release
+        OrganizationMember, CommitFileChange, Commit, CommitAuthor,
+        Repository, Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile
     )
 
     has_more = delete_objects(
@@ -125,8 +127,8 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
-        ReleaseProject, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
-        TagValue, UserReport, ReleaseEnvironment, Environment, ReleaseCommit
+        ReleaseProject, SavedSearchUserDefault, SavedSearch, TagKey,
+        TagValue, UserReport, Environment
     )
 
     try:
@@ -156,7 +158,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, ReleaseEnvironment, Environment, ReleaseCommit
+        UserReport, Environment
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
@@ -192,7 +194,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
 
     # Release needs to handle deletes after Group is cleaned up as the foreign
     # key is protected
-    model_list = (Group, ReleaseFile, ReleaseProject)
+    model_list = (Group, ReleaseProject)
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
         if has_more:

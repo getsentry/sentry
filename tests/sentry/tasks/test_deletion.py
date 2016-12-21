@@ -26,6 +26,8 @@ class DeleteOrganizationTest(TestCase):
         )
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
+        release = Release.objects.create(version='a' * 32,
+                                         organization_id=org.id)
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
@@ -41,11 +43,20 @@ class DeleteOrganizationTest(TestCase):
             author=commit_author,
             key='a' * 40,
         )
+        ReleaseCommit.objects.create(
+            organization_id=org.id,
+            release=release,
+            commit=commit,
+            order=0,
+        )
+
         with self.tasks():
             delete_organization(object_id=org.id)
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()
+        assert not ReleaseCommit.objects.filter(organization_id=org.id).exists()
+        assert not Release.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(id=commit_author.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
 
@@ -133,7 +144,8 @@ class DeleteProjectTest(TestCase):
             delete_project(object_id=project.id)
 
         assert not Project.objects.filter(id=project.id).exists()
-        assert not ReleaseCommit.objects.filter(project_id=project.id).exists()
+        assert Release.objects.filter(id=release.id).exists()
+        assert ReleaseCommit.objects.filter(release_id=release.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
 
     def test_cancels_without_pending_status(self):

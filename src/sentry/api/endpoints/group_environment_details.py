@@ -42,7 +42,7 @@ class GroupEnvironmentDetailsEndpoint(GroupEndpoint):
             group_id=group.id,
             environment=environment.name,
             release_id=ReleaseEnvironment.objects.filter(
-                project_id=group.project_id,
+                organization_id=group.project.organization_id,
                 environment_id=environment.id,
             ).order_by('-first_seen').values_list('release_id', flat=True).first(),
         ).first()

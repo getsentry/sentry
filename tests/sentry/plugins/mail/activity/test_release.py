@@ -70,14 +70,12 @@ class ReleaseTestCase(TestCase):
         )
         ReleaseCommit.objects.create(
             organization_id=self.project.organization_id,
-            project_id=self.project.id,
             release=self.release,
             commit=self.commit,
             order=0,
         )
         ReleaseCommit.objects.create(
             organization_id=self.project.organization_id,
-            project_id=self.project.id,
             release=self.release,
             commit=self.commit2,
             order=1,

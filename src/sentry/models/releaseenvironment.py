@@ -45,7 +45,6 @@ class ReleaseEnvironment(Model):
                 with transaction.atomic():
                     instance, created = cls.objects.create(
                         release_id=release.id,
-                        project_id=project.id,
                         organization_id=project.organization_id,
                         environment_id=environment.id,
                         first_seen=datetime,
@@ -54,7 +53,7 @@ class ReleaseEnvironment(Model):
             except IntegrityError:
                 instance, created = cls.objects.get(
                     release_id=release.id,
-                    project_id=project.id,
+                    organization_id=project.organization_id,
                     environment_id=environment.id,
                 ), False
             cache.set(cache_key, instance, 3600)

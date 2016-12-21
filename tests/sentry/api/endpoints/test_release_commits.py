@@ -32,14 +32,12 @@ class ReleaseCommitsListTest(APITestCase):
         )
         ReleaseCommit.objects.create(
             organization_id=project.organization_id,
-            project_id=project.id,
             release=release,
             commit=commit,
             order=1,
         )
         ReleaseCommit.objects.create(
             organization_id=project.organization_id,
-            project_id=project.id,
             release=release,
             commit=commit2,
             order=0,
