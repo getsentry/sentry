@@ -139,8 +139,8 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if tags:
-            filter_tags = {k:v for k,v in tags.iteritems() if k[0] != '-'}
-            exclude_tags = {k[1:]:v for k,v in tags.iteritems() if k[0] == '-'}
+            filter_tags = {k: v for k, v in six.iteritems(tags) if k[0] != '-'}
+            exclude_tags = {k[1:]: v for k, v in six.iteritems(tags) if k[0] == '-'}
             if filter_tags:
                 matches = self._tags_to_filter(project, filter_tags)
                 if not matches:
