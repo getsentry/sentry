@@ -139,12 +139,22 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if tags:
-            matches = self._tags_to_filter(project, tags)
-            if not matches:
-                return queryset.none()
-            queryset = queryset.filter(
-                id__in=matches,
-            )
+            filter_tags = {k:v for k,v in tags.iteritems() if k[0] != '-'}
+            exclude_tags = {k[1:]:v for k,v in tags.iteritems() if k[0] == '-'}
+            if filter_tags:
+                matches = self._tags_to_filter(project, filter_tags)
+                if not matches:
+                    return queryset.none()
+                queryset = queryset.filter(
+                    id__in=matches,
+                )
+            if exclude_tags:
+                matches = self._tags_to_filter(project, exclude_tags)
+                if not matches:
+                    return queryset.none()
+                queryset = queryset.exclude(
+                    id__in=matches,
+                )
 
         if age_from or age_to:
             params = {}
