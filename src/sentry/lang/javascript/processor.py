@@ -228,7 +228,7 @@ def fetch_release_file(filename, release):
     if filename is not None:
         filename_no_query = filename.split('?')[0]
         if filename_no_query != filename:
-            filename_idents.append(filename_no_query)
+            filename_idents.append(ReleaseFile.get_ident(filename_no_query))
 
         # Reconstruct url without protocol + host
         # e.g. http://example.com/foo?bar => ~/foo?bar
