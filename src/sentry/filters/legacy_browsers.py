@@ -22,11 +22,11 @@ class LegacyBrowserFilterSerializer(serializers.Serializer):
     # TODO: maybe find a serializer that handles multple values already
     active = serializers.BooleanField()
     subfilters = MultipleChoiceField(choices=[
-        'ie8',
+        'ie_pre_9',
         'ie9',
-        'opera',
-        'android',
-        'safari'
+        'opera_pre_15',
+        'android_pre_4',
+        'safari_pre_6'
     ])
 
 
@@ -86,7 +86,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_opera(self, browser):
+    def filter_opera_pre_15(self, browser):
         if not browser['family'] == "Opera":
             return False
 
@@ -100,7 +100,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_safari(self, browser):
+    def filter_safari_pre_6(self, browser):
         if not browser['family'] == "Safari":
             return False
 
@@ -114,7 +114,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_android(self, browser):
+    def filter_android_pre_4(self, browser):
         if not browser['family'] == "Android":
             return False
 
@@ -142,7 +142,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_ie8(self, browser):
+    def filter_ie_pre_9(self, browser):
         if not browser['family'] == "IE":
             return False
 

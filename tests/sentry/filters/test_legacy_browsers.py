@@ -77,7 +77,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             'filter_id': "legacy-browsers"
         })
         response = self.client.put(url, data={
-            'subfilters': ["opera"]
+            'subfilters': ["opera_pre_15"]
         })
         assert response.status_code == 201, response.content
 
@@ -85,7 +85,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             project=project,
             key='filters:legacy-browsers'
         )
-        assert options == set(['opera'])
+        assert options == {'opera_pre_15'}
 
     def test_set_ie9(self):
         self.login_as(user=self.user)
@@ -105,7 +105,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             project=project,
             key='filters:legacy-browsers'
         )
-        assert options == set(['ie9'])
+        assert options == {'ie9'}
 
     def test_set_ie8(self):
         self.login_as(user=self.user)
@@ -117,7 +117,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             'filter_id': "legacy-browsers"
         })
         response = self.client.put(url, data={
-            'subfilters': ["ie8"]
+            'subfilters': ["ie_pre_9"]
         })
         assert response.status_code == 201, response.content
 
@@ -125,7 +125,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             project=project,
             key='filters:legacy-browsers'
         )
-        assert options == set(['ie8'])
+        assert options == {'ie_pre_9'}
 
     def test_set_android(self):
         self.login_as(user=self.user)
@@ -137,7 +137,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             'filter_id': "legacy-browsers"
         })
         response = self.client.put(url, data={
-            'subfilters': ["android"]
+            'subfilters': ["android_pre_4"]
         })
         assert response.status_code == 201, response.content
 
@@ -145,7 +145,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             project=project,
             key='filters:legacy-browsers'
         )
-        assert options == set(['android'])
+        assert options == {'android_pre_4'}
 
     def test_set_safari(self):
         self.login_as(user=self.user)
@@ -157,7 +157,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             'filter_id': "legacy-browsers"
         })
         response = self.client.put(url, data={
-            'subfilters': ["safari"]
+            'subfilters': ["safari_pre_6"]
         })
         assert response.status_code == 201, response.content
 
@@ -165,7 +165,7 @@ class SetLegacyBrowserFilterTest(APITestCase):
             project=project,
             key='filters:legacy-browsers'
         )
-        assert options == set(['safari'])
+        assert options == {'safari_pre_6'}
 
 
 class LegacyBrowsersFilterTest(TestCase):
@@ -253,7 +253,7 @@ class LegacyBrowsersFilterTest(TestCase):
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:legacy-browsers',
-            value=set(['opera'])
+            value={'opera_pre_15'}
         )
         data = self.get_mock_data(USER_AGENTS['opera_12'])
         assert self.apply_filter(data) is True
@@ -263,20 +263,20 @@ class LegacyBrowsersFilterTest(TestCase):
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_opera(browser) is True
+        assert self.filter_cls(self.project).filter_opera_pre_15(browser) is True
 
     def test_dont_filter_opera_15(self):
         data = self.get_mock_data(USER_AGENTS['opera_15'])
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_opera(browser) is False
+        assert self.filter_cls(self.project).filter_opera_pre_15(browser) is False
 
     def test_filters_ie8(self):
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:legacy-browsers',
-            value=set(['ie8'])
+            value={'ie_pre_9'}
         )
         data = self.get_mock_data(USER_AGENTS['ie_8'])
         assert self.apply_filter(data) is True
@@ -286,20 +286,20 @@ class LegacyBrowsersFilterTest(TestCase):
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_ie8(browser) is True
+        assert self.filter_cls(self.project).filter_ie_pre_9(browser) is True
 
     def test_does_not_filter_ie10(self):
         data = self.get_mock_data(USER_AGENTS['ie_10'])
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_ie8(browser) is False
+        assert self.filter_cls(self.project).filter_ie_pre_9(browser) is False
 
     def test_filters_safari(self):
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:legacy-browsers',
-            value=set(['safari'])
+            value={'safari_pre_6'}
         )
         data = self.get_mock_data(USER_AGENTS['safari_5'])
         assert self.apply_filter(data) is True
@@ -309,20 +309,20 @@ class LegacyBrowsersFilterTest(TestCase):
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_safari(browser) is True
+        assert self.filter_cls(self.project).filter_safari_pre_6(browser) is True
 
     def test_method_does_not_filter_safari_7(self):
         data = self.get_mock_data(USER_AGENTS['safari_7'])
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_safari(browser) is False
+        assert self.filter_cls(self.project).filter_safari_pre_6(browser) is False
 
     def test_filters_android(self):
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:legacy-browsers',
-            value=set(['android'])
+            value={'android_pre_4'}
         )
         data = self.get_mock_data(USER_AGENTS['android_2'])
         assert self.apply_filter(data) is True
@@ -332,11 +332,11 @@ class LegacyBrowsersFilterTest(TestCase):
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_android(browser) is True
+        assert self.filter_cls(self.project).filter_android_pre_4(browser) is True
 
     def test_method_does_not_filter_android_4(self):
         data = self.get_mock_data(USER_AGENTS['android_4'])
         ua_data = self.filter_cls(self.project).get_user_agent(data)
         ua = Parse(ua_data)
         browser = ua['user_agent']
-        assert self.filter_cls(self.project).filter_android(browser) is False
+        assert self.filter_cls(self.project).filter_android_pre_4(browser) is False

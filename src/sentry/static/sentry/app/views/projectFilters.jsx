@@ -69,7 +69,7 @@ const FilterRow = React.createClass({
 });
 
 const LEGACY_BROWSER_SUBFILTERS = {
-  'ie8': {
+  'ie_pre_9': {
     icon: 'internet-explorer',
     helpText: 'Version 8 and lower',
     title: 'Internet Explorer',
@@ -79,17 +79,17 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 9',
     title: 'Internet Explorer',
   },
-  'opera': {
+  'opera_pre_15': {
     icon: 'opera',
     helpText: 'Version 14 and lower',
     title: 'Opera',
   },
-  'safari': {
+  'safari_pre_6': {
     icon: 'safari',
     helpText: 'Version 5 and lower',
     title: 'Safari',
   },
-  'android': {
+  'android_pre_4': {
     icon: 'android',
     helpText: 'Version 3 and lower',
     title: 'Android',
