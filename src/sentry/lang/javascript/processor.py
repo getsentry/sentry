@@ -223,14 +223,23 @@ def fetch_release_file(filename, release):
         md5_text(filename).hexdigest(),
     )
 
-    filename_path = None
+    filename_idents = [ReleaseFile.get_ident(filename)]
+
     if filename is not None:
+        filename_no_query = filename.split('?')[0]
+        if filename_no_query != filename:
+            filename_idents.append(filename_no_query)
+
         # Reconstruct url without protocol + host
         # e.g. http://example.com/foo?bar => ~/foo?bar
         parsed_url = urlparse(filename)
         filename_path = '~' + parsed_url.path
+        if filename_path != filename:
+            filename_idents.append(ReleaseFile.get_ident(filename_path))
         if parsed_url.query:
             filename_path += '?' + parsed_url.query
+            if filename_path != filename:
+                filename_idents.append(ReleaseFile.get_ident(filename_path))
 
     logger.debug('Checking cache for release artifact %r (release_id=%s)',
                  filename, release.id)
@@ -239,10 +248,6 @@ def fetch_release_file(filename, release):
     if result is None:
         logger.debug('Checking database for release artifact %r (release_id=%s)',
                      filename, release.id)
-
-        filename_idents = [ReleaseFile.get_ident(filename)]
-        if filename_path is not None and filename_path != filename:
-            filename_idents.append(ReleaseFile.get_ident(filename_path))
 
         possible_files = list(ReleaseFile.objects.filter(
             release=release,
