@@ -53,7 +53,7 @@ def resolve_processing_issue(project, type, key=None):
 
     for group_id in affected_groups:
         if group_id not in broken_groups:
-            _trigger_group_reprocessing(group_id)
+            _trigger_group_reprocessing(project, group_id)
 
 
 def store_processing_issues(issues, group, release=None):
@@ -69,13 +69,18 @@ def store_processing_issues(issues, group, release=None):
         )[0]
 
 
-def _trigger_group_reprocessing(group_id):
+def _trigger_group_reprocessing(project, group_id):
     """Triggers reprocessing for an entire group."""
+    from sentry.coreapi import ClientApiHelper
+    helper = ClientApiHelper(project_id=project.id)
+
     q = Event.objects.filter(group_id=group_id)
     for events in batched_queryset_iter(q):
         Event.objects.bind_nodes(events, 'data')
         for event in events:
+            data = helper.validate_data(project, event.data)
+            event.delete()
             preprocess_event.delay(
-                data=event.data,
+                data=data,
                 reprocesses_event_id=event.id
             )
