@@ -107,12 +107,18 @@ const LegacyBrowserFilterRow = React.createClass({
   },
 
   getInitialState() {
+    let initialSubfilters;
+    if (this.props.data.active === '1') {
+      initialSubfilters = new Set(LEGACY_BROWSER_KEYS);
+    } else if (this.props.data.active === '0') {
+      initialSubfilters = new Set();
+    } else {
+      initialSubfilters = new Set(this.props.data.active);
+    }
     return {
       loading: false,
       error: false,
-      subfilters: this.props.data.active === true
-        ? new Set(LEGACY_BROWSER_KEYS)
-        : new Set(this.props.data.active)
+      subfilters: initialSubfilters,
     };
   },
 

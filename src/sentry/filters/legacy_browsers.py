@@ -19,7 +19,6 @@ MIN_VERSIONS = {
 
 
 class LegacyBrowserFilterSerializer(serializers.Serializer):
-    # TODO: maybe find a serializer that handles multple values already
     active = serializers.BooleanField()
     subfilters = MultipleChoiceField(choices=[
         'ie_pre_9',
