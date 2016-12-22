@@ -250,6 +250,14 @@ class Frame(Interface):
         module = data.get('module')
         package = data.get('package')
 
+        # For legacy reasons
+        if function == '?':
+            function = None
+
+        # For consistency reasons
+        if symbol == '?':
+            symbol = None
+
         for name in ('abs_path', 'filename', 'symbol', 'function', 'module',
                      'package'):
             v = data.get(name)
@@ -275,14 +283,6 @@ class Frame(Interface):
         if not (filename or function or module or package):
             raise InterfaceValidationError("No 'filename' or 'function' or "
                                            "'module' or 'package'")
-
-        # For legacy reasons
-        if function == '?':
-            function = None
-
-        # For consistency reasons
-        if symbol == '?':
-            symbol = None
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
