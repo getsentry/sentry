@@ -591,7 +591,12 @@ class EventManager(object):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
-            self.logger.info('duplicate.found', extra={'event_id': event.id}, exc_info=True)
+            self.logger.info('duplicate.found', exc_info=True, extra={
+                'event_id': event_id,
+                'project_id': project.id,
+                'group_id': group.id,
+                'model': EventMapping.__name__,
+            })
             return event
 
         environment = Environment.get_or_create(
@@ -663,7 +668,12 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info('duplicate.found', extra={'event_id': event.id}, exc_info=True)
+                self.logger.info('duplicate.found', exc_info=True, extra={
+                    'event_id': event_id,
+                    'project_id': project.id,
+                    'group_id': group.id,
+                    'model': Event.__name__,
+                })
                 return event
 
             index_event_tags.delay(
