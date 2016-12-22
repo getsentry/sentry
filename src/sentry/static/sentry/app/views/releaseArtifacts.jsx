@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import OrganizationState from '../mixins/organizationState';
 import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -15,7 +16,7 @@ const ReleaseArtifacts = React.createClass({
     release: React.PropTypes.object
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -108,7 +109,9 @@ const ReleaseArtifacts = React.createClass({
           <p>{t('There are no artifacts uploaded for this release.')}</p>
         </div>
       );
-    
+
+    let access = this.getAccess();
+    console.log(access);
     // TODO(dcramer): files should allow you to download them
     return (
       <div>
@@ -126,11 +129,13 @@ const ReleaseArtifacts = React.createClass({
               <div className="col-sm-8 col-xs-7" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
               <div className="col-sm-2 col-xs-2 align-right"><FileSize bytes={file.size} /></div>
               <div className="col-sm-2 col-xs-3 align-right actions">
-                <a
-                  href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
-                  className="btn btn-sm btn-default">
-                  <span className="icon icon-open" />
-                </a>
+                {(access.has('project:releases') || access.has('project:write')) && 
+                  <a
+                    href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
+                    className="btn btn-sm btn-default">
+                    <span className="icon icon-open" />
+                  </a>
+                }
                 <LinkWithConfirmation
                   className="btn btn-sm btn-default"
                   title={t('Delete artifact')}

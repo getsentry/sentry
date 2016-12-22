@@ -113,7 +113,7 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.GET.get('download') is not None:
+        if request.GET.get('download') is not None and (request.access.has_scope('project:releases') or request.access.has_scope('project:write')):
             return self.download(releasefile)
         return Response(serialize(releasefile, request.user))
 
