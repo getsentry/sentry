@@ -263,6 +263,7 @@ Version 8.12
 - Fixed usage (and propagation) of ``Group.first_release``.
 - The + and - datetime search helpers now work with ranges (e.g. ``<=``).
 - Added the ability to download artifacts from releases.
+- add Slack to supported auth backends in social auth (for plugins)
 
 SDKs
 ~~~~
