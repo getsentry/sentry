@@ -111,7 +111,7 @@ const ReleaseArtifacts = React.createClass({
       );
 
     let access = this.getAccess();
-    console.log(access);
+    
     // TODO(dcramer): files should allow you to download them
     return (
       <div>
