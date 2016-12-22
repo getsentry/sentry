@@ -34,7 +34,7 @@ class Filter(object):
         ProjectOption.objects.set_value(
             project=self.project,
             key='filters:{}'.format(self.id),
-            value='1' if value['active'] else '0',
+            value='1' if value.get('active', False) else '0',
         )
 
     def disable(self):
