@@ -531,6 +531,11 @@ class StacktraceTest(TestCase):
                 'module': 1,
             })
 
+        with self.assertRaises(InterfaceValidationError):
+            Frame.to_python({
+                'function': '?',
+            })
+
     def test_context_with_nan(self):
         self.assertEquals(
             Frame.to_python({
