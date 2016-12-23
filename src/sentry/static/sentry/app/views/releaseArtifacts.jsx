@@ -2,6 +2,7 @@ import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
 import OrganizationState from '../mixins/organizationState';
+import TooltipMixin from '../mixins/tooltip';
 import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -16,7 +17,14 @@ const ReleaseArtifacts = React.createClass({
     release: React.PropTypes.object
   },
 
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [
+    ApiMixin, 
+    OrganizationState, 
+    TooltipMixin({
+      selector: '.tip',
+      trigger: 'hover'
+    })
+  ],
 
   getInitialState() {
     return {
@@ -58,6 +66,7 @@ const ReleaseArtifacts = React.createClass({
           fileList: data,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
+        this.attachTooltips();
       },
       error: () => {
         this.setState({
@@ -129,12 +138,17 @@ const ReleaseArtifacts = React.createClass({
               <div className="col-sm-8 col-xs-7" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
               <div className="col-sm-2 col-xs-2 align-right"><FileSize bytes={file.size} /></div>
               <div className="col-sm-2 col-xs-3 align-right actions">
-                {(access.has('project:releases') || access.has('project:write')) && 
+                {access.has('project:write') ?
                   <a
-                    href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
-                    className="btn btn-sm btn-default">
-                    <span className="icon icon-open" />
+                      href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
+                      className="btn btn-sm btn-default">
+                      <span className="icon icon-open" />
                   </a>
+                  :
+                  <div
+                    className="btn btn-sm btn-default disabled tip" title={t('You do not have the required permission to download this artifact.')}>
+                    <span className="icon icon-open" />
+                  </div>
                 }
                 <LinkWithConfirmation
                   className="btn btn-sm btn-default"

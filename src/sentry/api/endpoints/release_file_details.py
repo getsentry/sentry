@@ -9,7 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
-from django.http import HttpResponse
+from django.http import CompatibleStreamingHttpResponse
 from django.core.servers.basehttp import FileWrapper
 
 
@@ -73,8 +73,12 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, releasefile):
-        file = releasefile.file.getfile()
-        response = HttpResponse(FileWrapper(file), mimetype='application/octet-stream')
+        file = releasefile.file
+        fp = file.getfile()
+        response = CompatibleStreamingHttpResponse(
+            iter(lambda: fp.read(4096), b''),
+            content_type=file.headers.get('content-type', 'application/octet-stream'),
+        )
         response['Content-Length'] = file.size
         response['Content-Disposition'] = "attachment; filename=%s" % releasefile.name
         return response
@@ -114,7 +118,6 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         if request.GET.get('download') is not None and (
-           request.access.has_scope('project:releases') or
            request.access.has_scope('project:write')):
             return self.download(releasefile)
         return Response(serialize(releasefile, request.user))
