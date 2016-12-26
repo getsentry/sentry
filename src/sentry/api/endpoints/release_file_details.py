@@ -10,7 +10,6 @@ from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 from django.http import CompatibleStreamingHttpResponse
-from django.core.servers.basehttp import FileWrapper
 
 
 @scenario('RetrieveReleaseFile')
@@ -117,9 +116,12 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
-        if request.GET.get('download') is not None and (
+        download_requested = request.GET.get('download') is not None
+        if download_requested and (
            request.access.has_scope('project:write')):
             return self.download(releasefile)
+        elif download_requested:
+            return Response(status=403)
         return Response(serialize(releasefile, request.user))
 
     @attach_scenarios([update_file_scenario])
