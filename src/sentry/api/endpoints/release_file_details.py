@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 from django.http import CompatibleStreamingHttpResponse
+from django.core.servers.basehttp import FileWrapper
 
 
 @scenario('RetrieveReleaseFile')
