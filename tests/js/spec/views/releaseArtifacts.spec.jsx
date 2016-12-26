@@ -13,8 +13,14 @@ describe('ReleaseArtifacts', function() {
 
     this.wrapper = shallow(<ReleaseArtifacts
       location={{query: {cursor: '0:0:100'}}}
-      params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>
-    );
+      params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>, {
+      context: {
+        group: {id: '1337'},
+        project: {id: 'foo'},
+        team: {id: '1'},
+        organization: {id:'bar'}
+      }
+    });
   });
 
   afterEach(function() {
