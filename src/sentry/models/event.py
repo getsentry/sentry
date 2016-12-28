@@ -256,7 +256,7 @@ class Event(Model):
     @property
     def culprit(self):
         warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.group.culprit
+        return self.get_tag('transaction') or self.group.culprit
 
     @property
     def checksum(self):
