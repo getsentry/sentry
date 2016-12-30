@@ -2,12 +2,14 @@
 
 from __future__ import absolute_import
 
-import six
+import functools
 
+import mock
+import six
 from django.core.urlresolvers import reverse
 from exam import fixture
 
-from sentry.models import ProjectStatus, UserOption, UserOptionValue
+from sentry.models import ProjectStatus, UserOption
 from sentry.testutils import TestCase
 
 
@@ -67,7 +69,7 @@ class NotificationSettingsTest(TestCase):
             user=self.user, project=None
         )
 
-        assert options.get('workflow:notifications') == '0'
+        assert options.get('workflow:notifications') == '1'
 
         resp = self.client.post(self.path, {
             'workflow_notifications': '',
@@ -78,8 +80,18 @@ class NotificationSettingsTest(TestCase):
             user=self.user, project=None
         )
 
-        assert options.get('workflow:notifications') == \
-            UserOptionValue.participating_only
+        assert options.get('workflow:notifications', mock.sentinel.UNSET) == mock.sentinel.UNSET
+
+        with self.assertDoesNotChange(
+                functools.partial(
+                    UserOption.objects.get_value,
+                    user=self.user,
+                    project=None,
+                    key='workflow:notifications'
+                )):
+            resp = self.client.post(self.path, {
+                'workflow_notifications': 'invalid',
+            })
 
     def test_can_change_subscribe_by_default(self):
         self.login_as(self.user)

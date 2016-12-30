@@ -32,6 +32,33 @@ class GroupSubscriptionReason(object):
     }
 
 
+def get_user_options(key, user_ids, project, default):
+    from sentry.models import UserOption
+
+    options = {
+        (option.user_id, option.project_id): option.value
+        for option in
+        UserOption.objects.filter(
+            Q(project__isnull=True) | Q(project=project),
+            user_id__in=user_ids,
+            key='workflow:notifications',
+        )
+    }
+
+    results = {}
+
+    for user_id in user_ids:
+        results[user_id] = options.get(
+            (user_id, project.id),
+            options.get(
+                (user_id, None),
+                default,
+            ),
+        )
+
+    return results
+
+
 class GroupSubscriptionManager(BaseManager):
     def subscribe(self, group, user, reason=GroupSubscriptionReason.unknown):
         """
@@ -54,67 +81,57 @@ class GroupSubscriptionManager(BaseManager):
         """
         Identify all users who are participating with a given issue.
         """
-        from sentry.models import User, UserOption, UserOptionValue
+        from sentry.models import User, UserOptionValue
 
-        # Identify all members of a project -- we'll use this to start figuring
-        # out who could possibly be associated with this group due to implied
-        # subscriptions.
-        users = User.objects.filter(
-            sentry_orgmember_set__teams=group.project.team,
-            is_active=True,
-        )
+        users = {
+            user.id: user
+            for user in
+            User.objects.filter(
+                sentry_orgmember_set__teams=group.project.team,
+                is_active=True,
+            )
+        }
 
-        # Obviously, users who have explicitly unsubscribed from this issue
-        # aren't considered participants.
-        users = users.exclude(
-            id__in=GroupSubscription.objects.filter(
-                group=group,
-                is_active=False,
-                user__in=users,
-            ).values('user')
-        )
+        excluded_ids = set()
 
-        # Fetch all of the users that have been explicitly associated with this
-        # issue.
-        participants = {
-            subscription.user: subscription.reason
+        subscriptions = {
+            subscription.user_id: subscription
             for subscription in
             GroupSubscription.objects.filter(
                 group=group,
-                is_active=True,
-                user__in=users,
-            ).select_related('user')
+                user_id__in=users.keys(),
+            )
         }
 
-        # Find users which by default do not subscribe.
-        participating_only = set(
-            UserOption.objects.filter(
-                Q(project__isnull=True) | Q(project=group.project),
-                user__in=users,
-                key='workflow:notifications',
-                value=UserOptionValue.participating_only,
-            ).exclude(
-                user__in=UserOption.objects.filter(
-                    user__in=users,
-                    key='workflow:notifications',
-                    project=group.project,
-                    value=UserOptionValue.all_conversations,
-                )
-            ).values_list('user', flat=True)
+        for user_id, subscription in subscriptions.items():
+            if not subscription.is_active:
+                excluded_ids.add(user_id)
+
+        options = get_user_options(
+            'workflow:notifications',
+            users.keys(),
+            group.project,
+            UserOptionValue.all_conversations,
         )
 
-        if participating_only:
-            excluded = participating_only.difference(participants.keys())
-            if excluded:
-                users = users.exclude(id__in=excluded)
+        for user_id, option in options.items():
+            if option == UserOptionValue.no_conversations:
+                excluded_ids.add(user_id)
+            elif option == UserOptionValue.participating_only:
+                if user_id not in subscriptions:
+                    excluded_ids.add(user_id)
 
         results = {}
 
-        for user in users:
-            results[user] = GroupSubscriptionReason.implicit
+        for user_id, user in users.items():
+            if user_id in excluded_ids:
+                continue
 
-        for user, reason in participants.items():
-            results[user] = reason
+            subscription = subscriptions.get(user_id)
+            if subscription is not None:
+                results[user] = subscription.reason
+            else:
+                results[user] = GroupSubscriptionReason.implicit
 
         return results
 

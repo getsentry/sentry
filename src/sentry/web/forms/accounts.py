@@ -17,8 +17,8 @@ from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
-from sentry.auth import password_validation
 from sentry.app import ratelimiter
+from sentry.auth import password_validation
 from sentry.constants import LANGUAGES
 from sentry.models import (
     Organization, OrganizationStatus, User, UserOption, UserOptionValue
@@ -491,14 +491,20 @@ class NotificationSettingsForm(forms.Form):
         required=False,
     )
 
-    workflow_notifications = forms.BooleanField(
-        label=_('Automatically subscribe to workflow notifications for new projects'),
-        help_text=_("When enabled, you'll automatically subscribe to workflow notifications when you create or join a project."),
+    workflow_notifications = forms.ChoiceField(
+        label=_('Preferred workflow subscription level for new projects'),
+        choices=[
+            (UserOptionValue.all_conversations, "Receive workflow updates for all issues."),
+            (UserOptionValue.participating_only, "Receive workflow updates only for issues that I am participating in or have subscribed to."),
+            (UserOptionValue.no_conversations, "Never receive workflow updates."),
+        ],
+        help_text=_("This will be automatically set as your subscription preference when you create or join a project. It has no effect on existing projects."),
         required=False,
     )
+
     self_notifications = forms.BooleanField(
         label=_('Receive notifications about my own activity'),
-        help_text=_('Enable this if you wish to receive emails for your own actions, as well as others.'),
+        help_text=_('Enable this if you wish to receive emails for your own actions, in addition to the actions of others.'),
         required=False,
     )
 
@@ -521,13 +527,11 @@ class NotificationSettingsForm(forms.Form):
             ) == '1'
         )
 
-        self.fields['workflow_notifications'].initial = (
-            UserOption.objects.get_value(
-                user=self.user,
-                project=None,
-                key='workflow:notifications',
-                default=UserOptionValue.all_conversations,
-            ) == UserOptionValue.all_conversations
+        self.fields['workflow_notifications'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='workflow:notifications',
+            default=UserOptionValue.all_conversations,
         )
 
         self.fields['self_notifications'].initial = UserOption.objects.get_value(
@@ -562,25 +566,31 @@ class NotificationSettingsForm(forms.Form):
             value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
-        if self.cleaned_data.get('workflow_notifications') is True:
-            UserOption.objects.set_value(
+        workflow_notifications_value = self.cleaned_data.get('workflow_notifications')
+        if not workflow_notifications_value:
+            UserOption.objects.unset_value(
                 user=self.user,
                 project=None,
                 key='workflow:notifications',
-                value=UserOptionValue.all_conversations,
             )
         else:
             UserOption.objects.set_value(
                 user=self.user,
                 project=None,
                 key='workflow:notifications',
-                value=UserOptionValue.participating_only,
+                value=workflow_notifications_value,
             )
 
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
-    workflow = forms.BooleanField(required=False)
+    workflow = forms.ChoiceField(
+        choices=[
+            (UserOptionValue.no_conversations, 'Nothing'),
+            (UserOptionValue.participating_only, 'Participating'),
+            (UserOptionValue.all_conversations, 'Everything'),
+        ],
+    )
     email = forms.ChoiceField(label="", choices=(), required=False,
         widget=forms.Select())
 
@@ -591,7 +601,6 @@ class ProjectEmailOptionsForm(forms.Form):
         super(ProjectEmailOptionsForm, self).__init__(*args, **kwargs)
 
         has_alerts = project.is_user_subscribed_to_mail_alerts(user)
-        has_workflow = project.is_user_subscribed_to_workflow(user)
 
         # This allows users who have entered an alert_email value or have specified an email
         # for notifications to keep their settings
@@ -604,7 +613,17 @@ class ProjectEmailOptionsForm(forms.Form):
         self.fields['email'].choices = choices
 
         self.fields['alert'].initial = has_alerts
-        self.fields['workflow'].initial = has_workflow
+        self.fields['workflow'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=self.project,
+            key='workflow:notifications',
+            default=UserOption.objects.get_value(
+                user=self.user,
+                project=None,
+                key='workflow:notifications',
+                default=UserOptionValue.all_conversations,
+            ),
+        )
         self.fields['email'].initial = specified_email or alert_email or user.email
 
     def save(self):
@@ -615,7 +634,7 @@ class ProjectEmailOptionsForm(forms.Form):
 
         UserOption.objects.set_value(
             self.user, self.project, 'workflow:notifications',
-            UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            self.cleaned_data['workflow'],
         )
 
         if self.cleaned_data['email']:

@@ -15,6 +15,7 @@ Version 8.12 (Unreleased)
 - Added ``firstRelease`` to search (uses ``first_release``).
 - Fixed usage (and propagation) of ``Group.first_release``.
 - The + and - datetime search helpers now work with ranges (e.g. ``<=``).
+- Added the ability for users to disable workflow notifications on a per-project basis.
 
 SDKs
 ~~~~

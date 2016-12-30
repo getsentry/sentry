@@ -3,13 +3,14 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+
 from django.utils import timezone
 from mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.models import (
-    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupSubscription,
-    GroupStatus, Release, UserOption, UserOptionValue
+    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupStatus,
+    GroupSubscription, Release, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
 
@@ -114,6 +115,9 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['isSubscribed']
+        assert result['subscriptionDetails'] == {
+            'reason': 'unknown',
+        }
 
     def test_explicit_unsubscribed(self):
         user = self.create_user()
@@ -128,19 +132,27 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert not result['isSubscribed']
+        assert not result['subscriptionDetails']
 
     def test_implicit_subscribed(self):
         user = self.create_user()
         group = self.create_group()
 
         combinations = (
-            ((None, None), True),
-            ((UserOptionValue.all_conversations, None), True),
-            ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), True),
-            ((UserOptionValue.all_conversations, UserOptionValue.participating_only), False),
-            ((UserOptionValue.participating_only, None), False),
-            ((UserOptionValue.participating_only, UserOptionValue.all_conversations), True),
-            ((UserOptionValue.participating_only, UserOptionValue.participating_only), False),
+            # ((default, project), (subscribed, details))
+            ((None, None), (True, None)),
+            ((UserOptionValue.all_conversations, None), (True, None)),
+            ((UserOptionValue.all_conversations, UserOptionValue.all_conversations), (True, None)),
+            ((UserOptionValue.all_conversations, UserOptionValue.participating_only), (False, None)),
+            ((UserOptionValue.all_conversations, UserOptionValue.no_conversations), (False, {'disabled': True})),
+            ((UserOptionValue.participating_only, None), (False, None)),
+            ((UserOptionValue.participating_only, UserOptionValue.all_conversations), (True, None)),
+            ((UserOptionValue.participating_only, UserOptionValue.participating_only), (False, None)),
+            ((UserOptionValue.participating_only, UserOptionValue.no_conversations), (False, {'disabled': True})),
+            ((UserOptionValue.no_conversations, None), (False, {'disabled': True})),
+            ((UserOptionValue.no_conversations, UserOptionValue.all_conversations), (True, None)),
+            ((UserOptionValue.no_conversations, UserOptionValue.participating_only), (False, None)),
+            ((UserOptionValue.no_conversations, UserOptionValue.no_conversations), (False, {'disabled': True})),
         )
 
         def maybe_set_value(project, value):
@@ -158,12 +170,62 @@ class GroupSerializerTest(TestCase):
                     key='workflow:notifications',
                 )
 
-        for options, expected_result in combinations:
-            UserOption.objects.clear_cache()
+        for options, (is_subscribed, subscription_details) in combinations:
             default_value, project_value = options
+            UserOption.objects.clear_cache()
             maybe_set_value(None, default_value)
             maybe_set_value(group.project, project_value)
-            assert serialize(group, user)['isSubscribed'] is expected_result, 'expected {!r} for {!r}'.format(expected_result, options)
+            result = serialize(group, user)
+            assert result['isSubscribed'] is is_subscribed
+            assert result.get('subscriptionDetails') == subscription_details
+
+    def test_global_no_conversations_overrides_group_subscription(self):
+        user = self.create_user()
+        group = self.create_group()
+
+        GroupSubscription.objects.create(
+            user=user,
+            group=group,
+            project=group.project,
+            is_active=True,
+        )
+
+        UserOption.objects.set_value(
+            user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.no_conversations,
+        )
+
+        result = serialize(group, user)
+        assert not result['isSubscribed']
+        assert result['subscriptionDetails'] == {
+            'disabled': True,
+        }
+
+    def test_project_no_conversations_overrides_group_subscription(self):
+        user = self.create_user()
+        group = self.create_group()
+
+        GroupSubscription.objects.create(
+            user=user,
+            group=group,
+            project=group.project,
+            is_active=True,
+        )
+
+        UserOption.objects.set_value(
+            user=user,
+            project=group.project,
+            key='workflow:notifications',
+            value=UserOptionValue.no_conversations,
+        )
+
+        result = serialize(group, user)
+        assert not result['isSubscribed']
+        assert result['subscriptionDetails'] == {
+            'disabled': True,
+        }
 
     def test_no_user_unsubscribed(self):
         group = self.create_group()

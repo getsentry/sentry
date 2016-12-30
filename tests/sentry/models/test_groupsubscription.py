@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import functools
+import itertools
+
 from sentry.models import (
     GroupSubscription, GroupSubscriptionReason, UserOption, UserOptionValue
 )
@@ -84,24 +87,294 @@ class GetParticipantsTest(TestCase):
             user: GroupSubscriptionReason.comment,
         }
 
-    def test_excludes_project_participating_only(self):
+    def test_no_conversations(self):
         org = self.create_organization()
         team = self.create_team(organization=org)
         project = self.create_project(team=team, organization=org)
         group = self.create_group(project=project)
-        user = self.create_user('foo@example.com')
+        user = self.create_user()
         self.create_member(user=user, organization=org, teams=[team])
 
-        UserOption.objects.set_value(
+        user_option_sequence = itertools.count(300)  # prevent accidental overlap with user id
+
+        def clear_workflow_options():
+            UserOption.objects.filter(
+                user=user,
+                key='workflow:notifications',
+            ).delete()
+
+        get_participants = functools.partial(
+            GroupSubscription.objects.get_participants,
+            group,
+        )
+
+        # Implicit subscription, ensure the project setting overrides the
+        # default global option.
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.implicit},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
+
+        clear_workflow_options()
+
+        # Implicit subscription, ensure the project setting overrides the
+        # explicit global option.
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
             user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.implicit},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
+
+        clear_workflow_options()
+
+        # Explicit subscription, overridden by the global option.
+
+        GroupSubscription.objects.create(
+            user=user,
+            group=group,
             project=project,
+            is_active=True,
+            reason=GroupSubscriptionReason.comment,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.comment},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=None,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
+
+        clear_workflow_options()
+
+        # Explicit subscription, overridden by the project option.
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=None,
             key='workflow:notifications',
             value=UserOptionValue.participating_only,
         )
 
-        users = GroupSubscription.objects.get_participants(group=group)
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.comment},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
 
-        assert users == {}
+        clear_workflow_options()
+
+        # Explicit subscription, overridden by the project option which also
+        # overrides the default option.
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.comment},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
+
+    def test_participating_only(self):
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(team=team, organization=org)
+        group = self.create_group(project=project)
+        user = self.create_user()
+        self.create_member(user=user, organization=org, teams=[team])
+
+        user_option_sequence = itertools.count(300)  # prevent accidental overlap with user id
+
+        def clear_workflow_options():
+            UserOption.objects.filter(
+                user=user,
+                key='workflow:notifications',
+            ).delete()
+
+        get_participants = functools.partial(
+            GroupSubscription.objects.get_participants,
+            group,
+        )
+
+        # Implicit subscription, ensure the project setting overrides the
+        # default global option.
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.implicit},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.participating_only,
+            )
+
+        clear_workflow_options()
+
+        # Implicit subscription, ensure the project setting overrides the
+        # explicit global option.
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.implicit},
+                after={}):
+            UserOption.objects.create(
+                id=next(user_option_sequence),
+                user=user,
+                project=project,
+                key='workflow:notifications',
+                value=UserOptionValue.no_conversations,
+            )
+
+        clear_workflow_options()
+
+        # Ensure the global default is applied.
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        )
+
+        with self.assertChanges(get_participants,
+                before={},
+                after={user: GroupSubscriptionReason.comment}):
+            subscription = GroupSubscription.objects.create(
+                user=user,
+                group=group,
+                project=project,
+                is_active=True,
+                reason=GroupSubscriptionReason.comment,
+            )
+
+        subscription.delete()
+        clear_workflow_options()
+
+        # Ensure the project setting overrides the global default.
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=group.project,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        )
+
+        with self.assertChanges(get_participants,
+                before={},
+                after={user: GroupSubscriptionReason.comment}):
+            subscription = GroupSubscription.objects.create(
+                user=user,
+                group=group,
+                project=project,
+                is_active=True,
+                reason=GroupSubscriptionReason.comment,
+            )
+
+        subscription.delete()
+        clear_workflow_options()
+
+        # Ensure the project setting overrides the global setting.
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=group.project,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        )
+
+        with self.assertChanges(get_participants,
+                before={},
+                after={user: GroupSubscriptionReason.comment}):
+            subscription = GroupSubscription.objects.create(
+                user=user,
+                group=group,
+                project=project,
+                is_active=True,
+                reason=GroupSubscriptionReason.comment,
+            )
+
+        subscription.delete()
+        clear_workflow_options()
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=None,
+            key='workflow:notifications',
+            value=UserOptionValue.participating_only,
+        )
+
+        UserOption.objects.create(
+            id=next(user_option_sequence),
+            user=user,
+            project=group.project,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations,
+        )
+
+        with self.assertChanges(get_participants,
+                before={user: GroupSubscriptionReason.implicit},
+                after={user: GroupSubscriptionReason.comment}):
+            subscription = GroupSubscription.objects.create(
+                user=user,
+                group=group,
+                project=project,
+                is_active=True,
+                reason=GroupSubscriptionReason.comment,
+            )
 
     def test_does_not_include_nonmember(self):
         org = self.create_organization()

@@ -76,6 +76,10 @@ const GroupSidebar = React.createClass({
     }
   },
 
+  canChangeSubscriptionState() {
+    return !(this.getGroup().subscriptionDetails || {disabled: false}).disabled;
+  },
+
   getNotificationText() {
     let group = this.getGroup();
 
@@ -93,7 +97,13 @@ const GroupSidebar = React.createClass({
       }
       return result;
     } else {
-      return t('You\'re not subscribed to this issue.');
+      if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+        return tct('You have [link:disabled workflow notifications] for this project.', {
+          link: <a href="/account/settings/notifications/" />,
+        });
+      } else {
+        return t('You\'re not subscribed to this issue.');
+      }
     }
   },
 
@@ -132,10 +142,12 @@ const GroupSidebar = React.createClass({
 
         <h6><span>{t('Notifications')}</span></h6>
         <p className="help-block">{this.getNotificationText()}</p>
-        <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
-           onClick={this.toggleSubscription}>
-          <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
-        </a>
+        {this.canChangeSubscriptionState() &&
+          <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
+            onClick={this.toggleSubscription}>
+            <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
+          </a>
+        }
       </div>
     );
   }

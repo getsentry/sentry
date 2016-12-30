@@ -8,9 +8,9 @@ sentry.models.project
 from __future__ import absolute_import, print_function
 
 import logging
-import six
 import warnings
 
+import six
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -27,7 +27,6 @@ from sentry.db.models.utils import slugify_instance
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-
 
 # TODO(dcramer): pull in enum library
 ProjectStatus = ObjectStatus
@@ -266,14 +265,3 @@ class Project(Model):
         else:
             is_enabled = bool(is_enabled)
         return is_enabled
-
-    def is_user_subscribed_to_workflow(self, user):
-        from sentry.models import UserOption, UserOptionValue
-
-        opt_value = UserOption.objects.get_value(
-            user, self, 'workflow:notifications', None)
-        if opt_value is None:
-            opt_value = UserOption.objects.get_value(
-                user, None, 'workflow:notifications',
-                UserOptionValue.all_conversations)
-        return opt_value == UserOptionValue.all_conversations

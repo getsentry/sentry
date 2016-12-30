@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 
+import itertools
 from collections import defaultdict, namedtuple
 from datetime import timedelta
 
@@ -29,6 +30,9 @@ SUBSCRIPTION_REASON_MAP = {
 }
 
 
+disabled = object()
+
+
 @register(Group)
 class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
@@ -37,57 +41,69 @@ class GroupSerializer(Serializer):
         subscription: GroupSubscription or None) for the provided user and
         groups.
         """
-        results = {group.id: None for group in item_list}
+        if not item_list:
+            return {}
 
-        # First, the easy part -- if there is a subscription record associated
-        # with the group, we can just use that to know if a user is subscribed
-        # or not.
-        subscriptions = GroupSubscription.objects.filter(
-            group__in=results.keys(),
-            user=user,
-        )
-
-        for subscription in subscriptions:
-            results[subscription.group_id] = (subscription.is_active, subscription)
-
-        # For any group that doesn't have a subscription associated with it,
-        # we'll need to fall back to the project's option value, so here we
-        # collect all of the projects to look up, and keep a set of groups that
+        # Collect all of the projects to look up, and keep a set of groups that
         # are part of that project. (Note that the common -- but not only --
         # case here is that all groups are part of the same project.)
         projects = defaultdict(set)
         for group in item_list:
-            if results[group.id] is None:
-                projects[group.project].add(group.id)
+            projects[group.project].add(group)
 
-        if projects:
-            # NOTE: This doesn't use `values_list` because that bypasses field
-            # value decoding, so the `value` field would not be unpickled.
-            options = {
-                option.project_id: option.value
-                for option in
-                UserOption.objects.filter(
-                    Q(project__in=projects.keys()) | Q(project__isnull=True),
-                    user=user,
-                    key='workflow:notifications',
-                )
-            }
+        # Fetch the options for each project -- we'll need this to identify if
+        # a user has totally disabled workflow notifications for a project.
+        # NOTE: This doesn't use `values_list` because that bypasses field
+        # value decoding, so the `value` field would not be unpickled.
+        options = {
+            option.project_id: option.value
+            for option in
+            UserOption.objects.filter(
+                Q(project__in=projects.keys()) | Q(project__isnull=True),
+                user=user,
+                key='workflow:notifications',
+            )
+        }
 
-            # This is the user's default value for any projects that don't have
-            # the option value specifically recorded. (The default "all
-            # conversations" value is convention.)
-            default = options.get(None, UserOptionValue.all_conversations)
+        # If there is a subscription record associated with the group, we can
+        # just use that to know if a user is subscribed or not, as long as
+        # notifications aren't disabled for the project.
+        subscriptions = {
+            subscription.group_id: subscription
+            for subscription in
+            GroupSubscription.objects.filter(
+                group__in=list(
+                    itertools.chain.from_iterable(
+                        itertools.imap(
+                            lambda (project, groups): groups if not options.get(
+                                project.id,
+                                options.get(None)
+                            ) == UserOptionValue.no_conversations else [],
+                            projects.items(),
+                        ),
+                    )
+                ),
+                user=user,
+            )
+        }
 
-            # If you're subscribed to all notifications for the project, that
-            # means you're subscribed to all of the groups. Otherwise you're
-            # not subscribed to any of these leftover groups.
-            for project, group_ids in projects.items():
-                is_subscribed = options.get(
-                    project.id,
-                    default,
-                ) == UserOptionValue.all_conversations
-                for group_id in group_ids:
-                    results[group_id] = (is_subscribed, None)
+        # This is the user's default value for any projects that don't have
+        # the option value specifically recorded. (The default "all
+        # conversations" value is convention.)
+        global_default_workflow_option = options.get(None, UserOptionValue.all_conversations)
+
+        results = {}
+        for project, groups in projects.items():
+            project_default_workflow_option = options.get(project.id, global_default_workflow_option)
+            for group in groups:
+                subscription = subscriptions.get(group.id)
+                if subscription is not None:
+                    results[group.id] = (subscription.is_active, subscription)
+                else:
+                    results[group.id] = (
+                        project_default_workflow_option == UserOptionValue.all_conversations,
+                        None,
+                    ) if project_default_workflow_option != UserOptionValue.no_conversations else disabled
 
         return results
 
@@ -191,7 +207,21 @@ class GroupSerializer(Serializer):
         permalink = absolute_uri(reverse('sentry-group', args=[
             obj.organization.slug, obj.project.slug, obj.id]))
 
-        is_subscribed, subscription = attrs['subscription']
+        subscription_details = None
+        if attrs['subscription'] is not disabled:
+            is_subscribed, subscription = attrs['subscription']
+            if subscription is not None and subscription.is_active:
+                subscription_details = {
+                    'reason': SUBSCRIPTION_REASON_MAP.get(
+                        subscription.reason,
+                        'unknown',
+                    ),
+                }
+        else:
+            is_subscribed = False
+            subscription_details = {
+                'disabled': True,
+            }
 
         return {
             'id': six.text_type(obj.id),
@@ -219,12 +249,7 @@ class GroupSerializer(Serializer):
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'isSubscribed': is_subscribed,
-            'subscriptionDetails': {
-                'reason': SUBSCRIPTION_REASON_MAP.get(
-                    subscription.reason,
-                    'unknown',
-                ),
-            } if is_subscribed and subscription is not None else None,
+            'subscriptionDetails': subscription_details,
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
