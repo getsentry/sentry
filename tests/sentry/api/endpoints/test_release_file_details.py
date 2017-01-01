@@ -44,6 +44,39 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data['id'] == six.text_type(releasefile.id)
 
+    def test_file_download(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            organization_id=project.organization_id,
+            version='1',
+        )
+        release.add_project(project)
+
+        releasefile = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            project=project,
+            release=release,
+            file=File.objects.create(
+                name='application.js',
+                type='release.file',
+            ),
+            name='http://example.com/application.js'
+        )
+
+        url = reverse('sentry-api-0-release-file-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+            'file_id': releasefile.id,
+        })
+
+        response = self.client.get(url + '?download=1')
+        assert response.status_code == 200, response.content
+
 
 class ReleaseFileUpdateTest(APITestCase):
     def test_simple(self):
