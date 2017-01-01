@@ -62,7 +62,7 @@ class ReleaseFileDetailsTest(APITestCase):
             type='release.file',
         )
         f.putfile(BytesIO('File contents here'))
-        
+
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
             project=project,
@@ -80,7 +80,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         response = self.client.get(url + '?download=1')
         assert response.status_code == 200, response.content
-        
+
         user_no_permission = self.create_user('baz@localhost', username='baz')
         self.login_as(user=user_no_permission)
         response = self.client.get(url + '?download=1')
