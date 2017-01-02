@@ -13,8 +13,25 @@ describe('ReleaseArtifacts', function() {
 
     this.wrapper = shallow(<ReleaseArtifacts
       location={{query: {cursor: '0:0:100'}}}
-      params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>
-    );
+      params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>, {
+      context: {
+        group: {id: '1337'},
+        project: {id: 'foo'},
+        team: {id: '1'},
+        organization: {id:'bar'}
+      }
+    });
+
+    this.wrapperWithPermission = shallow(<ReleaseArtifacts
+      location={{query: {cursor: '0:0:100'}}}
+      params={{orgId: '123', projectId: '456', version: 'abcdef'}}/>, {
+      context: {
+        group: {id: '1337'},
+        project: {id: 'foo'},
+        team: {id: '1'},
+        organization: {id:'bar', access: ['project:write']}
+      }
+    });
   });
 
   afterEach(function() {
@@ -38,6 +55,42 @@ describe('ReleaseArtifacts', function() {
       });
 
       expect(wrapper.find('.release-artifact')).to.have.length(2);
+    });
+
+    it('should have no permission to download', function () {
+      let wrapper = this.wrapper;
+      wrapper.setState({
+        loading: false,
+        fileList: [{
+          id: '1',
+          name: 'foo.js',
+          size: 150000
+        }, {
+          id: '2',
+          name: 'bar.js',
+          size: 30000
+        }]
+      });
+
+      expect(wrapper.find('div.btn > .icon-open')).to.have.length(2);
+    });
+
+    it('should have permission to download', function () {
+      let wrapper = this.wrapperWithPermission;
+      wrapper.setState({
+        loading: false,
+        fileList: [{
+          id: '1',
+          name: 'foo.js',
+          size: 150000
+        }, {
+          id: '2',
+          name: 'bar.js',
+          size: 30000
+        }]
+      });
+
+      expect(wrapper.find('a.btn > .icon-open')).to.have.length(2);
     });
   });
 
