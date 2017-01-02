@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import posixpath
 
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -79,7 +80,7 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
             content_type=file.headers.get('content-type', 'application/octet-stream'),
         )
         response['Content-Length'] = file.size
-        response['Content-Disposition'] = "attachment; filename=%s" % releasefile.name
+        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(releasefile.name)
         return response
 
     @attach_scenarios([retrieve_file_scenario])
