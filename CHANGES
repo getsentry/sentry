@@ -1,5 +1,8 @@
-Version 8.12 (Unreleased)
+Version 8.13 (Unreleased)
 -------------------------
+
+Version 8.12
+------------
 
 - Fix bug where some users would incorrectly not receive workflow notifications for projects they were subscribed to.
 - restructured dSYM processing.  It now records errors in the symbolication process
