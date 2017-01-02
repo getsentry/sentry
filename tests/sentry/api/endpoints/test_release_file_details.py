@@ -56,7 +56,7 @@ class ReleaseFileDetailsTest(APITestCase):
         )
         release.add_project(project)
 
-        from io import BytesIO
+        from six import BytesIO
         f = File.objects.create(
             name='application.js',
             type='release.file',
@@ -80,6 +80,9 @@ class ReleaseFileDetailsTest(APITestCase):
 
         response = self.client.get(url + '?download=1')
         assert response.status_code == 200, response.content
+        assert response.get('Content-Disposition') == "attachment; filename=http://example.com/application.js"
+        assert response.get('Content-Length') == six.text_type(f.size)
+        assert 'File contents here' == BytesIO(b"".join(response.streaming_content)).getvalue()
 
         user_no_permission = self.create_user('baz@localhost', username='baz')
         self.login_as(user=user_no_permission)
