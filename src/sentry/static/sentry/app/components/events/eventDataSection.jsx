@@ -19,8 +19,18 @@ const GroupEventDataSection = React.createClass({
   componentDidMount() {
     if (location.hash) {
         let [, hash] = location.hash.split('#');
-        let anchorElement = hash && document.querySelector('div#' + hash);
-        if (anchorElement) {anchorElement.scrollIntoView(); }
+
+        try {
+          let anchorElement = hash && document.querySelector('div#' + hash);
+          if (anchorElement) { anchorElement.scrollIntoView(); }
+        } catch(e) {
+          // Since we're blindly taking the hash from the url and shoving
+          // it into a querySelector, it's possible that this may
+          // raise an exception if the input is invalid. So let's just ignore
+          // this instead of blowing up.
+          // e.g. `document.querySelector('div#=')`
+          // > Uncaught DOMException: Failed to execute 'querySelector' on 'Document': 'div#=' is not a valid selector.
+        }
     }
   },
 
