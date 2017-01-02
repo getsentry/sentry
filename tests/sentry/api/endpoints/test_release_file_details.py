@@ -82,6 +82,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.get('Content-Disposition') == "attachment; filename=http://example.com/application.js"
         assert response.get('Content-Length') == six.text_type(f.size)
+        assert response.get('Content-Type') == 'application/octet-stream a'
         assert 'File contents here' == BytesIO(b"".join(response.streaming_content)).getvalue()
 
         user_no_permission = self.create_user('baz@localhost', username='baz')
