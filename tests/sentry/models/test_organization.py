@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    OrganizationMember, OrganizationMemberTeam, Project, Team
+    OrganizationMember, OrganizationMemberTeam, Project, Release, Team
 )
 from sentry.testutils import TestCase
 
@@ -17,6 +17,8 @@ class OrganizationTest(TestCase):
             team=from_team_two,
             slug='bizzy',
         )
+        from_release = Release.objects.create(version='abcabcabc',
+                                              organization=from_org)
         from_user = self.create_user('baz@example.com')
         other_user = self.create_user('bizbaz@example.com')
         self.create_member(organization=from_org, user=from_user)
@@ -84,6 +86,8 @@ class OrganizationTest(TestCase):
         assert to_project_two.slug == 'bizzy'
         assert to_project_two.organization == to_org
         assert to_project_two.team == to_team_two
+
+        assert Release.objects.get(id=from_release.id).organization == to_org
 
     def test_get_default_owner(self):
         user = self.create_user('foo@example.com')
