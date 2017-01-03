@@ -38,11 +38,21 @@ class LegacyBrowsersFilter(Filter):
 
     def is_enabled(self):
         # May be either a '1' or an iterable for new style
-        return ProjectOption.objects.get_value(
+        # The javascript code requires this to return either
+        # a boolean or a list of subfilters depending on if all, none, or some
+        # legacy browsers should be filtered
+        rv = ProjectOption.objects.get_value(
             project=self.project,
             key='filters:{}'.format(self.id),
             default='1' if self.default else '0',
         )
+
+        if rv == '1':
+            return True
+        if rv == '0':
+            return False
+
+        return rv
 
     def enable(self, value=None):
         if value is None:
