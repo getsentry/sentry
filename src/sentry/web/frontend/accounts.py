@@ -65,6 +65,18 @@ def expired(request, user):
 
 
 def recover(request):
+    from sentry.app import ratelimiter
+
+    if request.method == 'POST' and ratelimiter.is_limited(
+        'accounts:recover:{}'.format(request.META['REMOTE_ADDR']),
+        limit=5, window=60,  # 5 per minute should be enough for anyone
+    ):
+        return HttpResponse(
+            'You have made too many password recovery attempts. Please try again later.',
+            content_type='text/plain',
+            status=429,
+        )
+
     form = RecoverPasswordForm(request.POST or None)
     if form.is_valid():
         password_hash = send_password_recovery_mail(form.cleaned_data['user'])
