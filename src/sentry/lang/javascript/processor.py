@@ -433,8 +433,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
                     # TODO(dcramer): we want to be less aggressive on disabling domains
                     cache.set(domain_key, error or '', 300)
-                    logger.warning('Disabling sources to %s for %ss', domain, 300,
-                                   exc_info=True)
+                    logger.warning('source.disabled', extra=error)
                     raise CannotFetchSource(error)
 
                 body = b''.join(contents)
