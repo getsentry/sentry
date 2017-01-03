@@ -29,8 +29,17 @@ class EditProjectForm(forms.ModelForm):
     team = CustomTypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
-    token = forms.CharField(label=_('Security token'), required=True,
-        help_text=_('Outbound requests matching Allowed Domains will have the header "X-Sentry-Token: {token}" appended.'))
+    token = forms.CharField(
+        label=_('Security token'),
+        help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
+        required=True,
+    )
+    token_header = forms.CharField(
+        label=_('Security token name'),
+        help_text=_('Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended.'),
+        required=True,
+        initial='X-Sentry-Token',
+    )
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
         min_value=0, max_value=168, step_value=1,
         help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
