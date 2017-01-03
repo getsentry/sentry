@@ -11,7 +11,7 @@ from social_auth.backends import BaseOAuth2, OAuthBackend
 
 SLACK_TOKEN_EXCHANGE_URL = 'https://slack.com/api/oauth.access'
 SLACK_AUTHORIZATION_URL = 'https://slack.com/oauth/authorize'
-SLACK_USER_DETAILS_URL = 'https://slack.com/api/users.identity'
+SLACK_USER_DETAILS_URL = 'https://slack.com/api/auth.test'
 
 
 class SlackBackend(OAuthBackend):
@@ -42,7 +42,7 @@ class SlackAuth(BaseOAuth2):
     SETTINGS_KEY_NAME = 'SLACK_CLIENT_ID'
     SETTINGS_SECRET_NAME = 'SLACK_CLIENT_SECRET'
     REDIRECT_STATE = False
-    DEFAULT_SCOPE = ['identity.basic']
+    DEFAULT_SCOPE = ['incoming-webhook']
 
     def user_data(self, access_token, *args, **kwargs):
         """Loads user data from service"""
@@ -50,7 +50,11 @@ class SlackAuth(BaseOAuth2):
             resp = requests.get(SLACK_USER_DETAILS_URL,
                                 params={'token': access_token})
             resp.raise_for_status()
-            return resp.json()['user']
+            content = resp.json()
+            return {
+                'id': content['user_id'],
+                'name': content['user']
+            }
         except ValueError:
             return None
 
