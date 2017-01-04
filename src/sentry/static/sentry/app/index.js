@@ -40,6 +40,7 @@ jQuery.ajaxSetup({
 export default {
   jQuery: jQuery,
   moment: require('moment'),
+  underscore: require('underscore'),
   Raven: require('raven-js'),
   React: require('react'),
   ReactDOM: require('react-dom'),
