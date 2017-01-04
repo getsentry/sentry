@@ -94,7 +94,8 @@ export default {
     U2fEnrollment: require('./components/u2fenrollment'),
     U2fSign: require('./components/u2fsign'),
     utils: {
-      errorHandler: require('./utils/errorHandler')
+      errorHandler: require('./utils/errorHandler'),
+      logging: require('./utils/logging'),
     }
   }
 };
