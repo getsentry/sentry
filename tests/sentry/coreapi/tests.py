@@ -387,6 +387,32 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data.get('environment') == '42'
 
+    def test_time_spent_too_large(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': 2147483647 + 1,
+        })
+        assert not data.get('time_spent')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'time_spent'
+        assert data['errors'][0]['value'] == 2147483647 + 1
+
+    def test_time_spent_invalid(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': 'lol',
+        })
+        assert not data.get('time_spent')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'time_spent'
+        assert data['errors'][0]['value'] == 'lol'
+
+    def test_time_spent_non_int(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': '123',
+        })
+        assert data['time_spent'] == 123
+
 
 class SafelyLoadJSONStringTest(BaseAPITest):
     def test_valid_payload(self):
