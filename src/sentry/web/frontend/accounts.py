@@ -413,6 +413,11 @@ def disconnect_identity(request, identity_id):
             settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
         )
     )
+    logger.info('user.identity.disconnect', extra={
+        'user_id': request.user.id,
+        'ip_address': request.META['REMOTE_ADDR'],
+        'usersocialauth_id': identity_id,
+    })
     return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
 
 
