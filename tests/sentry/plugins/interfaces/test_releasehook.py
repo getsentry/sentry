@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ReleaseHook']
 
-from sentry.models import Commit, Release
+from sentry.models import Commit, Release, ReleaseProject
 from sentry.plugins import ReleaseHook
 from sentry.testutils import TestCase
 
@@ -29,6 +29,7 @@ class StartReleaseTest(TestCase):
         )
         assert release.date_started
         assert release.organization
+        assert ReleaseProject.objects.get(release=release, project=project)
 
     def test_update_release(self):
         project = self.create_project()
@@ -62,6 +63,7 @@ class FinishReleaseTest(TestCase):
         )
         assert release.date_released
         assert release.organization
+        assert ReleaseProject.objects.get(release=release, project=project)
 
     def test_update_release(self):
         project = self.create_project()

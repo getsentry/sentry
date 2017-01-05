@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import Release, ReleaseCommit
+from sentry.models import Release, ReleaseCommit, ReleaseProject
 from sentry.testutils import APITestCase
 
 
@@ -127,6 +127,34 @@ class ProjectReleaseCreateTest(APITestCase):
         })
 
         assert response.status_code == 208, response.content
+
+    def test_duplicate_accross_org(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(version='1.2.1',
+                                         organization_id=project.organization_id)
+        release.add_project(project)
+
+        project2 = self.create_project(name='bar', organization=project.organization)
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project2.organization.slug,
+            'project_slug': project2.slug,
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+        })
+
+        assert response.status_code == 208, response.content
+        assert Release.objects.filter(
+            version='1.2.1',
+            organization_id=project.organization_id
+        ).count() == 1
+        assert ReleaseProject.objects.get(release=release, project=project)
+        assert ReleaseProject.objects.get(release=release, project=project2)
 
     def test_version_whitespace(self):
         self.login_as(user=self.user)
