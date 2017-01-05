@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.db.models.signals import post_save
 
 from sentry.models import Release, TagValue
@@ -14,19 +14,21 @@ def ensure_release_exists(instance, created, **kwargs):
     if instance.data and instance.data.get('release_id'):
         return
 
-    try:
-        with transaction.atomic():
-            # TODO: org/version unique constraint required for this to work as intended
+    with transaction.atomic():
+        release = Release.objects.filter(
+            organization_id=instance.project.organization_id,
+            version=instance.value
+        ).first()
+        if release:
+            release.update(date_added=instance.first_seen)
+        else:
             release = Release.objects.create(
                 organization_id=instance.project.organization_id,
                 version=instance.value,
                 date_added=instance.first_seen,
             )
-            release.add_project(instance.project)
-    except IntegrityError:
-        pass
-    else:
-        instance.update(data={'release_id': release.id})
+            instance.update(data={'release_id': release.id})
+        release.add_project(instance.project)
 
 
 def resolve_group_resolutions(instance, created, **kwargs):

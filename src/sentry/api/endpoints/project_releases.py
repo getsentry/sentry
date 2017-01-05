@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import string
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -107,7 +107,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         ````````````````````
 
         Create a new release for the given project.  Releases are used by
-        Sentry to improve it's error reporting abilities by correlating
+        Sentry to improve its error reporting abilities by correlating
         first seen events with the release that might have introduced the
         problem.
 
@@ -137,12 +137,17 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            try:
-                with transaction.atomic():
-                    # release creation is idempotent to simplify user
-                    # experiences
-
-                    # TODO(jess): unique constraint on organization, version
+            with transaction.atomic():
+                # release creation is idempotent to simplify user
+                # experiences
+                release = Release.objects.filter(
+                    organization_id=project.organization_id,
+                    version=result['version']
+                ).first()
+                if release:
+                    created = False
+                    was_released = bool(release.date_released)
+                else:
                     release, created = Release.objects.create(
                         organization_id=project.organization_id,
                         version=result['version'],
@@ -152,14 +157,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
-            except IntegrityError:
-                release, created = Release.objects.get(
-                    organization_id=project.organization_id,
-                    version=result['version'],
-                ), False
-                was_released = bool(release.date_released)
-            else:
-                was_released = False
+                    was_released = False
 
             release.add_project(project)
 

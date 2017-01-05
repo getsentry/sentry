@@ -29,16 +29,20 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
-        Release.objects.create_or_update(
-            version=version,
-            organization_id=self.project.organization_id,
-            values=values
-        )
-        # TODO: version, org constraint
-        Release.objects.get(
-            version=version,
-            organization_id=self.project.organization_id
-        ).add_project(self.project)
+        with transaction.atomic():
+            release = Release.objects.filter(
+                organization_id=self.project.organization_id,
+                version=version
+            ).first()
+            if release:
+                release.update(**values)
+            else:
+                release = Release.objects.create(
+                    organization_id=self.project.organization_id,
+                    version=version,
+                    **values
+                )
+            release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -114,16 +118,20 @@ class ReleaseHook(object):
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
-        Release.objects.create_or_update(
-            version=version,
-            organization_id=self.project.organization_id,
-            values=values
-        )
-        # TODO: version, org constraint
-        Release.objects.get(
-            version=version,
-            organization_id=self.project.organization_id
-        ).add_project(self.project)
+        with transaction.atomic():
+            release = Release.objects.filter(
+                version=version,
+                organization_id=self.project.organization_id,
+            ).first()
+            if release:
+                release.update(**values)
+            else:
+                release = Release.objects.create(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                    **values
+                )
+            release.add_project(self.project)
 
         activity = Activity.objects.create(
             type=Activity.RELEASE,
