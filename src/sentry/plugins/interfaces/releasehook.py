@@ -30,11 +30,14 @@ class ReleaseHook(object):
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
         with transaction.atomic():
-            release = Release.objects.filter(
+            release_qs = Release.objects.filter(
                 organization_id=self.project.organization_id,
                 version=version
-            ).first()
-            if release:
+            )
+            if release_qs:
+                release = release_qs.filter(projects=self.project).first()
+                if not release:
+                    release = release_qs.first()
                 release.update(**values)
             else:
                 release = Release.objects.create(
@@ -42,7 +45,7 @@ class ReleaseHook(object):
                     version=version,
                     **values
                 )
-            release.add_project(self.project)
+        release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -54,10 +57,20 @@ class ReleaseHook(object):
         Calling this method will remove all existing commit history.
         """
         project = self.project
-        release = Release.objects.get_or_create(
-            organization_id=project.organization_id,
-            version=version,
-        )[0]
+        with transaction.atomic():
+            release_qs = Release.objects.filter(
+                organization_id=project.organization_id,
+                version=version,
+            )
+            if release_qs:
+                release = release_qs.filter(projects=self.project).first()
+                if not release:
+                    release = release_qs.first()
+            else:
+                release = Release.objects.create(
+                    organization_id=project.organization_id,
+                    version=version
+                )
         release.add_project(project)
 
         with transaction.atomic():
@@ -119,11 +132,14 @@ class ReleaseHook(object):
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
         with transaction.atomic():
-            release = Release.objects.filter(
+            release_qs = Release.objects.filter(
                 version=version,
                 organization_id=self.project.organization_id,
-            ).first()
-            if release:
+            )
+            if release_qs:
+                release = release_qs.filter(projects=self.project)
+                if not release:
+                    release = release_qs.first()
                 release.update(**values)
             else:
                 release = Release.objects.create(
@@ -131,7 +147,7 @@ class ReleaseHook(object):
                     organization_id=self.project.organization_id,
                     **values
                 )
-            release.add_project(self.project)
+        release.add_project(self.project)
 
         activity = Activity.objects.create(
             type=Activity.RELEASE,

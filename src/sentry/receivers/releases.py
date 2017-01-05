@@ -15,11 +15,18 @@ def ensure_release_exists(instance, created, **kwargs):
         return
 
     with transaction.atomic():
+        release_qs = Release.objects.filter(
+            organization_id=instance.project.organization_id,
+            version=instance.value
+        )
         release = Release.objects.filter(
             organization_id=instance.project.organization_id,
             version=instance.value
         ).first()
-        if release:
+        if release_qs:
+            release = release_qs.filter(projects=instance.project).first()
+            if not release:
+                release = release_qs.first()
             release.update(date_added=instance.first_seen)
         else:
             release = Release.objects.create(
@@ -28,7 +35,7 @@ def ensure_release_exists(instance, created, **kwargs):
                 date_added=instance.first_seen,
             )
             instance.update(data={'release_id': release.id})
-        release.add_project(instance.project)
+    release.add_project(instance.project)
 
 
 def resolve_group_resolutions(instance, created, **kwargs):

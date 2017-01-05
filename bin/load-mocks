@@ -265,10 +265,20 @@ def main(num_events=1):
                 }
             )
 
-            release, created = Release.objects.get_or_create(
-                version=sha1(uuid4().bytes).hexdigest(),
-                organization=project.organization_id
-            )
+            with transaction.atomic():
+                release_qs = Release.objects.filter(
+                    version=sha1(uuid4().bytes).hexdigest(),
+                    organization_id=project.organization_id
+                )
+                if release_qs:
+                    release = release_qs.filter(projects=project).first()
+                    if not release:
+                        release = release_qs.first()
+                else:
+                    release = Release.objects.create(
+                        version=sha1(uuid4().bytes).hexdigest(),
+                        organization_id=project.organization_id
+                    )
             release.add_project(project)
 
             ReleaseFile.objects.get_or_create(
