@@ -100,13 +100,21 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release = cls.objects.get_or_create(
-                organization_id=project.organization_id,
-                version=version,
-                defaults={
-                    'date_added': date_added,
-                },
-            )[0]
+            with transaction.atomic():
+                release_qs = cls.objects.filter(
+                    organization_id=project.organization_id,
+                    version=version
+                )
+                if release_qs:
+                    release = release_qs.filter(projects=project).first()
+                    if not release:
+                        release = release_qs.first()
+                else:
+                    release = cls.objects.create(
+                        organization_id=project.organization_id,
+                        version=version,
+                        date_added=date_added
+                    )
             release.add_project(project)
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project

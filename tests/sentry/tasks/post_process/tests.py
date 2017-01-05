@@ -77,6 +77,7 @@ class IndexEventTagsTest(TestCase):
                 event_id=event.id,
                 group_id=group.id,
                 project_id=self.project.id,
+                organization_id=self.project.organization_id,
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
@@ -113,6 +114,7 @@ class IndexEventTagsTest(TestCase):
                 event_id=event.id,
                 group_id=group.id,
                 project_id=self.project.id,
+                organization_id=self.project.organization_id,
                 tags=[('foo', 'bar'), ('biz', 'baz')],
             )
 
