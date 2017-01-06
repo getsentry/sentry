@@ -328,6 +328,10 @@ table.table {
     line-height: 1 !important;
   }
 
+  td.disabled {
+    opacity: .5;
+  }
+
   th {
     font-weight: 600 !important;
     border-width: 1px !important;
@@ -438,33 +442,23 @@ table.table.key-value {
 }
 
 table.integrations {
-  td, th {
+  td {
     padding: 20px !important;
+    border: 1px solid #f1eff3;
+    width: 33%;
+    text-align: center;
+    a {
+      display: inline-block;
+    }
   }
 
-  td:first-child {
-    position: relative;
-    padding-left: 78px !important;
-  }
-
-  .integration-icon {
-    position: absolute;
-    top: 15px;
-    left: 16px;
-    background: @blue-light;
+  .icon-integration {
     .square(48px);
     border-radius: 2px;
-    color: #fff;
-
-    &:after {
-      display: block;
-      font-family: "sentry-simple";
-      content: "\e622";
-      font-size: 24px;
-      .square(48px);
-      text-align: center;
-      line-height: 48px;
-    }
+    border: 0;
+    /* this is so that there aren't gray boxes before load */
+    background-color: #fff;
+    display: inline-block;
   }
 
   .auto-tag-browsers,
@@ -472,12 +466,8 @@ table.integrations {
   .auto-tag-interface-types,
   .auto-tag-operating-systems,
   .auto-tag-urls {
-    .integration-icon {
-      background: @orange;
-
-      &:after {
-        content: "\e603";
-      }
+    .icon-integration {
+      .icon-sentry;
     }
   }
 

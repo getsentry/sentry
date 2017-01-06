@@ -4,7 +4,6 @@ import underscore from 'underscore';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
-import PluginConfig from '../components/pluginConfig';
 import {FormState, RangeField} from '../components/forms';
 import {t, tct} from '../locale';
 
@@ -136,41 +135,41 @@ const ProjectDigestSettings = React.createClass({
   },
 });
 
-const InactivePlugins = React.createClass({
+const PluginLinks = React.createClass({
   propTypes: {
-    plugins: React.PropTypes.array.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired,
+     plugins: React.PropTypes.array.isRequired,
+     orgId: React.PropTypes.string.isRequired,
+     projectId: React.PropTypes.string.isRequired
   },
 
-  enablePlugin(plugin) {
-    return this.props.onEnablePlugin(plugin, true);
+  renderPlugin(plugin) {
+    return (
+      <td className={plugin.id + (plugin.enabled ? '' : ' disabled')}>
+          <a href={'/' + (this.props.orgId + '/' + this.props.projectId +
+                    '/settings/plugins/' + plugin.id)}
+             className={'icon-integration icon-' + plugin.id}></a>
+          <h5>{plugin.name}</h5>
+      </td>
+    );
   },
 
   render() {
-    let plugins = this.props.plugins;
-    if (plugins.length === 0)
-      return null;
+    let tds = [];
+    let trs = [];
+    this.props.plugins.forEach((p, idx) => {
+      tds.push(this.renderPlugin(p));
+      if ((idx + 1) % 3 === 0 || idx === this.props.plugins.length - 1) {
+        trs.push(<tr key={idx}>{tds}</tr>);
+        tds = [];
+      }
+    });
     return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Inactive Integrations')}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <ul className="integration-list">
-            {plugins.map((plugin) => {
-              return (
-                <li key={plugin.id}>
-                  <button onClick={this.enablePlugin.bind(this, plugin)} className={`ref-plugin-enable-${plugin.id}`}>
-                    {plugin.name}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
+      <table className="table integrations simple">
+          <tbody>{trs}</tbody>
+      </table>
     );
   }
+
 });
 
 const ProjectAlertSettings = React.createClass({
@@ -201,39 +200,9 @@ const ProjectAlertSettings = React.createClass({
     });
   },
 
-  enablePlugin(plugin) {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/${plugin.id}/`, {
-      method: 'POST',
-      data: this.state.formData,
-      success: (data) => {
-        // TODO(dcramer): propagate this in a more correct way
-        plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-        plugin.enabled = true;
-        this.setState({project: this.state.project});
-      },
-      error: (error) => {
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
-  },
-
-  onDisablePlugin(plugin) {
-    // TODO(dcramer): propagate this in a more correct way
-    plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-    plugin.enabled = false;
-    this.setState({project: this.state.project});
-  },
-
   render() {
     let {orgId, projectId} = this.props.params;
-    let organization = this.props.organization;
     let project = this.state.project;
-    let plugins = project.plugins.filter(p => p.type == 'notification');
     return (
       <div>
         <a href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
@@ -269,20 +238,9 @@ const ProjectAlertSettings = React.createClass({
           }}
           onSave={this.onDigestsChange} />
 
-        {plugins.filter(p => p.enabled).map((data) => {
-          return (
-            <PluginConfig
-              data={data}
-              organization={organization}
-              project={project}
-              key={data.id}
-              onDisablePlugin={this.onDisablePlugin.bind(this, data)} />
-          );
-        })}
-
-        <InactivePlugins
-          plugins={plugins.filter(p => !p.enabled)}
-          onEnablePlugin={this.enablePlugin} />
+        <PluginLinks
+          plugins={project.plugins.filter(p => p.type == 'notification')}
+          orgId={orgId} projectId={projectId}/>
 
       </div>
     );
