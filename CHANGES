@@ -1,6 +1,8 @@
 Version 8.13 (Unreleased)
 -------------------------
 
+- Support for setting a custom security header for javascript fetching.
+
 Version 8.12
 ------------
 

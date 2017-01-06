@@ -353,7 +353,11 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         if project and is_valid_origin(url, project=project):
             token = project.get_option('sentry:token')
             if token:
-                headers['X-Sentry-Token'] = token
+                token_header = project.get_option(
+                    'sentry:token_header',
+                    'X-Sentry-Token',
+                )
+                headers[token_header] = token
 
         logger.debug('Fetching %r from the internet', url)
 
