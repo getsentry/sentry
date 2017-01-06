@@ -52,15 +52,7 @@ class Quota(object):
         return int(quota or 0)
 
     def get_project_quota(self, project):
-        from sentry.models import (
-            ProjectOption, Organization, OrganizationOption
-        )
-
-        # DEPRECATED: Will likely be removed in a future version unless Sentry
-        # team is convinced otherwise.
-        legacy_quota = ProjectOption.objects.get_value(project, 'quotas:per_minute', '')
-        if legacy_quota == '':
-            legacy_quota = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
+        from sentry.models import Organization, OrganizationOption
 
         org = getattr(project, '_organization_cache', None)
         if not org:
@@ -70,40 +62,54 @@ class Quota(object):
         max_quota_share = int(OrganizationOption.objects.get_value(
             org, 'sentry:project-rate-limit', 100))
 
-        if not legacy_quota and max_quota_share == 100:
-            return 0
+        if max_quota_share == 100:
+            return (0, 60)
 
-        org_quota = self.get_organization_quota(org)
-
-        quota = self.translate_quota(
-            legacy_quota,
-            org_quota,
-        )
+        org_quota, window = self.get_organization_quota(org)
 
         # if we have set a max project quota percentage and there's actually
         # a quota set for the org, lets calculate the maximum by using the min
         # of the two quotas
         if max_quota_share != 100 and org_quota:
-            if quota:
-                quota = min(quota, self.translate_quota(
-                    '{}%'.format(max_quota_share),
-                    org_quota,
-                ))
-            else:
-                quota = self.translate_quota(
-                    '{}%'.format(max_quota_share),
-                    org_quota,
-                )
+            quota = self.translate_quota(
+                '{}%'.format(max_quota_share),
+                org_quota,
+            )
+        else:
+            quota = 0
 
-        return quota
+        return (quota, window)
 
     def get_organization_quota(self, organization):
-        system_rate_limit = options.get('system.rate-limit')
+        from sentry.models import OrganizationOption
+
+        account_limit = int(OrganizationOption.objects.get_value(
+            organization=organization,
+            key='sentry:account-rate-limit',
+            default=0,
+        ))
+
+        system_limit = options.get('system.rate-limit')
+
         # If there is only a single org, this one org should
         # be allowed to consume the entire quota.
         if settings.SENTRY_SINGLE_ORGANIZATION:
-            return system_rate_limit
-        return self.translate_quota(
+            if system_limit < account_limit:
+                return (system_limit, 60)
+            return (account_limit, 3600)
+
+        # an account limit is enforced, which is set as a fixed value and cannot
+        # utilize percentage based limits
+        elif account_limit:
+            return (account_limit, 3660)
+
+        return (self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            system_rate_limit,
-        )
+            system_limit,
+        ), 60)
+
+    def get_maximum_quota(self, organization):
+        """
+        Return the maximum capable rate for an organization.
+        """
+        return (options.get('system.rate-limit'), 60)

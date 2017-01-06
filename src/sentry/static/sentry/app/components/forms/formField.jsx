@@ -8,9 +8,9 @@ class FormField extends React.Component {
 }
 
 FormField.propTypes = {
-  label: React.PropTypes.string.isRequired,
   name: React.PropTypes.string.isRequired,
 
+  label: React.PropTypes.string,
   defaultValue: React.PropTypes.any,
   disabled: React.PropTypes.bool,
   error: React.PropTypes.string,

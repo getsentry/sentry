@@ -60,7 +60,6 @@ from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
 from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
 from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_plugins import ProjectPluginsView
-from sentry.web.frontend.project_quotas import ProjectQuotasView
 from sentry.web.frontend.project_release_tracking import \
     ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
@@ -415,10 +414,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/tags/$',
         ProjectTagsView.as_view(),
         name='sentry-manage-project-tags'),
-
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/quotas/$',
-        ProjectQuotasView.as_view(),
-        name='sentry-manage-project-quotas'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
         ProjectRuleEditView.as_view(),

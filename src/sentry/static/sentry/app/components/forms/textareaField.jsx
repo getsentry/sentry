@@ -12,7 +12,8 @@ export default class TextareaField extends InputField {
         disabled={this.props.disabled}
         required={this.props.required}
         placeholder={this.props.placeholder}
-        onChange={this.onChange.bind(this)} />
+        onChange={this.onChange.bind(this)}
+        {...this.getAttributes} />
     );
   }
 }
