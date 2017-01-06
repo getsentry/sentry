@@ -592,7 +592,7 @@ class EventManager(object):
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
             self.logger.info('duplicate.found', exc_info=True, extra={
-                'event_id': event_id,
+                'event_uuid': event_id,
                 'project_id': project.id,
                 'group_id': group.id,
                 'model': EventMapping.__name__,
@@ -669,7 +669,7 @@ class EventManager(object):
                     event.save()
             except IntegrityError:
                 self.logger.info('duplicate.found', exc_info=True, extra={
-                    'event_id': event_id,
+                    'event_uuid': event_id,
                     'project_id': project.id,
                     'group_id': group.id,
                     'model': Event.__name__,
