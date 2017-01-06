@@ -450,4 +450,12 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    main(num_events=options.num_events)
+    try:
+        main(num_events=options.num_events)
+    except Exception:
+        # Avoid reporting any issues recursively back into Sentry
+        import traceback
+        import sys
+
+        traceback.print_exc()
+        sys.exit(1)
