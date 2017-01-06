@@ -59,6 +59,11 @@ class OrganizationMembersView(OrganizationView):
         else:
             access_requests = []
 
+        highlight_role = None
+        HIGHLIGHTABLE_ROLES = ['owner', 'admin', 'manager', 'billing']
+        if request.GET.get('role') in HIGHLIGHTABLE_ROLES:
+            highlight_role = request.GET.get('role')
+
         context = {
             'org_has_sso': auth_provider is not None,
             'member_list': member_list,
@@ -67,6 +72,7 @@ class OrganizationMembersView(OrganizationView):
             'can_add_members': can_add_members,
             'can_remove_members': can_remove_members,
             'member_can_leave': member_can_leave,
+            'highlight_role': highlight_role,
         }
 
         return self.respond('sentry/organization-members.html', context)

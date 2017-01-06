@@ -23,12 +23,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def get(self, request, organization):
-        highlight_role = None
-        HIGHLIGHTABLE_ROLES = ['owner', 'admin', 'manager', 'billing']
-
-        if request.GET['role'] in HIGHLIGHTABLE_ROLES:
-            highlight_role = request.GET['role']
-
         queryset = OrganizationMember.objects.filter(
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=organization,
@@ -39,6 +33,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             key=lambda x: x.user.get_display_name() if x.user_id else x.email
         )
 
-        context = serialize(member_list, request.user, highlight_role)
+        context = serialize(member_list, request.user)
 
         return Response(context)
