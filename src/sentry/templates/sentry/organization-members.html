@@ -83,7 +83,7 @@
       </thead>
       <tbody>
         {% for member, needs_sso, has_2fa in member_list %}
-          <tr>
+          <tr class="member-role-{{ member.role }}">
             <td class="table-user-info">
               {% avatar member %}
               <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
@@ -234,5 +234,11 @@
     });
   });
   $('.tip').tooltip();
+
+  var possible_roles = ["owner", "admin", "manager", "billing"];
+
+  var role_highlight = JSON.parse('{"' + decodeURI(window.location.search.substring(1)).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}')['role'];
+  if (possible_roles.indexOf(role_highlight) > -1) { $(".member-role-" + role_highlight).css('background-color', 'red') };
   </script>
+}
 {% endblock %}
