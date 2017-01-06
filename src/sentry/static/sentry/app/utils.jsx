@@ -179,7 +179,7 @@ export default {
   },
 
   getOwnershipServiceUrl(str) {
-    var url = 'https://sauron.zncloud.net/metadata/resources/dashboard/#/name=/type=all/owners_emails=';
+    var url = 'https://sauron.zncloud.net/metadata/resources/dashboard/name=/type=all/owners_emails=';
     var regex = /\w+@zenefits.com/gi;
     var m = str.match(regex);
     if (m && m.length == 1) {
