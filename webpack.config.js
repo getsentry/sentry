@@ -95,7 +95,7 @@ var config = {
   entry: entry,
   context: path.join(__dirname, staticPrefix),
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.jsx?$/,
         loader: 'babel-loader',
@@ -118,7 +118,10 @@ var config = {
       {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
-        loader: ExtractTextPlugin.extract('style-loader', 'css-loader!less-loader')
+        loader: ExtractTextPlugin.extract({
+          fallbackLoader: 'style-loader',
+          loader: 'css-loader!less-loader'
+        })
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -127,16 +130,15 @@ var config = {
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
-      path.join(__dirname, 'node_modules', 'jquery', 'dist', 'jquery.js'),
-      path.join(__dirname, 'node_modules', 'jed', 'jed.js'),
-      path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.js')
+      /dist\/jquery\.js/,
+      /jed\/jed\.js/,
+      /marked\/lib\/marked\.js/
     ],
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
     }),
-    new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
@@ -168,8 +170,8 @@ var config = {
       'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
     },
-    modulesDirectories: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['', '.jsx', '.js', '.json']
+    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
+    extensions: ['*', '.jsx', '.js', '.json']
   },
   output: {
     path: distPath,
