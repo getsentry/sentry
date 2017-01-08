@@ -58,8 +58,8 @@
     "u2f-api": "0.0.8",
     "underscore": "1.8.3",
     "url-loader": "0.5.6",
-    "webpack": "^2.2.0-rc.3",
-    "webpack-dev-middleware": "^1.9.0"
+    "webpack": "2.2.0-rc.3",
+    "webpack-dev-middleware": "1.9.0"
   },
   "private": true,
   "APIMethod": "stub",
@@ -81,7 +81,7 @@
     "karma-mocha": "0.1.10",
     "karma-phantomjs-launcher": "1.0.2",
     "karma-sinon": "1.0.4",
-    "karma-sourcemap-loader": "^0.3.7",
+    "karma-sourcemap-loader": "0.3.7",
     "karma-webpack": "1.8.1",
     "mocha": "2.3.4",
     "phantomjs-prebuilt": "2.1.14",
