@@ -9,13 +9,22 @@ cache:
 branches:
   only:
   - master
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
 env:
   global:
     - NODE_ENV=production
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
+    - TRAVIS_NODE_VERSION=4
+    - CXX=g++-4.8
 install:
+  - nvm install $TRAVIS_NODE_VERSION
   - make travis-install-$TEST_SUITE
 before_script:
   - pip freeze
