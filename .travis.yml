@@ -34,7 +34,7 @@ script:
 after_success:
   - codecov -e TEST_SUITE
 after_failure:
-  - dmesg
+  - dmesg | tail -n 100
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
