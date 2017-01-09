@@ -147,7 +147,7 @@ const RateLimitEditor = React.createClass({
             name="projectLimit"
             value={savedProjectLimit || 100}
             onChange={this.onProjectLimitChange}
-            step={10}
+            step={5}
             min={50}
             max={100}
             formatLabel={(value) => { return value !== 100 ? `${value}%` : 'No Limit &mdash; 100%'; }} />
