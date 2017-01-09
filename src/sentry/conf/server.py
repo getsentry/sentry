@@ -682,7 +682,6 @@ SENTRY_FEATURES = {
     'organizations:sso': True,
     'organizations:callsigns': False,
     'projects:global-events': False,
-    'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
     'workflow:release-emails': False,

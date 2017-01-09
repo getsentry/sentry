@@ -32,7 +32,7 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.login_as(self.user)
         self.path = '/organizations/{}/rate-limits/'.format(self.org.slug)
 
-    @patch('sentry.app.quotas.get_organization_quota', Mock(return_value=100))
+    @patch('sentry.app.quotas.get_maximum_quota', Mock(return_value=(100, 60)))
     def test_with_rate_limits(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
@@ -41,11 +41,11 @@ class OrganizationRateLimitsTest(AcceptanceTestCase):
         self.browser.snapshot('organization rate limits with quota')
         assert self.browser.element_exists('.ref-rate-limit-editor')
 
-    @patch('sentry.app.quotas.get_organization_quota', Mock(return_value=0))
+    @patch('sentry.app.quotas.get_maximum_quota', Mock(return_value=(0, 60)))
     def test_without_rate_limits(self):
         self.project.update(first_event=timezone.now())
         self.browser.get(self.path)
         self.browser.wait_until('.organization-home')
         self.browser.wait_until_not('.loading-indicator')
         self.browser.snapshot('organization rate limits without quota')
-        assert self.browser.element_exists('.ref-no-rate-limits')
+        assert self.browser.element_exists('.ref-rate-limit-editor')
