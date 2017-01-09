@@ -29,7 +29,6 @@
     "moment": "2.10.6",
     "moment-timezone": "0.4.1",
     "node-libs-browser": "0.5.3",
-    "node-zopfli": "2.0.2",
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
     "query-string": "2.4.2",
