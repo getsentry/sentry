@@ -8,6 +8,7 @@ sentry.utils.strings
 from __future__ import absolute_import
 
 import base64
+import codecs
 import re
 import six
 import string
@@ -198,3 +199,36 @@ def is_valid_dot_atom(value):
 def count_sprintf_parameters(string):
     """Counts the number of sprintf parameters in a string."""
     return len(_sprintf_placeholder_re.findall(string))
+
+
+def codec_lookup(encoding, default='utf-8'):
+    """Safely lookup a codec and ignore non-text codecs,
+    falling back to a default on errors.
+    Note: the default value is not sanity checked and would
+    bypass these checks."""
+
+    if not encoding:
+        return codecs.lookup(default)
+
+    try:
+        info = codecs.lookup(encoding)
+    except (LookupError, TypeError):
+        return codecs.lookup(default)
+
+    try:
+        # Check for `CodecInfo._is_text_encoding`.
+        # If this attribute exists, we can assume we can operate
+        # with this encoding value safely. This attribute was
+        # introduced into 2.7.12, so versions prior to this will
+        # raise, but this is the best we can do.
+        if not info._is_text_encoding:
+            return codecs.lookup(default)
+    except AttributeError:
+        pass
+
+    # `undefined` is special a special encoding in python that 100% of
+    # the time will raise, so ignore it.
+    if info.name == 'undefined':
+        return codecs.lookup(default)
+
+    return info
