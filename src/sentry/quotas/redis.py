@@ -66,8 +66,6 @@ class RedisQuota(Quota):
         keys = []
         args = []
         for key, limit, interval in quotas:
-            if not limit:
-                continue
             keys.append(self.get_redis_key(key, timestamp, interval))
             expiry = get_next_period_start(interval) + self.grace
             args.extend((limit, int(expiry)))
