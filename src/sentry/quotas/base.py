@@ -98,7 +98,7 @@ class Quota(object):
         # an account limit is enforced, which is set as a fixed value and cannot
         # utilize percentage based limits
         elif account_limit:
-            return (account_limit, 3660)
+            return (account_limit, 3600)
 
         return (self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
