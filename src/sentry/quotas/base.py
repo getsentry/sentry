@@ -67,9 +67,6 @@ class Quota(object):
 
         org_quota, window = self.get_organization_quota(org)
 
-        # if we have set a max project quota percentage and there's actually
-        # a quota set for the org, lets calculate the maximum by using the min
-        # of the two quotas
         if max_quota_share != 100 and org_quota:
             quota = self.translate_quota(
                 '{}%'.format(max_quota_share),
