@@ -249,8 +249,9 @@ class Symbolizer(object):
 
         for idx, frm in enumerate(backtrace):
             try:
-                rv.append(self.symbolize_frame(frm, sdk_info) or frm)
+                rv.append(self.symbolize_frame(frm, sdk_info))
             except SymbolicationFailed as e:
+                rv.append(frm)
                 errors.append({
                     'type': EventError.NATIVE_INTERNAL_FAILURE,
                     'frame': frm,
