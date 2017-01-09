@@ -1,6 +1,7 @@
 import React from 'react';
 import $ from 'jquery';
 import MD5 from 'crypto-js/md5';
+import ConfigStore from '../stores/configStore';
 import UserLetterAvatar from '../components/userLetterAvatar';
 
 const Avatar = React.createClass({
@@ -28,7 +29,7 @@ const Avatar = React.createClass({
   },
 
   buildGravatarUrl() {
-    let url = 'https://secure.gravatar.com/avatar/';
+    let url = ConfigStore.getConfig().gravatarBaseUrl + '/avatar/';
 
     url += MD5(this.props.user.email.toLowerCase());
 
