@@ -126,6 +126,7 @@ def get_react_config(context):
             'level': msg.tags,
         } for msg in messages],
         'isOnPremise': settings.SENTRY_ONPREMISE,
+        'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
     }
     if user and user.is_authenticated():
         context.update({
