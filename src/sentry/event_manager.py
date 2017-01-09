@@ -239,7 +239,7 @@ class EventManager(object):
         elif data['level'] not in LOG_LEVELS:
             data['level'] = logging.ERROR
 
-        if not data.get('logger'):
+        if not data.get('logger') or not isinstance(data.get('logger'), six.string_types):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
             logger = trim(data['logger'].strip(), 64)
