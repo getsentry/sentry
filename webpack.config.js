@@ -185,15 +185,22 @@ var config = {
     '#cheap-module-eval-source-map'
 };
 
-// This compression-webpack-plugin generates pre-compressed files
-// ending in .gz, to be picked up and served by our internal static media
-// server as well as nginx when paired with the gzip_static module.
 if (IS_PRODUCTION) {
+  // This compression-webpack-plugin generates pre-compressed files
+  // ending in .gz, to be picked up and served by our internal static media
+  // server as well as nginx when paired with the gzip_static module.
   config.plugins.push(new (require('compression-webpack-plugin'))({
     algorithm: function(buffer, options, callback) {
       require('zlib').gzip(buffer, callback);
     },
     regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+  }));
+
+  // Disable annoying UglifyJS warnings that pollute Travis log output
+  config.plugins.push(new webpack.optimize.UglifyJsPlugin({
+    compress: {
+      warnings: false
+    }
   }));
 }
 
