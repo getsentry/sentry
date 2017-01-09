@@ -12,7 +12,8 @@ install-python:
 install-yarn:
 	@echo "--> Installing Node dependencies"
 	@hash yarn 2> /dev/null || npm install -g yarn
-	yarn install
+	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
+	NODE_ENV=development yarn install --ignore-optional
 
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
@@ -174,7 +175,7 @@ travis-install-mysql: travis-install-python
 travis-install-acceptance: install-yarn travis-install-postgres
 travis-install-js: travis-upgrade-pip install-python install-python-tests install-yarn
 travis-install-cli: travis-install-postgres
-travis-install-dist: travis-upgrade-pip install-python install-python-tests
+travis-install-dist: travis-upgrade-pip install-python install-python-tests install-yarn
 
 .PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
