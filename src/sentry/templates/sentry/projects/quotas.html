@@ -16,8 +16,6 @@
 
         {% if not has_quotas %}
             <p><strong>{% blocktrans %}Note: The Sentry application is not configured to manage rate limits.{% endblocktrans %}</strong></p>
-        {% elif team_quota %}
-            <p>{% blocktrans %}Your team has <strong>{{ team_quota }} events per minute</strong> allocated collectively among projects.{% endblocktrans %}</p>
         {% elif system_quota %}
             <p>{% blocktrans %}The Sentry system has <strong>{{ system_quota }} events per minute</strong> allocated collectively among projects.{% endblocktrans %}</p>
         {% endif %}

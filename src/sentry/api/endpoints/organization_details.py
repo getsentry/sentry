@@ -49,7 +49,8 @@ def update_organization_scenario(runner):
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
-    projectRateLimit = serializers.IntegerField(min_value=1, max_value=100)
+    accountRateLimit = serializers.IntegerField(min_value=0, max_value=1000000)
+    projectRateLimit = serializers.IntegerField(min_value=50, max_value=100)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
 
@@ -72,6 +73,12 @@ class OrganizationSerializer(serializers.ModelSerializer):
                 organization=self.object,
                 key='sentry:project-rate-limit',
                 value=int(self.init_data['projectRateLimit']),
+            )
+        if 'accountRateLimit' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=self.object,
+                key='sentry:account-rate-limit',
+                value=int(self.init_data['accountRateLimit']),
             )
         return rv
 
