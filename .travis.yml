@@ -3,6 +3,7 @@ language: python
 rvm:
   - 2.2
 cache:
+  yarn: true
   directories:
     - node_modules
     - $HOME/.cache/pip/wheels
