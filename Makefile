@@ -13,8 +13,10 @@ install-yarn:
 	@echo "--> Installing Node dependencies"
 	@hash yarn 2> /dev/null || npm install -g yarn
 	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
-	NODE_ENV=development yarn install --ignore-optional
-	yarn list --depth 0
+	NODE_ENV=development yarn install --ignore-optional --pure-lockfile
+	# Fix phantomjs-prebuilt not installed via yarn
+	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
+	node ./node_modules/phantomjs-prebuilt/install.js
 
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
