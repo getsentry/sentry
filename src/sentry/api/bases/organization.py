@@ -56,6 +56,16 @@ class OrganizationPermission(ScopedPermission):
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
+# TODO(jess): does the 'project:releases' permission need to be renamed?
+class OrganizationReleasePermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['org:read', 'org:write', 'org:delete', 'project:releases'],
+        'POST': ['org:write', 'org:delete', 'project:releases'],
+        'PUT': ['org:write', 'org:delete', 'project:releases'],
+        'DELETE': ['org:delete', 'project:releases'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
