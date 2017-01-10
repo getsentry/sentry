@@ -80,7 +80,7 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
             content_type=file.headers.get('content-type', 'application/octet-stream'),
         )
         response['Content-Length'] = file.size
-        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(releasefile.name.strip())
+        response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename("".join(releasefile.name.split()))
         return response
 
     @attach_scenarios([retrieve_file_scenario])

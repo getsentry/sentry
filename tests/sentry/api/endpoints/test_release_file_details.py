@@ -58,7 +58,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         from six import BytesIO
         f = File.objects.create(
-            name='application.js\n\n\r',
+            name='  appli\n\n\rcat  ion.js\n\n\r  ',
             type='release.file',
         )
         f.putfile(BytesIO('File contents here'))
@@ -68,7 +68,7 @@ class ReleaseFileDetailsTest(APITestCase):
             project=project,
             release=release,
             file=f,
-            name='http://example.com/application.js\n\n\r'
+            name='  http://example.com/ap  pli\n\n\rcation.js\n\n\r  '
         )
 
         url = reverse('sentry-api-0-release-file-details', kwargs={
