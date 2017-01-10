@@ -14,7 +14,7 @@ class ReleaseEnvironment(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
-    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    project_id = BoundedPositiveIntegerField(db_index=True)
     release_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(db_index=True)
     first_seen = models.DateTimeField(default=timezone.now)
@@ -45,6 +45,7 @@ class ReleaseEnvironment(Model):
                 with transaction.atomic():
                     instance, created = cls.objects.create(
                         release_id=release.id,
+                        project_id=project.id,
                         organization_id=project.organization_id,
                         environment_id=environment.id,
                         first_seen=datetime,
@@ -53,6 +54,7 @@ class ReleaseEnvironment(Model):
             except IntegrityError:
                 instance, created = cls.objects.get(
                     release_id=release.id,
+                    project_id=project.id,
                     organization_id=project.organization_id,
                     environment_id=environment.id,
                 ), False

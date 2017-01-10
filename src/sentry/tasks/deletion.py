@@ -27,7 +27,7 @@ logger = logging.getLogger('sentry.deletions.async')
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit, ReleaseEnvironment,
+        Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit,
         ReleaseFile, Repository
     )
 
@@ -55,7 +55,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
 
     model_list = (
         OrganizationMember, CommitFileChange, Commit, CommitAuthor,
-        Repository, Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile
+        Repository, Release, ReleaseCommit, ReleaseFile
     )
 
     has_more = delete_objects(
@@ -127,8 +127,8 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
-        ReleaseProject, SavedSearchUserDefault, SavedSearch, TagKey,
-        TagValue, UserReport, Environment
+        ReleaseEnvironment, ReleaseProject, SavedSearchUserDefault, SavedSearch,
+        TagKey, TagValue, UserReport, Environment
     )
 
     try:
@@ -158,7 +158,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, Environment
+        UserReport, ReleaseEnvironment, Environment
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
