@@ -27,8 +27,6 @@ env:
 install:
   - nvm install $TRAVIS_NODE_VERSION
   - make travis-install-$TEST_SUITE
-  # manually run phantomjs-prebuilt not
-  - node node_modules/phantomjs-prebuilt/install.js
 before_script:
   - pip freeze
 script:
