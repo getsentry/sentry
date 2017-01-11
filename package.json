@@ -9,6 +9,8 @@
     "babel-core": "6.21.0",
     "babel-gettext-extractor": "^2.0.0",
     "babel-loader": "6.2.10",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "babel-plugin-transform-builtin-extend": "^1.1.0",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
     "babel-polyfill": "6.20.0",
     "babel-preset-latest": "^6.16.0",
