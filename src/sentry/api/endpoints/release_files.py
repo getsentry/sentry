@@ -152,7 +152,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
 
         name = full_name.rsplit('/', 1)[-1]
 
-        if re.search(_filename_re, name):
+        if _filename_re.search(name):
             return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
 
         headers = {
@@ -164,7 +164,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             except ValueError:
                 return Response({'detail': 'header value was not formatted correctly'}, status=400)
             else:
-                if re.search(_filename_re, v):
+                if _filename_re.search(v):
                     return Response({'detail': 'header value must not contain special whitespace characters'}, status=400)
                 headers[k] = v.strip()
 
