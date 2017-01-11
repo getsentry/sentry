@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import re
 from django.db import IntegrityError, transaction
 from six import BytesIO
 from rest_framework.negotiation import DefaultContentNegotiation
@@ -148,6 +149,9 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         if not full_name:
             return Response({'detail': 'File name must be specified'}, status=400)
         name = full_name.rsplit('/', 1)[-1]
+        pattern = re.compile(r"(\n|\t|\r|\f|\v|\\n|\\t|\\r|\\f|\\v)")
+        if re.search(pattern, name):
+            return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
 
         headers = {
             'Content-Type': fileobj.content_type,
@@ -158,6 +162,8 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             except ValueError:
                 return Response({'detail': 'header value was not formatted correctly'}, status=400)
             else:
+                if re.search(pattern, v):
+                    return Response({'detail': 'header value must not contain special whitespace characters'}, status=400)
                 headers[k] = v.strip()
 
         file = File.objects.create(
