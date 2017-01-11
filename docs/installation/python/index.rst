@@ -264,9 +264,7 @@ Starting the Web Service
 ------------------------
 
 Sentry provides a built-in webserver (powered by uWSGI) to
-get you off the ground quickly, also you can setup Sentry as WSGI
-application, in that case skip to section `Running Sentry as WSGI
-application`.
+get you off the ground quickly.
 
 To start the built-in webserver run ``sentry run web``:
 
