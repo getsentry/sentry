@@ -16,6 +16,7 @@ from sentry.models import File, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
+_filename_re = re.compile(r"[\n\t\r\f\v\\]")
 
 
 @scenario('UploadReleaseFile')
@@ -148,9 +149,10 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         full_name = request.DATA.get('name', fileobj.name)
         if not full_name:
             return Response({'detail': 'File name must be specified'}, status=400)
+
         name = full_name.rsplit('/', 1)[-1]
-        pattern = re.compile(r"[\n\t\r\f\v\\]")
-        if re.search(pattern, name):
+
+        if re.search(_filename_re, name):
             return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
 
         headers = {
@@ -162,7 +164,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
             except ValueError:
                 return Response({'detail': 'header value was not formatted correctly'}, status=400)
             else:
-                if re.search(pattern, v):
+                if re.search(_filename_re, v):
                     return Response({'detail': 'header value must not contain special whitespace characters'}, status=400)
                 headers[k] = v.strip()
 
