@@ -58,7 +58,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         from six import BytesIO
         f = File.objects.create(
-            name='  appli\n\n\rcat  ion.js\n\n\r  ',
+            name='applicatiosn.js',
             type='release.file',
         )
         f.putfile(BytesIO('File contents here'))
@@ -68,7 +68,7 @@ class ReleaseFileDetailsTest(APITestCase):
             project=project,
             release=release,
             file=f,
-            name='  http://example.com/ap  pli\n\n\rcation.js\n\n\r  '
+            name='  http://example.com/appli\n\rcatios n.js\n\n\r  '
         )
 
         url = reverse('sentry-api-0-release-file-details', kwargs={
@@ -80,7 +80,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         response = self.client.get(url + '?download=1')
         assert response.status_code == 200, response.content
-        assert response.get('Content-Disposition') == 'attachment; filename="application.js"'
+        assert response.get('Content-Disposition') == 'attachment; filename="appli catios n.js"'
         assert response.get('Content-Length') == six.text_type(f.size)
         assert response.get('Content-Type') == 'application/octet-stream'
         assert 'File contents here' == BytesIO(b"".join(response.streaming_content)).getvalue()
