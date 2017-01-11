@@ -149,7 +149,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         if not full_name:
             return Response({'detail': 'File name must be specified'}, status=400)
         name = full_name.rsplit('/', 1)[-1]
-        pattern = re.compile(r"(\n|\t|\r|\f|\v|\\)")
+        pattern = re.compile(r"[\n\t\r\f\v\\]")
         if re.search(pattern, name):
             return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
 
