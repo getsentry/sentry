@@ -132,6 +132,33 @@ class ReleaseFileCreateTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
+    def test_invalid_name(self):
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            organization_id=project.organization_id,
+            version='1',
+        )
+        release.add_project(project)
+
+        url = reverse('sentry-api-0-release-files', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+        })
+
+        self.login_as(user=self.user)
+
+        response = self.client.post(url, {
+            'name': 'http://exa\tmple.com/applic\nati\ron.js\n',
+            'header': 'X-SourceMap: http://example.com/test.map.js',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
+                                       content_type='application/javascript'),
+        }, format='multipart')
+
+        assert response.status_code == 400, response.content
+
     def test_bad_headers(self):
         project = self.create_project(name='foo')
 
@@ -153,6 +180,15 @@ class ReleaseFileCreateTest(APITestCase):
         response = self.client.post(url, {
             'name': 'http://example.com/application.js',
             'header': 'lol',
+            'file': SimpleUploadedFile('application.js', b'function() { }',
+                                       content_type='application/javascript'),
+        }, format='multipart')
+
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, {
+            'name': 'http://example.com/application.js',
+            'header': 'X-SourceMap: http://example.com/\r\n\ntest.map.js\n',
             'file': SimpleUploadedFile('application.js', b'function() { }',
                                        content_type='application/javascript'),
         }, format='multipart')
