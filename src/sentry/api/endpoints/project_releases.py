@@ -142,24 +142,29 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 # experiences
                 release = Release.objects.filter(
                     organization_id=project.organization_id,
-                    version=result['version']
+                    version=result['version'],
+                    projects=project
                 ).first()
+                created = False
                 if release:
-                    created = False
                     was_released = bool(release.date_released)
                 else:
-                    release, created = Release.objects.create(
+                    release = Release.objects.filter(
                         organization_id=project.organization_id,
                         version=result['version'],
-                        ref=result.get('ref'),
-                        url=result.get('url'),
-                        owner=result.get('owner'),
-                        date_started=result.get('dateStarted'),
-                        date_released=result.get('dateReleased'),
-                    ), True
+                    ).first()
+                    if not release:
+                        release, created = Release.objects.create(
+                            organization_id=project.organization_id,
+                            version=result['version'],
+                            ref=result.get('ref'),
+                            url=result.get('url'),
+                            owner=result.get('owner'),
+                            date_started=result.get('dateStarted'),
+                            date_released=result.get('dateReleased'),
+                        ), True
                     was_released = False
-
-            release.add_project(project)
+                    release.add_project(project)
 
             commit_list = result.get('commits')
             if commit_list:

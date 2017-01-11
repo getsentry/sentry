@@ -29,23 +29,27 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
+
         with transaction.atomic():
-            release_qs = Release.objects.filter(
+            affected = Release.objects.filter(
+                version=version,
                 organization_id=self.project.organization_id,
-                version=version
-            )
-            if release_qs:
-                release = release_qs.filter(projects=self.project).first()
-                if not release:
-                    release = release_qs.first()
-                release.update(**values)
-            else:
-                release = Release.objects.create(
-                    organization_id=self.project.organization_id,
+                projects=self.project,
+            ).update(**values)
+            if not affected:
+                release = Release.objects.filter(
                     version=version,
-                    **values
-                )
-        release.add_project(self.project)
+                    organization_id=self.project.organization_id,
+                ).first()
+                if release:
+                    release.update(**values)
+                else:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=self.project.organization_id,
+                        **values
+                    )
+                release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -58,20 +62,22 @@ class ReleaseHook(object):
         """
         project = self.project
         with transaction.atomic():
-            release_qs = Release.objects.filter(
+            release = Release.objects.filter(
                 organization_id=project.organization_id,
                 version=version,
-            )
-            if release_qs:
-                release = release_qs.filter(projects=self.project).first()
-                if not release:
-                    release = release_qs.first()
-            else:
-                release = Release.objects.create(
+                projects=self.project
+            ).first()
+            if not release:
+                release = Release.objects.filter(
                     organization_id=project.organization_id,
-                    version=version
-                )
-        release.add_project(project)
+                    version=version,
+                ).first()
+                if not release:
+                    release = Release.objects.create(
+                        organization_id=project.organization_id,
+                        version=version
+                    )
+                release.add_project(project)
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -132,22 +138,25 @@ class ReleaseHook(object):
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
         with transaction.atomic():
-            release_qs = Release.objects.filter(
+            affected = Release.objects.filter(
                 version=version,
                 organization_id=self.project.organization_id,
-            )
-            if release_qs:
-                release = release_qs.filter(projects=self.project)
-                if not release:
-                    release = release_qs.first()
-                release.update(**values)
-            else:
-                release = Release.objects.create(
+                projects=self.project,
+            ).update(**values)
+            if not affected:
+                release = Release.objects.filter(
                     version=version,
                     organization_id=self.project.organization_id,
-                    **values
-                )
-        release.add_project(self.project)
+                ).first()
+                if release:
+                    release.update(**values)
+                else:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=self.project.organization_id,
+                        **values
+                    )
+                release.add_project(self.project)
 
         activity = Activity.objects.create(
             type=Activity.RELEASE,

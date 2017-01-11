@@ -310,20 +310,22 @@ class MockUtils(object):
         if version is None:
             version = os.urandom(20).encode('hex')
         with transaction.atomic():
-            release_qs = Release.objects.filter(
+            release = Release.objects.filter(
                 version=version,
                 organization_id=project.organization_id,
-            )
-            if release_qs:
-                release = release_qs.filter(projects=project).first()
-                if not release:
-                    release = release_qs.first()
-            else:
-                release = Release.objects.create(
+                projects=project
+            ).first()
+            if not release:
+                release = Release.objects.filter(
                     version=version,
                     organization_id=project.organization_id,
-                )
-        release.add_project(project)
+                ).first()
+                if not release:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=project.organization_id,
+                    )
+                release.add_project(project)
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
