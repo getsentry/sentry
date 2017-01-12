@@ -101,7 +101,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack -p
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
 	@npm run test
 	@echo ""
@@ -113,7 +113,7 @@ test-python:
 
 test-acceptance:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack -p
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance
 	@echo ""

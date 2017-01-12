@@ -35,8 +35,8 @@ module.exports = function(config) {
           sinon: 'sinon/pkg/sinon', // see [1] above
           'sentry-locale': path.join(__dirname, '..', 'src', 'sentry', 'locale')
         },
-        modulesDirectories: ['node_modules'],
-        extensions: ['', '.jsx', '.js', '.json']
+        modules: ['node_modules'],
+        extensions: ['*', '.jsx', '.js', '.json']
       },
       module: {
         noParse: [
