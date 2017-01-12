@@ -15,15 +15,13 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-var babelQuery = {
-  plugins: [],
-  extra: {}
-};
+var babelConfig = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '.babelrc'))
+);
 
 // only extract po files if we need to
 if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelQuery.plugins.push('babel-gettext-extractor');
-  babelQuery.extra.gettext = {
+  babelConfig.plugins.push('babel-gettext-extractor', {
     fileName: 'build/javascript.po',
     baseDirectory: path.join(__dirname, 'src/sentry'),
     functionNames: {
@@ -34,14 +32,14 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
       tn: ['msgid', 'msgid_plural', 'count'],
       tct: ['msgid']
     },
-  };
+  });
 }
 
 var entry = {
   // js
   'app': 'app',
   'vendor': [
-    'babel-core/polyfill',
+    'babel-polyfill',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
@@ -103,7 +101,7 @@ var config = {
         loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules|dist)/,
-        query: babelQuery
+        query: babelConfig
       },
       {
         test: /\.po$/,
