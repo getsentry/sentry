@@ -52,7 +52,19 @@ const AssigneeSelector = React.createClass({
       return [members[sessionUserIndex]]
         .concat(members.slice(0, sessionUserIndex))
         .concat(members.slice(sessionUserIndex + 1));
-    }
+    },
+
+    removeSuggestedAssignees(members, suggestedAssignees) {
+      // this isn't a real thing yet...
+      // let suggestedAssignees = ConfigStore.get('suggestedAssignees');
+      // returns true if the member is not in the suggestedAssignees array
+      function filterSuggested(item) {
+        return suggestedAssignees.indexOf(item) === -1;
+      }
+      // a filtered list of all the members not in the suggestedAssignes array
+      let nonSuggestedMembers = members.filter(filterSuggested);
+      return nonSuggestedMembers;
+    },
   },
 
   getInitialState() {
@@ -173,22 +185,11 @@ const AssigneeSelector = React.createClass({
     );
   },
 
-  render() {
-    let loading = this.state.loading;
-    let assignedTo = this.state.assignedTo;
-
-    let className = 'assignee-selector anchor-right';
-    if (!assignedTo) {
-      className += ' unassigned';
-    }
-
-    let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
-    members = AssigneeSelector.putSessionUserFirst(members);
-
+  getNodes(members) {
     let memberNodes = members.map((item) => {
       return (
         <MenuItem key={item.id}
-                  disabled={loading}
+                  disabled={this.state.loading}
                   onSelect={this.assignTo.bind(this, item)} >
           <Avatar user={item} className="avatar" size={48} />
           {this.highlight(item.name || item.email, this.state.filter)}
@@ -201,6 +202,48 @@ const AssigneeSelector = React.createClass({
         <li className="not-found" key="no-user"><span>{t('No matching users found.')}</span></li>
       ];
     }
+
+    return memberNodes;
+  },
+
+  render() {
+    let loading = this.state.loading;
+    let assignedTo = this.state.assignedTo;
+
+    let className = 'assignee-selector anchor-right';
+    if (!assignedTo) {
+      className += ' unassigned';
+    }
+
+    let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
+
+    // only doing this for UI testing purposes
+    // suggestedAssignees will
+    let sessionUser = ConfigStore.get('user');
+    let suggestedAssignees = members.filter(member => sessionUser.id === member.id);
+
+    members = AssigneeSelector.removeSuggestedAssignees(members, suggestedAssignees);
+    members = AssigneeSelector.putSessionUserFirst(members);
+
+    let suggested = suggestedAssignees.length > 0;
+    // let suggested = true;
+
+    // let memberNodes = members.map((item) => {
+    //   return (
+    //     <MenuItem key={item.id}
+    //               disabled={loading}
+    //               onSelect={this.assignTo.bind(this, item)} >
+    //       <Avatar user={item} className="avatar" size={48} />
+    //       {this.highlight(item.name || item.email, this.state.filter)}
+    //     </MenuItem>
+    //   );
+    // });
+
+    // if (memberNodes.length === 0) {
+    //   memberNodes = [
+    //     <li className="not-found" key="no-user"><span>{t('No matching users found.')}</span></li>
+    //   ];
+    // }
 
     let tooltipTitle = null;
     if (assignedTo) {
@@ -237,8 +280,19 @@ const AssigneeSelector = React.createClass({
                   <span className="icon-circle-cross"/> {t('Clear Assignee')}
                 </MenuItem>
               : ''}
+              {suggested ?
+                <li>
+                  <ul>
+                    <li className="dropdown-heading">{t('SUGGESTED')}</li>
+                    {this.getNodes(suggestedAssignees)}
+                  </ul>
+                </li>
+              : ''}
               <li>
-                <ul>{memberNodes}</ul>
+                <ul>
+                  {suggested ? <li className="dropdown-heading">{t('TEAM')}</li> : ''}
+                  {this.getNodes(members)}
+                </ul>
               </li>
             </DropdownLink>
           }
