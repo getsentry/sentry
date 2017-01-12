@@ -120,7 +120,7 @@ var config = {
         include: path.join(__dirname, staticPrefix),
         loader: ExtractTextPlugin.extract({
           fallbackLoader: 'style-loader',
-          loader: 'css-loader' + IS_PRODUCTION ? '?minimize=true' : '' + '!less-loader'
+          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
         })
       },
       {
