@@ -36,7 +36,6 @@ class DjangoSearchBackend(SearchBackend):
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
-
         for k, v in tag_lookups:
             if v is EMPTY:
                 return None
