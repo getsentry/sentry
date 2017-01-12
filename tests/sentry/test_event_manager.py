@@ -74,6 +74,20 @@ class EventManagerTest(TransactionTestCase):
             event_id=event_id,
         ).exists()
 
+    @patch('sentry.event_manager.should_sample')
+    def test_sample_feature_flag(self, should_sample):
+        should_sample.return_value = True
+
+        manager = EventManager(self.make_event())
+        with self.feature('projects:sample-events'):
+            event = manager.save(1)
+        assert event.id
+
+        manager = EventManager(self.make_event())
+        with self.feature('projects:sample-events', False):
+            event = manager.save(1)
+        assert not event.id
+
     def test_tags_as_list(self):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
         data = manager.normalize()

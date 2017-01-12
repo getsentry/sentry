@@ -684,6 +684,7 @@ SENTRY_FEATURES = {
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
+    'projects:sample-events': True,
     'workflow:release-emails': False,
 }
 
