@@ -9,61 +9,27 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
-        # Changing field 'Release.project'
-        db.alter_column('sentry_release', 'project_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], null=True))
+        # Changing field 'Release.project_id'
+        db.alter_column('sentry_release', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
-        # Changing field 'Release.organization'
-        db.alter_column('sentry_release', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization']))
-
-        # Changing field 'ReleaseFile.project'
-        db.alter_column('sentry_releasefile', 'project_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'], null=True))
-
-        # Changing field 'ReleaseFile.organization'
-        db.alter_column('sentry_releasefile', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization']))
-
-        # Changing field 'ReleaseCommit.organization_id'
-        db.alter_column('sentry_releasecommit', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
-
-        # Changing field 'ReleaseCommit.project_id'
-        db.alter_column('sentry_releasecommit', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
-
-        # Changing field 'ReleaseEnvironment.organization_id'
-        db.alter_column('sentry_environmentrelease', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
+        # Changing field 'ReleaseFile.project_id'
+        db.alter_column('sentry_releasefile', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
 
     def backwards(self, orm):
 
-        # User chose to not deal with backwards NULL issues for 'Release.project'
-        raise RuntimeError("Cannot reverse this migration. 'Release.project' and its values cannot be restored.")
-
+        # User chose to not deal with backwards NULL issues for 'Release.project_id'
+        raise RuntimeError("Cannot reverse this migration. 'Release.project_id' and its values cannot be restored.")
+        
         # The following code is provided here to aid in writing a correct migration
-        # Changing field 'Release.project'
-        db.alter_column('sentry_release', 'project_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project']))
+        # Changing field 'Release.project_id'
+        db.alter_column('sentry_release', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
-        # Changing field 'Release.organization'
-        db.alter_column('sentry_release', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
-
-        # User chose to not deal with backwards NULL issues for 'ReleaseFile.project'
-        raise RuntimeError("Cannot reverse this migration. 'ReleaseFile.project' and its values cannot be restored.")
-
+        # User chose to not deal with backwards NULL issues for 'ReleaseFile.project_id'
+        raise RuntimeError("Cannot reverse this migration. 'ReleaseFile.project_id' and its values cannot be restored.")
+        
         # The following code is provided here to aid in writing a correct migration
-        # Changing field 'ReleaseFile.project'
-        db.alter_column('sentry_releasefile', 'project_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project']))
-
-        # Changing field 'ReleaseFile.organization'
-        db.alter_column('sentry_releasefile', 'organization_id', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Organization'], null=True))
-
-        # Changing field 'ReleaseCommit.organization_id'
-        db.alter_column('sentry_releasecommit', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
-
-        # User chose to not deal with backwards NULL issues for 'ReleaseCommit.project_id'
-        raise RuntimeError("Cannot reverse this migration. 'ReleaseCommit.project_id' and its values cannot be restored.")
-
-        # The following code is provided here to aid in writing a correct migration
-        # Changing field 'ReleaseCommit.project_id'
-        db.alter_column('sentry_releasecommit', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
-
-        # Changing field 'ReleaseEnvironment.organization_id'
-        db.alter_column('sentry_environmentrelease', 'organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True))
+        # Changing field 'ReleaseFile.project_id'
+        db.alter_column('sentry_releasefile', 'project_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')())
 
     models = {
         'sentry.activity': {
@@ -148,7 +114,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 1, 17, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 1, 19, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -576,7 +542,7 @@ class Migration(SchemaMigration):
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.release': {
-            'Meta': {'unique_together': "(('project', 'version'),)", 'object_name': 'Release'},
+            'Meta': {'unique_together': "(('project_id', 'version'),)", 'object_name': 'Release'},
             'data': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'date_released': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
@@ -585,7 +551,7 @@ class Migration(SchemaMigration):
             'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0'}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']"}),
             'owner': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']", 'null': 'True', 'blank': 'True'}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
             'projects': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'releases'", 'symmetrical': 'False', 'through': "orm['sentry.ReleaseProject']", 'to': "orm['sentry.Project']"}),
             'ref': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
             'url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -617,7 +583,7 @@ class Migration(SchemaMigration):
             'ident': ('django.db.models.fields.CharField', [], {'max_length': '40'}),
             'name': ('django.db.models.fields.TextField', [], {}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Organization']"}),
-            'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'project_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
             'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"})
         },
         'sentry.releaseproject': {
@@ -724,7 +690,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'R6zOiWKMO0GUE2e6HGMyFwPxDqc7hR7E'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'ssVzZVyhkDOpmZUemjBvkkkRbhSwhPVT'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
