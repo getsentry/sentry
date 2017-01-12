@@ -15,14 +15,13 @@ class ReleaseSerializerTest(TestCase):
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version=uuid4().hex,
             new_groups=1,
         )
         release.add_project(project)
         TagValue.objects.create(
-            project=release.project,
+            project=project,
             key='sentry:release',
             value=release.version,
             first_seen=timezone.now(),
@@ -46,7 +45,6 @@ class ReleaseSerializerTest(TestCase):
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version=uuid4().hex,
         )

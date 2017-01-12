@@ -29,14 +29,27 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
-        values.setdefault('organization', self.project.organization_id)
-        release, created = Release.objects.create_or_update(
-            version=version,
-            project=self.project,
-            values=values
-        )
-        if created:
-            release.add_project(self.project)
+
+        with transaction.atomic():
+            affected = Release.objects.filter(
+                version=version,
+                organization_id=self.project.organization_id,
+                projects=self.project,
+            ).update(**values)
+            if not affected:
+                release = Release.objects.filter(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                ).first()
+                if release:
+                    release.update(**values)
+                else:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=self.project.organization_id,
+                        **values
+                    )
+                release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -48,13 +61,23 @@ class ReleaseHook(object):
         Calling this method will remove all existing commit history.
         """
         project = self.project
-        release, created = Release.objects.get_or_create(
-            project=project,
-            version=version,
-            defaults={'organization_id': self.project.organization_id}
-        )
-        if created:
-            release.add_project(project)
+        with transaction.atomic():
+            release = Release.objects.filter(
+                organization_id=project.organization_id,
+                version=version,
+                projects=self.project
+            ).first()
+            if not release:
+                release = Release.objects.filter(
+                    organization_id=project.organization_id,
+                    version=version,
+                ).first()
+                if not release:
+                    release = Release.objects.create(
+                        organization_id=project.organization_id,
+                        version=version
+                    )
+                release.add_project(project)
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -107,7 +130,6 @@ class ReleaseHook(object):
 
                 ReleaseCommit.objects.create(
                     organization_id=project.organization_id,
-                    project_id=project.id,
                     release=release,
                     commit=commit,
                     order=idx,
@@ -115,14 +137,27 @@ class ReleaseHook(object):
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
-        values.setdefault('organization', self.project.organization_id)
-        release, created = Release.objects.create_or_update(
-            version=version,
-            project=self.project,
-            values=values
-        )
-        if created:
-            release.add_project(self.project)
+        with transaction.atomic():
+            affected = Release.objects.filter(
+                version=version,
+                organization_id=self.project.organization_id,
+                projects=self.project,
+            ).update(**values)
+            if not affected:
+                release = Release.objects.filter(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                ).first()
+                if release:
+                    release.update(**values)
+                else:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=self.project.organization_id,
+                        **values
+                    )
+                release.add_project(self.project)
+
         activity = Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,

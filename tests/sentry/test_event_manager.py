@@ -305,7 +305,6 @@ class EventManagerTest(TransactionTestCase):
 
         old_release = Release.objects.create(
             version='a',
-            project=self.project,
             organization_id=self.project.organization_id,
             date_added=timezone.now() - timedelta(minutes=30),
         )
@@ -442,7 +441,7 @@ class EventManagerTest(TransactionTestCase):
         manager = EventManager(self.make_event(release='1.0'))
         event = manager.save(1)
 
-        release = Release.objects.get(version='1.0', project=event.project_id)
+        release = Release.objects.get(version='1.0', projects=event.project_id)
 
         assert GroupRelease.objects.filter(
             release_id=release.id,
@@ -460,7 +459,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='a' * 32))
         event = manager.save(1)
 
-        release = Release.objects.get(version='1.0', project=event.project_id)
+        release = Release.objects.get(version='1.0', projects=event.project_id)
 
         assert GroupRelease.objects.filter(
             release_id=release.id,
@@ -473,7 +472,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='b' * 32))
         event = manager.save(1)
 
-        release = Release.objects.get(version='1.0', project=event.project_id)
+        release = Release.objects.get(version='1.0', projects=event.project_id)
 
         assert GroupRelease.objects.filter(
             release_id=release.id,

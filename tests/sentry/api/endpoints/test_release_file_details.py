@@ -15,7 +15,6 @@ class ReleaseFileDetailsTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -23,7 +22,6 @@ class ReleaseFileDetailsTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            project=project,
             release=release,
             file=File.objects.create(
                 name='application.js',
@@ -50,7 +48,6 @@ class ReleaseFileDetailsTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -98,7 +95,6 @@ class ReleaseFileUpdateTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='1',
         )
@@ -106,7 +102,6 @@ class ReleaseFileUpdateTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            project=project,
             release=release,
             file=File.objects.create(
                 name='application.js',
@@ -149,7 +144,6 @@ class ReleaseFileDeleteTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            project=project,
             release=release,
             file=File.objects.create(
                 name='application.js',

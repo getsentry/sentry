@@ -677,6 +677,7 @@ class EventManager(object):
                 return event
 
             index_event_tags.delay(
+                organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,
                 event_id=event.id,

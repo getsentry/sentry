@@ -22,8 +22,8 @@ class ReleaseFile(Model):
     """
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization', null=True)
-    project = FlexibleForeignKey('sentry.Project')
+    organization = FlexibleForeignKey('sentry.Organization')
+    project = FlexibleForeignKey('sentry.Project', null=True)
     release = FlexibleForeignKey('sentry.Release')
     file = FlexibleForeignKey('sentry.File')
     ident = models.CharField(max_length=40)

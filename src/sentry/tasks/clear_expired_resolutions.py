@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from sentry.models import (
-    Activity, GroupResolution, GroupResolutionStatus, Project, Release
+    Activity, GroupResolution, GroupResolutionStatus, Release
 )
 from sentry.tasks.base import instrumented_task
 
@@ -22,12 +22,8 @@ def clear_expired_resolutions(release_id):
     except Release.DoesNotExist:
         return
 
-    project = Project.objects.get_from_cache(
-        id=release.project_id,
-    )
-
     resolution_list = GroupResolution.objects.filter(
-        release__project=project,
+        release__projects=release.projects.all(),
         release__date_added__lt=release.date_added,
     ).exclude(
         release=release,

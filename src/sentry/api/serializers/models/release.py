@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Release, TagValue
+from sentry.models import Release, ReleaseProject, TagValue
 
 
 @register(Release)
@@ -12,7 +12,9 @@ class ReleaseSerializer(Serializer):
         tags = {
             tk.value: tk
             for tk in TagValue.objects.filter(
-                project=item_list[0].project,
+                project_id__in=ReleaseProject.objects.filter(
+                    release__in=item_list
+                ).values_list('project_id', flat=True),
                 key='sentry:release',
                 value__in=[o.version for o in item_list],
             )

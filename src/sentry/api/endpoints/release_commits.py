@@ -27,7 +27,8 @@ class ReleaseCommitsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                project=project,
+                organization_id=project.organization_id,
+                projects=project,
                 version=version,
             )
         except Release.DoesNotExist:
