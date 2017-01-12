@@ -113,7 +113,7 @@ test-python:
 
 test-acceptance:
 	@echo "--> Building static assets"
-	@NODE_ENV=production ${NPM_ROOT}/.bin/webpack
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance
 	@echo ""
