@@ -164,8 +164,7 @@ const Thread = React.createClass({
           <Pill name="id" value={data.id} />
           <Pill name="name" value={data.name} />
           <Pill name="was active" value={data.current} />
-          <Pill name="crashed" className={data.crashed ? 'false' : 'true'
-            }>{data.crashed ? 'yes' : 'no'}</Pill>
+          <Pill name="crashed" value={!data.crashed}>{data.crashed ? 'yes' : 'no'}</Pill>
         </Pills>
         {this.hasMissingStacktrace() ?
           this.renderMissingStacktrace() :
@@ -237,7 +236,7 @@ const ThreadsInterface = React.createClass({
 
     let threadSelector = (
       <div className="pull-left btn-group">
-        <DropdownLink 
+        <DropdownLink
           btnGroup={true}
           caret={true}
           className="btn btn-default btn-sm"

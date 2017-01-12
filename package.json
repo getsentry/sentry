@@ -49,6 +49,7 @@
     "select2": "3.5.1",
     "sprintf-js": "^1.0.3",
     "style-loader": "0.12.4",
+    "styled-components": "^1.1.2",
     "u2f-api": "0.0.8",
     "underscore": "1.8.3",
     "url-loader": "0.5.6",
