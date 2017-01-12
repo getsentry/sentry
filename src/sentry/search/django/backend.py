@@ -36,6 +36,7 @@ class DjangoSearchBackend(SearchBackend):
 
         # for each remaining tag, find matches contained in our
         # existing set, pruning it down each iteration
+
         for k, v in tag_lookups:
             if v is EMPTY:
                 return None
@@ -131,7 +132,7 @@ class DjangoSearchBackend(SearchBackend):
             if first_release is EMPTY:
                 return queryset.none()
             queryset = queryset.filter(
-                first_release__project=project,
+                first_release__organization_id=project.organization_id,
                 first_release__version=first_release,
             )
 
