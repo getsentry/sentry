@@ -44,7 +44,7 @@ class Release(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
                                       through=ReleaseProject)
-    project = FlexibleForeignKey('sentry.Project', null=True)
+    project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
     ref = models.CharField(max_length=64, null=True, blank=True)
@@ -61,7 +61,7 @@ class Release(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_release'
-        unique_together = (('project', 'version'),)
+        unique_together = (('project_id', 'version'),)
 
     __repr__ = sane_repr('project_id', 'version')
 
