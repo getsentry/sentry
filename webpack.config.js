@@ -118,7 +118,7 @@ var config = {
       {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
-        loader: ExtractTextPlugin.extract('style-loader', 'css-loader!less-loader')
+        loader: ExtractTextPlugin.extract('style-loader', 'css-loader?sourceMap!less-loader?sourceMap')
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -180,7 +180,7 @@ var config = {
   },
   devtool: IS_PRODUCTION ?
     '#source-map' :
-    '#cheap-module-eval-source-map'
+    '#inline-source-map'
 };
 
 if (IS_PRODUCTION) {
