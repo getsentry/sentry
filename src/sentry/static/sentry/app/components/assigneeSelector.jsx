@@ -55,8 +55,6 @@ const AssigneeSelector = React.createClass({
     },
 
     removeSuggestedAssignees(members, suggestedAssignees) {
-      // this isn't a real thing yet...
-      // let suggestedAssignees = ConfigStore.get('suggestedAssignees');
       // returns true if the member is not in the suggestedAssignees array
       function filterSuggested(item) {
         return suggestedAssignees.indexOf(item) === -1;
@@ -217,33 +215,19 @@ const AssigneeSelector = React.createClass({
 
     let members = AssigneeSelector.filterMembers(this.state.memberList, this.state.filter);
 
-    // only doing this for UI testing purposes
-    // suggestedAssignees will
-    let sessionUser = ConfigStore.get('user');
-    let suggestedAssignees = members.filter(member => sessionUser.id === member.id);
+    // TODO: implement a way to get an array of suggested assignees
+    // that references the release changeset
+    // to test UI, uncomment the following two lines and comment out the line after (223)
+    // let sessionUser = ConfigStore.get('user');
+    // let suggestedAssignees = members.filter(member => sessionUser.id === member.id);
+    let suggestedAssignees = [];
+    let hasSuggestedAssignees = suggestedAssignees.length > 0;
 
-    members = AssigneeSelector.removeSuggestedAssignees(members, suggestedAssignees);
+    if (hasSuggestedAssignees) {
+      members = AssigneeSelector.removeSuggestedAssignees(members, suggestedAssignees);
+    }
+
     members = AssigneeSelector.putSessionUserFirst(members);
-
-    let suggested = suggestedAssignees.length > 0;
-    // let suggested = true;
-
-    // let memberNodes = members.map((item) => {
-    //   return (
-    //     <MenuItem key={item.id}
-    //               disabled={loading}
-    //               onSelect={this.assignTo.bind(this, item)} >
-    //       <Avatar user={item} className="avatar" size={48} />
-    //       {this.highlight(item.name || item.email, this.state.filter)}
-    //     </MenuItem>
-    //   );
-    // });
-
-    // if (memberNodes.length === 0) {
-    //   memberNodes = [
-    //     <li className="not-found" key="no-user"><span>{t('No matching users found.')}</span></li>
-    //   ];
-    // }
 
     let tooltipTitle = null;
     if (assignedTo) {
@@ -280,20 +264,21 @@ const AssigneeSelector = React.createClass({
                   <span className="icon-circle-cross"/> {t('Clear Assignee')}
                 </MenuItem>
               : ''}
-              {suggested ?
+              {hasSuggestedAssignees ?
                 <li>
                   <ul>
                     <li className="dropdown-heading">{t('SUGGESTED')}</li>
                     {this.getNodes(suggestedAssignees)}
+                    <li className="dropdown-heading">{t('TEAM')}</li>
+                    {this.getNodes(members)}
                   </ul>
                 </li>
-              : ''}
-              <li>
-                <ul>
-                  {suggested ? <li className="dropdown-heading">{t('TEAM')}</li> : ''}
-                  {this.getNodes(members)}
-                </ul>
-              </li>
+              : <li>
+                  <ul>
+                    {this.getNodes(members)}
+                  </ul>
+                </li>
+              }
             </DropdownLink>
           }
         </div>
