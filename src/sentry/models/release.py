@@ -67,11 +67,12 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, project_id, version):
+        # TODO(jess): update this to use organization id when adding
+        # unique on Release for organization, version
         return 'release:2:%s:%s' % (project_id, md5_text(version).hexdigest())
 
     @classmethod
     def get(cls, project, version):
-        # TODO: should this be cached by organization now?
         cache_key = cls.get_cache_key(project.id, version)
 
         release = cache.get(cache_key)
@@ -93,7 +94,6 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added):
-        # TODO: should this be cached by organization now?
         cache_key = cls.get_cache_key(project.id, version)
 
         release = cache.get(cache_key)
