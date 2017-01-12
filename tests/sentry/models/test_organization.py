@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    OrganizationMember, OrganizationMemberTeam, Project, Team
+    Commit, File, OrganizationMember, OrganizationMemberTeam,
+    Project, Release, ReleaseCommit, ReleaseEnvironment,
+    ReleaseFile, Team
 )
 from sentry.testutils import TestCase
 
@@ -16,6 +18,32 @@ class OrganizationTest(TestCase):
             organization=from_org,
             team=from_team_two,
             slug='bizzy',
+        )
+        from_release = Release.objects.create(version='abcabcabc',
+                                              organization=from_org)
+        from_release_file = ReleaseFile.objects.create(
+            release=from_release,
+            organization=from_org,
+            file=File.objects.create(name='foo.py', type='.py'),
+            ident='abcdefg',
+            name='foo.py'
+        )
+        from_commit = Commit.objects.create(
+            organization_id=from_org.id,
+            repository_id=1,
+            key='abcdefg'
+        )
+        from_release_commit = ReleaseCommit.objects.create(
+            release=from_release,
+            commit=from_commit,
+            order=1,
+            organization_id=from_org.id,
+        )
+        from_release_environment = ReleaseEnvironment.objects.create(
+            release_id=from_release.id,
+            project_id=from_project_two.id,
+            organization_id=from_org.id,
+            environment_id=1
         )
         from_user = self.create_user('baz@example.com')
         other_user = self.create_user('bizbaz@example.com')
@@ -84,6 +112,14 @@ class OrganizationTest(TestCase):
         assert to_project_two.slug == 'bizzy'
         assert to_project_two.organization == to_org
         assert to_project_two.team == to_team_two
+
+        assert Release.objects.get(id=from_release.id).organization == to_org
+        assert ReleaseFile.objects.get(id=from_release_file.id).organization == to_org
+        assert Commit.objects.get(id=from_commit.id).organization_id == to_org.id
+        assert ReleaseCommit.objects.get(id=from_release_commit.id).organization_id == to_org.id
+        assert ReleaseEnvironment.objects.get(
+            id=from_release_environment.id
+        ).organization_id == to_org.id
 
     def test_get_default_owner(self):
         user = self.create_user('foo@example.com')

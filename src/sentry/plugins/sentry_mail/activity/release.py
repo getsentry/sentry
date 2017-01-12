@@ -12,7 +12,8 @@ class ReleaseActivityEmail(ActivityEmail):
         super(ReleaseActivityEmail, self).__init__(activity)
         try:
             self.release = Release.objects.get(
-                project=self.project,
+                organization_id=self.project.organization_id,
+                projects=self.project,
                 version=activity.data['version'],
             )
         except Release.DoesNotExist:

@@ -1,16 +1,21 @@
 from __future__ import absolute_import
 
+import json
+
 from datetime import timedelta
 from uuid import uuid4
 
 import six
+from six.moves.urllib.parse import quote
+
 from django.utils import timezone
 from exam import fixture
 from mock import patch
 
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription, Release
+    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupTagValue,
+    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    Release
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -220,6 +225,62 @@ class GroupListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
+    def test_lookup_by_first_release(self):
+        self.login_as(self.user)
+        project = self.project
+        project2 = self.create_project(name='baz',
+                                       organization=project.organization)
+        release = Release.objects.create(organization=project.organization,
+                                         version='12345')
+        release.add_project(project)
+        release.add_project(project2)
+        group = self.create_group(checksum='a' * 32,
+                                  project=project,
+                                  first_release=release)
+        self.create_group(checksum='b' * 32,
+                          project=project2,
+                          first_release=release)
+        url = '%s?query=%s' % (self.path, quote('first-release:"%s"' % release.version))
+        response = self.client.get(url, format='json')
+        issues = json.loads(response.content)
+        assert response.status_code == 200
+        assert len(issues) == 1
+        assert int(issues[0]['id']) == group.id
+
+    def test_lookup_by_release(self):
+        self.login_as(self.user)
+        project = self.project
+        project2 = self.create_project(name='baz',
+                                       organization=project.organization)
+        release = Release.objects.create(organization=project.organization,
+                                         version='12345')
+        release.add_project(project)
+        release.add_project(project2)
+        group = self.create_group(checksum='a' * 32,
+                                  project=project)
+        group2 = self.create_group(checksum='b' * 32,
+                                   project=project2)
+        GroupTagValue.objects.create(
+            project=project,
+            group=group,
+            key='sentry:release',
+            value=release.version
+        )
+
+        GroupTagValue.objects.create(
+            project=project2,
+            group=group2,
+            key='sentry:release',
+            value=release.version
+        )
+
+        url = '%s?query=%s' % (self.path, quote('release:"%s"' % release.version))
+        response = self.client.get(url, format='json')
+        issues = json.loads(response.content)
+        assert response.status_code == 200
+        assert len(issues) == 1
+        assert int(issues[0]['id']) == group.id
+
 
 class GroupUpdateTest(APITestCase):
     @fixture
@@ -337,8 +398,7 @@ class GroupUpdateTest(APITestCase):
         assert new_group4.status == GroupStatus.UNRESOLVED
 
     def test_set_resolved_in_next_release(self):
-        release = Release.objects.create(project=self.project,
-                                         organization_id=self.project.organization_id,
+        release = Release.objects.create(organization_id=self.project.organization_id,
                                          version='a')
         release.add_project(self.project)
 

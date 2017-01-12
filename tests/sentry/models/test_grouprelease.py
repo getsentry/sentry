@@ -12,7 +12,6 @@ class GetOrCreateTest(TestCase):
         project = self.create_project()
         group = self.create_group(project=project)
         release = Release.objects.create(version='abc',
-                                         project=project,
                                          organization_id=project.organization_id)
         release.add_project(project)
         env = Environment.objects.create(project_id=project.id, name='prod')

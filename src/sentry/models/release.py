@@ -41,10 +41,10 @@ class Release(Model):
     """
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization', null=True, blank=True)
+    organization = FlexibleForeignKey('sentry.Organization')
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
                                       through=ReleaseProject)
-    project = FlexibleForeignKey('sentry.Project')
+    project = FlexibleForeignKey('sentry.Project', null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
     ref = models.CharField(max_length=64, null=True, blank=True)
@@ -67,6 +67,8 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, project_id, version):
+        # TODO(jess): update this to use organization id when adding
+        # unique on Release for organization, version
         return 'release:2:%s:%s' % (project_id, md5_text(version).hexdigest())
 
     @classmethod
@@ -77,7 +79,8 @@ class Release(Model):
         if release is None:
             try:
                 release = cls.objects.get(
-                    project=project,
+                    organization_id=project.organization_id,
+                    projects=project,
                     version=version,
                 )
             except cls.DoesNotExist:
@@ -97,16 +100,25 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release, created = cls.objects.get_or_create(
-                project=project,
-                version=version,
-                defaults={
-                    'date_added': date_added,
-                    'organization_id': project.organization_id
-                },
-            )
-            if created:
-                release.add_project(project)
+            with transaction.atomic():
+                release = cls.objects.filter(
+                    organization_id=project.organization_id,
+                    version=version,
+                    projects=project
+                ).first()
+                if not release:
+                    release = cls.objects.filter(
+                        organization_id=project.organization_id,
+                        version=version
+                    ).first()
+                    if not release:
+                        release = cls.objects.create(
+                            organization_id=project.organization_id,
+                            version=version,
+                            date_added=date_added
+                        )
+                    release.add_project(project)
+
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)

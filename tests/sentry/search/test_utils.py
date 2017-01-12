@@ -81,13 +81,12 @@ class ParseQueryTest(TestCase):
 
     def test_first_release_latest(self):
         old = Release.objects.create(
-            project=self.project,
             organization_id=self.project.organization_id,
             version='a'
         )
         old.add_project(self.project)
         new = Release.objects.create(
-            project=self.project, version='b',
+            version='b',
             organization_id=self.project.organization_id,
             date_released=old.date_added + timedelta(minutes=1),
         )
@@ -102,13 +101,12 @@ class ParseQueryTest(TestCase):
 
     def test_release_latest(self):
         old = Release.objects.create(
-            project=self.project,
             organization_id=self.project.organization_id,
             version='a'
         )
         old.add_project(self.project)
         new = Release.objects.create(
-            project=self.project, version='b',
+            version='b',
             organization_id=self.project.organization_id,
             date_released=old.date_added + timedelta(minutes=1),
         )
