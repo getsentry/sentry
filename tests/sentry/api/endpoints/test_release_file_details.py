@@ -62,7 +62,7 @@ class ReleaseFileDetailsTest(APITestCase):
 
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
-            project=project,
+            project_id=project.id,
             release=release,
             file=f,
             name='  http://example.com/appli\n\rcatios n.js\n\n\r  '
@@ -136,7 +136,7 @@ class ReleaseFileDeleteTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
+            project_id=project.id,
             organization_id=project.organization_id,
             version='1',
         )

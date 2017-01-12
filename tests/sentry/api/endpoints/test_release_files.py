@@ -192,7 +192,7 @@ class ReleaseFileCreateTest(APITestCase):
         project = self.create_project(name='foo')
 
         release = Release.objects.create(
-            project=project,
+            project_id=project.id,
             organization_id=project.organization_id,
             version='1',
         )
