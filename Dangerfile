@@ -103,6 +103,6 @@ fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_F
 warn("This change includes modification to a file that was backported from newer Django.") if @S_BACKPORTED_FILES && checkFiles(@S_BACKPORTED_FILES).any?
 
 # Reasonable commits must update CHANGES
-if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
+if !github.pr_body.include?("#nochanges") && @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
     fail("You need to update CHANGES due to the size of this PR")
 end
