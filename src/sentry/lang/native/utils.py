@@ -133,3 +133,21 @@ def get_sdk_from_apple_system_info(info):
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
     }
+
+
+def get_binary_images_apple_string(debug_images, contexts):
+    binary_images = map(lambda i:
+        _convert_debug_meta_to_binary_image_row(i, contexts),
+        sorted(debug_images, key=lambda i: int(i['image_addr'], 16)
+    ))
+    return 'Binary Images:\n' + '\n'.join(binary_images)
+
+
+def _convert_debug_meta_to_binary_image_row(debug_image, contexts):
+    return "{} - {} {} {}  <{}> {}".format(debug_image['image_addr'],
+        hex(int(debug_image['image_addr'], 16) + debug_image['image_size'] - 1),
+        debug_image['name'].rsplit('/', 1)[-1],
+        contexts['device']['arch'],
+        debug_image['uuid'].replace('-', '').lower(),
+        debug_image['name']
+    )
