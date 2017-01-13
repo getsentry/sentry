@@ -3,7 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
-from sentry.utils.db import is_mysql, is_postgres, is_sqlite
+from sentry.utils.db import is_postgres
 
 
 class Migration(SchemaMigration):
@@ -15,10 +15,6 @@ class Migration(SchemaMigration):
 
             # Changing field 'ReleaseFile.project_id'
             db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT project_id_refs_id_878696ea")
-        elif is_mysql() or is_sqlite():
-            pass
-        else:
-            raise RuntimeError('Database not supported.')
 
     def backwards(self, orm):
         if is_postgres():
@@ -27,12 +23,6 @@ class Migration(SchemaMigration):
 
             # Changing field 'ReleaseFile.project_id'
             db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
-        elif is_mysql() or is_sqlite():
-            pass
-        elif is_sqlite():
-            pass
-        else:
-            raise RuntimeError('Database not supported.')
 
 
     models = {
