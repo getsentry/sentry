@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from django.db import transaction
 from django.db.models.signals import post_save
 
+from sentry.app import locks
 from sentry.models import Release, TagValue
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 
@@ -28,12 +29,21 @@ def ensure_release_exists(instance, created, **kwargs):
             if release:
                 release.update(date_added=instance.first_seen)
             else:
-                release = Release.objects.create(
-                    organization_id=instance.project.organization_id,
-                    version=instance.value,
-                    date_added=instance.first_seen,
-                )
-                instance.update(data={'release_id': release.id})
+                lock_key = 'release:%s:%s' % (instance.project.organization_id, instance.value)
+                lock = locks.get(lock_key, duration=5)
+                with lock.acquire():
+                    try:
+                        release = Release.objects.get(
+                            organization_id=instance.project.organization_id,
+                            version=instance.value,
+                        )
+                    except Release.DoesNotExist:
+                        release = Release.objects.create(
+                            organization_id=instance.project.organization_id,
+                            version=instance.value,
+                            date_added=instance.first_seen,
+                        )
+                        instance.update(data={'release_id': release.id})
             release.add_project(instance.project)
 
 
