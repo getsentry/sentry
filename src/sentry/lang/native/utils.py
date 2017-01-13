@@ -135,12 +135,45 @@ def get_sdk_from_apple_system_info(info):
     }
 
 
+def get_thread_apple_string(thread):
+    stacktrace = thread.get('stacktrace')
+    if stacktrace:
+        rv = []
+        frames = stacktrace.get('frames')
+        if frames:
+            i = 0
+            for frame in reversed(frames):
+                rv.append(_convert_frame_to_apple_string(frame, i))
+                i += 1
+    thread_string = 'Thread {} name: {}\n'.format(thread['id'],
+        thread['name'] and thread['name'] or ''
+    )
+    if thread['crashed']:
+        thread_string += 'Thread {} Crashed:\n'.format(thread['id'])
+    return thread_string + "\n".join(rv)
+
+
+def _convert_frame_to_apple_string(frame, number=0, symbolicated=False):
+    offset = ''
+    if frame['image_addr'] is not None and not symbolicated:
+        offset = ' + {}'.format(
+            int(frame['instruction_addr'], 16) - int(frame['symbol_addr'], 16)
+        )
+
+    return "{} {} {} {}{}".format(number,
+        frame['package'].rsplit('/', 1)[-1],
+        frame['instruction_addr'],
+        (symbolicated and frame['function'] or frame['image_addr']),
+        offset
+    )
+
+
 def get_binary_images_apple_string(debug_images, contexts):
     binary_images = map(lambda i:
         _convert_debug_meta_to_binary_image_row(i, contexts),
         sorted(debug_images, key=lambda i: int(i['image_addr'], 16)
     ))
-    return 'Binary Images:\n' + '\n'.join(binary_images)
+    return "Binary Images:\n" + "\n".join(binary_images)
 
 
 def _convert_debug_meta_to_binary_image_row(debug_image, contexts):
