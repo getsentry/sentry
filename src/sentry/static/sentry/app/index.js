@@ -41,7 +41,6 @@ import moment from 'moment';
 import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
-import * as ReactBootstrap from 'react-bootstrap';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import underscore from 'underscore';
@@ -55,7 +54,9 @@ export default {
   Raven: Raven,
   React: React,
   ReactDOM: ReactDOM,
-  ReactBootstrap: ReactBootstrap,
+  ReactBootstrap: {
+    Modal: ReactBootstrap,
+  },
   Reflux: Reflux,
   Router: Router,
   underscore: underscore,
