@@ -19,6 +19,8 @@ from sentry.db.models import (
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+from sentry.utils.retries import TimedRetryPolicy
+
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 
@@ -94,6 +96,10 @@ class Release(Model):
         return release
 
     @classmethod
+    def get_lock_key(cls, organization_id, version):
+        return 'release:%s:%s' % (organization_id, md5_text(version).hexdigest())
+
+    @classmethod
     def get_or_create(cls, project, version, date_added):
         cache_key = cls.get_cache_key(project.id, version)
 
@@ -113,9 +119,9 @@ class Release(Model):
                         version=version
                     ).first()
                     if not release:
-                        lock_key = 'release:%s:%s' % (project.organization_id, version)
+                        lock_key = cls.get_lock_key(project.organization_id, version)
                         lock = locks.get(lock_key, duration=5)
-                        with lock.acquire():
+                        with TimedRetryPolicy(10)(lock.acquire):
                             try:
                                 release = cls.objects.get(
                                     organization_id=project.organization_id,
