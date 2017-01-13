@@ -33,7 +33,7 @@ class LocalhostFilterTest(TestCase):
         assert not self.apply_filter(data)
     
     def test_fails_gracefully_without_user_or_url(self):
-        assert not self.apply_filter(client_ip={})
+        assert not self.apply_filter({})
     
     def test_filters_localhost_domain(self):
         data = self.get_mock_data(url='http://localhost/something.html')
