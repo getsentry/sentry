@@ -31,7 +31,9 @@ class LocalhostFilter(Filter):
     
     def get_domain(self, data):
         matchObj = DOMAIN_FROM_URL.match(self.get_url(data))
-        return matchObj.group(1) or ''
+        if matchObj:
+            return matchObj.group(1) or ''
+        return ''
 
     def test(self, data):
         return self.get_ip_address(data) in LOCAL_IPS or self.get_domain(data) in LOCAL_DOMAINS
