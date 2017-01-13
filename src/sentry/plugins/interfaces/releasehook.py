@@ -45,14 +45,21 @@ class ReleaseHook(object):
                 if release:
                     release.update(**values)
                 else:
-                    lock = locks.get('release:%s:%s' % (self.project.organization_id, version),
-                                     duration=5)
+                    lock_key = 'release:%s:%s' % (self.project.organization_id, version)
+                    lock = locks.get(lock_key, duration=5)
                     with lock.acquire():
-                        release = Release.objects.create(
-                            version=version,
-                            organization_id=self.project.organization_id,
-                            **values
-                        )
+                        try:
+                            release = Release.objects.filter(
+                                version=version,
+                                organization_id=self.project.organization_id
+                            )
+                        except Release.DoesNotExist:
+                            release = Release.objects.create(
+                                version=version,
+                                organization_id=self.project.organization_id,
+                                **values
+                            )
+
                 release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
@@ -77,13 +84,19 @@ class ReleaseHook(object):
                     version=version,
                 ).first()
                 if not release:
-                    lock = locks.get('release:%s:%s' % (project.organization_id, version),
-                                     duration=5)
+                    lock_key = 'release:%s:%s' % (project.organization_id, version)
+                    lock = locks.get(lock_key, duration=5)
                     with lock.acquire():
-                        release = Release.objects.create(
-                            organization_id=project.organization_id,
-                            version=version
-                        )
+                        try:
+                            release = Release.objects.get(
+                                organization_id=project.organization_id,
+                                version=version
+                            )
+                        except Release.DoesNotExist:
+                            release = Release.objects.create(
+                                organization_id=project.organization_id,
+                                version=version
+                            )
                 release.add_project(project)
 
         with transaction.atomic():
@@ -158,14 +171,20 @@ class ReleaseHook(object):
                 if release:
                     release.update(**values)
                 else:
-                    lock = locks.get('release:%s:%s' % (self.project.organization_id, version),
-                                     duration=5)
+                    lock_key = 'release:%s:%s' % (self.project.organization_id, version)
+                    lock = locks.get(lock_key, duration=5)
                     with lock.acquire():
-                        release = Release.objects.create(
-                            version=version,
-                            organization_id=self.project.organization_id,
-                            **values
-                        )
+                        try:
+                            release = Release.objects.get(
+                                version=version,
+                                organization_id=self.project.organization_id,
+                            )
+                        except Release.DoesNotExist:
+                            release = Release.objects.create(
+                                version=version,
+                                organization_id=self.project.organization_id,
+                                **values
+                            )
                 release.add_project(self.project)
 
         activity = Activity.objects.create(

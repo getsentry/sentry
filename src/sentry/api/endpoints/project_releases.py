@@ -158,15 +158,21 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         lock_key = 'release:%s:%s' % (project.organization_id, result['version'])
                         lock = locks.get(lock_key, duration=5)
                         with lock.acquire():
-                            release, created = Release.objects.create(
-                                organization_id=project.organization_id,
-                                version=result['version'],
-                                ref=result.get('ref'),
-                                url=result.get('url'),
-                                owner=result.get('owner'),
-                                date_started=result.get('dateStarted'),
-                                date_released=result.get('dateReleased'),
-                            ), True
+                            try:
+                                release, created = Release.objects.get(
+                                    version=result['version'],
+                                    organization_id=project.organization_id
+                                ), False
+                            except Release.DoesNotExist:
+                                release, created = Release.objects.create(
+                                    organization_id=project.organization_id,
+                                    version=result['version'],
+                                    ref=result.get('ref'),
+                                    url=result.get('url'),
+                                    owner=result.get('owner'),
+                                    date_started=result.get('dateStarted'),
+                                    date_released=result.get('dateReleased'),
+                                ), True
                     was_released = False
                     release.add_project(project)
 
