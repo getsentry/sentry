@@ -37,65 +37,77 @@ jQuery.ajaxSetup({
 // these get exported to a global variable, which is important as its the only
 // way we can call into scoped objects
 
+import moment from 'moment';
+import Raven from 'raven-js';
+import React from 'react';
+import ReactDOM from 'react-dom';
+import * as ReactBootstrap from 'react-bootstrap';
+import Reflux from 'reflux';
+import * as Router from 'react-router';
+import underscore from 'underscore';
+
+import * as api from './api';
+import * as il8n from './locale';
+
 export default {
   jQuery: jQuery,
-  moment: require('moment'),
-  Raven: require('raven-js'),
-  React: require('react'),
-  ReactDOM: require('react-dom'),
-  ReactBootstrap: require('react-bootstrap'),
-  Reflux: require('reflux'),
-  Router: require('react-router'),
-  underscore: require('underscore'),
+  moment: moment,
+  Raven: Raven,
+  React: React,
+  ReactDOM: ReactDOM,
+  ReactBootstrap: ReactBootstrap,
+  Reflux: Reflux,
+  Router: Router,
+  underscore: underscore,
 
   Sentry: {
-    api: require('./api'),
-    routes: require('./routes'),
+    api: api,
+    routes: require('./routes').default,
     plugins: {
       add: plugins.add,
       BasePlugin: plugins.BasePlugin,
       DefaultIssuePlugin: plugins.DefaultIssuePlugin
     },
 
-    Alerts: require('./components/alerts'),
-    AlertActions: require('./actions/alertActions'),
-    AvatarSettings: require('./components/avatarSettings'),
+    Alerts: require('./components/alerts').default,
+    AlertActions: require('./actions/alertActions').default,
+    AvatarSettings: require('./components/avatarSettings').default,
     mixins: {
-      ApiMixin: require('./mixins/apiMixin'),
-      TooltipMixin: require('./mixins/tooltip')
+      ApiMixin: require('./mixins/apiMixin').default,
+      TooltipMixin: require('./mixins/tooltip').default
     },
-    BarChart: require('./components/barChart'),
-    i18n: require('./locale'),
-    ConfigStore: require('./stores/configStore'),
-    Count: require('./components/count'),
-    DateTime: require('./components/dateTime'),
-    DropdownLink: require('./components/dropdownLink'),
-    FlotChart: require('./components/flotChart'),
-    Form: require('./components/forms/form'),
+    BarChart: require('./components/barChart').default,
+    i18n: il8n,
+    ConfigStore: require('./stores/configStore').default,
+    Count: require('./components/count').default,
+    DateTime: require('./components/dateTime').default,
+    DropdownLink: require('./components/dropdownLink').default,
+    FlotChart: require('./components/flotChart').default,
+    Form: require('./components/forms/form').default,
     FormState: require('./components/forms/index').FormState,
-    HookStore: require('./stores/hookStore'),
-    Indicators: require('./components/indicators'),
-    IndicatorStore: require('./stores/indicatorStore'),
-    LoadingError: require('./components/loadingError'),
-    LoadingIndicator: require('./components/loadingIndicator'),
-    ListLink: require('./components/listLink'),
-    MenuItem: require('./components/menuItem'),
-    OrganizationHomeContainer: require('./components/organizations/homeContainer'),
-    OrganizationsLoader: require('./components/organizations/organizationsLoader'),
-    Pagination: require('./components/pagination'),
-    PluginConfig: require('./components/pluginConfig'),
-    ProjectIssueTracking: require('./views/projectIssueTracking'),
-    ProjectSelector: require('./components/projectHeader/projectSelector'),
-    RuleEditor: require('./views/ruleEditor'),
-    Sidebar: require('./components/sidebar'),
-    StackedBarChart: require('./components/stackedBarChart'),
-    TimeSince: require('./components/timeSince'),
-    TodoList: require('./components/todos'),
-    U2fEnrollment: require('./components/u2fenrollment'),
-    U2fSign: require('./components/u2fsign'),
+    HookStore: require('./stores/hookStore').default,
+    Indicators: require('./components/indicators').default,
+    IndicatorStore: require('./stores/indicatorStore').default,
+    LoadingError: require('./components/loadingError').default,
+    LoadingIndicator: require('./components/loadingIndicator').default,
+    ListLink: require('./components/listLink').default,
+    MenuItem: require('./components/menuItem').default,
+    OrganizationHomeContainer: require('./components/organizations/homeContainer').default,
+    OrganizationsLoader: require('./components/organizations/organizationsLoader').default,
+    Pagination: require('./components/pagination').default,
+    PluginConfig: require('./components/pluginConfig').default,
+    ProjectIssueTracking: require('./views/projectIssueTracking').default,
+    ProjectSelector: require('./components/projectHeader/projectSelector').default,
+    RuleEditor: require('./views/ruleEditor').default,
+    Sidebar: require('./components/sidebar').default,
+    StackedBarChart: require('./components/stackedBarChart').default,
+    TimeSince: require('./components/timeSince').default,
+    TodoList: require('./components/todos').default,
+    U2fEnrollment: require('./components/u2fenrollment').default,
+    U2fSign: require('./components/u2fsign').default,
     utils: {
-      errorHandler: require('./utils/errorHandler'),
-      logging: require('./utils/logging'),
+      errorHandler: require('./utils/errorHandler').default,
+      logging: require('./utils/logging').default,
     }
   }
 };

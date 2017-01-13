@@ -223,8 +223,9 @@ export function formatBytes(bytes) {
 import parseLinkHeader from './utils/parseLinkHeader';
 import deviceNameMapper from './utils/deviceNameMapper';
 import Collection from './utils/collection';
-import PendingChangeQueue from './utils/streamManager';
+import PendingChangeQueue from './utils/pendingChangeQueue';
 import CursorPoller from './utils/cursorPoller';
+import StreamManager from './utils/streamManager';
 
 // re-export under utils
 export {
