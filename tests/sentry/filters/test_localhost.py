@@ -10,24 +10,44 @@ class LocalhostFilterTest(TestCase):
     def apply_filter(self, data):
         return self.filter_cls(self.project).test(data)
 
-    def get_mock_data(self, client_ip=None):
+    def get_mock_data(self, client_ip=None, url=None):
         return {
             'sentry.interfaces.User': {
                 'ip_address': client_ip,
+            },
+            'sentry.interfaces.Http': {
+                'url': url,
             }
         }
 
     def test_filters_localhost_ipv4(self):
-        data = self.get_mock_data('127.0.0.1')
+        data = self.get_mock_data(client_ip='127.0.0.1')
         assert self.apply_filter(data)
 
     def test_filters_localhost_ipv6(self):
-        data = self.get_mock_data('::1')
+        data = self.get_mock_data(client_ip='::1')
         assert self.apply_filter(data)
 
     def test_does_not_filter_external_ip(self):
-        data = self.get_mock_data('74.1.3.56')
+        data = self.get_mock_data(client_ip='74.1.3.56')
         assert not self.apply_filter(data)
-
-    def test_fails_gracefully_without_user(self):
-        assert not self.apply_filter({})
+    
+    def test_fails_gracefully_without_user_or_url(self):
+        assert not self.apply_filter(client_ip={})
+    
+    def test_filters_localhost_domain(self):
+        data = self.get_mock_data(url='http://localhost/something.html')
+        assert self.apply_filter(data)
+        
+        data = self.get_mock_data(url='https://localhost')
+        assert self.apply_filter(data)
+        
+        data = self.get_mock_data(url='http://localhost?domain_in_args=example.com')
+        assert self.apply_filter(data)
+        
+    def test_does_not_filter_non_localhost_domain(self):
+        data = self.get_mock_data(url='https://getsentry.com/')
+        assert not self.apply_filter(data)
+        
+        data = self.get_mock_data(url='http://example.com/index.html?domain=localhost')
+        assert not self.apply_filter(data)
