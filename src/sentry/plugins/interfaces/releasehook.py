@@ -19,6 +19,7 @@ from sentry.app import locks
 from sentry.models import (
     Activity, Commit, CommitAuthor, Release, ReleaseCommit, Repository
 )
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class ReleaseHook(object):
@@ -45,9 +46,9 @@ class ReleaseHook(object):
                 if release:
                     release.update(**values)
                 else:
-                    lock_key = 'release:%s:%s' % (self.project.organization_id, version)
+                    lock_key = Release.get_lock_key(self.project.organization_id, version)
                     lock = locks.get(lock_key, duration=5)
-                    with lock.acquire():
+                    with TimedRetryPolicy(10)(lock.acquire):
                         try:
                             release = Release.objects.get(
                                 version=version,
@@ -84,9 +85,9 @@ class ReleaseHook(object):
                     version=version,
                 ).first()
                 if not release:
-                    lock_key = 'release:%s:%s' % (project.organization_id, version)
+                    lock_key = Release.get_lock_key(project.organization_id, version)
                     lock = locks.get(lock_key, duration=5)
-                    with lock.acquire():
+                    with TimedRetryPolicy(10)(lock.acquire):
                         try:
                             release = Release.objects.get(
                                 organization_id=project.organization_id,
@@ -171,9 +172,9 @@ class ReleaseHook(object):
                 if release:
                     release.update(**values)
                 else:
-                    lock_key = 'release:%s:%s' % (self.project.organization_id, version)
+                    lock_key = Release.get_lock_key(self.project.organization_id, version)
                     lock = locks.get(lock_key, duration=5)
-                    with lock.acquire():
+                    with TimedRetryPolicy(10)(lock.acquire):
                         try:
                             release = Release.objects.get(
                                 version=version,

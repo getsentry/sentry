@@ -6,6 +6,7 @@ from django.db.models.signals import post_save
 from sentry.app import locks
 from sentry.models import Release, TagValue
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
+from sentry.utils.retries import TimedRetryPolicy
 
 
 def ensure_release_exists(instance, created, **kwargs):
@@ -29,9 +30,9 @@ def ensure_release_exists(instance, created, **kwargs):
             if release:
                 release.update(date_added=instance.first_seen)
             else:
-                lock_key = 'release:%s:%s' % (instance.project.organization_id, instance.value)
+                lock_key = Release.get_lock_key(instance.project.organization_id, instance.value)
                 lock = locks.get(lock_key, duration=5)
-                with lock.acquire():
+                with TimedRetryPolicy(10)(lock.acquire):
                     try:
                         release = Release.objects.get(
                             organization_id=instance.project.organization_id,
