@@ -15,6 +15,7 @@ from sentry.app import locks
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.retries import TimedRetryPolicy
 
 
 @scenario('CreateNewRelease')
@@ -155,9 +156,9 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         version=result['version'],
                     ).first()
                     if not release:
-                        lock_key = 'release:%s:%s' % (project.organization_id, result['version'])
+                        lock_key = Release.get_lock_key(project.organization_id, result['version'])
                         lock = locks.get(lock_key, duration=5)
-                        with lock.acquire():
+                        with TimedRetryPolicy(10)(lock.acquire):
                             try:
                                 release, created = Release.objects.get(
                                     version=result['version'],
