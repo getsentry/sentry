@@ -15,13 +15,7 @@ class Migration(SchemaMigration):
 
             # Changing field 'ReleaseFile.project_id'
             db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT project_id_refs_id_878696ea")
-        elif is_mysql():
-            # Changing field 'Release.project_id'
-            db.execute("ALTER TABLE sentry_release DROP FOREIGN KEY project_id_refs_id_21d237e2")
-
-            # Changing field 'ReleaseFile.project_id'
-            db.execute("ALTER TABLE sentry_releasefile DROP FOREIGN KEY project_id_refs_id_878696ea")
-        elif is_sqlite():
+        elif is_mysql() or is_sqlite():
             pass
         else:
             raise RuntimeError('Database not supported.')
@@ -33,12 +27,8 @@ class Migration(SchemaMigration):
 
             # Changing field 'ReleaseFile.project_id'
             db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
-        elif is_mysql():
-            # Changing field 'Release.project_id'
-            db.execute("ALTER TABLE sentry_release ADD CONSTRAINT project_id_refs_id_21d237e2 FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
-
-            # Changing field 'ReleaseFile.project_id'
-            db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
+        elif is_mysql() or is_sqlite():
+            pass
         elif is_sqlite():
             pass
         else:
