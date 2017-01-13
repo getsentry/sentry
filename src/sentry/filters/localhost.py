@@ -19,7 +19,7 @@ class LocalhostFilter(Filter):
             return data['sentry.interfaces.User']['ip_address']
         except KeyError:
             return ''
-    
+
     def get_url(self, data):
         try:
             http = data['sentry.interfaces.Http']
@@ -28,7 +28,7 @@ class LocalhostFilter(Filter):
             return ''
         except KeyError:
             return ''
-    
+
     def get_domain(self, data):
         matchObj = DOMAIN_FROM_URL.match(self.get_url(data))
         if matchObj:
