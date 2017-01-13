@@ -11,10 +11,10 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         if is_postgres():
             # Changing field 'Release.project_id'
-            db.execute("ALTER TABLE sentry_release DROP CONSTRAINT project_id_refs_id_21d237e2")
+            db.execute("ALTER TABLE sentry_release DROP CONSTRAINT IF EXISTS project_id_refs_id_21d237e2")
 
             # Changing field 'ReleaseFile.project_id'
-            db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT project_id_refs_id_878696ea")
+            db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT IF EXISTS project_id_refs_id_878696ea")
 
     def backwards(self, orm):
         if is_postgres():
