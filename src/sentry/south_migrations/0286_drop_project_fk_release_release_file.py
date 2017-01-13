@@ -3,7 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
-from sentry.utils.db import is_mysql, is_postgres
+from sentry.utils.db import is_mysql, is_postgres, is_sqlite
 
 
 class Migration(SchemaMigration):
@@ -14,14 +14,15 @@ class Migration(SchemaMigration):
             db.execute("ALTER TABLE sentry_release DROP CONSTRAINT project_id_refs_id_21d237e2")
 
             # Changing field 'ReleaseFile.project_id'
-            # TODO(jess): i need constraint name from production
-            db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT project_id_refs_id_bbbbbb")
+            db.execute("ALTER TABLE sentry_releasefile DROP CONSTRAINT project_id_refs_id_878696ea")
         elif is_mysql():
             # Changing field 'Release.project_id'
             db.execute("ALTER TABLE sentry_release DROP FOREIGN KEY project_id_refs_id_21d237e2")
+
             # Changing field 'ReleaseFile.project_id'
-            # TODO(jess): i need constraint name from production
-            db.execute("ALTER TABLE sentry_releasefile DROP FOREIGN KEY project_id_refs_id_bbbbbb")
+            db.execute("ALTER TABLE sentry_releasefile DROP FOREIGN KEY project_id_refs_id_878696ea")
+        elif is_sqlite():
+            pass
         else:
             raise RuntimeError('Database not supported.')
 
@@ -31,15 +32,15 @@ class Migration(SchemaMigration):
             db.execute("ALTER TABLE sentry_release ADD CONSTRAINT project_id_refs_id_21d237e2 FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
 
             # Changing field 'ReleaseFile.project_id'
-            # TODO(jess): i need constraint name from production
-            db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_bbbbbb FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
+            db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
         elif is_mysql():
             # Changing field 'Release.project_id'
             db.execute("ALTER TABLE sentry_release ADD CONSTRAINT project_id_refs_id_21d237e2 FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
 
             # Changing field 'ReleaseFile.project_id'
-            # TODO(jess): i need constraint name from production
-            db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_bbbbbb FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
+            db.execute("ALTER TABLE sentry_releasefile ADD CONSTRAINT project_id_refs_id_878696ea FOREIGN KEY (project_id) REFERENCES sentry_project(id)")
+        elif is_sqlite():
+            pass
         else:
             raise RuntimeError('Database not supported.')
 
