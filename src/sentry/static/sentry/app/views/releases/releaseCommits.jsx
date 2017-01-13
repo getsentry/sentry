@@ -1,5 +1,6 @@
 import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
+import LoadingError from '../../components/loadingError';
 
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -43,7 +44,7 @@ const ReleaseCommits = React.createClass({
       return <LoadingIndicator/>;
 
     if (this.state.error)
-      return <div>fuuu</div>;
+      return <LoadingError/>;
 
     let {commitList} = this.state;
     return (

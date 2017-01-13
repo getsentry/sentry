@@ -139,7 +139,11 @@ const ReleaseDetails = React.createClass({
               }}>{t('New Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>{t('All Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>{t('Artifacts')}</ListLink>
-              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>{t('Commits')}</ListLink>
+
+              {(new Set(this.context.organization.features)).has('release-commits') &&
+                <ListLink
+                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>{t('Commits')}</ListLink>
+              }
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
