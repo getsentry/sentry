@@ -31,10 +31,10 @@ class LocalhostFilterTest(TestCase):
     def test_does_not_filter_external_ip(self):
         data = self.get_mock_data(client_ip='74.1.3.56')
         assert not self.apply_filter(data)
-    
+
     def test_fails_gracefully_without_user_or_url(self):
         assert not self.apply_filter({})
-    
+
     def test_filters_localhost_domain(self):
         data = self.get_mock_data(url='http://localhost/something.html')
         assert self.apply_filter(data)
@@ -44,7 +44,7 @@ class LocalhostFilterTest(TestCase):
         
         data = self.get_mock_data(url='http://localhost?domain_in_args=example.com')
         assert self.apply_filter(data)
-        
+
     def test_does_not_filter_non_localhost_domain(self):
         data = self.get_mock_data(url='https://getsentry.com/')
         assert not self.apply_filter(data)
