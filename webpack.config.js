@@ -197,10 +197,13 @@ if (IS_PRODUCTION) {
   }));
 
   // Disable annoying UglifyJS warnings that pollute Travis log output
+  // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
   config.plugins.push(new webpack.optimize.UglifyJsPlugin({
     compress: {
       warnings: false
-    }
+    },
+    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+    sourceMap: config.devtool && (config.devtool.indexOf('sourcemap') >= 0 || config.devtool.indexOf('source-map') >= 0)
   }));
 }
 
