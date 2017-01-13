@@ -11,6 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.app import locks
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -154,15 +155,24 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         version=result['version'],
                     ).first()
                     if not release:
-                        release, created = Release.objects.create(
-                            organization_id=project.organization_id,
-                            version=result['version'],
-                            ref=result.get('ref'),
-                            url=result.get('url'),
-                            owner=result.get('owner'),
-                            date_started=result.get('dateStarted'),
-                            date_released=result.get('dateReleased'),
-                        ), True
+                        lock_key = 'release:%s:%s' % (project.organization_id, result['version'])
+                        lock = locks.get(lock_key, duration=5)
+                        with lock.acquire():
+                            try:
+                                release, created = Release.objects.get(
+                                    version=result['version'],
+                                    organization_id=project.organization_id
+                                ), False
+                            except Release.DoesNotExist:
+                                release, created = Release.objects.create(
+                                    organization_id=project.organization_id,
+                                    version=result['version'],
+                                    ref=result.get('ref'),
+                                    url=result.get('url'),
+                                    owner=result.get('owner'),
+                                    date_started=result.get('dateStarted'),
+                                    date_released=result.get('dateReleased'),
+                                ), True
                     was_released = False
                     release.add_project(project)
 
