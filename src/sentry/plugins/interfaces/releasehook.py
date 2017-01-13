@@ -49,7 +49,7 @@ class ReleaseHook(object):
                     lock = locks.get(lock_key, duration=5)
                     with lock.acquire():
                         try:
-                            release = Release.objects.filter(
+                            release = Release.objects.get(
                                 version=version,
                                 organization_id=self.project.organization_id
                             )
