@@ -182,7 +182,7 @@ var config = {
   },
   devtool: IS_PRODUCTION ?
     '#source-map' :
-    '#cheap-module-eval-source-map'
+    '#cheap-source-map'
 };
 
 if (IS_PRODUCTION) {
