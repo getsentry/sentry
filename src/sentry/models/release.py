@@ -107,33 +107,32 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            with transaction.atomic():
+            release = cls.objects.filter(
+                organization_id=project.organization_id,
+                version=version,
+                projects=project
+            ).first()
+            if not release:
                 release = cls.objects.filter(
                     organization_id=project.organization_id,
-                    version=version,
-                    projects=project
+                    version=version
                 ).first()
                 if not release:
-                    release = cls.objects.filter(
-                        organization_id=project.organization_id,
-                        version=version
-                    ).first()
-                    if not release:
-                        lock_key = cls.get_lock_key(project.organization_id, version)
-                        lock = locks.get(lock_key, duration=5)
-                        with TimedRetryPolicy(10)(lock.acquire):
-                            try:
-                                release = cls.objects.get(
-                                    organization_id=project.organization_id,
-                                    version=version
-                                )
-                            except cls.DoesNotExist:
-                                release = cls.objects.create(
-                                    organization_id=project.organization_id,
-                                    version=version,
-                                    date_added=date_added
-                                )
-                    release.add_project(project)
+                    lock_key = cls.get_lock_key(project.organization_id, version)
+                    lock = locks.get(lock_key, duration=5)
+                    with TimedRetryPolicy(10)(lock.acquire):
+                        try:
+                            release = cls.objects.get(
+                                organization_id=project.organization_id,
+                                version=version
+                            )
+                        except cls.DoesNotExist:
+                            release = cls.objects.create(
+                                organization_id=project.organization_id,
+                                version=version,
+                                date_added=date_added
+                            )
+                release.add_project(project)
 
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project

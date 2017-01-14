@@ -32,36 +32,35 @@ class ReleaseHook(object):
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
 
-        with transaction.atomic():
-            affected = Release.objects.filter(
+        affected = Release.objects.filter(
+            version=version,
+            organization_id=self.project.organization_id,
+            projects=self.project,
+        ).update(**values)
+        if not affected:
+            release = Release.objects.filter(
                 version=version,
                 organization_id=self.project.organization_id,
-                projects=self.project,
-            ).update(**values)
-            if not affected:
-                release = Release.objects.filter(
-                    version=version,
-                    organization_id=self.project.organization_id,
-                ).first()
-                if release:
-                    release.update(**values)
-                else:
-                    lock_key = Release.get_lock_key(self.project.organization_id, version)
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            release = Release.objects.get(
-                                version=version,
-                                organization_id=self.project.organization_id
-                            )
-                        except Release.DoesNotExist:
-                            release = Release.objects.create(
-                                version=version,
-                                organization_id=self.project.organization_id,
-                                **values
-                            )
+            ).first()
+            if release:
+                release.update(**values)
+            else:
+                lock_key = Release.get_lock_key(self.project.organization_id, version)
+                lock = locks.get(lock_key, duration=5)
+                with TimedRetryPolicy(10)(lock.acquire):
+                    try:
+                        release = Release.objects.get(
+                            version=version,
+                            organization_id=self.project.organization_id
+                        )
+                    except Release.DoesNotExist:
+                        release = Release.objects.create(
+                            version=version,
+                            organization_id=self.project.organization_id,
+                            **values
+                        )
 
-                release.add_project(self.project)
+            release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -73,32 +72,31 @@ class ReleaseHook(object):
         Calling this method will remove all existing commit history.
         """
         project = self.project
-        with transaction.atomic():
+        release = Release.objects.filter(
+            organization_id=project.organization_id,
+            version=version,
+            projects=self.project
+        ).first()
+        if not release:
             release = Release.objects.filter(
                 organization_id=project.organization_id,
                 version=version,
-                projects=self.project
             ).first()
             if not release:
-                release = Release.objects.filter(
-                    organization_id=project.organization_id,
-                    version=version,
-                ).first()
-                if not release:
-                    lock_key = Release.get_lock_key(project.organization_id, version)
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            release = Release.objects.get(
-                                organization_id=project.organization_id,
-                                version=version
-                            )
-                        except Release.DoesNotExist:
-                            release = Release.objects.create(
-                                organization_id=project.organization_id,
-                                version=version
-                            )
-                release.add_project(project)
+                lock_key = Release.get_lock_key(project.organization_id, version)
+                lock = locks.get(lock_key, duration=5)
+                with TimedRetryPolicy(10)(lock.acquire):
+                    try:
+                        release = Release.objects.get(
+                            organization_id=project.organization_id,
+                            version=version
+                        )
+                    except Release.DoesNotExist:
+                        release = Release.objects.create(
+                            organization_id=project.organization_id,
+                            version=version
+                        )
+            release.add_project(project)
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -158,35 +156,34 @@ class ReleaseHook(object):
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
-        with transaction.atomic():
-            affected = Release.objects.filter(
+        affected = Release.objects.filter(
+            version=version,
+            organization_id=self.project.organization_id,
+            projects=self.project,
+        ).update(**values)
+        if not affected:
+            release = Release.objects.filter(
                 version=version,
                 organization_id=self.project.organization_id,
-                projects=self.project,
-            ).update(**values)
-            if not affected:
-                release = Release.objects.filter(
-                    version=version,
-                    organization_id=self.project.organization_id,
-                ).first()
-                if release:
-                    release.update(**values)
-                else:
-                    lock_key = Release.get_lock_key(self.project.organization_id, version)
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            release = Release.objects.get(
-                                version=version,
-                                organization_id=self.project.organization_id,
-                            )
-                        except Release.DoesNotExist:
-                            release = Release.objects.create(
-                                version=version,
-                                organization_id=self.project.organization_id,
-                                **values
-                            )
-                release.add_project(self.project)
+            ).first()
+            if release:
+                release.update(**values)
+            else:
+                lock_key = Release.get_lock_key(self.project.organization_id, version)
+                lock = locks.get(lock_key, duration=5)
+                with TimedRetryPolicy(10)(lock.acquire):
+                    try:
+                        release = Release.objects.get(
+                            version=version,
+                            organization_id=self.project.organization_id,
+                        )
+                    except Release.DoesNotExist:
+                        release = Release.objects.create(
+                            version=version,
+                            organization_id=self.project.organization_id,
+                            **values
+                        )
+            release.add_project(self.project)
 
         activity = Activity.objects.create(
             type=Activity.RELEASE,
