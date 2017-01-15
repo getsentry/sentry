@@ -18,6 +18,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+from sentry.stacktraces import process_stacktraces
 
 error_logger = logging.getLogger('sentry.errors.events')
 
@@ -87,7 +88,6 @@ def preprocess_event(cache_key=None, data=None, start_time=None,
 def process_event(cache_key, start_time=None, reprocesses_event_id=None,
                   **kwargs):
     from sentry.plugins import plugins
-    from sentry.models import Stacktrace
 
     data = default_cache.get(cache_key)
 
@@ -103,23 +103,16 @@ def process_event(cache_key, start_time=None, reprocesses_event_id=None,
     has_changed = False
 
     # Stacktrace based event processors.  These run before anything else.
-    for plugin in plugins.all(version=2):
-        for info in Stacktrace.find_stacktraces_in_data(data):
-            processors = safe_execute(plugin.get_stacktrace_processors,
-                                      data=data, stacktrace=info['stacktrace'],
-                                      platforms=info['platforms'],
-                                      _with_transaction=False)
-            for processor in processors or ():
-                result = safe_execute(processor, data=data,
-                                      stacktrace=info['stacktrace'],
-                                      platforms=info['platforms'])
-                if result is None:
-                    continue
+    new_data = process_stacktraces(data)
+    if new_data is not None:
+        has_changed = True
+        data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
     for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors, data=data, _with_transaction=False)
+        processors = safe_execute(plugin.get_event_preprocessors,
+                                  data=data, _with_transaction=False)
         for processor in (processors or ()):
             result = safe_execute(processor, data)
             if result:
