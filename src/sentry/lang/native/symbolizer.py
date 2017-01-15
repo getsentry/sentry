@@ -14,6 +14,11 @@ from sentry.models import DSymSymbol, EventError
 from sentry.constants import MAX_SYM
 
 
+USER_FIXABLE_ERRORS = (
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+    EventError.NATIVE_MISSING_SYMBOL,
+)
 APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/',
     '/private/var/containers/Bundle/Application/',
@@ -58,8 +63,7 @@ class SymbolicationFailed(Exception):
     @property
     def is_user_fixable(self):
         """These are errors that a user can fix themselves."""
-        return self.type in ('missing-dsym', 'bad-dsym',
-                             'missing-symbol')
+        return self.type in USER_FIXABLE_ERRORS
 
     @property
     def is_sdk_failure(self):
@@ -132,11 +136,8 @@ class Symbolizer(object):
         self.images = dict((img['image_addr'], img) for img in binary_images)
         self.is_debug_build = is_debug_build
 
-    def __enter__(self):
-        return self.symsynd_symbolizer.driver.__enter__()
-
-    def __exit__(self, *args):
-        return self.symsynd_symbolizer.driver.__exit__(*args)
+    def close(self):
+        self.symsynd_symbolizer.close()
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
@@ -188,9 +189,9 @@ class Symbolizer(object):
     def symbolize_app_frame(self, frame, img):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
             if self._is_optional_app_bundled_framework(frame, img):
-                type = 'missing-optionally-bundled-dsym'
+                type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
-                type = 'missing-dsym'
+                type = EventError.NATIVE_MISSING_DSYM
             raise SymbolicationFailed(
                 type=type,
                 image=img
@@ -201,14 +202,14 @@ class Symbolizer(object):
                 frame, silent=False, demangle=False)
         except SymbolicationError as e:
             raise SymbolicationFailed(
-                type='bad-dsym',
+                type=EventError.NATIVE_BAD_DSYM,
                 message=six.text_type(e),
                 image=img
             )
 
         if new_frame is None:
             raise SymbolicationFailed(
-                type='missing-symbol',
+                type=EventError.NATIVE_MISSING_SYMBOL,
                 image=img
             )
 
@@ -220,9 +221,9 @@ class Symbolizer(object):
         if symbol is None:
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
-                type = 'simulator-frame'
+                type = EventError.NATIVE_SIMULATOR_FRAME
             else:
-                type = 'missing-system-dsym'
+                type = EventError.NATIVE_MISSING_SYSTEM_DSYM
             raise SymbolicationFailed(
                 type=type,
                 image=img
@@ -237,7 +238,7 @@ class Symbolizer(object):
         img = self.images.get(frame['object_addr'])
         if img is None:
             raise SymbolicationFailed(
-                type='unknown-image'
+                type=EventError.NATIVE_UNKNOWN_IMAGE
             )
 
         # If we are dealing with a frame that is not bundled with the app

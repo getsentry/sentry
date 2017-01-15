@@ -365,6 +365,23 @@ class IPlugin2(local, PluginConfigMixin):
         """
         return []
 
+    def get_stacktrace_processors(self, data, stacktrace, platforms, **kwargs):
+        """
+        This works similarly to `get_event_preprocessors` but returns a
+        function that is invoked for all encountered stacktraces in an
+        event.
+
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        :::
+
+            def get_stacktrace_processors(self, data, stacktrace_infos,
+                                          platforms, **kwargs):
+                if 'cocoa' in platforms:
+                    return [CocoaProcessor(data, stacktrace_infos)]
+        """
+
     def get_feature_hooks(self, **kwargs):
         """
         Return a list of callables to check for feature status.

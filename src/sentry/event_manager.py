@@ -593,7 +593,7 @@ class EventManager(object):
             },
         })
 
-        processing_issues = data.pop('processing_issues', [])
+        processing_issues = data.pop('processing_issues', None)
 
         if release:
             release = Release.get_or_create(
