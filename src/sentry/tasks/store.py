@@ -22,6 +22,28 @@ from sentry.utils.safe import safe_execute
 error_logger = logging.getLogger('sentry.errors.events')
 
 
+def should_process(data):
+    """Quick check if processing is needed at all."""
+    from sentry.plugins import plugins
+    from sentry.models import Stacktrace
+
+    for plugin in plugins.all(version=2):
+        processors = safe_execute(plugin.get_event_preprocessors, data=data,
+                                  _with_transaction=False)
+        if processors:
+            return True
+
+        for info in Stacktrace.find_stacktraces_in_data(data):
+            processors = safe_execute(plugin.get_stacktrace_processors,
+                                      data=data, stacktrace=info['stacktrace'],
+                                      platforms=info['platforms'],
+                                      _with_transaction=False)
+            if processors:
+                return True
+
+    return False
+
+
 @instrumented_task(
     name='sentry.tasks.store.preprocess_event',
     queue='events.preprocess_event',
@@ -30,8 +52,6 @@ error_logger = logging.getLogger('sentry.errors.events')
 )
 def preprocess_event(cache_key=None, data=None, start_time=None,
                      reprocesses_event_id=None, **kwargs):
-    from sentry.plugins import plugins
-
     if cache_key:
         data = default_cache.get(cache_key)
 
@@ -45,17 +65,10 @@ def preprocess_event(cache_key=None, data=None, start_time=None,
         'project': project,
     })
 
-    # Iterate over all plugins looking for processors based on the input data
-    # plugins should yield a processor function only if it actually can operate
-    # on the input data, otherwise it should yield nothing
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors, data=data, _with_transaction=False)
-        for processor in (processors or ()):
-            # On the first processor found, we just defer to the process_event
-            # queue to handle the actual work.
-            process_event.delay(cache_key=cache_key, start_time=start_time,
-                                reprocesses_event_id=reprocesses_event_id)
-            return
+    if should_process(data):
+        process_event.delay(cache_key=cache_key, start_time=start_time,
+                            reprocesses_event_id=reprocesses_event_id)
+        return
 
     # If we get here, that means the event had no preprocessing needed to be done
     # so we can jump directly to save_event
@@ -74,6 +87,7 @@ def preprocess_event(cache_key=None, data=None, start_time=None,
 def process_event(cache_key, start_time=None, reprocesses_event_id=None,
                   **kwargs):
     from sentry.plugins import plugins
+    from sentry.models import Stacktrace
 
     data = default_cache.get(cache_key)
 
@@ -86,9 +100,24 @@ def process_event(cache_key, start_time=None, reprocesses_event_id=None,
     Raven.tags_context({
         'project': project,
     })
+    has_changed = False
+
+    # Stacktrace based event processors.  These run before anything else.
+    for plugin in plugins.all(version=2):
+        for info in Stacktrace.find_stacktraces_in_data(data):
+            processors = safe_execute(plugin.get_stacktrace_processors,
+                                      data=data, stacktrace=info['stacktrace'],
+                                      platforms=info['platforms'],
+                                      _with_transaction=False)
+            for processor in processors or ():
+                result = safe_execute(processor, data=data,
+                                      stacktrace=info['stacktrace'],
+                                      platforms=info['platforms'])
+                if result is None:
+                    continue
 
     # TODO(dcramer): ideally we would know if data changed by default
-    has_changed = False
+    # Default event processors.
     for plugin in plugins.all(version=2):
         processors = safe_execute(plugin.get_event_preprocessors, data=data, _with_transaction=False)
         for processor in (processors or ()):

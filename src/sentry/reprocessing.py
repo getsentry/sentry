@@ -13,13 +13,16 @@ def record_processing_issue(event_data, type, key, release_bound=True,
     """
     if hold_group:
         event_data['unprocessed'] = True
-    event_data.setdefault('processing_issues', []).append({
+    issue = {
         'type': type,
         'key': key,
         'release_bound': release_bound,
         'issue_data': data or {},
         'group_data': group_data or {},
-    })
+    }
+    issues = event_data.setdefault('processing_issues', [])
+    if issue not in issues:
+        issues.append(issue)
 
 
 def resolve_processing_issue(project, type, key=None):
