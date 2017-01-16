@@ -141,18 +141,20 @@ def get_apple_crash_report(threads, context, debug_images):
     rv.append(_get_meta_header())
     rv.append(get_threads_apple_string(threads))
     rv.append(get_binary_images_apple_string(debug_images, context))
-    return ''.join(rv) + '\n\nEOF'
+    return '\n\n'.join(rv) + '\n\nEOF'
 
 
 def _get_meta_header():
     return 'OS Version:          iPhone OS 10.2 (14C92)\n\
-Report Version:      104\n\n'
+Report Version:      104'
 
 
 def get_threads_apple_string(threads):
     rv = []
     for thread in threads:
-        rv.append(get_thread_apple_string(thread))
+        thread_string = get_thread_apple_string(thread)
+        if thread_string is not None:
+            rv.append(thread_string)
     return "\n\n".join(rv)
 
 
@@ -160,7 +162,7 @@ def get_thread_apple_string(thread):
     rv = []
     stacktrace = thread.get('stacktrace')
     if stacktrace is None:
-        return ''
+        return None
     if stacktrace:
         frames = stacktrace.get('frames')
         if frames:
