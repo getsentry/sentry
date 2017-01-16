@@ -39,17 +39,6 @@ class StacktraceProcessor(object):
         pass
 
 
-class FrameError(object):
-
-    def __init__(self, type=None, key=None, data=None,
-                 record_processing_issue=False, release_bound=True):
-        self.type = type
-        self.key = key
-        self.data = data
-        self.record_processing_issue = record_processing_issue
-        self.release_bound = release_bound
-
-
 def find_stacktraces_in_data(data):
     """Finds all stracktraces in a given data blob and returns it
     together with some meta information.
@@ -87,6 +76,22 @@ def find_stacktraces_in_data(data):
     return rv
 
 
+def should_process_for_stacktraces(data):
+    from sentry.plugins import plugins
+    infos = find_stacktraces_in_data(data)
+    platforms = set()
+    for info in infos:
+        platforms.update(info.platforms or ())
+    for plugin in plugins.all(version=2):
+        processors = safe_execute(plugin.get_stacktrace_processors,
+                                  data=data, stacktrace_infos=infos,
+                                  platforms=platforms,
+                                  _with_transaction=False)
+        if processors:
+            return True
+    return False
+
+
 def get_processors_for_stacktraces(data, infos):
     from sentry.plugins import plugins
 
@@ -118,7 +123,7 @@ def process_single_stacktrace(stacktrace_info, processors):
         errors = None
         for processor in processors:
             try:
-                rv = processor.process_frame(frame) or None, None, None
+                rv = processor.process_frame(frame) or (None, None, None)
             except Exception:
                 logger.exception('Failed to process frame')
                 continue
@@ -167,7 +172,9 @@ def process_stacktraces(data):
            stacktrace_info.container is not None:
             stacktrace_info.container['raw_stacktrace'] = raw_stacktrace
             changed = True
-        data.setdefault('errors', []).extend(errors or ())
+        if errors:
+            data.setdefault('errors', []).extend(errors)
+            changed = True
 
     for processor in processors:
         processor.close()

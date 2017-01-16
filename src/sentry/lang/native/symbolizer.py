@@ -137,7 +137,7 @@ class Symbolizer(object):
         self.is_debug_build = is_debug_build
 
     def close(self):
-        self.symsynd_symbolizer.close()
+        self.symsynd_symbolizer.driver.close()
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
