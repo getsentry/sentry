@@ -164,7 +164,7 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.post_context == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert frame.pre_context is None
+        assert not frame.pre_context
         assert frame.context_line == 'h'
         assert frame.post_context == ['e', 'l', 'l', 'o', ' ']
 
@@ -650,9 +650,9 @@ class JavascriptIntegrationTest(TestCase):
         frame = frame_list[0]
 
         # no context information ...
-        assert frame.pre_context is None
-        assert frame.context_line is None
-        assert frame.post_context is None
+        assert not frame.pre_context
+        assert not frame.context_line
+        assert not frame.post_context
 
         # ... but line, column numbers are still correctly mapped
         assert frame.lineno == 3
