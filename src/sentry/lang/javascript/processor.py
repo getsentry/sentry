@@ -139,7 +139,7 @@ def trim_line(line, column=0):
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     if not source:
-        return [], '', []
+        return [], None, []
 
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
@@ -796,12 +796,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             new_frame['module'] = generate_module(frame['abs_path'])
             changed_module = True
 
-        if sourcemap_applied or changed_module or all_errors or \
-           self.process_raw_frame(raw_frame):
+        processed_raw_frame = sourcemap_applied and self.process_raw_frame(raw_frame)
+        if sourcemap_applied or changed_module or all_errors or processed_raw_frame:
             if in_app is not None:
                 new_frame['in_app'] = in_app
                 raw_frame['in_app'] = in_app
-            return [new_frame], [raw_frame], all_errors
+            return [new_frame], [raw_frame] if processed_raw_frame else None, all_errors
 
     def process_raw_frame(self, frame):
         if frame.get('lineno') is not None:
