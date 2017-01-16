@@ -156,9 +156,12 @@ def process_single_stacktrace(stacktrace_info, processors):
     )
 
 
-def process_stacktraces(data):
+def process_stacktraces(data, make_processors=None):
     infos = find_stacktraces_in_data(data)
-    processors = get_processors_for_stacktraces(data, infos)
+    if make_processors is None:
+        processors = get_processors_for_stacktraces(data, infos)
+    else:
+        processors = make_processors(data, infos)
     changed = False
 
     for stacktrace_info in infos:
