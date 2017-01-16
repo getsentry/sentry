@@ -135,12 +135,12 @@ def get_sdk_from_apple_system_info(info):
     }
 
 
-def get_apple_crash_report(threads, context, debug_images):
+def get_apple_crash_report(threads, context, debug_images, symbolicated=False):
     rv = []
     # TODO(hazat): get real header
     rv.append(_get_meta_header())
-    rv.append(get_threads_apple_string(threads))
-    rv.append(get_binary_images_apple_string(debug_images, context))
+    rv.append(get_threads_apple_string(threads, symbolicated))
+    rv.append(get_binary_images_apple_string(debug_images, context, symbolicated))
     return '\n\n'.join(rv) + '\n\nEOF'
 
 
@@ -149,16 +149,16 @@ def _get_meta_header():
 Report Version:      104'
 
 
-def get_threads_apple_string(threads):
+def get_threads_apple_string(threads, symbolicated=False):
     rv = []
     for thread in threads:
-        thread_string = get_thread_apple_string(thread)
+        thread_string = get_thread_apple_string(thread, symbolicated)
         if thread_string is not None:
             rv.append(thread_string)
     return "\n\n".join(rv)
 
 
-def get_thread_apple_string(thread):
+def get_thread_apple_string(thread, symbolicated=False):
     rv = []
     stacktrace = thread.get('stacktrace')
     if stacktrace is None:
@@ -168,7 +168,11 @@ def get_thread_apple_string(thread):
         if frames:
             i = 0
             for frame in reversed(frames):
-                rv.append(_convert_frame_to_apple_string(frame, i))
+                rv.append(_convert_frame_to_apple_string(
+                    frame=frame,
+                    number=i,
+                    symbolicated=symbolicated
+                ))
                 i += 1
     thread_string = 'Thread {} name: {}\n'.format(thread['id'],
         thread['name'] and thread['name'] or ''
@@ -187,11 +191,22 @@ def _convert_frame_to_apple_string(frame, number=0, symbolicated=False):
         offset = ' + {}'.format(
             instruction_addr - slide_value - int(frame['symbol_addr'], 16)
         )
-
+    symbol = hex(image_addr)
+    if symbolicated:
+        file = ''
+        if frame.get('filename') and frame.get('lineno'):
+            file = " ({}:{})".format(
+                frame['filename'],
+                frame['lineno']
+            )
+        symbol = "{}{}".format(
+            frame['function'],
+            file
+        )
     return "{} {} {} {}{}".format(number,
         frame['package'].rsplit('/', 1)[-1],
         hex(instruction_addr),
-        (symbolicated and frame['function'] or hex(image_addr)),
+        symbol,
         offset
     )
 
@@ -199,11 +214,15 @@ def _convert_frame_to_apple_string(frame, number=0, symbolicated=False):
 def _get_slide_value():
     # TODO(hazat): this value is for 64bit devices (slide value)
     # 0x0000000100000000 need to find out how to get it
+    # strangly it also works without slide_value
     return 0
-    return int('0x0000000100000000', 16)
+    #return int('0x0000000100000000', 16)
 
 
-def get_binary_images_apple_string(debug_images, contexts):
+def get_binary_images_apple_string(debug_images, contexts, symbolicated=False):
+    # We dont need binary images on symbolicated crashreport
+    if symbolicated:
+        return ''
     binary_images = map(lambda i:
         _convert_debug_meta_to_binary_image_row(i, contexts),
         sorted(debug_images, key=lambda i: int(i['image_addr'], 16)

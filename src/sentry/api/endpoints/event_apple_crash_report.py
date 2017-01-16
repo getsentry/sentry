@@ -37,8 +37,14 @@ class EventAppleCrashReportEndpoint(Endpoint):
                 'message': 'Only cocoa events can return an apple crash report',
             }, status=403)
 
+        threads = event.data.get(
+            'sentry.interfaces.threads',
+            event.data.get('threads'
+        )).get('values')
+
         return HttpResponse(get_apple_crash_report(
-            threads=event.data.get('sentry.interfaces.threads', event.data.get('threads')).get('values'),
+            threads=threads,
             context=event.data.get('contexts'),
-            debug_images=event.data.get('debug_meta').get('images')
+            debug_images=event.data.get('debug_meta').get('images'),
+            symbolicated=(request.GET.get('minified') not in ('1', 'true'))
         ), content_type='text/plain')
