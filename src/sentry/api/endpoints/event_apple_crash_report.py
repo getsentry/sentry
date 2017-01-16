@@ -1,14 +1,12 @@
 from __future__ import absolute_import
 
-import six
-
-from rest_framework.response import Response
+from django.http import HttpResponse
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.serializers import serialize
 from sentry.models import Event
+from sentry.lang.native.utils import get_apple_crash_report
 
 
 class EventAppleCrashReportEndpoint(Endpoint):
@@ -34,15 +32,13 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
         Event.objects.bind_nodes([event], 'data')
 
-        data = serialize(event, request.user)
-        
         if event.platform != 'cocoa':
-            return Response({
+            return HttpResponse({
                 'message': 'Only cocoa events can return an apple crash report',
             }, status=403)
 
-        import pprint; 
-        pprint.pprint(event.data.get('debug_meta'))
-        #pprint.pprint(event.data.get('sentry.interfaces.threads', event.data.get('threads')))
-
-        return Response(data)
+        return HttpResponse(get_apple_crash_report(
+            threads=event.data.get('sentry.interfaces.threads', event.data.get('threads')).get('values'),
+            context=event.data.get('contexts'),
+            debug_images=event.data.get('debug_meta').get('images')
+        ), content_type='text/plain')

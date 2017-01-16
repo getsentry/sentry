@@ -135,10 +135,33 @@ def get_sdk_from_apple_system_info(info):
     }
 
 
+def get_apple_crash_report(threads, context, debug_images):
+    rv = []
+    # TODO(hazat): get real header
+    rv.append(_get_meta_header())
+    rv.append(get_threads_apple_string(threads))
+    rv.append(get_binary_images_apple_string(debug_images, context))
+    return ''.join(rv) + '\n\nEOF'
+
+
+def _get_meta_header():
+    return 'OS Version:          iPhone OS 10.2 (14C92)\n\
+Report Version:      104\n\n'
+
+
+def get_threads_apple_string(threads):
+    rv = []
+    for thread in threads:
+        rv.append(get_thread_apple_string(thread))
+    return "\n\n".join(rv)
+
+
 def get_thread_apple_string(thread):
+    rv = []
     stacktrace = thread.get('stacktrace')
+    if stacktrace is None:
+        return ''
     if stacktrace:
-        rv = []
         frames = stacktrace.get('frames')
         if frames:
             i = 0
@@ -154,18 +177,28 @@ def get_thread_apple_string(thread):
 
 
 def _convert_frame_to_apple_string(frame, number=0, symbolicated=False):
+    slide_value = _get_slide_value()
+    instruction_addr = slide_value + int(frame['instruction_addr'], 16)
+    image_addr = slide_value + int(frame['image_addr'], 16)
     offset = ''
     if frame['image_addr'] is not None and not symbolicated:
         offset = ' + {}'.format(
-            int(frame['instruction_addr'], 16) - int(frame['symbol_addr'], 16)
+            instruction_addr - slide_value - int(frame['symbol_addr'], 16)
         )
 
     return "{} {} {} {}{}".format(number,
         frame['package'].rsplit('/', 1)[-1],
-        frame['instruction_addr'],
-        (symbolicated and frame['function'] or frame['image_addr']),
+        hex(instruction_addr),
+        (symbolicated and frame['function'] or hex(image_addr)),
         offset
     )
+
+
+def _get_slide_value():
+    # TODO(hazat): this value is for 64bit devices (slide value)
+    # 0x0000000100000000 need to find out how to get it
+    return 0
+    return int('0x0000000100000000', 16)
 
 
 def get_binary_images_apple_string(debug_images, contexts):
@@ -177,8 +210,11 @@ def get_binary_images_apple_string(debug_images, contexts):
 
 
 def _convert_debug_meta_to_binary_image_row(debug_image, contexts):
-    return "{} - {} {} {}  <{}> {}".format(debug_image['image_addr'],
-        hex(int(debug_image['image_addr'], 16) + debug_image['image_size'] - 1),
+    slide_value = _get_slide_value()
+    image_addr = int(debug_image['image_addr'], 16) + slide_value
+    return "{} - {} {} {}  <{}> {}".format(
+        hex(image_addr),
+        hex(image_addr + debug_image['image_size'] - 1),
         debug_image['name'].rsplit('/', 1)[-1],
         contexts['device']['arch'],
         debug_image['uuid'].replace('-', '').lower(),
