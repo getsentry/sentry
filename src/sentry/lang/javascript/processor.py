@@ -164,7 +164,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     except IndexError:
         post_context = []
 
-    return pre_context or None, context_line or None, post_context or None
+    return pre_context or None, context_line, post_context or None
 
 
 def discover_sourcemap(result):
