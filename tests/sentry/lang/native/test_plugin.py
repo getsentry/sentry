@@ -56,10 +56,6 @@ class BasicResolvingIntegrationTest(TestCase):
     def test_frame_resolution(self, symbolize_frame):
         self._do_test_frame_resolution('stacktrace', symbolize_frame)
 
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')
-    def test_frame_resolution_raw(self, symbolize_frame):
-        self._do_test_frame_resolution('raw_stacktrace', symbolize_frame)
-
     def _do_test_frame_resolution(self, stacktrace_key, symbolize_frame):
         object_name = (
             "/var/containers/Bundle/Application/"
