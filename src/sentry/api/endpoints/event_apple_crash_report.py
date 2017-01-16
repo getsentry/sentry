@@ -14,12 +14,13 @@ class EventAppleCrashReportEndpoint(Endpoint):
 
     def get(self, request, event_id):
         """
-        Retrieve an Event
-        `````````````````
+        Retrieve an Apple Crash Report from and event
+        `````````````````````````````````````````````
 
-        This endpoint returns the data for a specific event.  The event ID
-        is the event as it appears in the Sentry database and not the event
-        ID that is reported by the client upon submission.
+        This endpoint returns the an apple crash report for a specific event.
+        The event ID is the event as it appears in the Sentry database
+        and not the event ID that is reported by the client upon submission.
+        This works only if the event.platform is cocoa
         """
         try:
             event = Event.objects.get(
@@ -55,7 +56,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
         if request.GET.get('download') is not None:
             filename = "{}{}.crash".format(
                 event.event_id,
-                symbolicated and '-sym' or ''
+                symbolicated and '-symbolicated' or ''
             )
             response = CompatibleStreamingHttpResponse(
                 apple_crash_report,

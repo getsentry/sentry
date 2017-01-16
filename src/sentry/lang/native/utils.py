@@ -137,7 +137,6 @@ def get_sdk_from_apple_system_info(info):
 
 def get_apple_crash_report(threads, context, debug_images, symbolicated=False):
     rv = []
-    # TODO(hazat): get real header
     rv.append(_get_meta_header(context))
     rv.append(get_threads_apple_string(threads, symbolicated))
     rv.append(get_binary_images_apple_string(
