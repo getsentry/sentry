@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.http import HttpResponse
+from django.http import HttpResponse, CompatibleStreamingHttpResponse
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
@@ -42,9 +42,26 @@ class EventAppleCrashReportEndpoint(Endpoint):
             event.data.get('threads'
         )).get('values')
 
-        return HttpResponse(get_apple_crash_report(
+        symbolicated = (request.GET.get('minified') not in ('1', 'true'))
+        apple_crash_report = get_apple_crash_report(
             threads=threads,
             context=event.data.get('contexts'),
             debug_images=event.data.get('debug_meta').get('images'),
-            symbolicated=(request.GET.get('minified') not in ('1', 'true'))
-        ), content_type='text/plain')
+            symbolicated=symbolicated
+        )
+
+        response = HttpResponse(apple_crash_report, content_type='text/plain')
+
+        if request.GET.get('download') is not None:
+            filename = "{}{}.crash".format(
+                event.event_id,
+                symbolicated and '-sym' or ''
+            )
+            response = CompatibleStreamingHttpResponse(
+                apple_crash_report,
+                content_type='text/plain',
+            )
+            response['Content-Length'] = len(apple_crash_report)
+            response['Content-Disposition'] = 'attachment; filename="%s"' % filename
+
+        return response

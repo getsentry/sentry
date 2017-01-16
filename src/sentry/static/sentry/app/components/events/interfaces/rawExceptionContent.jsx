@@ -35,7 +35,7 @@ const RawExceptionContent = React.createClass({
     }
   },
 
-  getAppleCrashReport() {
+  getAppleCrashReportEndpoint() {
     let minified = this.props.type == 'minified';
     return `/events/${this.props.eventId}/apple-crash-report?minified=${minified}`;
   },
@@ -46,7 +46,7 @@ const RawExceptionContent = React.createClass({
       error: false,
       crashReport: ''
     });
-    this.api.request(this.getAppleCrashReport(), {
+    this.api.request(this.getAppleCrashReportEndpoint(), {
       method: 'GET',
       success: (data) => {
         this.setState({
@@ -66,6 +66,7 @@ const RawExceptionContent = React.createClass({
 
   render() {
     let {type} = this.props;
+    let downloadButton;
     let children = this.props.values.map((exc, excIdx) => {
       let content = exc.stacktrace && rawStacktraceContent(type === 'original' ? exc.stacktrace : exc.rawStacktrace, this.props.platform, exc);
       if (this.props.platform == 'cocoa') {
@@ -73,13 +74,26 @@ const RawExceptionContent = React.createClass({
           content = <LoadingIndicator />;
         else if (this.state.error)
           content = <LoadingError onRetry={this.fetchData} />;
-        else if (!this.state.loading && this.state.crashReport != '')
-          content = <ClippedBox clipHeight={250}>{this.state.crashReport}</ClippedBox>;
+        else if (!this.state.loading && this.state.crashReport != '') {
+          content = (<ClippedBox clipHeight={250}>
+            {this.state.crashReport}
+          </ClippedBox>);
+          downloadButton = (<a
+            href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + `&download=1`}
+            className="btn btn-default btn-sm pull-right">
+              Download
+          </a>);
+        }
+
       }
+
       return (
-        <pre key={excIdx} className="traceback plain">
-          {content}
-        </pre>
+        <div>
+          {downloadButton}
+          <pre key={excIdx} className="traceback plain">
+            {content}
+          </pre>
+        </div>
       );
     });
 

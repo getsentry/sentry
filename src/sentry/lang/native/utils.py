@@ -138,15 +138,22 @@ def get_sdk_from_apple_system_info(info):
 def get_apple_crash_report(threads, context, debug_images, symbolicated=False):
     rv = []
     # TODO(hazat): get real header
-    rv.append(_get_meta_header())
+    rv.append(_get_meta_header(context))
     rv.append(get_threads_apple_string(threads, symbolicated))
-    rv.append(get_binary_images_apple_string(debug_images, context, symbolicated))
+    rv.append(get_binary_images_apple_string(
+        debug_images,
+        context,
+        symbolicated
+    ))
     return '\n\n'.join(rv) + '\n\nEOF'
 
 
-def _get_meta_header():
-    return 'OS Version:          iPhone OS 10.2 (14C92)\n\
-Report Version:      104'
+def _get_meta_header(context):
+    return "OS Version: {} {} ({})\nReport Version: 104".format(
+        context.get('os').get('name'),
+        context.get('os').get('version'),
+        context.get('os').get('build'),
+    )
 
 
 def get_threads_apple_string(threads, symbolicated=False):
@@ -216,7 +223,7 @@ def _get_slide_value():
     # 0x0000000100000000 need to find out how to get it
     # strangly it also works without slide_value
     return 0
-    #return int('0x0000000100000000', 16)
+    # return int('0x0000000100000000', 16)
 
 
 def get_binary_images_apple_string(debug_images, contexts, symbolicated=False):
