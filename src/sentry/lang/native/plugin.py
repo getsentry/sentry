@@ -452,4 +452,4 @@ class NativePlugin(Plugin2):
     def get_stacktrace_processors(self, data, stacktrace_infos,
                                   platforms, **kwargs):
         if 'cocoa' in platforms:
-            return NativeStacktraceProcessor(data, stacktrace_infos)
+            return [NativeStacktraceProcessor(data, stacktrace_infos)]

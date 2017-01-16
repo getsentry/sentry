@@ -421,6 +421,7 @@ class EventManager(object):
         from sentry.tasks.post_process import index_event_tags
 
         project = Project.objects.get_from_cache(id=project)
+        assert project is not None, 'did not get a project. this is bad'
 
         data = self.data.copy()
 

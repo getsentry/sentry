@@ -18,7 +18,8 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.stacktraces import process_stacktraces
+from sentry.stacktraces import process_stacktraces, \
+    should_process_for_stacktraces
 
 error_logger = logging.getLogger('sentry.errors.events')
 
@@ -26,7 +27,6 @@ error_logger = logging.getLogger('sentry.errors.events')
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins import plugins
-    from sentry.models import Stacktrace
 
     for plugin in plugins.all(version=2):
         processors = safe_execute(plugin.get_event_preprocessors, data=data,
@@ -34,13 +34,8 @@ def should_process(data):
         if processors:
             return True
 
-        for info in Stacktrace.find_stacktraces_in_data(data):
-            processors = safe_execute(plugin.get_stacktrace_processors,
-                                      data=data, stacktrace=info['stacktrace'],
-                                      platforms=info['platforms'],
-                                      _with_transaction=False)
-            if processors:
-                return True
+    if should_process_for_stacktraces(data):
+        return True
 
     return False
 

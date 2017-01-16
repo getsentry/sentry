@@ -365,7 +365,8 @@ class IPlugin2(local, PluginConfigMixin):
         """
         return []
 
-    def get_stacktrace_processors(self, data, stacktrace, platforms, **kwargs):
+    def get_stacktrace_processors(self, data, stacktrace_infos,
+                                  platforms, **kwargs):
         """
         This works similarly to `get_event_preprocessors` but returns a
         function that is invoked for all encountered stacktraces in an
