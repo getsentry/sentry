@@ -622,7 +622,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         for info in self.stacktrace_infos:
             frames.extend([
                 f for f in info.stacktrace['frames']
-                if f.lineno is not None
+                if f.get('lineno') is not None
             ])
         return frames
 
@@ -673,6 +673,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         in_app = None
         new_frame = dict(frame)
+        raw_frame = dict(frame)
+
         sourcemap_url, sourcemap_view = sourcemaps.get_link(frame['abs_path'])
         if sourcemap_view and frame.get('colno') is None:
             all_errors.append({
@@ -706,8 +708,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 })
 
             # Store original data in annotation
-            raw_frame = frame.to_json()
-            raw_frame = dict(frame)
             new_frame['data'] = dict(frame.get('data') or {},
                                      sourcemap=sourcemap_label)
 
@@ -737,9 +737,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 # The offending function is always the previous function in the stack
                 # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
                 if last_token:
-                    new_frame['function'] = last_token.name or frame['function']
+                    new_frame['function'] = last_token.name or frame.get('function')
                 else:
-                    new_frame['function'] = token.name or frame['function']
+                    new_frame['function'] = token.name or frame.get('function')
 
                 filename = token.src
                 # special case webpack support
@@ -768,16 +768,19 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
                 new_frame['abs_path'] = abs_path
                 new_frame['filename'] = filename
-                if not frame.module and abs_path.startswith(('http:', 'https:', 'webpack:')):
+                if not frame.get('module') and abs_path.startswith(
+                        ('http:', 'https:', 'webpack:')):
                     new_frame['module'] = generate_module(abs_path)
 
         elif sourcemap_url:
-            new_frame['data']['sourcemap'] = expose_url(sourcemap_url)
+            new_frame['data'] = dict(new_frame.get('data') or {},
+                                     sourcemap=expose_url(sourcemap_url))
 
         # TODO: theoretically a minified source could point to another mapped, minified source
         new_frame['pre_context'], new_frame['context_line'], \
             new_frame['post_context'] = get_source_context(
-            source=source, lineno=frame['lineno'], colno=frame['colno'] or 0)
+            source=source, lineno=new_frame['lineno'],
+            colno=new_frame.get('colno') or 0)
 
         if not new_frame['context_line'] and source:
             all_errors.append({
@@ -788,34 +791,30 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             })
 
         changed_module = False
-        if not new_frame['module'] and frame['abs_path'].startswith(
+        if not new_frame.get('module') and frame['abs_path'].startswith(
                 ('http:', 'https:', 'webpack:')):
             new_frame['module'] = generate_module(frame['abs_path'])
             changed_module = True
 
-        if sourcemap_applied or changed_module:
+        if sourcemap_applied or changed_module or all_errors or \
+           self.process_raw_frame(raw_frame):
             if in_app is not None:
                 new_frame['in_app'] = in_app
                 raw_frame['in_app'] = in_app
-            self.process_raw_frame(raw_frame)
             return [new_frame], [raw_frame], all_errors
 
-    def update_stacktraces(self, stacktraces):
-        for raw, interface in stacktraces:
-            raw.update(interface.to_json())
-
     def process_raw_frame(self, frame):
-        frame = frame['data']['raw']
-
-        if frame['lineno'] is not None:
+        if frame.get('lineno') is not None:
             source = self.get_source(frame['abs_path'])
             if source is None:
                 logger.debug('No source found for %s', frame['abs_path'])
-                return
+                return False
 
             frame['pre_context'], frame['context_line'], frame['post_context'] \
                 = get_source_context(source=source, lineno=frame['lineno'],
                                      colno=frame['colno'] or 0)
+            return True
+        return False
 
     def get_source(self, filename):
         if filename not in self.cache:
@@ -851,7 +850,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if not sourcemap_url:
             return
 
-        logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
+        logger.debug('Found sourcemap %r for minified script %r',
+                     sourcemap_url[:256], result.url)
         sourcemaps.link(filename, sourcemap_url)
         if sourcemap_url in sourcemaps:
             return
@@ -887,15 +887,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         pending_file_list = set()
         for f in frames:
             # We can't even attempt to fetch source if abs_path is None
-            if f.abs_path is None:
+            if f.get('abs_path') is None:
                 continue
             # tbh not entirely sure how this happens, but raven-js allows this
             # to be caught. I think this comes from dev consoles and whatnot
             # where there is no page. This just bails early instead of exposing
             # a fetch error that may be confusing.
-            if f.abs_path == '<anonymous>':
+            if f['abs_path'] == '<anonymous>':
                 continue
-            pending_file_list.add(f.abs_path)
+            pending_file_list.add(f['abs_path'])
 
         for idx, filename in enumerate(pending_file_list):
             self.cache_source(
