@@ -264,6 +264,10 @@ def main(num_events=1):
                     'first_event': timezone.now(),
                 }
             )
+            if not project.first_event:
+                project.update(
+                    first_event=project.date_added,
+                )
 
             with transaction.atomic():
                 has_release = Release.objects.filter(
