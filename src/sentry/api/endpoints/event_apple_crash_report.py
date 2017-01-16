@@ -20,7 +20,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
         This endpoint returns the an apple crash report for a specific event.
         The event ID is the event as it appears in the Sentry database
         and not the event ID that is reported by the client upon submission.
-        This works only if the event.platform is cocoa
+        This works only if the event.platform == cocoa
         """
         try:
             event = Event.objects.get(

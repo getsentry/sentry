@@ -107,11 +107,11 @@ def test_get_threads_apple_string():
     ])
     assert threads == 'Thread 1 name: \n\
 Thread 1 Crashed:\n\
-0 SentrySwift 0x31c3e8 0x2c8000 + 2544\n\
-1 SentrySwift 0x31caa4 0x2c8000 + 108\n\n\
+0   SentrySwift                     0x31c3e8            0x2c8000 + 2544\n\
+1   SentrySwift                     0x31caa4            0x2c8000 + 108\n\n\
 Thread 2 name: com.apple.test\n\
-0 SwiftExample 0xf6c78 0xf0000 + 116\n\
-1 SwiftExample 0xf6cd4 0xf0000 + 60'
+0   SwiftExample                    0xf6c78             0xf0000 + 116\n\
+1   SwiftExample                    0xf6cd4             0xf0000 + 60'
 
 
 # 0   libswiftCore.dylib              0x0000000100556cc4 0x1003f8000 + 1436868
@@ -223,14 +223,14 @@ def test_get_thread_apple_string():
     # TODO(hazat): the address here in a real crash is 0x0000000100556cc4 but we just get 0x556cc4
     assert thread == 'Thread 1 name: \n\
 Thread 1 Crashed:\n\
-0 libswiftCore.dylib 0x556cc4 0x3f8000 + 160\n\
-1 libswiftCore.dylib 0x556cc4 0x3f8000 + 160\n\
-2 SentrySwift 0x312308 0x2c8000 + 136\n\
-3 SwiftExample 0xf6c78 0xf0000 + 116\n\
-4 SwiftExample 0xf6cd4 0xf0000 + 60\n\
-5 UIKit 0x8755fd30 0x8751b000 + 96\n\
-6 SentrySwift 0x31c3e8 0x2c8000 + 2544\n\
-7 SentrySwift 0x31caa4 0x2c8000 + 108'
+0   libswiftCore.dylib              0x556cc4            0x3f8000 + 160\n\
+1   libswiftCore.dylib              0x556cc4            0x3f8000 + 160\n\
+2   SentrySwift                     0x312308            0x2c8000 + 136\n\
+3   SwiftExample                    0xf6c78             0xf0000 + 116\n\
+4   SwiftExample                    0xf6cd4             0xf0000 + 60\n\
+5   UIKit                           0x8755fd30          0x8751b000 + 96\n\
+6   SentrySwift                     0x31c3e8            0x2c8000 + 2544\n\
+7   SentrySwift                     0x31caa4            0x2c8000 + 108'
 
 
 def test__convert_frame_to_apple_string():
@@ -245,7 +245,7 @@ def test__convert_frame_to_apple_string():
         'symbol': '_TFC11SentrySwift12SentryClient5crashfT_T_',
         'symbol_addr': '0xac24a10'
     })
-    assert frame == '0 SentrySwift 0xac24ab6 0xabd7000 + 166'
+    assert frame == '0   SentrySwift                     0xac24ab6           0xabd7000 + 166'
 
     frame_symbolicated = _convert_frame_to_apple_string({'abs_path': None,
         'colno': 0,
@@ -258,7 +258,7 @@ def test__convert_frame_to_apple_string():
         'symbol': '_TFC11SentrySwift12SentryClient5crashfT_T_',
         'symbol_addr': '0xac24a10'
     }, 1, True)
-    assert frame_symbolicated == '1 SentrySwift 0xac24ab6 SentryClient.crash() -> ()'
+    assert frame_symbolicated == '1   SentrySwift                     0xac24ab6           SentryClient.crash() -> ()'
 
 
 def test_get_binary_images_apple_string():

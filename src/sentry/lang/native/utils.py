@@ -209,9 +209,10 @@ def _convert_frame_to_apple_string(frame, number=0, symbolicated=False):
             frame['function'],
             file
         )
-    return "{} {} {} {}{}".format(number,
-        frame['package'].rsplit('/', 1)[-1],
-        hex(instruction_addr),
+    return "{}{}{}{}{}".format(
+        str(number).ljust(4, " "),
+        frame['package'].rsplit('/', 1)[-1].ljust(32, " "),
+        hex(instruction_addr).ljust(20, " "),
         symbol,
         offset
     )
