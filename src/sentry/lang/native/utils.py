@@ -174,12 +174,17 @@ def get_thread_apple_string(thread, symbolicated=False):
         if frames:
             i = 0
             for frame in reversed(frames):
-                rv.append(_convert_frame_to_apple_string(
+                frame_string = _convert_frame_to_apple_string(
                     frame=frame,
                     number=i,
                     symbolicated=symbolicated
-                ))
-                i += 1
+                )
+                if frame_string is not None:
+                    rv.append(frame_string)
+                    i += 1
+
+    if len(rv) == 0:
+        return None  # No frames in thread, so we remove thread
     thread_string = 'Thread {} name: {}\n'.format(thread['id'],
         thread['name'] and thread['name'] or ''
     )
@@ -189,6 +194,8 @@ def get_thread_apple_string(thread, symbolicated=False):
 
 
 def _convert_frame_to_apple_string(frame, number=0, symbolicated=False):
+    if frame.get('instruction_addr') is None:
+        return None
     slide_value = _get_slide_value()
     instruction_addr = slide_value + int(frame['instruction_addr'], 16)
     image_addr = slide_value + int(frame['image_addr'], 16)
@@ -228,7 +235,7 @@ def _get_slide_value():
 
 def get_binary_images_apple_string(debug_images, contexts, symbolicated=False):
     # We dont need binary images on symbolicated crashreport
-    if symbolicated:
+    if symbolicated or debug_images is None:
         return ''
     binary_images = map(lambda i:
         _convert_debug_meta_to_binary_image_row(i, contexts),
