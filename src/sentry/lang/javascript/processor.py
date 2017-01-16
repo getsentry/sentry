@@ -139,7 +139,7 @@ def trim_line(line, column=0):
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     if not source:
-        return [], None, []
+        return None, None, None
 
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
@@ -164,7 +164,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     except IndexError:
         post_context = []
 
-    return pre_context, context_line, post_context
+    return pre_context or None, context_line or None, post_context or None
 
 
 def discover_sourcemap(result):
