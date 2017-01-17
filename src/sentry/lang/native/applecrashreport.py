@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.compat import implements_to_string
+from sentry.utils.native import parse_addr
 
 REPORT_VERSION = '104'
 
@@ -69,12 +70,12 @@ class AppleCrashReport(object):
         if frame.get('instruction_addr') is None:
             return None
         slide_value = self._get_slide_value(frame['image_addr'])
-        instruction_addr = slide_value + int(frame['instruction_addr'], 16)
-        image_addr = slide_value + int(frame['image_addr'], 16)
+        instruction_addr = slide_value + parse_addr(frame['instruction_addr'])
+        image_addr = slide_value + parse_addr(frame['image_addr'])
         offset = ''
         if frame['image_addr'] is not None and not self.symbolicated:
             offset = ' + {}'.format(
-                instruction_addr - slide_value - int(frame['symbol_addr'], 16)
+                instruction_addr - slide_value - parse_addr(frame['symbol_addr'])
             )
         symbol = hex(image_addr)
         if self.symbolicated:
@@ -99,8 +100,8 @@ class AppleCrashReport(object):
     def _get_slide_value(self, image_addr):
         if self.debug_images:
             for debug_image in self.debug_images:
-                if int(debug_image['image_addr'], 16) == int(image_addr, 16):
-                    return int(debug_image['image_vmaddr'], 16)
+                if parse_addr(debug_image['image_addr']) == parse_addr(image_addr):
+                    return parse_addr(debug_image['image_vmaddr'])
         return 0
 
     def get_binary_images_apple_string(self):
@@ -109,13 +110,13 @@ class AppleCrashReport(object):
             return ''
         binary_images = map(lambda i:
             self._convert_debug_meta_to_binary_image_row(debug_image=i),
-            sorted(self.debug_images, key=lambda i: int(i['image_addr'], 16)
+            sorted(self.debug_images, key=lambda i: parse_addr(i['image_addr'])
         ))
         return "Binary Images:\n" + "\n".join(binary_images)
 
     def _convert_debug_meta_to_binary_image_row(self, debug_image):
-        slide_value = int(debug_image['image_vmaddr'], 16)
-        image_addr = int(debug_image['image_addr'], 16) + slide_value
+        slide_value = parse_addr(debug_image['image_vmaddr'])
+        image_addr = parse_addr(debug_image['image_addr']) + slide_value
         return "{} - {} {} {}  <{}> {}".format(
             hex(image_addr),
             hex(image_addr + debug_image['image_size'] - 1),
