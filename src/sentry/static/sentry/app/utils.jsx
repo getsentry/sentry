@@ -139,7 +139,7 @@ export function getQueryParams() {
   });
 
   return vars;
-};
+}
 
 export function sortArray(arr, score_fn) {
   arr.sort((a, b) => {
@@ -157,7 +157,7 @@ export function sortArray(arr, score_fn) {
   });
 
   return arr;
-};
+}
 
 export function objectIsEmpty(obj) {
   for (let prop in obj) {
@@ -167,42 +167,42 @@ export function objectIsEmpty(obj) {
   }
 
   return true;
-};
+}
 
 export function trim(str) {
   return str.replace(/^\s+|\s+$/g,'');
-};
+}
 
 export function defined(item) {
   return !_.isUndefined(item) && item !== null;
-};
+}
 
 export function nl2br(str) {
   return str.replace(/(?:\r\n|\r|\n)/g, '<br />');
-};
+}
 
 export function isUrl(str) {
   return !!str && _.isString(str) && (str.indexOf('http://') === 0 || str.indexOf('https://') === 0);
-};
+}
 
 export function escape(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-};
+}
 
 export function percent(value, totalValue, precise) {
   return value / totalValue * 100;
-};
+}
 
 export function urlize(str) {
   // TODO
   return str;
-};
+}
 
 export function toTitleCase(str) {
   return str.replace(/\w\S*/g, (txt) => {
     return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
   });
-};
+}
 
 export function formatBytes(bytes) {
   let units = ['KB','MB','GB','TB','PB','EB','ZB','YB'];
