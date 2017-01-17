@@ -1083,4 +1083,5 @@ SDK_URLS = {
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
+    'raven-php': 'sentry-php',
 }
