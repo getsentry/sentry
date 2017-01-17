@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import Activity, Release, ReleaseProject
+from sentry.models import Activity, Release, ReleaseCommit, ReleaseProject
 from sentry.testutils import APITestCase
 
 
@@ -172,3 +172,128 @@ class OrganizationReleaseCreateTest(APITestCase):
             project=project2,
             ident=release.version
         ).exists()
+
+    def test_version_whitespace(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization()
+        project = self.create_project(name='foo', organization=org)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+
+        response = self.client.post(url, data={
+            'version': '1.2.3\n',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '\n1.2.3',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.\n2.3',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.3\f',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.3\t',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.3',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 201, response.content
+        assert response.data['version'] == '1.2.3'
+
+        release = Release.objects.get(
+            organization_id=org.id,
+            version=response.data['version'],
+        )
+        assert not release.owner
+
+    def test_features(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization()
+        project = self.create_project(name='foo', organization=org)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'owner': self.user.email,
+            'projects': [project.slug]
+        })
+
+        assert response.status_code == 201, response.content
+        assert response.data['version']
+
+        release = Release.objects.get(
+            organization_id=org.id,
+            version=response.data['version'],
+        )
+        assert release.owner == self.user
+
+    def test_commits(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization()
+        project = self.create_project(name='foo', organization=org)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'commits': [
+                {'id': 'a' * 40},
+                {'id': 'b' * 40},
+            ],
+            'projects': [project.slug]
+        })
+
+        assert response.status_code == 201, (response.status_code, response.content)
+        assert response.data['version']
+
+        release = Release.objects.get(
+            organization_id=org.id,
+            version=response.data['version'],
+        )
+
+        rc_list = list(ReleaseCommit.objects.filter(
+            release=release,
+        ).select_related('commit', 'commit__author').order_by('order'))
+        assert len(rc_list) == 2
+        for rc in rc_list:
+            assert rc.organization_id
+
+    def test_bad_project_slug(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization()
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'projects': ['foo']
+        })
+        assert response.status_code == 400
+        assert 'Invalid project slugs' in response.content

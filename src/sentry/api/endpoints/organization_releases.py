@@ -10,7 +10,9 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationRele
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
+from sentry.app import locks
 from sentry.models import Activity, Project, Release, ReleaseProject
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class ReleaseSerializerWithProjects(ReleaseSerializer):
@@ -56,8 +58,8 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
 
     def post(self, request, organization):
         """
-        Create a New Release
-        ````````````````````
+        Create a New Release for an Organization
+        ````````````````````````````````````````
         Create a new release for the given Organization.  Releases are used by
         Sentry to improve its error reporting abilities by correlating
         first seen events with the release that might have introduced the
@@ -91,28 +93,35 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
                                               slug__in=result['projects'])
             invalid_projects = set(result['projects']) - {p.slug for p in projects}
             if invalid_projects:
-                # TODO: make sure the error format matches serializer errors
-                return Response({'projects': 'Invalid project slugs'}, status=400)
+                return Response({'projects': ['Invalid project slugs']}, status=400)
 
-            with transaction.atomic():
-                # release creation is idempotent to simplify user
-                # experiences
-                release = Release.objects.filter(
-                    organization_id=organization.id,
-                    version=result['version']
-                ).first()
-                if release:
-                    created = False
-                else:
-                    release, created = Release.objects.create(
-                        organization_id=organization.id,
-                        version=result['version'],
-                        ref=result.get('ref'),
-                        url=result.get('url'),
-                        owner=result.get('owner'),
-                        date_started=result.get('dateStarted'),
-                        date_released=result.get('dateReleased'),
-                    ), True
+            # release creation is idempotent to simplify user
+            # experiences
+            release = Release.objects.filter(
+                organization_id=organization.id,
+                version=result['version']
+            ).first()
+            if release:
+                created = False
+            else:
+                lock_key = Release.get_lock_key(organization.id, result['version'])
+                lock = locks.get(lock_key, duration=5)
+                with TimedRetryPolicy(10)(lock.acquire):
+                    try:
+                        release, created = Release.objects.get(
+                            version=result['version'],
+                            organization_id=organization.id
+                        ), False
+                    except Release.DoesNotExist:
+                        release, created = Release.objects.create(
+                            organization_id=organization.id,
+                            version=result['version'],
+                            ref=result.get('ref'),
+                            url=result.get('url'),
+                            owner=result.get('owner'),
+                            date_started=result.get('dateStarted'),
+                            date_released=result.get('dateReleased'),
+                        ), True
 
             new_projects = []
             for project in projects:
@@ -135,12 +144,9 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
                     )
                     activity.send_notification()
 
-            # TODO(jess): fix release hook to work with multiple projects
-            # commit_list = result.get('commits')
-            # if commit_list:
-            #     hook = ReleaseHook(project)
-            #     # TODO(dcramer): handle errors with release payloads
-            #     hook.set_commits(release.version, commit_list)
+            commit_list = result.get('commits')
+            if commit_list:
+                release.set_commits(commit_list)
 
             if not created:
                 # This is the closest status code that makes sense, and we want
