@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from ua_parser.user_agent_parser import Parse
 
 from sentry.plugins import Plugin2
+from sentry.stacktraces import find_stacktraces_in_data
 
 from .processor import JavaScriptStacktraceProcessor
 from .errormapping import rewrite_exception
@@ -12,7 +13,21 @@ def preprocess_event(data):
     rewrite_exception(data)
     fix_culprit(data)
     inject_device_data(data)
+    generate_modules(data)
     return data
+
+
+def generate_modules(data):
+    from sentry.lang.javascript.processor import generate_module
+
+    for info in find_stacktraces_in_data(data):
+        for frame in info.stacktrace['frames']:
+            platform = frame.get('platform') or data['platform']
+            if platform != 'javascript' or platform.get('module'):
+                continue
+            abs_path = frame.get('abs_path')
+            if abs_path and abs_path.startswith(('http:', 'https:', 'webpack:')):
+                frame['module'] = generate_module(abs_path)
 
 
 def fix_culprit(data):
