@@ -34,7 +34,6 @@ from sentry.models import (
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
-from sentry.reprocessing import store_processing_issues
 from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
@@ -254,9 +253,6 @@ class EventManager(object):
         # First we pull out our top-level (non-data attr) kwargs
         data = self.data
 
-        # Do not set the event to unprocessed by default
-        data['unprocessed'] = False
-
         if not isinstance(data.get('level'), (six.string_types, int)):
             data['level'] = logging.ERROR
         elif data['level'] not in LOG_LEVELS:
@@ -447,16 +443,15 @@ class EventManager(object):
         date = date.replace(tzinfo=timezone.utc)
 
         # Some processing for when things went well
-        if not unprocessed:
-            for key in NON_STORED_DATA_KEYS:
-                data.pop(key, None)
-            if not culprit:
-                # if we generate an implicit culprit, lets not call it a
-                # transaction
-                transaction_name = None
-                culprit = generate_culprit(data, platform=platform)
-            else:
-                transaction_name = culprit
+        for key in NON_STORED_DATA_KEYS:
+            data.pop(key, None)
+        if not culprit:
+            # if we generate an implicit culprit, lets not call it a
+            # transaction
+            transaction_name = None
+            culprit = generate_culprit(data, platform=platform)
+        else:
+            transaction_name = culprit
 
         kwargs = {
             'platform': platform,
@@ -483,7 +478,7 @@ class EventManager(object):
             tags['site'] = site
         if environment:
             tags['environment'] = environment
-        if not unprocessed and transaction_name:
+        if transaction_name:
             tags['transaction'] = transaction_name
 
         if release:
@@ -512,9 +507,8 @@ class EventManager(object):
 
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
-        if not unprocessed:
-            data['tags'] = tags
-            data['fingerprint'] = fingerprint or ['{{ default }}']
+        data['tags'] = tags
+        data['fingerprint'] = fingerprint or ['{{ default }}']
 
         for path, iface in six.iteritems(event.interfaces):
             data['tags'].extend(iface.iter_tags())
@@ -594,8 +588,6 @@ class EventManager(object):
             },
         })
 
-        processing_issues = data.pop('processing_issues', None)
-
         if release:
             release = Release.get_or_create(
                 project=project,
@@ -612,9 +604,6 @@ class EventManager(object):
             unprocessed=unprocessed,
             **group_kwargs
         )
-
-        if processing_issues:
-            store_processing_issues(processing_issues, group, release)
 
         event.group = group
         # store a reference to the group id to guarantee validation of isolation
@@ -888,7 +877,6 @@ class EventManager(object):
                 event=event,
                 data=kwargs,
                 release=release,
-                unprocessed=unprocessed,
             )
         else:
             is_regression = False
@@ -901,7 +889,7 @@ class EventManager(object):
 
         return group, is_new, is_regression, is_sample
 
-    def _handle_regression(self, group, event, release, unprocessed=False):
+    def _handle_regression(self, group, event, release):
         if not group.is_resolved():
             return
 
@@ -922,8 +910,6 @@ class EventManager(object):
             return
 
         group_status = GroupStatus.UNRESOLVED
-        if unprocessed:
-            group_status = GroupStatus.UNPROCESSED
 
         # we now think its a regression, rely on the database to validate that
         # no one beat us to this
@@ -993,8 +979,7 @@ class EventManager(object):
 
         return is_regression
 
-    def _process_existing_aggregate(self, group, event, data, release,
-                                    unprocessed=False):
+    def _process_existing_aggregate(self, group, event, data, release):
         date = max(event.datetime, group.last_seen)
         extra = {
             'last_seen': date,
@@ -1008,8 +993,7 @@ class EventManager(object):
         if group.culprit != data['culprit']:
             extra['culprit'] = data['culprit']
 
-        is_regression = self._handle_regression(group, event, release,
-                                                unprocessed=unprocessed)
+        is_regression = self._handle_regression(group, event, release)
 
         group.last_seen = extra['last_seen']
 
