@@ -645,11 +645,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self._fetched_related_data = True
 
     def process_frame(self, frame):
-        self.fetch_related_data()
-
         if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT or \
            self.get_effective_platform(frame) != 'javascript':
             return
+
+        self.fetch_related_data()
 
         last_token = None
         token = None
@@ -776,13 +776,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             new_frame['data'] = dict(new_frame.get('data') or {},
                                      sourcemap=expose_url(sourcemap_url))
 
-        # TODO: theoretically a minified source could point to another mapped, minified source
-        new_frame['pre_context'], new_frame['context_line'], \
-            new_frame['post_context'] = get_source_context(
-            source=source, lineno=new_frame['lineno'],
-            colno=new_frame.get('colno') or 0)
+        # TODO: theoretically a minified source could point to
+        # another mapped, minified source
+        changed_frame = self.expand_frame(new_frame, source=source)
 
-        if not new_frame['context_line'] and source:
+        if not new_frame.get('context_line') and source:
             all_errors.append({
                 'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
                 'column': new_frame['colno'],
@@ -790,19 +788,21 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 'source': new_frame['abs_path'],
             })
 
-        processed_raw_frame = sourcemap_applied and self.process_raw_frame(raw_frame)
-        if sourcemap_applied or all_errors or processed_raw_frame:
+        changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
+        if sourcemap_applied or all_errors or changed_frame or \
+           changed_raw:
             if in_app is not None:
                 new_frame['in_app'] = in_app
                 raw_frame['in_app'] = in_app
-            return [new_frame], [raw_frame] if processed_raw_frame else None, all_errors
+            return [new_frame], [raw_frame] if changed_raw else None, all_errors
 
-    def process_raw_frame(self, frame):
+    def expand_frame(self, frame, source=None):
         if frame.get('lineno') is not None:
-            source = self.get_source(frame['abs_path'])
             if source is None:
-                logger.debug('No source found for %s', frame['abs_path'])
-                return False
+                source = self.get_source(frame['abs_path'])
+                if source is None:
+                    logger.debug('No source found for %s', frame['abs_path'])
+                    return False
 
             frame['pre_context'], frame['context_line'], frame['post_context'] \
                 = get_source_context(source=source, lineno=frame['lineno'],
