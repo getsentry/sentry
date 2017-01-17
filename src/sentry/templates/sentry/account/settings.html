@@ -2,8 +2,10 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_avatars %}
 {% load sentry_helpers %}
 {% load sentry_features %}
+
 {% block wrapperclass %}narrow account-settings{% endblock %}
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
@@ -32,12 +34,7 @@
             <div>
               <a class="avatar-edit-link" href="{% url 'sentry-account-settings-avatar' %}">
                 <span class="avatar">
-                {% letter_avatar_svg request.user.get_display_name request.user.get_label size 118 %}
-                {% if request.user.get_avatar_type == 'upload' %}
-                    <img src="{% profile_photo_url request.user.id size 118 %}">
-                {% elif request.user.get_avatar_type == 'gravatar' %}
-                    <img src="{% gravatar_url user.email size 118 default 'blank' %}">
-                {% endif %}
+                {% avatar request.user 118 %}
                 </span>
                 <span class="icon-settings"></span>
               </a>

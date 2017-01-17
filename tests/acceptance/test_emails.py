@@ -144,3 +144,33 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.get(self.build_url('/debug/mail/report/'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('report email html')
+
+    def test_mfa_added_html(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-added/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa added email html')
+
+    def test_mfa_added_txt(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-added/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa added email txt')
+
+    def test_mfa_removed_html(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-removed/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa removed email html')
+
+    def test_mfa_removed_text(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-removed/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa removed email txt')
+
+    def test_password_changed_html(self):
+        self.browser.get(self.build_url('/debug/mail/password-changed/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('password changed email html')
+
+    def test_password_changed_text(self):
+        self.browser.get(self.build_url('/debug/mail/password-changed/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('password changed email txt')

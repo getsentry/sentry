@@ -23,6 +23,7 @@ from sentry.constants import LANGUAGES
 from sentry.models import (
     Organization, OrganizationStatus, User, UserOption, UserOptionValue
 )
+from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
 from six.moves import range
@@ -355,6 +356,14 @@ class AccountSettingsForm(forms.Form):
         if self.cleaned_data.get('new_password'):
             self.user.set_password(self.cleaned_data['new_password'])
             self.user.refresh_session_nonce(self.request)
+
+            capture_security_activity(
+                account=self.user,
+                type='password-changed',
+                actor=self.request.user,
+                ip_address=self.request.META['REMOTE_ADDR'],
+                send_email=True,
+            )
 
         self.user.name = self.cleaned_data['name']
 

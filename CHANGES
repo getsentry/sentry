@@ -6,6 +6,7 @@ Version 8.13 (Unreleased)
 - start using ReleaseProject and Release.organization instead of Release.project
 - Project quotas are no longer available, and must now be configured via the organizational rate limits.
 - Quotas implementation now requires a tuple of maximum rate and interval window.
+- Added security emails for adding and removing MFA and password changes.
 
 Version 8.12
 ------------
