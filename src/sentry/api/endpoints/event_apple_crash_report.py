@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.http import HttpResponse, CompatibleStreamingHttpResponse
 
 from sentry.api.base import Endpoint
@@ -49,12 +51,12 @@ class EventAppleCrashReportEndpoint(Endpoint):
            event.data.get('debug_meta').get('images')):
             debug_images = event.data.get('debug_meta').get('images')
 
-        apple_crash_report_string = AppleCrashReport(
+        apple_crash_report_string = six.text_type(AppleCrashReport(
             threads=threads,
             context=event.data.get('contexts'),
             debug_images=debug_images,
             symbolicated=symbolicated
-        ).__str__()
+        ))
 
         response = HttpResponse(apple_crash_report_string, content_type='text/plain')
 
