@@ -32,6 +32,9 @@ class StacktraceProcessor(object):
     def close(self):
         pass
 
+    def preprocess_related_data(self):
+        return False
+
     def get_effective_platform(self, frame):
         return frame.get('platform') or self.data['platform']
 
@@ -165,6 +168,10 @@ def process_stacktraces(data, make_processors=None):
     else:
         processors = make_processors(data, infos)
     changed = False
+
+    for processor in processors:
+        if processor.preprocess_related_data():
+            changed = True
 
     for stacktrace_info in infos:
         new_stacktrace, raw_stacktrace, errors = process_single_stacktrace(

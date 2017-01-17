@@ -596,7 +596,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
         self.release = None
-        self._fetched_related_data = False
 
     def get_stacktraces(self, data):
         try:
@@ -626,15 +625,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             ])
         return frames
 
-    def fetch_related_data(self):
-        if self._fetched_related_data:
-            return
-
+    def preprocess_related_data(self):
         frames = self.get_valid_frames()
         if not frames:
             logger.debug('Event %r has no frames with enough context to '
                          'fetch remote source', self.data['event_id'])
-            return
+            return False
 
         if self.data.get('release'):
             self.release = Release.get(
@@ -642,14 +638,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 version=self.data['release'],
             )
         self.populate_source_cache(frames)
-        self._fetched_related_data = True
+        return True
 
     def process_frame(self, frame):
         if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT or \
            self.get_effective_platform(frame) != 'javascript':
             return
-
-        self.fetch_related_data()
 
         last_token = None
         token = None
