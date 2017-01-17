@@ -11,41 +11,6 @@ const modelsEqual = function(obj1, obj2) {
   return obj1.id === obj2.id;
 };
 
-const arrayIsEqual = function(arr, other, deep) {
-  // if the other array is a falsy value, return
-  if (!arr && !other) {
-    return true;
-  }
-
-  if (!arr || !other) {
-    return false;
-  }
-
-  // compare lengths - can save a lot of time
-  if (arr.length != other.length) {
-    return false;
-  }
-
-  for (let i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
-    return valueIsEqual(arr[i], other[i], deep);
-  }
-};
-
-const valueIsEqual = function(value, other, deep) {
-  if (value === other) {
-    return true;
-  } else if (_.isArray(value) || _.isArray(other)) {
-    if (arrayIsEqual(value, other, deep)) {
-      return true;
-    }
-  } else if (_.isObject(value) || _.isObject(other)) {
-    if (objectMatchesSubset(value, other, deep)) {
-      return true;
-    }
-  }
-  return false;
-};
-
 const objectMatchesSubset = function(obj, other, deep){
   let k;
 
@@ -67,7 +32,7 @@ const objectMatchesSubset = function(obj, other, deep){
   }
 
   for (k in other) {
-    if (!valueIsEqual(obj[k], other[k], deep)) {
+    if (!_.isEqual(obj[k], other[k], deep)) {
       return false;
     }
   }
@@ -142,34 +107,6 @@ export default {
     return vars;
   },
 
-  sortArray(arr, score_fn) {
-    arr.sort((a, b) => {
-      let a_score = score_fn(a), b_score = score_fn(b);
-
-      for (let i = 0; i < a_score.length; i++) {
-        if (a_score[i] > b_score[i]) {
-          return 1;
-        }
-        if (a_score[i] < b_score[i]) {
-          return -1;
-        }
-      }
-      return 0;
-    });
-
-    return arr;
-  },
-
-  objectIsEmpty(obj) {
-    for (let prop in obj) {
-      if (obj.hasOwnProperty(prop)) {
-        return false;
-      }
-    }
-
-    return true;
-  },
-
   trim(str) {
     return str.replace(/^\s+|\s+$/g,'');
   },
@@ -184,10 +121,6 @@ export default {
 
   isUrl(str) {
     return !!str && _.isString(str) && (str.indexOf('http://') === 0 || str.indexOf('https://') === 0);
-  },
-
-  escape(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   },
 
   percent(value, totalValue, precise) {
@@ -205,12 +138,15 @@ export default {
     });
   },
 
-  arrayIsEqual: arrayIsEqual,
+  arrayIsEqual: _.isEqual,
   objectMatchesSubset: objectMatchesSubset,
   compareArrays: compareArrays,
+  escape: _.escape,
+  sortArray: _.sortBy,
+  objectIsEmpty: _.isEmpty,
   intcomma: intcomma,
   modelsEqual: modelsEqual,
-  valueIsEqual: valueIsEqual,
+  valueIsEqual: _.isEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
   deviceNameMapper: require('./utils/deviceNameMapper'),
   objectToArray: objectToArray,
