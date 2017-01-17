@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ContextBlock from './contextBlock';
-import {defined} from '../../../utils';
+import {defined, formatBytes} from '../../../utils';
 
 const DeviceContextType = React.createClass({
   propTypes: {
@@ -9,9 +9,28 @@ const DeviceContextType = React.createClass({
     data: React.PropTypes.object.isRequired,
   },
 
+  formatMemory(memorySize, freeMemory, usableMemory) {
+    if (!Number.isInteger(memorySize) ||
+       !Number.isInteger(freeMemory) ||
+       !Number.isInteger(usableMemory)) {
+      return null;
+    }
+    return `Total: ${formatBytes(memorySize)} / Usable: ${formatBytes(usableMemory)} / Free: ${formatBytes(freeMemory)}`;
+  },
+
+  formatStorage(storageSize) {
+    if (!Number.isInteger(storageSize))
+      return null;
+
+    return `${formatBytes(storageSize)}`;
+  },
+
   render() {
     let {name, family, model, model_id, arch, battery_level, orientation,
+      simulator, memorySize, freeMemory, usableMemory, storageSize,
       ...data} = this.props.data;
+      let memory = this.formatMemory(memorySize, freeMemory, usableMemory);
+      let storage = this.formatStorage(storageSize);
     return (
       <ContextBlock
         data={data}
@@ -23,6 +42,9 @@ const DeviceContextType = React.createClass({
           ['?Battery Level', defined(battery_level)
             ? `${battery_level}%` : null],
           ['?Orientation', orientation],
+          ['?Memory', memory],
+          ['?Capacity', storage],
+          ['?Simulator', simulator],
         ]}
         alias={this.props.alias} />
     );
