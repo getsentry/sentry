@@ -790,14 +790,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 'source': new_frame['abs_path'],
             })
 
-        changed_module = False
-        if not new_frame.get('module') and frame['abs_path'].startswith(
-                ('http:', 'https:', 'webpack:')):
-            new_frame['module'] = generate_module(frame['abs_path'])
-            changed_module = True
-
         processed_raw_frame = sourcemap_applied and self.process_raw_frame(raw_frame)
-        if sourcemap_applied or changed_module or all_errors or processed_raw_frame:
+        if sourcemap_applied or all_errors or processed_raw_frame:
             if in_app is not None:
                 new_frame['in_app'] = in_app
                 raw_frame['in_app'] = in_app
