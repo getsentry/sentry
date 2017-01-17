@@ -89,33 +89,6 @@ def find_all_stacktraces(data):
     return rv
 
 
-def update_stacktrace(stacktrace, new_frames, container=None,
-                      store_raw=False):
-    """Utility function that can update a stacktrace with new frames
-    according to the reprocessing rules.  Best paired with
-    `find_all_stacktraces`.
-    """
-    # If we have a known stacktrace container, put us to the
-    # expected places
-    if container is not None:
-        # Update raw_stacktrace based on if we want to store stuff there.
-        if store_raw:
-            container['raw_stacktrace'] = {
-                'frames': stacktrace['frames']
-            }
-        else:
-            container.pop('raw_stacktrace', None)
-
-        # We make sure the stacktrace moves to the processed slot.
-        # If the input data was 'raw_stacktrace' we need to make
-        # sure it now moves into 'stacktrace' as we will place a
-        # new unprocessed stacktrace in that location.
-        container['stacktrace'] = stacktrace
-
-    # Put the new frames into the stacktrace object.
-    stacktrace['frames'] = new_frames
-
-
 def get_sdk_from_event(event):
     sdk_info = (event.get('debug_meta') or {}).get('sdk_info')
     if sdk_info:
