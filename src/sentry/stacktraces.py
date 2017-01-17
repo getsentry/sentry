@@ -123,12 +123,14 @@ def process_single_stacktrace(stacktrace_info, processors):
         errors = None
         for processor in processors:
             try:
-                rv = processor.process_frame(frame) or (None, None, None)
+                rv = processor.process_frame(frame)
+                if rv is None:
+                    continue
             except Exception:
                 logger.exception('Failed to process frame')
                 continue
 
-            expand_processed, expand_raw, errors = rv
+            expand_processed, expand_raw, errors = rv or (None, None, None)
             if expand_processed is not None:
                 processed_frames.extend(expand_processed)
                 changed_processed = True
