@@ -16,6 +16,10 @@ export default class RangeField extends InputField {
 
   attachSlider() {
     let $value = jQuery('<span class="value" />');
+    let suffixClassNames = '';
+    if (this.props.disabled) {
+      suffixClassNames += ' disabled';
+    }
     jQuery(ReactDOM.findDOMNode(this.refs.input)).on('slider:ready', (e, data) => {
       let value = parseInt(data.value, 10);
       $value.appendTo(data.el);
@@ -30,6 +34,7 @@ export default class RangeField extends InputField {
       step: this.props.step,
       snap: this.props.snap,
       allowedValues: this.props.allowedValues,
+      classSuffix: suffixClassNames
     });
   }
 

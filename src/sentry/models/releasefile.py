@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import sha1_text
 
 
@@ -22,8 +22,8 @@ class ReleaseFile(Model):
     """
     __core__ = False
 
-    organization = FlexibleForeignKey('sentry.Organization', null=True)
-    project = FlexibleForeignKey('sentry.Project')
+    organization = FlexibleForeignKey('sentry.Organization')
+    project_id = BoundedPositiveIntegerField(null=True)
     release = FlexibleForeignKey('sentry.Release')
     file = FlexibleForeignKey('sentry.File')
     ident = models.CharField(max_length=40)

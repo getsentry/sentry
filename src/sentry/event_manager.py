@@ -21,7 +21,7 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes
+from sentry import eventtypes, features
 from sentry.app import buffer, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
@@ -677,6 +677,7 @@ class EventManager(object):
                 return event
 
             index_event_tags.delay(
+                organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,
                 event_id=event.id,
@@ -833,10 +834,13 @@ class EventManager(object):
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
-        can_sample = should_sample(
-            event.data.get('received') or float(event.datetime.strftime('%s')),
-            group.data.get('last_received') or float(group.last_seen.strftime('%s')),
-            group.times_seen,
+        can_sample = (
+            features.has('projects:sample-events', project=project) and
+            should_sample(
+                event.data.get('received') or float(event.datetime.strftime('%s')),
+                group.data.get('last_received') or float(group.last_seen.strftime('%s')),
+                group.times_seen,
+            )
         )
 
         if not is_new:

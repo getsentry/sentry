@@ -264,18 +264,31 @@ def main(num_events=1):
                     'first_event': timezone.now(),
                 }
             )
+            if not project.first_event:
+                project.update(
+                    first_event=project.date_added,
+                )
 
-            release, created = Release.objects.get_or_create(
-                version=sha1(uuid4().bytes).hexdigest(),
-                project=project,
-                defaults={'organization_id': project.organization_id}
-            )
-
-            if created:
-                release.add_project(project)
+            with transaction.atomic():
+                has_release = Release.objects.filter(
+                    version=sha1(uuid4().bytes).hexdigest(),
+                    organization_id=project.organization_id,
+                    projects=project
+                ).exists()
+                if not has_release:
+                    release = Release.objects.filter(
+                        version=sha1(uuid4().bytes).hexdigest(),
+                        organization_id=project.organization_id,
+                    ).first()
+                    if not release:
+                        release = Release.objects.create(
+                            version=sha1(uuid4().bytes).hexdigest(),
+                            organization_id=project.organization_id
+                        )
+                    release.add_project(project)
 
             ReleaseFile.objects.get_or_create(
-                project=project,
+                organization_id=project.organization_id,
                 release=release,
                 name='an-example.js',
                 file=File.objects.get_or_create(
@@ -313,7 +326,6 @@ def main(num_events=1):
 
             ReleaseCommit.objects.get_or_create(
                 organization_id=org.id,
-                project_id=project.id,
                 release=release,
                 commit=commit,
                 order=0,

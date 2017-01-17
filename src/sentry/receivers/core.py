@@ -3,7 +3,7 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
-from django.db import connections
+from django.db import connections, transaction
 from django.db.utils import OperationalError, ProgrammingError
 from django.db.models.signals import post_syncdb, post_save
 from functools import wraps
@@ -28,7 +28,8 @@ def handle_db_failure(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            return func(*args, **kwargs)
+            with transaction.atomic():
+                return func(*args, **kwargs)
         except (ProgrammingError, OperationalError):
             logging.exception('Failed processing signal %s', func.__name__)
             return
