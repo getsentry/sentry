@@ -5,19 +5,14 @@ const FileSize = React.createClass({
     bytes: React.PropTypes.number.isRequired
   },
 
-  units: ['KB','MB','GB','TB','PB','EB','ZB','YB'],
+  units: ['B', 'KB','MB','GB','TB','PB','EB','ZB','YB'],
 
   formatBytes: function(bytes) {
-      let thresh = 1024;
-      if (bytes < thresh) {
-        return bytes + ' B';
-      }
-
-      let u = -1;
-      do {
+      let thresh = 1024, u = 0;
+      while (bytes >= thresh) {
         bytes /= thresh;
-        ++u;
-      } while (bytes >= thresh);
+        ++ u;
+      }
       return bytes.toFixed(1) + ' ' + this.units[u];
   },
 
