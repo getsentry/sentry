@@ -349,20 +349,32 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         StacktraceProcessor.__init__(self, data, stacktrace_infos)
         debug_meta = data.get('debug_meta')
         if debug_meta:
-            self.sdk_info = get_sdk_from_event(data)
-            is_debug_build = debug_meta.get('is_debug_build')
-            referenced_images = find_stacktrace_referenced_images(
-                debug_meta['images'], [x.stacktrace for x in stacktrace_infos])
-            self.sym = Symbolizer(self.project, debug_meta['images'],
-                                  referenced_images=referenced_images,
-                                  is_debug_build=is_debug_build)
             self.available = True
+            self.debug_meta = debug_meta
+            self.sdk_info = get_sdk_from_event(data)
         else:
             self.available = False
 
     def close(self):
         StacktraceProcessor.close(self)
         self.sym.close()
+
+    def preprocess_related_data(self):
+        if not self.available:
+            return False
+
+        is_debug_build = self.debug_meta.get('is_debug_build')
+        referenced_images = find_stacktrace_referenced_images(
+            self.debug_meta['images'], [
+                x.stacktrace for x in self.stacktrace_infos])
+        self.sym = Symbolizer(self.project, self.debug_meta['images'],
+                              referenced_images=referenced_images,
+                              is_debug_build=is_debug_build)
+
+        # The symbolizer gets a reference to the debug meta's images so
+        # when it resolves the missing vmaddrs it changes them in the data
+        # dict.
+        return self.sym.resolve_missing_vmaddrs()
 
     def process_frame(self, frame):
         # XXX: warn on missing availability?
