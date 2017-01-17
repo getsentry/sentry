@@ -23,7 +23,7 @@ def generate_modules(data):
     for info in find_stacktraces_in_data(data):
         for frame in info.stacktrace['frames']:
             platform = frame.get('platform') or data['platform']
-            if platform != 'javascript' or platform.get('module'):
+            if platform != 'javascript' or frame.get('module'):
                 continue
             abs_path = frame.get('abs_path')
             if abs_path and abs_path.startswith(('http:', 'https:', 'webpack:')):

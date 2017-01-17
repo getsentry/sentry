@@ -304,7 +304,7 @@ class TrimLineTest(TestCase):
 
 
 def test_get_culprit_is_patched():
-    from sentry.lang.javascript.plugin import fix_culprit
+    from sentry.lang.javascript.plugin import fix_culprit, generate_modules
 
     data = {
         'message': 'hello',
@@ -333,6 +333,7 @@ def test_get_culprit_is_patched():
             }],
         }
     }
+    generate_modules(data)
     fix_culprit(data)
     assert data['culprit'] == 'bar in oops'
 
