@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import re
 import six
 
-from symsynd.driver import Driver, SymbolicationError
+from symsynd.driver import Driver, SymbolicationError, normalize_dsym_path
 from symsynd.report import ReportSymbolizer
-from symsynd.macho.arch import get_cpu_name
+from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
@@ -135,6 +135,31 @@ class Symbolizer(object):
             project, binary_images, referenced_images=referenced_images)
         self.images = dict((img['image_addr'], img) for img in binary_images)
         self.is_debug_build = is_debug_build
+
+    def resolve_missing_vmaddrs(self):
+        """When called this changes the vmaddr on all contained images from
+        the information in the dsym files (if there is no vmaddr already).
+        This changes both the image data from the original event submission
+        in the debug meta as well as the image data that the symbolizer uses.
+        """
+        changed_any = False
+
+        loaded_images = self.symsynd_symbolizer.images
+        for image_addr, image in six.iteritems(self.images):
+            if image.get('image_vmaddr') or not image.get('image_addr'):
+                continue
+            image_info = loaded_images.get(image['image_addr'])
+            if not image_info:
+                continue
+            dsym_path = normalize_dsym_path(image_info['dsym_path'])
+            cpu_name = image_info['cpu_name']
+            image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name)
+            if image_vmaddr:
+                image['image_vmaddr'] = image_vmaddr
+                image_info['image_vmaddr'] = image_vmaddr
+                changed_any = True
+
+        return changed_any
 
     def close(self):
         self.symsynd_symbolizer.driver.close()
