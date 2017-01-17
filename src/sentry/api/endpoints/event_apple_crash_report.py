@@ -6,7 +6,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Event
-from sentry.lang.native.utils import get_apple_crash_report
+from sentry.lang.native.applecrashreport import AppleCrashReport
 
 
 class EventAppleCrashReportEndpoint(Endpoint):
@@ -49,14 +49,14 @@ class EventAppleCrashReportEndpoint(Endpoint):
            event.data.get('debug_meta').get('images')):
             debug_images = event.data.get('debug_meta').get('images')
 
-        apple_crash_report = get_apple_crash_report(
+        apple_crash_report_string = AppleCrashReport(
             threads=threads,
             context=event.data.get('contexts'),
             debug_images=debug_images,
             symbolicated=symbolicated
-        )
+        ).__str__()
 
-        response = HttpResponse(apple_crash_report, content_type='text/plain')
+        response = HttpResponse(apple_crash_report_string, content_type='text/plain')
 
         if request.GET.get('download') is not None:
             filename = "{}{}.crash".format(
@@ -64,10 +64,10 @@ class EventAppleCrashReportEndpoint(Endpoint):
                 symbolicated and '-symbolicated' or ''
             )
             response = CompatibleStreamingHttpResponse(
-                apple_crash_report,
+                apple_crash_report_string,
                 content_type='text/plain',
             )
-            response['Content-Length'] = len(apple_crash_report)
+            response['Content-Length'] = len(apple_crash_report_string)
             response['Content-Disposition'] = 'attachment; filename="%s"' % filename
 
         return response
