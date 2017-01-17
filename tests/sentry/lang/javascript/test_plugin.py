@@ -287,7 +287,7 @@ class JavascriptIntegrationTest(TestCase):
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
-        assert raw_frame.pre_context == []
+        assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
         assert raw_frame.post_context == ['//@ sourceMappingURL=file.sourcemap.js']
         assert raw_frame.lineno == 1
