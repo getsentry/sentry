@@ -28,7 +28,7 @@ class SearchBackend(object):
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', age_from=None, age_to=None,
               unassigned=None, date_from=None, date_to=None,
-              include_unprocessed=False, cursor=None, limit=100):
+              cursor=None, limit=100):
         """
         The return value should be a CursorResult.
 

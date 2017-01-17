@@ -186,8 +186,6 @@ class GroupSerializer(Serializer):
             status_label = 'pending_deletion'
         elif status == GroupStatus.PENDING_MERGE:
             status_label = 'pending_merge'
-        elif status == GroupStatus.UNPROCESSED:
-            status_label = 'unprocessed'
         else:
             status_label = 'unresolved'
 
@@ -222,7 +220,6 @@ class GroupSerializer(Serializer):
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
             'isSubscribed': is_subscribed,
-            'isTransient': obj.is_transient(),
             'subscriptionDetails': {
                 'reason': SUBSCRIPTION_REASON_MAP.get(
                     subscription.reason,
