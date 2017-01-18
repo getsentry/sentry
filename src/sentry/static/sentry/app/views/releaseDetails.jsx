@@ -5,6 +5,7 @@ import DocumentTitle from 'react-document-title';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import Avatar from '../components/avatar';
 import ProjectState from '../mixins/projectState';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
@@ -92,18 +93,27 @@ const ReleaseDetails = React.createClass({
 
     let release = this.state.release;
     let {orgId, projectId} = this.props.params;
-
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
           <div className="release-details">
             <div className="row">
-              <div className="col-sm-6 col-xs-12">
+              <div className="col-sm-4 col-xs-12">
                 <h3>{t('Release')} <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
               </div>
+              {(new Set(this.context.organization.features)).has('release-commits') &&
+              <div className="col-sm-2 hidden-xs">
+                <div className="release-info">
+                  <span><b>{release.commitCount} commits by {release.authorCount} authors</b></span>
+                  {release.authors.map(author => {
+                    return <Avatar user={author}/>;
+                  })}
+                </div>
+              </div>
+              }
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('New Issues')}</h6>

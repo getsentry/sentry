@@ -4,12 +4,35 @@ import six
 
 from django.db.models import Sum
 
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Release, ReleaseProject, TagValue
+from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User
 
 
 @register(Release)
 class ReleaseSerializer(Serializer):
+    def _get_commit_authors(self, item, user):
+        # TODO: feature switch
+
+        # for each release in item_list
+        # do a subquery and get their authors
+        # add authors to that item_list entry
+        releasecommits = ReleaseCommit.objects.filter(
+            release=item
+        ).select_related("commit")
+        authors = []
+        for releasecommit in releasecommits:
+            author = releasecommit.commit.author
+            try:
+                author = User.objects.get(email=author.email)
+            except MultipleObjectsReturned:
+                author = User.objects.filter(email=author.email).first()
+            except ObjectDoesNotExist:
+                pass
+            authors.append(serialize(author))
+
+        return authors
+
     def get_attrs(self, item_list, user, *args, **kwargs):
         tags = {
             tk.value: tk
@@ -42,8 +65,16 @@ class ReleaseSerializer(Serializer):
             )
 
         result = {}
+        # if features.has('organizations:release-commits', actor=user):
+        # numCommits
+        # get number of subcommits
+        # num_commits = ReleaseCommit.objects.count(release_id=release.id)
         for item in item_list:
+            authors = self._get_commit_authors(item, user)
             result[item] = {
+                'authors': authors,
+                'author_count': len(authors),
+                'commit_count': ReleaseCommit.objects.filter(release=item).count(),
                 'tag': tags.get(item.version),
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_groups': group_counts_by_release.get(item.id) or 0
@@ -62,6 +93,9 @@ class ReleaseSerializer(Serializer):
             'data': obj.data,
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
+            'commitCount': attrs['commit_count'],
+            'authorCount': attrs['author_count'],
+            'authors': attrs['authors'],
         }
         if attrs['tag']:
             d.update({

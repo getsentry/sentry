@@ -19,11 +19,15 @@ const ReleaseList = React.createClass({
             return (
               <li className="release" key={release.version}>
                 <div className="row">
-                  <div className="col-sm-8 col-xs-6">
+                  <div className="col-sm-6 col-xs-4">
                     <h4><Version orgId={orgId} projectId={projectId} version={release.version} /></h4>
                     <div className="release-meta">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </div>
+                  </div>
+                  <div className="col-sm-2 col-xs-2">
+                    <div>{release.commitCount} commits by {release.authorCount} authors</div>
+                    {release.authors.map(author => {return <div>{author.name}</div>; })}
                   </div>
                   <div className="col-sm-2 col-xs-3 release-stats stream-count">
                     <Count className="release-count" value={release.newGroups} />
