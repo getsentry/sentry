@@ -681,6 +681,7 @@ SENTRY_FEATURES = {
     'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
+    'organizations:release-commits': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,

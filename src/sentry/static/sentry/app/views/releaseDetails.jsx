@@ -91,8 +91,8 @@ const ReleaseDetails = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     let release = this.state.release;
-
     let {orgId, projectId} = this.props.params;
+
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
@@ -139,6 +139,11 @@ const ReleaseDetails = React.createClass({
               }}>{t('New Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>{t('All Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>{t('Artifacts')}</ListLink>
+
+              {(new Set(this.context.organization.features)).has('release-commits') &&
+                <ListLink
+                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>{t('Commits')}</ListLink>
+              }
             </ul>
           </div>
           {React.cloneElement(this.props.children, {
