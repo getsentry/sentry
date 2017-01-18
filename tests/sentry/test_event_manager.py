@@ -408,7 +408,7 @@ class EventManagerTest(TransactionTestCase):
 
     def test_build_number(self):
         manager = EventManager(self.make_event(
-            buildNumber='1.0',
+            build_number='1.0',
         ))
         event = manager.save(1)
         assert dict(event.tags).get('build') == '1.0'

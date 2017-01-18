@@ -674,7 +674,7 @@ class ClientApiHelper(object):
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
         self._check_value_length(data, 'release')
-        self._check_value_length(data, 'buildNumber')
+        self._check_value_length(data, 'build_number')
         self._check_value_length(data, 'environment')
 
         return data

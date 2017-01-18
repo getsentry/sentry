@@ -414,7 +414,7 @@ class EventManager(object):
         platform = data.pop('platform', None)
         release = data.pop('release', None)
         environment = data.pop('environment', None)
-        build_number = data.pop('buildNumber', None)
+        build_number = data.pop('build_number', None)
 
         # unused
         time_spent = data.pop('time_spent', None)
