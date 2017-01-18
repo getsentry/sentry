@@ -43,8 +43,8 @@
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
-    for (var n in window.exports) {
-      window[n] = window.exports[n];
+    for (var n in window.exports.default) {
+      window[n] = window.exports.default[n];
     }
     window.$ = window.jQuery;
 

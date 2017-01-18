@@ -5,7 +5,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
-import {getItem, setItem} from '../../utils/localStorage';
+import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
@@ -35,7 +35,7 @@ const NoteInput = React.createClass({
     if (updating) {
       defaultText = item.data.text;
     } else {
-      let storage = getItem(localStorageKey);
+      let storage = localStorage.getItem(localStorageKey);
       if (storage) {
         let {groupId, value} = JSON.parse(storage);
         if (groupId === group.id) {
@@ -64,7 +64,7 @@ const NoteInput = React.createClass({
     if (this.state.value === nextState.value) return;
 
     try {
-      setItem(localStorageKey, JSON.stringify({
+      localStorage.setItem(localStorageKey, JSON.stringify({
         groupId: this.props.group.id,
         value: nextState.value
       }));

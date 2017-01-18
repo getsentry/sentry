@@ -1,8 +1,14 @@
 {
-  "presets": ["latest", "react"],
+  "presets": [
+    "react",
+    ["latest", {
+      "es2015": {
+        "modules": false
+      }
+    }]
+  ],
   "plugins": [
     "transform-object-rest-spread",
-    "add-module-exports",
     ["babel-plugin-transform-builtin-extend", {
       "globals": ["Array"]
     }]
