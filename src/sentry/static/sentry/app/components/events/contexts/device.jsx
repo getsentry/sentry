@@ -10,16 +10,16 @@ const DeviceContextType = React.createClass({
   },
 
   formatMemory(memorySize, freeMemory, usableMemory) {
-    if (!Number.isInteger(memorySize) ||
-       !Number.isInteger(freeMemory) ||
-       !Number.isInteger(usableMemory)) {
+    if (!Number.isInteger(memorySize) || memorySize <= 0 ||
+       !Number.isInteger(freeMemory) || freeMemory <= 0 ||
+       !Number.isInteger(usableMemory) || usableMemory <= 0) {
       return null;
     }
     return `Total: ${formatBytes(memorySize)} / Usable: ${formatBytes(usableMemory)} / Free: ${formatBytes(freeMemory)}`;
   },
 
   formatStorage(storageSize) {
-    if (!Number.isInteger(storageSize))
+    if (!Number.isInteger(storageSize) || storageSize <= 0)
       return null;
 
     return `${formatBytes(storageSize)}`;
