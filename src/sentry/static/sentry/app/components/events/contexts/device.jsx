@@ -9,28 +9,28 @@ const DeviceContextType = React.createClass({
     data: React.PropTypes.object.isRequired,
   },
 
-  formatMemory(memorySize, freeMemory, usableMemory) {
-    if (!Number.isInteger(memorySize) || memorySize <= 0 ||
-       !Number.isInteger(freeMemory) || freeMemory <= 0 ||
-       !Number.isInteger(usableMemory) || usableMemory <= 0) {
+  formatMemory(memory_size, free_memory, usable_memory) {
+    if (!Number.isInteger(memory_size) || memory_size <= 0 ||
+       !Number.isInteger(free_memory) || free_memory <= 0 ||
+       !Number.isInteger(usable_memory) || usable_memory <= 0) {
       return null;
     }
-    return `Total: ${formatBytes(memorySize)} / Usable: ${formatBytes(usableMemory)} / Free: ${formatBytes(freeMemory)}`;
+    return `Total: ${formatBytes(memory_size)} / Usable: ${formatBytes(usable_memory)} / Free: ${formatBytes(free_memory)}`;
   },
 
-  formatStorage(storageSize) {
-    if (!Number.isInteger(storageSize) || storageSize <= 0)
+  formatStorage(storage_size) {
+    if (!Number.isInteger(storage_size) || storage_size <= 0)
       return null;
 
-    return `${formatBytes(storageSize)}`;
+    return `${formatBytes(storage_size)}`;
   },
 
   render() {
     let {name, family, model, model_id, arch, battery_level, orientation,
-      simulator, memorySize, freeMemory, usableMemory, storageSize,
+      simulator, memory_size, free_memory, usable_memory, storage_size,
       ...data} = this.props.data;
-      let memory = this.formatMemory(memorySize, freeMemory, usableMemory);
-      let storage = this.formatStorage(storageSize);
+      let memory = this.formatMemory(memory_size, free_memory, usable_memory);
+      let storage = this.formatStorage(storage_size);
     return (
       <ContextBlock
         data={data}
