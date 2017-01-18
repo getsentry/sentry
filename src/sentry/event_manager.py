@@ -45,6 +45,7 @@ from sentry.utils.validators import validate_ip
 
 
 NON_STORED_DATA_KEYS = [
+    'unprocessed',
     'event_id',
     'level',
     'culprit',
@@ -420,6 +421,8 @@ class EventManager(object):
 
         data = self.data.copy()
 
+        unprocessed = data.get('unprocessed', False)
+
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.get('event_id')
         level = data.get('level')
@@ -598,6 +601,7 @@ class EventManager(object):
             event=event,
             hashes=hashes,
             release=release,
+            unprocessed=unprocessed,
             **group_kwargs
         )
 
@@ -806,7 +810,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, hashes, release, **kwargs):
+    def _save_aggregate(self, event, hashes, release, unprocessed=False, **kwargs):
         project = event.project
 
         # attempt to find a matching hash
@@ -822,8 +826,13 @@ class EventManager(object):
         # should be better tested/reviewed
         if existing_group_id is None:
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
+            if unprocessed:
+                kwargs['status'] = GroupStatus.UNPROCESSED
             with transaction.atomic():
-                short_id = project.next_short_id()
+                if unprocessed:
+                    short_id = None
+                else:
+                    short_id = project.next_short_id()
                 group, group_is_new = Group.objects.create(
                     project=project,
                     short_id=short_id,

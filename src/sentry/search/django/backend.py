@@ -75,7 +75,7 @@ class DjangoSearchBackend(SearchBackend):
                         date_to=None, date_to_inclusive=True,
                         active_at_from=None, active_at_from_inclusive=True,
                         active_at_to=None, active_at_to_inclusive=True,
-                        cursor=None, limit=None):
+                        include_unprocessed=False, cursor=None, limit=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
@@ -98,6 +98,8 @@ class DjangoSearchBackend(SearchBackend):
                 GroupStatus.DELETION_IN_PROGRESS,
                 GroupStatus.PENDING_MERGE,
             )
+            if not include_unprocessed:
+                status_in += (GroupStatus.UNPROCESSED,)
             queryset = queryset.exclude(status__in=status_in)
         else:
             queryset = queryset.filter(status=status)

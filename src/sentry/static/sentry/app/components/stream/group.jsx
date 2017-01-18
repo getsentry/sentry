@@ -144,6 +144,9 @@ const StreamGroup = React.createClass({
     if (data.status === 'ignored') {
       className += ' isIgnored';
     }
+    if (data.status === 'unprocessed') {
+      className += ' isUnprocessed';
+    }
 
     className += ' type-' + data.type;
     className += ' level-' + data.level;
@@ -164,6 +167,11 @@ const StreamGroup = React.createClass({
             data={data} />
           <div className="event-extra">
             <ul>
+              {data.status === 'unprocessed' &&
+                <li>
+                  <strong className="unprocessed-hint">UNPROCESSED</strong>
+                </li>
+              }
               {this.getFeatures().has('callsigns') && data.shortId &&
                 <li>
                   <ShortId shortId={data.shortId} />

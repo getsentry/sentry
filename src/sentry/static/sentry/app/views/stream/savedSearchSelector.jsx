@@ -170,7 +170,11 @@ const SavedSearchSelector = React.createClass({
   getTitle() {
     let searchId = this.props.searchId || null;
     if (!searchId) {
-      return t('Custom Search');
+      if ((this.props.query || '').trim() === 'is:unprocessed') {
+        return t('Unprocessed Issues');
+      } else {
+        return t('Custom Search');
+      }
     }
     let results = this.props.savedSearchList.filter((search) => {
       return searchId === search.id;
