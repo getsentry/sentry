@@ -161,6 +161,7 @@ CLIENT_RESERVED_ATTRS = (
     'platform',
     'release',
     'environment',
+    'buildNumber',
 )
 
 DEFAULT_SCRUBBED_FIELDS = (

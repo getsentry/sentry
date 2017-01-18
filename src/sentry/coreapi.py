@@ -673,27 +673,22 @@ class ClientApiHelper(object):
                 data['level'] = LOG_LEVELS_MAP.get(
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
-        if data.get('release'):
-            data['release'] = six.text_type(data['release'])
-            if len(data['release']) > 64:
-                data['errors'].append({
-                    'type': EventError.VALUE_TOO_LONG,
-                    'name': 'release',
-                    'value': data['release'],
-                })
-                del data['release']
-
-        if data.get('environment'):
-            data['environment'] = six.text_type(data['environment'])
-            if len(data['environment']) > 64:
-                data['errors'].append({
-                    'type': EventError.VALUE_TOO_LONG,
-                    'name': 'environment',
-                    'value': data['environment'],
-                })
-                del data['environment']
+        self._check_value_length(data, 'release')
+        self._check_value_length(data, 'buildNumber')
+        self._check_value_length(data, 'environment')
 
         return data
+
+    def _check_value_length(self, data, property, max_length=64):
+        if data.get(property):
+            data[property] = six.text_type(data[property])
+            if len(data[property]) > max_length:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': property,
+                    'value': data[property],
+                })
+                del data[property]
 
     def ensure_does_not_have_ip(self, data):
         if 'sentry.interfaces.Http' in data:
@@ -794,16 +789,7 @@ class CspApiHelper(ClientApiHelper):
             'errors': [],
         }
 
-        # Copy/pasted from above in ClientApiHelper.validate_data
-        if data.get('release'):
-            data['release'] = six.text_type(data['release'])
-            if len(data['release']) > 64:
-                data['errors'].append({
-                    'type': EventError.VALUE_TOO_LONG,
-                    'name': 'release',
-                    'value': data['release'],
-                })
-                del data['release']
+        self._check_value_length(data, 'release')
 
         tags = []
         for k, v in inst.get_tags():
