@@ -7,6 +7,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
+from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_environment_details import GroupEnvironmentDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
@@ -387,6 +388,9 @@ urlpatterns = patterns(
     url(r'^events/(?P<event_id>\d+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'),
+    url(r'^events/(?P<event_id>\d+)/apple-crash-report$',
+        EventAppleCrashReportEndpoint.as_view(),
+        name='sentry-api-0-event-apple-crash-report'),
 
     # Installation Global Endpoints
     url(r'^system/global-dsyms/$',

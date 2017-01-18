@@ -22,6 +22,7 @@ const CrashContent = React.createClass({
     return (
       stackView === 'raw' ?
         <RawExceptionContent
+          eventId={event.id}
           type={stackType}
           values={exception.values}
           platform={event.platform} /> :

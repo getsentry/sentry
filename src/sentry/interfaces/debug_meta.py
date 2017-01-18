@@ -49,7 +49,7 @@ class DebugMeta(Interface):
         a list of debug images and their mappings.
     """
 
-    ephemeral = True
+    ephemeral = False
 
     @classmethod
     def to_python(cls, data):
