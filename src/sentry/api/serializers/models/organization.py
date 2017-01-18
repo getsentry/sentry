@@ -69,6 +69,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has('organizations:api-keys', obj, actor=user) or \
                 ApiKey.objects.filter(organization=obj).exists():
             feature_list.append('api-keys')
+        if features.has('organizations:release-commits', obj, actor=user):
+            feature_list.append('release-commits')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
