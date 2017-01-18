@@ -44,6 +44,7 @@ import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
 import * as Router from 'react-router';
 import underscore from 'underscore';
+import ReactBootstrapModal from 'react-bootstrap/lib/Modal';
 
 import * as api from './api';
 import * as il8n from './locale';
@@ -55,7 +56,7 @@ export default {
   React: React,
   ReactDOM: ReactDOM,
   ReactBootstrap: {
-    Modal: ReactBootstrap,
+    Modal: ReactBootstrapModal
   },
   Reflux: Reflux,
   Router: Router,
