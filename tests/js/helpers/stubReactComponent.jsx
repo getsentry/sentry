@@ -1,7 +1,7 @@
 // Inspired by TimothyRHuertas
 // https://gist.github.com/TimothyRHuertas/d7d06313c5411fe242bb
 
-import React from 'react';
+let React = require('react');
 let divFactory = React.createFactory('div');
 let originalCreateElement = React.createElement;
 
