@@ -75,12 +75,13 @@ class DjangoSearchBackend(SearchBackend):
                         date_to=None, date_to_inclusive=True,
                         active_at_from=None, active_at_from_inclusive=True,
                         active_at_to=None, active_at_to_inclusive=True,
-                        cursor=None, limit=None):
+                        include_unprocessed=False, cursor=None, limit=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
         engine = get_db_engine('default')
 
         queryset = Group.objects.filter(project=project)
+
         if query:
             # TODO(dcramer): if we want to continue to support search on SQL
             # we should at least optimize this in Postgres so that it does
@@ -92,13 +93,14 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if status is None:
-            queryset = queryset.exclude(
-                status__in=(
-                    GroupStatus.PENDING_DELETION,
-                    GroupStatus.DELETION_IN_PROGRESS,
-                    GroupStatus.PENDING_MERGE,
-                )
+            status_in = (
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+                GroupStatus.PENDING_MERGE,
             )
+            if not include_unprocessed:
+                status_in += (GroupStatus.UNPROCESSED,)
+            queryset = queryset.exclude(status__in=status_in)
         else:
             queryset = queryset.filter(status=status)
 

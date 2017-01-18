@@ -22,7 +22,7 @@ import StreamSidebar from './stream/sidebar';
 import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
-import {t, tct} from '../locale';
+import {t, tn, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -59,6 +59,7 @@ const Stream = React.createClass({
       loading: (searchId || !this.hasQuery() ? true : false),
       savedSearchLoading: true,
       savedSearchList: [],
+      processingIssues: null,
       selectAllActive: false,
       multiSelected: false,
       anySelected: false,
@@ -86,6 +87,7 @@ const Stream = React.createClass({
     });
 
     this.fetchSavedSearches();
+    this.fetchProcessingIssues();
     this.fetchTags();
     if (!this.state.loading) {
       this.fetchData();
@@ -104,7 +106,10 @@ const Stream = React.createClass({
 
     if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
       // TODO(dcramer): handle 404 from popState on searchId
-      this.setState(this.getQueryState(nextProps), this.fetchData);
+      this.setState(this.getQueryState(nextProps), () => {
+        this.fetchProcessingIssues();
+        this.fetchData();
+      });
     }
   },
 
@@ -186,6 +191,23 @@ const Stream = React.createClass({
           savedSearchLoading: false,
           query: ''
         });
+      }
+    });
+  },
+
+  fetchProcessingIssues() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+      success: (data) => {
+        if (data.hasIssues) {
+          this.setState({
+            processingIssues: data,
+          });
+        }
+      },
+      error: (error) => {
+        logAjaxError(error);
+        // this is okay. it's just a ui hint
       }
     });
   },
@@ -460,6 +482,10 @@ const Stream = React.createClass({
     return links && !links.previous.results && !links.next.results;
   },
 
+  showingProcessingIssues() {
+    return this.state.query && this.state.query.trim() == 'is:unprocessed';
+  },
+
   transitionTo() {
     let queryParams = {};
 
@@ -539,6 +565,37 @@ const Stream = React.createClass({
     );
   },
 
+  renderProcessingIssuesHint() {
+    let pi = this.state.processingIssues;
+    if (!pi) {
+      return null;
+    }
+
+    let {orgId, projectId} = this.props.params;
+    let issues = tn('%d problems', '%d problems', pi.affectedIssues);
+    let groups = tn('%d group', '%d groups', pi.affectedGroups);
+    let releases = tn('%d release', '%d releases', pi.affectedReleases);
+
+    return (
+      <div className="processing-issues">
+        <strong>{t('Unprocessed Issues: ')}</strong>
+        {tct('there are [issues] affecting [groups] in [releases].', {
+          issues: issues,
+          groups: groups,
+          releases: releases,
+        })}
+        {!this.showingProcessingIssues() &&
+          <span>
+            {' '}
+            <Link to={`/${orgId}/${projectId}/?query=is:unprocessed`}>{t('show affected issues')}</Link>
+            {' or '}
+          </span>}
+        {' '}
+        <Link to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('resolve problems')}</Link>
+      </div>
+    );
+  },
+
   renderStreamBody() {
     let body;
 
@@ -612,6 +669,7 @@ const Stream = React.createClass({
                 </div>
               </div>
             </Sticky>
+            {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}
             <Pagination pageLinks={this.state.pageLinks}/>
           </div>

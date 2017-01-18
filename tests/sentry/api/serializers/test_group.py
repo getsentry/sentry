@@ -47,6 +47,16 @@ class GroupSerializerTest(TestCase):
         assert result['status'] == 'ignored'
         assert result['statusDetails'] == {'ignoreUntil': snooze.until}
 
+    def test_is_ignored_unprocessed(self):
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.UNPROCESSED,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'unprocessed'
+        assert result['isTransient'] is True
+
     def test_resolved_in_next_release(self):
         release = Release.objects.create(
             organization_id=self.project.organization_id,

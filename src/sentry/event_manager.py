@@ -44,6 +44,25 @@ from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
 
 
+NON_STORED_DATA_KEYS = [
+    'unprocessed',
+    'event_id',
+    'level',
+    'culprit',
+    'logger',
+    'server_name',
+    'site',
+    'checksum',
+    'fingerprint',
+    'platform',
+    'release',
+    'environment',
+    'message',
+    'time_spent',
+    'timestamp',
+]
+
+
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
@@ -398,27 +417,34 @@ class EventManager(object):
         from sentry.tasks.post_process import index_event_tags
 
         project = Project.objects.get_from_cache(id=project)
+        assert project is not None, 'did not get a project. this is bad'
 
         data = self.data.copy()
 
+        unprocessed = data.get('unprocessed', False)
+
         # First we pull out our top-level (non-data attr) kwargs
-        event_id = data.pop('event_id')
-        level = data.pop('level')
+        event_id = data.get('event_id')
+        level = data.get('level')
 
-        culprit = data.pop('culprit', None)
-        logger_name = data.pop('logger', None)
-        server_name = data.pop('server_name', None)
-        site = data.pop('site', None)
-        checksum = data.pop('checksum', None)
-        fingerprint = data.pop('fingerprint', None)
-        platform = data.pop('platform', None)
-        release = data.pop('release', None)
-        environment = data.pop('environment', None)
+        culprit = data.get('culprit', None)
+        logger_name = data.get('logger', None)
+        server_name = data.get('server_name', None)
+        site = data.get('site', None)
+        checksum = data.get('checksum', None)
+        fingerprint = data.get('fingerprint', None)
+        platform = data.get('platform', None)
+        release = data.get('release', None)
+        environment = data.get('environment', None)
+        message = data.get('message', '')
+        time_spent = data.get('time_spent', None)
 
-        # unused
-        time_spent = data.pop('time_spent', None)
-        message = data.pop('message', '')
+        date = datetime.fromtimestamp(data.get('timestamp'))
+        date = date.replace(tzinfo=timezone.utc)
 
+        # Some processing for when things went well
+        for key in NON_STORED_DATA_KEYS:
+            data.pop(key, None)
         if not culprit:
             # if we generate an implicit culprit, lets not call it a
             # transaction
@@ -426,9 +452,6 @@ class EventManager(object):
             culprit = generate_culprit(data, platform=platform)
         else:
             transaction_name = culprit
-
-        date = datetime.fromtimestamp(data.pop('timestamp'))
-        date = date.replace(tzinfo=timezone.utc)
 
         kwargs = {
             'platform': platform,
@@ -485,7 +508,6 @@ class EventManager(object):
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
         data['tags'] = tags
-
         data['fingerprint'] = fingerprint or ['{{ default }}']
 
         for path, iface in six.iteritems(event.interfaces):
@@ -493,22 +515,6 @@ class EventManager(object):
             # Get rid of ephemeral interface data
             if iface.ephemeral:
                 data.pop(iface.get_path(), None)
-
-        # prioritize fingerprint over checksum as its likely the client defaulted
-        # a checksum whereas the fingerprint was explicit
-        if fingerprint:
-            hashes = [
-                md5_from_hash(h)
-                for h in get_hashes_from_fingerprint(event, fingerprint)
-            ]
-        elif checksum:
-            hashes = [checksum]
-            data['checksum'] = checksum
-        else:
-            hashes = [
-                md5_from_hash(h)
-                for h in get_hashes_for_event(event)
-            ]
 
         # TODO(dcramer): temp workaround for complexity
         data['message'] = message
@@ -529,6 +535,22 @@ class EventManager(object):
                     message,
                     data['sentry.interfaces.Message']['message'],
                 )
+
+        # prioritize fingerprint over checksum as its likely the client defaulted
+        # a checksum whereas the fingerprint was explicit
+        if fingerprint:
+            hashes = [
+                md5_from_hash(h)
+                for h in get_hashes_from_fingerprint(event, fingerprint)
+            ]
+        elif checksum:
+            hashes = [checksum]
+            data['checksum'] = checksum
+        else:
+            hashes = [
+                md5_from_hash(h)
+                for h in get_hashes_for_event(event)
+            ]
 
         if not message:
             message = ''
@@ -579,6 +601,7 @@ class EventManager(object):
             event=event,
             hashes=hashes,
             release=release,
+            unprocessed=unprocessed,
             **group_kwargs
         )
 
@@ -787,7 +810,7 @@ class EventManager(object):
             group=group,
         )
 
-    def _save_aggregate(self, event, hashes, release, **kwargs):
+    def _save_aggregate(self, event, hashes, release, unprocessed=False, **kwargs):
         project = event.project
 
         # attempt to find a matching hash
@@ -803,8 +826,13 @@ class EventManager(object):
         # should be better tested/reviewed
         if existing_group_id is None:
             kwargs['score'] = ScoreClause.calculate(1, kwargs['last_seen'])
+            if unprocessed:
+                kwargs['status'] = GroupStatus.UNPROCESSED
             with transaction.atomic():
-                short_id = project.next_short_id()
+                if unprocessed:
+                    short_id = None
+                else:
+                    short_id = project.next_short_id()
                 group, group_is_new = Group.objects.create(
                     project=project,
                     short_id=short_id,
@@ -881,6 +909,8 @@ class EventManager(object):
         if not plugin_is_regression(group, event):
             return
 
+        group_status = GroupStatus.UNRESOLVED
+
         # we now think its a regression, rely on the database to validate that
         # no one beat us to this
         date = max(event.datetime, group.last_seen)
@@ -897,11 +927,11 @@ class EventManager(object):
             # explicitly set last_seen here as ``is_resolved()`` looks
             # at the value
             last_seen=date,
-            status=GroupStatus.UNRESOLVED
+            status=group_status
         ))
 
         group.active_at = date
-        group.status = GroupStatus.UNRESOLVED
+        group.status = group_status
 
         if is_regression and release:
             # resolutions are only valid if the state of the group is still
