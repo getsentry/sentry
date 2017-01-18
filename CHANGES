@@ -9,6 +9,7 @@ Version 8.13 (Unreleased)
 - Added the ability to download an apple compatible crash report for cocoa events.
 - Add memory and storage information for apple devices
 - The legacy API keys feature is now disabled by default.
+- Show ``buildNumber`` as tag when sent from the client.
 
 Version 8.12
 ------------
