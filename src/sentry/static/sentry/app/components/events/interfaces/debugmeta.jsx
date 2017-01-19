@@ -12,17 +12,42 @@ const DebugMetaInterface = React.createClass({
     data: React.PropTypes.object.isRequired
   },
 
+  getImageDetail(img, evt) {
+    let name = img.name.split('/').pop();
+
+    if (name == 'dyld_sim')
+      return null; // this is only for simulator builds
+
+    let version = null;
+
+    if (Number.isInteger(img.major_version) &&
+      Number.isInteger(img.minor_version) &&
+      Number.isInteger(img.revision_version)) {
+      if (img.major_version == 0 &&
+        img.minor_version == 0 &&
+        img.revision_version == 0) { // we show the version
+        version = `${evt.release.version}`;
+      } else
+        version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
+    } else
+      version = img.uuid;
+
+    if (version)
+      return [name, version];
+
+    return null;
+  },
+
   render() {
     let data = this.props.data;
-
-    // TODO(hazat): don't use image.uuid should be version number
-    // as soon as this is implemented in KSCrash
     let images = data.images.map(
-        (image) => [image.name.split('/').pop(), image.uuid]
-    );
+        (img) => this.getImageDetail(img, this.props.event)
+    ).filter(img => img); // removes null values
 
-    return (
-      <div>
+    let result = null;
+
+    if (images.length > 0) {
+      result = (<div>
         <EventDataSection
             group={this.props.group}
             event={this.props.event}
@@ -32,8 +57,10 @@ const DebugMetaInterface = React.createClass({
                 <KeyValueList data={images} isSorted={false} />
             </ClippedBox>
         </EventDataSection>
-      </div>
-    );
+      </div>);
+    }
+
+    return result;
   }
 });
 
