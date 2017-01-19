@@ -39,6 +39,48 @@ class ReleaseSerializer(Serializer):
     #         authors.append(serialize(author))
 
     #     return authors
+    def _get_commit_metadata(self, item_list, user):
+        release_commits = list(ReleaseCommit.objects.filter(
+            release__in=item_list).prefetch_related("commit__author"))
+
+        commit_count_by_release_id = Counter()
+        authors_by_release_id = defaultdict(dict)
+
+        author_emails = set(rc.commit.author.email for rc in release_commits)
+
+        # TODO: Consider UserEmail models, organization filter
+        # NOTE: Possible to return multiple User objects for a single email
+        users = list(User.objects.filter(email__in=author_emails))
+        users_by_email = {}
+        for user in users:
+            # Duplicates will clobber existing record in dict
+            users_by_email[user.email] = serialize(user)
+
+        for rc in release_commits:
+            # Count commits per release
+            commit_count_by_release_id[rc.release_id] += 1
+
+            # Accumulate authors per release
+            release_authors = authors_by_release_id[rc.release_id]
+            if rc.commit.author_id not in release_authors:
+                author = rc.commit.author
+                if author.email in users_by_email:
+                    # Author has a matching Sentry user
+                    release_authors[author.id] = users_by_email[author.email]
+                else:
+                    release_authors[author.id] = {
+                        "name": author.name,
+                        "email": author.email
+                    }
+
+        result = {}
+        for item in item_list:
+            result[item] = {
+                'commit_count': commit_count_by_release_id[item.id],
+                'author_count': 0,
+                'authors': authors_by_release_id[item.id].values(),
+            }
+        return result
 
     def get_attrs(self, item_list, user, *args, **kwargs):
         tags = {
@@ -70,62 +112,18 @@ class ReleaseSerializer(Serializer):
                                       .annotate(new_groups=Sum('new_groups'))
                                       .values_list('release_id', 'new_groups')
             )
-        release_commits = list(ReleaseCommit.objects.filter(
-            release__in=item_list).prefetch_related("commit__author"))
 
-        commit_count_by_release_id = Counter()
-        authors_by_release_id = defaultdict(dict)
-
-        author_emails = set(rc.commit.author.email for rc in release_commits)
-
-        # NOTE: Possible to return multiple User objects for a single email
-        users = list(User.objects.filter(email__in=author_emails))
-        users_by_email = {}
-        for user in users:
-            # Duplicates will clobber existing record in dict
-            users_by_email[user.email] = serialize(user)
-
-        for rc in release_commits:
-            # Count commits per release
-            commit_count_by_release_id[rc.release_id] += 1
-
-            # Accumulate authors per release
-            release_authors = authors_by_release_id[rc.release_id]
-            if rc.commit.author_id not in release_authors:
-                author = rc.commit.author
-                if author.email in users_by_email:
-                    # Author has a matching Sentry user
-                    release_authors[author.id] = users_by_email[author.email]
-                else:
-                    release_authors[author.id] = {
-                        "name": author.name,
-                        "email": author.email
-                    }
+        release_metadata_attrs = self._get_commit_metadata(item_list, user)
 
         result = {}
         for item in item_list:
             result[item] = {
-                'commit_count': commit_count_by_release_id[item.id],
-                'author_count': 0,
-                'authors': authors_by_release_id[item.id].values(),
                 'tag': tags.get(item.version),
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_groups': group_counts_by_release.get(item.id) or 0
             }
+            result[item].update(release_metadata_attrs[item])
 
-        # if features.has('organizations:release-commits', actor=user):
-        # numCommits
-        # get number of subcommits
-        # num_commits = ReleaseCommit.objects.count(release_id=release.id)
-        # for item in item_list:
-        # authors = self._get_commit_authors(item_list, user)
-        # result[item] = {
-        #     'authors': authors,
-        #     'author_count': len(authors),
-        #     'commit_count': ReleaseCommit.objects.filter(release=item).count(),
-        #     'tag': tags.get(item.version),
-        #     'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
-        # }
         return result
 
     def serialize(self, obj, attrs, user, *args, **kwargs):
