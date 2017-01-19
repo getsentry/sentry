@@ -4,6 +4,9 @@ import six
 
 from django.db.models import Sum
 
+
+from collections import Counter, defaultdict
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User
 
@@ -70,7 +73,6 @@ class ReleaseSerializer(Serializer):
         release_commits = list(ReleaseCommit.objects.filter(
             release__in=item_list).prefetch_related("commit__author"))
 
-        from collections import Counter, defaultdict
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
 
@@ -115,8 +117,8 @@ class ReleaseSerializer(Serializer):
         # numCommits
         # get number of subcommits
         # num_commits = ReleaseCommit.objects.count(release_id=release.id)
-        #for item in item_list:
-        #authors = self._get_commit_authors(item_list, user)
+        # for item in item_list:
+        # authors = self._get_commit_authors(item_list, user)
         # result[item] = {
         #     'authors': authors,
         #     'author_count': len(authors),
