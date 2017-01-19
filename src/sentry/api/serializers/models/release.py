@@ -77,7 +77,6 @@ class ReleaseSerializer(Serializer):
         for item in item_list:
             result[item] = {
                 'commit_count': commit_count_by_release_id[item.id],
-                'author_count': 0,
                 'authors': authors_by_release_id[item.id].values(),
             }
         return result
@@ -139,7 +138,6 @@ class ReleaseSerializer(Serializer):
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': attrs['commit_count'],
-            'authorCount': attrs['author_count'],
             'authors': attrs['authors'],
         }
         if attrs['tag']:

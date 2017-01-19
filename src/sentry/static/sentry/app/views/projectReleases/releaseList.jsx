@@ -1,4 +1,5 @@
 import React from 'react';
+import ReleaseStats from '../../components/releaseStats';
 import Count from '../../components/count';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
@@ -26,8 +27,7 @@ const ReleaseList = React.createClass({
                     </div>
                   </div>
                   <div className="col-sm-2 col-xs-2">
-                    <div>{release.commitCount} commits by {release.authorCount} authors</div>
-                    {release.authors.map(author => {return <div>{author.name}</div>; })}
+                    <ReleaseStats release={release}/>
                   </div>
                   <div className="col-sm-2 col-xs-3 release-stats stream-count">
                     <Count className="release-count" value={release.newGroups} />
