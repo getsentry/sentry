@@ -21,15 +21,22 @@ def process_apple_image(image):
     def _addr(x):
         return '0x%x' % parse_addr(x)
     try:
-        return {
+        apple_image = {
             'cpu_type': image['cpu_type'],
             'cpu_subtype': image['cpu_subtype'],
             'image_addr': _addr(image['image_addr']),
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image['name'],
-            'uuid': image['uuid'],
+            'uuid': image['uuid']
         }
+        if image.get('major_version') is not None:
+            apple_image['major_version'] = image['major_version']
+        if image.get('minor_version') is not None:
+            apple_image['minor_version'] = image['minor_version']
+        if image.get('revision_version') is not None:
+            apple_image['revision_version'] = image['revision_version']
+        return apple_image
     except KeyError as e:
         raise InterfaceValidationError('Missing value for apple image: %s'
                                        % e.args[0])
