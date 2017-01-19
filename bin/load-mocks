@@ -300,36 +300,68 @@ def main(num_events=1):
                 defaults={'organization_id': project.organization_id}
             )
 
-            commit = Commit.objects.get_or_create(
-                organization_id=org.id,
-                repository_id=Repository.objects.get_or_create(
-                    organization_id=org.id,
-                    name='Example Repo',
-                    provider='github',
-                    external_id='example/example',
-                )[0].id,
-                key='6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
-                author=CommitAuthor.objects.get_or_create(
-                    organization_id=org.id,
-                    name=user.name,
-                    email=user.email,
-                )[0],
-                message='real good stuff here\n\nWe did lots of good stuff over and over.'
-            )[0]
+            raw_commits = [
+                {
+                    'key': '6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
+                    'message': 'Fix widget for real this time\n\nTurns out the sprocket configuration was broken.',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/static/js/widget.js', 'M'),
+                    ],
+                },
+                {
+                    'key': '98a0672968c19e3d7921def5d724cc977e85f527',
+                    'message': 'Added .gitignore',
+                    'author': ('Jane Doe', 'janedoe@example.com'),
+                    'files': [
+                        ('.gitignore', 'A'),
+                        ('.DS_Store', 'D')
+                    ],
+                },
+                {
+                    'key': '631cd9096bd9811a046a472bb0aa8b573e86e1f1',
+                    'message': 'Fix widget',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/static/html/widget.html', 'M'),
+                        ('/static/js/widget.js', 'M'),
+                        ('.DS_Store', 'A'),
+                    ],
+                },
+            ]
 
-            CommitFileChange.objects.get_or_create(
-                organization_id=org.id,
-                commit=commit,
-                filename='an-example.js',
-                type='M',
-            )
+            for commit_index, raw_commit in enumerate(raw_commits):
+                commit = Commit.objects.get_or_create(
+                    organization_id=org.id,
+                    repository_id=Repository.objects.get_or_create(
+                        organization_id=org.id,
+                        name='Example Repo',
+                        provider='github',
+                        external_id='example/example',
+                    )[0].id,
+                    key=raw_commit['key'],
+                    author=CommitAuthor.objects.get_or_create(
+                        organization_id=org.id,
+                        name=raw_commit['author'][0],
+                        email=raw_commit['author'][1],
+                    )[0],
+                    message=raw_commit['message'],
+                )[0]
 
-            ReleaseCommit.objects.get_or_create(
-                organization_id=org.id,
-                release=release,
-                commit=commit,
-                order=0,
-            )
+                for file in raw_commit['files']:
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=org.id,
+                        commit=commit,
+                        filename=file[0],
+                        type=file[1],
+                    )
+
+                ReleaseCommit.objects.get_or_create(
+                    organization_id=org.id,
+                    release=release,
+                    commit=commit,
+                    order=commit_index,
+                )
 
             Activity.objects.create(
                 type=Activity.RELEASE,
