@@ -51,7 +51,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 sentry_orgmember_set__teams=project.team,
                 is_active=True,
             ).distinct()
-            if features.has('workflow:release-emails', actor=user)
+            if features.has('workflow:release-emails', project=self.project, actor=user)
         }
 
     def get_context(self):
