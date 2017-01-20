@@ -1,23 +1,39 @@
 # -*- coding: utf-8 -*-
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 from django.db import models
 
-
-class Migration(SchemaMigration):
+class Migration(DataMigration):
 
     def forwards(self, orm):
-        # Adding field 'ReleaseProject.new_groups'
-        db.add_column('sentry_release_project', 'new_groups',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
-                      keep_default=False)
-
+        "Write your forwards methods here."
+        # Note: Don't use "from appname.models import ModelName".
+        # Use orm.ModelName to refer to models in this application,
+        # and orm['appname.ModelName'] for models in other applications.
+        for release in orm.Release.objects.all():
+          projects = release.projects.values_list('id', flat=True)
+          if len(projects) > 1:
+            # do something fancy where we look at Group.first_release
+            # to calculate ReleaseProject.new_group
+            for p_id in projects:
+                new_groups = orm.Group.objects.filter(
+                    first_release=release,
+                    project_id=p_id
+                ).count()
+                orm.ReleaseProject.objects.filter(
+                    release_id=release.id,
+                    project_id=p_id
+                ).update(new_groups=new_groups)
+          else:
+            # copy Release.new_groups to ReleaseProject.new_group
+            orm.ReleaseProject.objects.filter(
+                release_id=release.id,
+                project_id=projects.first()
+            ).update(new_groups=release.new_groups)
 
     def backwards(self, orm):
-        # Deleting field 'ReleaseProject.new_groups'
-        db.delete_column('sentry_release_project', 'new_groups')
-
+        "Write your backwards methods here."
 
     models = {
         'sentry.activity': {
@@ -102,7 +118,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 1, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 1, 27, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -577,7 +593,7 @@ class Migration(SchemaMigration):
         'sentry.releaseproject': {
             'Meta': {'unique_together': "(('project', 'release'),)", 'object_name': 'ReleaseProject', 'db_table': "'sentry_release_project'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
+            'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'null': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"})
         },
@@ -679,7 +695,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'Yd4IetOvMJVJl96tMTF112kVp8ZodCcy'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'ggO11EVTlvyufktHQ5bYeQQO60JGWrUk'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
@@ -703,3 +719,4 @@ class Migration(SchemaMigration):
     }
 
     complete_apps = ['sentry']
+    symmetrical = True

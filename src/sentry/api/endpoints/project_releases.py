@@ -11,7 +11,7 @@ from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.app import locks
-from sentry.models import Activity, Release
+from sentry.models import Activity, Release, ReleaseProject
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.retries import TimedRetryPolicy
@@ -58,6 +58,21 @@ class ReleaseSerializer(serializers.Serializer):
         return attrs
 
 
+def serialize_release_for_project(objects, user, project):
+    results = serialize(objects, user)
+    release_projects = ReleaseProject.objects.filter(
+        project=project,
+        release_id__in=[r['id'] for r in results]
+    )
+
+    release_projects_by_id = {
+        rp.release_id: rp for rp in release_projects
+    }
+    for release in results:
+        release['newGroups'] = release_projects_by_id[release['id']].new_groups
+    return results
+
+
 class ProjectReleasesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
     permission_classes = (ProjectReleasePermission,)
@@ -98,7 +113,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by='-sort',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize_release_for_project(x, request.user, project),
         )
 
     @attach_scenarios([create_new_release_scenario])

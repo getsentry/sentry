@@ -34,6 +34,7 @@ class ReleaseSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         d = {
+            'id': obj.id,
             'version': obj.version,
             'shortVersion': obj.short_version,
             'ref': obj.ref,
@@ -42,7 +43,6 @@ class ReleaseSerializer(Serializer):
             'dateReleased': obj.date_released,
             'dateCreated': obj.date_added,
             'data': obj.data,
-            'newGroups': obj.new_groups,
             'owner': attrs['owner'],
         }
         if attrs['tag']:
