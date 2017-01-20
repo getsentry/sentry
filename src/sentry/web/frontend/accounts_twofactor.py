@@ -112,11 +112,10 @@ class TwoFactorSettingsView(BaseView):
             form = ConfirmPasswordForm(request.user, request.POST)
             if 'password' in form.fields:
                 if form.is_valid():
-                    if request.user.check_password(form.cleaned_data['password']):
-                        self.delete_authenticator(request, interface)
-                        return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
-                    else:
-                        form.errors['__all__'] = ['Invalid password.']
+                    self.delete_authenticator(request, interface)
+                    return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+                else:
+                    form.errors['__all__'] = ['Invalid password.']
             else:
                 self.delete_authenticator(request, interface)
                 return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
