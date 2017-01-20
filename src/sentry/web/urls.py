@@ -113,10 +113,19 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.frontend.debug.debug_error_embed import (
         DebugErrorPageEmbedView
     )
+    from sentry.web.frontend.debug.debug_mfa_added_email import (
+        DebugMfaAddedEmailView
+    )
+    from sentry.web.frontend.debug.debug_mfa_removed_email import (
+        DebugMfaRemovedEmailView
+    )
     from sentry.web.frontend.debug.debug_new_release_email import (
         DebugNewReleaseEmailView
     )
     from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+    from sentry.web.frontend.debug.debug_password_changed_email import (
+        DebugPasswordChangedEmailView
+    )
     from sentry.web.frontend.debug.debug_regression_email import (
         DebugRegressionEmailView, DebugRegressionReleaseEmailView
     )
@@ -171,6 +180,12 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
             DebugUnassignedEmailView.as_view()),
         url(r'^debug/mail/org-delete-confirm/$',
             sentry.web.frontend.debug.mail.org_delete_confirm),
+        url(r'^debug/mail/mfa-removed/$',
+            DebugMfaRemovedEmailView.as_view()),
+        url(r'^debug/mail/mfa-added/$',
+            DebugMfaAddedEmailView.as_view()),
+        url(r'^debug/mail/password-changed/$',
+            DebugPasswordChangedEmailView.as_view()),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',

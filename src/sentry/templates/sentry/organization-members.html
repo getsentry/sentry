@@ -2,6 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_avatars %}
 {% load sentry_helpers %}
 {% load sentry_features %}
 
@@ -85,12 +86,7 @@
           <tr>
             <td class="table-user-info">
               <span class="avatar">
-                {% letter_avatar_svg member.get_display_name member.get_label %}
-                {% if member.get_avatar_type == 'upload' %}
-                  <img src="{% profile_photo_url member.user_id size 80 %}">
-                {% elif member.get_avatar_type == 'gravatar' %}
-                  <img src="{% gravatar_url member.get_email size 80 default 'blank' %}">
-                {% endif %}
+                {% avatar member %}
               </span>
               <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
                 {{ member.get_display_name }}

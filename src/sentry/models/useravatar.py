@@ -6,7 +6,7 @@ from django.db import models
 from PIL import Image
 from six import BytesIO
 
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model
 from sentry.utils.cache import cache
 
 
@@ -29,6 +29,8 @@ class UserAvatar(Model):
     file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)
+
+    objects = BaseManager(cache_fields=['user'])
 
     class Meta:
         app_label = 'sentry'
