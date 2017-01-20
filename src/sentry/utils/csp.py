@@ -97,7 +97,7 @@ def is_valid_csp_report(report, project=None):
         disallowed_sources = ()
 
     if project is not None:
-        disallowed_sources += tuple(project.get_option('sentry:csp_ignored_source', []))
+        disallowed_sources += tuple(project.get_option('sentry:csp_ignored_sources', []))
 
     if not disallowed_sources:
         return True
