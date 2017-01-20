@@ -46,7 +46,7 @@ class ReleaseSerializer(Serializer):
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
 
-        author_emails = set(rc.commit.author.email for rc in release_commits)
+        author_emails = set(rc.commit.author.email for rc in release_commits if rc.commit.author is not None)
 
         # TODO: Consider UserEmail models, organization filter
         # NOTE: Possible to return multiple User objects for a single email
@@ -59,10 +59,12 @@ class ReleaseSerializer(Serializer):
         for rc in release_commits:
             # Count commits per release
             commit_count_by_release_id[rc.release_id] += 1
-
             # Accumulate authors per release
             release_authors = authors_by_release_id[rc.release_id]
-            if rc.commit.author_id not in release_authors:
+
+            if not rc.commit.author:
+                pass
+            elif rc.commit.author_id not in release_authors:
                 author = rc.commit.author
                 if author.email in users_by_email:
                     # Author has a matching Sentry user
