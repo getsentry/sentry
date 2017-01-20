@@ -32,7 +32,6 @@ class ReleaseSerializerTest(TestCase):
         result = serialize(release, user)
         assert result['version'] == release.version
         assert result['shortVersion'] == release.version
-        assert result['newGroups'] == 1
         assert result['firstEvent']
         assert result['lastEvent']
 
