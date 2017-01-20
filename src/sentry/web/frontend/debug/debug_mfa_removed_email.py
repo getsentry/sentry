@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import datetime
+
 from django.views.generic import View
 
 from sentry.models import Authenticator
@@ -24,6 +26,8 @@ class DebugMfaRemovedEmailView(View):
             context={
                 'authenticator': authenticator,
             },
+            # make this consistent for acceptance tests
+            current_datetime=datetime.datetime(2017, 1, 20, 21, 39, 23, 30723)
         )
         return MailPreview(
             html_template=email.html_template,
