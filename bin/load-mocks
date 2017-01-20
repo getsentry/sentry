@@ -8,6 +8,7 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from hashlib import sha1
 from pytz import utc
@@ -287,19 +288,6 @@ def main(num_events=1):
                         )
                     release.add_project(project)
 
-            ReleaseFile.objects.get_or_create(
-                organization_id=project.organization_id,
-                release=release,
-                name='an-example.js',
-                file=File.objects.get_or_create(
-                    name='an-example.js',
-                    type='release.file',
-                    checksum='abcde' * 8,
-                    size=13043,
-                )[0],
-                defaults={'organization_id': project.organization_id}
-            )
-
             raw_commits = [
                 {
                     'key': '6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
@@ -330,31 +318,49 @@ def main(num_events=1):
                 },
             ]
 
+            repo = Repository.objects.get_or_create(
+                organization_id=org.id,
+                name='Example Repo',
+                provider='github',
+                external_id='example/example',
+            )
+
             for commit_index, raw_commit in enumerate(raw_commits):
                 commit = Commit.objects.get_or_create(
                     organization_id=org.id,
-                    repository_id=Repository.objects.get_or_create(
-                        organization_id=org.id,
-                        name='Example Repo',
-                        provider='github',
-                        external_id='example/example',
-                    )[0].id,
+                    repository_id=repo[0].id,
                     key=raw_commit['key'],
-                    author=CommitAuthor.objects.get_or_create(
-                        organization_id=org.id,
-                        name=raw_commit['author'][0],
-                        email=raw_commit['author'][1],
-                    )[0],
-                    message=raw_commit['message'],
+                    defaults={
+                        'author': CommitAuthor.objects.get_or_create(
+                            organization_id=org.id,
+                            name=raw_commit['author'][0],
+                            email=raw_commit['author'][1],
+                        )[0],
+                        'message': raw_commit['message'],
+                    },
                 )[0]
 
                 for file in raw_commit['files']:
+                    ReleaseFile.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        release=release,
+                        name=file[0],
+                        file=File.objects.get_or_create(
+                            name=file[0],
+                            type='release.file',
+                            checksum='abcde' * 8,
+                            size=13043,
+                        )[0],
+                        defaults={'organization_id': project.organization_id}
+                    )
+
                     CommitFileChange.objects.get_or_create(
                         organization_id=org.id,
                         commit=commit,
                         filename=file[0],
                         type=file[1],
                     )
+
 
                 ReleaseCommit.objects.get_or_create(
                     organization_id=org.id,
