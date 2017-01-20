@@ -676,11 +676,12 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'organizations:api-keys': True,
+    'organizations:api-keys': False,
     'organizations:create': True,
     'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
+    'organizations:release-commits': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -1083,4 +1084,5 @@ SDK_URLS = {
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
+    'raven-php': 'sentry-php',
 }

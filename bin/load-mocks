@@ -287,49 +287,86 @@ def main(num_events=1):
                         )
                     release.add_project(project)
 
-            ReleaseFile.objects.get_or_create(
-                organization_id=project.organization_id,
-                release=release,
-                name='an-example.js',
-                file=File.objects.get_or_create(
-                    name='an-example.js',
-                    type='release.file',
-                    checksum='abcde' * 8,
-                    size=13043,
-                )[0],
-                defaults={'organization_id': project.organization_id}
+            raw_commits = [
+                {
+                    'key': '6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
+                    'message': 'Fix widget for real this time\n\nTurns out the sprocket configuration was broken.',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/static/js/widget.js', 'M'),
+                    ],
+                },
+                {
+                    'key': '98a0672968c19e3d7921def5d724cc977e85f527',
+                    'message': 'Added .gitignore',
+                    'author': ('Jane Doe', 'janedoe@example.com'),
+                    'files': [
+                        ('.gitignore', 'A'),
+                        ('.DS_Store', 'D')
+                    ],
+                },
+                {
+                    'key': '631cd9096bd9811a046a472bb0aa8b573e86e1f1',
+                    'message': 'Fix widget',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/static/html/widget.html', 'M'),
+                        ('/static/js/widget.js', 'M'),
+                        ('.DS_Store', 'A'),
+                    ],
+                },
+            ]
+
+            repo = Repository.objects.get_or_create(
+                organization_id=org.id,
+                name='Example Repo',
+                provider='github',
+                external_id='example/example',
             )
 
-            commit = Commit.objects.get_or_create(
-                organization_id=org.id,
-                repository_id=Repository.objects.get_or_create(
+            for commit_index, raw_commit in enumerate(raw_commits):
+                commit = Commit.objects.get_or_create(
                     organization_id=org.id,
-                    name='Example Repo',
-                    provider='github',
-                    external_id='example/example',
-                )[0].id,
-                key='6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
-                author=CommitAuthor.objects.get_or_create(
+                    repository_id=repo[0].id,
+                    key=raw_commit['key'],
+                    defaults={
+                        'author': CommitAuthor.objects.get_or_create(
+                            organization_id=org.id,
+                            name=raw_commit['author'][0],
+                            email=raw_commit['author'][1],
+                        )[0],
+                        'message': raw_commit['message'],
+                    },
+                )[0]
+
+                for file in raw_commit['files']:
+                    ReleaseFile.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        release=release,
+                        name=file[0],
+                        file=File.objects.get_or_create(
+                            name=file[0],
+                            type='release.file',
+                            checksum='abcde' * 8,
+                            size=13043,
+                        )[0],
+                        defaults={'organization_id': project.organization_id}
+                    )
+
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=org.id,
+                        commit=commit,
+                        filename=file[0],
+                        type=file[1],
+                    )
+
+
+                ReleaseCommit.objects.get_or_create(
                     organization_id=org.id,
-                    name=user.name,
-                    email=user.email,
-                )[0],
-                message='real good stuff here\n\nWe did lots of good stuff over and over.'
-            )[0]
-
-            CommitFileChange.objects.get_or_create(
-                organization_id=org.id,
-                commit=commit,
-                filename='an-example.js',
-                type='M',
-            )
-
-            ReleaseCommit.objects.get_or_create(
-                organization_id=org.id,
-                release=release,
-                commit=commit,
-                order=0,
-            )
+                    release=release,
+                    commit=commit,
+                    order=commit_index,
+                )
 
             Activity.objects.create(
                 type=Activity.RELEASE,

@@ -662,3 +662,11 @@ class ConfirmPasswordForm(forms.Form):
 
         if not needs_password:
             del self.fields['password']
+
+    def clean_password(self):
+        value = self.cleaned_data.get('password')
+        if value and not self.user.check_password(value):
+            raise forms.ValidationError(_('The password you entered is not correct.'))
+        elif not value:
+            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+        return value

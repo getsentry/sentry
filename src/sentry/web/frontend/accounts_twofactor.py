@@ -202,8 +202,8 @@ class TotpSettingsView(TwoFactorSettingsView):
         if 'otp' in request.POST:
             form = TwoFactorForm(request.POST)
             password_form = ConfirmPasswordForm(request.user, request.POST)
-            if 'password' in password_form.fields and password_form.is_valid():
-                if request.user.check_password(password_form.cleaned_data['password']):
+            if 'password' in password_form.fields:
+                if password_form.is_valid():
                     if form.is_valid() and interface.validate_otp(
                             form.cleaned_data['otp']):
                         return TwoFactorSettingsView.enroll(self, request, interface)

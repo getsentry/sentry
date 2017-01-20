@@ -7,7 +7,10 @@ Version 8.13 (Unreleased)
 - Project quotas are no longer available, and must now be configured via the organizational rate limits.
 - Quotas implementation now requires a tuple of maximum rate and interval window.
 - Added security emails for adding and removing MFA and password changes.
+- Added the ability to download an apple compatible crash report for cocoa events.
 - Add memory and storage information for apple devices
+- The legacy API keys feature is now disabled by default.
+- Show Images Loaded section for cocoa events with version number.
 
 Version 8.12
 ------------

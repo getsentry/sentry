@@ -4,11 +4,11 @@ import GroupEventDataSection from './eventDataSection';
 import {objectIsEmpty, toTitleCase, defined} from '../../utils';
 
 const CONTEXT_TYPES = {
-  'default': require('./contexts/default'),
-  'device': require('./contexts/device'),
-  'os': require('./contexts/os'),
-  'runtime': require('./contexts/runtime'),
-  'user': require('./contexts/user'),
+  'default': require('./contexts/default').default,
+  'device': require('./contexts/device').default,
+  'os': require('./contexts/os').default,
+  'runtime': require('./contexts/runtime').default,
+  'user': require('./contexts/user').default,
 };
 
 const ContextChunk = React.createClass({

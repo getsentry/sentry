@@ -1,6 +1,6 @@
 import Reflux from 'reflux';
 import AlertActions from '../actions/alertActions';
-import {getItem, setItem} from '../utils/localStorage';
+import localStorage from '../utils/localStorage';
 import {defined} from '../utils';
 
 const AlertStore = Reflux.createStore({
@@ -13,7 +13,7 @@ const AlertStore = Reflux.createStore({
 
   onAddAlert(alert) {
     if (defined(alert.id)) {
-      let expirations = getItem('alerts:muted');
+      let expirations = localStorage.getItem('alerts:muted');
       if (defined(expirations)) {
         expirations = JSON.parse(expirations);
 
@@ -24,7 +24,7 @@ const AlertStore = Reflux.createStore({
             delete expirations[key];
           }
         }
-        setItem('alerts:muted', JSON.stringify(expirations));
+        localStorage.setItem('alerts:muted', JSON.stringify(expirations));
 
         if (expirations.hasOwnProperty(alert.id)) {
           return;
@@ -54,14 +54,14 @@ const AlertStore = Reflux.createStore({
   onCloseAlert(alert, duration = 60 * 60 * 7 * 24) {
     if (defined(alert.id) && defined(duration)) {
       let expiry = Math.floor(new Date() / 1000) + duration;
-      let expirations = getItem('alerts:muted');
+      let expirations = localStorage.getItem('alerts:muted');
       if (defined(expirations)) {
         expirations = JSON.parse(expirations);
       } else {
         expirations = {};
       }
       expirations[alert.id] = expiry;
-      setItem('alerts:muted', JSON.stringify(expirations));
+      localStorage.setItem('alerts:muted', JSON.stringify(expirations));
     }
 
     // TODO(dcramer): we need some animations here for closing alerts
