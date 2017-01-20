@@ -11,7 +11,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.app import locks
-from sentry.models import Activity, Project, Release, ReleaseProject
+from sentry.models import Activity, OrganizationMemberTeam, Project, Release, ReleaseProject, Team
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -22,6 +22,21 @@ class ReleaseSerializerWithProjects(ReleaseSerializer):
 class OrganizationReleasesEndpoint(OrganizationEndpoint):
     doc_section = DocSection.RELEASES
     permission_classes = (OrganizationReleasePermission,)
+
+    def get_allowed_projects(self, request, organization):
+        if not request.user.is_authenticated():
+            return []
+
+        if request.is_superuser() or organization.flags.allow_joinleave:
+            allowed_teams = Team.objects.filter(
+                organization=organization
+            ).values_list('id', flat=True)
+        else:
+            allowed_teams = OrganizationMemberTeam.objects.filter(
+                organizationmember__user=request.user,
+                team__organization_id=organization.id,
+            ).values_list('team_id', flat=True)
+        return Project.objects.filter(team_id__in=allowed_teams)
 
     def get(self, request, organization):
         """
@@ -35,8 +50,11 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
         """
         query = request.GET.get('query')
 
+        allowed_projects = self.get_allowed_projects(request, organization)
+
         queryset = Release.objects.filter(
             organization=organization,
+            projects=allowed_projects
         ).select_related('owner')
 
         if query:
