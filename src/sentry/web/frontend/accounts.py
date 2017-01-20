@@ -30,6 +30,7 @@ from sudo.decorators import sudo_required
 from sentry.models import (
     UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
+from sentry.security import capture_security_activity
 from sentry.signals import email_verified
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
@@ -113,19 +114,28 @@ def recover_confirm(request, user_id, hash):
         if request.method == 'POST':
             form = ChangePasswordRecoverForm(request.POST)
             if form.is_valid():
-                user.set_password(form.cleaned_data['password'])
-                user.refresh_session_nonce(request)
-                user.save()
+                with transaction.atomic():
+                    user.set_password(form.cleaned_data['password'])
+                    user.refresh_session_nonce(request)
+                    user.save()
 
-                # Ugly way of doing this, but Django requires the backend be set
-                user = authenticate(
-                    username=user.username,
-                    password=form.cleaned_data['password'],
-                )
+                    # Ugly way of doing this, but Django requires the backend be set
+                    user = authenticate(
+                        username=user.username,
+                        password=form.cleaned_data['password'],
+                    )
 
-                login_user(request, user)
+                    login_user(request, user)
 
-                password_hash.delete()
+                    password_hash.delete()
+
+                    capture_security_activity(
+                        account=user,
+                        type='password-changed',
+                        actor=request.user,
+                        ip_address=request.META['REMOTE_ADDR'],
+                        send_email=True,
+                    )
 
                 return login_redirect(request)
         else:

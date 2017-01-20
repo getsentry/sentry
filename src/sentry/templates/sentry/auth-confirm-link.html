@@ -2,7 +2,7 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
-{% load sentry_helpers %}
+{% load sentry_avatars %}
 
 {% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
 
@@ -12,12 +12,7 @@
 
     <div class="sso-link">
       <span class="avatar">
-        {% letter_avatar_svg existing_user.get_display_name existing_user.get_label %}
-        {% if existing_user.get_avatar_type == 'upload' %}
-          <img src="{% profile_photo_url existing_user.id size 36 %}">
-        {% elif existing_user.get_avatar_type == 'gravatar' %}
-          <img src="{% gravatar_url existing_user.email size 36 default 'blank' %}">
-        {% endif %}
+        {% avatar existing_user %}
       </span>
       <span class="icon-arrow-right"></span>
       <span class="icon-arrow-left"></span>

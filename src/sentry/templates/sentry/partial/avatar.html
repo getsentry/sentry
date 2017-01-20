@@ -1,0 +1,9 @@
+{% load sentry_avatars %}
+<span class="avatar">
+  {% letter_avatar_svg display_name label %}
+  {% if avatar_type == 'upload' %}
+    <img src="{% profile_photo_url user_id size size %}">
+  {% elif avatar_type == 'gravatar' %}
+    <img src="{% gravatar_url email size size default 'blank' %}">
+  {% endif %}
+</span>

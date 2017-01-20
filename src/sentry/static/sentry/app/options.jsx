@@ -34,6 +34,24 @@ const definitions = [
     defaultValue: () => ConfigStore.get('user').email,
   },
   {
+    key: 'system.support-email',
+    label: t('Support Email'),
+    placeholder: 'support@example.com',
+    help: t('The support contact for this Sentry installation.'),
+    // TODO(dcramer): this should not be hardcoded to a component
+    component: EmailField,
+    defaultValue: () => ConfigStore.get('user').email,
+  },
+  {
+    key: 'system.security-email',
+    label: t('Security Email'),
+    placeholder: 'security@example.com',
+    help: t('The security contact for this Sentry installation.'),
+    // TODO(dcramer): this should not be hardcoded to a component
+    component: EmailField,
+    defaultValue: () => ConfigStore.get('user').email,
+  },
+  {
     key: 'system.rate-limit',
     label: t('Rate Limit'),
     placeholder: 'e.g. 500',
