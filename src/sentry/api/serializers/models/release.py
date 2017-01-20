@@ -8,7 +8,7 @@ from django.db.models import Sum
 from collections import Counter, defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User
+from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, UserEmail
 
 
 @register(Release)
@@ -50,11 +50,11 @@ class ReleaseSerializer(Serializer):
 
         # TODO: Consider UserEmail models, organization filter
         # NOTE: Possible to return multiple User objects for a single email
-        users = list(User.objects.filter(email__in=author_emails))
+        useremails = list(UserEmail.objects.filter(email__in=author_emails))
         users_by_email = {}
-        for user in users:
+        for useremail in useremails:
             # Duplicates will clobber existing record in dict
-            users_by_email[user.email] = serialize(user)
+            users_by_email[useremail.email] = serialize(useremail.user)
 
         for rc in release_commits:
             # Count commits per release
