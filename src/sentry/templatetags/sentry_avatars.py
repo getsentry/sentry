@@ -66,3 +66,16 @@ def avatar(user, size=36):
         'display_name': user.get_display_name(),
         'label': user.get_label(),
     }
+
+
+@register.inclusion_tag('sentry/partial/avatar.html')
+def avatar_for_email(user, size=36):
+    return {
+        'for_email': True,
+        'email': user.email,
+        'user_id': user.id,
+        'size': size,
+        'avatar_type': user.get_avatar_type(),
+        'display_name': user.get_display_name(),
+        'label': user.get_label(),
+    }
