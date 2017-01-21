@@ -1,5 +1,5 @@
-import GroupStore from 'app/stores/groupStore';
-import SelectedGroupStore from 'app/stores/selectedGroupStore';
+const GroupStore = require('app/stores/groupStore');
+const SelectedGroupStore = require('app/stores/selectedGroupStore');
 
 describe('SelectedGroupStore', function() {
 

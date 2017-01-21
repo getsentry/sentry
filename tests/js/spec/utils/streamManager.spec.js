@@ -1,5 +1,5 @@
-import Reflux from 'reflux';
-import StreamManager from 'app/utils/streamManager';
+const Reflux = require('reflux');
+const StreamManager = require('app/utils/streamManager');
 
 describe('StreamManager', function() {
 
