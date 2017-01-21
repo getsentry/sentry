@@ -6,7 +6,6 @@ import ApiMixin from '../../mixins/apiMixin';
 import {update as projectUpdate} from '../../actionCreators/projects';
 import BarChart from '../../components/barChart';
 import ProjectLabel from '../../components/projectLabel';
-import ConfigStore from '../../stores/configStore';
 import PropTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
 import {sortArray} from '../../utils';
@@ -44,7 +43,7 @@ const ExpandedTeamList = React.createClass({
 
   urlPrefix() {
     let org = this.props.organization;
-    return ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
+    return `/organizations/${org.slug}`;
   },
 
   renderProjectList(team) {
@@ -93,7 +92,7 @@ const ExpandedTeamList = React.createClass({
           <h3>{team.name}</h3>
         </div>
         <div className="box-content">
-          <table className="table project-list">
+          <table className="table table-no-top-border m-b-0">
             {team.projects.length ?
               this.renderProjectList(team)
             :
@@ -146,10 +145,16 @@ const ExpandedTeamList = React.createClass({
     if (this.props.hasTeams) {
       return (
         <p>
-          {tct('You are not a member of any teams. [joinLink:Join an existing team] or [createLink:create a new one].', {
-            joinLink: <Link to={`/organizations/${this.props.organization.slug}/all-teams/`}/>,
-            createLink: <a href={this.urlPrefix() + '/teams/new/'} />
-          })}
+          {this.props.access.has('project:write') ?
+            tct('You are not a member of any teams. [joinLink:Join an existing team] or [createLink:create a new one].', {
+                joinLink: <Link to={`/organizations/${this.props.organization.slug}/all-teams/`}/>,
+                createLink: <a href={this.urlPrefix() + '/teams/new/'} />
+              })
+            :
+            tct('You are not a member of any teams. [joinLink:Join a team].', {
+              joinLink: <Link to={`/organizations/${this.props.organization.slug}/all-teams/`}/>,
+            })
+          }
         </p>
       );
 

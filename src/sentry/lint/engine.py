@@ -20,12 +20,14 @@ os.environ['PYFLAKES_NODOCTEST'] = '1'
 
 
 def register_checks():
-    import pep8
-    from sentry.lint.absolute_import_check import AbsoluteImportCheck
-    from sentry.lint.mock_check import MockCheck
+    import pycodestyle
 
-    pep8.register_check(MockCheck, codes=[MockCheck.code])
-    pep8.register_check(AbsoluteImportCheck, codes=[AbsoluteImportCheck.code])
+    from sentry.lint.sentry_check import SentryCheck
+
+    pycodestyle.register_check(SentryCheck)
+
+
+register_checks()
 
 
 def get_files(path):
@@ -46,12 +48,11 @@ def get_files_for_list(file_list):
             if os.path.isdir(path):
                 files_to_check.extend(get_files(path))
             else:
-                files_to_check.append(path)
+                files_to_check.append(os.path.abspath(path))
     return files_to_check
 
 
 def py_lint(file_list):
-    from flake8.main import DEFAULT_CONFIG
     from flake8.engine import get_style_guide
 
     if file_list is None:
@@ -59,27 +60,38 @@ def py_lint(file_list):
     file_list = get_files_for_list(file_list)
 
     # remove non-py files and files which no longer exist
-    file_list = filter(lambda x: x.endswith('.py'), file_list)
+    file_list = [x for x in file_list if x.endswith('.py')]
 
-    flake8_style = get_style_guide(parse_argv=True, config_file=DEFAULT_CONFIG)
+    flake8_style = get_style_guide(parse_argv=True)
     report = flake8_style.check_files(file_list)
 
     return report.total_errors != 0
 
 
 def js_lint(file_list=None):
-    if not os.path.exists('node_modules/.bin/eslint'):
-        print '!! Skipping JavaScript linting because eslint is not installed.'
+    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                                os.pardir)
+    eslint_path = os.path.join(project_root, 'node_modules', '.bin', 'eslint')
+
+    if not os.path.exists(eslint_path):
+        print('!! Skipping JavaScript linting because eslint is not installed.')
         return False
+
     if file_list is None:
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
     file_list = get_files_for_list(file_list)
 
+    eslint_config = os.path.join(project_root, '.eslintrc')
+
     has_errors = False
-    file_list = filter(lambda x: x.endswith(('.js', '.jsx')), file_list)
+    file_list = [
+        x for x in file_list
+        if x.endswith(('.js', '.jsx'))
+    ]
+
     if file_list:
-        status = Popen(['node_modules/.bin/eslint', '--ext', '.jsx']
-                       + list(file_list)).wait()
+        status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx']
+                       + file_list).wait()
         has_errors = status != 0
 
     return has_errors

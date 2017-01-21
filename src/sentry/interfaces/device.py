@@ -41,9 +41,8 @@ class Device(Interface):
             'name': name,
             'version': version,
             'build': build,
-            'data': trim_dict(data),
+            'data': trim_dict(extra_data),
         }
-        kwargs['data'] = trim_dict(data)
         return cls(**kwargs)
 
     def get_api_context(self, is_public=False):

@@ -8,9 +8,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Project, Team
-)
+from sentry import options
+from sentry.models import AuditLogEntryEvent, Project, Team
 from sentry.web.forms.fields import (
     CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
 )
@@ -34,7 +33,7 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Outbound requests matching Allowed Domains will have the header "X-Sentry-Token: {token}" appended.'))
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
         min_value=0, max_value=168, step_value=1,
-        help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'))
+        help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
     scrub_data = forms.BooleanField(
         label=_('Data Scrubber'),
         help_text=_('Enable server-side data scrubbing.'),
@@ -55,21 +54,44 @@ class EditProjectForm(forms.ModelForm):
         }),
         required=False,
     )
+    safe_fields = forms.CharField(
+        label=_('Safe fields'),
+        help_text=_('Field names which data scrubbers should ignore. '
+                    'Separate multiple entries with a newline.'),
+        widget=forms.Textarea(attrs={
+            'placeholder': mark_safe(_('e.g. email')),
+            'class': 'span8',
+            'rows': '3',
+        }),
+        required=False,
+    )
     scrub_ip_address = forms.BooleanField(
         label=_('Don\'t store IP Addresses'),
         help_text=_('Prevent IP addresses from being stored for new events.'),
         required=False
     )
+
+    # JavaScript options
     scrape_javascript = forms.BooleanField(
         label=_('Enable JavaScript source fetching'),
         help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
         required=False,
     )
-    blacklisted_ips = IPNetworksField(label=_('Blacklisted IP Addresses'), required=False,
+    blacklisted_ips = IPNetworksField(label=_('Filtered IP Addresses'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
 
     # Options that are overridden by Organization level settings
     org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
+
+    default_environment = forms.CharField(
+        label=_('Default Environment'),
+        help_text=_('The default selected environment when viewing issues.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. production')}),
+        required=False,
+    )
+    mail_subject_prefix = forms.CharField(
+        label=_('Subject Prefix'), required=False,
+        help_text=_('Choose a custom prefix for emails from this project.'))
 
     class Meta:
         fields = ('name', 'team', 'slug')
@@ -121,6 +143,13 @@ class EditProjectForm(forms.ModelForm):
 
     def clean_sensitive_fields(self):
         value = self.cleaned_data.get('sensitive_fields')
+        if not value:
+            return
+
+        return filter(bool, (v.lower().strip() for v in value.split('\n')))
+
+    def clean_safe_fields(self):
+        value = self.cleaned_data.get('safe_fields')
         if not value:
             return
 
@@ -188,9 +217,13 @@ class ProjectSettingsView(ProjectView):
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
                 'sensitive_fields': '\n'.join(project.get_option('sentry:sensitive_fields', None) or []),
+                'safe_fields': '\n'.join(project.get_option('sentry:safe_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
                 'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
+                'default_environment': project.get_option('sentry:default_environment'),
+                'mail_subject_prefix': project.get_option(
+                    'mail:subject_prefix', options.get('mail.subject-prefix')),
             },
         )
 
@@ -200,30 +233,39 @@ class ProjectSettingsView(ProjectView):
         if form.is_valid():
             project = form.save()
             for opt in (
-                    'origins',
-                    'token',
-                    'resolve_age',
-                    'scrub_data',
-                    'scrub_defaults',
-                    'sensitive_fields',
-                    'scrub_ip_address',
-                    'scrape_javascript',
-                    'blacklisted_ips'):
+                'origins',
+                'token',
+                'resolve_age',
+                'scrub_data',
+                'scrub_defaults',
+                'sensitive_fields',
+                'safe_fields',
+                'scrub_ip_address',
+                'scrape_javascript',
+                'blacklisted_ips',
+                'default_environment',
+                'mail_subject_prefix',
+            ):
+                opt_key = 'sentry:{}'.format(opt)
+
                 # Value can't be overridden if set on the org level
-                if opt in form.org_overrides and organization.get_option('sentry:%s' % (opt,), False):
+                if opt in form.org_overrides and organization.get_option(opt_key, False):
                     continue
+                if opt == 'mail_subject_prefix':
+                    key = 'mail:subject_prefix'
+                else:
+                    key = 'sentry:%s' % (opt,)
                 value = form.cleaned_data.get(opt)
                 if value is None:
-                    project.delete_option('sentry:%s' % (opt,))
+                    project.delete_option(key)
                 else:
-                    project.update_option('sentry:%s' % (opt,), value)
+                    project.update_option(key, value)
 
             project.update_option('sentry:reviewed-callsign', True)
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_EDIT,
                 data=project.get_audit_log_data(),

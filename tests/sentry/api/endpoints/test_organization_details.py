@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
+from django.core import mail
 from mock import patch
 
 from sentry.models import Organization, OrganizationOption, OrganizationStatus
@@ -18,7 +21,7 @@ class OrganizationDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.data['onboardingTasks'] == []
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(org.id)
+        assert response.data['id'] == six.text_type(org.id)
 
         project = self.create_project(organization=org)
         project_created.send(project=project, user=self.user, sender=type(project))
@@ -63,8 +66,14 @@ class OrganizationUpdateTest(APITestCase):
 
 
 class OrganizationDeleteTest(APITestCase):
+    @patch('sentry.api.endpoints.organization_details.uuid4')
     @patch('sentry.api.endpoints.organization_details.delete_organization')
-    def test_can_remove_as_owner(self, mock_delete_organization):
+    def test_can_remove_as_owner(self, mock_delete_organization, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
+
         org = self.create_organization()
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
@@ -81,7 +90,11 @@ class OrganizationDeleteTest(APITestCase):
             'organization_slug': org.slug,
         })
 
-        response = self.client.delete(url)
+        owners = org.get_owners()
+        assert len(owners) > 0
+
+        with self.tasks():
+            response = self.client.delete(url)
 
         org = Organization.objects.get(id=org.id)
 
@@ -89,10 +102,23 @@ class OrganizationDeleteTest(APITestCase):
 
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        mock_delete_organization.delay.assert_called_once_with(
-            object_id=org.id,
-            countdown=3600,
+        mock_delete_organization.apply_async.assert_called_once_with(
+            kwargs={
+                'object_id': org.id,
+                'transaction_id': 'abc123',
+            },
+            countdown=86400,
         )
+
+        # Make sure we've emailed all owners
+        assert len(mail.outbox) == len(owners)
+        owner_emails = set(o.email for o in owners)
+        for msg in mail.outbox:
+            assert 'Deletion' in msg.subject
+            assert len(msg.to) == 1
+            owner_emails.remove(msg.to[0])
+        # No owners should be remaining
+        assert len(owner_emails) == 0
 
     def test_cannot_remove_as_admin(self):
         org = self.create_organization(owner=self.user)

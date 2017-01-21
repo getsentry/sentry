@@ -1,0 +1,106 @@
+@tooltip-bg: @100;
+@tooltip-color: @white;
+@tooltip-max-width: 200px;
+
+.tooltip-inner {
+  font-weight: bold;
+  // border: 1px solid @trim;
+  padding: 5px 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0, .15);
+
+  dl {
+    margin: 0 !important;
+  }
+  dd, dt {
+    padding: 0 !important;
+  }
+
+  .time-label {
+    font-size: 11px;
+    padding: 5px 0 6px;
+    margin-left: 0;
+    margin-right: 0;
+    border-radius: 3px 3px 0 0;
+    position: relative;
+    margin-bottom: 2px;
+
+    &:after {
+      display: block;
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 55px;
+      right: 55px;
+      height: 2px;
+      background: @90;
+    }
+  }
+
+  .value-label {
+    padding: 3px 0;
+  }
+
+  .legend {
+    padding: 3px 0;
+    position: relative;
+    line-height: 10px;
+
+    dt {
+      margin: 0;
+      position: absolute;
+      left: 0;
+      width: 8px;
+      margin-right: 5px;
+
+      &.active span {
+        background: @purple;
+      }
+
+      &.environment span {
+        background: @purple-lightest;
+      }
+
+      &.inactive span {
+        background: @gray-lightest;
+      }
+
+      span {
+        .square(9px);
+        display: inline-block;
+        // border: 1px solid #fff;
+        border-radius: 50%;
+      }
+    }
+
+    dd {
+      float: none;
+      text-align: left;
+      margin: 0 0 0 13px;
+
+      small {
+        color: @white-darker;
+        display: block;
+      }
+    }
+  }
+
+  .flat {
+    line-height: 12px;
+    padding: 0 5px !important;
+    position: relative;
+
+    dt {
+      text-align: left;
+      margin: 0;
+      position: absolute;
+      left: 5px;
+      width: 75px;
+      margin-right: 5px;
+    }
+    dd {
+      float: none;
+      text-align: right;
+      margin: 0 0 0 80px;
+    }
+  }
+}

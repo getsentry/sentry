@@ -9,6 +9,7 @@ sentry.db.models
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.db import models
 from django.db.models import signals
@@ -78,7 +79,7 @@ class BaseModel(models.Model):
                     data[f.column] = self.__get_field_value(f)
                 except AttributeError as e:
                     # this case can come up from pickling
-                    logging.exception(unicode(e))
+                    logging.exception(six.text_type(e))
             self.__data = data
         else:
             self.__data = UNSAVED
@@ -97,12 +98,6 @@ class BaseModel(models.Model):
         return self.__data.get(field_name)
 
 
-def __model_post_save(instance, **kwargs):
-    if not isinstance(instance, BaseModel):
-        return
-    instance._update_tracked_data()
-
-
 class Model(BaseModel):
     id = BoundedBigAutoField(primary_key=True)
 
@@ -112,4 +107,19 @@ class Model(BaseModel):
     __repr__ = sane_repr('id')
 
 
+def __model_post_save(instance, **kwargs):
+    if not isinstance(instance, BaseModel):
+        return
+    instance._update_tracked_data()
+
+
+def __model_class_prepared(sender, **kwargs):
+    if not issubclass(sender, BaseModel):
+        return
+
+    if not hasattr(sender, '__core__'):
+        raise ValueError('{!r} model has not defined __core__'.format(sender))
+
+
 signals.post_save.connect(__model_post_save)
+signals.class_prepared.connect(__model_class_prepared)

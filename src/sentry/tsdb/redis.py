@@ -7,11 +7,13 @@ sentry.tsdb.redis
 """
 from __future__ import absolute_import
 
+import itertools
 import logging
 import operator
+import random
+import uuid
 from binascii import crc32
 from collections import defaultdict, namedtuple
-from datetime import timedelta
 from hashlib import md5
 
 import six
@@ -20,9 +22,10 @@ from pkg_resources import resource_string
 from redis.client import Script
 
 from sentry.tsdb.base import BaseTSDB
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
+from six.moves import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +131,8 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, six.integer_types):
             vnode = model_key % self.vnodes
         else:
+            if isinstance(model_key, six.text_type):
+                model_key = model_key.encode('utf-8')
             vnode = crc32(model_key) % self.vnodes
 
         return '{0}{1}:{2}:{3}'.format(self.prefix, model.value, epoch, vnode)
@@ -138,7 +143,7 @@ class RedisTSDB(BaseTSDB):
         # efficient hashed format.
         if not isinstance(key, six.integer_types):
             # enforce utf-8 encoding
-            if isinstance(key, unicode):
+            if isinstance(key, six.text_type):
                 key = key.encode('utf-8')
             return md5(repr(key)).hexdigest()
         return key
@@ -158,7 +163,7 @@ class RedisTSDB(BaseTSDB):
             timestamp = timezone.now()
 
         with self.cluster.map() as client:
-            for rollup, max_values in self.rollups:
+            for rollup, max_values in six.iteritems(self.rollups):
                 norm_rollup = normalize_to_rollup(timestamp, rollup)
                 for model, key in items:
                     model_key = self.get_model_key(key)
@@ -173,40 +178,38 @@ class RedisTSDB(BaseTSDB):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
-        Start and end are both inclusive.
-
         >>> now = timezone.now()
         >>> get_keys(TimeSeriesModel.group, [1, 2, 3],
         >>>          start=now - timedelta(days=1),
         >>>          end=now)
         """
-        normalize_to_epoch = self.normalize_to_epoch
-        normalize_to_rollup = self.normalize_to_rollup
-        make_key = self.make_counter_key
-
-        if rollup is None:
-            rollup = self.get_optimal_rollup(start, end)
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+        series = map(to_datetime, series)
 
         results = []
-        timestamp = end
         with self.cluster.map() as client:
-            while timestamp >= start:
-                real_epoch = normalize_to_epoch(timestamp, rollup)
-                norm_epoch = normalize_to_rollup(timestamp, rollup)
-
-                for key in keys:
-                    model_key = self.get_model_key(key)
-                    hash_key = make_key(model, norm_epoch, model_key)
-                    results.append((real_epoch, key,
-                                    client.hget(hash_key, model_key)))
-
-                timestamp = timestamp - timedelta(seconds=rollup)
+            for key in keys:
+                model_key = self.get_model_key(key)
+                for timestamp in series:
+                    hash_key = self.make_counter_key(
+                        model,
+                        self.normalize_to_rollup(
+                            timestamp,
+                            rollup
+                        ),
+                        model_key,
+                    )
+                    results.append((
+                        to_timestamp(timestamp),
+                        key,
+                        client.hget(hash_key, model_key)
+                    ))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 
-        for key, points in results_by_key.iteritems():
+        for key, points in six.iteritems(results_by_key):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
@@ -225,7 +228,7 @@ class RedisTSDB(BaseTSDB):
         with self.cluster.fanout() as client:
             for model, key, values in items:
                 c = client.target_key(key)
-                for rollup, max_values in self.rollups:
+                for rollup, max_values in six.iteritems(self.rollups):
                     k = self.make_key(
                         model,
                         rollup,
@@ -266,7 +269,7 @@ class RedisTSDB(BaseTSDB):
                         ),
                     ))
 
-        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in responses.iteritems()}
+        return {key: [(timestamp, promise.value) for timestamp, promise in value] for key, value in six.iteritems(responses)}
 
     def get_distinct_counts_totals(self, model, keys, start, end=None, rollup=None):
         """
@@ -289,7 +292,94 @@ class RedisTSDB(BaseTSDB):
 
                 responses[key] = client.target_key(key).execute_command('PFCOUNT', *ks)
 
-        return {key: value.value for key, value in responses.iteritems()}
+        return {key: value.value for key, value in six.iteritems(responses)}
+
+    def get_distinct_counts_union(self, model, keys, start, end=None, rollup=None):
+        if not keys:
+            return 0
+
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        temporary_id = uuid.uuid1().hex
+
+        def make_temporary_key(key):
+            return '{}{}:{}'.format(self.prefix, temporary_id, key)
+
+        def expand_key(key):
+            """
+            Return a list containing all keys for each interval in the series for a key.
+            """
+            return [
+                self.make_key(model, rollup, timestamp, key)
+                for timestamp in series]
+
+        router = self.cluster.get_router()
+
+        def map_key_to_host(hosts, key):
+            """
+            Identify the host where a key is located and add it to the host map.
+            """
+            hosts[router.get_host_for_key(key)].add(key)
+            return hosts
+
+        def get_partition_aggregate(value):
+            """
+            Fetch the HyperLogLog value (in its raw byte representation) that
+            results from merging all HyperLogLogs at the provided keys.
+            """
+            (host, keys) = value
+            destination = make_temporary_key('p:{}'.format(host))
+            client = self.cluster.get_local_client(host)
+            with client.pipeline(transaction=False) as pipeline:
+                pipeline.execute_command(
+                    'PFMERGE',
+                    destination,
+                    *itertools.chain.from_iterable(
+                        map(expand_key, keys)
+                    )
+                )
+                pipeline.get(destination)
+                pipeline.delete(destination)
+                return (host, pipeline.execute()[1])
+
+        def merge_aggregates(values):
+            """
+            Calculate the cardinality of the provided HyperLogLog values.
+            """
+            destination = make_temporary_key('a')  # all values will be merged into this key
+            aggregates = {
+                make_temporary_key('a:{}'.format(host)): value
+                for host, value in values
+            }
+
+            # Choose a random host to execute the reduction on. (We use a host
+            # here that we've already accessed as part of this process -- this
+            # way, we constrain the choices to only hosts that we know are
+            # running.)
+            client = self.cluster.get_local_client(random.choice(values)[0])
+            with client.pipeline(transaction=False) as pipeline:
+                pipeline.mset(aggregates)
+                pipeline.execute_command('PFMERGE', destination, *aggregates.keys())
+                pipeline.execute_command('PFCOUNT', destination)
+                pipeline.delete(destination, *aggregates.keys())
+                return pipeline.execute()[2]
+
+        # TODO: This could be optimized to skip the intermediate step for the
+        # host that has the largest number of keys if the final merge and count
+        # is performed on that host. If that host contains *all* keys, the
+        # final reduction could be performed as a single PFCOUNT, skipping the
+        # MSET and PFMERGE operations entirely.
+
+        return merge_aggregates(
+            [
+                get_partition_aggregate(x)
+                for x in reduce(
+                    map_key_to_host,
+                    keys,
+                    defaultdict(set),
+                ).items()
+            ]
+        )
 
     def make_frequency_table_keys(self, model, rollup, timestamp, key):
         prefix = self.make_key(model, rollup, timestamp, key)
@@ -310,13 +400,13 @@ class RedisTSDB(BaseTSDB):
         commands = {}
 
         for model, request in requests:
-            for key, items in request.iteritems():
+            for key, items in six.iteritems(request):
                 keys = []
                 expirations = {}
 
                 # Figure out all of the keys we need to be incrementing, as
                 # well as their expiration policies.
-                for rollup, max_values in self.rollups:
+                for rollup, max_values in six.iteritems(self.rollups):
                     chunk = self.make_frequency_table_keys(model, rollup, ts, key)
                     keys.extend(chunk)
 
@@ -343,12 +433,11 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        commands = {}
-
         arguments = ['RANKED']
         if limit is not None:
             arguments.append(int(limit))
 
+        commands = {}
         for key in keys:
             ks = []
             for timestamp in series:
@@ -356,9 +445,35 @@ class RedisTSDB(BaseTSDB):
             commands[key] = [(CountMinScript, ks, arguments)]
 
         results = {}
-
         for key, responses in self.cluster.execute_commands(commands).items():
             results[key] = [(member, float(score)) for member, score in responses[0].value]
+
+        return results
+
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        if not self.enable_frequency_sketches:
+            raise NotImplementedError("Frequency sketches are disabled.")
+
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        arguments = ['RANKED']
+        if limit is not None:
+            arguments.append(int(limit))
+
+        commands = {}
+        for key in keys:
+            commands[key] = [(
+                CountMinScript,
+                self.make_frequency_table_keys(model, rollup, timestamp, key),
+                arguments,
+            ) for timestamp in series]
+
+        def unpack_response(response):
+            return {item: float(score) for item, score in response.value}
+
+        results = {}
+        for key, responses in self.cluster.execute_commands(commands).items():
+            results[key] = zip(series, map(unpack_response, responses))
 
         return results
 
@@ -398,7 +513,7 @@ class RedisTSDB(BaseTSDB):
 
         responses = {}
 
-        for key, series in self.get_frequency_series(model, items, start, end, rollup).iteritems():
+        for key, series in six.iteritems(self.get_frequency_series(model, items, start, end, rollup)):
             response = responses[key] = {}
             for timestamp, results in series:
                 for member, value in results.items():

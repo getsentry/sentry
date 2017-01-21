@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
 from datetime import timedelta
 from django.db import IntegrityError, transaction
@@ -12,6 +13,8 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.app import digests
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
     ProjectStatus, UserOption
@@ -19,6 +22,8 @@ from sentry.models import (
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 @scenario('GetProject')
@@ -75,7 +80,14 @@ class ProjectAdminSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
     name = serializers.CharField(max_length=200)
-    slug = serializers.SlugField(max_length=200)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+    digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
+    digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
+
+    def validate_digestsMaxDelay(self, attrs, source):
+        if attrs[source] < attrs['digestsMinDelay']:
+            raise serializers.ValidationError('The maximum delay on digests must be higher than the minimum.')
+        return attrs
 
 
 class RelaxedProjectPermission(ProjectPermission):
@@ -119,29 +131,35 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :auth: required
         """
-        active_plugins = [
-            {
-                'name': plugin.get_title(),
-                'id': plugin.slug,
-            }
-            for plugin in plugins.configurable_for_project(project, version=None)
-            if plugin.is_enabled(project)
-            and plugin.has_project_conf()
-        ]
-
         data = serialize(project, request.user)
         data['options'] = {
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
             'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
             'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
+            'sentry:safe_fields': project.get_option('sentry:safe_fields', []),
             'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
             'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
             'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
+            'sentry:default_environment': project.get_option('sentry:default_environment'),
+            'feedback:branding': project.get_option('feedback:branding', '1') == '1',
         }
-        data['activePlugins'] = active_plugins
+        data['plugins'] = serialize([
+            plugin
+            for plugin in plugins.configurable_for_project(project, version=None)
+            if plugin.has_project_conf()
+        ], request.user, PluginSerializer(project))
         data['team'] = serialize(project.team, request.user)
         data['organization'] = serialize(project.organization, request.user)
+
+        data.update({
+            'digestsMinDelay': project.get_option(
+                'digests:mail:minimum_delay', digests.minimum_delay,
+            ),
+            'digestsMaxDelay': project.get_option(
+                'digests:mail:maximum_delay', digests.maximum_delay,
+            ),
+        })
 
         include = set(filter(bool, request.GET.get('include', '').split(',')))
         if 'stats' in include:
@@ -168,6 +186,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
+        :param int digestsMinDelay:
+        :param int digestsMaxDelay:
         :param object options: optional options to override in the
                                project settings.
         :auth: required
@@ -215,6 +235,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 user=request.user,
             ).delete()
 
+        if result.get('digestsMinDelay'):
+            project.update_option('digests:mail:minimum_delay', result['digestsMinDelay'])
+        if result.get('digestsMaxDelay'):
+            project.update_option('digests:mail:maximum_delay', result['digestsMaxDelay'])
+
         if result.get('isSubscribed'):
             UserOption.objects.set_value(request.user, project, 'mail:alert', 1)
         elif result.get('isSubscribed') is False:
@@ -233,6 +258,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option('sentry:scrub_data', bool(options['sentry:scrub_data']))
             if 'sentry:scrub_defaults' in options:
                 project.update_option('sentry:scrub_defaults', bool(options['sentry:scrub_defaults']))
+            if 'sentry:safe_fields' in options:
+                project.update_option(
+                    'sentry:safe_fields',
+                    [s.strip().lower() for s in options['sentry:safe_fields']]
+                )
             if 'sentry:sensitive_fields' in options:
                 project.update_option(
                     'sentry:sensitive_fields',
@@ -244,6 +274,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     'sentry:csp_ignored_sources',
                     clean_newline_inputs(options['sentry:csp_ignored_sources']))
+            if 'feedback:branding' in options:
+                project.update_option('feedback:branding', '1' if options['feedback:branding'] else '0')
 
             self.create_audit_entry(
                 request=request,
@@ -258,6 +290,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
             'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
         }
+        data.update({
+            'digestsMinDelay': project.get_option(
+                'digests:mail:minimum_delay', digests.minimum_delay,
+            ),
+            'digestsMaxDelay': project.get_option(
+                'digests:mail:maximum_delay', digests.maximum_delay,
+            ),
+        })
+
         return Response(data)
 
     @attach_scenarios([delete_project_scenario])
@@ -282,16 +323,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             return Response('{"error": "Cannot remove projects internally used by Sentry."}',
                             status=status.HTTP_403_FORBIDDEN)
 
-        logging.getLogger('sentry.deletions').info(
-            'Project %s/%s (id=%s) removal requested by user (id=%s)',
-            project.organization.slug, project.slug, project.id, request.user.id)
-
         updated = Project.objects.filter(
             id=project.id,
             status=ProjectStatus.VISIBLE,
         ).update(status=ProjectStatus.PENDING_DELETION)
         if updated:
-            delete_project.delay(object_id=project.id, countdown=3600)
+            transaction_id = uuid4().hex
+
+            delete_project.apply_async(
+                kwargs={
+                    'object_id': project.id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=3600,
+            )
 
             self.create_audit_entry(
                 request=request,
@@ -299,6 +344,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 target_object=project.id,
                 event=AuditLogEntryEvent.PROJECT_REMOVE,
                 data=project.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': project.id,
+                'transaction_id': transaction_id,
+                'model': type(project).__name__,
+            })
 
         return Response(status=204)

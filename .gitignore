@@ -1,5 +1,5 @@
+.cache/
 .coverage
-.tox
 .DS_Store
 *.egg-info
 *.pyc
@@ -17,9 +17,11 @@ sentry-package.json
 /build
 /dist
 /env
+/tmp
 /node_modules/
 /docs/_build
 example/db.sqlite
+/src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
@@ -29,3 +31,4 @@ example/db.sqlite
 /src/sentry/integration-docs
 /wheelhouse
 /test_cli/
+Gemfile.lock

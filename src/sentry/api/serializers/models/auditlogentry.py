@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import AuditLogEntry
 
@@ -15,7 +17,7 @@ class AuditLogEntrySerializer(Serializer):
 
         return {
             item: {
-                'actor': actors[str(item.actor_id)] if item.actor_id else {
+                'actor': actors[six.text_type(item.actor_id)] if item.actor_id else {
                     'name': item.get_actor_name(),
                 },
             } for item in item_list
@@ -23,7 +25,7 @@ class AuditLogEntrySerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'actor': attrs['actor'],
             'event': obj.get_event_display(),
             'ipAddress': obj.ip_address,

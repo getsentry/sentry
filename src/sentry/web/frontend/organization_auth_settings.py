@@ -11,9 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, AuthProvider, OrganizationMember
-)
+from sentry.models import AuditLogEntryEvent, AuthProvider, OrganizationMember
 from sentry.plugins import Response
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import db
@@ -41,13 +39,14 @@ class AuthProviderSettingsForm(forms.Form):
 
 
 class OrganizationAuthSettingsView(OrganizationView):
+    # We restrict auth settings to org:delete as it allows a non-owner to
+    # escalate members to own by disabling the default role.
     required_scope = 'org:delete'
 
     def _disable_provider(self, request, organization, auth_provider):
-        AuditLogEntry.objects.create(
+        self.create_audit_entry(
+            request,
             organization=organization,
-            actor=request.user,
-            ip_address=request.META['REMOTE_ADDR'],
             target_object=auth_provider.id,
             event=AuditLogEntryEvent.SSO_DISABLE,
             data=auth_provider.get_audit_log_data(),

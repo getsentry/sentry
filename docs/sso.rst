@@ -18,14 +18,14 @@ with a feature switch in your ``sentry.conf.py``::
     from sentry.conf.server import *
 
     # turn SSO on our off
-    SENTRY_FEATURES['organizations:sso'] = True
+    SENTRY_FEATURES['organizations:sso'] = False
 
 You should see an **Auth** subheading under your organization's dashboard when SSO is enabled.
 
 Installing a Provider
 ---------------------
 
-Providers are installed the same was as extensions. Simply install them via the Python package manager (pip)
+Providers are installed the same way as extensions. Simply install them via the Python package manager (pip)
 and restart the Sentry services. Once done you'll see them show up in the auth settings.
 
 The following providers are published and maintained by the Sentry team:

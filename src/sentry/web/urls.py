@@ -13,15 +13,19 @@ from django.http import HttpResponse
 from django.views.generic import RedirectView
 
 from sentry.web import api
-from sentry.web.frontend import accounts, admin, generic
+from sentry.web.frontend import accounts, admin, generic, accounts_twofactor
 from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
+from sentry.web.frontend.account_security import AccountSecurityView
+from sentry.web.frontend.account_notification import AccountNotificationView
 from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import \
     AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import \
     CreateOrganizationMemberView
@@ -45,11 +49,11 @@ from sentry.web.frontend.organization_auth_settings import \
     OrganizationAuthSettingsView
 from sentry.web.frontend.organization_member_settings import \
     OrganizationMemberSettingsView
+from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_keys import ProjectKeysView
-from sentry.web.frontend.project_notifications import ProjectNotificationsView
 from sentry.web.frontend.project_plugin_configure import \
     ProjectPluginConfigureView
 from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
@@ -60,8 +64,6 @@ from sentry.web.frontend.project_quotas import ProjectQuotasView
 from sentry.web.frontend.project_release_tracking import \
     ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
-from sentry.web.frontend.project_rule_remove import ProjectRuleRemoveView
-from sentry.web.frontend.project_rules import ProjectRulesView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
@@ -69,10 +71,14 @@ from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
+from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
 from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
-from sentry.web.frontend.replay_event import ReplayEventView
+from sentry.web.frontend.sudo import SudoView
+from sentry.web.frontend.unsubscribe_issue_notifications import \
+    UnsubscribeIssueNotificationsView
+from sentry.web.frontend.user_avatar import UserAvatarPhotoView
 
 __all__ = ('urlpatterns',)
 
@@ -96,31 +102,76 @@ react_page_view = ReactPageView.as_view()
 
 urlpatterns = patterns('')
 
-if settings.DEBUG:
+if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
+    from django.views.generic import TemplateView
     import sentry.web.frontend.debug.mail
-    from sentry.web.frontend.debug.debug_trigger_error import DebugTriggerErrorView
-    from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
-    from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
+    from sentry.web.frontend.debug.debug_assigned_email import (
+        DebugAssignedEmailView, DebugSelfAssignedEmailView
+    )
+    from sentry.web.frontend.debug.debug_trigger_error import (
+        DebugTriggerErrorView
+    )
+    from sentry.web.frontend.debug.debug_error_embed import (
+        DebugErrorPageEmbedView
+    )
+    from sentry.web.frontend.debug.debug_new_release_email import (
+        DebugNewReleaseEmailView
+    )
+    from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+    from sentry.web.frontend.debug.debug_regression_email import (
+        DebugRegressionEmailView, DebugRegressionReleaseEmailView
+    )
+    from sentry.web.frontend.debug.debug_resolved_email import (
+        DebugResolvedEmailView
+    )
+    from sentry.web.frontend.debug.debug_resolved_in_release_email import (
+        DebugResolvedInReleaseEmailView, DebugResolvedInReleaseUpcomingEmailView
+    )
+    from sentry.web.frontend.debug.debug_unassigned_email import (
+        DebugUnassignedEmailView
+    )
     from sentry.web.frontend.debug import debug_auth_views
 
     urlpatterns += patterns(
         '',
-        url(r'^debug/mail/new-event/$',
-            sentry.web.frontend.debug.mail.new_event),
-        url(r'^debug/mail/new-note/$',
-            sentry.web.frontend.debug.mail.new_note),
+        url(r'^debug/mail/alert/$',
+            sentry.web.frontend.debug.mail.alert),
+        url(r'^debug/mail/note/$',
+            DebugNoteEmailView.as_view()),
         url(r'^debug/mail/new-release/$',
             DebugNewReleaseEmailView.as_view()),
         url(r'^debug/mail/assigned/$',
-            sentry.web.frontend.debug.mail.assigned),
+            DebugAssignedEmailView.as_view()),
+        url(r'^debug/mail/assigned/self/$',
+            DebugSelfAssignedEmailView.as_view()),
         url(r'^debug/mail/digest/$',
             sentry.web.frontend.debug.mail.digest),
+        url(r'^debug/mail/report/$',
+            sentry.web.frontend.debug.mail.report),
+        url(r'^debug/mail/regression/$',
+            DebugRegressionEmailView.as_view()),
+        url(r'^debug/mail/regression/release/$',
+            DebugRegressionReleaseEmailView.as_view()),
+        url(r'^debug/mail/resolved/$',
+            DebugResolvedEmailView.as_view()),
+        url(r'^debug/mail/resolved-in-release/$',
+            DebugResolvedInReleaseEmailView.as_view()),
+        url(r'^debug/mail/resolved-in-release/upcoming/$',
+            DebugResolvedInReleaseUpcomingEmailView.as_view()),
         url(r'^debug/mail/request-access/$',
             sentry.web.frontend.debug.mail.request_access),
         url(r'^debug/mail/access-approved/$',
             sentry.web.frontend.debug.mail.access_approved),
         url(r'^debug/mail/invitation/$',
             sentry.web.frontend.debug.mail.invitation),
+        url(r'^debug/mail/confirm-email/$',
+            sentry.web.frontend.debug.mail.confirm_email),
+        url(r'^debug/mail/recover-account/$',
+            sentry.web.frontend.debug.mail.recover_account),
+        url(r'^debug/mail/unassigned/$',
+            DebugUnassignedEmailView.as_view()),
+        url(r'^debug/mail/org-delete-confirm/$',
+            sentry.web.frontend.debug.mail.org_delete_confirm),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
@@ -129,6 +180,8 @@ if settings.DEBUG:
             debug_auth_views.DebugAuthConfirmIdentity.as_view()),
         url(r'^debug/auth-confirm-link/$',
             debug_auth_views.DebugAuthConfirmLink.as_view()),
+        url(r'^debug/icons/$',
+            TemplateView.as_view(template_name='sentry/debug/icons.html')),
     )
 
 urlpatterns += patterns(
@@ -161,33 +214,76 @@ urlpatterns += patterns(
         name='sentry-login'),
     url(r'^auth/login/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
         name='sentry-auth-organization'),
+    url(r'^auth/2fa/$', TwoFactorAuthView.as_view(),
+        name='sentry-2fa-dialog'),
+    url(r'^auth/2fa/u2fappid\.json$', u2f_appid,
+        name='sentry-u2f-app-id'),
     url(r'^auth/sso/$', AuthProviderLoginView.as_view(),
         name='sentry-auth-sso'),
     url(r'^auth/logout/$', AuthLogoutView.as_view(),
         name='sentry-logout'),
     url(r'^auth/reactivate/$', ReactivateAccountView.as_view(),
         name='sentry-reactivate-account'),
+    url(r'^auth/register/$', AuthLoginView.as_view(),
+        name='sentry-register'),
+    url(r'^auth/close/$', AuthCloseView.as_view(),
+        name='sentry-auth-close'),
 
     # Account
     url(r'^login-redirect/$', accounts.login_redirect,
         name='sentry-login-redirect'),
-    url(r'^register/$', AuthLoginView.as_view(),
-        name='sentry-register'),
-    url(r'^account/sudo/$', 'sudo.views.sudo',
-        {'template_name': 'sentry/account/sudo.html'},
-        name='sentry-sudo'),
+    url(r'^account/sudo/$', SudoView.as_view(), name='sentry-sudo'),
+    url(r'^account/confirm-email/$', accounts.start_confirm_email,
+        name='sentry-account-confirm-email-send'),
+    url(r'^account/confirm-email/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$', accounts.confirm_email,
+        name='sentry-account-confirm-email'),
     url(r'^account/recover/$', accounts.recover,
         name='sentry-account-recover'),
     url(r'^account/recover/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$', accounts.recover_confirm,
         name='sentry-account-recover-confirm'),
-    url(r'^account/settings/$', accounts.settings,
+    url(r'^account/settings/$', accounts.account_settings,
         name='sentry-account-settings'),
+    url(r'^account/settings/2fa/$', accounts.twofactor_settings,
+        name='sentry-account-settings-2fa'),
+    url(r'^account/settings/2fa/recovery/$',
+        accounts_twofactor.RecoveryCodeSettingsView.as_view(),
+        name='sentry-account-settings-2fa-recovery'),
+    url(r'^account/settings/2fa/totp/$',
+        accounts_twofactor.TotpSettingsView.as_view(),
+        name='sentry-account-settings-2fa-totp'),
+    url(r'^account/settings/2fa/sms/$',
+        accounts_twofactor.SmsSettingsView.as_view(),
+        name='sentry-account-settings-2fa-sms'),
+    url(r'^account/settings/2fa/u2f/$',
+        accounts_twofactor.U2fSettingsView.as_view(),
+        name='sentry-account-settings-2fa-u2f'),
+    url(r'^account/settings/avatar/$', accounts.avatar_settings,
+        name='sentry-account-settings-avatar'),
     url(r'^account/settings/appearance/$', accounts.appearance_settings,
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
         name='sentry-account-settings-identities'),
-    url(r'^account/settings/notifications/$', accounts.notification_settings,
+    url(r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
+        accounts.disconnect_identity,
+        name='sentry-account-disconnect-identity'),
+    url(r'^account/settings/notifications/$', AccountNotificationView.as_view(),
         name='sentry-account-settings-notifications'),
+    url(r'^account/settings/security/$', AccountSecurityView.as_view(),
+        name='sentry-account-security'),
+    url(r'^account/settings/emails/$', accounts.show_emails,
+        name='sentry-account-settings-emails'),
+
+    # compatibility
+    url(r'^account/settings/notifications/unsubscribe/(?P<project_id>\d+)/$',
+        accounts.email_unsubscribe_project),
+
+    url(r'^account/notifications/unsubscribe/(?P<project_id>\d+)/$',
+        accounts.email_unsubscribe_project,
+        name='sentry-account-email-unsubscribe-project'),
+    url(r'^account/notifications/unsubscribe/issue/(?P<issue_id>\d+)/$',
+        UnsubscribeIssueNotificationsView.as_view(),
+        name='sentry-account-email-unsubscribe-issue'),
+
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
     url(r'^account/settings/social/', include('social_auth.urls')),
@@ -204,25 +300,13 @@ urlpatterns += patterns(
     url(r'^manage/status/warnings/$', admin.status_warnings,
         name='sentry-admin-warnings-status'),
 
-    # Admin - Teams
-    url(r'^manage/teams/$', admin.manage_teams,
-        name='sentry-admin-teams'),
-
-    # Admin - Projects
-    url(r'^manage/projects/$', admin.manage_projects,
-        name='sentry-admin-projects'),
-
     # Admin - Users
-    url(r'^manage/users/$', admin.manage_users,
-        name='sentry-admin-users'),
     url(r'^manage/users/new/$', admin.create_new_user,
         name='sentry-admin-new-user'),
     url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user,
         name='sentry-admin-edit-user'),
     url(r'^manage/users/(?P<user_id>\d+)/remove/$', admin.remove_user,
         name='sentry-admin-remove-user'),
-    url(r'^manage/users/(?P<user_id>\d+)/projects/$', admin.list_user_projects,
-        name='sentry-admin-list-user-projects'),
 
     # Admin - Plugins
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
@@ -234,14 +318,16 @@ urlpatterns += patterns(
 
     # Legacy Redirects
     url(r'^docs/?$',
-        RedirectView.as_view(url='https://docs.getsentry.com/hosted/', permanent=False),
+        RedirectView.as_view(url='https://docs.sentry.io/hosted/', permanent=False),
         name='sentry-docs-redirect'),
-    url(r'^api/?$',
-        RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
-        name='sentry-api-docs-redirect'),
     url(r'^docs/api/?$',
-        RedirectView.as_view(url='https://docs.getsentry.com/hosted/api/', permanent=False),
+        RedirectView.as_view(url='https://docs.sentry.io/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'),
+
+    url(r'^api/$', react_page_view, name='sentry-api'),
+    url(r'^api/new-token/$', react_page_view),
+
+    url(r'^out/$', OutView.as_view()),
 
     # Organizations
     url(r'^(?P<organization_slug>[\w_-]+)/$', react_page_view,
@@ -272,6 +358,8 @@ urlpatterns += patterns(
         name='sentry-create-project'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$', RemoveOrganizationView.as_view(),
         name='sentry-remove-organization'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/restore/$', RestoreOrganizationView.as_view(),
+        name='sentry-restore-organization'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'),
 
@@ -332,22 +420,16 @@ urlpatterns += patterns(
         ProjectQuotasView.as_view(),
         name='sentry-manage-project-quotas'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/notifications/$',
-        ProjectNotificationsView.as_view(),
-        name='sentry-project-notifications'),
-
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/$',
-        ProjectRulesView.as_view(),
-        name='sentry-project-rules'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/edit/$',
-        ProjectRuleEditView.as_view(),
-        name='sentry-edit-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/(?P<rule_id>\d+)/remove/$',
-        ProjectRuleRemoveView.as_view(),
-        name='sentry-remove-project-rule'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/rules/new/$',
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
         ProjectRuleEditView.as_view(),
         name='sentry-new-project-rule'),
+    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/(?P<rule_id>\d+)/$',
+        ProjectRuleEditView.as_view(),
+        name='sentry-edit-project-rule'),
+
+    url(r'^avatar/(?P<avatar_id>[^\/]+)/$',
+        UserAvatarPhotoView.as_view(),
+        name='sentry-user-avatar-url'),
 
     # Generic
     url(r'^$', HomeView.as_view(),
@@ -385,8 +467,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', react_page_view,
         name='sentry-stream'),
 
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id>\d+)/replay/$', ReplayEventView.as_view(),
-        name='sentry-replay'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/(?:group|issues)/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', GroupEventJsonView.as_view(),
         name='sentry-group-event-json'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$', GroupTagExportView.as_view(),
@@ -395,5 +475,5 @@ urlpatterns += patterns(
         name='sentry-group-plugin-action'),
 
     # Legacy
-    url(r'', react_page_view),
+    url(r'/$', react_page_view),
 )

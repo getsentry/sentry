@@ -22,9 +22,12 @@ const Footer = React.createClass({
       <footer>
         <div className="container">
           <div className="pull-right">
-            <a href={config.urlPrefix + '/api/'}>{t('API')}</a>
-            <a href={config.urlPrefix + '/docs/'}>{t('Docs')}</a>
-            <a href="https://github.com/getsentry/sentry">{t('Contribute')}</a>
+            <a className="hidden-xs" href="/api/">{t('API')}</a>
+            <a href="/docs/">{t('Docs')}</a>
+            <a  className="hidden-xs" href="https://github.com/getsentry/sentry" rel="noreferrer">{t('Contribute')}</a>
+            {config.isOnPremise &&
+              <a className="hidden-xs" href="/out/">{t('Migrate to SaaS')}</a>
+            }
           </div>
           <div className="version pull-left">
             {'Sentry'} {config.version.current}
@@ -38,4 +41,3 @@ const Footer = React.createClass({
 });
 
 export default Footer;
-

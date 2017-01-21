@@ -2,10 +2,13 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Rule
+from datetime import timedelta
+from django.utils import timezone
+
+from sentry.models import GroupRuleStatus, Rule
 from sentry.plugins import plugins
 from sentry.testutils import TestCase
-from sentry.rules.processor import RuleProcessor
+from sentry.rules.processor import EventCompatibilityProxy, RuleProcessor
 
 
 class RuleProcessorTest(TestCase):
@@ -37,3 +40,33 @@ class RuleProcessorTest(TestCase):
         assert len(futures) == 1
         assert futures[0].rule == rule
         assert futures[0].kwargs == {}
+
+        # should not apply twice due to default frequency
+        results = list(rp.apply())
+        assert len(results) == 0
+
+        # now ensure that moving the last update backwards
+        # in time causes the rule to trigger again
+        GroupRuleStatus.objects.filter(rule=rule).update(
+            last_active=timezone.now() - timedelta(minutes=Rule.DEFAULT_FREQUENCY + 1),
+        )
+
+        results = list(rp.apply())
+        assert len(results) == 1
+
+
+class EventCompatibilityProxyTest(TestCase):
+    def test_simple(self):
+        event = self.create_event(
+            message='biz baz',
+            data={
+                'sentry.interfaces.Message': {
+                    'message': 'foo %s',
+                    'formatted': 'foo bar',
+                    'params': ['bar'],
+                }
+            },
+        )
+
+        event_proxy = EventCompatibilityProxy(event)
+        assert event_proxy.message == 'foo bar'

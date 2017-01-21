@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 41.1 (35376) - http://www.bohemiancoding.com/sketch -->
+    <title>Android</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Bounding-box" fill-opacity="0" fill="#FFFFFF" x="0" y="0" width="48" height="48"></rect>
+        <g id="Android">
+            <rect id="Rectangle-6" fill="#777088" x="11" y="17" width="26" height="21" rx="2"></rect>
+            <path d="M11.0843696,16 C11.4562078,12.9479729 13.4471102,3.96189045 23.9998042,4.00012162 C34.4457814,4.03794315 36.5070267,12.9609063 36.9061643,16 L11.0843696,16 Z" id="Combined-Shape" fill="#777088"></path>
+            <rect id="Rectangle-Copy" fill="#777088" x="38" y="17" width="5" height="16" rx="2.5"></rect>
+            <rect id="Rectangle-Copy-3" fill="#777088" x="26" y="28" width="5" height="19" rx="2.5"></rect>
+            <rect id="Rectangle" fill="#777088" x="5" y="17" width="5" height="16" rx="2.5"></rect>
+            <rect id="Rectangle-Copy-2" fill="#777088" x="17" y="28" width="5" height="19" rx="2.5"></rect>
+            <circle id="Oval" fill="#FFFFFF" cx="19" cy="10" r="1"></circle>
+            <circle id="Oval-Copy" fill="#FFFFFF" cx="29" cy="10" r="1"></circle>
+            <rect id="Rectangle-7" fill="#777088" transform="translate(30.388830, 4.510150) rotate(-335.000000) translate(-30.388830, -4.510150) " x="29.8888296" y="1.01014991" width="1" height="7" rx="0.5"></rect>
+            <rect id="Rectangle-7" fill="#777088" transform="translate(17.388830, 4.510150) rotate(-25.000000) translate(-17.388830, -4.510150) " x="16.8888296" y="1.01014991" width="1" height="7" rx="0.5"></rect>
+        </g>
+    </g>
+</svg>

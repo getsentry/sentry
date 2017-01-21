@@ -23,7 +23,7 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
 from sentry.debug.utils.packages import get_all_package_versions
 
-BEACON_URL = 'https://getsentry.com/remote/beacon/'
+BEACON_URL = 'https://sentry.io/remote/beacon/'
 
 logger = logging.getLogger('beacon')
 
@@ -45,7 +45,7 @@ def send_beacon():
     install_id = options.get('sentry:install-id')
     if not install_id:
         logger.info('Generated installation ID: %s', install_id)
-        install_id = sha1(uuid4().hex).hexdigest()
+        install_id = sha1(uuid4().bytes).hexdigest()
         options.set('sentry:install-id', install_id)
 
     end = timezone.now()
@@ -59,6 +59,7 @@ def send_beacon():
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
+        'docker': sentry.is_docker(),
         'admin_email': options.get('system.admin-email'),
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput

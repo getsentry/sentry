@@ -22,6 +22,8 @@ class EnsureReleaseExistsTest(TestCase):
         )
         assert release.version == tv.value
         assert release.project == self.project
+        assert release.organization == self.project.organization
+        assert release.projects.first() == self.project
 
         # ensure we dont hit some kind of error saving it again
         tv.save()
@@ -33,7 +35,9 @@ class ResolveGroupResolutions(TestCase):
         release = Release.objects.create(
             version='a',
             project=self.project,
+            organization_id=self.project.organization_id,
         )
+        release.add_project(self.project)
 
         mock_delay.assert_called_once_with(
             release_id=release.id,

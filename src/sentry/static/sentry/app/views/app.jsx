@@ -1,12 +1,17 @@
 import React from 'react';
+import $ from 'jquery';
+import Cookies from 'js-cookie';
+
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
-import AlertActions from '../actions/alertActions.jsx';
+import AlertActions from '../actions/alertActions';
 import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
 import LoadingIndicator from '../components/loadingIndicator';
+import OrganizationsLoader from '../components/organizations/organizationsLoader';
 import OrganizationStore from '../stores/organizationStore';
+
 import {t} from '../locale';
 
 function getAlertTypeForProblem(problem) {
@@ -19,6 +24,10 @@ function getAlertTypeForProblem(problem) {
 }
 
 const App = React.createClass({
+  childContextTypes: {
+    location: React.PropTypes.object
+  },
+
   mixins: [
     ApiMixin
   ],
@@ -28,6 +37,12 @@ const App = React.createClass({
       loading: false,
       error: false,
       needsUpgrade: ConfigStore.get('needsUpgrade'),
+    };
+  },
+
+  getChildContext() {
+    return {
+      location: this.props.location
     };
   },
 
@@ -72,6 +87,18 @@ const App = React.createClass({
         type: msg.level
       });
     });
+
+    $(document).ajaxError(function (evt, jqXHR) {
+      // TODO: Need better way of identifying anonymous pages
+      //       that don't trigger redirect
+      let pageAllowsAnon = /^\/share\//.test(window.location.pathname);
+      if (jqXHR && jqXHR.status === 401 && !pageAllowsAnon) {
+        Cookies.set('session_expired', 1);
+        // User has become unauthenticated; reload URL, and let Django
+        // redirect to login page
+        window.location.reload();
+      }
+    });
   },
 
   componentWillUnmount() {
@@ -104,11 +131,11 @@ const App = React.createClass({
     }
 
     return (
-      <div>
+      <OrganizationsLoader>
         <Alerts className="messages-container" />
         <Indicators className="indicators-container" />
         {this.props.children}
-      </div>
+      </OrganizationsLoader>
     );
   }
 });

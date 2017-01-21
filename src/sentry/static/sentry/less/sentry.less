@@ -1,20 +1,39 @@
-@import url("./includes.less");
-@import url("./palette.less");
-@import url("./type.less");
-@import url("./layout.less");
-@import url("./forms.less");
+// Sentry variable overrides
+@import url("./variables.less");
+
+// Vendor componenents
+@import url("./includes/bootstrap.less");
+@import url("./includes/datepicker.less");
+@import url("./includes/github.less");
+@import url("./includes/select2.less");
+@import url("./includes/pygments.less");
+@import url("./includes/simple-slider.less");
+@import url("./includes/typeahead.less");
+@import url("./includes/animate.less");
+@import url("./includes/tooltips.less");
+@import "~platformicons/platformicons/platformicons.css";
+
+// App Components
 @import url("./shared-components.less");
-@import url("./stream.less");
-@import url("./group-detail.less");
-@import url("./releases.less");
+@import url("./layout.less");
+@import url("./sidebar.less");
+@import url("./fonts.less");
+@import url("./forms.less");
+@import url("./misc.less");
+@import url("./required-admin-actions.less");
+@import url("./result-grid.less");
+@import url("./type.less");
+
+// Page specific
+
+@import url("./admin.less");
+@import url("./auth.less");
 @import url("./dashboard.less");
+@import url("./docs.less");
+@import url("./group-detail.less");
 @import url("./organization.less");
 @import url("./project-settings.less");
+@import url("./releases.less");
 @import url("./setup-wizard.less");
-@import url("./required-admin-actions.less");
-@import url("./docs.less");
-@import url("./auth.less");
-@import url("./misc.less");
-@import url("./admin.less");
-
-@import "~platformicons/platformicons/platformicons.css";
+@import url("./spacing.less");
+@import url("./stream.less");

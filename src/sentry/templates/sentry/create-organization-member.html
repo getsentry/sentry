@@ -4,12 +4,20 @@
 {% load crispy_forms_tags %}
 
 {% block title %}{% trans "Add Member to Organization" %} | {{ block.super }}{% endblock %}
+{% block sub-header %}{% endblock %}
+
+{% block modal_header_link %}
+  {% url 'sentry-organization-members' organization.slug %}
+{% endblock %}
+
+{% block modal_header_extra %}
+  <span class="back-to">Back to Member List</span>
+{% endblock %}
 
 {% block main %}
-  <div class="page-header">
-    <a class="back-arrow" style="top: 0px;" href="{% url 'sentry-organization-members' organization.slug %}"><span class="icon-arrow-left"></span></a>
-    <h2>{% trans "Add Member to Organization" %}</h2>
-  </div>
+  <h2 class="p-b-1 m-b-1 b-b-1">{% trans "Add Member to Organization" %}</h2>
+
+  {% block new_member_form_template_hook %}{% endblock %}
 
   {% if is_invite %}
     <p>{% trans "Invite a member to join this organization via their email address. If they do not already have an account, they will first be asked to create one." %}</p>
@@ -20,9 +28,16 @@
   <form class="form-stacked" action="" method="post">
     {% csrf_token %}
 
-    {% for field in form %}
-      {{ field|as_crispy_field }}
-    {% endfor %}
+    {{ form|as_crispy_errors }}
+
+    {% if is_invite %}
+      {{ form.email|as_crispy_field }}
+    {% else %}
+      {{ form.user|as_crispy_field }}
+    {% endif %}
+
+    {% include "sentry/partial/members/_roles.html" %}
+    {% include "sentry/partial/members/_teams.html" %}
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">{% trans "Add Member" %}</button>

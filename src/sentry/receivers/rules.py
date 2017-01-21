@@ -23,20 +23,6 @@ def create_default_rules(instance, created=True, RuleModel=Rule, **kwargs):
         },
     )
 
-    RuleModel.objects.create(
-        project=instance,
-        label='Send a notification for regressions',
-        data={
-            'match': 'all',
-            'conditions': [
-                {'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
-            ],
-            'actions': [
-                {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
-            ],
-        }
-    )
-
 
 post_save.connect(
     create_default_rules,

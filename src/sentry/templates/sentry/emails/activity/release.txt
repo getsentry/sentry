@@ -1,0 +1,3 @@
+{{ release.short_version }} was released for {{ project.name }} on {{ release.date_added }}.
+
+{{ release_link }}

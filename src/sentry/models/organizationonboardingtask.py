@@ -5,12 +5,16 @@ sentry.models.organizationonboardingtask
 :copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from django.conf import settings
-from django.db import models
+from django.core.cache import cache
+from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
+    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -48,6 +52,30 @@ class OnboardingTaskStatus(object):
     SKIPPED = 3
 
 
+class OrganizationOnboardingTaskManager(BaseManager):
+    def record(self, organization_id, task, **kwargs):
+        cache_key = 'organizationonboardingtask:%s:%s' % (
+            organization_id,
+            task,
+        )
+        if cache.get(cache_key) is None:
+            try:
+                with transaction.atomic():
+                    self.create(
+                        organization_id=organization_id,
+                        task=task,
+                        **kwargs
+                    )
+                    return True
+            except IntegrityError:
+                pass
+
+            # Store marker to prevent running all the time
+            cache.set(cache_key, 1, 3600)
+
+        return False
+
+
 class OrganizationOnboardingTask(Model):
     """
     Onboarding tasks walk new Sentry orgs through basic features of Sentry.
@@ -58,6 +86,8 @@ class OrganizationOnboardingTask(Model):
         ISSUE_ASSIGNMENT: { 'assigned_member': user.id }
         SECOND_PLATFORM: { 'platform': 'javascript' }
     """
+    __core__ = False
+
     TASK_CHOICES = (
         (OnboardingTask.FIRST_EVENT, 'First event'),  # Send an organization's first event to Sentry
         (OnboardingTask.INVITE_MEMBER, 'Invite member'),  # Add a second member to your Sentry org.
@@ -83,6 +113,8 @@ class OrganizationOnboardingTask(Model):
     date_completed = models.DateTimeField(default=timezone.now)
     project_id = BoundedBigIntegerField(blank=True, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+
+    objects = OrganizationOnboardingTaskManager()
 
     class Meta:
         app_label = 'sentry'

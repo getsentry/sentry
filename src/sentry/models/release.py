@@ -9,7 +9,7 @@ from __future__ import absolute_import, print_function
 
 import re
 
-from django.db import models
+from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -17,9 +17,21 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.cache import cache
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
+
+
+class ReleaseProject(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey('sentry.Project')
+    release = FlexibleForeignKey('sentry.Release')
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_release_project'
+        unique_together = (('project', 'release'),)
 
 
 class Release(Model):
@@ -29,6 +41,9 @@ class Release(Model):
     """
     __core__ = False
 
+    organization = FlexibleForeignKey('sentry.Organization', null=True, blank=True)
+    projects = models.ManyToManyField('sentry.Project', related_name='releases',
+                                      through=ReleaseProject)
     project = FlexibleForeignKey('sentry.Project')
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
@@ -52,7 +67,7 @@ class Release(Model):
 
     @classmethod
     def get_cache_key(cls, project_id, version):
-        return 'release:2:%s:%s' % (project_id, md5(version).hexdigest())
+        return 'release:2:%s:%s' % (project_id, md5_text(version).hexdigest())
 
     @classmethod
     def get(cls, project, version):
@@ -82,13 +97,18 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release = cls.objects.get_or_create(
+            release, created = cls.objects.get_or_create(
                 project=project,
                 version=version,
                 defaults={
                     'date_added': date_added,
+                    'organization_id': project.organization_id
                 },
-            )[0]
+            )
+            if created:
+                release.add_project(project)
+            # TODO(dcramer): upon creating a new release, check if it should be
+            # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
 
         return release
@@ -98,3 +118,10 @@ class Release(Model):
         if _sha1_re.match(self.version):
             return self.version[:12]
         return self.version
+
+    def add_project(self, project):
+        try:
+            with transaction.atomic():
+                ReleaseProject.objects.create(project=project, release=self)
+        except IntegrityError:
+            pass

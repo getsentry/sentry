@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
+import pytest
 
 from datetime import timedelta
 from django.conf import settings
@@ -14,10 +15,11 @@ from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
     EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
-    generate_culprit,
+    generate_culprit, md5_from_hash
 )
 from sentry.models import (
-    Activity, Event, Group, GroupResolution, GroupStatus, EventMapping, Release
+    Activity, Event, Group, GroupRelease, GroupResolution, GroupStatus,
+    EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
 
@@ -40,9 +42,11 @@ class EventManagerTest(TransactionTestCase):
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
         manager = EventManager(self.make_event(message='foo bar'))
+        manager.normalize()
         event1 = manager.save(1)
 
         manager = EventManager(self.make_event(message='foo baz'))
+        manager.normalize()
         event2 = manager.save(1)
 
         assert event1.group_id != event2.group_id
@@ -213,6 +217,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['{{ default }}', 'a' * 32],
         ))
         with self.tasks():
+            manager.normalize()
             event = manager.save(1)
 
         manager = EventManager(self.make_event(
@@ -220,6 +225,7 @@ class EventManagerTest(TransactionTestCase):
             fingerprint=['a' * 32],
         ))
         with self.tasks():
+            manager.normalize()
             event2 = manager.save(1)
 
         assert event.group_id != event2.group_id
@@ -277,15 +283,19 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
 
+    @patch('sentry.tasks.activity.send_activity_notifications.delay')
     @patch('sentry.event_manager.plugin_is_regression')
-    def test_marks_as_unresolved_only_with_new_release(self, plugin_is_regression):
+    def test_marks_as_unresolved_with_new_release(self, plugin_is_regression,
+                                                  mock_send_activity_notifications_delay):
         plugin_is_regression.return_value = True
 
         old_release = Release.objects.create(
             version='a',
             project=self.project,
+            organization_id=self.project.organization_id,
             date_added=timezone.now() - timedelta(minutes=30),
         )
+        old_release.add_project(self.project)
 
         manager = EventManager(self.make_event(
             event_id='a' * 32,
@@ -345,10 +355,14 @@ class EventManagerTest(TransactionTestCase):
 
         assert not GroupResolution.objects.filter(group=group).exists()
 
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             group=group,
             type=Activity.SET_REGRESSION,
-        ).exists()
+        )
+
+        mock_send_activity_notifications_delay.assert_called_once_with(
+            activity.id
+        )
 
     @patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
@@ -384,7 +398,8 @@ class EventManagerTest(TransactionTestCase):
             message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
         ))
         data = manager.normalize()
-        assert len(data['message']) == settings.SENTRY_MAX_MESSAGE_LENGTH
+        assert len(data['sentry.interfaces.Message']['message']) == \
+            settings.SENTRY_MAX_MESSAGE_LENGTH
 
     def test_default_version(self):
         manager = EventManager(self.make_event())
@@ -409,11 +424,55 @@ class EventManagerTest(TransactionTestCase):
         group = event.group
         assert group.first_release.version == '1.0'
 
+    def test_group_release_no_env(self):
+        manager = EventManager(self.make_event(release='1.0'))
+        event = manager.save(1)
+
+        release = Release.objects.get(version='1.0', project=event.project_id)
+
+        assert GroupRelease.objects.filter(
+            release_id=release.id,
+            group_id=event.group_id,
+            environment='',
+        ).exists()
+
+        # ensure we're not erroring on second creation
+        manager = EventManager(self.make_event(release='1.0'))
+        manager.save(1)
+
+    def test_group_release_with_env(self):
+        manager = EventManager(self.make_event(
+            release='1.0', environment='prod',
+            event_id='a' * 32))
+        event = manager.save(1)
+
+        release = Release.objects.get(version='1.0', project=event.project_id)
+
+        assert GroupRelease.objects.filter(
+            release_id=release.id,
+            group_id=event.group_id,
+            environment='prod',
+        ).exists()
+
+        manager = EventManager(self.make_event(
+            release='1.0', environment='staging',
+            event_id='b' * 32))
+        event = manager.save(1)
+
+        release = Release.objects.get(version='1.0', project=event.project_id)
+
+        assert GroupRelease.objects.filter(
+            release_id=release.id,
+            group_id=event.group_id,
+            environment='staging',
+        ).exists()
+
     def test_bad_logger(self):
         manager = EventManager(self.make_event(logger='foo bar'))
         data = manager.normalize()
         assert data['logger'] == DEFAULT_LOGGER_NAME
 
+    @pytest.mark.xfail
     def test_record_frequencies(self):
         project = self.project
         manager = EventManager(self.make_event())
@@ -527,6 +586,24 @@ class EventManagerTest(TransactionTestCase):
             'title': 'foo bar',
         }
 
+    def test_message_event_type(self):
+        manager = EventManager(self.make_event(**{
+            'message': '',
+            'sentry.interfaces.Message': {
+                'formatted': 'foo bar',
+                'message': 'foo %s',
+                'params': ['bar'],
+            }
+        }))
+        data = manager.normalize()
+        assert data['type'] == 'default'
+        event = manager.save(self.project.id)
+        group = event.group
+        assert group.data.get('type') == 'default'
+        assert group.data.get('metadata') == {
+            'title': 'foo bar',
+        }
+
     def test_error_event_type(self):
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.Exception': {
@@ -577,6 +654,56 @@ class EventManagerTest(TransactionTestCase):
         assert event.data['sdk'] == {
             'name': 'sentry-unity',
             'version': '1.0',
+        }
+
+    def test_no_message(self):
+        # test that the message is handled gracefully
+        manager = EventManager(self.make_event(**{
+            'message': None,
+            'sentry.interfaces.Message': {
+                'message': 'hello world',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == 'hello world'
+
+    def test_bad_message(self):
+        # test that the message is handled gracefully
+        manager = EventManager(self.make_event(**{
+            'message': 1234,
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+
+        assert event.message == '1234'
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': '1234',
+        }
+
+    def test_message_attribute_goes_to_interface(self):
+        manager = EventManager(self.make_event(**{
+            'message': 'hello world',
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'hello world',
+        }
+
+    def test_message_attribute_goes_to_formatted(self):
+        manager = EventManager(self.make_event(**{
+            'message': 'world hello',
+            'sentry.interfaces.Message': {
+                'message': 'hello world',
+            },
+        }))
+        manager.normalize()
+        event = manager.save(self.project.id)
+        assert event.data['sentry.interfaces.Message'] == {
+            'message': 'hello world',
+            'formatted': 'world hello',
         }
 
 
@@ -712,6 +839,15 @@ class GenerateCulpritTest(TestCase):
         }
         assert generate_culprit(data) == 'PLZNOTME.py in ?'
 
+    def test_with_empty_stacktrace(self):
+        data = {
+            'sentry.interfaces.Stacktrace': None,
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'http://example.com'
+
     def test_with_only_http_interface(self):
         data = {
             'sentry.interfaces.Http': {
@@ -757,3 +893,7 @@ class GenerateCulpritTest(TestCase):
             }
         }
         assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+    def test_md5_from_hash(self):
+        result = md5_from_hash(['foo', 'bar', u'foô'])
+        assert result == '6d81588029ed4190110b2779ba952a00'

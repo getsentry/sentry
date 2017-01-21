@@ -49,6 +49,7 @@ class RuleSerializer(serializers.Serializer):
     conditions = ListField(
         child=RuleNodeField(type='condition/event'),
     )
+    frequency = serializers.IntegerField(min_value=5, max_value=60 * 24 * 30)
 
     def save(self, rule):
         rule.project = self.context['project']
@@ -60,5 +61,7 @@ class RuleSerializer(serializers.Serializer):
             rule.data['actions'] = self.data['actions']
         if self.data.get('conditions') is not None:
             rule.data['conditions'] = self.data['conditions']
+        if self.data.get('frequency'):
+            rule.data['frequency'] = self.data['frequency']
         rule.save()
         return rule

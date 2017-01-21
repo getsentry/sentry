@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -32,7 +34,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                                           which the projects should be listed.
         :auth: required
         """
-        if request.auth:
+        if request.auth and not request.user.is_authenticated():
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, 'project'):
                 team_list = [request.auth.project.team]
@@ -61,8 +63,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         context = []
         for project, pdata in zip(project_list, serialize(project_list, request.user)):
-            assert str(project.id) == pdata['id']
-            pdata['team'] = team_map[str(project.team_id)]
+            assert six.text_type(project.id) == pdata['id']
+            pdata['team'] = team_map[six.text_type(project.team_id)]
             context.append(pdata)
 
         return Response(context)

@@ -12,13 +12,15 @@ const ClippedBox = React.createClass({
   getDefaultProps() {
     return {
       defaultClipped: false,
-      clipHeight: 200
+      clipHeight: 200,
+      renderedHeight: null
     };
   },
 
   getInitialState() {
     return {
-      clipped: this.props.defaultClipped
+      clipped: this.props.defaultClipped,
+      revealed: false, // True once user has clicked "Show More" button
     };
   },
 
@@ -35,9 +37,12 @@ const ClippedBox = React.createClass({
     }
   },
 
-  reveal() {
+  reveal(e) {
+    e.stopPropagation();
+
     this.setState({
-      clipped: false
+      clipped: false,
+      revealed: true
     });
   },
 
@@ -46,6 +51,9 @@ const ClippedBox = React.createClass({
     if (this.state.clipped) {
       className += ' clipped';
     }
+    if (this.state.revealed) {
+      className += ' revealed';
+    }
 
     return (
       <div className={className}>
@@ -53,11 +61,14 @@ const ClippedBox = React.createClass({
           <h5>{this.props.title}</h5>
         }
         {this.props.children}
-        <div className="clip-fade">
-          <a onClick={this.reveal} className="show-more btn btn-primary btn-xs">
-            {t('Show more')}
-          </a>
-        </div>
+
+        {this.state.clipped &&
+          <div className="clip-fade">
+            <a onClick={this.reveal} className="show-more btn btn-primary btn-xs">
+              {t('Show more')}
+            </a>
+          </div>
+        }
       </div>
     );
   }

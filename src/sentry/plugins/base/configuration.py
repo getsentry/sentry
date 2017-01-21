@@ -1,9 +1,7 @@
 from __future__ import absolute_import
 
 import logging
-
-from sentry import options
-from sentry.models import ProjectOption
+import six
 
 from django.utils.translation import ugettext as _
 from django.utils.safestring import mark_safe
@@ -14,6 +12,37 @@ from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.http import Http404
 from requests.exceptions import HTTPError
+
+from sentry import options
+from sentry.api import client
+from sentry.api.serializers import serialize
+from sentry.models import ProjectOption
+from sentry.utils import json
+
+
+def react_plugin_config(plugin, project, request):
+    response = client.get('/projects/{}/{}/plugins/{}/'.format(
+        project.organization.slug,
+        project.slug,
+        plugin.slug,
+    ), request=request)
+
+    return mark_safe("""
+    <div id="ref-plugin-config"></div>
+    <script>
+    $(function(){
+        ReactDOM.render(React.createFactory(Sentry.PluginConfig)({
+            project: %s,
+            organization: %s,
+            data: %s
+        }), document.getElementById('ref-plugin-config'));
+    });
+    </script>
+    """ % (
+        json.dumps_htmlsafe(serialize(project, request.user)),
+        json.dumps_htmlsafe(serialize(project.organization, request.user)),
+        json.dumps_htmlsafe(response.data)
+    ))
 
 
 def default_plugin_config(plugin, project, request):
@@ -52,7 +81,7 @@ def default_plugin_config(plugin, project, request):
             if not test_results:
                 test_results = 'No errors returned'
         else:
-            for field, value in form.cleaned_data.iteritems():
+            for field, value in six.iteritems(form.cleaned_data):
                 key = '%s:%s' % (plugin_key, field)
                 if project:
                     ProjectOption.objects.set_value(project, key, value)
@@ -79,6 +108,16 @@ def default_plugin_config(plugin, project, request):
         'plugin_test_results': test_results,
         'plugin_is_configured': is_configured,
     }, context_instance=RequestContext(request)))
+
+
+def default_issue_plugin_config(plugin, project, form_data):
+    plugin_key = plugin.get_conf_key()
+    for field, value in six.iteritems(form_data):
+        key = '%s:%s' % (plugin_key, field)
+        if project:
+            ProjectOption.objects.set_value(project, key, value)
+        else:
+            options.set(key, value)
 
 
 def default_plugin_options(plugin, project):

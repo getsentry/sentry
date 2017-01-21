@@ -7,6 +7,7 @@ import sys
 from collections import defaultdict
 from django.core.management.base import BaseCommand, CommandError, make_option
 from django.db.models import Q
+from six.moves import input, reduce
 
 from sentry.models import Organization, OrganizationMember, User
 
@@ -42,7 +43,7 @@ class Command(BaseCommand):
             primary_user.username,
         )
         while True:
-            response = raw_input(message).strip().lower()
+            response = input(message).strip().lower()
             if response in ('y', ''):
                 return True
             elif response == 'n':
@@ -74,7 +75,7 @@ class Command(BaseCommand):
 
         if not unique_users:
             sys.stdout.write("No users with duplicate accounts found for merging.\n")
-            sys.exit(0)
+            return
 
         sys.stdout.write("Found {} unique account(s) with duplicate identities.\n".format(len(unique_users)))
 

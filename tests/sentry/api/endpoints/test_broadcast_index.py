@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import Broadcast, BroadcastSeen
@@ -16,7 +18,7 @@ class BroadcastListTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(broadcast1.id)
+        assert response.data[0]['id'] == six.text_type(broadcast1.id)
 
 
 class BroadcastUpdateTest(APITestCase):

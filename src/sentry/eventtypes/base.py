@@ -15,6 +15,9 @@ class BaseEvent(object):
     def get_metadata(self):
         raise NotImplementedError
 
+    def to_string(self, metadata):
+        raise NotImplementedError
+
 
 class DefaultEvent(BaseEvent):
     key = 'default'
@@ -24,7 +27,11 @@ class DefaultEvent(BaseEvent):
         return True
 
     def get_metadata(self):
-        message = strip(self.data.get('message'))
+        # See GH-3248
+        message_interface = self.data.get('sentry.interfaces.Message', {
+            'message': self.data.get('message', ''),
+        })
+        message = strip(message_interface.get('formatted', message_interface['message']))
         if not message:
             title = '<unlabeled event>'
         else:
@@ -32,3 +39,6 @@ class DefaultEvent(BaseEvent):
         return {
             'title': title,
         }
+
+    def to_string(self, metadata):
+        return metadata['title']

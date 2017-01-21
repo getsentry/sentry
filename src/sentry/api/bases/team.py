@@ -1,14 +1,15 @@
 from __future__ import absolute_import
 
-from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import ScopedPermission
+from sentry.app import raven
 from sentry.models import Team, TeamStatus
 from sentry.models.apikey import ROOT_KEY
 
+from .organization import OrganizationPermission
 
-class TeamPermission(ScopedPermission):
+
+class TeamPermission(OrganizationPermission):
     scope_map = {
         'GET': ['team:read', 'team:write', 'team:delete'],
         'POST': ['team:write', 'team:delete'],
@@ -17,15 +18,21 @@ class TeamPermission(ScopedPermission):
     }
 
     def has_object_permission(self, request, view, team):
-        if request.auth:
+        result = super(TeamPermission, self).has_object_permission(
+            request, view, team.organization)
+        if not result:
+            return result
+
+        if not (request.user and request.user.is_authenticated()) and request.auth:
             if request.auth is ROOT_KEY:
                 return True
-            return request.auth.organization_id == team.organization_id
-
-        request.access = access.from_request(request, team.organization)
+            return request.auth.organization_id == team.organization.id
 
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        return any(request.access.has_team_scope(team, s) for s in allowed_scopes)
+        return any(
+            request.access.has_team_scope(team, s)
+            for s in allowed_scopes,
+        )
 
 
 class TeamEndpoint(Endpoint):
@@ -33,10 +40,10 @@ class TeamEndpoint(Endpoint):
 
     def convert_args(self, request, organization_slug, team_slug, *args, **kwargs):
         try:
-            team = Team.objects.get(
+            team = Team.objects.filter(
                 organization__slug=organization_slug,
                 slug=team_slug,
-            )
+            ).select_related('organization').get()
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -44,6 +51,10 @@ class TeamEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, team)
+
+        raven.tags_context({
+            'organization': team.organization_id,
+        })
 
         kwargs['team'] = team
         return (args, kwargs)

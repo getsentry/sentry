@@ -3,6 +3,7 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_features %}
 
 {% block title %}{% trans "Members" %} | {{ block.super }}{% endblock %}
 
@@ -23,119 +24,135 @@
   <h3>{% trans "Members" %}</h3>
 
   {% if request_list %}
-  <table class="table" style="margin-bottom: 20px" id="access_request_list">
-    <thead>
-      <tr>
-        <th colspan="2">{% trans "Pending Access Requests" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for access_request in request_list %}
-      <tr>
-        <td>
-          <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
-        </td>
-        <td class="align-right">
-          <a href="#" class="btn btn-primary btn-sm"
-                 data-action="approve" data-id="{{ access_request.id }}">Approve</a>
-          <a href="#" class="btn btn-default btn-sm"
-                 data-action="deny" data-id="{{ access_request.id }}">Deny</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
+  <div class="panel panel-default horizontal-scroll">
+    <table class="table" id="access_request_list">
+      <thead>
+        <tr>
+          <th colspan="2">{% trans "Pending Access Requests" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for access_request in request_list %}
+        <tr>
+          <td>
+            <strong>{{ access_request.member.user.get_display_name }}</strong> requests access to the <strong>{{ access_request.team.name }}</strong> team.
+          </td>
+          <td class="align-right">
+            <a href="#" class="btn btn-primary btn-sm"
+                   data-action="approve" data-id="{{ access_request.id }}">Approve</a>
+            <a href="#" class="btn btn-default btn-sm"
+                   data-action="deny" data-id="{{ access_request.id }}">Deny</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% elif ref == 'access-requests' %}
     <div class="well">
       <p>{% trans "All pending access requests have been taken care of." %}</p>
     </div>
   {% endif %}
 
-  <table class="table member-list">
-    <colgroup>
-      <col width="30%"/>
-      <col width="25%" />
-      <col width="20%"/>
-      <col width="20%"/>
-      <col width="5%"/>
-    </colgroup>
-    <thead>
-      <tr>
-        <th>{% trans "Member" %}</th>
-        <th>&nbsp;</th>
-        <th>{% trans "Role" %}</th>
-        {% if can_remove_members or member_can_leave %}
-          <th class="squash">&nbsp;</th>
+  <div class="panel panel-default horizontal-scroll">
+    <table class="table member-list">
+      <colgroup>
+        {% if can_remove_members or members_can_leave %}
+        <!-- 4 column -->
+        <col width="45%"/>
+        <col width="15%"/>
+        <col width="15%"/>
+        <col width="25%"/>
+        {% else %}
+        <!-- 3 column -->
+        <col width="60%"/>
+        <col width="20%"/>
+        <col width="20%"/>
         {% endif %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for member, needs_sso in member_list %}
+      </colgroup>
+      <thead>
         <tr>
-          <td class="table-user-info">
-            <span class="avatar">
-              {% letter_avatar_svg member.get_display_name member.get_label %}
-              <img src="{% gravatar_url member.get_email size 80 default 'blank' %}">
-            </span>
-            <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
-              {{ member.get_display_name }}
-            </a></h5>
-            {{ member.get_email }}
-            <br />
-          </td>
-          <td class="status">
-            {% if needs_sso or member.is_pending %}
-              {% if member.is_pending %}
-                <strong>Invited</strong>
-              {% else %}
-                <strong>Missing SSO Link</strong>
-              {% endif %}
-              <br>
-              {% if can_add_members %}
-              <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
-              {% endif %}
-            {% endif %}
-          </td>
-          <td>{{ member.get_role_display }}</td>
+          <th>{% trans "Member" %}</th>
+          <th>&nbsp;</th>
+          <th class="squash">{% trans "Role" %}</th>
           {% if can_remove_members or member_can_leave %}
-          <td class="align-right squash">
-            <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
-               class="btn btn-default btn-sm">
-              {% trans "Details" %}
-            </a>
-            {% if member.user != request.user %}
-              {% if can_remove_members %}
-                <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
-                    data-member-id="{{ member.id }}">
-                  <span class="icon icon-trash"></span> &nbsp;{% trans "Remove" %}
-                </a>
-              {% else %}
-                <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
-                   title="You do not have access to remove this member.">
-                  <span class="icon icon-trash"></span> &nbsp;{% trans "Remove" %}
-                </a>
-              {% endif %}
-            {% elif member.user == request.user %}
-              {% if member_can_leave %}
-                <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
-                    data-member-id="{{ member.id }}"
-                    data-message="Are you sure you wish to leave this organization?">
-                  <span class="icon icon-trash"></span> &nbsp;Leave
-                </a>
-              {% else %}
-                <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
-                   title="You cannot leave this organization as you are the only owner.">
-                  <span class="icon icon-trash"></span> &nbsp;Leave
-                </a>
-              {% endif %}
-            {% endif %}
-          </td>
+            <th class="squash">&nbsp;</th>
           {% endif %}
         </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {% for member, needs_sso, has_2fa in member_list %}
+          <tr>
+            <td class="table-user-info">
+              <span class="avatar">
+                {% letter_avatar_svg member.get_display_name member.get_label %}
+                {% if member.get_avatar_type == 'upload' %}
+                  <img src="{% profile_photo_url member.user_id size 80 %}">
+                {% elif member.get_avatar_type == 'gravatar' %}
+                  <img src="{% gravatar_url member.get_email size 80 default 'blank' %}">
+                {% endif %}
+              </span>
+              <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+                {{ member.get_display_name }}
+              </a></h5>
+              {{ member.get_email }}
+              <br />
+            </td>
+            <td class="status">
+              {% if needs_sso or member.is_pending %}
+                {% if member.is_pending %}
+                  <strong>Invited</strong>
+                {% else %}
+                  <strong>Missing SSO Link</strong>
+                {% endif %}
+                <br>
+                {% if can_add_members %}
+                <a href="javascript:void(0)" class="resend-invite btn btn-sm btn-primary" data-member-id="{{ member.id }}" style="padding: 0 4px; margin-top: 2px">Resend invite</a>
+                {% endif %}
+              {% elif not has_2fa %}
+                <span style="color:#B64236;" class="icon-exclamation tip" title="{% trans "Two-factor auth not enabled" %}"></span>
+              {% endif %}
+            </td>
+            <td class="squash">{{ member.get_role_display }}</td>
+            {% if can_remove_members or member_can_leave %}
+            <td class="align-right squash">
+              <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
+                 class="btn btn-default btn-sm">
+                {% trans "Details" %}
+              </a>
+              {% if member.user != request.user %}
+                {% if can_remove_members %}
+                  <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
+                      data-member-id="{{ member.id }}">
+                    <span class="icon icon-trash"></span> &nbsp;{% trans "Remove" %}
+                  </a>
+                {% else %}
+                  <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
+                     title="You do not have access to remove this member.">
+                    <span class="icon icon-trash"></span> &nbsp;{% trans "Remove" %}
+                  </a>
+                {% endif %}
+              {% elif member.user == request.user %}
+                {% if member_can_leave %}
+                  <a href="javascript:void(0)" class="btn btn-danger btn-sm remove-member"
+                      data-member-id="{{ member.id }}"
+                      data-message="Are you sure you wish to leave this organization?">
+                    <span class="icon icon-exit"></span> &nbsp;Leave
+                  </a>
+                {% else %}
+                  <a href="javascript:void(0)" class="btn btn-sm btn-disabled tip"
+                     title="You cannot leave this organization as you are the only owner.">
+                    <span class="icon icon-exit"></span> &nbsp;Leave
+                  </a>
+                {% endif %}
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}
 
 {% block content_after %}

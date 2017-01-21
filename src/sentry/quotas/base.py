@@ -7,6 +7,8 @@ sentry.quotas.base
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import namedtuple
 from functools import partial
 from django.conf import settings
@@ -42,7 +44,7 @@ class Quota(object):
         return 0
 
     def translate_quota(self, quota, parent_quota):
-        if str(quota).endswith('%'):
+        if six.text_type(quota).endswith('%'):
             pct = int(quota[:-1])
             quota = int(parent_quota) * pct / 100
         if not quota:
@@ -96,7 +98,12 @@ class Quota(object):
         return quota
 
     def get_organization_quota(self, organization):
+        system_rate_limit = options.get('system.rate-limit')
+        # If there is only a single org, this one org should
+        # be allowed to consume the entire quota.
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            return system_rate_limit
         return self.translate_quota(
             settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
-            options.get('system.rate-limit'),
+            system_rate_limit,
         )

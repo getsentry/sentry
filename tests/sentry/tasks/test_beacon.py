@@ -33,6 +33,7 @@ class SendBeaconTest(TestCase):
         safe_urlopen.assert_called_once_with(BEACON_URL, json={
             'install_id': install_id,
             'version': sentry.get_version(),
+            'docker': sentry.is_docker(),
             'data': {
                 'organizations': 1,
                 'users': 0,

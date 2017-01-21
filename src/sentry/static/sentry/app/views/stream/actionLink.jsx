@@ -4,6 +4,7 @@ import React from 'react';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+import _ from 'underscore';
 
 // TODO(mitsuhiko): very unclear how to translate this
 const ActionLink = React.createClass({
@@ -89,7 +90,7 @@ const ActionLink = React.createClass({
     let numEvents = SelectedGroupStore.getSelectedIds().size;
 
     function resolveLabel(obj) {
-      if (typeof obj === 'function') {
+      if (_.isFunction(obj)) {
         return obj(numEvents);
       }
       return obj;
@@ -101,7 +102,9 @@ const ActionLink = React.createClass({
       <a title={this.props.tooltip || this.props.buttonTitle}
          className={className}
          disabled={this.props.disabled}
-         onClick={this.handleClick}>
+         onClick={this.handleClick}
+         data-placement="bottom"
+         >
         {this.props.children}
 
         <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false} onHide={this.handleToggle}>
@@ -125,4 +128,3 @@ const ActionLink = React.createClass({
 });
 
 export default ActionLink;
-

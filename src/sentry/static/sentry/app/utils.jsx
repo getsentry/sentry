@@ -34,11 +34,11 @@ const arrayIsEqual = function(arr, other, deep) {
 const valueIsEqual = function(value, other, deep) {
   if (value === other) {
     return true;
-  } else if (value instanceof Array || other instanceof Array) {
+  } else if (_.isArray(value) || _.isArray(other)) {
     if (arrayIsEqual(value, other, deep)) {
       return true;
     }
-  } else if (value instanceof Object || other instanceof Object) {
+  } else if (_.isObject(value) || _.isObject(other)) {
     if (objectMatchesSubset(value, other, deep)) {
       return true;
     }
@@ -48,6 +48,14 @@ const valueIsEqual = function(value, other, deep) {
 
 const objectMatchesSubset = function(obj, other, deep){
   let k;
+
+  if (obj === other) {
+    return true;
+  }
+
+  if (!obj || !other) {
+    return false;
+  }
 
   if (deep !== true) {
     for (k in other) {
@@ -103,6 +111,10 @@ const compareArrays = function(arr1, arr2, compFunc) {
     }
   }
   return true;
+};
+
+const intcomma = function(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 };
 
 export default {
@@ -163,7 +175,7 @@ export default {
   },
 
   defined(item) {
-    return typeof item !== 'undefined' && item !== null;
+    return !_.isUndefined(item) && item !== null;
   },
 
   nl2br(str) {
@@ -212,9 +224,11 @@ export default {
   arrayIsEqual: arrayIsEqual,
   objectMatchesSubset: objectMatchesSubset,
   compareArrays: compareArrays,
+  intcomma: intcomma,
   modelsEqual: modelsEqual,
   valueIsEqual: valueIsEqual,
   parseLinkHeader: require('./utils/parseLinkHeader'),
+  deviceNameMapper: require('./utils/deviceNameMapper'),
   objectToArray: objectToArray,
 
   Collection: require('./utils/collection'),

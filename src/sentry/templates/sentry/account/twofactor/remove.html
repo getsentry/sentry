@@ -1,0 +1,35 @@
+{% extends "sentry/bases/twofactor_settings.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_title %}{% trans "Remove Method:" %} {{ auth.name }}{% endblock %}
+{% block twofactor_body %}
+  <p>
+    Do you want to remove the method?  You will no longer be able to
+    use it for two-factor authentication afterwards.  Removing the last
+    authenticator removes two-factor authentication.
+  </p>
+
+  {% if removes_backups %}
+  <p>
+    Removing this authentication method will also automatically remove
+    backup methods such as recovery codes and disable two-factor
+    authentication.
+  </p>
+  {% endif %}
+
+  <form action="" method="post" class="form-stacked">
+    {% csrf_token %}
+    {% if password_form.password %}
+      {{ password_form|as_crispy_errors }}
+      {{ password_form.password|as_crispy_field }}
+    {% endif %}
+    <input type="hidden" name="remove" value="1">
+    <fieldset class="form-actions">
+      <button type="submit" name="yes" class="btn btn-default btn-primary">{% trans "Yes" %}</button>
+      <button type="submit" name="no" class="btn btn-default">{% trans "No" %}</button>
+    </fieldset>
+  </form>
+{% endblock %}

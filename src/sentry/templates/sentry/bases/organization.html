@@ -53,7 +53,7 @@
       {% endwith %}
     </li>
     {% endif %}
-    {% if ACCESS.org_delete %}
+    {% if ACCESS.org_write %}
       {% feature organizations:sso organization %}
       <li class="{% block org_auth_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
@@ -63,15 +63,20 @@
       {% endfeature %}
     {% endif %}
     {% if ACCESS.org_delete %}
-      <li class="{% block org_apikeys_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
-          {% trans "API Keys" %}
-        </a>
-      </li>
+      {% feature organizations:api-keys organization %}
+        <li class="{% block org_apikeys_nav %}{% endblock %}">
+          <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
+            {% trans "API Keys" %}
+          </a>
+        </li>
+      {% endfeature %}
     {% endif %}
     {% if ACCESS.org_write %}
       <li><a href="{% absolute_uri '/organizations/{}/audit-log/' organization.slug %}">{% trans "Audit Log" %}</a></li>
       <li><a href="{% absolute_uri '/organizations/{}/rate-limits/' organization.slug %}">{% trans "Rate Limits" %}</li></a>
+      {% feature organizations:repos organization %}
+        <li><a href="{% absolute_uri '/organizations/{}/repos/' organization.slug %}">{% trans "Repositories" %}</li></a>
+      {% endfeature %}
       <li class="{% block org_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-settings' organization.slug %}">
           {% trans "Settings" %}
@@ -80,6 +85,6 @@
     {% endif %}
   </ul>
   {% block org_sidebar_nav_extra %}
-    {% comment %}This block is used by getsentry.com{% endcomment %}
+    {% comment %}This block is used by sentry.io{% endcomment %}
   {% endblock %}
 {% endblock %}

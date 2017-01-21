@@ -8,7 +8,7 @@ export default function errorHandler(Component) {
       return originalRender.apply(this, arguments);
     } catch (err) {
       /*eslint no-console:0*/
-      console.log('Failed on render with', err);
+      setTimeout(() => { throw err; });
       return <RouteError error={err} component={this} />;
     }
   };

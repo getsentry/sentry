@@ -1,77 +1,11 @@
-import jQuery from 'jquery';
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import OrganizationHomeContainer from '../../components/organizations/homeContainer';
 import OrganizationState from '../../mixins/organizationState';
-import {t,tct} from '../../locale';
-
-const RangeInput = React.createClass({
-  propTypes: {
-    min: React.PropTypes.number.isRequired,
-    max: React.PropTypes.number.isRequired,
-    step: React.PropTypes.number.isRequired,
-    defaultValue: React.PropTypes.number,
-    formatLabel: React.PropTypes.func.isRequired,
-    onChange: React.PropTypes.func.isRequired
-  },
-
-  getDefaultProps() {
-    return {
-      min: 1,
-      max: 100,
-      step: 1,
-      formatLabel: function(value) {
-        return value;
-      },
-      onChange: function(e, value) {
-
-      },
-    };
-  },
-
-  getInitialState() {
-    return {
-      value: this.props.defaultValue,
-    };
-  },
-
-  componentDidMount() {
-    let {min, max, step} = this.props;
-    let $value = jQuery('<span class="value" />');
-    jQuery(this.refs.input).on('slider:ready', (e, data) => {
-      $value.appendTo(data.el);
-      $value.text(this.props.formatLabel(data.value));
-      this.setState({
-        value: data.value,
-      });
-    }).on('slider:changed', (e, data) => {
-      $value.text(this.props.formatLabel(data.value));
-      this.setState({
-        value: data.value,
-      });
-      this.props.onChange(e, data.value);
-    }).simpleSlider({
-      range: [min, max],
-      step: step,
-      snap: true
-    });
-  },
-
-  render() {
-    let {min, max, step} = this.props;
-    let {value} = this.state;
-    return (
-      <input type="range"
-          min={min}
-          max={max}
-          step={step}
-          defaultValue={value}
-          ref="input" />
-    );
-  },
-});
+import {RangeField} from '../../components/forms';
+import {t, tct} from '../../locale';
 
 const RateLimitEditor = React.createClass({
   propTypes: {
@@ -90,7 +24,7 @@ const RateLimitEditor = React.createClass({
     };
   },
 
-  onProjectLimitChange(e, value) {
+  onProjectLimitChange(value) {
     this.setState({
       currentProjectLimit: value,
     });
@@ -131,20 +65,19 @@ const RateLimitEditor = React.createClass({
     let canSave = savedProjectLimit === currentProjectLimit && !saving;
 
     return (
-      <form onSubmit={this.onSubmit}>
-          <p>
-            {/* This may not translate well to all languages since maxRate may affect plural form of "events per minute" */}
-            {tct('Your organization is limited to [strong:[maxRate] events per minute]. When this rate is exceeded the system will begin discarding data until the next interval.',
-              {
-                strong: <strong/>,
-                maxRate: maxRate
-              }
-            )}
-          </p>
+      <form onSubmit={this.onSubmit} className="ref-rate-limit-editor">
+        <p>
+          {/* This may not translate well to all languages since maxRate may affect plural form of "events per minute" */}
+          {tct('Your organization is limited to [strong:[maxRate] events per minute]. When this rate is exceeded the system will begin discarding data until the next interval.',
+            {
+              strong: <strong/>,
+              maxRate: maxRate
+            }
+          )}
+        </p>
 
-        <p>{t('You may set a limit to the maximum amount a single project may send:')}</p>
-
-        <RangeInput
+        <RangeField
+            label={t('Max percentage a single project may send')}
             defaultValue={savedProjectLimit}
             onChange={this.onProjectLimitChange}
             formatLabel={(value) => { return `${value}%`; }} />
@@ -183,7 +116,7 @@ const OrganizationRateLimits = React.createClass({
             {maxRate !== 0 ?
               <RateLimitEditor organization={org} />
             :
-              <p>{t('There are no rate limits configured for your organization.')}</p>
+              <p className="ref-no-rate-limits">{t('There are no rate limits configured for your organization.')}</p>
             }
           </div>
         </div>

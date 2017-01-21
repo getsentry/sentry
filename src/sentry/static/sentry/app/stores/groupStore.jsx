@@ -1,9 +1,10 @@
 import jQuery from 'jquery';
 import Reflux from 'reflux';
 import GroupActions from '../actions/groupActions';
-import IndicatorStore from '../stores/indicatorStore';
+import IndicatorStore from './indicatorStore';
 import utils from '../utils';
 import {t} from '../locale';
+import _ from 'underscore';
 
 
 function showAlert(msg, type) {
@@ -41,7 +42,7 @@ const GroupStore = Reflux.createStore({
   },
 
   add(items) {
-    if (!items instanceof Array) {
+    if (!_.isArray(items)) {
       items = [items];
     }
 
@@ -52,17 +53,15 @@ const GroupStore = Reflux.createStore({
       itemIds.add(item.id);
     });
 
-    items.forEach((item, idx) => {
+    // See if any existing items are updated by this new set of items
+    this.items.forEach((item, idx) => {
       if (itemsById[item.id]) {
         this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
-        // HACK(dcramer): work around statusDetails not being consistent
-        if (typeof itemsById[item.id].statusDetails !== undefined) {
-          this.items[idx].statusDetails = itemsById[item.id].statusDetails;
-        }
         delete itemsById[item.id];
       }
     });
 
+    // New items
     for (let itemId in itemsById) {
       this.items.push(itemsById[itemId]);
     }
@@ -81,21 +80,21 @@ const GroupStore = Reflux.createStore({
   },
 
   addStatus(id, status) {
-    if (typeof this.statuses[id] === 'undefined') {
+    if (_.isUndefined(this.statuses[id])) {
       this.statuses[id] = {};
     }
     this.statuses[id][status] = true;
   },
 
   clearStatus(id, status) {
-    if (typeof this.statuses[id] === 'undefined') {
+    if (_.isUndefined(this.statuses[id])) {
       return;
     }
     this.statuses[id][status] = false;
   },
 
   hasStatus(id, status) {
-    if (typeof this.statuses[id] === 'undefined') {
+    if (_.isUndefined(this.statuses[id])) {
       return false;
     }
     return this.statuses[id][status] || false;
@@ -191,7 +190,7 @@ const GroupStore = Reflux.createStore({
     // regroup pending changes by their itemID
     let pendingById = {};
     this.pendingChanges.forEach(change => {
-      if (typeof pendingById[change.id] === 'undefined') {
+      if (_.isUndefined(pendingById[change.id])) {
         pendingById[change.id] = [];
       }
       pendingById[change.id].push(change);
@@ -199,7 +198,7 @@ const GroupStore = Reflux.createStore({
 
     return this.items.map(item => {
       let rItem = item;
-      if (typeof pendingById[item.id] !== 'undefined') {
+      if (!_.isUndefined(pendingById[item.id])) {
         // copy the object so dirty state doesnt mutate original
         rItem = jQuery.extend(true, {}, rItem);
         pendingById[item.id].forEach(change => {
@@ -297,7 +296,7 @@ const GroupStore = Reflux.createStore({
    * If itemIds is undefined, returns all ids in the store
    */
   _itemIdsOrAll(itemIds) {
-    if (typeof itemIds === 'undefined') {
+    if (_.isUndefined(itemIds)) {
       itemIds = this.items.map(item => item.id);
     }
     return itemIds;
@@ -338,6 +337,7 @@ const GroupStore = Reflux.createStore({
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   }
+
 });
 
 export default GroupStore;

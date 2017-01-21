@@ -7,11 +7,12 @@ sentry.options.defaults
 """
 from __future__ import absolute_import, print_function
 
+from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_PRIORITIZE_DISK, FLAG_REQUIRED, FLAG_ALLOW_EMPTY,
     register,
 )
-from sentry.utils.types import Dict, String
+from sentry.utils.types import Dict, String, Sequence
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -19,6 +20,7 @@ from sentry.utils.types import Dict, String
 
 # System
 register('system.admin-email', flags=FLAG_REQUIRED)
+register('system.support-email', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.databases', type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register('system.rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -26,6 +28,7 @@ register('system.secret-key', flags=FLAG_NOSTORE)
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
+register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 
 # Redis
 register(
@@ -46,7 +49,6 @@ register(
 register('redis.options', type=Dict, flags=FLAG_NOSTORE)
 
 # symbolizer specifics
-register('dsym.llvm-symbolizer-path', type=String)
 register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache')
 
 # Mail
@@ -62,3 +64,22 @@ register('mail.list-namespace', type=String, default='localhost', flags=FLAG_NOS
 register('mail.enable-replies', default=False, flags=FLAG_PRIORITIZE_DISK)
 register('mail.reply-hostname', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('mail.mailgun-api-key', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# SMS
+register('sms.twilio-account', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('sms.twilio-token', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('sms.twilio-number', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# U2F
+register('u2f.app-id', default='', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('u2f.facets', default=(), type=Sequence,
+         flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+register('auth.ip-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('auth.user-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# Filestore
+register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)
+register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=FLAG_NOSTORE)

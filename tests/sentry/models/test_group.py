@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime, timedelta
 
 import pytest
@@ -18,7 +20,7 @@ class GroupTest(TestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert group.is_resolved()
 
-        group.status = GroupStatus.MUTED
+        group.status = GroupStatus.IGNORED
         assert not group.is_resolved()
 
         group.status = GroupStatus.UNRESOLVED
@@ -41,9 +43,9 @@ class GroupTest(TestCase):
 
     def test_get_oldest_latest_events(self):
         group = self.create_group()
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, i),
             )
@@ -53,9 +55,9 @@ class GroupTest(TestCase):
 
     def test_get_oldest_latest_identical_timestamps(self):
         group = self.create_group()
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, 50),
             )
@@ -70,9 +72,9 @@ class GroupTest(TestCase):
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 0),  # earliest
         )
-        for i in xrange(1, 3):
+        for i in range(1, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, 30),  # all in the middle
             )
@@ -85,19 +87,19 @@ class GroupTest(TestCase):
         assert group.get_latest_event().event_id == '3'
         assert group.get_oldest_event().event_id == '0'
 
-    def test_is_muted_with_expired_snooze(self):
+    def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,
             until=timezone.now() - timedelta(minutes=1),
         )
-        assert not group.is_muted()
+        assert not group.is_ignored()
 
     def test_status_with_expired_snooze(self):
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,
@@ -110,7 +112,9 @@ class GroupTest(TestCase):
         release = Release.objects.create(
             version='a',
             project=project,
+            organization_id=project.organization_id,
         )
+        release.add_project(project)
         group = self.create_group(
             project=project,
             first_release=release,
@@ -147,3 +151,7 @@ class GroupTest(TestCase):
 
         with pytest.raises(Group.DoesNotExist):
             get_group_with_redirect(duplicate_id)
+
+    def test_invalid_shared_id(self):
+        with pytest.raises(Group.DoesNotExist):
+            Group.from_share_id('adc7a5b902184ce3818046302e94f8ec')

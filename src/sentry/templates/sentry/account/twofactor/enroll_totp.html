@@ -1,0 +1,46 @@
+{% extends "sentry/bases/twofactor_settings.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_title %}{% trans "Enrollment: " %} {{ auth.name }}{% endblock %}
+{% block twofactor_body %}
+  <p>
+    To enroll use an application on your phone to get two-factor
+    authentication codes when prompted.  Scan the below QR code
+    and then enter a code to confirm the enrollment.
+  </p>
+  <div class="qrcode">
+    <table>
+      {% for row in provision_qrcode %}
+        <tr>
+          {% for cell in row %}
+            <td class="{% if cell %}black{% else %}white{% endif %}"></td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <fieldset class="form-actions">
+    <form action="" method="post">
+      {% csrf_token %}
+
+      {{ otp_form|as_crispy_errors }}
+      {% for field in otp_form %}
+        {{ field|as_crispy_field }}
+      {% endfor %}
+      {% if password_form.password %}
+        {{ password_form|as_crispy_errors }}
+        {{ password_form.password|as_crispy_field }}
+      {% endif %}
+
+      <input type="hidden" name="enroll">
+      <input type="hidden" name="totp_secret" value="{{ auth.secret }}">
+      <div>
+        <a href="{% url 'sentry-account-settings-2fa-totp' %}" class="btn btn-default">{% trans "Cancel" %}</a>
+        <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button>
+      </div>
+    </form>
+  </fieldset>
+{% endblock %}

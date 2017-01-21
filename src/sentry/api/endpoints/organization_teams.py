@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
@@ -35,7 +36,8 @@ def list_organization_teams_scenario(runner):
 
 class TeamSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.CharField(max_length=200, required=False)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
+                                  required=False)
 
 
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
@@ -88,11 +90,18 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            team = Team.objects.create(
-                name=result['name'],
-                slug=result.get('slug'),
-                organization=organization,
-            )
+            try:
+                with transaction.atomic():
+                    team = Team.objects.create(
+                        name=result['name'],
+                        slug=result.get('slug'),
+                        organization=organization,
+                    )
+            except IntegrityError:
+                return Response(
+                    {'detail': 'A team with this slug already exists.'},
+                    status=409,
+                )
 
             if request.user.is_authenticated():
                 try:

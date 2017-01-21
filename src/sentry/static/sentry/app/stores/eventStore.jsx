@@ -1,5 +1,6 @@
 import jQuery from 'jquery';
 import Reflux from 'reflux';
+import _ from 'underscore';
 
 const EventStore = Reflux.createStore({
   init() {
@@ -23,7 +24,7 @@ const EventStore = Reflux.createStore({
   },
 
   add(items) {
-    if (!items instanceof Array) {
+    if (!_.isArray(items)) {
       items = [items];
     }
 

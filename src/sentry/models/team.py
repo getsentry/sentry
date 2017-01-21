@@ -10,26 +10,26 @@ from __future__ import absolute_import, print_function
 import warnings
 
 from django.conf import settings
-from django.db import models
+from django.db import connections, IntegrityError, models, router, transaction
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import env
+from sentry.app import env, locks
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, organization, user, with_projects=False):
+    def get_for_user(self, organization, user, scope=None, with_projects=False):
         """
         Returns a list of all teams a user has some level of access to.
         """
         from sentry.models import (
-            OrganizationMemberTeam, Project, ProjectStatus
+            OrganizationMemberTeam, Project, ProjectStatus, OrganizationMember,
         )
 
         if not user.is_authenticated():
@@ -42,12 +42,24 @@ class TeamManager(BaseManager):
 
         if env.request and env.request.is_superuser() or settings.SENTRY_PUBLIC:
             team_list = list(base_team_qs)
-
         else:
+            try:
+                om = OrganizationMember.objects.get(
+                    user=user,
+                    organization=organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                # User is not a member of the organization at all
+                return []
+
+            # If a scope is passed through, make sure this scope is
+            # available on the OrganizationMember object.
+            if scope is not None and scope not in om.get_scopes():
+                return []
+
             team_list = list(base_team_qs.filter(
                 id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=user,
-                    organizationmember__organization=organization,
+                    organizationmember=om,
                     is_active=True,
                 ).values_list('team'),
             ))
@@ -86,6 +98,8 @@ class Team(Model):
     """
     A team represents a group of individuals which maintain ownership of projects.
     """
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization')
     slug = models.SlugField()
     name = models.CharField(max_length=64)
@@ -106,15 +120,15 @@ class Team(Model):
         db_table = 'sentry_team'
         unique_together = (('organization', 'slug'),)
 
-    __repr__ = sane_repr('slug', 'name')
+    __repr__ = sane_repr('name', 'slug')
 
     def __unicode__(self):
         return u'%s (%s)' % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:team'
-            with Lock(lock_key):
+            lock = locks.get('slug:team', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
             super(Team, self).save(*args, **kwargs)
         else:
@@ -153,6 +167,83 @@ class Team(Model):
             return True
 
         return auth_identity.is_valid(member)
+
+    def transfer_to(self, organization):
+        """
+        Transfers a team and all projects under it to the given organization.
+        """
+        from sentry.models import (
+            OrganizationAccessRequest, OrganizationMember,
+            OrganizationMemberTeam, Project
+        )
+
+        try:
+            with transaction.atomic():
+                self.update(organization=organization)
+        except IntegrityError:
+            # likely this means a team already exists, let's try to coerce to
+            # it instead of a blind transfer
+            new_team = Team.objects.get(
+                organization=organization,
+                slug=self.slug,
+            )
+        else:
+            new_team = self
+
+        Project.objects.filter(
+            team=self,
+        ).exclude(
+            organization=organization,
+        ).update(
+            team=new_team,
+            organization=organization,
+        )
+
+        # remove any pending access requests from the old organization
+        if self != new_team:
+            OrganizationAccessRequest.objects.filter(
+                team=self,
+            ).delete()
+
+        # identify shared members and ensure they retain team access
+        # under the new organization
+        old_memberships = OrganizationMember.objects.filter(
+            teams=self,
+        ).exclude(
+            organization=organization,
+        )
+        for member in old_memberships:
+            try:
+                new_member = OrganizationMember.objects.get(
+                    user=member.user,
+                    organization=organization,
+                )
+            except OrganizationMember.DoesNotExist:
+                continue
+
+            try:
+                with transaction.atomic():
+                    OrganizationMemberTeam.objects.create(
+                        team=new_team,
+                        organizationmember=new_member,
+                    )
+            except IntegrityError:
+                pass
+
+        OrganizationMemberTeam.objects.filter(
+            team=self,
+        ).exclude(
+            organizationmember__organization=organization,
+        ).delete()
+
+        if new_team != self:
+            cursor = connections[router.db_for_write(Team)].cursor()
+            # we use a cursor here to avoid automatic cascading of relations
+            # in Django
+            try:
+                cursor.execute('DELETE FROM sentry_team WHERE id = %s', [self.id])
+            finally:
+                cursor.close()
 
     def get_audit_log_data(self):
         return {

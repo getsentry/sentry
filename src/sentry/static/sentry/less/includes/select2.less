@@ -9,8 +9,6 @@
   .form-control;
   display: inline-block;
   padding: 4px 10px 3px;
-  top: -1px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, .05);
 }
 
 .select2-container,
@@ -143,13 +141,13 @@ html[dir="rtl"] .select2-container .select2-choice > .select2-chosen {
 
 .select2-drop.select2-drop-above {
   margin-top: 1px;
-  border-top: 1px solid @trim;
+  border-top: 1px solid lighten(@gray-lighter, 10);
   border-bottom: 0;
   border-radius: 3px 3px 0 0;
 }
 
 .select2-drop-active {
-  border: 1px solid @trim;
+  border: 1px solid lighten(@gray-lighter, 10);
   border-top: none;
 }
 
@@ -232,7 +230,7 @@ html[dir="rtl"] .select2-container .select2-choice .select2-arrow b {
   font-family: sans-serif;
   font-size: 1em;
 
-  border: 1px solid @trim;
+  border: 1px solid lighten(@gray-lighter, 10);
   border-radius: 2px;
 
   -webkit-box-shadow: none;
@@ -355,7 +353,7 @@ html[dir="rtl"] .select2-results {
 .select2-results-dept-7 .select2-result-label { padding-left: 120px }
 
 .select2-results .select2-highlighted {
-  background: @blue;
+  background: @purple;
   color: #fff;
 }
 
@@ -422,11 +420,11 @@ disabled look for disabled choices in the results dropdown
 
 /* disabled styles */
 
-.select2-container.select2-container-disabled .select2-choice {
-  background-color: #f4f4f4;
-  background-image: none;
-  border: 1px solid #ddd;
-  cursor: default;
+.select2-container.select2-container-disabled.form-control,
+.select2-container.select2-container-disabled.form-control a {
+  background: #f9f9f9;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .select2-container.select2-container-disabled .select2-choice .select2-arrow {

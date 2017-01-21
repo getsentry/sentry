@@ -1,0 +1,46 @@
+{% extends "sentry/bases/twofactor_settings.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_title %}{% trans "Enrollment: " %} {{ auth.name }}{% endblock %}
+{% block twofactor_body %}
+  <p>
+    Enter your phone number and then provide the confirmation code we send you to active it.
+  </p>
+  <form action="" method="post">
+
+    {% if stage == 'initial' or stage == 'pick_number' %}
+      <input type="hidden" name="stage" value="pick_number">
+      {{ sms_form|as_crispy_errors }}
+      {% for field in sms_form %}
+        {{ field|as_crispy_field }}
+      {% endfor %}
+    {% elif stage == 'confirm' %}
+      <p>Sent confirmation code to <strong>{{ auth.phone_number }}</strong>:</p>
+      <input type="hidden" name="stage" value="confirm">
+      <input type="hidden" name="phone_number" value="{{ auth.phone_number }}">
+      {{ otp_form|as_crispy_errors }}
+      {% for field in otp_form %}
+        {{ field|as_crispy_field }}
+      {% endfor %}
+      <p><small>Wrong number? <a href=".">Start over</a>.
+    {% endif %}
+
+    <fieldset class="form-actions">
+      {% csrf_token %}
+
+      <input type="hidden" name="enroll">
+      <input type="hidden" name="totp_secret" value="{{ auth.secret }}">
+      <div>
+        <a href="{% url 'sentry-account-settings-2fa-sms' %}" class="btn btn-default">{% trans "Cancel" %}</a>
+        {% if not auth.phone_number %}
+        <button type="submit" class="btn btn-primary">{% trans "Send Confirmation Code" %}</button> 
+        {% else %}
+        <button type="submit" class="btn btn-primary">{% trans "Confirm" %}</button> 
+        {% endif %}
+      </div>
+    </fieldset>
+  </form>
+{% endblock %}

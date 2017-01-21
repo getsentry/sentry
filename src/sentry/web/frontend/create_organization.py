@@ -5,21 +5,14 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import features, roles
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, Organization, OrganizationMember,
-    OrganizationMemberTeam
-)
+from sentry import features
+from sentry.api import client
 from sentry.web.frontend.base import BaseView
 
 
-class NewOrganizationForm(forms.ModelForm):
+class NewOrganizationForm(forms.Form):
     name = forms.CharField(label=_('Organization Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('My Company')}))
-
-    class Meta:
-        fields = ('name',)
-        model = Organization
 
 
 class CreateOrganizationView(BaseView):
@@ -32,36 +25,14 @@ class CreateOrganizationView(BaseView):
     def handle(self, request):
         form = self.get_form(request)
         if form.is_valid():
-            org = form.save()
+            resp = client.post('/organizations/', data={
+                'name': form.cleaned_data['name'],
+                'defaultTeam': True,
+            }, request=request)
 
-            om = OrganizationMember.objects.create(
-                organization=org,
-                user=request.user,
-                role=roles.get_top_dog().id,
-            )
+            url = reverse('sentry-create-project', args=[resp.data['slug']])
 
-            team = org.team_set.create(
-                name=org.name,
-            )
-
-            OrganizationMemberTeam.objects.create(
-                team=team,
-                organizationmember=om,
-                is_active=True
-            )
-
-            AuditLogEntry.objects.create(
-                organization=org,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
-                target_object=org.id,
-                event=AuditLogEntryEvent.ORG_ADD,
-                data=org.get_audit_log_data(),
-            )
-
-            url = reverse('sentry-create-project', args=[org.slug])
-
-            return HttpResponseRedirect('{}?team={}'.format(url, team.slug))
+            return HttpResponseRedirect(url)
 
         context = {
             'form': form,

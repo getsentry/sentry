@@ -16,6 +16,32 @@ VARS = {
     'apiKey': 'secret_key',
 }
 
+PUBLIC_KEY = """-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA6A6TQjlPyMurLh/igZY4
+izA9sJgeZ7s5+nGydO4AI9k33gcy2DObZuadWRMnDwc3uH/qoAPw/mo3KOcgEtxU
+xdwiQeATa3HVPcQDCQiKm8xIG2Ny0oUbR0IFNvClvx7RWnPEMk05CuvsL0AA3eH5
+xn02Yg0JTLgZEtUT3whwFm8CAwEAAQ==
+-----END PUBLIC KEY-----"""
+
+PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
+MIIJRAIBADANBgkqhkiG9w0BAQEFAASCCS4wggkqAgEAAoICAQCoNFY4P+EeIXl0
+mLpO+i8uFqAaEFQ8ZX2VVpA13kNEHuiWXC3HPlQ+7G+O3XmAsO+Wf/xY6pCSeQ8h
+mLpO+i8uFqAaEFQ8ZX2VVpA13kNEHuiWXC3HPlQ+7G+O3XmAsO+Wf/xY6pCSeQ8h
+-----END PRIVATE KEY-----"""
+
+ENCRYPTED_PRIVATE_KEY = """-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIIJjjBABgkqhkiG9w0BBQ0wMzAbBgkqhkiG9w0BBQwwDgQIWVhErdQOFVoCAggA
+IrlYQUV1ig4U3viYh1Y8viVvRlANKICvgj4faYNH36UterkfDjzMonb/cXNeJEOS
+YgorM2Pfuec5vtPRPKd88+Ds/ktIlZhjJwnJjHQMX+lSw5t0/juna2sLH2dpuAbi
+PSk=
+-----END ENCRYPTED PRIVATE KEY-----"""
+
+RSA_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
++wn9Iu+zgamKDUu22xc45F2gdwM04rTITlZgjAs6U1zcvOzGxk8mWJD5MqFWwAtF
+zN87YGV0VMTG6ehxnkI4Fg6i0JPU3QIDAQABAoICAQCoCPjlYrODRU+vd2YeU/gM
+THd+9FBxiHLGXNKhG/FRSyREXEt+NyYIf/0cyByc9tNksat794ddUqnLOg0vwSkv
+-----END RSA PRIVATE KEY-----"""
+
 
 class SensitiveDataFilterTest(TestCase):
 
@@ -23,18 +49,18 @@ class SensitiveDataFilterTest(TestCase):
         """
         Helper to check that keys have been sanitized.
         """
-        self.assertTrue('foo' in vars)
-        self.assertEquals(vars['foo'], 'bar')
-        self.assertTrue('password' in vars)
-        self.assertEquals(vars['password'], FILTER_MASK)
-        self.assertTrue('the_secret' in vars)
-        self.assertEquals(vars['the_secret'], FILTER_MASK)
-        self.assertTrue('a_password_here' in vars)
-        self.assertEquals(vars['a_password_here'], FILTER_MASK)
-        self.assertTrue('api_key' in vars)
-        self.assertEquals(vars['api_key'], FILTER_MASK)
-        self.assertTrue('apiKey' in vars)
-        self.assertEquals(vars['apiKey'], FILTER_MASK)
+        assert 'foo' in vars
+        assert vars['foo'] == 'bar'
+        assert 'password' in vars
+        assert vars['password'] == FILTER_MASK
+        assert 'the_secret' in vars
+        assert vars['the_secret'] == FILTER_MASK
+        assert 'a_password_here' in vars
+        assert vars['a_password_here'] == FILTER_MASK
+        assert 'api_key' in vars
+        assert vars['api_key'] == FILTER_MASK
+        assert 'apiKey' in vars
+        assert vars['apiKey'] == FILTER_MASK
 
     def test_stacktrace(self):
         data = {
@@ -46,12 +72,12 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
 
-        self.assertTrue('sentry.interfaces.Stacktrace' in data)
+        assert 'sentry.interfaces.Stacktrace' in data
         stack = data['sentry.interfaces.Stacktrace']
-        self.assertTrue('frames' in stack)
-        self.assertEquals(len(stack['frames']), 1)
+        assert 'frames' in stack
+        assert len(stack['frames']) == 1
         frame = stack['frames'][0]
-        self.assertTrue('vars' in frame)
+        assert 'vars' in frame
         self._check_vars_sanitized(frame['vars'], proc)
 
     def test_http(self):
@@ -59,7 +85,7 @@ class SensitiveDataFilterTest(TestCase):
             'sentry.interfaces.Http': {
                 'data': VARS,
                 'env': VARS,
-                'headers': VARS.items(),
+                'headers': list(VARS.items()),
                 'cookies': VARS,
             }
         }
@@ -67,7 +93,7 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
 
-        self.assertTrue('sentry.interfaces.Http' in data)
+        assert 'sentry.interfaces.Http' in data
         http = data['sentry.interfaces.Http']
         for n in ('data', 'env', 'cookies'):
             assert n in http
@@ -75,6 +101,21 @@ class SensitiveDataFilterTest(TestCase):
 
         assert 'headers' in http
         self._check_vars_sanitized(dict(http['headers']), proc)
+
+    def test_user(self):
+        data = {
+            'sentry.interfaces.User': {
+                'username': 'secret',
+                'data': VARS,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        assert 'sentry.interfaces.User' in data
+        assert data['sentry.interfaces.User']['username'] == 'secret'
+        self._check_vars_sanitized(data['sentry.interfaces.User']['data'], proc)
 
     def test_extra(self):
         data = {
@@ -84,8 +125,25 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
 
-        self.assertTrue('extra' in data)
+        assert 'extra' in data
         self._check_vars_sanitized(data['extra'], proc)
+
+    def test_contexts(self):
+        data = {
+            'contexts': {
+                'secret': VARS,
+                'biz': VARS,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+
+        assert 'contexts' in data
+        assert 'secret' in data['contexts']
+        assert 'biz' in data['contexts']
+        self._check_vars_sanitized(data['contexts']['secret'], proc)
+        self._check_vars_sanitized(data['contexts']['biz'], proc)
 
     def test_querystring_as_string(self):
         data = {
@@ -98,12 +156,12 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
 
-        self.assertTrue('sentry.interfaces.Http' in data)
+        assert 'sentry.interfaces.Http' in data
         http = data['sentry.interfaces.Http']
-        self.assertEquals(
-            http['query_string'],
+        assert http['query_string'] == (
             'foo=bar&password=%(m)s&the_secret=%(m)s'
-            '&a_password_here=%(m)s&api_key=%(m)s' % dict(m=FILTER_MASK))
+            '&a_password_here=%(m)s&api_key=%(m)s' % {'m': FILTER_MASK}
+        )
 
     def test_querystring_as_string_with_partials(self):
         data = {
@@ -115,9 +173,9 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter()
         proc.apply(data)
 
-        self.assertTrue('sentry.interfaces.Http' in data)
+        assert 'sentry.interfaces.Http' in data
         http = data['sentry.interfaces.Http']
-        self.assertEquals(http['query_string'], 'foo=bar&password&baz=bar' % dict(m=FILTER_MASK))
+        assert http['query_string'] == 'foo=bar&password&baz=bar'
 
     def test_sanitize_additional_sensitive_fields(self):
         additional_sensitive_dict = {
@@ -125,14 +183,14 @@ class SensitiveDataFilterTest(TestCase):
             'moar_other_field': 'another value'
         }
         data = {
-            'extra': dict(VARS.items() + additional_sensitive_dict.items())
+            'extra': dict(list(VARS.items()) + list(additional_sensitive_dict.items()))
         }
 
         proc = SensitiveDataFilter(additional_sensitive_dict.keys())
         proc.apply(data)
 
         for field in additional_sensitive_dict.keys():
-            self.assertEquals(data['extra'][field], FILTER_MASK)
+            assert data['extra'][field] == FILTER_MASK
 
         self._check_vars_sanitized(data['extra'], proc)
 
@@ -179,20 +237,23 @@ class SensitiveDataFilterTest(TestCase):
     def test_sanitize_url(self):
         proc = SensitiveDataFilter()
         result = proc.sanitize('foo', 'pg://matt:pass@localhost/1')
-        self.assertEquals(result, 'pg://matt:%s@localhost/1' % FILTER_MASK)
+        assert result == 'pg://matt:%s@localhost/1' % FILTER_MASK
+        result = proc.sanitize('foo', "foo 'redis://redis:foo@localhost:6379/0' bar")
+        assert result == "foo 'redis://redis:%s@localhost:6379/0' bar" % FILTER_MASK
+        result = proc.sanitize('foo', "'redis://redis:foo@localhost:6379/0'")
+        assert result == "'redis://redis:%s@localhost:6379/0'" % FILTER_MASK
+        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar")
+        assert result == "foo redis://redis:%s@localhost:6379/0 bar" % FILTER_MASK
+        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
+        assert result == "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (FILTER_MASK, FILTER_MASK)
         # Make sure we don't mess up any other url.
         # This url specifically if passed through urlunsplit(urlsplit()),
         # it'll change the value.
         result = proc.sanitize('foo', 'postgres:///path')
-        self.assertEquals(result, 'postgres:///path')
-        result = proc.sanitize('foo', "foo 'redis://redis:foo@localhost:6379/0' bar")
-        self.assertEquals(result, "foo 'redis://redis:%s@localhost:6379/0' bar" % FILTER_MASK)
-        result = proc.sanitize('foo', "'redis://redis:foo@localhost:6379/0'")
-        self.assertEquals(result, "'redis://redis:%s@localhost:6379/0'" % FILTER_MASK)
-        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar")
-        self.assertEquals(result, "foo redis://redis:%s@localhost:6379/0 bar" % FILTER_MASK)
-        result = proc.sanitize('foo', "foo redis://redis:foo@localhost:6379/0 bar pg://matt:foo@localhost/1")
-        self.assertEquals(result, "foo redis://redis:%s@localhost:6379/0 bar pg://matt:%s@localhost/1" % (FILTER_MASK, FILTER_MASK))
+        assert result == 'postgres:///path'
+        # Don't be too overly eager within JSON strings an catch the right field.
+        result = proc.sanitize('foo', '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:pass@localhost/1","d":"lol"}')
+        assert result == '{"a":"https://localhost","b":"foo@localhost","c":"pg://matt:%s@localhost/1","d":"lol"}' % FILTER_MASK
 
     def test_sanitize_http_body(self):
         data = {
@@ -203,9 +264,9 @@ class SensitiveDataFilterTest(TestCase):
 
         proc = SensitiveDataFilter()
         proc.apply(data)
-        self.assertTrue('sentry.interfaces.Http' in data)
+        assert 'sentry.interfaces.Http' in data
         http = data['sentry.interfaces.Http']
-        self.assertEquals(http['data'], FILTER_MASK)
+        assert http['data'] == FILTER_MASK
 
     def test_does_not_fail_on_non_string(self):
         data = {
@@ -216,4 +277,81 @@ class SensitiveDataFilterTest(TestCase):
 
         proc = SensitiveDataFilter()
         proc.apply(data)
-        self.assertEquals(data['extra'], {'foo': 1})
+        assert data['extra'] == {'foo': 1}
+
+    def test_does_sanitize_public_key(self):
+        data = {
+            'extra': {
+                's': PUBLIC_KEY,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_does_sanitize_private_key(self):
+        data = {
+            'extra': {
+                's': PRIVATE_KEY,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_does_sanitize_encrypted_private_key(self):
+        data = {
+            'extra': {
+                's': ENCRYPTED_PRIVATE_KEY,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_does_sanitize_rsa_private_key(self):
+        data = {
+            'extra': {
+                's': RSA_PRIVATE_KEY,
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_does_sanitize_social_security_number(self):
+        data = {
+            'extra': {
+                's': '123-45-6789',
+            },
+        }
+
+        proc = SensitiveDataFilter()
+        proc.apply(data)
+        assert data['extra'] == {'s': FILTER_MASK}
+
+    def test_exclude_fields_on_field_name(self):
+        data = {
+            'extra': {
+                'password': '123-45-6789',
+            },
+        }
+
+        proc = SensitiveDataFilter(exclude_fields=['password'])
+        proc.apply(data)
+        assert data['extra'] == {'password': '123-45-6789'}
+
+    def test_exclude_fields_on_field_value(self):
+        data = {
+            'extra': {
+                'foobar': '123-45-6789',
+            },
+        }
+
+        proc = SensitiveDataFilter(exclude_fields=['foobar'])
+        proc.apply(data)
+        assert data['extra'] == {'foobar': '123-45-6789'}

@@ -79,11 +79,11 @@ class TagKey(Model):
     __repr__ = sane_repr('project_id', 'key')
 
     @classmethod
-    def is_valid_key(self, key):
-        return TAG_KEY_RE.match(key)
+    def is_valid_key(cls, key):
+        return bool(TAG_KEY_RE.match(key))
 
     @classmethod
-    def is_reserved_key(self, key):
+    def is_reserved_key(cls, key):
         return key in INTERNAL_TAG_KEYS
 
     @classmethod

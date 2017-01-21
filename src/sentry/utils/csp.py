@@ -49,7 +49,12 @@ DISALLOWED_SOURCES = (
     'saveyoutime.ru',
     'cdncache-a.akamaihd.net',
     'x.rafomedia.com',
-    'savingsslider-a.akamaihd.net'
+    'savingsslider-a.akamaihd.net',
+    'injections.adguard.com',
+    'icontent.us',
+    'amiok.org',
+    'connectionstrenth.com',
+    'siteheart.net',
 )
 
 ALLOWED_DIRECTIVES = frozenset((
@@ -73,15 +78,14 @@ def is_valid_csp_report(report, project=None):
     # Some reports from Chrome report blocked-uri as just 'about'.
     # In this case, this is not actionable and is just noisy.
     # Observed in Chrome 45 and 46.
-
-    if report.get('effective-directive') not in ALLOWED_DIRECTIVES:
+    if report.get('effective_directive') not in ALLOWED_DIRECTIVES:
         return False
 
-    blocked_uri = report.get('blocked-uri')
+    blocked_uri = report.get('blocked_uri')
     if blocked_uri == 'about':
         return False
 
-    source_file = report.get('source-file')
+    source_file = report.get('source_file')
 
     # We must have one of these to do anyting sensible
     if not any((blocked_uri, source_file)):

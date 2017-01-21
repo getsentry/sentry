@@ -1,43 +1,17 @@
 from __future__ import absolute_import
 
-from django import forms
-
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberTeam, Team
+    AuditLogEntry,
+    AuditLogEntryEvent,
 )
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class EditOrganizationMemberForm(forms.ModelForm):
-    teams = forms.ModelMultipleChoiceField(
-        queryset=Team.objects.none(),
-        widget=forms.CheckboxSelectMultiple(),
-        required=False,
-    )
-
-    class Meta:
-        fields = ('role',)
-        model = OrganizationMember
-
-    def __init__(self, *args, **kwargs):
-        super(EditOrganizationMemberForm, self).__init__(*args, **kwargs)
-
-        self.fields['teams'].queryset = Team.objects.filter(
-            organization=self.instance.organization,
-        )
-
+class EditOrganizationMemberForm(BaseOrganizationMemberForm):
     def save(self, actor, organization, ip_address=None):
         om = super(EditOrganizationMemberForm, self).save()
 
-        for team in self.cleaned_data['teams']:
-            OrganizationMemberTeam.objects.create_or_update(
-                team=team,
-                organizationmember=om,
-            )
-
-        OrganizationMemberTeam.objects.filter(
-            organizationmember=om,
-        ).exclude(team__in=self.cleaned_data['teams']).delete()
+        self.save_team_assignments(om)
 
         AuditLogEntry.objects.create(
             organization=organization,

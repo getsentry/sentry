@@ -19,41 +19,45 @@
     <h2>{% trans "API Keys" %}</h2>
   </div>
 
-  <p>API keys grant access to the <a href="https://docs.getsentry.com/hosted/api/">developer web API</a>. If you're looking to configure a Sentry client, you'll need a client key which is available in your project settings.</p>
+  <p>API keys grant access to the <a href="https://docs.sentry.io/hosted/api/">developer web API</a>. If you're looking to configure a Sentry client, you'll need a client key which is available in your project settings.</p>
 
-      {% if key_list %}
-      <table class="table api-key-list">
-        <colgroup>
-          <col style="width: 40%"></col>
-          <col style="width: 40%"></col>
-          <col style="width: 20%"></col>
-        </colgroup>
-        <tbody>
-        {% for key in key_list %}
-          <tr>
-            <td>
-              <h5><a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a></h5>
-            </td>
-            <td>
-              <div class="form-control disabled auto-select">{{ key.key }}</div>
-            </td>
-            <td class="align-right">
-              <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}" class="btn btn-default btn-sm" style="margin-right: 4px">Edit Key</a>
-              <form class="pull-right" method="POST" action="" onsubmit="return confirm('Are you sure you want to remove this API key?');">
-                {% csrf_token %}
-                <input type="hidden" name="op" value="removekey" />
-                <input type="hidden" name="kid" value="{{ key.id }}" />
-                <button class="btn btn-default btn-sm"><span class="icon-trash"></span></button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-        <div class="blankslate well">
-          There are no API keys for this organization.
-        </div>
-      {% endif %}
+  <div class="alert alert-block alert-info">
+    psst. Until Sentry supports OAuth, you might want to switch to using <a href="{% absolute_uri '/api/' %}">Auth Tokens</a> instead.
+  </div>
+
+  {% if key_list %}
+  <table class="table api-key-list">
+    <colgroup>
+      <col style="width: 40%"></col>
+      <col style="width: 40%"></col>
+      <col style="width: 20%"></col>
+    </colgroup>
+    <tbody>
+    {% for key in key_list %}
+      <tr>
+        <td>
+          <h5><a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}">{{ key.label }}</a></h5>
+        </td>
+        <td>
+          <div class="form-control disabled auto-select">{{ key.key }}</div>
+        </td>
+        <td class="align-right">
+          <a href="{% url 'sentry-organization-api-key-settings' organization.slug key.id %}" class="btn btn-default btn-sm" style="margin-right: 4px">Edit Key</a>
+          <form class="pull-right" method="POST" action="" onsubmit="return confirm('Are you sure you want to remove this API key?');">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="removekey" />
+            <input type="hidden" name="kid" value="{{ key.id }}" />
+            <button class="btn btn-default btn-sm"><span class="icon-trash"></span></button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <div class="blankslate well">
+      There are no API keys for this organization.
+    </div>
+  {% endif %}
 
 {% endblock %}

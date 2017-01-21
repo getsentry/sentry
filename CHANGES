@@ -1,3 +1,229 @@
+Version 8.12
+------------
+
+- Fix bug where some users would incorrectly not receive workflow notifications for projects they were subscribed to.
+- restructured dSYM processing.  It now records errors in the symbolication process
+  more accurately and will report system errors them to the internal logger.
+- Added data migration to backfill legacy release data
+- Added data migration to backfill legacy commit data
+- Added data migration to backfill legacy release file and environment data
+- Allow gziped/deflated JavaScript artifacts to be uploaded through the API.
+- Shared issue view no longer shows SDK.
+- Added ``activeSince`` to search (uses ``active_at``).
+- Added ``firstSeen`` to search (uses ``first_seen``).
+- Added ``lastSeen`` to search (uses ``last_seen``).
+- Added ``firstRelease`` to search (uses ``first_release``).
+- Fixed usage (and propagation) of ``Group.first_release``.
+- The + and - datetime search helpers now work with ranges (e.g. ``<=``).
+- Added the ability to download artifacts from releases.
+
+SDKs
+~~~~
+
+- The `repos` interface has been added.
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Added ``Release.organization`` column.
+- Added ``ReleaseProject`` model.
+- Added ``ReleaseCommit.organization_id`` column.
+- Added ``ReleaseFile.organization`` column.
+- Added ``ReleaseEnvironment.organization_id`` column.
+
+Version 8.11
+------------
+
+- Ignore a ``null`` ``Origin`` header for authentication.
+- Added the ability to search for issues that you are subscribed to from the stream view.
+- Added the ability to search issues by their last seen timestamp.
+- Improved UI for password and API key fields used in integrations
+- Fixed bug where API responses would include incorrect `isSubscribed` values for issues.
+- Added support for switching to unsymbolicated tracebacks in cocoa.
+- Invalidate user sessions when changing password and 2fa settings.
+- Add configurable password validators to enforce password strength.
+- Send email to specific email when adding a new email rather than sending to all unverified email addresses.
+- Allow user to resend email verification to primary email address.
+- Added additional detail to subscription help text when viewing a group.
+- Add Asana to supported auth backends in social auth (for plugins)
+- Cleaner install UI when creating a new project.
+- Added support for recording symbols separately in frames independent of the function.
+- Reduce noisy Postgres logs from inserting duplicate onboarding rows.
+- Added device icons for Apple Watch and Apple TV
+- Added export action to group tag details.
+- Improved display of user tags.
+- Added 'transaction' tag which automatically populates from explicit culprits.
+- Added beginnings of repository management to UI (behind `organizations:repos` feature).
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``User.session_nonce`` column.
+- Added ``CommitFileChange`` model.
+- Added ``Repository.url`` column.
+- Added ``Repository.provider`` column.
+- Added ``Repository.config`` column.
+- Added ``Repository.external_id`` column.
+- Added ``Repository.status`` column.
+
+API Changes
+~~~~~~~~~~~
+
+- Added ``/organizations/{org}/config/repos/`` endpoint.
+- Added ``/organizations/{org}/repos/{repo}/`` endpoint.
+
+Version 8.10
+------------
+
+- New and improved UI.
+- Removed previously deprecated ``sentry celery`` command.
+- Replaced the ``events`` queue with ``events.{preprocess,process,save}_event``.
+- Added Danger (danger/danger) for monitoring various PR requirements.
+- Enabled organization weekly report emails for all organizations.
+- Add S3 filestore backend.
+- ``SENTRY_FILESTORE`` deprecated and replaced with ``filestore.backend``
+- ``SENTRY_FILESTORE_OPTIONS`` deprecated and replaced with ``filestore.options``
+- Add watchOS support for cocoa interface.
+- Fix support for internationalized Origins and raven-js.
+- SSO is now enforced to access data within any org that has it set as a requirement.
+- Improved rendering of weekly report email on mobile devices.
+
+API Changes
+~~~~~~~~~~~
+
+- Add ``/organizations/{org}/repos/`` endpoint.
+- Add ``/organizations/{org}/repos/{repo}/commits/`` endpoint.
+- Add ``/projects/{org}/{project}/releases/{version}/commits/`` endpoint.
+- SSO restrictions are now applied across session-based API authentication.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Repository`` model.
+- Added ``Commit`` model.
+- Added ``CommitAuthor`` model.
+- Added ``ReleaseCommit`` model.
+- Added index on ``GroupTagValue(project, key, value, last_seen)``.
+- Dropped index on ``GroupTagValue(project, key, value)``.
+
+Version 8.9
+-----------
+
+- Added support for Elixir.
+- Improve performance for bulk deletions of Events and Groups.
+- Fix rate limit logic for single organization mode.
+- Added ``--no-repair`` flag for ``sentry upgrade`` for large installs.
+- Fixed bug with merging counters yielding the wrong values.
+- Require password confirmation when enabling/disabling 2fa.
+- Collapse repeated frames in the stacktrace UI.
+- Added weekly report emails behind feature flag.
+- Rebrand Rules as Alerts / Alert Rules.
+- Add frequency to Alerts.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added unique index on ``Authenticator(user_id, type)``
+
+Version 8.8
+-----------
+
+- Added unique user frequency rule condition.
+- Fixed a major performance regression from 8.7 on the ``GroupTagValue`` model.
+- Various security fixes related to CSRF and XSS.
+- Server side filtering of event ingest.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Removed ``HelpPage`` model.
+- Added ``OrganizationMember.token`` column.
+- Removed ``OrganizationMember.counter`` column.
+
+Version 8.7
+-----------
+
+- Removed "Replay Request" feature.
+- Upgraded underlying redis library to resolve some networking issues.
+- Added support for minified React exceptions.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Remove index ``GroupTagValue(project_id)``.
+- Added ``Rule.status`` column.
+- Added ``GroupRelease`` model.
+- Added ``Environment`` model.
+- Added ``ReleaseEnvironment`` model.
+
+Version 8.6
+-----------
+
+- The ``message`` attribute on Event/Group is now purely used for search storage.
+- The ``sentry.interfaces.Message`` interface now contains a ``formatted`` attribute.
+- ``SENTRY_MANAGED_USER_FIELDS`` now defaults to an empty list.
+- Issues now render based on the type of data present, which are represented by
+  the type and metadata attributes in API responses.
+- Stacktrace rendering has been greatly simplified and unified across languages.
+- Client's may now pass the 'contexts' attribute, which will eventually supercede 'extra'.
+- Various named contexts are now automatically generated and summarized for Cocoa and JavaScript
+  issues.
+- Added JSON formatting for logs with ``system.logging-format``.
+- Added a ``loglevel`` command line flag to most commands.
+- Added two factor authentication support.
+- Added support for setting IP address of an event automatically on event submission for all platforms.
+- Added unsubscribe links to mails.
+- Added email verification.
+- Added ability to link/unlink Issues, support is dependent on plugins.
+- Can now toggle between minified/original code in stacktraces where sourcemaps were applied.
+- Can now upload release artifacts with tilde prefix (~) to omit protocol + host in URL lookups.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``User.is_password_expired`` column.
+- Added ``User.last_password_change`` column.
+- Added ``UserEmail`` model.
+- Added unique index on ``GroupTagValue(group_id, key, value)``
+- Remove unique index on ``GroupTagValue(project_id, group_id, key, value)``
+- Added index on ``GroupTagValue(project_id, key, value)``
+- Added ``GroupSubscription`` model.
+
+Version 8.5.1
+-------------
+
+- Fixed issue with new Unsubscribe links in emails not working.
+- Fixed bug with raven-js compatibility with IE8.
+- Fixed bug handling IPv6 addresses.
+
+Version 8.5
+-----------
+
+- Added option to upload a profile image as an alternative to Gravatar.
+- Deprecated ``sentry celery`` subcommand in favor of ``sentry run {worker|cron}``.
+- Breadcrumb interface now rendered in event UI.
+- Project notification settings page now indicates if current user is subscribed to active project.
+- User is now automatically redirected to login page if their session expires inside React client application.
+- Added new auth tokens to deprecate the usage of the older API keys.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ProjectPlatform`` model.
+- Added index on``EventTag`` index.
+- Added unique index on ``UserReport`` model.
+- Added ``UserAvatar`` model.
+- Added ``EventTag.group_id`` column.
+- Added ``ApiToken`` model.
+- Added ``Authenticator`` model.
+
+
+Version 8.4.1
+-------------
+
+- Fixed issue in running 8.4 migrations on MySQL only.
+- Fixed issue that caused an infinite loop in ``patch_context.py`` under a race condition.
+- Silently ignore breadcrumb data coming from clients instead of showing an error in the UI.
+
 Version 8.4
 -----------
 
@@ -132,7 +358,7 @@ Version 8.1.1
 Version 8.1.0
 -------------
 
-- Default web server is now uWSGI (https://uwsgi-docs.readthedocs.org/en/latest/) to replace gunicorn.
+- Default web server is now uWSGI (https://uwsgi-docs.readthedocs.io/en/latest/) to replace gunicorn.
 - New "Saved Searches". See: http://blog.getsentry.com/2016/01/19/introducing-saved-searches.html
 
 Schema Changes

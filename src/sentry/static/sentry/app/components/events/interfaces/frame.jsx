@@ -1,11 +1,23 @@
 import React from 'react';
 import _ from 'underscore';
 import classNames from 'classnames';
+
+import ClippedBox from '../../../components/clippedBox';
+import TooltipMixin from '../../../mixins/tooltip';
+import StrictClick from '../../strictClick';
+import Truncate from '../../../components/truncate';
+import {t} from '../../../locale';
 import {defined, objectIsEmpty, isUrl} from '../../../utils';
 
-import TooltipMixin from '../../../mixins/tooltip';
+import ContextLine from './contextLine';
 import FrameVariables from './frameVariables';
-import {t} from '../../../locale';
+
+export function trimPackage(pkg) {
+  let pieces = pkg.split(/\//g);
+  let rv = pieces[pieces.length - 1] || pieces[pieces.length - 2] || pkg;
+  let match = rv.match(/^(.*?)\.(dylib|so|a)$/);
+  return match && match[1] || rv;
+}
 
 
 const Frame = React.createClass({
@@ -14,27 +26,38 @@ const Frame = React.createClass({
     nextFrameInApp: React.PropTypes.bool,
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
+    emptySourceNotation: React.PropTypes.bool,
+    isOnlyFrame: React.PropTypes.bool,
+    timesRepeated: React.PropTypes.number,
   },
 
   mixins: [
     TooltipMixin({
       html: true,
       selector: '.tip',
-      trigger: 'click'
+      trigger: 'hover'
     })
   ],
+
+  getDefaultProps() {
+    return {
+      isExpanded: false,
+      emptySourceNotation: false
+    };
+  },
 
   getInitialState() {
     // isExpanded can be initialized to true via parent component;
     // data synchronization is not important
     // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
     return {
-      isExpanded: defined(this.props.isExpanded) ? this.props.isExpanded : false
+      isExpanded: this.props.isExpanded
     };
   },
 
   toggleContext(evt) {
     evt && evt.preventDefault();
+
     this.setState({
       isExpanded: !this.state.isExpanded
     });
@@ -44,94 +67,116 @@ const Frame = React.createClass({
     return defined(this.props.data.context) && this.props.data.context.length;
   },
 
-  hasExtendedSource() {
-    return this.hasContextSource() && this.props.data.context.length > 1;
-  },
-
   hasContextVars() {
     return !objectIsEmpty(this.props.data.vars);
   },
 
   isExpandable() {
-    return this.hasExtendedSource() || this.hasContextVars();
+    return (
+      (!this.props.isOnlyFrame && this.props.emptySourceNotation)
+      || this.hasContextSource()
+      || this.hasContextVars()
+    );
   },
-
 
   renderOriginalSourceInfo() {
     let data = this.props.data;
 
-    // TODO: is there a way to render a react element as a string? All the
-    // documented methods don't exist on the client (meant for server rendering)
-    let escapedAbsPath = isUrl(data.origAbsPath)
-      ? `<a href="${_.escape(data.origAbsPath)}">${_.escape(data.origAbsPath)}</a>`
-      : _.escape(data.origAbsPath);
-
-    let originalFilenameText = t('Original Filename');
-    let lineNumberText = t('Line Number');
-    let columnNumberText = t('Column Number');
-    let functionText = t('Function');
     let sourceMapText = t('Source Map');
 
     let out = `
     <div>
-      <strong>${originalFilenameText}</strong><br/>
-      ${escapedAbsPath}<br/>
-      <strong>${lineNumberText}</strong><br/>
-      ${_.escape(data.origLineNo)}<br/>
-      <strong>${columnNumberText}</strong><br/>
-      ${_.escape(data.origColNo)}<br/>
-      <strong>${functionText}</strong><br/>
-      ${_.escape(data.origFunction)}<br/>
       <strong>${sourceMapText}</strong><br/>`;
 
     // mapUrl not always present; e.g. uploaded source maps
-    out += data.mapUrl
-      ? `<a href="${_.escape(data.mapUrl)}">${_.escape(data.map)}<br/>`
-      : `${_.escape(data.map)}<br/>`;
+    if (data.mapUrl)
+      out += `${_.escape(data.mapUrl)}<br/>`;
+    else
+      out += `${_.escape(data.map)}<br/>`;
 
     out += '</div>';
 
     return out;
   },
 
+  getPlatform() {
+    // prioritize the frame platform but fall back to the platform
+    // of the stacktrace / exception
+    return this.props.data.platform || this.props.platform;
+  },
+
+  shouldPrioritizeModuleName() {
+    switch (this.getPlatform()) {
+      case 'java':
+      case 'csharp':
+        return true;
+      default:
+        return false;
+    }
+  },
+
+  preventCollapse(evt) {
+    evt.stopPropagation();
+  },
+
   renderDefaultTitle() {
     let data = this.props.data;
     let title = [];
 
-    // TODO(mitsuhiko): this is terrible for translators but i'm too
-    // lazy to change this up right now.  This should be a format string
+    // TODO(dcramer): this needs to use a formatted string so it can be
+    // localized correctly
 
     if (defined(data.filename || data.module)) {
-      title.push(<code key="filename">{data.filename || data.module}</code>);
+      // prioritize module name for Java as filename is often only basename
+      let shouldPrioritizeModuleName = this.shouldPrioritizeModuleName();
+      let pathName = (
+        shouldPrioritizeModuleName ?
+        (data.module || data.filename) :
+        (data.filename || data.module));
+
+      title.push((
+        <code key="filename" className="filename">
+          <Truncate value={pathName} maxLength={100} leftTrim={true} />
+        </code>
+      ));
+
+      // in case we prioritized the module name but we also have a filename info
+      // we want to show a litle (?) icon that on hover shows the actual filename
+      if (shouldPrioritizeModuleName && data.filename) {
+        title.push(
+          <a key="real-filename" className="in-at tip real-filename" data-title={_.escape(data.filename)}>
+            <span className="icon-question" />
+          </a>
+        );
+      }
+
       if (isUrl(data.absPath)) {
-        title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" />);
+        title.push(<a href={data.absPath} className="icon-open" key="share" target="_blank" onClick={this.preventCollapse}/>);
       }
       if (defined(data.function)) {
-        title.push(<span className="in-at" key="in"> {t('in')} </span>);
+        title.push(<span className="in-at" key="in"> in </span>);
       }
     }
 
     if (defined(data.function)) {
-      title.push(<code key="function">{data.function}</code>);
+      title.push(<code key="function" className="function">{data.function}</code>);
     }
 
     // we don't want to render out zero line numbers which are used to
     // indicate lack of source information for native setups.  We could
     // TODO(mitsuhiko): only do this for events from native platforms?
     if (defined(data.lineNo) && data.lineNo != 0) {
-      // TODO(dcramer): we need to implement source mappings
-      // title.push(<span className="pull-right blame"><a><span className="icon-mark-github"></span> View Code</a></span>);
-      title.push(<span className="in-at" key="at"> {t('at line')} </span>);
-      if (defined(data.colNo)) {
-        title.push(<code key="line">{data.lineNo}:{data.colNo}</code>);
-      } else {
-        title.push(<code key="line">{data.lineNo}</code>);
-      }
+      title.push(<span className="in-at in-at-line" key="no"> at line </span>);
+      title.push((
+        <code key="line" className="lineno">
+          {defined(data.colNo) ? `${data.lineNo}:${data.colNo}` : data.lineNo}
+        </code>
+      ));
     }
 
     if (defined(data.package)) {
-      title.push(<span className="within" key="within"> {t('within')} </span>);
-      title.push(<code>{data.package}</code>);
+      title.push(<span className="within" key="within"> within </span>);
+      title.push(<code title={data.package} className="package" key="package">{trimPackage(data.package)}</code>);
     }
 
     if (defined(data.origAbsPath)) {
@@ -142,18 +187,18 @@ const Frame = React.createClass({
       );
     }
 
-    if (data.inApp) {
-      title.push(<span key="in-app"><span className="divider"/>{t('application')}</span>);
-    }
+    title.push(this.renderExpander());
+
     return title;
   },
 
   renderContext() {
     let data = this.props.data;
     let context = '';
+    let {isExpanded} = this.state;
 
     let outerClassName = 'context';
-    if (this.state.isExpanded) {
+    if (isExpanded) {
       outerClassName += ' expanded';
     }
 
@@ -161,42 +206,34 @@ const Frame = React.createClass({
     let hasContextVars = this.hasContextVars();
     let expandable = this.isExpandable();
 
+    let contextLines = isExpanded
+      ? data.context
+      : data.context && data.context.filter(l => l[0] === data.lineNo);
+
     if (hasContextSource || hasContextVars) {
       let startLineNo = hasContextSource ? data.context[0][0] : '';
       context = (
-        <ol start={startLineNo} className={outerClassName}
-            onClick={expandable ? this.toggleContext : null}>
+        <ol start={startLineNo} className={outerClassName}>
           {defined(data.errors) &&
           <li className={expandable ? 'expandable error' : 'error'}
               key="errors">{data.errors.join(', ')}</li>
           }
-          {(data.context || []).map((line) => {
-            let liClassName = 'expandable';
-            if (line[0] === data.lineNo) {
-              liClassName += ' active';
-            }
 
-            let lineWs;
-            let lineCode;
-            if (defined(line[1]) && line[1].match) {
-              [, lineWs, lineCode] = line[1].match(/^(\s*)(.*?)$/m);
-            } else {
-              lineWs = '';
-              lineCode = '';
-            }
-            return (
-              <li className={liClassName} key={line[0]}>
-                <span className="ws">{
-                lineWs}</span><span className="contextline">{lineCode
-                }</span>
-              </li>
-            );
+          {data.context && contextLines.map((line, index) => {
+            return <ContextLine key={index} line={line} isActive={data.lineNo === line[0]} />;
           })}
 
           {hasContextVars &&
-            <FrameVariables data={data.vars} key="vars" />
+            <ClippedBox clipHeight={100}><FrameVariables data={data.vars} key="vars" /></ClippedBox>
           }
         </ol>
+      );
+    } else if (this.props.emptySourceNotation) {
+      context = (
+        <div className="empty-context">
+          <span className="icon icon-exclamation" />
+          <p>{t('No additional details are available for this frame.')}</p>
+        </div>
       );
     }
     return context;
@@ -208,6 +245,7 @@ const Frame = React.createClass({
     }
     return (
       <a
+        key="expander"
         title={t('Toggle context')}
         onClick={this.toggleContext}
         className="btn btn-sm btn-default btn-toggle">
@@ -216,41 +254,78 @@ const Frame = React.createClass({
     );
   },
 
+  leadsToApp() {
+    return !this.props.data.inApp && this.props.nextFrameInApp;
+  },
+
+  renderLeadHint() {
+    if (this.leadsToApp() && !this.state.isExpanded) {
+      return (
+        <span className="leads-to-app-hint">
+          {'Called from: '}
+        </span>
+      );
+    } else return null;
+  },
+
+  renderRepeats() {
+    if (this.props.timesRepeated > 0) {
+      return (
+        <span className="repeated-frames"
+          title={`Frame repeated ${this.props.timesRepeated} times`}>
+            <span className="icon-refresh"/>
+            <span>{this.props.timesRepeated}</span>
+        </span>
+      );
+    } else return null;
+  },
+
   renderDefaultLine() {
     return (
-      <p>
-        {this.renderDefaultTitle()}
-        {this.renderExpander()}
-      </p>
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+        <div className="title">
+          {this.renderLeadHint()}
+          {this.renderDefaultTitle()}
+          {this.renderRepeats()}
+        </div>
+      </StrictClick>
     );
   },
 
   renderCocoaLine() {
     let data = this.props.data;
-    let className = 'stacktrace-table';
     return (
-      <div className={className}>
-        <div className="trace-col package">
-          {data.package}
+      <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
+        <div className="title as-table">
+          {this.renderLeadHint()}
+          {defined(data.package)
+            ? (
+              <span className="package" title={data.package}>
+                {trimPackage(data.package)}
+              </span>
+            ) : (
+              <span className="package"/>
+            )
+          }
+          <span className="address">
+            {data.instructionAddr}
+          </span>
+          <span className="symbol">
+            <code>{data.function || '<unknown>'}</code>
+            {data.instructionOffset &&
+              <span className="offset">{' + ' + data.instructionOffset}</span>}
+            {data.filename &&
+              <span className="filename">{data.filename}
+                {data.lineNo ? ':' + data.lineNo : ''}</span>}
+            {this.renderExpander()}
+          </span>
         </div>
-        <div className="trace-col address">
-          {data.instructionAddr}
-        </div>
-        <div className="trace-col symbol">
-          <code>{data.function || '<unknown>'}</code>
-          {data.instructionOffset &&
-            <span className="offset">{' + ' + data.instructionOffset}</span>}
-          {data.filename &&
-            <span className="filename">{data.filename}
-              {data.lineNo ? ':' + data.lineNo : ''}</span>}
-          {this.renderExpander()}
-        </div>
-      </div>
+      </StrictClick>
     );
   },
 
   renderLine() {
-    switch (this.props.platform) {
+    switch (this.getPlatform()) {
       case 'objc':
       case 'cocoa':
         return this.renderCocoaLine();
@@ -261,12 +336,14 @@ const Frame = React.createClass({
 
   render() {
     let data = this.props.data;
-
     let className = classNames({
       'frame': true,
+      'is-expandable': this.isExpandable(),
+      'expanded': this.state.isExpanded,
+      'collapsed': !this.state.isExpanded,
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
-      'leads-to-app': !data.inApp && this.props.nextFrameInApp
+      'leads-to-app': this.leadsToApp(),
     });
     let props = {className: className};
 

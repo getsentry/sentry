@@ -1,26 +1,8 @@
 import React from 'react';
-import moment from 'moment';
-
 import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
-
-import MessageCrumbComponent from './breadcrumbComponents/message';
-import RpcCrumbComponent from './breadcrumbComponents/rpc';
-import QueryCrumbComponent from './breadcrumbComponents/query';
-import HttpRequestCrumbComponent from './breadcrumbComponents/httpRequest';
-import UiEventComponent from './breadcrumbComponents/uiEvent';
-import NavigationCrumbComponent from './breadcrumbComponents/navigation';
-import ErrorCrumbComponent from './breadcrumbComponents/error';
-
-const CRUMB_COMPONENTS = {
-  message: MessageCrumbComponent,
-  rpc: RpcCrumbComponent,
-  query: QueryCrumbComponent,
-  http_request: HttpRequestCrumbComponent,
-  ui_event: UiEventComponent,
-  navigation: NavigationCrumbComponent,
-  error: ErrorCrumbComponent
-};
+import Breadcrumb from './breadcrumbs/breadcrumb';
+import {t} from '../../../locale';
 
 function Collapsed(props) {
   return (
@@ -32,6 +14,18 @@ function Collapsed(props) {
     </li>
   );
 }
+
+function moduleToCategory(module) {
+  if (!module) {
+    return null;
+  }
+  let match = module.match(/^.*\/(.*?)(:\d+)/);
+  if (match) {
+    return match[1];
+  }
+  return module.split(/./)[0];
+}
+
 Collapsed.propTypes = {
   onClick: React.PropTypes.func.isRequired,
   count: React.PropTypes.number.isRequired
@@ -52,12 +46,13 @@ const BreadcrumbsInterface = React.createClass({
   },
 
   statics: {
-    MAX_CRUMBS_WHEN_COLLAPSED: 5
+    MAX_CRUMBS_WHEN_COLLAPSED: 10
   },
 
   getInitialState() {
     return {
-      collapsed: true
+      collapsed: true,
+      queryValue: ''
     };
   },
 
@@ -71,23 +66,97 @@ const BreadcrumbsInterface = React.createClass({
     // reverse array to get consistent idx between collapsed/expanded state
     // (indexes begin and increment from last breadcrumb)
     return crumbs.reverse().map((item, idx) => {
-      let Component = CRUMB_COMPONENTS[item.type];
-      let el;
-      if (Component) {
-        el = <Component data={item.data} />;
-      } else {
-        el = <div className="errors">Missing crumb "{item.type}"</div>;
-      }
-      return (
-        <li key={idx} className={'crumb crumb-' + item.type.replace(/_/g, '-')}>
-          <span className="icon-container">
-            <span className="icon"/>
-          </span>
-          <span className="dt">{moment(item.timestamp).format('HH:mm:ss')}</span>
-          {el}
-        </li>
-      );
+      return <Breadcrumb key={idx} crumb={item} />;
     }).reverse(); // un-reverse rendered result
+  },
+
+  renderNoMatch() {
+    return (
+      <li className="crumb-empty">
+        <p><span className="icon icon-exclamation" /> {t('Sorry, no breadcrumbs match your search query.')}</p>
+      </li>
+    );
+  },
+
+  getVirtualCrumb() {
+    let evt = this.props.event;
+    let crumb;
+
+    let exception = evt.entries.find(entry => entry.type === 'exception');
+    if (exception) {
+      let {type, value, module} = exception.data.values[0];
+      crumb = {
+        type: 'error',
+        level: 'error',
+        category: moduleToCategory(module || null) || 'exception',
+        data: {
+          type: type,
+          value: value
+        }
+      };
+    } else if (evt.message) {
+      let levelTag = (evt.tags || []).find(tag => tag.key === 'level');
+      let level = levelTag && levelTag.value;
+      crumb = {
+        type: 'message',
+        level: level,
+        category: 'message',
+        message: evt.message
+      };
+    }
+
+    if (crumb) {
+      Object.assign(crumb, {
+        timestamp: evt.dateCreated,
+        last: true
+      });
+    }
+
+    return crumb;
+  },
+
+  setQuery(evt) {
+    this.setState({
+      queryValue: evt.target.value
+    });
+  },
+
+  filterCrumbs(crumbs, queryValue) {
+    return crumbs.filter(item => {
+      // return true if any of category, message, or level contain queryValue
+      return !!['category', 'message', 'level'].find(prop => {
+        let propValue = (item[prop] || '').toLowerCase();
+        return propValue.includes(queryValue);
+      });
+    });
+  },
+
+  clearSearch() {
+    this.setState({
+      queryValue: '',
+      collapsed: true
+    });
+  },
+
+  getSearchField() {
+    return (
+      <div className="breadcrumb-filter">
+        <input type="text" className="search-input form-control"
+          placeholder={t('Search breadcrumbs...')}
+          autoComplete="off"
+          value={this.state.queryValue}
+          onChange={this.setQuery}
+          />
+        <span className="icon-search" />
+        {this.state.queryValue &&
+          <div>
+            <a className="search-clear-form" onClick={this.clearSearch}>
+              <span className="icon-circle-cross" />
+            </a>
+          </div>
+        }
+      </div>
+    );
   },
 
   render() {
@@ -100,32 +169,40 @@ const BreadcrumbsInterface = React.createClass({
         <h3>
           <strong>{'Breadcrumbs'}</strong>
         </h3>
+        {this.getSearchField()}
       </div>
     );
 
     let all = data.values;
 
-    // Add the error event as the final breadcrumb
-    // TODO: what about non-exceptions (e.g. generic messages)?
-    let exception = evt.entries.find(entry => entry.type === 'exception');
-    if (exception) {
+    // Add the error event as the final (virtual) breadcrumb
+    let virtualCrumb = this.getVirtualCrumb();
+    if (virtualCrumb) {
       // make copy of values array / don't mutate props
-      all = all.slice(0).concat([{
-        type: 'error',
-        data: exception.data.values[0],
-        timestamp: evt.dateCreated
-      }]);
+      all = all.slice(0).concat([virtualCrumb]);
     }
+
+    // filter breadcrumbs on text input
+    let {queryValue} = this.state;
+    let filtered = queryValue
+      ? this.filterCrumbs(all, queryValue.toLowerCase())
+        : all;
 
     // cap max number of breadcrumbs to show
-    let crumbs = all;
     const MAX = BreadcrumbsInterface.MAX_CRUMBS_WHEN_COLLAPSED;
-    if (this.state.collapsed && crumbs.length > MAX) {
-      crumbs = all.slice(-MAX);
+    let crumbs = filtered;
+    if (this.state.collapsed && filtered.length > MAX) {
+      crumbs = filtered.slice(-MAX);
     }
 
-    let numCollapsed = all.length - crumbs.length;
+    let numCollapsed = filtered.length - crumbs.length;
 
+    let crumbContent;
+    if (crumbs.length) {
+      crumbContent = this.renderBreadcrumbs(crumbs);
+    } else if (all.length) {
+      crumbContent = this.renderNoMatch();
+    }
     return (
       <GroupEventDataSection
           className="breadcrumb-box"
@@ -136,7 +213,7 @@ const BreadcrumbsInterface = React.createClass({
           wrapTitle={false}>
         <ul className="crumbs">
           {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-          {this.renderBreadcrumbs(crumbs)}
+          {crumbContent}
         </ul>
       </GroupEventDataSection>
     );

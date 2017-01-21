@@ -2,9 +2,8 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from six.moves.urllib.parse import parse_qsl, urlencode
 from time import time
-from urllib import urlencode
-from urlparse import parse_qsl
 from uuid import uuid4
 
 from sentry.auth import Provider, AuthView
@@ -50,7 +49,7 @@ class OAuth2Login(AuthView):
         if 'code' in request.GET:
             return helper.next_step()
 
-        state = str(uuid4())
+        state = uuid4().hex
 
         params = self.get_authorize_params(
             state=state,

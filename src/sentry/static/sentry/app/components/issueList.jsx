@@ -2,7 +2,6 @@ import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
 import CompactIssue from './compactIssue';
-import GroupStore from '../stores/groupStore';
 import LoadingError from './loadingError';
 import LoadingIndicator from './loadingIndicator';
 import Pagination from './pagination';
@@ -15,6 +14,7 @@ const IssueList = React.createClass({
     pagination: React.PropTypes.bool,
     renderEmpty: React.PropTypes.func,
     statsPeriod: React.PropTypes.string,
+    showActions: React.PropTypes.bool
   },
 
   mixins: [ApiMixin],
@@ -42,6 +42,9 @@ const IssueList = React.createClass({
   componentWillReceiveProps(nextProps) {
     let location = this.props.location;
     let nextLocation = nextProps.location;
+    if (!location)
+      return;
+
     if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
       this.remountComponent();
     }
@@ -57,13 +60,12 @@ const IssueList = React.createClass({
     this.api.request(this.props.endpoint, {
       method: 'GET',
       query: {
-        cursor: location.query.cursor || '',
+        cursor: (location && location.query && location.query.cursor) || '',
         ...this.props.query,
       },
       success: (data, _, jqXHR) => {
-        GroupStore.add(data);
-
         this.setState({
+          data: data,
           loading: false,
           error: false,
           issueIds: data.map(item => item.id),
@@ -90,13 +92,16 @@ const IssueList = React.createClass({
     else if (this.state.issueIds.length > 0) {
       body = (
         <ul className="issue-list">
-          {this.state.issueIds.map((id) => {
+          {this.state.data.map((issue) => {
             return (
               <CompactIssue
-                key={id}
-                id={id}
+                key={issue.id}
+                id={issue.id}
+                data={issue}
                 orgId={params.orgId}
-                statsPeriod={this.props.statsPeriod} />
+                statsPeriod={this.props.statsPeriod}
+                showActions={this.props.showActions}
+              />
             );
           })}
         </ul>

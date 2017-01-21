@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
 from sentry.models import (
+    ApiKey,
     Organization,
     OrganizationAccessRequest,
     OrganizationOnboardingTask,
@@ -17,7 +20,7 @@ from sentry.models import (
 class OrganizationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
@@ -54,13 +57,18 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         ).select_related('user'))
 
         feature_list = []
+        if features.has('organizations:repos', obj, actor=user):
+            feature_list.append('repos')
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
         if features.has('organizations:callsigns', obj, actor=user):
             feature_list.append('callsigns')
         if features.has('organizations:onboarding', obj, actor=user) and \
-           not OrganizationOption.objects.filter(organization=obj).exists():
+                not OrganizationOption.objects.filter(organization=obj).exists():
             feature_list.append('onboarding')
+        if features.has('organizations:api-keys', obj, actor=user) or \
+                ApiKey.objects.filter(organization=obj).exists():
+            feature_list.append('api-keys')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')

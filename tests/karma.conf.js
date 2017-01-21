@@ -74,7 +74,11 @@ module.exports = function(config) {
       externals: { // see [1] above
         'jsdom': 'window', // can't simulate jsdom in browser
         'cheerio': 'window',
-        'react/lib/ExecutionEnvironment': true
+
+        // for enzyme: https://github.com/airbnb/enzyme/issues/47
+        'react/addons': true,
+        'react/lib/ExecutionEnvironment': true,
+        'react/lib/ReactContext': true
       }
     },
 

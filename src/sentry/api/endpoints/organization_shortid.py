@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -45,6 +47,6 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
         return Response({
             'organizationSlug': organization.slug,
             'projectSlug': group.project.slug,
-            'groupId': str(group.id),
+            'groupId': six.text_type(group.id),
             'shortId': group.qualified_short_id,
         })

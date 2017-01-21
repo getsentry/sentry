@@ -1,34 +1,40 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
+from uuid import uuid4
+
+import six
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.app import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import (
+    SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
+)
+from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupResolution, GroupSeen,
-    GroupSnooze, GroupStatus, Release, TagKey
+    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
+    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupSubscriptionReason, Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
-from sentry.search.utils import parse_query
+from sentry.search.utils import InvalidQuery, parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
+from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
 
-@scenario('BulkUpdateAggregates')
-def bulk_update_aggregates_scenario(runner):
+@scenario('BulkUpdateIssues')
+def bulk_update_issues_scenario(runner):
     project = runner.default_project
     group1, group2 = Group.objects.filter(project=project)[:2]
     runner.request(
@@ -39,8 +45,8 @@ def bulk_update_aggregates_scenario(runner):
     )
 
 
-@scenario('BulkRemoveAggregates')
-def bulk_remove_aggregates_scenario(runner):
+@scenario('BulkRemoveIssuess')
+def bulk_remove_issues_scenario(runner):
     with runner.isolated_project('Amazing Plumbing') as project:
         group1, group2 = Group.objects.filter(project=project)[:2]
         runner.request(
@@ -50,8 +56,8 @@ def bulk_remove_aggregates_scenario(runner):
         )
 
 
-@scenario('ListProjectAggregates')
-def list_project_aggregates_scenario(runner):
+@scenario('ListProjectIssuess')
+def list_project_issues_scenario(runner):
     project = runner.default_project
     runner.request(
         method='GET',
@@ -63,8 +69,11 @@ def list_project_aggregates_scenario(runner):
 STATUS_CHOICES = {
     'resolved': GroupStatus.RESOLVED,
     'unresolved': GroupStatus.UNRESOLVED,
-    'muted': GroupStatus.MUTED,
+    'ignored': GroupStatus.IGNORED,
     'resolvedInNextRelease': GroupStatus.UNRESOLVED,
+
+    # TODO(dcramer): remove in 9.0
+    'muted': GroupStatus.IGNORED,
 }
 
 
@@ -79,7 +88,11 @@ class GroupSerializer(serializers.Serializer):
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
     isPublic = serializers.BooleanField()
+    isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
+    ignoreDuration = serializers.IntegerField()
+
+    # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
 
 
@@ -132,7 +145,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         query = request.GET.get('query', 'is:unresolved').strip()
         if query:
-            query_kwargs.update(parse_query(project, query, request.user))
+            try:
+                query_kwargs.update(parse_query(project, query, request.user))
+            except InvalidQuery as e:
+                raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
         return query_kwargs
 
@@ -140,13 +156,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
     # status=<x>
     # <tag>=<value>
     # statsPeriod=24h
-    @attach_scenarios([list_project_aggregates_scenario])
+    @attach_scenarios([list_project_issues_scenario])
     def get(self, request, project):
         """
-        List a Project's Aggregates
-        ```````````````````````````
+        List a Project's Issues
+        ```````````````````````
 
-        Return a list of aggregates bound to a project.  All parameters are
+        Return a list of issues (groups) bound to a project.  All parameters are
         supplied as query string parameters.
 
         A default query of ``is:resolved`` is applied. To return results
@@ -162,15 +178,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :qparam bool shortIdLookup: if this is set to true then short IDs are
                                     looked up by this function as well.  This
                                     can cause the return value of the function
-                                    to return an event group of a different
+                                    to return an event issue of a different
                                     project which is why this is an opt-in.
                                     Set to `1` to enable.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
                                    ``"is:resolved"`` is assumed.)
         :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+                                          issues belong to.
+        :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """
@@ -222,7 +238,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         try:
             query_kwargs = self._build_query_params_from_request(request, project)
         except ValidationError as exc:
-            return Response({'detail': unicode(exc)}, status=400)
+            return Response({'detail': six.text_type(exc)}, status=400)
 
         cursor_result = search.query(**query_kwargs)
 
@@ -249,15 +265,15 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return response
 
-    @attach_scenarios([bulk_update_aggregates_scenario])
+    @attach_scenarios([bulk_update_issues_scenario])
     def put(self, request, project):
         """
-        Bulk Mutate a List of Aggregates
-        ````````````````````````````````
+        Bulk Mutate a List of Issues
+        ````````````````````````````
 
-        Bulk mutate various attributes on aggregates.  The list of groups
+        Bulk mutate various attributes on issues.  The list of issues
         to modify is given through the `id` query parameter.  It is repeated
-        for each group that should be modified.
+        for each issue that should be modified.
 
         - For non-status updates, the `id` query parameter is required.
         - For status updates, the `id` query parameter may be omitted
@@ -271,24 +287,24 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the groups to be mutated.  This
-                        parameter shall be repeated for each group.  It
+        :qparam int id: a list of IDs of the issues to be mutated.  This
+                        parameter shall be repeated for each issue.  It
                         is optional only if a status is mutated in which
                         case an implicit `update all` is assumed.
-        :qparam string status: optionally limits the query to groups of the
+        :qparam string status: optionally limits the query to issues of the
                                specified status.  Valid values are
                                ``"resolved"``, ``"unresolved"`` and
-                               ``"muted"``.
+                               ``"ignored"``.
         :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+                                          issues belong to.
+        :pparam string project_slug: the slug of the project the issues
                                      belong to.
-        :param string status: the new status for the groups.  Valid values
+        :param string status: the new status for the issues.  Valid values
                               are ``"resolved"``, ``"unresolved"`` and
-                              ``"muted"``.
-        :param int snoozeDuration: the number of minutes to mute this issue.
-        :param boolean isPublic: sets the group to public or private.
-        :param boolean merge: allows to merge or unmerge different groups.
+                              ``"ignored"``.
+        :param int ignoreDuration: the number of minutes to ignore this issue.
+        :param boolean isPublic: sets the issue to public or private.
+        :param boolean merge: allows to merge or unmerge different issues.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -320,7 +336,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             try:
                 query_kwargs = self._build_query_params_from_request(request, project)
             except ValidationError as exc:
-                return Response({'detail': unicode(exc)}, status=400)
+                return Response({'detail': six.text_type(exc)}, status=400)
 
             # bulk mutations are limited to 1000 items
             # TODO(dcramer): it'd be nice to support more than this, but its
@@ -331,6 +347,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
             group_list = list(cursor_result)
             group_ids = [g.id for g in group_list]
+
+        is_bulk = len(group_ids) > 1
 
         queryset = Group.objects.filter(
             id__in=group_ids,
@@ -358,6 +376,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
+                if acting_user:
+                    GroupSubscription.objects.subscribe(
+                        user=acting_user,
+                        group=group,
+                        reason=GroupSubscriptionReason.status_change,
+                    )
+
                 if created:
                     activity = Activity.objects.create(
                         project=group.project,
@@ -370,7 +395,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             'version': '',
                         }
                     )
-                    activity.send_notification()
+                    # TODO(dcramer): we need a solution for activity rollups
+                    # before sending notifications on bulk changes
+                    if not is_bulk:
+                        activity.send_notification()
 
             queryset.update(
                 status=GroupStatus.RESOLVED,
@@ -402,13 +430,22 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
+                    if acting_user:
+                        GroupSubscription.objects.subscribe(
+                            user=acting_user,
+                            group=group,
+                            reason=GroupSubscriptionReason.status_change,
+                        )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
                         type=Activity.SET_RESOLVED,
                         user=acting_user,
                     )
-                    activity.send_notification()
+                    # TODO(dcramer): we need a solution for activity rollups
+                    # before sending notifications on bulk changes
+                    if not is_bulk:
+                        activity.send_notification()
 
             result['statusDetails'] = {}
 
@@ -425,27 +462,30 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 group__in=group_ids,
             ).delete()
 
-            if new_status == GroupStatus.MUTED:
-                snooze_duration = result.pop('snoozeDuration', None)
-                if snooze_duration:
-                    snooze_until = timezone.now() + timedelta(
-                        minutes=snooze_duration,
+            if new_status == GroupStatus.IGNORED:
+                ignore_duration = (
+                    result.pop('ignoreDuration', None)
+                    or result.pop('snoozeDuration', None)
+                )
+                if ignore_duration:
+                    ignore_until = timezone.now() + timedelta(
+                        minutes=ignore_duration,
                     )
                     for group in group_list:
                         GroupSnooze.objects.create_or_update(
                             group=group,
                             values={
-                                'until': snooze_until,
+                                'until': ignore_until,
                             }
                         )
                         result['statusDetails'] = {
-                            'snoozeUntil': snooze_until,
+                            'ignoreUntil': ignore_until,
                         }
                 else:
                     GroupSnooze.objects.filter(
                         group__in=group_ids,
                     ).delete()
-                    snooze_until = None
+                    ignore_until = None
                     result['statusDetails'] = {}
             else:
                 result['statusDetails'] = {}
@@ -454,15 +494,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 if new_status == GroupStatus.UNRESOLVED:
                     activity_type = Activity.SET_UNRESOLVED
                     activity_data = {}
-                elif new_status == GroupStatus.MUTED:
-                    activity_type = Activity.SET_MUTED
+                elif new_status == GroupStatus.IGNORED:
+                    activity_type = Activity.SET_IGNORED
                     activity_data = {
-                        'snoozeUntil': snooze_until,
-                        'snoozeDuration': snooze_duration,
+                        'ignoreUntil': ignore_until,
+                        'ignoreDuration': ignore_duration,
                     }
 
                 for group in group_list:
                     group.status = new_status
+
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
@@ -470,14 +511,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         user=acting_user,
                         data=activity_data,
                     )
-                    activity.send_notification()
+                    # TODO(dcramer): we need a solution for activity rollups
+                    # before sending notifications on bulk changes
+                    if not is_bulk:
+                        if acting_user:
+                            GroupSubscription.objects.subscribe(
+                                user=acting_user,
+                                group=group,
+                                reason=GroupSubscriptionReason.status_change,
+                            )
+                        activity.send_notification()
 
-        if result.get('hasSeen') and project.member_set.filter(user=request.user).exists():
+        if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
             for group in group_list:
                 instance, created = create_or_update(
                     GroupSeen,
                     group=group,
-                    user=request.user,
+                    user=acting_user,
                     project=group.project,
                     values={
                         'last_seen': timezone.now(),
@@ -486,7 +536,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('hasSeen') is False:
             GroupSeen.objects.filter(
                 group__in=group_ids,
-                user=request.user,
+                user=acting_user,
             ).delete()
 
         if result.get('isBookmarked'):
@@ -494,13 +544,48 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 GroupBookmark.objects.get_or_create(
                     project=project,
                     group=group,
-                    user=request.user,
+                    user=acting_user,
+                )
+                GroupSubscription.objects.subscribe(
+                    user=acting_user,
+                    group=group,
+                    reason=GroupSubscriptionReason.bookmark,
                 )
         elif result.get('isBookmarked') is False:
             GroupBookmark.objects.filter(
                 group__in=group_ids,
-                user=request.user,
+                user=acting_user,
             ).delete()
+
+        # TODO(dcramer): we could make these more efficient by first
+        # querying for rich rows are present (if N > 2), flipping the flag
+        # on those rows, and then creating the missing rows
+        if result.get('isSubscribed') in (True, False):
+            is_subscribed = result['isSubscribed']
+            for group in group_list:
+                # NOTE: Subscribing without an initiating event (assignment,
+                # commenting, etc.) clears out the previous subscription reason
+                # to avoid showing confusing messaging as a result of this
+                # action. It'd be jarring to go directly from "you are not
+                # subscribed" to "you were subscribed due since you were
+                # assigned" just by clicking the "subscribe" button (and you
+                # may no longer be assigned to the issue anyway.)
+                GroupSubscription.objects.create_or_update(
+                    user=acting_user,
+                    group=group,
+                    project=project,
+                    values={
+                        'is_active': is_subscribed,
+                        'reason': GroupSubscriptionReason.unknown,
+                    },
+                )
+
+            result['subscriptionDetails'] = {
+                'reason': SUBSCRIPTION_REASON_MAP.get(
+                    GroupSubscriptionReason.unknown,
+                    'unknown',
+                ),
+            }
 
         if result.get('isPublic'):
             queryset.update(is_public=True)
@@ -532,6 +617,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if result.get('merge') and len(group_list) > 1:
             primary_group = sorted(group_list, key=lambda x: -x.times_seen)[0]
             children = []
+            transaction_id = uuid4().hex
             for group in group_list:
                 if group == primary_group:
                     continue
@@ -540,6 +626,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 merge_group.delay(
                     from_object_id=group.id,
                     to_object_id=primary_group.id,
+                    transaction_id=transaction_id,
                 )
 
             Activity.objects.create(
@@ -553,38 +640,46 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             )
 
             result['merge'] = {
-                'parent': str(primary_group.id),
-                'children': [str(g.id) for g in children],
+                'parent': six.text_type(primary_group.id),
+                'children': [six.text_type(g.id) for g in children],
             }
 
         return Response(result)
 
-    @attach_scenarios([bulk_remove_aggregates_scenario])
+    @attach_scenarios([bulk_remove_issues_scenario])
     def delete(self, request, project):
         """
-        Bulk Remove a List of Aggregates
-        ````````````````````````````````
+        Bulk Remove a List of Issues
+        ````````````````````````````
 
-        Permanently remove the given aggregates. The list of groups to
+        Permanently remove the given issues. The list of issues to
         modify is given through the `id` query parameter.  It is repeated
-        for each group that should be removed.
+        for each issue that should be removed.
 
         Only queries by 'id' are accepted.
 
         If any ids are out of scope this operation will succeed without
         any data mutation.
 
-        :qparam int id: a list of IDs of the groups to be removed.  This
-                        parameter shall be repeated for each group.
+        :qparam int id: a list of IDs of the issues to be removed.  This
+                        parameter shall be repeated for each issue.
         :pparam string organization_slug: the slug of the organization the
-                                          groups belong to.
-        :pparam string project_slug: the slug of the project the groups
+                                          issues belong to.
+        :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :auth: required
         """
         group_ids = request.GET.getlist('id')
         if group_ids:
-            group_list = Group.objects.filter(project=project, id__in=group_ids)
+            group_list = list(Group.objects.filter(
+                project=project,
+                id__in=set(group_ids),
+            ).exclude(
+                status__in=[
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                ]
+            ))
             # filter down group ids to only valid matches
             group_ids = [g.id for g in group_list]
         else:
@@ -594,8 +689,19 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         if not group_ids:
             return Response(status=204)
 
-        # TODO(dcramer): set status to pending deletion
+        Group.objects.filter(
+            id__in=group_ids,
+        ).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+            ]
+        ).update(status=GroupStatus.PENDING_DELETION)
+        GroupHash.objects.filter(group__id__in=group_ids).delete()
         for group in group_list:
-            delete_group.delay(object_id=group.id, countdown=3600)
+            delete_group.apply_async(
+                kwargs={'object_id': group.id},
+                countdown=3600,
+            )
 
         return Response(status=204)

@@ -5,8 +5,10 @@ import _ from 'underscore';
 import PropTypes from '../../proptypes';
 
 import EventDataSection from './eventDataSection';
-import {isUrl, isOwnersTag, getOwnershipServiceUrl} from '../../utils';
+import {isUrl, deviceNameMapper} from '../../utils';
 import {t} from '../../locale';
+import Pills from '../pills';
+import Pill from '../pill';
 
 const EventTags = React.createClass({
   propTypes: {
@@ -50,37 +52,29 @@ const EventTags = React.createClass({
           group={this.props.group}
           event={this.props.event}
           title={t('Tags')}
-          type="tags">
-        <ul className="mini-tag-list">
-          {results.map((tag) => {
+          type="tags"
+          className="p-b-1"
+          >
+        <Pills className="no-margin">
+          {tags.map((tag) => {
             return (
-              <li key={tag.key}>
-                {tag.key} = {tag.values.map((value) => {
-                  return (
-                    <span>
-                      <Link
-                        to={`/${orgId}/${projectId}/`}
-                        query={{query: `${tag.key}:"${value}"`}}>
-                        {value}
-                      </Link>
-                      {isUrl(value) &&
-                        <a href={value} className="external-icon">
-                          <em className="icon-open" />
-                        </a>
-                      }
-                      {isOwnersTag(tag.key) &&
-                        <a href={getOwnershipServiceUrl(value)} className="external-icon">
-                          <em className="icon-open" />
-                        </a>
-                      }
-                      <span>&nbsp;&nbsp;</span>
-                    </span>
-                  );
-                })}
-              </li>
+              <Pill key={tag.key} name={tag.key}>
+                <Link
+                  to={{
+                    pathname: `/${orgId}/${projectId}/`,
+                    query: {query: `${tag.key}:"${tag.value}"`}
+                  }}>
+                    {deviceNameMapper(tag.value)}
+                </Link>
+                {isUrl(tag.value) &&
+                  <a href={tag.value} className="external-icon">
+                    <em className="icon-open" />
+                  </a>
+                }
+              </Pill>
             );
           })}
-        </ul>
+        </Pills>
       </EventDataSection>
     );
   }

@@ -1,5 +1,4 @@
 import React from 'react';
-import {History} from 'react-router';
 import $ from 'jquery';
 import {t} from '../locale';
 
@@ -7,10 +6,7 @@ import OrganizationState from '../mixins/organizationState';
 import TodoList from '../components/todos';
 
 const ProjectChooser = React.createClass({
-  mixins: [
-    OrganizationState,
-    History
-  ],
+  mixins: [OrganizationState],
 
   componentWillMount() {
     $(document.body).addClass('narrow');
@@ -45,7 +41,7 @@ const ProjectChooser = React.createClass({
               <h3>{team.name}</h3>
             </div>
             <div className="box-content">
-              <table className="table project-list">
+              <table className="table">
                 <tbody>
                   {projectList}
                 </tbody>

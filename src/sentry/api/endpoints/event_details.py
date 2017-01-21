@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
@@ -107,11 +109,11 @@ class EventDetailsEndpoint(Endpoint):
         data['release'] = self._get_release_info(request, event)
 
         if next_event:
-            data['nextEventID'] = str(next_event.id)
+            data['nextEventID'] = six.text_type(next_event.id)
         else:
             data['nextEventID'] = None
         if prev_event:
-            data['previousEventID'] = str(prev_event.id)
+            data['previousEventID'] = six.text_type(prev_event.id)
         else:
             data['previousEventID'] = None
 

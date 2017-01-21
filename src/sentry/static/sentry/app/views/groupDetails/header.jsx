@@ -1,6 +1,5 @@
 import React from 'react';
-// import Router from "react-router";
-import {Link, History} from 'react-router';
+import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
@@ -9,6 +8,7 @@ import GroupSeenBy from './seenBy';
 import IndicatorStore from '../../stores/indicatorStore';
 import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
+import GroupTitle from '../../components/group/title';
 import ProjectState from '../../mixins/projectState';
 import {t} from '../../locale';
 
@@ -24,8 +24,7 @@ const GroupHeader = React.createClass({
 
   mixins: [
     ApiMixin,
-    ProjectState,
-    History
+    ProjectState
   ],
 
   onToggleMute() {
@@ -39,7 +38,7 @@ const GroupHeader = React.createClass({
       projectId: project.slug,
       itemIds: [group.id],
       data: {
-        status: group.status === 'muted' ? 'unresolved' : 'muted'
+        status: group.status === 'ignored' ? 'unresolved' : 'ignored'
       }
     }, {
       complete: () => {
@@ -50,7 +49,7 @@ const GroupHeader = React.createClass({
 
   onShare() {
     let {shareId} = this.props.group;
-    return this.history.pushState(null, `/share/issue/${shareId}/`);
+    return browserHistory.pushState(null, `/share/issue/${shareId}/`);
   },
 
   onTogglePublic() {
@@ -73,31 +72,6 @@ const GroupHeader = React.createClass({
     });
   },
 
-  getTitle() {
-    let data = this.props.group;
-    let metadata = data.metadata;
-    switch (data.type) {
-      case 'error':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
-          </span>
-        );
-      case 'csp':
-        return (
-          <span>
-            <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
-          </span>
-        );
-      case 'default':
-        return <span>{metadata.title}</span>;
-      default:
-        return <span>{data.title}</span>;
-    }
-  },
-
   getMessage() {
     let data = this.props.group;
     let metadata = data.metadata;
@@ -107,7 +81,7 @@ const GroupHeader = React.createClass({
       case 'csp':
         return metadata.message;
       default:
-        return '';
+        return this.props.group.culprit || '';
     }
   },
 
@@ -135,54 +109,64 @@ const GroupHeader = React.createClass({
       projectId = this.getProject().slug,
       orgId = this.getOrganization().slug;
 
+    let message = this.getMessage();
+
     return (
       <div className={className}>
         <div className="row">
           <div className="col-sm-8">
             <h3>
-              {this.getTitle()}
+              <GroupTitle data={group} />
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
-              {group.shortId &&
-                <ShortId shortId={group.shortId} />
+              {message &&
+                <span className="message">{message}</span>
               }
-              <span className="message">{this.getMessage()}</span>
               {group.logger &&
                 <span className="event-annotation">
-                  <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
+                  <Link to={{
+                      pathname:`/${orgId}/${projectId}/`,
+                      query: {query: 'logger:' + group.logger}
+                    }}>
                     {group.logger}
                   </Link>
                 </span>
               }
-              {group.annotations.map((annotation) => {
+              {group.annotations.map((annotation, i) => {
                 return (
-                  <span className="event-annotation"
+                  <span className="event-annotation" key={i}
                       dangerouslySetInnerHTML={{__html: annotation}} />
                 );
               })}
             </div>
           </div>
           <div className="col-sm-4 stats">
-            <div className="row">
-              <div className="col-xs-4 assigned-to">
+            <div className="flex flex-justify-right">
+              {group.shortId && this.getFeatures().has('callsigns') &&
+                <div className="short-id-box count align-right">
+                  <h6 className="nav-header">{t('Issue #')}</h6>
+                  <ShortId shortId={group.shortId} />
+                </div>
+              }
+              <div className="assigned-to">
                 <h6 className="nav-header">{t('Assigned')}</h6>
                 <AssigneeSelector id={group.id} />
               </div>
-              <div className="col-xs-4 count align-right">
+              <div className="count align-right">
                 <h6 className="nav-header">{t('Events')}</h6>
                 <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
                   <Count className="count" value={group.count} />
                 </Link>
               </div>
-              <div className="col-xs-4 count align-right">
+              <div className="count align-right">
                 <h6 className="nav-header">{t('Users')}</h6>
                 {userCount !== 0 ?
                   <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
                     <Count className="count" value={userCount} />
                   </Link>
                 :
-                  0
+                  <span>0</span>
                 }
               </div>
             </div>
@@ -200,13 +184,13 @@ const GroupHeader = React.createClass({
           </div>
         }
         <ul className="nav nav-tabs">
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={() => {
             let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
             let pathname = this.context.location.pathname;
 
             // Because react-router 1.0 removes router.isActive(route)
             return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
-          }.bind(this)}>
+          }}>
             {t('Details')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>

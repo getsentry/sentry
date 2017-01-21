@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, ProjectKey
+from sentry.models import AuditLogEntryEvent, ProjectKey
 from sentry.web.forms.projectkeys import EditProjectKeyForm
 from sentry.web.frontend.base import ProjectView
 
@@ -18,17 +18,16 @@ class EditProjectKeyView(ProjectView):
                 id=key_id,
                 project=project,
             )
-        except ProjectKey.DoesNotExist():
+        except ProjectKey.DoesNotExist:
             return self.redirect(reverse('sentry-manage-project-keys', args=[project.organization.slug, project.slug]))
 
         form = EditProjectKeyForm(request.POST or None, instance=key)
         if form.is_valid():
             key = form.save()
 
-            AuditLogEntry.objects.create(
+            self.create_audit_entry(
+                request,
                 organization=organization,
-                actor=request.user,
-                ip_address=request.META['REMOTE_ADDR'],
                 target_object=key.id,
                 event=AuditLogEntryEvent.PROJECTKEY_EDIT,
                 data=key.get_audit_log_data(),

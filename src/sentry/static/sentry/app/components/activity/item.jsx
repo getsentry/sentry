@@ -2,7 +2,7 @@ import marked from 'marked';
 import React from 'react';
 
 import Duration from '../../components/duration';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
@@ -64,6 +64,11 @@ const ActivityItem = React.createClass({
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
+      case 'set_resolved_by_age':
+        return tct('[author] marked [link:an issue] as resolved due to age', {
+          author: author,
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'set_resolved_in_release':
         if (data.version) {
           return tct('[author] marked [link:an issue] as resolved in [version]', {
@@ -81,15 +86,15 @@ const ActivityItem = React.createClass({
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
-      case 'set_muted':
-        if (data.snoozeDuration) {
-          return tct('[author] snoozed [link:an issue] for [duration]', {
+      case 'set_ignored':
+        if (data.ignoreDuration) {
+          return tct('[author] ignored [link:an issue] for [duration]', {
             author: author,
-            duration: <Duration seconds={data.snoozeDuration * 60} />,
+            duration: <Duration seconds={data.ignoreDuration * 60} />,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
-        return tct('[author] muted [link:an issue]', {
+        return tct('[author] ignored [link:an issue]', {
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
@@ -185,7 +190,7 @@ const ActivityItem = React.createClass({
     }
 
     let avatar = (item.user ?
-      <Gravatar user={item.user} size={64} className="avatar" /> :
+      <Avatar user={item.user} size={64} className="avatar" /> :
       <div className="avatar sentry"><span className="icon-sentry-logo" /></div>);
 
     let author = {

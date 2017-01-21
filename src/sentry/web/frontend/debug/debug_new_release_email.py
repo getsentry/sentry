@@ -1,13 +1,15 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-from django.views.generic import View
-from hashlib import sha1
-from uuid import uuid4
+from datetime import datetime
 
-from sentry.models import Organization, Team, Project, Release
+import pytz
+from django.views.generic import View
+
+from sentry.models import (
+    Commit, CommitAuthor, GroupSubscriptionReason, Organization, Project,
+    Release, Team
+)
 from sentry.utils.http import absolute_uri
-from sentry.web.helpers import render_to_response
 
 from .mail import MailPreview
 
@@ -34,7 +36,9 @@ class DebugNewReleaseEmailView(View):
         )
         release = Release(
             project=project,
-            version=sha1(uuid4().hex).hexdigest(),
+            organization_id=project.organization_id,
+            version='6c998f755f304593a4713abd123eaf8833a2de5e',
+            date_added=datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc)
         )
 
         release_link = absolute_uri('/{}/{}/releases/{}/'.format(
@@ -43,12 +47,24 @@ class DebugNewReleaseEmailView(View):
             release.version,
         ))
 
-        project_link = absolute_uri(reverse('sentry-stream', kwargs={
-            'organization_slug': org.slug,
-            'project_id': project.slug,
-        }))
+        project_link = absolute_uri('/{}/{}/'.format(
+            org.slug,
+            project.slug,
+        ))
 
-        preview = MailPreview(
+        commit_list = [
+            Commit(key='48b86fcd677da3dba5679d7a738240ce6fb74b20'),
+            Commit(
+                key='a53a2756bb8d111b43196210b34df90b87ed336b',
+                message='Update README.rst',
+                author=CommitAuthor(
+                    name='David Cramer',
+                    email='david@sentry.io',
+                )
+            ),
+        ]
+
+        return MailPreview(
             html_template='sentry/emails/activity/release.html',
             text_template='sentry/emails/activity/release.txt',
             context={
@@ -56,9 +72,9 @@ class DebugNewReleaseEmailView(View):
                 'project': project,
                 'release_link': release_link,
                 'project_link': project_link,
+                'commit_list': commit_list,
+                'reason': GroupSubscriptionReason.descriptions[
+                    GroupSubscriptionReason.committed
+                ],
             },
-        )
-
-        return render_to_response('sentry/debug/mail/preview.html', {
-            'preview': preview,
-        })
+        ).render(request)

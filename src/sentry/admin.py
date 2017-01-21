@@ -8,7 +8,6 @@ from django.contrib.auth.forms import (
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
-from django.utils.html import escape
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
@@ -17,10 +16,11 @@ from django.template.response import TemplateResponse
 from django.utils.translation import ugettext, ugettext_lazy as _
 from pprint import saferepr
 from sentry.models import (
-    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast, HelpPage,
-    Option, Organization, OrganizationMember, OrganizationMemberTeam, Project,
+    ApiKey, AuthIdentity, AuthProvider, AuditLogEntry, Broadcast,
+    Option, Organization, OrganizationMember, Project,
     Team, User
 )
+from sentry.utils.html import escape
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
@@ -42,7 +42,9 @@ class OptionAdmin(admin.ModelAdmin):
     search_fields = ('key',)
 
     def value_repr(self, instance):
-        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(escape(saferepr(instance.value)))
+        return '<pre style="display:inline-block;white-space:pre-wrap;">{}</pre>'.format(
+            escape(saferepr(instance.value))
+        )
 
     value_repr.short_description = "Value"
     value_repr.allow_tags = True
@@ -150,33 +152,7 @@ class TeamAdmin(admin.ModelAdmin):
         if new_org != prev_org:
             return
 
-        Project.objects.filter(
-            team=obj,
-        ).update(
-            organization=obj.organization,
-        )
-
-        old_memberships = OrganizationMember.objects.filter(
-            teams=obj,
-        ).exclude(organization=obj.organization)
-        for member in old_memberships:
-            try:
-                new_member = OrganizationMember.objects.get(
-                    user=member.user,
-                    organization=obj.organization,
-                )
-            except OrganizationMember.DoesNotExist:
-                continue
-            OrganizationMemberTeam.objects.create(
-                team=obj,
-                organizationmember=new_member,
-            )
-
-        OrganizationMemberTeam.objects.filter(
-            team=obj,
-        ).exclude(
-            organizationmember__organization=obj.organization,
-        ).delete()
+        obj.transfer_to(obj.organization)
 
 admin.site.register(Team, TeamAdmin)
 
@@ -334,11 +310,3 @@ class AuditLogEntryAdmin(admin.ModelAdmin):
                        'target_user', 'event', 'ip_address', 'data', 'datetime')
 
 admin.site.register(AuditLogEntry, AuditLogEntryAdmin)
-
-
-class HelpPageAdmin(admin.ModelAdmin):
-    list_display = ('title', 'is_visible', 'priority')
-    list_filter = ('is_visible',)
-    search_fields = ('title', 'content')
-
-admin.site.register(HelpPage, HelpPageAdmin)

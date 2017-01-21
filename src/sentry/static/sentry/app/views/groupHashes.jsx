@@ -1,5 +1,4 @@
 import React from 'react';
-import {History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import GroupState from '../mixins/groupState';
@@ -11,8 +10,7 @@ import {t} from '../locale';
 const GroupHashes = React.createClass({
   mixins: [
     ApiMixin,
-    GroupState,
-    History
+    GroupState
   ],
 
   getInitialState() {

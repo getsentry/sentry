@@ -1,15 +1,10 @@
 import React from 'react';
 
-import marked from 'marked';
 import TimeSince from '../../components/timeSince';
 import ConfigStore from '../../stores/configStore';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import {t} from '../../locale';
-
-marked.setOptions({
-  // Disable all HTML input and only accept Markdown
-  sanitize: true
-});
+import marked from '../../utils/marked';
 
 const Note = React.createClass({
   propTypes: {

@@ -32,16 +32,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc \
         git \
         libffi-dev \
+        libjpeg-dev \
         libpq-dev \
         libxml2-dev \
         libxslt-dev \
         libyaml-dev \
         llvm-3.5 \
+        bzip2 \
 
         # Extra dev tooling
         make \
         vim-nox \
         less \
+        ntp \
     && rm -rf /var/lib/apt/lists/*
 
 # Sane defaults for pip
@@ -64,17 +67,14 @@ RUN set -ex \
     gpg --keyserver ha.pool.sks-keyservers.net --recv-keys "$key"; \
   done
 
-ENV NODE_VERSION 0.12.12
-ENV NPM_VERSION 2.15.1
+ENV NODE_VERSION 4.4.5
 
 RUN curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.gz" \
     && curl -SLO "https://nodejs.org/dist/v$NODE_VERSION/SHASUMS256.txt.asc" \
     && gpg --verify SHASUMS256.txt.asc \
     && grep " node-v$NODE_VERSION-linux-x64.tar.gz\$" SHASUMS256.txt.asc | sha256sum -c - \
     && tar -xzf "node-v$NODE_VERSION-linux-x64.tar.gz" -C /usr/local --strip-components=1 \
-    && rm "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc \
-    && npm install -g "npm@${NPM_VERSION}" \
-    && npm cache clear
+    && rm "node-v$NODE_VERSION-linux-x64.tar.gz" SHASUMS256.txt.asc
 
 # make the "en_US.UTF-8" locale so postgres will be utf-8 enabled by default
 RUN apt-get update && apt-get install -y locales && rm -rf /var/lib/apt/lists/* \
@@ -83,8 +83,8 @@ ENV LANG en_US.utf8
 
 RUN apt-key adv --keyserver ha.pool.sks-keyservers.net --recv-keys B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
 
-ENV PG_MAJOR 9.4
-ENV PG_VERSION 9.4.6-1.pgdg80+1
+ENV PG_MAJOR 9.5
+ENV PG_VERSION 9.5.*
 ENV PATH /usr/lib/postgresql/$PG_MAJOR/bin:$PATH
 
 RUN echo 'deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main' $PG_MAJOR > /etc/apt/sources.list.d/pgdg.list \
@@ -121,4 +121,4 @@ ADD scripts/docker-entrypoint.sh /entrypoint.sh
 ENTRYPOINT [ "/entrypoint.sh" ]
 
 EXPOSE 8000
-CMD [ "bootstrap" ]
+CMD [ "bash" ]

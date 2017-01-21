@@ -107,7 +107,7 @@ function ProjectSparkline(props) {
 
   return (
     <Sparklines data={values} width={100} height={32}>
-      <SparklinesLine {...props} style={{stroke: '#25A6F7', fill: 'none', strokeWidth: 3}}/>
+      <SparklinesLine {...props} style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
     </Sparklines>
   );
 }
@@ -196,11 +196,21 @@ const Activity = React.createClass({
     return `/organizations/${this.props.params.orgId}/activity/`;
   },
 
+  refresh() {
+    this.refs.activityFeed.remountComponent();
+  },
+
   render() {
     return (
       <div>
+        <div className="pull-right">
+          <a className="btn btn-sm btn-default" style={{marginLeft: 5}}
+             onClick={this.refresh}>
+            <span className="icon icon-refresh" />
+          </a>
+        </div>
         <h4>Recent activity</h4>
-        <ActivityFeed endpoint={this.getEndpoint()} query={{
+        <ActivityFeed ref="activityFeed" endpoint={this.getEndpoint()} query={{
           per_page: 10,
         }} pagination={false} {...this.props} />
       </div>
@@ -233,7 +243,7 @@ const OrganizationDashboard = React.createClass({
       orgId: this.props.params.orgId,
       query: {
         since: new Date().getTime() / 1000 - 3600 * 24,
-        stat: 'received',
+        stat: 'generated',
         group: 'project'
       }
     });

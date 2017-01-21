@@ -2,12 +2,12 @@ from __future__ import absolute_import
 
 import json
 import re
-import thread
 
 from debug_toolbar.toolbar import DebugToolbar
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.encoding import force_text
+from six.moves import _thread as thread
 
 
 class ToolbarCache(object):
@@ -31,7 +31,7 @@ toolbar_cache = ToolbarCache()
 class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
-    def show_toolbar(self, request):
+    def show_toolbar_for_request(self, request):
         # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not settings.SENTRY_DEBUGGER:
             return False
@@ -41,9 +41,16 @@ class DebugMiddleware(object):
             return False
         return True
 
+    def show_toolbar_for_response(self, response):
+        content_type = response['Content-Type']
+        for type in ('text/html', 'application/json'):
+            if type in content_type:
+                return True
+        return False
+
     def process_request(self, request):
         # Decide whether the toolbar is active for this request.
-        if not self.show_toolbar(request):
+        if not self.show_toolbar_for_request(request):
             return
 
         toolbar = toolbar_cache.create(request)
@@ -77,6 +84,9 @@ class DebugMiddleware(object):
         if not toolbar:
             return response
 
+        if not self.show_toolbar_for_response(response):
+            return response
+
         # Run process_response methods of panels like Django middleware.
         for panel in reversed(toolbar.enabled_panels):
             new_response = panel.process_response(request, response)
@@ -93,7 +103,12 @@ class DebugMiddleware(object):
         if 'djdt' in request.COOKIES:
             response.delete_cookie('djdt')
 
-        content = force_text(response.content, encoding='utf-8')
+        try:
+            content = force_text(response.content, encoding='utf-8')
+        except UnicodeDecodeError:
+            # Make sure we at least just return a response on an encoding issue
+            return response
+
         if 'text/html' not in response['Content-Type']:
             if 'application/json' in response['Content-Type']:
                 content = json.dumps(json.loads(content), indent=2)

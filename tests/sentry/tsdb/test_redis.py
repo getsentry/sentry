@@ -43,7 +43,7 @@ class RedisTSDBTest(TestCase):
 
     def test_simple(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        dts = [now + timedelta(hours=i) for i in xrange(4)]
+        dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
             t = int(to_timestamp(d))
@@ -84,7 +84,7 @@ class RedisTSDBTest(TestCase):
 
     def test_count_distinct(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
-        dts = [now + timedelta(hours=i) for i in xrange(4)]
+        dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
 
@@ -150,9 +150,14 @@ class RedisTSDBTest(TestCase):
             2: 2,
         }
 
+        assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
+        assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
+
     def test_frequency_tables(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
         model = TSDBModel.frequent_projects_by_organization
+
+        rollup = 3600
 
         self.db.record_frequency_multi(
             (
@@ -188,7 +193,7 @@ class RedisTSDBTest(TestCase):
             model,
             ('organization:1', 'organization:2'),
             now,
-            rollup=3600,
+            rollup=rollup,
         ) == {
             'organization:1': [
                 ('project:3', 3.0),
@@ -203,7 +208,7 @@ class RedisTSDBTest(TestCase):
             ('organization:1', 'organization:2'),
             now,
             limit=1,
-            rollup=3600,
+            rollup=rollup,
         ) == {
             'organization:1': [
                 ('project:3', 3.0),
@@ -216,7 +221,7 @@ class RedisTSDBTest(TestCase):
             ('organization:1', 'organization:2'),
             now - timedelta(hours=1),
             now,
-            rollup=3600,
+            rollup=rollup,
         ) == {
             'organization:1': [
                 ('project:3', 3.0 + 3.0),
@@ -229,8 +234,44 @@ class RedisTSDBTest(TestCase):
             ],
         }
 
-        rollup = 3600
         timestamp = int(to_timestamp(now) // rollup) * rollup
+
+        assert self.db.get_most_frequent_series(
+            model,
+            (
+                'organization:1',
+                'organization:2',
+                'organization:3',
+            ),
+            now - timedelta(hours=1),
+            now,
+            rollup=rollup,
+        ) == {
+            'organization:1': [
+                (timestamp - rollup, {
+                    'project:1': 1.0,
+                    'project:2': 2.0,
+                    'project:3': 3.0,
+                    'project:4': 4.0,
+                }),
+                (timestamp, {
+                    'project:1': 1.0,
+                    'project:2': 2.0,
+                    'project:3': 3.0,
+                }),
+            ],
+            'organization:2': [
+                (timestamp - rollup, {
+                    'project:5': 1.5,
+                }),
+                (timestamp, {}),
+            ],
+            'organization:3': [
+                (timestamp - rollup, {}),
+                (timestamp, {}),
+            ],
+        }
+
         assert self.db.get_frequency_series(
             model,
             {
@@ -273,7 +314,7 @@ class RedisTSDBTest(TestCase):
             },
             now - timedelta(hours=1),
             now,
-            rollup=3600,
+            rollup=rollup,
         ) == {
             'organization:1': {
                 "project:1": 1.0 + 1.0,

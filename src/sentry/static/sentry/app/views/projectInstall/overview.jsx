@@ -15,13 +15,20 @@ const ProjectInstallOverview = React.createClass({
     };
   },
 
+  isGettingStarted() {
+    return location.href.indexOf('getting-started') > 0;
+  },
+
   getIntegrationLink(root, platform, display) {
     let {orgId, projectId} = this.props.params;
-    let signup = this.props.location.query.hasOwnProperty('signup') ? '?signup' : '';
+    let rootUrl = `/${orgId}/${projectId}/settings/install`;
+    if (this.isGettingStarted()) {
+      rootUrl = `/${orgId}/${projectId}/getting-started`;
+    }
     return (
       <li className={`${root} ${platform}`} key={platform}>
         <span className={`platformicon platformicon-${platform}`}/>
-        <Link to={`/${orgId}/${projectId}/settings/install/${platform}/${signup}`}>
+        <Link to={`${rootUrl}/${platform}/`}>
           {display}
         </Link>
       </li>
@@ -105,7 +112,7 @@ const ProjectInstallOverview = React.createClass({
              For a complete list of
              client integrations, please visit see [docLink:our in-depth documentation].
           `, {
-            docLink: <a href="https://docs.getsentry.com" />
+            docLink: <a href="https://docs.sentry.io" />
           })}
         </p>
       </div>

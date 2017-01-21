@@ -10,6 +10,8 @@ from __future__ import absolute_import
 import uuid
 import json
 import click
+import six
+import warnings
 import threading
 
 from sentry.runner.decorators import configuration
@@ -20,7 +22,7 @@ SHUTDOWN = object()
 
 def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
     from sentry.models import DSymBundle, DSymObject, DSymSDK
-    from sentry.models.dsymfile import MAX_SYM
+    from sentry.constants import MAX_SYM
     from symsynd.demangle import demangle_symbol
 
     def _process_symbol(sym):
@@ -45,7 +47,7 @@ def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
     obj = DSymObject.objects.get_or_create(
         cpu_name=data['arch'],
         object_path='/' + data['image'].strip('/'),
-        uuid=str(uuid),
+        uuid=six.text_type(uuid),
         vmaddr=data['vmaddr'],
         vmsize=data['vmsize'],
     )[0]
@@ -57,10 +59,10 @@ def load_bundle(q, uuid, data, sdk_info, trim_symbols, demangle):
 
     step = 4000
     symbols = data['symbols']
-    for idx in xrange(0, len(symbols) + step, step):
+    for idx in range(0, len(symbols) + step, step):
         end_idx = min(idx + step, len(symbols))
         batch = []
-        for x in xrange(idx, end_idx):
+        for x in range(idx, end_idx):
             addr = symbols[x][0]
             batch.append((obj.id, addr, _process_symbol(symbols[x][1])))
         if batch:
@@ -81,7 +83,7 @@ def process_archive(members, zip, sdk_info, threads=8, trim_symbols=False,
             DSymSymbol.objects.bulk_insert(items)
 
     pool = []
-    for x in xrange(threads):
+    for x in range(threads):
         t = threading.Thread(target=process_items)
         t.setDaemon(True)
         t.start()
@@ -136,6 +138,10 @@ def import_system_symbols(bundles, threads, trim_symbols, no_demangle):
     preprocessed.
     """
     import zipfile
+    from sentry.utils.db import is_mysql
+    if threads != 1 and is_mysql():
+        warnings.warn(Warning('disabled threading for mysql'))
+        threads = 1
     for path in bundles:
         with zipfile.ZipFile(path) as f:
             sdk_info = json.load(f.open('sdk_info'))

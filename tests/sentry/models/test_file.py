@@ -8,7 +8,7 @@ from sentry.testutils import TestCase
 
 class FileBlobTest(TestCase):
     def test_from_file(self):
-        fileobj = ContentFile("foo bar")
+        fileobj = ContentFile('foo bar'.encode('utf-8'))
 
         my_file1 = FileBlob.from_file(fileobj)
 
@@ -23,7 +23,7 @@ class FileBlobTest(TestCase):
 
 class FileTest(TestCase):
     def test_file_handling(self):
-        fileobj = ContentFile("foo bar")
+        fileobj = ContentFile('foo bar'.encode('utf-8'))
         file1 = File.objects.create(
             name='baz.js',
             type='default',
@@ -37,16 +37,16 @@ class FileTest(TestCase):
 
         fp = None
         with file1.getfile() as fp:
-            assert fp.read() == 'foo bar'
+            assert fp.read().decode('utf-8') == 'foo bar'
             fp.seek(2)
             fp.tell() == 2
-            assert fp.read() == 'o bar'
+            assert fp.read().decode('utf-8') == 'o bar'
             fp.seek(0)
             fp.tell() == 0
-            assert fp.read() == 'foo bar'
+            assert fp.read().decode('utf-8') == 'foo bar'
             fp.seek(4)
             fp.tell() == 4
-            assert fp.read() == 'bar'
+            assert fp.read().decode('utf-8') == 'bar'
             fp.seek(1000)
             fp.tell() == 1000
 

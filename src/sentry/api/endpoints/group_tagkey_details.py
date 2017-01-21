@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -63,9 +65,10 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
 
         total_values = GroupTagValue.get_value_count(group.id, lookup_key)
 
-        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=3)
+        top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=9)
 
         data = {
+            'id': six.text_type(tag_key.id),
             'key': key,
             'name': tag_key.get_label(),
             'uniqueValues': group_tag_key.values_seen,

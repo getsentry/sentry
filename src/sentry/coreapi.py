@@ -16,29 +16,40 @@ import six
 import uuid
 import zlib
 
+from collections import MutableMapping
 from datetime import datetime, timedelta
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import smart_str
 from gzip import GzipFile
+from six import BytesIO
 from time import time
 
-from sentry.app import env
+from sentry import filters
 from sentry.cache import default_cache
 from sentry.constants import (
-    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_TAG_VALUE_LENGTH,
-    MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
+    CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP,
+    MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
 )
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
-from sentry.models import EventError, Project, ProjectKey, TagKey
+from sentry.event_manager import EventManager
+from sentry.models import EventError, ProjectKey, TagKey, TagValue
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
-from sentry.utils.compat import StringIO
+from sentry.utils.csp import is_valid_csp_report
+from sentry.utils.http import is_valid_ip, origin_from_request
 from sentry.utils.strings import decompress
-from sentry.utils.validators import is_float
+from sentry.utils.validators import is_float, is_event_id
 
-LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
+try:
+    # Attempt to load ujson if it's installed.
+    # It's advantageous to leverage here because this is
+    # our primary data ingestion endpoint, and it's a
+    # simple win. ujson differs from simplejson a bunch
+    # so it's not worth utilizing it anywhere else.
+    import ujson as json  # noqa
+except ImportError:
+    from sentry.utils import json
 
 
 class APIError(Exception):
@@ -85,7 +96,7 @@ class InvalidFingerprint(Exception):
 class Auth(object):
     def __init__(self, auth_vars, is_public=False):
         self.client = auth_vars.get('sentry_client')
-        self.version = str(auth_vars.get('sentry_version'))
+        self.version = six.text_type(auth_vars.get('sentry_version'))
         self.secret_key = auth_vars.get('sentry_secret')
         self.public_key = auth_vars.get('sentry_key')
         self.is_public = is_public
@@ -153,7 +164,6 @@ class ClientLogHelper(object):
         tags.update(context.get_tags_context())
         tags['project'] = project_label
 
-        extra['request'] = env.request
         extra['tags'] = tags
         extra['agent'] = context.agent
         extra['protocol'] = context.version
@@ -181,7 +191,7 @@ class ClientApiHelper(object):
         else:
             result = {
                 k: request.GET[k]
-                for k in request.GET.iterkeys()
+                for k in six.iterkeys(request.GET)
                 if k[:7] == 'sentry_'
             }
         if not result:
@@ -198,10 +208,16 @@ class ClientApiHelper(object):
         """
         Returns either the Origin or Referer value from the request headers.
         """
-        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+        return origin_from_request(request)
 
-    def project_from_auth(self, auth):
+    def project_id_from_auth(self, auth):
         if not auth.public_key:
+            raise APIUnauthorized('Invalid api key')
+
+        # Make sure the key even looks valid first, since it's
+        # possible to get some garbage input here causing further
+        # issues trying to query it from cache or the database.
+        if not ProjectKey.looks_like_api_key(auth.public_key):
             raise APIUnauthorized('Invalid api key')
 
         try:
@@ -219,31 +235,42 @@ class ClientApiHelper(object):
         if not pk.roles.store:
             raise APIUnauthorized('Key does not allow event storage access')
 
-        return Project.objects.get_from_cache(id=pk.project_id)
+        return pk.project_id
+
+    def decode_data(self, encoded_data):
+        try:
+            return encoded_data.decode('utf-8')
+        except UnicodeDecodeError as e:
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            self.log.debug(six.text_type(e), exc_info=True)
+            raise APIError('Bad data decoding request (%s, %s)' % (
+                type(e).__name__, e
+            ))
 
     def decompress_deflate(self, encoded_data):
         try:
-            return zlib.decompress(encoded_data)
+            return zlib.decompress(encoded_data).decode('utf-8')
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.info(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' % (
                 type(e).__name__, e
             ))
 
     def decompress_gzip(self, encoded_data):
         try:
-            fp = StringIO(encoded_data)
+            fp = BytesIO(encoded_data)
             try:
                 f = GzipFile(fileobj=fp)
-                return f.read()
+                return f.read().decode('utf-8')
             finally:
                 f.close()
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.info(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
                 (type(e).__name__, e)
             )
@@ -251,31 +278,31 @@ class ClientApiHelper(object):
     def decode_and_decompress_data(self, encoded_data):
         try:
             try:
-                return decompress(encoded_data)
+                return decompress(encoded_data).decode('utf-8')
             except zlib.error:
-                return base64.b64decode(encoded_data)
+                return base64.b64decode(encoded_data).decode('utf-8')
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.info(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data decoding request (%s, %s)' %
                 (type(e).__name__, e)
             )
 
     def safely_load_json_string(self, json_string):
         try:
+            if isinstance(json_string, six.binary_type):
+                json_string = json_string.decode('utf-8')
             obj = json.loads(json_string)
             assert isinstance(obj, dict)
         except Exception as e:
             # This error should be caught as it suggests that there's a
             # bug somewhere in the client's code.
-            self.log.info(unicode(e), exc_info=True)
+            self.log.debug(six.text_type(e), exc_info=True)
             raise APIError('Bad data reconstructing object (%s, %s)' %
                 (type(e).__name__, e)
             )
-
-        # XXX: ensure keys are coerced to strings
-        return dict((smart_str(k), v) for k, v in obj.iteritems())
+        return obj
 
     def _process_data_timestamp(self, data, current_datetime=None):
         value = data['timestamp']
@@ -323,9 +350,9 @@ class ClientApiHelper(object):
 
         result = []
         for bit in data['fingerprint']:
-            if not isinstance(bit, (basestring, int, float)):
+            if not isinstance(bit, six.string_types + six.integer_types + (float,)):
                 raise InvalidFingerprint
-            result.append(unicode(bit))
+            result.append(six.text_type(bit))
         return result
 
     def parse_client_as_sdk(self, value):
@@ -343,16 +370,25 @@ class ClientApiHelper(object):
             'version': version,
         }
 
+    def should_filter(self, project, data, ip_address=None):
+        # TODO(dcramer): read filters from options such as:
+        # - ignore errors from spiders/bots
+        # - ignore errors from legacy browsers
+        if ip_address and not is_valid_ip(ip_address, project):
+            return True
+
+        for filter_cls in filters.all():
+            filter_obj = filter_cls(project)
+            if filter_obj.is_enabled() and filter_obj.test(data):
+                return True
+
+        return False
+
     def validate_data(self, project, data):
         # TODO(dcramer): move project out of the data packet
         data['project'] = project.id
 
         data['errors'] = []
-
-        if not data.get('message'):
-            data['message'] = '<no message value>'
-        elif not isinstance(data['message'], six.string_types):
-            raise APIForbidden('Invalid value for message')
 
         if data.get('culprit'):
             if not isinstance(data['culprit'], six.string_types):
@@ -364,11 +400,21 @@ class ClientApiHelper(object):
             raise APIForbidden('Invalid value for event_id')
 
         if len(data['event_id']) > 32:
-            self.log.info(
+            self.log.debug(
                 'Discarded value for event_id due to length (%d chars)',
                 len(data['event_id']))
             data['errors'].append({
                 'type': EventError.VALUE_TOO_LONG,
+                'name': 'event_id',
+                'value': data['event_id'],
+            })
+            data['event_id'] = uuid.uuid4().hex
+        elif not is_event_id(data['event_id']):
+            self.log.debug(
+                'Discarded invalid value for event_id: %r',
+                data['event_id'], exc_info=True)
+            data['errors'].append({
+                'type': EventError.INVALID_DATA,
                 'name': 'event_id',
                 'value': data['event_id'],
             })
@@ -378,7 +424,7 @@ class ClientApiHelper(object):
             try:
                 self._process_data_timestamp(data)
             except InvalidTimestamp as e:
-                self.log.info(
+                self.log.debug(
                     'Discarded invalid value for timestamp: %r',
                     data['timestamp'], exc_info=True)
                 data['errors'].append({
@@ -392,7 +438,7 @@ class ClientApiHelper(object):
             try:
                 self._process_fingerprint(data)
             except InvalidFingerprint as e:
-                self.log.info(
+                self.log.debug(
                     'Discarded invalid value for fingerprint: %r',
                     data['fingerprint'], exc_info=True)
                 data['errors'].append({
@@ -406,7 +452,7 @@ class ClientApiHelper(object):
             data['platform'] = 'other'
 
         if data.get('modules') and type(data['modules']) != dict:
-            self.log.info(
+            self.log.debug(
                 'Discarded invalid type for modules: %s',
                 type(data['modules']))
             data['errors'].append({
@@ -417,7 +463,7 @@ class ClientApiHelper(object):
             del data['modules']
 
         if data.get('extra') is not None and type(data['extra']) != dict:
-            self.log.info(
+            self.log.debug(
                 'Discarded invalid type for extra: %s',
                 type(data['extra']))
             data['errors'].append({
@@ -429,9 +475,9 @@ class ClientApiHelper(object):
 
         if data.get('tags') is not None:
             if type(data['tags']) == dict:
-                data['tags'] = data['tags'].items()
+                data['tags'] = list(data['tags'].items())
             elif not isinstance(data['tags'], (list, tuple)):
-                self.log.info(
+                self.log.debug(
                     'Discarded invalid type for tags: %s', type(data['tags']))
                 data['errors'].append({
                     'type': EventError.INVALID_DATA,
@@ -447,7 +493,7 @@ class ClientApiHelper(object):
                 try:
                     k, v = pair
                 except ValueError:
-                    self.log.info('Discarded invalid tag value: %r', pair)
+                    self.log.debug('Discarded invalid tag value: %r', pair)
                     data['errors'].append({
                         'type': EventError.INVALID_DATA,
                         'name': 'tags',
@@ -459,7 +505,7 @@ class ClientApiHelper(object):
                     try:
                         k = six.text_type(k)
                     except Exception:
-                        self.log.info('Discarded invalid tag key: %r', type(k))
+                        self.log.debug('Discarded invalid tag key: %r', type(k))
                         data['errors'].append({
                             'type': EventError.INVALID_DATA,
                             'name': 'tags',
@@ -471,7 +517,7 @@ class ClientApiHelper(object):
                     try:
                         v = six.text_type(v)
                     except Exception:
-                        self.log.info('Discarded invalid tag value: %s=%r',
+                        self.log.debug('Discarded invalid tag value: %s=%r',
                                       k, type(v))
                         data['errors'].append({
                             'type': EventError.INVALID_DATA,
@@ -481,7 +527,7 @@ class ClientApiHelper(object):
                         continue
 
                 if len(k) > MAX_TAG_KEY_LENGTH or len(v) > MAX_TAG_VALUE_LENGTH:
-                    self.log.info('Discarded invalid tag: %s=%s', k, v)
+                    self.log.debug('Discarded invalid tag: %s=%s', k, v)
                     data['errors'].append({
                         'type': EventError.INVALID_DATA,
                         'name': 'tags',
@@ -493,7 +539,7 @@ class ClientApiHelper(object):
                 k = k.replace(' ', '-')
 
                 if TagKey.is_reserved_key(k):
-                    self.log.info('Discarding reserved tag key: %s', k)
+                    self.log.debug('Discarding reserved tag key: %s', k)
                     data['errors'].append({
                         'type': EventError.INVALID_DATA,
                         'name': 'tags',
@@ -502,7 +548,16 @@ class ClientApiHelper(object):
                     continue
 
                 if not TagKey.is_valid_key(k):
-                    self.log.info('Discarded invalid tag key: %s', k)
+                    self.log.debug('Discarded invalid tag key: %s', k)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': 'tags',
+                        'value': pair,
+                    })
+                    continue
+
+                if not TagValue.is_valid_value(v):
+                    self.log.debug('Discard invalid tag value: %s', v)
                     data['errors'].append({
                         'type': EventError.INVALID_DATA,
                         'name': 'tags',
@@ -513,20 +568,20 @@ class ClientApiHelper(object):
                 tags.append((k, v))
             data['tags'] = tags
 
-        for k in data.keys():
+        for k in list(iter(data)):
             if k in CLIENT_RESERVED_ATTRS:
                 continue
 
             value = data.pop(k)
 
             if not value:
-                self.log.info('Ignored empty interface value: %s', k)
+                self.log.debug('Ignored empty interface value: %s', k)
                 continue
 
             try:
                 interface = get_interface(k)
             except ValueError:
-                self.log.info('Ignored unknown attribute: %s', k)
+                self.log.debug('Ignored unknown attribute: %s', k)
                 data['errors'].append({
                     'type': EventError.INVALID_ATTRIBUTE,
                     'name': k,
@@ -540,7 +595,7 @@ class ClientApiHelper(object):
                 if type(value) in (list, tuple):
                     value = {'values': value}
                 else:
-                    self.log.info(
+                    self.log.debug(
                         'Invalid parameter for value: %s (%r)', k, type(value))
                     data['errors'].append({
                         'type': EventError.INVALID_DATA,
@@ -554,7 +609,7 @@ class ClientApiHelper(object):
                 data[inst.get_path()] = inst.to_json()
             except Exception as e:
                 if isinstance(e, InterfaceValidationError):
-                    log = self.log.info
+                    log = self.log.debug
                 else:
                     log = self.log.error
                 log('Discarded invalid value for interface: %s (%r)', k, value,
@@ -565,24 +620,61 @@ class ClientApiHelper(object):
                     'value': value,
                 })
 
+        # TODO(dcramer): ideally this logic would happen in normalize, but today
+        # we don't do "validation" there (create errors)
+
+        # message is coerced to an interface, as its used for pure
+        # index of searchable strings
+        # See GH-3248
+        message = data.pop('message', None)
+        if message:
+            if 'sentry.interfaces.Message' not in data:
+                value = {
+                    'message': message,
+                }
+            elif not data['sentry.interfaces.Message'].get('formatted'):
+                value = data['sentry.interfaces.Message']
+                value['formatted'] = message
+            else:
+                value = None
+
+            if value is not None:
+                k = 'sentry.interfaces.Message'
+                interface = get_interface(k)
+                try:
+                    inst = interface.to_python(value)
+                    data[inst.get_path()] = inst.to_json()
+                except Exception as e:
+                    if isinstance(e, InterfaceValidationError):
+                        log = self.log.debug
+                    else:
+                        log = self.log.error
+                    log('Discarded invalid value for interface: %s (%r)', k, value,
+                        exc_info=True)
+                    data['errors'].append({
+                        'type': EventError.INVALID_DATA,
+                        'name': k,
+                        'value': value,
+                    })
+
         level = data.get('level') or DEFAULT_LOG_LEVEL
         if isinstance(level, six.string_types) and not level.isdigit():
             # assume it's something like 'warning'
             try:
-                data['level'] = LOG_LEVEL_REVERSE_MAP[level]
+                data['level'] = LOG_LEVELS_MAP[level]
             except KeyError as e:
-                self.log.info(
+                self.log.debug(
                     'Discarded invalid logger value: %s', level)
                 data['errors'].append({
                     'type': EventError.INVALID_DATA,
                     'name': 'level',
                     'value': level,
                 })
-                data['level'] = LOG_LEVEL_REVERSE_MAP.get(
+                data['level'] = LOG_LEVELS_MAP.get(
                     DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
         if data.get('release'):
-            data['release'] = unicode(data['release'])
+            data['release'] = six.text_type(data['release'])
             if len(data['release']) > 64:
                 data['errors'].append({
                     'type': EventError.VALUE_TOO_LONG,
@@ -590,6 +682,16 @@ class ClientApiHelper(object):
                     'value': data['release'],
                 })
                 del data['release']
+
+        if data.get('environment'):
+            data['environment'] = six.text_type(data['environment'])
+            if len(data['environment']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'environment',
+                    'value': data['environment'],
+                })
+                del data['environment']
 
         return data
 
@@ -601,16 +703,28 @@ class ClientApiHelper(object):
         if 'sentry.interfaces.User' in data:
             data['sentry.interfaces.User'].pop('ip_address', None)
 
-    def ensure_has_ip(self, data, ip_address):
-        if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
-            return
+    def ensure_has_ip(self, data, ip_address, set_if_missing=True):
+        got_ip = False
+        ip = data.get('sentry.interfaces.Http', {}) \
+            .get('env', {}).get('REMOTE_ADDR')
+        if ip:
+            if ip == '{{auto}}':
+                data['sentry.interfaces.Http']['env']['REMOTE_ADDR'] = ip_address
+            got_ip = True
 
-        if data.get('sentry.interfaces.User', {}).get('ip_address'):
-            return
+        ip = data.get('sentry.interfaces.User', {}).get('ip_address')
+        if ip:
+            if ip == '{{auto}}':
+                data['sentry.interfaces.User']['ip_address'] = ip_address
+            got_ip = True
 
-        data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
+        if not got_ip and set_if_missing:
+            data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
 
     def insert_data_to_database(self, data):
+        # we might be passed LazyData
+        if isinstance(data, LazyData):
+            data = dict(data.items())
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
         preprocess_event.delay(cache_key=cache_key, start_time=time())
@@ -632,9 +746,20 @@ class CspApiHelper(ClientApiHelper):
         auth.client = request.META.get('HTTP_USER_AGENT')
         return auth
 
+    def should_filter(self, project, data, ip_address=None):
+        if not is_valid_csp_report(data['sentry.interfaces.Csp'], project):
+            return True
+        return super(CspApiHelper, self).should_filter(project, data, ip_address)
+
     def validate_data(self, project, data):
+        # pop off our meta data used to hold Sentry specific stuff
+        meta = data.pop('_meta', {})
+
         # All keys are sent with hyphens, so we want to conver to underscores
-        report = dict(map(lambda v: (v[0].replace('-', '_'), v[1]), data.iteritems()))
+        report = {
+            k.replace('-', '_'): v
+            for k, v in six.iteritems(data)
+        }
 
         try:
             inst = Csp.to_python(report)
@@ -648,12 +773,12 @@ class CspApiHelper(ClientApiHelper):
         if inst.referrer:
             headers['Referer'] = inst.referrer
 
-        return {
+        data = {
             'logger': 'csp',
             'project': project.id,
             'message': inst.get_message(),
             'culprit': inst.get_culprit(),
-            'tags': inst.get_tags(),
+            'release': meta.get('release'),
             inst.get_path(): inst.to_json(),
             # This is a bit weird, since we don't have nearly enough
             # information to create an Http interface, but
@@ -665,5 +790,136 @@ class CspApiHelper(ClientApiHelper):
             },
             'sentry.interfaces.User': {
                 'ip_address': self.context.ip_address,
-            }
+            },
+            'errors': [],
         }
+
+        # Copy/pasted from above in ClientApiHelper.validate_data
+        if data.get('release'):
+            data['release'] = six.text_type(data['release'])
+            if len(data['release']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'release',
+                    'value': data['release'],
+                })
+                del data['release']
+
+        tags = []
+        for k, v in inst.get_tags():
+            if not v:
+                continue
+            if len(v) > MAX_TAG_VALUE_LENGTH:
+                self.log.debug('Discarded invalid tag: %s=%s', k, v)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'tags',
+                    'value': (k, v),
+                })
+                continue
+            if not TagValue.is_valid_value(v):
+                self.log.debug('Discard invalid tag value: %s', v)
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'tags',
+                    'value': (k, v),
+                })
+                continue
+            tags.append((k, v))
+
+        if tags:
+            data['tags'] = tags
+
+        return data
+
+
+class LazyData(MutableMapping):
+    def __init__(self, data, content_encoding, helper, project, auth, client_ip):
+        self._data = data
+        self._content_encoding = content_encoding
+        self._helper = helper
+        self._project = project
+        self._auth = auth
+        self._client_ip = client_ip
+        self._decoded = False
+
+    def _decode(self):
+        data = self._data
+        content_encoding = self._content_encoding
+        helper = self._helper
+        project = self._project
+        auth = self._auth
+
+        # TODO(dcramer): CSP is passing already decoded JSON, which sort of
+        # defeats the purpose of a lot of lazy evaluation. It needs refactored
+        # to avoid doing that.
+        if isinstance(data, six.binary_type):
+            if content_encoding == 'gzip':
+                data = helper.decompress_gzip(data)
+            elif content_encoding == 'deflate':
+                data = helper.decompress_deflate(data)
+            elif data[0] != b'{':
+                data = helper.decode_and_decompress_data(data)
+            else:
+                data = helper.decode_data(data)
+        if isinstance(data, six.text_type):
+            data = helper.safely_load_json_string(data)
+
+        # We need data validation/etc to apply as part of LazyData so that
+        # if there are filters present, they can operate on a normalized
+        # version of the data
+
+        # mutates data
+        data = helper.validate_data(project, data)
+
+        if 'sdk' not in data:
+            sdk = helper.parse_client_as_sdk(auth.client)
+            if sdk:
+                data['sdk'] = sdk
+            else:
+                data['sdk'] = {}
+
+        data['sdk']['client_ip'] = self._client_ip
+
+        # we always fill in the IP so that filters and other items can
+        # access it (even if it eventually gets scrubbed)
+        helper.ensure_has_ip(
+            data, self._client_ip, set_if_missing=auth.is_public or
+            data.get('platform') in ('javascript', 'cocoa', 'objc'))
+
+        # mutates data
+        manager = EventManager(data, version=auth.version)
+        manager.normalize()
+
+        self._data = data
+        self._decoded = True
+
+    def __getitem__(self, name):
+        if not self._decoded:
+            self._decode()
+        return self._data[name]
+
+    def __setitem__(self, name, value):
+        if not self._decoded:
+            self._decode()
+        self._data[name] = value
+
+    def __delitem__(self, name):
+        if not self._decoded:
+            self._decode()
+        del self._data[name]
+
+    def __contains__(self, name):
+        if not self._decoded:
+            self._decode()
+        return name in self._data
+
+    def __len__(self):
+        if not self._decoded:
+            self._decode()
+        return len(self._data)
+
+    def __iter__(self):
+        if not self._decoded:
+            self._decode()
+        return iter(self._data)

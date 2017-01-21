@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import serialize
 from sentry.models import EventUser, TagValue
 from sentry.testutils import TestCase
@@ -22,6 +24,7 @@ class TagValueSerializerTest(TestCase):
         )
 
         result = serialize(tagvalue, user)
+        assert result['id'] == six.text_type(tagvalue.id)
         assert result['key'] == 'user'
         assert result['value'] == tagvalue.value
         assert result['name'] == euser.get_label()
@@ -36,6 +39,7 @@ class TagValueSerializerTest(TestCase):
         )
 
         result = serialize(tagvalue, user)
+        assert result['id'] == six.text_type(tagvalue.id)
         assert result['key'] == 'user'
         assert result['value'] == tagvalue.value
         assert result['name'] == tagvalue.get_label()

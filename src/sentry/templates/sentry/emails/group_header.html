@@ -16,14 +16,16 @@
     </thead>
     <tr>
       <td class="group-message">
-        <h3>{{ group.message_short }}</h3>
+        {% include "sentry/emails/_group.html" %}
         <p class="meta">
-          <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>
-          <span class="last-seen pretty-date"> Last seen: {{ group.last_seen }} UTC</span>
-          {% if group.avg_time_spent %}
-            <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
-          {% endif %}
-          in <a href="{% absolute_uri project_link %}"><strong>{{ group.project.get_full_name }}</strong></a>
+          <small>
+            <span class="count">Seen <strong>{{ group.times_seen }}</strong> time{{ group.times_seen|pluralize }}.</span>
+            <span class="last-seen pretty-date"> Last seen: {{ group.last_seen }} UTC</span>
+            {% if group.avg_time_spent %}
+              <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
+            {% endif %}
+            in <a href="{% absolute_uri project_link %}"><strong>{{ group.project.organization.slug }} / {{ group.project.slug }}</strong></a>
+          </small>
         </p>
       </td>
       <td class="group-level">

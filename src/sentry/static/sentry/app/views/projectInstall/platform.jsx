@@ -1,11 +1,11 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LanguageNav from './languageNav';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import NotFound from '../../components/errors/notFound';
+import Link from '../../components/link';
 import {t, tct} from '../../locale';
 
 const ProjectInstallPlatform = React.createClass({
@@ -23,6 +23,7 @@ const ProjectInstallPlatform = React.createClass({
     let key = params.platform;
     let integration;
     let platform;
+
     props.platformData.platforms.forEach((p_item) => {
       if (integration) {
         return;
@@ -54,6 +55,10 @@ const ProjectInstallPlatform = React.createClass({
       this.setState(this.getInitialState(nextProps), this.fetchData);
       $(window).scrollTop(0);
     }
+  },
+
+  isGettingStarted() {
+    return location.href.indexOf('getting-started') > 0;
   },
 
   fetchData() {
@@ -106,7 +111,6 @@ const ProjectInstallPlatform = React.createClass({
 
   renderBody() {
     let {integration, platform} = this.state;
-    let queryParams = this.props.location.query;
     let {orgId, projectId} = this.props.params;
 
     if (!integration || !platform) {
@@ -142,19 +146,16 @@ const ProjectInstallPlatform = React.createClass({
             <div dangerouslySetInnerHTML={{__html: this.state.html}}/>
           )}
 
-          {queryParams.hasOwnProperty('signup') ?
+          {this.isGettingStarted() &&
+            // Using <a /> instead of <Link /> as hashchange events are not
+            // triggered when switching views within React Router
             <p>
-              // Using <a /> instead of <Link /> as hashchange events are not
-              // triggered when switching views within React Router
-              <a
-                href={`/${orgId}/${projectId}/#welcome`}
+              <Link
+                to={`/${orgId}/${projectId}/#welcome`}
                 className="btn btn-primary btn-lg">
                   {t('Got it! Take me to the Issue Stream.')}
-              </a>
-            </p>
-          :
-            null
-          }
+              </Link>
+            </p>}
         </div>
       </div>
     );

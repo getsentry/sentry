@@ -63,7 +63,9 @@ var entry = {
     'flot/jquery.flot.stack',
     'flot/jquery.flot.time',
     'flot-tooltip/jquery.flot.tooltip',
-    'vendor/simple-slider/simple-slider'
+    'vendor/simple-slider/simple-slider',
+    'underscore',
+    'ios-device-list'
   ],
 
   // css
@@ -142,7 +144,9 @@ var config = {
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js'
+      Raven: 'raven-js',
+      underscore: 'underscore',
+      _: 'underscore'
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
@@ -181,16 +185,30 @@ var config = {
     '#cheap-module-eval-source-map'
 };
 
+
+function hasZopfli() {
+  return (
+    // npm@2
+    fs.existsSync('node_modules/compression-webpack-plugin/node_modules/node-zopfli') ||
+    // npm@3
+    fs.existsSync('node_modules/node-zopfli')
+  );
+}
+
 // This compression-webpack-plugin generates pre-compressed files
 // ending in .gz, to be picked up and served by our internal static media
 // server as well as nginx when paired with the gzip_static module.
 if (IS_PRODUCTION) {
+  var algorithm = hasZopfli() ? 'zopfli' : 'gzip';
   config.plugins.push(new (require('compression-webpack-plugin'))({
     // zopfli gives us a better gzip compression
     // See: http://googledevelopers.blogspot.com/2013/02/compress-data-more-densely-with-zopfli.html
-    algorithm: 'zopfli',
+    algorithm: algorithm,
     regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
   }));
+  if (algorithm === 'gzip') {
+    console.warn('!! missing node-zopfli, so falling back to gzip.');
+  }
 }
 
 module.exports = config;

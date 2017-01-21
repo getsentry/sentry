@@ -1,8 +1,9 @@
 import jQuery from 'jquery';
 import React from 'react';
-import {History, Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
+import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
@@ -14,29 +15,28 @@ import {t} from '../locale';
 const ProjectUserReports = React.createClass({
   propTypes: {
     defaultQuery: React.PropTypes.string,
+    defaultStatus: React.PropTypes.string,
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [
-    ApiMixin,
-    History,
-  ],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
       defaultQuery: '',
+      defaultStatus: 'unresolved',
     };
   },
 
   getInitialState() {
-    let queryParams = this.props.location.query;
-
     return {
       reportList: [],
       loading: true,
       error: false,
-      query: queryParams.query || this.props.defaultQuery,
       pageLinks: '',
+      query: this.props.defaultQuery,
+      status: this.props.defaultStatus,
+      ...this.getQueryStringState(this.props)
     };
   },
 
@@ -47,20 +47,33 @@ const ProjectUserReports = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
-      let queryParams = nextProps.location.query;
-      this.setState({
-        query: queryParams.query
-      }, this.fetchData);
+      this.setState(this.getQueryStringState(nextProps), this.fetchData);
     }
+  },
+
+  getQueryStringState(props) {
+    let location = props.location;
+    let status = (location.query.hasOwnProperty('status')
+      ? location.query.status
+      : this.props.defaultStatus);
+    let query = (location.query.hasOwnProperty('query')
+      ? location.query.query
+      : this.props.defaultQuery);
+    return {
+      query: query,
+      status: status,
+    };
   },
 
   onSearch(query) {
     let targetQueryParams = {};
     if (query !== '')
       targetQueryParams.query = query;
+    if (this.state.status !== this.props.defaultStatus)
+      targetQueryParams.status = this.state.status;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/user-feedback/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/user-feedback/`, targetQueryParams);
   },
 
   fetchData() {
@@ -71,6 +84,8 @@ const ProjectUserReports = React.createClass({
 
     this.api.request(this.getEndpoint(), {
       success: (data, _, jqXHR) => {
+        let issues = data.map(r => r.issue);
+        GroupStore.add(issues);
         this.setState({
           error: false,
           loading: false,
@@ -92,7 +107,8 @@ const ProjectUserReports = React.createClass({
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
-      query: this.state.query
+      query: this.state.query,
+      status: this.state.status,
     };
 
     return `/projects/${params.orgId}/${params.projectId}/user-reports/?${jQuery.param(queryParams)}`;
@@ -164,7 +180,7 @@ const ProjectUserReports = React.createClass({
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
-                <Gravatar user={item} size={64} className="avatar" />
+                <Avatar user={item} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <TimeSince date={item.dateCreated} />
                   <div className="activity-author">{item.name} <small>{item.email}</small></div>
@@ -185,11 +201,25 @@ const ProjectUserReports = React.createClass({
   },
 
   render() {
+    let path = this.props.location.pathname;
+    let status = this.state.status;
     return (
       <div>
         <div className="row release-list-header">
-          <div className="col-sm-7">
+          <div className="col-sm-9">
             <h3>{t('User Feedback')}</h3>
+          </div>
+          <div className="col-sm-3" style={{textAlign: 'right'}}>
+            <div className="btn-group">
+              <Link to={path}
+                    className={'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')}>
+                {t('Unresolved')}
+              </Link>
+              <Link to={{pathname: path, query: {status: ''}}}
+                    className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
+                {t('All Issues')}
+              </Link>
+            </div>
           </div>
         </div>
         <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>

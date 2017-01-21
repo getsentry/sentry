@@ -14,6 +14,8 @@ Subcommands
 .. toctree::
  :maxdepth: 1
 
+ worker <worker/index>
  web <web/index>
+ cron <cron/index>
  smtp <smtp/index>
 

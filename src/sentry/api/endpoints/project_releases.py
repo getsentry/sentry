@@ -1,15 +1,18 @@
 from __future__ import absolute_import
+import string
 
 from django.db import IntegrityError, transaction
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Release
+from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -22,6 +25,9 @@ def create_new_release_scenario(runner):
         data={
             'version': '2.0rc2',
             'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
+            # TODO(dcramer): once we improve fixtures we should show the
+            # commits attribute being used, as well as 'dateReleased'
+            # 'commits': [{'id': 'a' * 40}, {'id': 'b' * 40}],
         }
     )
 
@@ -42,10 +48,18 @@ class ReleaseSerializer(serializers.Serializer):
     owner = UserField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
+    commits = ListField(child=CommitSerializer(), required=False)
+
+    def validate_version(self, attrs, source):
+        value = attrs[source]
+        if not set(value).isdisjoint(set(string.whitespace)):
+            raise serializers.ValidationError('Enter a valid value')
+        return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
+    permission_classes = (ProjectReleasePermission,)
 
     @attach_scenarios([list_releases_scenario])
     def get(self, request, project):
@@ -73,10 +87,15 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 version__istartswith=query,
             )
 
+        queryset = queryset.extra(select={
+            'sort': 'COALESCE(date_released, date_added)',
+        })
+
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-id',
+            order_by='-sort',
+            paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
 
@@ -117,29 +136,54 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            with transaction.atomic():
-                try:
-                    release = Release.objects.create(
+            try:
+                with transaction.atomic():
+                    # release creation is idempotent to simplify user
+                    # experiences
+                    release, created = Release.objects.create(
                         project=project,
+                        organization_id=project.organization_id,
                         version=result['version'],
                         ref=result.get('ref'),
                         url=result.get('url'),
                         owner=result.get('owner'),
                         date_started=result.get('dateStarted'),
-                        date_released=result.get('dateReleased') or timezone.now(),
-                    )
-                except IntegrityError:
-                    return Response({
-                        'detail': 'Release with version already exists'
-                    }, status=400)
-                else:
-                    Activity.objects.create(
-                        type=Activity.RELEASE,
-                        project=project,
-                        ident=result['version'],
-                        data={'version': result['version']},
-                        datetime=release.date_released,
-                    )
+                        date_released=result.get('dateReleased'),
+                    ), True
+                    release.add_project(project)
+            except IntegrityError:
+                release, created = Release.objects.get(
+                    project=project,
+                    version=result['version'],
+                ), False
+                was_released = bool(release.date_released)
+            else:
+                was_released = False
 
-            return Response(serialize(release, request.user), status=201)
+            commit_list = result.get('commits')
+            if commit_list:
+                hook = ReleaseHook(project)
+                # TODO(dcramer): handle errors with release payloads
+                hook.set_commits(release.version, commit_list)
+
+            if (not was_released and release.date_released):
+                activity = Activity.objects.create(
+                    type=Activity.RELEASE,
+                    project=project,
+                    ident=result['version'],
+                    data={'version': result['version']},
+                    datetime=release.date_released,
+                )
+                activity.send_notification()
+
+            if not created:
+                # This is the closest status code that makes sense, and we want
+                # a unique 2xx response code so people can understand when
+                # behavior differs.
+                #   208 Already Reported (WebDAV; RFC 5842)
+                status = 208
+            else:
+                status = 201
+
+            return Response(serialize(release, request.user), status=status)
         return Response(serializer.errors, status=400)

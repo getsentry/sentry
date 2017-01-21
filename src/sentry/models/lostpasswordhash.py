@@ -16,6 +16,8 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.http import absolute_uri
 
+CHARACTERS = u'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+
 
 class LostPasswordHash(Model):
     __core__ = False
@@ -36,13 +38,18 @@ class LostPasswordHash(Model):
         super(LostPasswordHash, self).save(*args, **kwargs)
 
     def set_hash(self):
-        import hashlib
-        import random
+        from django.utils.crypto import get_random_string
 
-        self.hash = hashlib.md5(str(random.randint(1, 10000000))).hexdigest()
+        self.hash = get_random_string(32, CHARACTERS)
 
     def is_valid(self):
         return self.date_added > timezone.now() - timedelta(hours=48)
+
+    def get_absolute_url(self):
+        return absolute_uri(reverse(
+            'sentry-account-recover-confirm',
+            args=[self.user.id, self.hash]
+        ))
 
     def send_recover_mail(self):
         from sentry import options
@@ -52,14 +59,13 @@ class LostPasswordHash(Model):
         context = {
             'user': self.user,
             'domain': get_server_hostname(),
-            'url': absolute_uri(reverse(
-                'sentry-account-recover-confirm',
-                args=[self.user.id, self.hash]
-            )),
+            'url': self.get_absolute_url(),
         }
         msg = MessageBuilder(
             subject='%sPassword Recovery' % (options.get('mail.subject-prefix'),),
             template='sentry/emails/recover_account.txt',
+            html_template='sentry/emails/recover_account.html',
+            type='user.password_recovery',
             context=context,
         )
         msg.send_async([self.user.email])

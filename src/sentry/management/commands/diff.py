@@ -9,7 +9,9 @@ from __future__ import absolute_import, print_function
 
 from django.core.management.base import BaseCommand, CommandError
 
+import six
 import sys
+
 from optparse import make_option
 
 
@@ -71,8 +73,8 @@ def print_unified_diff(left, right):
                 print('>> Different interfaces for %r: %r vs %r' % (bit, a_key, b_key))
                 continue
             for idx, (a_hash, b_hash) in enumerate(zip(a_hashes, b_hashes)):
-                a_hash = [str(h) + '\n' for h in a_hash]
-                b_hash = [str(h) + '\n' for h in b_hash]
+                a_hash = [six.text_type(h) + '\n' for h in a_hash]
+                b_hash = [six.text_type(h) + '\n' for h in b_hash]
                 a_file = '<Event id=%d> %r %r[%d]' % (left_id, bit, a_key, idx)
                 b_file = '<Event id=%d> %r %r[%d]' % (right_id, bit, b_key, idx)
                 for line in unified_diff(a_hash, b_hash, fromfile=a_file, tofile=b_file):

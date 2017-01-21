@@ -60,9 +60,9 @@ code changes will not be reflected until a restart.
 
 These services include:
 
-- webserver -- ``sentry start``
-- celery workers -- ``sentry celery worker``
-- celery beat (cron) -- ``sentry celery beat``
+- webserver -- ``sentry run web``
+- workers -- ``sentry run worker``
+- cron -- ``sentry run cron``
 
 Version Notes
 -------------

@@ -11,12 +11,13 @@
     padding: 0;
     margin: 0;
     background-color: #fff;
-    color: #3D4649;
+    color: #2f2936;
+    -webkit-font-smoothing: antialiased;
   }
   .main {
     max-width: 700px;
     box-shadow: 0 1px 3px rgba(0,0,0, .1);
-    margin: 10px auto;
+    margin: 15px auto;
     border-radius: 4px;
     border: 1px solid #c7d0d4;
     border-collapse: separate;
@@ -26,7 +27,7 @@
     font-weight: 300;
   }
   a {
-    color: #15A7F6;
+    color: #4674ca;
     font-weight: 500;
     text-decoration: none;
   }
@@ -40,7 +41,7 @@
     white-space: pre;
     white-space: pre-wrap;
     margin-bottom: 15px;
-    background: #F4F5F6;
+    background-color: #F4F5F6;
     color: #3D4649;
     padding: 15px;
     border-radius: 4px;
@@ -49,6 +50,10 @@
   small {
     font-size: 13px;
     color: #838c99;
+  }
+
+  .align-right {
+    text-align: right;
   }
 
   pre, blockquote, table {
@@ -78,11 +83,13 @@
 
   .btn, p .btn {
     color: #fff;
-    background: #15A7F6;
+    font-weight: 600;
+    background-color: #6C5FC7;
+    border: 1px solid #413496;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
     padding: 8px 15px;
     line-height: 18px;
-    font-weight: normal;
-    border-radius: 4px;
+    border-radius: 3px;
     display: inline-block;
   }
 
@@ -98,7 +105,7 @@
     font-size: 0;
     max-height: 0;
     line-height: 0;
-    padding: 0; (optional)
+    padding: 0; /* (optional) */
     mso-hide: all; /* hide elements in Outlook 2007-2013 */
   }
 
@@ -106,6 +113,10 @@
     padding: 23px 0;
     font-size: 14px;
     border-bottom: 1px solid #dee7eb;
+  }
+
+  .header table {
+    margin-bottom: 0;
   }
 
   .header .btn {
@@ -127,6 +138,27 @@
     color: #ccc;
     font-weight: normal;
   }
+
+  .unsubscribe-box {
+    background-color: #FDFDFE;
+    border: 1px solid #D6DBE4;
+    border-radius: 3px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 15px;
+  }
+
+  .info-box {
+    background-color: #f8fbff;
+    border: 1px solid #cce3f3;
+    border-radius: 3px;
+    padding: 15px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 15px;
+  }
+
   .footer {
     border-top: 1px solid #E7EBEE;
     padding: 35px 0;
@@ -147,7 +179,7 @@
   }
 
   h2 .highlight {
-    background: #f6f7f8;
+    background-color: #f6f7f8;
     padding: 0 6px;
     border-radius: 3px;
     font-weight: 500;
@@ -159,8 +191,20 @@
     margin: 0 0 20px;
   }
 
+  h4 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 20px 0;
+  }
+
+  h5 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+
   .inner {
-    background: #fff;
+    background-color: #fff;
     padding: 30px 0 20px;
   }
 
@@ -196,12 +240,16 @@
     margin: 0 -5px;
   }
 
+  .inner .interface table table {
+    margin: 0;  /* Don't apply negative side margin to nested tables by default. */
+  }
+
   .interface table th {
     font-weight: 500;
   }
 
   .inner .interface table td {
-    background: #f4f5f6;
+    background-color: #f4f5f6;
     padding: 5px 10px;
     border-radius: 3px;
     margin-bottom: 5px;
@@ -227,21 +275,24 @@
     margin-right: 5px;
     margin-bottom: 10px;
     border-radius: 3px;
-    background: #F4F5F6;
+    background-color: #F4F5F6;
   }
   .tag-list li strong {
     font-weight: 200;
   }
 
-  .via {
-    border: 1px solid #CFD9DE;
+  .inner p.via {
+    border-radius: 4px;
+    margin-top: 15px;
+    font-size: 14px;
+    background-color: #f7f8f9;
     text-align: center;
     padding: 15px;
     border-radius: 3px;
   }
 
   .notice {
-    background: #FBFAF4;
+    background-color: #FBFAF4;
     color: #866938;
     border: 1px solid #E2D2AD;
     padding: 15px;
@@ -271,14 +322,6 @@
     border-top: 1px solid #E7EBEE;
     margin-top: 30px;
     padding-top: 30px;
-  }
-
-  .group-header h3 {
-    margin: 0 0 4px;
-    font-size: 18px;
-    word-wrap: break-word;
-    word-break: break-all;
-    line-height: 1.1;
   }
 
   .group-header .group-message {
@@ -313,6 +356,7 @@
 
   .inner .group-header table td {
     padding: 0;
+    vertical-align: top;
   }
 
   .inner .group-header table th.align-right {
@@ -344,11 +388,11 @@
     font-size: 16px;
     text-transform: capitalize;
   }
-  .level-info { background: #2788ce; }
-  .level-debug { background: #9BA5A9; }
-  .level-warning { background: #f18500; }
-  .level-error { background: #f43f20; }
-  .level-fatal { background: #d20f2a; }
+  .level-info { background-color: #4674ca; }
+  .level-debug { background-color: #968ba0; }
+  .level-warning { background-color: #ECD744; }
+  .level-error { background-color: #ec5e44; }
+  .level-fatal { background-color: #e03e2f; }
   .event .count .span {
     position: absolute;
     left: 0;
@@ -357,6 +401,36 @@
     text-align: center;
     line-height: inherit;
     display: block;
+  }
+
+  /* Issue */
+
+  .issue {
+    line-height: 24px;
+  }
+
+  .issue h3 {
+    line-height: 24px;
+    margin: 0;
+  }
+
+  .issue h3 a {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .issue.resolved h3 * {
+    color: #98A4B6;
+    text-decoration: line-through;
+  }
+
+  .issue h3 small {
+    font-size: 14px;
+  }
+
+  .issue p {
+    margin: 0;
+    font-size: 14px;
   }
 
   /* Note */
@@ -369,7 +443,7 @@
     padding: 0;
   }
   .inner .note-body {
-    background: #F4F5F6;
+    background-color: #F4F5F6;
     padding: 12px 20px;
     border-radius: 3px;
   }
@@ -393,6 +467,7 @@
   }
   .avatar-column {
     width: 64px;
+    vertical-align: top;
   }
   .notch-column {
     width: 7px;
@@ -427,7 +502,7 @@
   }
 
   .inner table.reset > tr > td {
-    background: #fff;
+    background-color: #fff;
     padding: 0;
     padding-top: 0;
   }
@@ -443,10 +518,10 @@
   }
 
   .digest .rule {
-    background: #F6F7F8;
+    background-color: #F6F7F8;
     padding: 8px;
     font-size: 14px;
-    border-left: 10px solid #15A7F6;
+    border-left: 10px solid #4674ca;
     padding-left: 0;
     margin: 20px 0;
   }
@@ -457,9 +532,9 @@
 
   .digest td.error-level {
     padding: 0;
-    padding-top: 12px;
+    padding-top: 14px;
     padding-right: 18px;
-    width: 46px;
+    width: 38px;
     vertical-align: top;
   }
 
@@ -501,25 +576,27 @@
   }
 
   table.event-list .event-detail {
+    line-height: 24px;
     width: 400px;
     text-align: left;
   }
 
-  table.event-list .event-detail a {
-    font-size: 17px;
-    color: #15A7F6;
-    font-weight: 600;
-  }
-
   table.event-list .event-detail p {
     margin: 0;
-    font-size: 15px;
-    color: #687276;
+    color: #546076;
   }
 
   table.event-list .more-events {
     font-weight: 500;
     text-align: left;
+    font-size: 14px;
+  }
+
+  .commit-list {
+    padding-left: 20px;
+  }
+  .commit-list li {
+    padding: 5px 0;
     font-size: 14px;
   }
 
@@ -533,6 +610,7 @@
 
   }
 </style>
+
 <style type="text/css" inline="false">
   @import url(https://fonts.googleapis.com/css?family=Lato:400,700);
 </style>

@@ -8,6 +8,7 @@ sentry.buffer.base
 from __future__ import absolute_import
 
 import logging
+import six
 
 from django.db.models import F
 
@@ -22,6 +23,7 @@ class BufferMount(type):
         return new_cls
 
 
+@six.add_metaclass(BufferMount)
 class Buffer(object):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
@@ -35,7 +37,6 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    __metaclass__ = BufferMount
 
     def incr(self, model, columns, filters, extra=None):
         """
@@ -60,7 +61,7 @@ class Buffer(object):
         return []
 
     def process(self, model, columns, filters, extra=None):
-        update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
+        update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
             update_kwargs.update(extra)
 

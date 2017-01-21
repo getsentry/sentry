@@ -8,8 +8,13 @@ sentry.tasks.process_buffer
 
 from __future__ import absolute_import
 
+import logging
+
 from sentry.tasks.base import instrumented_task
-from sentry.utils.cache import Lock, UnableToGetLock
+from sentry.utils.locking import UnableToAcquireLock
+
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -19,12 +24,12 @@ def process_pending():
     Process pending buffers.
     """
     from sentry import app
-    lock_key = 'buffer:process_pending'
+    lock = app.locks.get('buffer:process_pending', duration=60)
     try:
-        with Lock(lock_key, nowait=True, timeout=60):
+        with lock.acquire():
             app.buffer.process_pending()
-    except UnableToGetLock:
-        pass
+    except UnableToAcquireLock as error:
+        logger.warning('process_pending.fail', extra={'error': error})
 
 
 @instrumented_task(

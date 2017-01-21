@@ -1,19 +1,21 @@
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
-from django.utils.html import escape
 from django.utils.translation import ugettext as _
 
+from sentry.utils.html import escape
 from sentry.utils.imports import import_string
 
 
 def iter_interfaces():
     rv = {}
 
-    for name, import_path in settings.SENTRY_INTERFACES.iteritems():
+    for name, import_path in six.iteritems(settings.SENTRY_INTERFACES):
         rv.setdefault(import_path, []).append(name)
 
-    for import_path, keys in rv.iteritems():
+    for import_path, keys in six.iteritems(rv):
         iface = import_string(import_path)
         yield iface, keys
 
@@ -47,8 +49,6 @@ class Interface(object):
     display_score = None
     ephemeral = False
 
-    __slots__ = ['_data']
-
     def __init__(self, **data):
         self._data = data or {}
 
@@ -58,10 +58,7 @@ class Interface(object):
         return self._data == other._data
 
     def __getstate__(self):
-        return dict(
-            (slot, self.__dict__.get(slot))
-            for slot in self.__slots__
-        )
+        return {'_data': self._data}
 
     def __setstate__(self, state):
         self.__dict__.update(state)
@@ -90,7 +87,7 @@ class Interface(object):
         # XXX(dcramer): its important that we keep zero values here, but empty
         # lists and strings get discarded as we've deemed them not important
         return dict(
-            (k, v) for k, v in self._data.iteritems() if (v == 0 or v)
+            (k, v) for k, v in six.iteritems(self._data) if (v == 0 or v)
         )
 
     def get_path(self):
@@ -120,6 +117,9 @@ class Interface(object):
 
     def get_score(self):
         return self.score
+
+    def iter_tags(self):
+        return iter(())
 
     def to_string(self, event, is_public=False, **kwargs):
         return ''

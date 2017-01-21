@@ -3,7 +3,7 @@ import moment from 'moment';
 import _ from 'underscore';
 
 import ConfigStore from '../../stores/configStore';
-import Gravatar from '../../components/gravatar';
+import Avatar from '../../components/avatar';
 import GroupState from '../../mixins/groupState';
 import {userDisplayName} from '../../utils/formatters';
 import TooltipMixin from '../../mixins/tooltip';
@@ -39,7 +39,7 @@ const GroupSeenBy = React.createClass({
       let title = _.escape(userDisplayName(user)) + '<br/>' + _.escape(moment(user.lastSeen).format('LL'));
       return (
         <li key={userIdx} className="tip" data-title={title}>
-          <Gravatar size={52} user={user} />
+          <Avatar size={52} user={user} />
         </li>
       );
     });

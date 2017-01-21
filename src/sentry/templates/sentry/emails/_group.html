@@ -1,0 +1,34 @@
+{% load sentry_helpers %}
+
+{% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
+
+<div class="issue {% if group.is_resolved %}resolved{% endif %}">
+
+  {% if group.data.type == "error" %}
+  <div class="event-type error">
+      <h3>
+        {% if group.data.metadata.type %}
+          <a href="{% absolute_uri group_link %}">{{ group.data.metadata.type|truncatechars:40 }}</a>
+          {% if group.data.metadata.value %}
+            <small>{{ group.data.metadata.value|truncatechars:100|soft_break:40 }}</small>
+          {% endif %}
+        {% else %}
+          <a href="{% absolute_uri group_link %}">{{ group.data.metadata.value|truncatechars:40 }}</a>
+        {% endif %}
+      </h3>
+    </div>
+  {% elif group.data.type == "csp" %}
+    <div class="event-type csp">
+      <h3>
+        <a href="{% absolute_uri group_link %}">{{ group.data.metadata.message|truncatechars:40 }}</a>
+      </h3>
+    </div>
+  {% else %}
+    <div class="event-type default">
+      <h3>
+        <a href="{% absolute_uri group_link %}">{{ group.message_short|truncatechars:40 }}</a>
+      </h3>
+    </div>
+  {% endif %}
+
+</div>

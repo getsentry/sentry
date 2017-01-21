@@ -5,48 +5,39 @@ sentry.templatetags.sentry_helpers
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-# XXX: Import django-paging's template tags so we don't have to worry about
-#      INSTALLED_APPS
 from __future__ import absolute_import
 
 import functools
 import os.path
-import pytz
-import six
-
-
 from collections import namedtuple
 from datetime import timedelta
-from paging.helpers import paginate as paginate_func
-from pkg_resources import parse_version as Version
-from six.moves import range
-from urllib import quote
 
+import pytz
+import six
 from django import template
 from django.conf import settings
-from django.template import RequestContext
+from django.core.urlresolvers import reverse
 from django.template.defaultfilters import stringfilter
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+from pkg_resources import parse_version as Version
+from templatetag_sugar.parser import Constant, Name, Optional, Variable
+from templatetag_sugar.register import tag
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import Organization
+from sentry.models import Organization, UserAvatar
 from sentry.utils import json
-from sentry.utils.strings import to_unicode
-from sentry.utils.avatar import get_gravatar_url, get_email_avatar, get_letter_avatar
-from sentry.utils.javascript import to_json
-from sentry.utils.strings import (
-    soft_break as _soft_break,
-    soft_hyphenate,
-    truncatechars,
+from sentry.utils.avatar import (
+    get_email_avatar, get_gravatar_url, get_letter_avatar
 )
-from templatetag_sugar.register import tag
-from templatetag_sugar.parser import Name, Variable, Constant, Optional
+from sentry.utils.javascript import to_json
+from sentry.utils.strings import soft_break as _soft_break
+from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
+from six.moves import range
+from six.moves.urllib.parse import quote, urlencode
 
 SentryVersion = namedtuple('SentryVersion', [
     'current', 'latest', 'update_available', 'build',
@@ -61,10 +52,28 @@ truncatechars.is_safe = True
 register.filter(to_json)
 
 
+@register.filter
+def multiply(x, y):
+    def coerce(value):
+        if isinstance(value, (six.integer_types, float)):
+            return value
+        try:
+            return int(value)
+        except ValueError:
+            return float(value)
+    return coerce(x) * coerce(y)
+
+
 @register.simple_tag
 def absolute_uri(path='', *args):
     from sentry.utils.http import absolute_uri
     return absolute_uri(path.format(*args))
+
+
+@register.simple_tag
+def system_origin():
+    from sentry.utils.http import absolute_uri, origin_from_url
+    return origin_from_url(absolute_uri())
 
 
 @register.filter
@@ -98,6 +107,11 @@ def subtract(value, amount):
 
 
 @register.filter
+def absolute_value(value):
+    return abs(int(value) if isinstance(value, six.integer_types) else float(value))
+
+
+@register.filter
 def has_charts(group):
     from sentry.utils.db import has_charts
     if hasattr(group, '_state'):
@@ -113,7 +127,7 @@ def as_sorted(value):
 
 
 @register.filter
-def small_count(v):
+def small_count(v, precision=1):
     if not v:
         return 0
     z = [
@@ -125,20 +139,20 @@ def small_count(v):
     for x, y in z:
         o, p = divmod(v, x)
         if o:
-            if len(str(o)) > 2 or not p:
+            if len(six.text_type(o)) > 2 or not p:
                 return '%d%s' % (o, y)
-            return '%.1f%s' % (v / float(x), y)
+            return ('%.{}f%s'.format(precision)) % (v / float(x), y)
     return v
 
 
 @register.filter
 def num_digits(value):
-    return len(str(value))
+    return len(six.text_type(value))
 
 
 @register.filter
 def to_str(data):
-    return str(data)
+    return six.text_type(data)
 
 
 @register.filter
@@ -149,9 +163,7 @@ def is_none(value):
 @register.simple_tag(takes_context=True)
 def serialize(context, value):
     value = serialize_func(value, context['request'].user)
-    value = json.dumps(value)
-    value = value.replace('<', '&lt;').replace('>', '&gt;')
-    return mark_safe(value)
+    return json.dumps_htmlsafe(value)
 
 
 @register.simple_tag(takes_context=True)
@@ -212,57 +224,6 @@ def duration(value):
     return ''.join(output)
 
 
-# XXX: this is taken from django-paging so that we may render
-#      a custom template, and not worry about INSTALLED_APPS
-@tag(register, [Variable('queryset_or_list'),
-                Constant('from'), Variable('request'),
-                Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')])])
-def paginate(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
-    """{% paginate queryset_or_list from request as foo[ per_page 25] %}"""
-    result = paginate_func(request, queryset_or_list, per_page, endless=True)
-
-    context_instance = RequestContext(request)
-    paging = mark_safe(render_to_string('sentry/partial/_pager.html', result, context_instance))
-
-    result = dict(objects=result['paginator'].get('objects', []), paging=paging)
-
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@tag(register, [Variable('queryset_or_list'),
-                Constant('from'), Variable('request'),
-                Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')])])
-def paginator(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
-    """{% paginator queryset_or_list from request as foo[ per_page 25] %}"""
-    result = paginate_func(request, queryset_or_list, per_page, endless=True)
-
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@tag(register, [Constant('from'), Variable('request'),
-                Optional([Constant('without'), Name('withoutvar')]),
-                Optional([Constant('as'), Name('asvar')])])
-def querystring(context, request, withoutvar, asvar=None):
-    params = request.GET.copy()
-
-    if withoutvar in params:
-        del params[withoutvar]
-
-    result = params.urlencode()
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
 @register.filter
 def date(dt, arg=None):
     from django.template.defaultfilters import date
@@ -308,13 +269,27 @@ def letter_avatar_svg(context, display_name, identifier, size=None):
     return get_letter_avatar(display_name, identifier, size=size)
 
 
+@tag(register, [Variable('user_id'),
+                Optional([Constant('size'), Variable('size')])])
+def profile_photo_url(context, user_id, size=None):
+    try:
+        avatar = UserAvatar.objects.get(user__id=user_id)
+    except UserAvatar.DoesNotExist:
+        return
+    url = reverse('sentry-user-avatar-url', args=[avatar.ident])
+    if size:
+        url += '?' + urlencode({'s': size})
+    return settings.SENTRY_URL_PREFIX + url
+
+
 # Don't use this in any situations where you're rendering more
 # than 1-2 avatars. It will make a request for every user!
 @tag(register, [Variable('display_name'),
                 Variable('identifier'),
-                Optional([Constant('size'), Variable('size')])])
-def email_avatar(context, display_name, identifier, size=None):
-    return get_email_avatar(display_name, identifier, size)
+                Optional([Constant('size'), Variable('size')]),
+                Optional([Constant('try_gravatar'), Variable('try_gravatar')])])
+def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
+    return get_email_avatar(display_name, identifier, size, try_gravatar)
 
 
 @register.filter
@@ -340,24 +315,21 @@ def with_metadata(group_list, request):
     for g in group_list:
         yield g, {
             'is_bookmarked': g.pk in bookmarks,
-            'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
+            'historical_data': ','.join(six.text_type(x[1]) for x in historical_data.get(g.id, [])),
         }
 
 
-@register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
-def render_tag_widget(group, tag):
-    return {
-        'title': tag['label'],
-        'tag_name': tag['key'],
-        'group': group,
-    }
-
-
 @register.simple_tag
-def percent(value, total):
+def percent(value, total, format=None):
     if not (value and total):
-        return 0
-    return int(int(value) / float(total) * 100)
+        result = 0
+    else:
+        result = int(value) / float(total) * 100
+
+    if format is None:
+        return int(result)
+    else:
+        return ('%%%s' % format) % result
 
 
 @register.filter
@@ -430,13 +402,6 @@ def format_userinfo(user):
         escape(user.username),
         escape(username),
     ))
-
-
-@register.inclusion_tag('sentry/includes/captcha.html')
-def load_captcha():
-    return {
-        'api_key': settings.RECAPTCHA_PUBLIC_KEY,
-    }
 
 
 @register.filter

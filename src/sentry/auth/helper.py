@@ -2,30 +2,32 @@ from __future__ import absolute_import, print_function
 
 import logging
 
+from uuid import uuid4
+
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.contrib import messages
-from django.db import transaction
+from django.core.urlresolvers import reverse
+from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from hashlib import md5
-from uuid import uuid4
 
+from sentry.app import locks
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
     OrganizationMember, OrganizationMemberTeam, User
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
-from sentry.utils.cache import Lock
+from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
 from . import manager
 
-OK_LINK_IDENTITY = _('You have successully linked your account to your SSO provider.')
+OK_LINK_IDENTITY = _('You have successfully linked your account to your SSO provider.')
 
 OK_SETUP_SSO = _('SSO has been configured for your organization and any existing members have been sent an email to link their accounts.')
 
@@ -112,7 +114,7 @@ class AuthHelper(object):
         # we serialize the pipeline to be [AuthView().get_ident(), ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        self.signature = md5(
+        self.signature = md5_text(
             ' '.join(av.get_ident() for av in self.pipeline)
         ).hexdigest()
 
@@ -183,7 +185,7 @@ class AuthHelper(object):
     @transaction.atomic
     def _handle_attach_identity(self, identity, member=None):
         """
-        Given an already authenticated user, attach or re-attach and identity.
+        Given an already authenticated user, attach or re-attach an identity.
         """
         auth_provider = self.auth_provider
         request = self.request
@@ -191,10 +193,19 @@ class AuthHelper(object):
         organization = self.organization
 
         try:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider,
-                ident=identity['id'],
-            )
+            try:
+                # prioritize identifying by the SSO provider's user ID
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    ident=identity['id'],
+                )
+            except AuthIdentity.DoesNotExist:
+                # otherwise look for an already attached identity
+                # this can happen if the SSO provider's internal ID changes
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=auth_provider,
+                    user=user,
+                )
         except AuthIdentity.DoesNotExist:
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=auth_provider,
@@ -205,8 +216,40 @@ class AuthHelper(object):
             auth_is_new = True
         else:
             now = timezone.now()
+
+            # TODO(dcramer): this might leave the user with duplicate accounts,
+            # and in that kind of situation its very reasonable that we could
+            # test email addresses + is_managed to determine if we can auto
+            # merge
+            if auth_identity.user != user:
+                # it's possible the user has an existing identity, let's wipe it out
+                # so that the new identifier gets used (other we'll hit a constraint)
+                # violation since one might exist for (provider, user) as well as
+                # (provider, ident)
+                AuthIdentity.objects.exclude(
+                    id=auth_identity.id,
+                ).filter(
+                    auth_provider=auth_provider,
+                    user=user,
+                ).delete()
+
+                # since we've identify an identity which is no longer valid
+                # lets preemptively mark it as such
+                try:
+                    other_member = OrganizationMember.objects.get(
+                        user=auth_identity.user_id,
+                        organization=organization,
+                    )
+                except OrganizationMember.DoesNotExist:
+                    pass
+                else:
+                    setattr(other_member.flags, 'sso:invalid', True)
+                    setattr(other_member.flags, 'sso:linked', False)
+                    other_member.save()
+
             auth_identity.update(
                 user=user,
+                ident=identity['id'],
                 data=self.provider.update_identity(
                     new_data=identity.get('data', {}),
                     current_data=auth_identity.data,
@@ -278,12 +321,23 @@ class AuthHelper(object):
             is_managed=True,
         )
 
-        auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident=identity['id'],
-            data=identity.get('data', {}),
-        )
+        try:
+            with transaction.atomic():
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=auth_provider,
+                    user=user,
+                    ident=identity['id'],
+                    data=identity.get('data', {}),
+                )
+        except IntegrityError:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider=auth_provider,
+                ident=identity['id'],
+            )
+            auth_identity.update(
+                user=user,
+                data=identity.get('data', {}),
+            )
 
         self._handle_new_membership(auth_identity)
 
@@ -329,7 +383,6 @@ class AuthHelper(object):
             initial={
                 'username': existing_user.username if existing_user else None,
             },
-            captcha=bool(request.session.get('needs_captcha')),
         )
 
     def _get_display_name(self, identity):
@@ -354,12 +407,50 @@ class AuthHelper(object):
         """
         request = self.request
         op = request.POST.get('op')
+
         if not request.user.is_authenticated():
+            # TODO(dcramer): its possible they have multiple accounts and at
+            # least one is managed (per the check below)
             try:
-                existing_user = auth.find_users(identity['email'])[0]
+                existing_user = auth.find_users(identity['email'], is_active=True)[0]
             except IndexError:
                 existing_user = None
+
+            # If they already have an SSO account and the identity provider says
+            # the email matches we go ahead and let them merge it. This is the
+            # only way to prevent them having duplicate accounts, and because
+            # we trust identity providers, its considered safe.
+            if existing_user and existing_user.is_managed:
+                # we only allow this flow to happen if the existing user has
+                # membership, otherwise we short circuit because it might be
+                # an attempt to hijack membership of another organization
+                has_membership = OrganizationMember.objects.filter(
+                    user=existing_user,
+                    organization=self.organization,
+                ).exists()
+                if has_membership:
+                    if not auth.login(request, existing_user,
+                                      after_2fa=request.build_absolute_uri(),
+                                      organization_id=self.organization.id):
+                        return HttpResponseRedirect(auth.get_login_redirect(
+                            self.request))
+                    # assume they've confirmed they want to attach the identity
+                    op = 'confirm'
+                else:
+                    # force them to create a new account
+                    existing_user = None
+
             login_form = self._get_login_form(existing_user)
+        elif request.user.is_managed:
+            # per the above, try to auto merge if the user was originally an
+            # SSO account but is still logged in
+            has_membership = OrganizationMember.objects.filter(
+                user=request.user,
+                organization=self.organization,
+            ).exists()
+            if has_membership:
+                # assume they've confirmed they want to attach the identity
+                op = 'confirm'
 
         if op == 'confirm' and request.user.is_authenticated():
             auth_identity = self._handle_attach_identity(identity)
@@ -369,11 +460,20 @@ class AuthHelper(object):
             # confirm authentication, login
             op = None
             if login_form.is_valid():
-                auth.login(request, login_form.get_user())
-                request.session.pop('needs_captcha', None)
+                # This flow is special.  If we are going through a 2FA
+                # flow here (login returns False) we want to instruct the
+                # system to return upon completion of the 2fa flow to the
+                # current URL and continue with the dialog.
+                #
+                # If there is no 2fa we don't need to do this and can just
+                # go on.
+                if not auth.login(request, login_form.get_user(),
+                                  after_2fa=request.build_absolute_uri(),
+                                  organization_id=self.organization.id):
+                    return HttpResponseRedirect(auth.get_login_redirect(
+                        self.request))
             else:
                 auth.log_auth_failure(request, request.POST.get('username'))
-                request.session['needs_captcha'] = 1
         else:
             op = None
 
@@ -397,7 +497,11 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user)
+        # XXX(dcramer): this is repeated from above
+        if not auth.login(request, user,
+                          after_2fa=request.build_absolute_uri(),
+                          organization_id=self.organization.id):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
 
@@ -433,7 +537,10 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user)
+        if not auth.login(self.request, user,
+                          after_2fa=self.request.build_absolute_uri(),
+                          organization_id=self.organization.id):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
 
@@ -455,18 +562,34 @@ class AuthHelper(object):
         their account.
         """
         auth_provider = self.auth_provider
-        lock_key = 'sso:auth:{}:{}'.format(
-            auth_provider.id,
-            md5(unicode(identity['id'])).hexdigest(),
+        lock = locks.get(
+            'sso:auth:{}:{}'.format(
+                auth_provider.id,
+                md5_text(identity['id']).hexdigest(),
+            ),
+            duration=5,
         )
-        with Lock(lock_key, timeout=5):
+        with TimedRetryPolicy(5)(lock.acquire):
             try:
-                auth_identity = AuthIdentity.objects.get(
+                auth_identity = AuthIdentity.objects.select_related('user').get(
                     auth_provider=auth_provider,
                     ident=identity['id'],
                 )
             except AuthIdentity.DoesNotExist:
                 return self._handle_unknown_identity(identity)
+
+            # If the User attached to this AuthIdentity is not active,
+            # we want to clobber the old account and take it over, rather than
+            # getting logged into the inactive account.
+            if not auth_identity.user.is_active:
+
+                # Current user is also not logged in, so we have to
+                # assume unknown.
+                if not self.request.user.is_authenticated():
+                    return self._handle_unknown_identity(identity)
+
+                auth_identity = self._handle_attach_identity(identity)
+
             return self._handle_existing_identity(auth_identity, identity)
 
     @transaction.atomic
@@ -500,6 +623,8 @@ class AuthHelper(object):
         )
 
         self._handle_attach_identity(identity, om)
+
+        auth.mark_sso_complete(request, self.organization.id)
 
         AuditLogEntry.objects.create(
             organization=self.organization,

@@ -1,12 +1,15 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
+import CustomSnoozeModal from '../../components/customSnoozeModal';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
+import IssuePluginActions from '../../components/group/issuePluginActions';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
+import {defined} from '../../utils';
 import {t} from '../../locale';
 
 const Snooze = {
@@ -14,13 +17,13 @@ const Snooze = {
   '30MINUTES': 30,
   '2HOURS': 60 * 2,
   '24HOURS': 60 * 24,
+  'ONEWEEK': 60 * 24 * 7,
 };
 
 const GroupActions = React.createClass({
   mixins: [
     ApiMixin,
     GroupState,
-    History,
     TooltipMixin({
       selector: '.tip',
       container: 'body',
@@ -41,7 +44,7 @@ const GroupActions = React.createClass({
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
 
-        this.history.pushState(null, `/${org.slug}/${project.slug}/`);
+        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
       }
     });
   },
@@ -70,8 +73,25 @@ const GroupActions = React.createClass({
 
   onSnooze(duration) {
     this.onUpdate({
-      status: 'muted',
-      snoozeDuration: duration,
+      status: 'ignored',
+      ignoreDuration: duration,
+    });
+  },
+
+  customSnoozeClicked() {
+    this.setState({
+      isCustomSnoozeModalOpen: true
+    });
+  },
+
+  customSnoozeSelected(duration) {
+    this.onSnooze(duration);
+    this.customSnoozeCanceled();
+  },
+
+  customSnoozeCanceled() {
+    this.setState({
+      isCustomSnoozeModalOpen: false
     });
   },
 
@@ -90,16 +110,23 @@ const GroupActions = React.createClass({
       bookmarkClassName += ' active';
     }
 
-    let snoozeClassName = 'group-snooze btn btn-default btn-sm';
-    if (group.status === 'muted') {
-      snoozeClassName += ' active';
+    let ignoreClassName = 'group-ignore btn btn-default btn-sm';
+    if (group.status === 'ignored') {
+      ignoreClassName += ' active';
     }
 
-    let hasRelease = group.tags.filter(item => item.key === 'release').length;
+    let hasRelease = defined(group.lastRelease);
     let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
+
+    // account for both old and new style plugins
+    let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
 
     return (
       <div className="group-actions">
+        <CustomSnoozeModal
+            show={this.state && this.state.isCustomSnoozeModalOpen}
+            onSelected={this.customSnoozeSelected}
+            onCanceled={this.customSnoozeCanceled}/>
         <div className="btn-group">
           {group.status === 'resolved' ? (
             group.statusDetails.autoResolved ?
@@ -147,18 +174,18 @@ const GroupActions = React.createClass({
           }
         </div>
         <div className="btn-group">
-          {group.status === 'muted' ?
-            <a className={snoozeClassName}
-               title={t('Remove Snooze')}
+          {group.status === 'ignored' ?
+            <a className={ignoreClassName}
+               title={t('Remove Ignored Status')}
                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-             {t('Snooze')}
+             {t('Ignore')}
             </a>
           :
             <DropdownLink
               caret={false}
-              className={snoozeClassName}
+              className={ignoreClassName}
               title={<span>
-                {t('Snooze')}
+                {t('Ignore')}
                 <span className="icon-arrow-down" style={{marginLeft: 3, marginRight: -3}} />
               </span>}>
               <MenuItem noAnchor={true}>
@@ -171,7 +198,13 @@ const GroupActions = React.createClass({
                 <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>{t('for 24 hours')}</a>
               </MenuItem>
               <MenuItem noAnchor={true}>
-                <a onClick={this.onUpdate.bind(this, {status: 'muted'})}>{t('forever')}</a>
+                <a onClick={this.onSnooze.bind(this, Snooze.ONEWEEK)}>{t('for 1 week')}</a>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <a onClick={this.customSnoozeClicked}>{t('until custom date...')}</a>
+              </MenuItem>
+              <MenuItem noAnchor={true}>
+                <a onClick={this.onUpdate.bind(this, {status: 'ignored'})}>{t('forever')}</a>
               </MenuItem>
             </DropdownLink>
           }
@@ -217,6 +250,15 @@ const GroupActions = React.createClass({
               </div>
             );
           })
+        }
+        {group.pluginIssues && group.pluginIssues.map((plugin) => {
+          return <IssuePluginActions key={plugin.slug} plugin={plugin}/>;
+        })}
+        {!hasIssueTracking &&
+          <a href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
+             className={'btn btn-default btn-sm btn-config-issue-tracking'}>
+            {t('Link Issue Tracker')}
+          </a>
         }
       </div>
     );

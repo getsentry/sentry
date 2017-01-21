@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Release, TagValue
 
@@ -24,7 +26,7 @@ class ReleaseSerializer(Serializer):
         for item in item_list:
             result[item] = {
                 'tag': tags.get(item.version),
-                'owner': owners[str(item.owner_id)] if item.owner_id else None,
+                'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
             }
         return result
 

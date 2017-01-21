@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import OrganizationAccessRequest, OrganizationMember
+from sentry.models import OrganizationAccessRequest, OrganizationMember, TotpInterface
 from sentry.testutils import TestCase, PermissionTestCase
 
 
@@ -26,6 +26,8 @@ class OrganizationMembersTest(TestCase):
 
         owner = self.user
         member = self.create_user('bar@example.com')
+
+        TotpInterface().enroll(member)
 
         owner_om = OrganizationMember.objects.get(
             organization=organization,
@@ -53,8 +55,8 @@ class OrganizationMembersTest(TestCase):
         member_list = sorted(resp.context['member_list'], key=lambda x: x[0].id)
 
         assert member_list == [
-            (owner_om, False),
-            (member_om, False),
+            (owner_om, False, False),
+            (member_om, False, True),
         ]
 
     def test_shows_access_requests_for_team_admin(self):

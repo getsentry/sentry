@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
-from sentry.models import Activity
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -46,6 +46,12 @@ class GroupNotesEndpoint(GroupEndpoint):
         ).exists():
             return Response('{"detail": "You have already posted that comment."}',
                             status=status.HTTP_400_BAD_REQUEST)
+
+        GroupSubscription.objects.subscribe(
+            group=group,
+            user=request.user,
+            reason=GroupSubscriptionReason.comment,
+        )
 
         activity = Activity.objects.create(
             group=group,

@@ -6,21 +6,66 @@
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
 
 {% block main %}
+
     <div class="page-header">
         <h3>{{ title }}</h3>
     </div>
 
-    <form class="form-stacked" action="" method="post">
-        {% csrf_token %}
-        {{ form|as_crispy_errors }}
-        <input type="hidden" name="next" value="{{ next }}" />
-        <fieldset>
-            {% for field in form %}
-                {{ field|as_crispy_field }}
-            {% endfor %}
-        </fieldset>
-        <p class="actions">
-            <button type="submit" class="btn btn-primary">{% trans "Create Issue" %}</button>
-        </p>
-    </form>
+    {% if can_link_existing_issues %}
+        <ul class="nav nav-tabs">
+            <li {% if op == "create" %}class="active"{% endif %}>
+                <a href="#create" data-toggle="tab">{% trans "Create New" %}</a>
+            </li>
+            <li {% if op == "link" %}class="active"{% endif %}>
+                <a href="#link" data-toggle="tab">{% trans "Link Existing" %}</a>
+            </li>
+        </ul>
+    {% endif %}
+
+    <div class="tab-content">
+
+        {% for field in read_only_fields %}
+            <div class="form-group">
+                <label class="control-label">{{ field.label }}</label>
+                <div>{{ field.value }}</div>
+            </div>
+        {% endfor %}
+
+        <div class="tab-pane{% if op == "create" or not op %} active{% endif %}" id="create">
+            <form class="form-stacked" action="" method="post">
+                {% csrf_token %}
+                {{ form|as_crispy_errors }}
+                <input type="hidden" name="next" value="{{ next }}" />
+                <input type="hidden" name="op" value="create" />
+                <fieldset>
+                    {% for field in form %}
+                        {{ field|as_crispy_field }}
+                    {% endfor %}
+                </fieldset>
+                <p class="actions">
+                    <button type="submit" class="btn btn-primary">{% trans "Create Issue" %}</button>
+                </p>
+            </form>
+        </div>
+
+        {% if can_link_existing_issues %}
+            <div class="tab-pane{% if op == "link" %} active{% endif %}" id="link">
+                <form class="form-stacked" action="" method="post">
+                    {% csrf_token %}
+                    {{ link_form|as_crispy_errors }}
+                    <input type="hidden" name="next" value="{{ next }}" />
+                    <input type="hidden" name="op" value="link" />
+                    <fieldset>
+                        {% for field in link_form %}
+                            {{ field|as_crispy_field }}
+                        {% endfor %}
+                    </fieldset>
+                    <p class="actions">
+                        <button type="submit" class="btn btn-primary">{% trans "Link Issue" %}</button>
+                    </p>
+                </form>
+            </div>
+        {% endif %}
+
+    </div>
 {% endblock %}

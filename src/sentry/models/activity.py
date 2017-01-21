@@ -7,6 +7,8 @@ sentry.models.activity
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -24,7 +26,7 @@ class Activity(Model):
 
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
-    SET_MUTED = 3
+    SET_IGNORED = 3
     SET_PUBLIC = 4
     SET_PRIVATE = 5
     SET_REGRESSION = 6
@@ -36,13 +38,15 @@ class Activity(Model):
     UNASSIGNED = 12
     SET_RESOLVED_IN_RELEASE = 13
     MERGE = 14
+    SET_RESOLVED_BY_AGE = 15
 
     TYPE = (
         # (TYPE, verb-slug)
         (SET_RESOLVED, 'set_resolved'),
+        (SET_RESOLVED_BY_AGE, 'set_resolved_by_age'),
         (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
         (SET_UNRESOLVED, 'set_unresolved'),
-        (SET_MUTED, 'set_muted'),
+        (SET_IGNORED, 'set_ignored'),
         (SET_PUBLIC, 'set_public'),
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
@@ -80,7 +84,7 @@ class Activity(Model):
         if self.type == self.RELEASE and isinstance(self.data['version'], Release):
             self.data['version'] = self.data['version'].version
         if self.type == self.ASSIGNED:
-            self.data['assignee'] = str(self.data['assignee'])
+            self.data['assignee'] = six.text_type(self.data['assignee'])
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)

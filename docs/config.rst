@@ -75,7 +75,7 @@ Redis
 
     Declared in ``config.yml``.
 
-    Describes the Redis clusters avaialble to the Sentry server. These clusters
+    Describes the Redis clusters available to the Sentry server. These clusters
     may then be referenced by name by other internal services such as the
     cache, digests, and TSDB backends, among others.
 
@@ -264,6 +264,15 @@ The following settings are available for the built-in webserver:
             'workers': 10,
             'buffer-size': 32768,
         }
+
+Additionally, if you're using SSL, you'll want to configure the following settings
+in ``sentry.conf.py``:
+
+.. code-block:: python
+
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 .. _config-smtp-server:
 

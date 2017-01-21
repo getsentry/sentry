@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django.db.models import Q
 from rest_framework.response import Response
 
 from sentry.api.bases.team import TeamEndpoint
@@ -10,6 +11,7 @@ from sentry.models import OrganizationMember
 class TeamMembersEndpoint(TeamEndpoint):
     def get(self, request, team):
         queryset = OrganizationMember.objects.filter(
+            Q(user__is_active=True) | Q(user__isnull=True),
             organization=team.organization,
             teams=team,
         ).select_related('user')

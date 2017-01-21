@@ -151,6 +151,7 @@ const NoteInput = React.createClass({
           error: true,
           errorJSON: error.responseJSON || makeDefaultErrorJson()
         });
+        IndicatorStore.remove(loadingIndicator);
       },
       success: (data) => {
         this.setState({
@@ -159,10 +160,8 @@ const NoteInput = React.createClass({
           loading: false
         });
         GroupStore.updateActivity(group.id, item.id, {text: this.state.value});
-        this.finish();
-      },
-      complete: () => {
         IndicatorStore.remove(loadingIndicator);
+        this.finish();
       }
     });
   },
@@ -173,7 +172,9 @@ const NoteInput = React.createClass({
 
   onKeyDown(e) {
     // Auto submit the form on [meta] + Enter
-    e.key === 'Enter' && e.metaKey && this.submitForm();
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      this.submitForm();
+    }
   },
 
   onCancel(e) {

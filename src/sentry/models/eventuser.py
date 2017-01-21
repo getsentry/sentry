@@ -4,7 +4,8 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
+from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
 KEYWORD_MAP = {
     'id': 'ident',
@@ -20,7 +21,7 @@ class EventUser(Model):
     project = FlexibleForeignKey('sentry.Project')
     hash = models.CharField(max_length=32)
     ident = models.CharField(max_length=128, null=True)
-    email = models.EmailField(null=True)
+    email = models.EmailField(null=True, max_length=MAX_EMAIL_FIELD_LENGTH)
     username = models.CharField(max_length=128, null=True)
     ip_address = models.GenericIPAddressField(null=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -41,6 +42,25 @@ class EventUser(Model):
     def attr_from_keyword(cls, keyword):
         return KEYWORD_MAP[keyword]
 
+    @classmethod
+    def for_tags(cls, project_id, values):
+        """
+        Finds matching EventUser objects from a list of tag values.
+
+        Return a dictionary of {tag_value: event_user}.
+        """
+        hashes = [
+            md5_text(v.split(':', 1)[-1]).hexdigest()
+            for v in values
+        ]
+        return {
+            e.tag_value: e
+            for e in cls.objects.filter(
+                project=project_id,
+                hash__in=hashes,
+            )
+        }
+
     def save(self, *args, **kwargs):
         assert self.ident or self.username or self.email or self.ip_address, \
             'No identifying value found for user'
@@ -50,7 +70,7 @@ class EventUser(Model):
 
     def get_hash(self):
         value = self.ident or self.username or self.email or self.ip_address
-        return md5(value).hexdigest()
+        return md5_text(value).hexdigest()
 
     @property
     def tag_value(self):

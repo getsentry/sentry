@@ -1,16 +1,19 @@
 {% spaceless %}
 {% autoescape off %}
-A new note was posted on an event in Sentry:
+# New Comment
+
+{{ author.get_display_name }} left a new comment:
 
 {{ data.text }}
 
 
-Details
--------
+## Details
 
 {{ group.message_short }}
 
 {{ activity_link }}
+
+Unsubscribe: {{ unsubscribe_link }}
 
 {% endautoescape %}
 {% endspaceless %}

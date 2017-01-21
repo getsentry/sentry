@@ -16,7 +16,8 @@ const MenuItem = React.createClass({
     // router link
     to: React.PropTypes.string,
     query: React.PropTypes.object,
-    linkClassName: React.PropTypes.string
+    linkClassName: React.PropTypes.string,
+    onClick: React.PropTypes.func,
   },
 
   handleClick(e) {
@@ -30,8 +31,7 @@ const MenuItem = React.createClass({
     if (this.props.to) {
       return (
         <Link
-            to={this.props.to}
-            query={this.props.query}
+            to={{pathname: this.props.to, query: this.props.query}}
             title={this.props.title}
             onClick={this.handleClick}
             className={this.props.linkClassName}
@@ -65,9 +65,11 @@ const MenuItem = React.createClass({
       children = this.renderAnchor();
     }
 
+
     return (
-      <li {...this.props} role="presentation" title={null} href={null}
-        className={classNames(this.props.className, classes)}>
+      <li role="presentation" title={null} href={null}
+        className={classNames(this.props.className, classes)}
+        onClick={this.props.onClick}>
         {children}
       </li>
     );
@@ -75,4 +77,3 @@ const MenuItem = React.createClass({
 });
 
 export default MenuItem;
-

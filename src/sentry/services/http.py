@@ -8,23 +8,25 @@ sentry.services.http
 from __future__ import absolute_import, print_function
 
 import os
+import six
 import sys
+
 from sentry.services.base import Service
 
 
 def convert_options_to_env(options):
-    for k, v in options.iteritems():
+    for k, v in six.iteritems(options):
         if v is None:
             continue
         key = 'UWSGI_' + k.upper().replace('-', '_')
-        if isinstance(v, basestring):
+        if isinstance(v, six.string_types):
             value = v
         elif v is True:
             value = 'true'
         elif v is False:
             value = 'false'
-        elif isinstance(v, (int, long)):
-            value = str(v)
+        elif isinstance(v, six.integer_types):
+            value = six.text_type(v)
         else:
             raise TypeError('Unknown option type: %r (%s)' % (k, type(v)))
         yield key, value
@@ -36,6 +38,8 @@ class SentryHTTPServer(Service):
     def __init__(self, host=None, port=None, debug=False, workers=None,
                  validate=True, extra_options=None):
         from django.conf import settings
+        from sentry import options as sentry_options
+        from sentry.logging import LoggingFormat
 
         if validate:
             self.validate_settings()
@@ -45,7 +49,7 @@ class SentryHTTPServer(Service):
 
         options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         if extra_options is not None:
-            for k, v in extra_options.iteritems():
+            for k, v in six.iteritems(extra_options):
                 options[k] = v
         options.setdefault('module', 'sentry.wsgi:application')
         options.setdefault('protocol', 'http')
@@ -110,6 +114,15 @@ class SentryHTTPServer(Service):
             del options['secure_scheme_headers']
         if 'loglevel' in options:
             del options['loglevel']
+
+        # For machine logging, we are choosing to 100% disable logging
+        # from uwsgi since it's currently not possible to get a nice json
+        # logging out of uwsgi, so it's better to just opt out. There's
+        # also an assumption that anyone operating at the scale of needing
+        # machine formatted logs, they are also using nginx in front which
+        # has it's own logs that can be formatted correctly.
+        if sentry_options.get('system.logging-format') == LoggingFormat.MACHINE:
+            options['disable-logging'] = True
 
         self.options = options
 

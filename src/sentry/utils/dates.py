@@ -7,6 +7,8 @@ sentry.utils.dates
 """
 from __future__ import absolute_import
 
+import six
+
 from datetime import (
     datetime,
     timedelta,
@@ -52,6 +54,18 @@ def to_datetime(value):
     return epoch + timedelta(seconds=value)
 
 
+def floor_to_utc_day(value):
+    """
+    Floors a given datetime to UTC midnight.
+    """
+    return value.astimezone(pytz.utc).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+
 def get_sql_date_trunc(col, db='default', grouper='hour'):
     conn = connections[db]
 
@@ -81,3 +95,25 @@ def parse_date(datestr, timestr):
             return parse(datetimestr)
         except Exception:
             return
+
+
+def parse_timestamp(value):
+    # TODO(mitsuhiko): merge this code with coreapis date parser
+    if isinstance(value, datetime):
+        return value
+    elif isinstance(value, six.integer_types + (float,)):
+        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
+    value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
+    if not value:
+        return None
+    try:
+        rv = datetime.strptime(value[0], '%Y-%m-%dT%H:%M:%S')
+    except Exception:
+        return None
+    if len(value) == 2:
+        try:
+            rv = rv.replace(microsecond=int(value[1]
+                            .ljust(6, '0')[:6]))
+        except ValueError:
+            rv = None
+    return rv.replace(tzinfo=pytz.utc)

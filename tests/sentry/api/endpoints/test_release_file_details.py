@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import File, Release, ReleaseFile
@@ -14,10 +16,13 @@ class ReleaseFileDetailsTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         releasefile = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
             project=project,
             release=release,
             file=File.objects.create(
@@ -37,7 +42,53 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(releasefile.id)
+        assert response.data['id'] == six.text_type(releasefile.id)
+
+    def test_file_download(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        release = Release.objects.create(
+            project=project,
+            organization_id=project.organization_id,
+            version='1',
+        )
+        release.add_project(project)
+
+        from six import BytesIO
+        f = File.objects.create(
+            name='application.js',
+            type='release.file',
+        )
+        f.putfile(BytesIO('File contents here'))
+
+        releasefile = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            project=project,
+            release=release,
+            file=f,
+            name='http://example.com/application.js'
+        )
+
+        url = reverse('sentry-api-0-release-file-details', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'version': release.version,
+            'file_id': releasefile.id,
+        })
+
+        response = self.client.get(url + '?download=1')
+        assert response.status_code == 200, response.content
+        assert response.get('Content-Disposition') == 'attachment; filename="application.js"'
+        assert response.get('Content-Length') == six.text_type(f.size)
+        assert response.get('Content-Type') == 'application/octet-stream'
+        assert 'File contents here' == BytesIO(b"".join(response.streaming_content)).getvalue()
+
+        user_no_permission = self.create_user('baz@localhost', username='baz')
+        self.login_as(user=user_no_permission)
+        response = self.client.get(url + '?download=1')
+        assert response.status_code == 403, response.content
 
 
 class ReleaseFileUpdateTest(APITestCase):
@@ -48,10 +99,13 @@ class ReleaseFileUpdateTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         releasefile = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
             project=project,
             release=release,
             file=File.objects.create(
@@ -73,7 +127,7 @@ class ReleaseFileUpdateTest(APITestCase):
         })
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(releasefile.id)
+        assert response.data['id'] == six.text_type(releasefile.id)
 
         releasefile = ReleaseFile.objects.get(id=releasefile.id)
         assert releasefile.name == 'foobar'
@@ -88,10 +142,13 @@ class ReleaseFileDeleteTest(APITestCase):
 
         release = Release.objects.create(
             project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
 
         releasefile = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
             project=project,
             release=release,
             file=File.objects.create(

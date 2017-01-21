@@ -20,10 +20,7 @@ def is_privileged_request(request):
 
 def is_active_superuser(request):
     user = getattr(request, 'user', None)
-    if not user:
+    if not user or not user.is_superuser:
         return False
 
-    if not is_privileged_request(request):
-        return False
-
-    return user.is_superuser
+    return is_privileged_request(request)

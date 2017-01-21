@@ -2,14 +2,8 @@ import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
-import {TextField} from '../components/forms';
+import {FormState, TextField} from '../components/forms';
 import {t} from '../locale';
-
-const FormState = {
-  READY: 'Ready',
-  SAVING: 'Saving',
-  ERROR: 'Error',
-};
 
 const TeamSettingsForm = React.createClass({
   propTypes: {
@@ -108,8 +102,6 @@ const TeamSettingsForm = React.createClass({
 
 const TeamSettings = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.object.isRequired,
-    teamId: React.PropTypes.object.isRequired,
     team: React.PropTypes.object.isRequired,
     onTeamChange: React.PropTypes.func.isRequired
   },

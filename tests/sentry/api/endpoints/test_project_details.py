@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import mock
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -18,7 +19,7 @@ class ProjectDetailsTest(APITestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data['id'] == str(project.id)
+        assert response.data['id'] == six.text_type(project.id)
 
     def test_numeric_org_slug(self):
         # Regression test for https://github.com/getsentry/sentry/issues/2236
@@ -42,7 +43,7 @@ class ProjectDetailsTest(APITestCase):
         url = '/api/0/projects/%s/%s/' % (org.slug, project.slug)
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data['id'] == str(project.id)
+        assert response.data['id'] == six.text_type(project.id)
 
     def test_with_stats(self):
         project = self.create_project()
@@ -113,6 +114,7 @@ class ProjectUpdateTest(APITestCase):
             'sentry:scrub_data': False,
             'sentry:scrub_defaults': False,
             'sentry:sensitive_fields': ['foo', 'bar'],
+            'sentry:safe_fields': ['token'],
             'sentry:csp_ignored_sources_defaults': False,
             'sentry:csp_ignored_sources': 'foo\nbar',
         }
@@ -126,6 +128,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.get_option('sentry:scrub_data', True) == options['sentry:scrub_data']
         assert project.get_option('sentry:scrub_defaults', True) == options['sentry:scrub_defaults']
         assert project.get_option('sentry:sensitive_fields', []) == options['sentry:sensitive_fields']
+        assert project.get_option('sentry:safe_fields', []) == options['sentry:safe_fields']
         assert project.get_option('sentry:csp_ignored_sources_defaults', True) == options['sentry:csp_ignored_sources_defaults']
         assert project.get_option('sentry:csp_ignored_sources', []) == options['sentry:csp_ignored_sources'].split('\n')
 
@@ -181,8 +184,13 @@ class ProjectUpdateTest(APITestCase):
 
 
 class ProjectDeleteTest(APITestCase):
+    @mock.patch('sentry.api.endpoints.project_details.uuid4')
     @mock.patch('sentry.api.endpoints.project_details.delete_project')
-    def test_simple(self, mock_delete_project):
+    def test_simple(self, mock_delete_project, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
         project = self.create_project()
 
         self.login_as(user=self.user)
@@ -197,8 +205,11 @@ class ProjectDeleteTest(APITestCase):
 
         assert response.status_code == 204
 
-        mock_delete_project.delay.assert_called_once_with(
-            object_id=project.id,
+        mock_delete_project.apply_async.assert_called_once_with(
+            kwargs={
+                'object_id': project.id,
+                'transaction_id': 'abc123',
+            },
             countdown=3600,
         )
 

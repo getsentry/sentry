@@ -1,6 +1,5 @@
-import jQuery from 'jquery';
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DropdownLink from '../components/dropdownLink';
@@ -9,12 +8,12 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import MenuItem from '../components/menuItem';
 import OrganizationState from '../mixins/organizationState';
+import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import {t} from '../locale';
 
 const TeamDetails = React.createClass({
   mixins: [
     ApiMixin,
-    History,
     OrganizationState
   ],
 
@@ -28,7 +27,6 @@ const TeamDetails = React.createClass({
 
   componentWillMount() {
     this.fetchData();
-    jQuery(document.body).addClass('narrow');
   },
 
   componentWillReceiveProps(nextProps) {
@@ -40,10 +38,6 @@ const TeamDetails = React.createClass({
         error: false
       }, this.fetchData);
     }
-  },
-
-  componentWillUnmount() {
-    jQuery(document.body).removeClass('narrow');
   },
 
   fetchData() {
@@ -70,7 +64,7 @@ const TeamDetails = React.createClass({
     let team = this.state.team;
     if (data.slug !== team.slug) {
       let orgId = this.props.params.orgId;
-      this.history.pushState(null, `/organizations/${orgId}/teams/${data.slug}/settings/`);
+      browserHistory.pushState(null, `/organizations/${orgId}/teams/${data.slug}/settings/`);
     } else {
       Object.assign({}, team, data);
       this.setState({team: team});
@@ -89,7 +83,7 @@ const TeamDetails = React.createClass({
     let access = this.getAccess();
 
     return (
-      <div className="container">
+      <OrganizationHomeContainer>
         <h3>{team.name}</h3>
 
         {access.has('team:delete') &&
@@ -107,7 +101,7 @@ const TeamDetails = React.createClass({
           team: team,
           onTeamChange: this.onTeamChange,
         })}
-      </div>
+      </OrganizationHomeContainer>
     );
   }
 });

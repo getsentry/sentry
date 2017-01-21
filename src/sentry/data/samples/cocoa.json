@@ -1,0 +1,830 @@
+{
+  "sentry.interfaces.User": {
+    "username": "Example",
+    "data": {
+      "is_admin": false
+    },
+    "id": "3",
+    "email": "example@example.com"
+  },
+  "tags": [
+    [
+      "environment",
+      "production"
+    ],
+    [
+      "level",
+      "fatal"
+    ],
+    [
+      "sentry:user",
+      "id:3"
+    ]
+  ],
+  "type": "default",
+  "extra": {
+    "foobar": {
+      "foo": "bar"
+    },
+    "some_things": [
+      "green",
+      "red"
+    ],
+    "a_thing": 3
+  },
+  "sentry.interfaces.Breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1463071692.0,
+        "type": "ui_event",
+        "data": {
+          "type": "button",
+          "target": "onClickBreak"
+        }
+      }
+    ]
+  },
+  "sentry.interfaces.Exception": {
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "abs_path": null,
+              "instruction_offset": 1,
+              "package": "libdyld.dylib",
+              "filename": null,
+              "symbol_addr": "0x00064f9e8",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00064f9e9"
+            },
+            {
+              "function": "main",
+              "abs_path": "/Users/josh/iOS/Sentry/RavenSwift/Examples/SwiftTVOSExample/SwiftTVOSExample/AppDelegate.swift",
+              "instruction_offset": null,
+              "package": "SwiftTVOSExample",
+              "filename": "AppDelegate.swift",
+              "symbol_addr": "0x00d93c230",
+              "lineno": 12,
+              "in_app": true,
+              "instruction_addr": "0x00d93c2a2"
+            },
+            {
+              "function": "UIApplicationMain",
+              "abs_path": null,
+              "instruction_offset": 171,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4ad7ea",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4ad895"
+            },
+            {
+              "function": "GSEventRunModal",
+              "abs_path": null,
+              "instruction_offset": 161,
+              "package": "GraphicsServices",
+              "filename": null,
+              "symbol_addr": "0x0022f0a31",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x0022f0ad2"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "abs_path": null,
+              "instruction_offset": 488,
+              "package": "CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x00dba1030",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00dba1218"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "abs_path": null,
+              "instruction_offset": 867,
+              "package": "CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x00dba14a0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00dba1803"
+            },
+            {
+              "function": "__CFRunLoopDoSources0",
+              "abs_path": null,
+              "instruction_offset": 556,
+              "package": "CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x00dba2120",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00dba234c"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+              "abs_path": null,
+              "instruction_offset": 17,
+              "package": "CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x00dbac410",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00dbac421"
+            },
+            {
+              "function": "_UIApplicationHandleEventQueue",
+              "abs_path": null,
+              "instruction_offset": 5480,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4a647b",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4a79e3"
+            },
+            {
+              "function": "-[UIApplication handleKeyHIDEvent:]",
+              "abs_path": null,
+              "instruction_offset": 634,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4cea7d",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4cecf7"
+            },
+            {
+              "function": "-[UIApplication handleKeyUIEvent:]",
+              "abs_path": null,
+              "instruction_offset": 79,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4ced18",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4ced67"
+            },
+            {
+              "function": "-[UIResponder _handleKeyUIEvent:]",
+              "abs_path": null,
+              "instruction_offset": 79,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e6c3204",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e6c3253"
+            },
+            {
+              "function": "-[UIResponder _handleKeyUIEvent:]",
+              "abs_path": null,
+              "instruction_offset": 79,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e6c3204",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e6c3253"
+            },
+            {
+              "function": "-[UIResponder _handleKeyUIEvent:]",
+              "abs_path": null,
+              "instruction_offset": 79,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e6c3204",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e6c3253"
+            },
+            {
+              "function": "-[UIApplication _handleKeyUIEvent:]",
+              "abs_path": null,
+              "instruction_offset": 2420,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4cf032",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4cf9a6"
+            },
+            {
+              "function": "-[UIApplication _sendButtonEventWithPressInfo:]",
+              "abs_path": null,
+              "instruction_offset": 302,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4c3070",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4c319e"
+            },
+            {
+              "function": "-[UIApplication sendEvent:]",
+              "abs_path": null,
+              "instruction_offset": 263,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4ce4bf",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4ce5c6"
+            },
+            {
+              "function": "-[UIWindow sendEvent:]",
+              "abs_path": null,
+              "instruction_offset": 999,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e522a5b",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e522e42"
+            },
+            {
+              "function": "-[UIWindow _sendButtonGesturesForEvent:]",
+              "abs_path": null,
+              "instruction_offset": 1042,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e5221e3",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e5225f5"
+            },
+            {
+              "function": "_UIGestureRecognizerUpdate",
+              "abs_path": null,
+              "instruction_offset": 2634,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e99612f",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e996b79"
+            },
+            {
+              "function": "_UIGestureRecognizerRemoveObjectsFromArrayAndApplyBlocks",
+              "abs_path": null,
+              "instruction_offset": 342,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e9a90a1",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e9a91f7"
+            },
+            {
+              "function": "___UIGestureRecognizerUpdate_block_invoke898",
+              "abs_path": null,
+              "instruction_offset": 79,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e9a930a",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e9a9359"
+            },
+            {
+              "function": "-[UIGestureRecognizer _updateGestureWithEvent:buttonEvent:]",
+              "abs_path": null,
+              "instruction_offset": 843,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e9a0b50",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e9a0e9b"
+            },
+            {
+              "function": "_UIGestureRecognizerSendActions",
+              "abs_path": null,
+              "instruction_offset": 162,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e9a2dfc",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e9a2e9e"
+            },
+            {
+              "function": "_UIGestureRecognizerSendTargetActions",
+              "abs_path": null,
+              "instruction_offset": 153,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e9a6793",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e9a682c"
+            },
+            {
+              "function": "-[UIControl _sendActionsForEvents:withEvent:]",
+              "abs_path": null,
+              "instruction_offset": 327,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e622718",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e62285f"
+            },
+            {
+              "function": "-[UIControl sendAction:to:forEvent:]",
+              "abs_path": null,
+              "instruction_offset": 67,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e622540",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e622583"
+            },
+            {
+              "function": "-[UIApplication sendAction:to:from:forEvent:]",
+              "abs_path": null,
+              "instruction_offset": 92,
+              "package": "UIKit",
+              "filename": null,
+              "symbol_addr": "0x00e4af3bd",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00e4af419"
+            },
+            {
+              "function": "@objc SwiftTVOSExample.ViewController.onClickBreak (Swift.AnyObject) -> ()",
+              "abs_path": "/Users/josh/iOS/Sentry/RavenSwift/Examples/SwiftTVOSExample/SwiftTVOSExample/ViewController.swift",
+              "instruction_offset": 54,
+              "package": "SwiftTVOSExample",
+              "filename": "ViewController.swift",
+              "symbol_addr": "0x00d93ad50",
+              "lineno": 0,
+              "in_app": true,
+              "instruction_addr": "0x00d93ad86"
+            },
+            {
+              "function": "SwiftTVOSExample.ViewController.onClickBreak (Swift.AnyObject) -> ()",
+              "abs_path": "/Users/josh/iOS/Sentry/RavenSwift/Examples/SwiftTVOSExample/SwiftTVOSExample/ViewController.swift",
+              "instruction_offset": null,
+              "package": "SwiftTVOSExample",
+              "filename": "ViewController.swift",
+              "symbol_addr": "0x00d93a9d0",
+              "lineno": 65,
+              "in_app": true,
+              "instruction_addr": "0x00d93acc7"
+            },
+            {
+              "function": "function signature specialization <Arg[0] = Exploded, Arg[1] = Exploded, Arg[2] = Dead, Arg[3] = Dead> of Swift._fatalErrorMessage (Swift.StaticString, Swift.StaticString, Swift.StaticString, Swift.UInt) -> ()",
+              "abs_path": null,
+              "instruction_offset": 40,
+              "package": "libswiftCore.dylib",
+              "filename": null,
+              "symbol_addr": "0x00ffcd0d0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x00ffcd0f8"
+            }
+          ]
+        },
+        "thread_id": 0,
+        "type": "NSRangeException",
+        "mechanism": {
+          "posix_signal": {
+            "signal": 6,
+            "code": 0,
+            "name": "SIGABRT",
+            "code_name": null
+          },
+          "type": "cocoa",
+          "mach_exception": {
+            "subcode": 0,
+            "code": 0,
+            "exception": 10,
+            "exception_name": "EXC_CRASH"
+          }
+        },
+        "value": "*** -[__NSArray0 objectAtIndex:]: index 3 beyond bounds for empty NSArray"
+      }
+    ]
+  },
+  "threads": {
+    "values": [
+      {
+        "current": true,
+        "crashed": true,
+        "id": 0,
+        "name": null,
+        "stacktrace": null
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 1,
+        "name": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 52,
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "filename": null,
+              "symbol_addr": "0x002a93614",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002a93648"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 232,
+              "package": "/usr/lib/system/libdispatch.dylib",
+              "filename": null,
+              "symbol_addr": "0x002aa46f0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002aa47d8"
+            },
+            {
+              "function": "kevent_qos",
+              "abs_path": null,
+              "instruction_offset": 8,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002be14d0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002be14d8"
+            }
+          ]
+        }
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 2,
+        "name": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002cab9f0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002caba8c"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002caba8c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002cabb28"
+            },
+            {
+              "function": "ksmachexc_i_handleExceptions",
+              "abs_path": null,
+              "instruction_offset": 168,
+              "package": "/private/var/containers/Bundle/Application/CDB578A5-7B13-44A7-88BE-4D3867D11CF7/SentryTest.app/Frameworks/KSCrash.framework/KSCrash",
+              "filename": null,
+              "symbol_addr": "0x0000f327c",
+              "lineno": null,
+              "in_app": true,
+              "instruction_addr": "0x0000f3324"
+            },
+            {
+              "function": "thread_suspend",
+              "abs_path": null,
+              "instruction_offset": 80,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc9138",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc9188"
+            },
+            {
+              "function": "mach_msg",
+              "abs_path": null,
+              "instruction_offset": 72,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc4e0c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc4e54"
+            },
+            {
+              "function": "mach_msg_trap",
+              "abs_path": null,
+              "instruction_offset": 8,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc4fd0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc4fd8"
+            }
+          ]
+        }
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 3,
+        "name": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002cab9f0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002caba8c"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002caba8c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002cabb28"
+            },
+            {
+              "function": "ksmachexc_i_handleExceptions",
+              "abs_path": null,
+              "instruction_offset": 220,
+              "package": "/private/var/containers/Bundle/Application/CDB578A5-7B13-44A7-88BE-4D3867D11CF7/SentryTest.app/Frameworks/KSCrash.framework/KSCrash",
+              "filename": null,
+              "symbol_addr": "0x0000f327c",
+              "lineno": null,
+              "in_app": true,
+              "instruction_addr": "0x0000f3358"
+            },
+            {
+              "function": "mach_msg",
+              "abs_path": null,
+              "instruction_offset": 72,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc4e0c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc4e54"
+            },
+            {
+              "function": "mach_msg_trap",
+              "abs_path": null,
+              "instruction_offset": 8,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc4fd0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc4fd8"
+            }
+          ]
+        }
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 4,
+        "name": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002cab9f0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002caba8c"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002caba8c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002cabb28"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 1000,
+              "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+              "filename": null,
+              "symbol_addr": "0x003a1ba64",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x003a1be4c"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 412,
+              "package": "/System/Library/Frameworks/CFNetwork.framework/CFNetwork",
+              "filename": null,
+              "symbol_addr": "0x0036a5acc",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x0036a5c68"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "abs_path": null,
+              "instruction_offset": 384,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x002f24ad0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002f24c50"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 1032,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x002ffa55c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002ffa964"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 196,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x002ffcb9c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002ffcc60"
+            },
+            {
+              "function": "mach_msg",
+              "abs_path": null,
+              "instruction_offset": 72,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc4e0c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc4e54"
+            },
+            {
+              "function": "mach_msg_trap",
+              "abs_path": null,
+              "instruction_offset": 8,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002bc4fd0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002bc4fd8"
+            }
+          ]
+        }
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 5,
+        "name": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_start",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002cab9f0",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002caba8c"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 156,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002caba8c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002cabb28"
+            },
+            {
+              "function": "<redacted>",
+              "abs_path": null,
+              "instruction_offset": 648,
+              "package": "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+              "filename": null,
+              "symbol_addr": "0x003002f40",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x0030031c8"
+            },
+            {
+              "function": "select$DARWIN_EXTSN",
+              "abs_path": null,
+              "instruction_offset": 8,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002be033c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002be0344"
+            }
+          ]
+        }
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 6,
+        "name": null,
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "_pthread_wqthread",
+              "abs_path": null,
+              "instruction_offset": 1284,
+              "package": "/usr/lib/system/libsystem_pthread.dylib",
+              "filename": null,
+              "symbol_addr": "0x002ca902c",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002ca9530"
+            },
+            {
+              "function": "__workq_kernreturn",
+              "abs_path": null,
+              "instruction_offset": 8,
+              "package": "/usr/lib/system/libsystem_kernel.dylib",
+              "filename": null,
+              "symbol_addr": "0x002be0b40",
+              "lineno": null,
+              "in_app": false,
+              "instruction_addr": "0x002be0b48"
+            }
+          ]
+        }
+      },
+      {
+        "current": false,
+        "crashed": false,
+        "id": 7,
+        "name": null,
+        "stacktrace": null
+      }
+    ]
+  },
+  "contexts": {
+    "device": {
+      "model_id": "N78AP",
+      "model": "iPod5,1",
+      "arch": "armv7f"
+    },
+    "os": {
+      "kernel_version": "Darwin Kernel Version 14.0.0: Sun Mar 29 19:46:45 PDT 2015; root:xnu-2784.20.34~2/RELEASE_ARM_S5L8942X",
+      "version": "8.3",
+      "name": "iOS",
+      "build": "12F69"
+    }
+  },
+  "sdk": {
+    "version": "1",
+    "name": "raven-swift"
+  }
+}

@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.rules import rules
-from sentry.models import Rule
+from sentry.models import Rule, RuleStatus
 from sentry.web.frontend.base import ProjectView
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 
 
 class ProjectRuleEditView(ProjectView):
@@ -14,10 +13,14 @@ class ProjectRuleEditView(ProjectView):
     def get(self, request, organization, team, project, rule_id=None):
         if rule_id:
             try:
-                rule = Rule.objects.get(project=project, id=rule_id)
+                rule = Rule.objects.get(
+                    project=project,
+                    id=rule_id,
+                    status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+                )
             except Rule.DoesNotExist:
-                path = reverse('sentry-project-rules', args=[organization.slug, project.slug])
-                return self.redirect(path)
+                path = '/{}/{}/settings/alerts/rules/'.format(organization.slug, project.slug)
+                return self.redirect(absolute_uri(path))
         else:
             rule = Rule(project=project)
 

@@ -7,21 +7,25 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
+
 from bitfield import BitField
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
+from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
 from sentry.db.models import (
-    BaseManager, BoundedPositiveIntegerField, Model,
-    sane_repr
+    BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.utils.cache import Lock
+from sentry.utils.http import absolute_uri
+from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
@@ -35,7 +39,7 @@ class OrganizationManager(BaseManager):
     # def get_by_natural_key(self, slug):
     #     return self.get(slug=slug)
 
-    def get_for_user(self, user, scope=None):
+    def get_for_user(self, user, scope=None, only_visible=True):
         """
         Returns a set of all organizations a user has access to.
         """
@@ -45,17 +49,21 @@ class OrganizationManager(BaseManager):
             return []
 
         if settings.SENTRY_PUBLIC and scope is None:
-            return list(self.filter(status=OrganizationStatus.VISIBLE))
+            if only_visible:
+                return list(self.filter(status=OrganizationStatus.VISIBLE))
+            else:
+                return list(self.filter())
 
-        results = list(OrganizationMember.objects.filter(
-            user=user,
-            organization__status=OrganizationStatus.VISIBLE,
-        ).select_related('organization'))
+        qs = OrganizationMember.objects.filter(user=user).select_related('organization')
+        if only_visible:
+            qs = qs.filter(organization__status=OrganizationStatus.VISIBLE)
+
+        results = list(qs)
 
         if scope is not None:
             return [
                 r.organization for r in results
-                if scope not in r.get_scopes()
+                if scope in r.get_scopes()
             ]
         return [r.organization for r in results]
 
@@ -64,6 +72,8 @@ class Organization(Model):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
+    __core__ = True
+
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(choices=(
@@ -111,8 +121,8 @@ class Organization(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock_key = 'slug:organization'
-            with Lock(lock_key):
+            lock = locks.get('slug:organization', duration=5)
+            with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name,
                                  reserved=RESERVED_ORGANIZATION_SLUGS)
             super(Organization, self).save(*args, **kwargs)
@@ -148,23 +158,27 @@ class Organization(Model):
             'default_role': self.default_role,
         }
 
+    def get_owners(self):
+        from sentry.models import User
+        return User.objects.filter(
+            sentry_orgmember_set__role=roles.get_top_dog().id,
+            sentry_orgmember_set__organization=self,
+            is_active=True,
+        )
+
     def get_default_owner(self):
         if not hasattr(self, '_default_owner'):
-            from sentry.models import User
-
-            self._default_owner = User.objects.filter(
-                sentry_orgmember_set__role=roles.get_top_dog().id,
-                sentry_orgmember_set__organization=self,
-            )[0]
+            self._default_owner = self.get_owners()[0]
         return self._default_owner
 
     def has_single_owner(self):
         from sentry.models import OrganizationMember
         count = OrganizationMember.objects.filter(
             organization=self,
-            role='owner',
+            role=roles.get_top_dog().id,
             user__isnull=False,
-        ).count()
+            user__is_active=True,
+        )[:2].count()
         return count == 1
 
     def merge_to(from_org, to_org):
@@ -238,3 +252,27 @@ class Organization(Model):
         from sentry.models import OrganizationOption
 
         return OrganizationOption.objects.unset_value(self, *args, **kwargs)
+
+    def send_delete_confirmation(self, audit_log_entry, countdown):
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+
+        owners = self.get_owners()
+
+        context = {
+            'organization': self,
+            'audit_log_entry': audit_log_entry,
+            'eta': timezone.now() + timedelta(seconds=countdown),
+            'url': absolute_uri(reverse(
+                'sentry-restore-organization',
+                args=[self.slug],
+            )),
+        }
+
+        MessageBuilder(
+            subject='%sOrganization Queued for Deletion' % (options.get('mail.subject-prefix'),),
+            template='sentry/emails/org_delete_confirm.txt',
+            html_template='sentry/emails/org_delete_confirm.html',
+            type='org.confirm_delete',
+            context=context,
+        ).send_async([o.email for o in owners])

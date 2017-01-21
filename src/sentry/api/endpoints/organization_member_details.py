@@ -116,8 +116,11 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             except OrganizationMember.DoesNotExist:
                 return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
             else:
-                if not acting_member.can_manage_member(om):
-                    return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
+                if acting_member != om:
+                    if not request.access.has_scope('member:delete'):
+                        return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
+                    elif not roles.can_manage(acting_member.role, om.role):
+                        return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
         elif not request.access.has_scope('member:delete'):

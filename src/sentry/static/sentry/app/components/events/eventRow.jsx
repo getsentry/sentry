@@ -1,7 +1,7 @@
 import React from 'react';
 import Router from 'react-router';
 import EventStore from '../../stores/eventStore';
-import Gravatar from '../gravatar';
+import Avatar from '../avatar';
 import TimeSince from '../timeSince';
 
 const EventRow = React.createClass({
@@ -51,7 +51,7 @@ const EventRow = React.createClass({
         <td className="event-user table-user-info">
           {event.user ?
             <div>
-              <Gravatar user={event.user} size={64} className="avatar" />
+              <Avatar user={event.user} size={64} className="avatar" />
               {event.user.email}
             </div>
           :

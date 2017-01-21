@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
-from StringIO import StringIO
-
 from django.db import IntegrityError, transaction
+from six import BytesIO
 from rest_framework.negotiation import DefaultContentNegotiation
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -28,7 +27,7 @@ def upload_file_scenario(runner):
         data={
             'header': 'Content-Type:text/plain; encoding=utf-8',
             'name': '/demo/hello.py',
-            'file': ('hello.py', StringIO('print "Hello World!"')),
+            'file': ('hello.py', BytesIO(b'print "Hello World!"')),
         },
         format='multipart'
     )
@@ -65,8 +64,8 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
 
 class ReleaseFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
-
     content_negotiation_class = ConditionalContentNegotiation
+    permission_classes = (ProjectReleasePermission,)
 
     @attach_scenarios([list_files_scenario])
     def get(self, request, project, version):
@@ -171,6 +170,7 @@ class ReleaseFilesEndpoint(ProjectEndpoint):
         try:
             with transaction.atomic():
                 releasefile = ReleaseFile.objects.create(
+                    organization_id=release.project.organization_id,
                     project=release.project,
                     release=release,
                     file=file,

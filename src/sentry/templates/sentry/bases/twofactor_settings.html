@@ -1,0 +1,15 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{{ auth.name }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+  <div class="box">
+    <div class="box-content with-padding">
+      <legend style="margin-top: 0;">{% block twofactor_title %}{% trans "Method:" %} {{ auth.name }}{% endblock %}</legend>
+      {% block twofactor_body %}{% endblock %}
+    </div>
+  </div>
+{% endblock %}

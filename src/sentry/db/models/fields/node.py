@@ -76,6 +76,9 @@ class NodeData(collections.MutableMapping):
             return
         return ref_func(instance)
 
+    def copy(self):
+        return self.data.copy()
+
     @memoize
     def data(self):
         from sentry.app import nodestore
@@ -109,13 +112,12 @@ class NodeData(collections.MutableMapping):
             self.data['_ref_version'] = self.field.ref_version
 
 
+@six.add_metaclass(models.SubfieldBase)
 class NodeField(GzippedDictField):
     """
     Similar to the gzippedictfield except that it stores a reference
     to an external node.
     """
-    __metaclass__ = models.SubfieldBase
-
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)

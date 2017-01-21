@@ -9,13 +9,15 @@ running on your own infrastructure.
 .. toctree::
    :maxdepth: 1
 
-   installation
+   installation/index
    upgrading
    config
    nginx
    nodestore
+   filestore
    queue
    buffer
+   filestore
    sso
    throttling
    tsdb
@@ -28,11 +30,6 @@ running on your own infrastructure.
    beacon
    plugins
    warnings
+   dsym
    faq
-
-.. sentry:edition:: self, on-premise
-
-    .. toctree::
-       :maxdepth: 1
-
-       changelog
+   changelog

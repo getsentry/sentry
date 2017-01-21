@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Exception',)
 
+import six
+
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -30,14 +32,14 @@ class SingleException(Interface):
     >>>  {
     >>>     "type": "ValueError",
     >>>     "value": "My exception value",
-    >>>     "module": "__builtins__"
+    >>>     "module": "__builtins__",
+    >>>     "mechanism": {},
     >>>     "stacktrace": {
     >>>         # see sentry.interfaces.Stacktrace
     >>>     }
     >>> }
     """
-    score = 900
-    display_score = 1200
+    score = 2000
 
     @classmethod
     def to_python(cls, data, has_system_frames=None, slim_frames=True):
@@ -53,6 +55,15 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
+            raw_stacktrace = Stacktrace.to_python(
+                data['raw_stacktrace'],
+                has_system_frames=has_system_frames,
+                slim_frames=slim_frames,
+            )
+        else:
+            raw_stacktrace = None
+
         type = data.get('type')
         value = data.get('value')
         if not type and ':' in value.split(' ', 1)[0]:
@@ -60,15 +71,25 @@ class SingleException(Interface):
             # in case of TypeError: foo (no space)
             value = value.strip()
 
-        if value is not None and not isinstance(value, basestring):
+        if value is not None and not isinstance(value, six.string_types):
             value = json.dumps(value)
         value = trim(value, 4096)
+
+        mechanism = data.get('mechanism')
+        if mechanism is not None:
+            if not isinstance(mechanism, dict):
+                raise InterfaceValidationError('Bad value for mechanism')
+            mechanism = trim(data.get('mechanism'), 4096)
+            mechanism.setdefault('type', 'generic')
 
         kwargs = {
             'type': trim(type, 128),
             'value': value,
             'module': trim(data.get('module'), 128),
+            'mechanism': mechanism,
             'stacktrace': stacktrace,
+            'thread_id': trim(data.get('thread_id'), 40),
+            'raw_stacktrace': raw_stacktrace,
         }
 
         return cls(**kwargs)
@@ -79,11 +100,19 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        if self.raw_stacktrace:
+            raw_stacktrace = self.raw_stacktrace.to_json()
+        else:
+            raw_stacktrace = None
+
         return {
             'type': self.type,
             'value': self.value,
+            'mechanism': self.mechanism or None,
             'module': self.module,
             'stacktrace': stacktrace,
+            'thread_id': self.thread_id,
+            'raw_stacktrace': raw_stacktrace,
         }
 
     def get_api_context(self, is_public=False):
@@ -92,11 +121,19 @@ class SingleException(Interface):
         else:
             stacktrace = None
 
+        if self.raw_stacktrace:
+            raw_stacktrace = self.raw_stacktrace.get_api_context(is_public=is_public)
+        else:
+            raw_stacktrace = None
+
         return {
             'type': self.type,
-            'value': unicode(self.value) if self.value else None,
+            'value': six.text_type(self.value) if self.value else None,
+            'mechanism': self.mechanism or None,
+            'threadId': self.thread_id,
             'module': self.module,
             'stacktrace': stacktrace,
+            'rawStacktrace': raw_stacktrace,
         }
 
     def get_alias(self):
@@ -112,7 +149,7 @@ class SingleException(Interface):
             if output and self.type:
                 output.append(self.type)
         if not output:
-            output = filter(bool, [self.type, self.value])
+            output = [s for s in [self.type, self.value] if s]
         return output
 
 
@@ -132,7 +169,8 @@ class Exception(Interface):
     >>>     "values": [{
     >>>         "type": "ValueError",
     >>>         "value": "My exception value",
-    >>>         "module": "__builtins__"
+    >>>         "module": "__builtins__",
+    >>>         "mechanism": {},
     >>>         "stacktrace": {
     >>>             # see sentry.interfaces.Stacktrace
     >>>         }
@@ -164,6 +202,9 @@ class Exception(Interface):
 
         if not data['values']:
             raise InterfaceValidationError("No 'values' present")
+
+        if not isinstance(data['values'], list):
+            raise InterfaceValidationError("Invalid value for 'values'")
 
         has_system_frames = cls.data_has_system_frames(data)
 

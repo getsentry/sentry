@@ -14,6 +14,7 @@ class EventAttributeConditionTest(RuleTestCase):
             message='hello world',
             platform='php',
             data={
+                'type': 'error',
                 'sentry.interfaces.Http': {
                     'method': 'GET',
                     'url': 'http://example.com',
@@ -41,6 +42,7 @@ class EventAttributeConditionTest(RuleTestCase):
                         },
                     ],
                 },
+                'tags': [('environment', 'production')],
                 'extra': {
                     'foo': {
                         'bar': 'baz',
@@ -51,6 +53,14 @@ class EventAttributeConditionTest(RuleTestCase):
             },
         )
         return event
+
+    def test_render_label(self):
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': u'\xc3',
+            'value': u'\xc4',
+        })
+        assert rule.render_label() == u'An event\'s \xc3 value equals \xc4'
 
     def test_equals(self):
         event = self.get_event()
@@ -161,6 +171,22 @@ class EventAttributeConditionTest(RuleTestCase):
             'match': MatchType.EQUAL,
             'attribute': 'message',
             'value': 'php',
+        })
+        self.assertDoesNotPass(rule, event)
+
+    def test_environment(self):
+        event = self.get_event()
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'production',
+        })
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': 'environment',
+            'value': 'staging',
         })
         self.assertDoesNotPass(rule, event)
 
@@ -385,5 +411,21 @@ class EventAttributeConditionTest(RuleTestCase):
             'match': MatchType.EQUAL,
             'attribute': 'extra.biz',
             'value': 'bar',
+        })
+        self.assertDoesNotPass(rule, event)
+
+    def test_event_type(self):
+        event = self.get_event()
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': 'type',
+            'value': 'error',
+        })
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule({
+            'match': MatchType.EQUAL,
+            'attribute': 'type',
+            'value': 'csp',
         })
         self.assertDoesNotPass(rule, event)

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 BASE36_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 BASE32_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 
@@ -58,5 +60,5 @@ def base36_encode(number):
     return _encode(number, BASE36_ALPHABET)
 
 
-def base36_decode(str):
-    return int(str, 36)
+def base36_decode(s):
+    return int(s, 36)

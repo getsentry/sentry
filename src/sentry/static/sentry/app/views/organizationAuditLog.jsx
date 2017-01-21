@@ -1,10 +1,10 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
@@ -52,7 +52,6 @@ const EVENT_TYPES = [
 const OrganizationAuditLog = React.createClass({
   mixins: [
     ApiMixin,
-    History,
     OrganizationState,
   ],
 
@@ -120,7 +119,7 @@ const OrganizationAuditLog = React.createClass({
     let queryParams = {
       event: value,
     };
-    this.history.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
 
   renderResults() {
@@ -133,7 +132,7 @@ const OrganizationAuditLog = React.createClass({
         <tr key={entry.id}>
           <td className="table-user-info">
             {entry.actor.email &&
-              <Gravatar user={entry.actor} />
+              <Avatar user={entry.actor} />
             }
             <h5>{entry.actor.name}</h5>
             {entry.note}
@@ -174,25 +173,27 @@ const OrganizationAuditLog = React.createClass({
 
           <p>{t('Sentry keeps track of important events within your organization.')}</p>
 
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('Member')}</th>
-                <th>{t('Action')}</th>
-                <th>{t('IP')}</th>
-                <th>{t('Time')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(this.state.loading ?
-                <tr><td colSpan="4"><LoadingIndicator /></td></tr>
-              : (this.state.error ?
-                <tr><td colSpan="4"><LoadingError onRetry={this.fetchData} /></td></tr>
-              :
-                this.renderResults()
-              ))}
-            </tbody>
-          </table>
+          <div className="panel panel-default horizontal-scroll c-b">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('Member')}</th>
+                  <th>{t('Action')}</th>
+                  <th>{t('IP')}</th>
+                  <th>{t('Time')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(this.state.loading ?
+                  <tr><td colSpan="4"><LoadingIndicator /></td></tr>
+                : (this.state.error ?
+                  <tr><td colSpan="4"><LoadingError onRetry={this.fetchData} /></td></tr>
+                :
+                  this.renderResults()
+                ))}
+              </tbody>
+            </table>
+          </div>
           {this.state.pageLinks &&
             <Pagination pageLinks={this.state.pageLinks} {...this.props} />
           }

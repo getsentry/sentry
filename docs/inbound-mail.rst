@@ -63,7 +63,7 @@ Add another supervisor config to run the Sentry ``smtp`` service::
 
     [program:sentry-inbound-mail]
     directory=/www/sentry/
-    command=/www/sentry/bin/sentry start smtp
+    command=/www/sentry/bin/sentry run smtp
     autostart=true
     autorestart=true
     stdout_logfile syslog

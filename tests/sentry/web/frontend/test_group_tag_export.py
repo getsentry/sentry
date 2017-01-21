@@ -11,6 +11,9 @@ class GroupTagExportTest(TestCase):
     def test_simple(self):
         key, value = 'foo', 'bar'
 
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+
         project = self.create_project()
         group = self.create_group(project=project)
         TagKey.objects.create(project=project, key=key)
@@ -25,8 +28,8 @@ class GroupTagExportTest(TestCase):
             key=key,
             value=value,
             times_seen=1,
-            first_seen=timezone.now() - timedelta(hours=1),
-            last_seen=timezone.now(),
+            first_seen=now - timedelta(hours=1),
+            last_seen=now,
         )
 
         self.login_as(user=self.user)
@@ -42,7 +45,8 @@ class GroupTagExportTest(TestCase):
         assert response['Content-Type'] == 'text/csv'
         rows = list(response.streaming_content)
         for idx, row in enumerate(rows):
-            assert row.endswith('\r\n')
+            row = row.decode('utf-8')
+            assert row.endswith(u'\r\n')
             bits = row[:-2].split(',')
             if idx == 0:
                 assert bits == ['value', 'times_seen', 'last_seen', 'first_seen']

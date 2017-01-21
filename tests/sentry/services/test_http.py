@@ -12,7 +12,6 @@ class HTTPServiceTest(TestCase):
             'false': False,
             'string': 'foo',
             'int': 1,
-            'long': 1L,
             'none': None,
             'hy-phen': 'foo',
         }
@@ -21,7 +20,6 @@ class HTTPServiceTest(TestCase):
             ('UWSGI_FALSE', 'false'),
             ('UWSGI_STRING', 'foo'),
             ('UWSGI_INT', '1'),
-            ('UWSGI_LONG', '1'),
             ('UWSGI_HY_PHEN', 'foo'),
         ]
         assert set(convert_options_to_env(options)) == set(expected)
@@ -68,3 +66,11 @@ class HTTPServiceTest(TestCase):
             assert 'proc_name' not in server.options
             assert 'secure_scheme_headers' not in server.options
             assert 'loglevel' not in server.options
+
+    def test_format_logs(self):
+        with self.options({'system.logging-format': 'human'}):
+            server = SentryHTTPServer()
+            assert server.options['disable-logging'] is False
+        with self.options({'system.logging-format': 'machine'}):
+            server = SentryHTTPServer()
+            assert server.options['disable-logging'] is True

@@ -1,5 +1,6 @@
 import React from 'react';
-import {Link, History} from 'react-router';
+import _ from 'underscore';
+import {Link} from 'react-router';
 import classNames from 'classnames';
 
 const ListLink = React.createClass({
@@ -18,18 +19,20 @@ const ListLink = React.createClass({
     isActive: React.PropTypes.func
   },
 
-  mixins: [History],
+  contextTypes: {
+    router: React.PropTypes.object.isRequired
+  },
 
   getDefaultProps() {
     return {
       activeClassName: 'active',
-      onlyActiveOnIndex: false,
+      index: false,
     };
   },
 
   isActive() {
-    return (this.props.isActive || this.history.isActive)(
-      this.props.to, this.props.query, this.props.index
+    return (this.props.isActive || this.context.router.isActive)(
+      {pathname: this.props.to, query: this.props.query}, this.props.index
     );
   },
 
@@ -46,9 +49,10 @@ const ListLink = React.createClass({
   },
 
   render() {
+    let carriedProps = _.omit(this.props, 'activeClassName', 'isActive', 'index');
     return (
       <li className={this.getClassName()}>
-        <Link {...this.props} onlyActiveOnIndex={this.props.index}>{this.props.children}</Link>
+        <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>{this.props.children}</Link>
       </li>
     );
   }

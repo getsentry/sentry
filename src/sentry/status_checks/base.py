@@ -1,6 +1,14 @@
 from __future__ import absolute_import
 
+import six
 
+from functools import total_ordering
+
+from sentry.utils.compat import implements_to_string
+
+
+@implements_to_string
+@total_ordering
 class Problem(object):
 
     # Used for issues that may render the system inoperable or have effects on
@@ -23,23 +31,17 @@ class Problem(object):
 
     def __init__(self, message, severity=SEVERITY_CRITICAL, url=None):
         assert severity in self.SEVERITY_LEVELS
-        self.message = unicode(message)
+        self.message = six.text_type(message)
         self.severity = severity
         self.url = url
 
-    def __cmp__(self, other):
-        if not isinstance(other, Problem):
-            return NotImplemented
+    def __eq__(self, other):
+        return self.SEVERITY_LEVELS[self.severity] == self.SEVERITY_LEVELS[other.severity]
 
-        return cmp(
-            self.SEVERITY_LEVELS[self.severity],
-            self.SEVERITY_LEVELS[other.severity],
-        )
+    def __lt__(self, other):
+        return self.SEVERITY_LEVELS[self.severity] < self.SEVERITY_LEVELS[other.severity]
 
     def __str__(self):
-        return self.message.encode('utf-8')
-
-    def __unicode__(self):
         return self.message
 
     @classmethod

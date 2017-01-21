@@ -48,15 +48,13 @@ const OrganizationIssueList = React.createClass({
                   className={'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')}>
               {t('Unresolved')}
             </Link>
-            <Link to={path}
-                  query={{status: ''}}
+            <Link to={{pathname: path, query: {status: ''}}}
                   className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
               {t('All Issues')}
             </Link>
           </div>
         </div>
         <h3>{this.props.title}</h3>
-        <div className="alert alert-block alert-info">{'Psst! This feature is still a work-in-progress. Thanks for being an early adopter!'}</div>
         <IssueList endpoint={this.props.endpoint} query={{
           status: this.state.status,
           statsPeriod: '24h',

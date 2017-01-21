@@ -11,19 +11,18 @@ away, and the background workers handle actually saving that data.
 Running a Worker
 ----------------
 
-Workers can be run by using the Sentry CLI. Specifically, you call out to celery,
-which is the worker manager process of the Celery library.
+Workers can be run by using the Sentry CLI.
 
 .. code-block:: bash
 
-    $ sentry celery worker
+    $ sentry run worker
 
 We again recommend running this as a service. Below is an example
 configuration with supervisor::
 
     [program:sentry-worker]
     directory=/www/sentry/
-    command=/www/sentry/bin/sentry celery worker -l WARNING
+    command=/www/sentry/bin/sentry run worker -l WARNING
     autostart=true
     autorestart=true
     redirect_stderr=true
@@ -32,18 +31,18 @@ configuration with supervisor::
 Starting the Cron Process
 -------------------------
 
-Sentry also needs a cron process which is called "celery beat":
+Sentry also needs a cron process:
 
 ::
 
-  SENTRY_CONF=/etc/sentry sentry celery beat
+  SENTRY_CONF=/etc/sentry sentry run cron
 
 We again recommend running this as a service. Below is an example
 configuration with supervisor::
 
     [program:sentry-cron]
     directory=/www/sentry/
-    command=/www/sentry/bin/sentry celery beat
+    command=/www/sentry/bin/sentry run cron
     autostart=true
     autorestart=true
     redirect_stderr=true

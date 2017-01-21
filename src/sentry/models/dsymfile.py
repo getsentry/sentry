@@ -11,52 +11,21 @@ from __future__ import absolute_import
 import os
 import shutil
 import hashlib
+import six
 import tempfile
+
 from itertools import chain
 from django.db import models, router, transaction, connection, IntegrityError
 
-try:
-    from symsynd.macho.arch import get_macho_uuids
-    have_symsynd = True
-except ImportError:
-    have_symsynd = False
+from symsynd.macho.arch import get_macho_uuids
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
     sane_repr, BaseManager
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
-
-
-MAX_SYM = 256
-KNOWN_DSYM_TYPES = {
-    'application/x-mach-binary': 'macho'
-}
-
-SDK_MAPPING = {
-    'iPhone OS': 'iOS',
-    'tvOS': 'tvOS',
-    'Mac OS': 'macOS',
-}
-
-
-def get_sdk_from_system_info(info):
-    if not info:
-        return None
-    try:
-        sdk_name = SDK_MAPPING[info['system_name']]
-        system_version = tuple(int(x) for x in (
-            info['system_version'] + '.0' * 3).split('.')[:3])
-    except LookupError:
-        return None
-
-    return {
-        'dsym_type': 'macho',
-        'sdk_name': sdk_name,
-        'version_major': system_version[0],
-        'version_minor': system_version[1],
-        'version_patchlevel': system_version[2],
-    }
+from sentry.utils.native import parse_addr
+from sentry.constants import KNOWN_DSYM_TYPES
 
 
 class DSymSDKManager(BaseManager):
@@ -79,7 +48,7 @@ class DSymSDKManager(BaseManager):
             args.append(sdk)
         cur = connection.cursor()
         cur.execute('''
-   select distinct k.*, count(b.*) as bundle_count, o.cpu_name
+   select distinct k.*, count(*) as bundle_count, o.cpu_name
               from sentry_dsymsdk k,
                    sentry_dsymbundle b,
                    sentry_dsymobject o
@@ -197,14 +166,26 @@ class DSymSymbolManager(BaseManager):
         cur.close()
 
     def lookup_symbol(self, instruction_addr, image_addr, uuid,
-                      cpu_name=None, object_path=None, system_info=None):
+                      cpu_name=None, object_path=None, sdk_info=None,
+                      image_vmaddr=None):
         """Finds a system symbol."""
-        addr = instruction_addr - image_addr
+        # If we use the "none" dsym type we never return a symbol here.
+        if sdk_info is not None and sdk_info['dsym_type'] == 'none':
+            return
 
-        uuid = str(uuid).lower()
+        instruction_addr = parse_addr(instruction_addr)
+        image_addr = parse_addr(image_addr)
+
+        addr_abs = None
+        if image_vmaddr is not None:
+            image_vmaddr = parse_addr(image_vmaddr)
+            addr_abs = image_vmaddr + instruction_addr - image_addr
+        addr_rel = instruction_addr - image_addr
+
+        uuid = six.text_type(uuid).lower()
         cur = connection.cursor()
         try:
-            # First try: exact match on uuid
+            # First try: exact match on uuid (addr_rel)
             cur.execute('''
                 select s.symbol
                   from sentry_dsymsymbol s,
@@ -215,13 +196,29 @@ class DSymSymbolManager(BaseManager):
                        s.address >= o.vmaddr
               order by address desc
                  limit 1;
-            ''', [uuid, addr])
+            ''', [uuid, addr_rel])
             rv = cur.fetchone()
             if rv:
                 return rv[0]
 
-            # Second try: exact match on path and arch
-            sdk_info = get_sdk_from_system_info(system_info)
+            # Second try: exact match on uuid (addr_abs)
+            if addr_abs is not None:
+                cur.execute('''
+                    select s.symbol
+                      from sentry_dsymsymbol s,
+                           sentry_dsymobject o
+                     where o.uuid = %s and
+                           s.object_id = o.id and
+                           s.address <= %s and
+                           s.address >= %s
+                  order by address desc
+                     limit 1;
+                ''', [uuid, addr_abs, image_vmaddr])
+                rv = cur.fetchone()
+                if rv:
+                    return rv[0]
+
+            # Third try: exact match on path and arch (addr_rel)
             if sdk_info is None or \
                cpu_name is None or \
                object_path is None:
@@ -249,10 +246,41 @@ class DSymSymbolManager(BaseManager):
                  limit 1;
             ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
                   sdk_info['version_major'], sdk_info['version_minor'],
-                  sdk_info['version_patchlevel'], cpu_name, object_path, addr])
+                  sdk_info['version_patchlevel'], cpu_name, object_path,
+                  addr_rel])
             rv = cur.fetchone()
             if rv:
                 return rv[0]
+
+            # Fourth try: exact match on path and arch (addr_abs)
+            if addr_abs is not None:
+                cur.execute('''
+                    select s.symbol
+                      from sentry_dsymsymbol s,
+                           sentry_dsymobject o,
+                           sentry_dsymsdk k,
+                           sentry_dsymbundle b
+                     where b.sdk_id = k.id and
+                           b.object_id = o.id and
+                           s.object_id = o.id and
+                           k.sdk_name = %s and
+                           k.dsym_type = %s and
+                           k.version_major = %s and
+                           k.version_minor = %s and
+                           k.version_patchlevel = %s and
+                           o.cpu_name = %s and
+                           o.object_path = %s and
+                           s.address <= %s and
+                           s.address >= %s
+                  order by address desc
+                     limit 1;
+                ''', [sdk_info['sdk_name'], sdk_info['dsym_type'],
+                      sdk_info['version_major'], sdk_info['version_minor'],
+                      sdk_info['version_patchlevel'], cpu_name, object_path,
+                      addr_abs, image_vmaddr])
+                rv = cur.fetchone()
+                if rv:
+                    return rv[0]
         finally:
             cur.close()
 
@@ -374,9 +402,6 @@ def create_files_from_macho_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
-    if not have_symsynd:
-        raise RuntimeError('symsynd is unavailable.  Install sentry with '
-                           'the dsym feature flag.')
     scratchpad = tempfile.mkdtemp()
     try:
         safe_extract_zip(fileobj, scratchpad)

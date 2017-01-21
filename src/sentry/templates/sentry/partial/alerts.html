@@ -1,8 +1,8 @@
 {% load sentry_helpers %}
-<div id="blk_alerts" class="messages-container affix"></div>
+<div id="blk_alerts" class="messages-container"></div>
 <script>
 $(function(){
-  React.render(React.createFactory(Sentry.Alerts)({
+  ReactDOM.render(React.createFactory(Sentry.Alerts)({
      className: "alert-list"
   }), document.getElementById('blk_alerts'));
 });
@@ -10,7 +10,7 @@ $(function(){
 <div id="blk_indicators"></div>
 <script>
 $(function(){
-  React.render(React.createFactory(Sentry.Indicators)({
+  ReactDOM.render(React.createFactory(Sentry.Indicators)({
      className: "indicators-container"
   }), document.getElementById('blk_indicators'));
 });

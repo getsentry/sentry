@@ -21,7 +21,9 @@ from sentry.testutils import TestCase
 
 class OrganizationOnboardingTaskTest(TestCase):
     def test_no_existing_task(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
         first_event_received.send(project=project, group=self.group, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -33,7 +35,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.date_completed == project.first_event
 
     def test_existing_pending_task(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
 
         first_event_pending.send(project=project, user=self.user, sender=type(project))
 
@@ -57,7 +61,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task.date_completed == project.first_event
 
     def test_existing_complete_task(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
         task = OrganizationOnboardingTask.objects.create(
             organization=project.organization,
             task=OnboardingTask.FIRST_PROJECT,
@@ -72,7 +78,9 @@ class OrganizationOnboardingTaskTest(TestCase):
 
     # Tests on the receivers
     def test_event_processed(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
         event = self.create_full_event()
         event_processed.send(project=project, group=self.group, event=event, sender=type(project))
 
@@ -98,7 +106,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_project_created(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -109,7 +119,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_first_event_pending(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
         first_event_pending.send(project=project, user=self.user, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
@@ -120,7 +132,9 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_first_event_received(self):
-        project = self.create_project(first_event=timezone.now())
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project(first_event=now)
         project_created.send(project=project, user=self.user, sender=type(project))
         group = self.create_group(project=project, platform='javascript', message='javascript error message')
         first_event_received.send(project=project, group=group, sender=type(project))
@@ -134,7 +148,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert 'platform' in task.data
         assert task.data['platform'] == 'javascript'
 
-        second_project = self.create_project(first_event=timezone.now())
+        second_project = self.create_project(first_event=now)
         project_created.send(project=second_project, user=self.user, sender=type(second_project))
         second_task = OrganizationOnboardingTask.objects.get(
             organization=second_project.organization,
@@ -217,9 +231,11 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
     def test_onboarding_complete(self):
+        # Drop microsecond value for MySQL
+        now = timezone.now().replace(microsecond=0)
         user = self.create_user(email='test@example.org')
-        project = self.create_project(first_event=timezone.now())
-        second_project = self.create_project(first_event=timezone.now())
+        project = self.create_project(first_event=now)
+        second_project = self.create_project(first_event=now)
         second_group = self.create_group(project=second_project, platform='python', message='python error message')
         event = self.create_full_event()
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)

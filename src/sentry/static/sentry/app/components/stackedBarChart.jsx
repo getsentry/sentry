@@ -1,7 +1,8 @@
 import moment from 'moment';
 import React from 'react';
-import {valueIsEqual} from '../utils';
+import {intcomma, valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
+import ConfigStore from '../stores/configStore.jsx';
 
 const StackedBarChart = React.createClass({
   propTypes: {
@@ -19,12 +20,14 @@ const StackedBarChart = React.createClass({
       x: React.PropTypes.number.isRequired,
       label: React.PropTypes.string
     })),
+    tooltip: React.PropTypes.func,
     barClasses: React.PropTypes.array
   },
 
   mixins: [
     TooltipMixin(function () {
-      let barChartInstance = this;
+      let chart = this;
+
       return {
         html: true,
         placement: this.props.placement,
@@ -38,9 +41,14 @@ const StackedBarChart = React.createClass({
         title: function (instance) {
           // `this` is the targeted element
           let pointIdx = this.getAttribute('data-point-index');
+          let tooltipFunc = chart.props.tooltip || chart.renderTooltip;
 
           if (pointIdx)
-            return barChartInstance.renderTooltip(pointIdx);
+            return tooltipFunc(
+              chart.props.points[pointIdx],
+              pointIdx,
+              chart,
+          );
           else
             return this.getAttribute('data-title');
         }
@@ -63,7 +71,8 @@ const StackedBarChart = React.createClass({
       points: [],
       markers: [],
       width: null,
-      barClasses: ['chart-bar']
+      barClasses: ['chart-bar'],
+      tooltip: this.renderTooltip,
     };
   },
 
@@ -85,6 +94,12 @@ const StackedBarChart = React.createClass({
     return !valueIsEqual(this.props, nextProps, true);
   },
 
+  use24Hours() {
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    return options.clock24Hours;
+  },
+
   floatFormat(number, places) {
     let multi = Math.pow(10, places);
     return parseInt(number * multi, 10) / multi;
@@ -93,11 +108,12 @@ const StackedBarChart = React.createClass({
   timeLabelAsHour(point) {
     let timeMoment = moment(point.x * 1000);
     let nextMoment = timeMoment.clone().add(59, 'minute');
+    let format = this.use24Hours() ? 'HH:mm' : 'LT';
 
     return (
       '<span>' +
         timeMoment.format('LL') + '<br />' +
-        timeMoment.format('LT') + '  &#8594; ' + nextMoment.format('LT') +
+        timeMoment.format(format) + '  &#8594; ' + nextMoment.format(format) +
       '</span>'
     );
   },
@@ -115,12 +131,13 @@ const StackedBarChart = React.createClass({
   timeLabelAsRange(interval, point) {
     let timeMoment = moment(point.x * 1000);
     let nextMoment = timeMoment.clone().add(interval - 1, 'second');
+    let format = this.use24Hours() ? 'MMM Do, HH:mm' : 'MMM Do, h:mm a';
 
     return (
       '<span>' +
         // e.g. Aug 23rd, 12:50 pm
-        timeMoment.format('MMM Do, h:mm a') +
-        ' &#8594 ' + nextMoment.format('MMM Do, h:mm a') +
+        timeMoment.format(format) +
+        ' &#8594 ' + nextMoment.format(format) +
       '</span>'
     );
   },
@@ -177,8 +194,7 @@ const StackedBarChart = React.createClass({
     );
   },
 
-  renderTooltip(pointIdx) {
-    let point = this.props.points[pointIdx];
+  renderTooltip(point, pointIdx) {
     let timeLabel = this.getTimeLabel(point);
     let totalY = 0;
     for (let i = 0; i < point.y.length; i++) {
@@ -186,8 +202,8 @@ const StackedBarChart = React.createClass({
     }
     let title = (
       '<div style="width:130px">' +
-        totalY + ' ' + this.props.label + '<br/>' +
-        timeLabel +
+        `<div class="time-label">${timeLabel}</div>` +
+        `<div class="value-label">${intcomma(totalY)} ${this.props.label}</div>` +
       '</div>'
     );
     if (point.label) {

@@ -28,6 +28,8 @@ class ApiKeyStatus(object):
 
 
 class ApiKey(Model):
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, default='Default')
     key = models.CharField(max_length=32, unique=True)
@@ -35,6 +37,7 @@ class ApiKey(Model):
         ('project:read', 'project:read'),
         ('project:write', 'project:write'),
         ('project:delete', 'project:delete'),
+        ('project:releases', 'project:releases'),
         ('team:read', 'team:read'),
         ('team:write', 'team:write'),
         ('team:delete', 'team:delete'),
@@ -95,7 +98,7 @@ class ApiKey(Model):
         }
 
     def get_scopes(self):
-        return [k for k, v in self.scopes.iteritems() if v]
+        return [k for k, v in six.iteritems(self.scopes) if v]
 
     def has_scope(self, scope):
         return scope in self.scopes

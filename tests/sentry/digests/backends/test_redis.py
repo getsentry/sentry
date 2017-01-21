@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import functools
 import itertools
 import mock
+import six
 import time
 
 from exam import fixture
@@ -37,13 +38,13 @@ class BaseRedisBackendTestCase(TestCase):
     @fixture
     def records(self):
         for i in itertools.count():
-            yield Record(str(i), str(i), float(i))
+            yield Record(six.text_type(i), six.text_type(i), float(i))
 
 
 class RedisScriptTestCase(BaseRedisBackendTestCase):
     def test_ensure_timeline_scheduled_script(self):
         cluster = clusters.get('default')
-        client = cluster.get_local_client(cluster.hosts.keys()[0])
+        client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
         timeline = 'timeline'
         timestamp = 100.0
@@ -96,7 +97,7 @@ class RedisScriptTestCase(BaseRedisBackendTestCase):
 
     def test_truncate_timeline_script(self):
         cluster = clusters.get('default')
-        client = cluster.get_local_client(cluster.hosts.keys()[0])
+        client = cluster.get_local_client(six.next(iter(cluster.hosts)))
 
         timeline = 'timeline'
 
@@ -158,7 +159,7 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         with mock.patch('random.random', return_value=1.0):
             with self.assertChanges(get_timeline_size, before=0, after=fill):
-                for _ in xrange(fill):
+                for _ in range(fill):
                     backend.add(timeline, next(self.records))
 
         with mock.patch('random.random', return_value=0.0):
@@ -173,11 +174,11 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         n = 10
 
-        for i in xrange(n):
+        for i in range(n):
             with backend.cluster.map() as client:
                 client.zadd(waiting_set_key, i, 'timelines:{0}'.format(i))
 
-        for i in xrange(n, n * 2):
+        for i in range(n, n * 2):
             with backend.cluster.map() as client:
                 client.zadd(ready_set_key, i, 'timelines:{0}'.format(i))
 
@@ -186,13 +187,55 @@ class RedisBackendTestCase(BaseRedisBackendTestCase):
 
         with self.assertChanges(get_waiting_set_size, before=n, after=0), \
                 self.assertChanges(get_ready_set_size, before=n, after=n * 2):
-            results = zip(range(n), list(backend.schedule(n, chunk=5)))
+            results = list(zip(range(n), list(backend.schedule(n, chunk=5))))
             assert len(results) is n
 
             # Ensure scheduled entries are returned earliest first.
             for i, entry in results:
                 assert entry.key == 'timelines:{0}'.format(i)
                 assert entry.timestamp == float(i)
+
+    def test_maintenance(self):
+        timeline = 'timeline'
+        backend = RedisBackend(ttl=3600)
+
+        timeline_key = make_timeline_key(backend.namespace, timeline)
+        digest_key = make_digest_key(timeline_key)
+        waiting_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_WAITING)
+        ready_set_key = make_schedule_key(backend.namespace, SCHEDULE_STATE_READY)
+
+        now = time.time()
+
+        connection = backend.cluster.get_local_client_for_key(timeline_key)
+        schedule_time = now - 60
+        connection.zadd(ready_set_key, schedule_time, timeline)
+        connection.zadd(timeline_key, 0, '1')
+        connection.set(make_record_key(timeline_key, '1'), 'data')
+        connection.zadd(digest_key, 0, '2')
+        connection.set(make_record_key(timeline_key, '2'), 'data')
+
+        # Move the digest from the ready set to the waiting set.
+        backend.maintenance(now)
+        assert connection.zcard(ready_set_key) == 0
+        assert connection.zrange(waiting_set_key, 0, -1, withscores=True) == [(timeline, schedule_time)]
+
+        connection.zrem(waiting_set_key, timeline)
+        connection.zadd(ready_set_key, schedule_time, timeline)
+
+        # Delete the digest from the ready set.
+        with mock.patch('time.time', return_value=now + (backend.ttl + 1)):
+            backend.maintenance(now)
+
+        keys = (
+            ready_set_key,
+            waiting_set_key,
+            timeline_key,
+            digest_key,
+            make_record_key(timeline_key, '1'),
+            make_record_key(timeline_key, '2'),
+        )
+        for key in keys:
+            assert connection.exists(key) is False
 
     def test_delete(self):
         timeline = 'timeline'

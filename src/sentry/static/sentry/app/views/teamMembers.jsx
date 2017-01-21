@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
-import Gravatar from '../components/gravatar';
+import Avatar from '../components/avatar';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationState from '../mixins/organizationState';
@@ -97,7 +97,7 @@ const TeamMembers = React.createClass({
               return (
                 <tr>
                   <td className="table-user-info">
-                    <Gravatar user={member} size={80} />
+                    <Avatar user={member} size={80} />
                     <h5><a href={`${memberPrefix}/${member.id}/`}>{member.email}</a></h5>
                     {member.email}
                   </td>

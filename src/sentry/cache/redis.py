@@ -14,8 +14,13 @@ from sentry.utils.redis import get_cluster_from_options
 from .base import BaseCache
 
 
+class ValueTooLarge(Exception):
+    pass
+
+
 class RedisCache(BaseCache):
     key_expire = 60 * 60  # 1 hour
+    max_size = 50 * 1024 * 1024  # 50MB
 
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
@@ -26,6 +31,8 @@ class RedisCache(BaseCache):
     def set(self, key, value, timeout, version=None):
         key = self.make_key(key, version=version)
         v = json.dumps(value)
+        if len(v) > self.max_size:
+            raise ValueTooLarge('Cache key too large: %r %r' % (key, len(v)))
         if timeout:
             self.client.setex(key, int(timeout), v)
         else:

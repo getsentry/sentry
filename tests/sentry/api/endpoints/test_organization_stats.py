@@ -50,7 +50,7 @@ class OrganizationStatsTest(APITestCase):
         assert project.id in response.data
 
         response = make_request({
-            'id': [sys.maxint],
+            'id': [sys.maxsize],
             'group': 'project',
         })
 

@@ -5,7 +5,9 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.safestring import mark_safe
 
 from sentry import constants
-from sentry.plugins import plugins, IssueTrackingPlugin
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.plugins import plugins, IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.signals import plugin_enabled
 from sentry.web.frontend.base import ProjectView
 
@@ -15,7 +17,8 @@ class ProjectIssueTrackingView(ProjectView):
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=1):
-            if not isinstance(plugin, IssueTrackingPlugin):
+            if not (isinstance(plugin, IssueTrackingPlugin)
+                    or isinstance(plugin, IssueTrackingPlugin2)):
                 continue
             yield plugin
 
@@ -50,13 +53,17 @@ class ProjectIssueTrackingView(ProjectView):
 
         enabled_plugins = []
         other_plugins = []
+        issue_v2_plugins = []
         for plugin in self._iter_plugins():
             if plugin.is_enabled(project):
+                if isinstance(plugin, IssueTrackingPlugin2):
+                    issue_v2_plugins.append(plugin)
+                    continue
                 content = plugin.get_issue_doc_html()
 
                 form = plugin.project_conf_form
                 if form is not None:
-                    view = plugin.configure(request, project=project)
+                    view = plugin.configure(request=request, project=project)
                     if isinstance(view, HttpResponse):
                         return view
                 elif content:
@@ -69,6 +76,11 @@ class ProjectIssueTrackingView(ProjectView):
             'page': 'issue-tracking',
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
+            'issue_v2_plugins': serialize(
+                issue_v2_plugins, request.user, PluginSerializer(
+                    project=project
+                )
+            ),
         }
 
         return self.respond('sentry/project-issue-tracking.html', context)

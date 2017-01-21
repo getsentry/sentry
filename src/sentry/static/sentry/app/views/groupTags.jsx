@@ -5,7 +5,7 @@ import Count from '../components/count';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {percent} from '../utils';
+import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
 const GroupTags = React.createClass({
@@ -58,7 +58,7 @@ const GroupTags = React.createClass({
   },
 
   getTagsDocsUrl() {
-    return 'https://docs.getsentry.com/hosted/learn/context/';
+    return 'https://docs.sentry.io/hosted/learn/context/';
   },
 
   render() {
@@ -82,10 +82,12 @@ const GroupTags = React.createClass({
             <li key={tagValueIdx}>
               <Link
                   className="tag-bar"
-                  to={`/${orgId}/${projectId}/`}
-                  query={{query: tag.key + ':' + '"' + tagValue.value + '"'}}>
+                  to={{
+                    pathname: `/${orgId}/${projectId}/`,
+                    query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
+                  }}>
                 <span className="tag-bar-background" style={{width: pct + '%'}}></span>
-                <span className="tag-bar-label">{tagValue.name}</span>
+                <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
               </Link>
             </li>

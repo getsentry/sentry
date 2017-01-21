@@ -14,16 +14,19 @@ const MutedBox = React.createClass({
   render() {
     let statusDetails = this.props.statusDetails;
     return (
-      <div className="alert alert-info alert-block">
-        {statusDetails.snoozeUntil ?
-          <span>{t(
-            'This issue has been snoozed until %s',
-            <strong><DateTime date={statusDetails.snoozeUntil} /></strong>
-          )} &mdash; </span>
-        :
-          <span>{t('This issue has been muted')} &mdash; </span>
-        }
-        {t('You will not be notified of any changes and it will not show up by default in feeds.')}
+      <div className="box">
+        <span className="icon icon-soundoff" />
+        <p>
+          {statusDetails.ignoreUntil ?
+            <span>{t(
+              'This issue has been ignored until %s',
+              <strong><DateTime date={statusDetails.ignoreUntil} /></strong>
+            )} &mdash; </span>
+          :
+            <span>{t('This issue has been ignored')} &mdash; </span>
+          }
+          {t('You will not be notified of any changes and it will not show up by default in feeds.')}
+        </p>
       </div>
     );
   }

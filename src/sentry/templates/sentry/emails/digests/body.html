@@ -7,7 +7,7 @@
 {% block content %}
 
 <div class="container" style="padding-top: 30px;">
-  <h2>{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
+  <h2>{{ counts|length }} new alert{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
   {% with start=start|date:"N j, Y, P e" end=end|date:"N j, Y, P e" %}
     <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
   {% endwith %}
@@ -32,11 +32,9 @@
                       <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
                   </td>
                   <td class="event-detail">
-                      {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}
-                      <a href="{% absolute_uri group_link %}">{{ group.message_short|soft_break:40 }}</a>
+                      {% include "sentry/emails/_group.html" %}
                       <p>
-                        {{ group.title|soft_break:50 }}
-                        <small>&mdash; {{ records.0.datetime|date:"N j, Y, P e" }}</small>
+                        <small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
                       </p>
                   </td>
               </tr>
@@ -53,15 +51,5 @@
       </table>
     </div>
 {% endfor %}
-
-<div class="container">
-  <div class="footer" style="margin-top: 30px">
-    {% block footer %}
-    <a href="{% absolute_uri %}" style="float:right">Home</a>
-    {% url 'sentry-account-settings-notifications' as settings_link %}
-    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
-    {% endblock %}
-  </div>
-</div>
 
 {% endblock %}

@@ -35,6 +35,7 @@ const GroupEventDetails = React.createClass({
     }
   },
 
+
   fetchData() {
     let eventId = this.props.params.eventId || 'latest';
 
@@ -79,8 +80,8 @@ const GroupEventDetails = React.createClass({
 
     return (
       <div>
-        <div className="row event">
-          <div className="col-md-9">
+        <div className="event-details-container">
+          <div className="primary">
             {evt &&
               <GroupEventToolbar
                   group={group}
@@ -88,20 +89,26 @@ const GroupEventDetails = React.createClass({
                   orgId={params.orgId}
                   projectId={params.projectId} />
             }
-            {group.status === 'muted' &&
-              <MutedBox statusDetails={group.statusDetails} />
-            }
-            {group.status === 'resolved' && group.statusDetails.inNextRelease &&
-              <div className="alert alert-info alert-block">
-                <span>{t(`This issue has been marked as being resolved in the next
-                  release. Until then, you will not get notified about new
-                  occurrences.`)}</span>
-              </div>
-            }
-            {group.status === 'resolved' && group.statusDetails.autoResolved &&
-              <div className="alert alert-info alert-block">
-                <span>{t(`This issue was automatically marked as resolved due to
-                  the Auto Resolve configuration for this project.`)}</span>
+            {group.status != 'unresolved' &&
+              <div className="issue-status">
+                {group.status === 'ignored' &&
+                  <MutedBox statusDetails={group.statusDetails} />
+                }
+                {group.status === 'resolved' && group.statusDetails.inNextRelease &&
+                  <div className="box">
+                    <span className="icon icon-checkmark" />
+                    <p>{t(`This issue has been marked as being resolved in the next
+                      release. Until then, you will not get notified about new
+                      occurrences.`)}</p>
+                  </div>
+                }
+                {group.status === 'resolved' && group.statusDetails.autoResolved &&
+                  <div className="box">
+                    <span className="icon icon-checkmark" />
+                    <p>{t(`This issue was automatically marked as resolved due to
+                      the Auto Resolve configuration for this project.`)}</p>
+                  </div>
+                }
               </div>
             }
             {this.state.loading ?
@@ -116,7 +123,7 @@ const GroupEventDetails = React.createClass({
                 project={this.getProject()} />
             )}
           </div>
-          <div className="col-md-3">
+          <div className="secondary">
             <GroupSidebar group={group} />
           </div>
         </div>

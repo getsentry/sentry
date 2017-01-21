@@ -5,17 +5,18 @@ from .handler import *  # NOQA
 from .manager import *  # NOQA
 
 
-default_manager = FeatureManager()
+default_manager = FeatureManager()  # NOQA
 default_manager.add('auth:register')
+default_manager.add('organizations:api-keys', OrganizationFeature)  # NOQA
 default_manager.add('organizations:create')
-default_manager.add('organizations:sso', OrganizationFeature)
-default_manager.add('organizations:onboarding', OrganizationFeature)
-default_manager.add('organizations:callsigns', OrganizationFeature)
-default_manager.add('projects:breadcrumbs', ProjectFeature)
-default_manager.add('projects:global-events', ProjectFeature)
-default_manager.add('projects:quotas', ProjectFeature)
-default_manager.add('projects:plugins', ProjectPluginFeature)
-
+default_manager.add('organizations:sso', OrganizationFeature)  # NOQA
+default_manager.add('organizations:onboarding', OrganizationFeature)  # NOQA
+default_manager.add('organizations:callsigns', OrganizationFeature)  # NOQA
+default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
+default_manager.add('projects:global-events', ProjectFeature)  # NOQA
+default_manager.add('projects:quotas', ProjectFeature)  # NOQA
+default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
+default_manager.add('workflow:release-emails')
 
 # expose public api
 add = default_manager.add

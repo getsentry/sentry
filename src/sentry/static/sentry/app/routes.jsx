@@ -1,11 +1,17 @@
 import React from 'react';
-import {Redirect, Route, IndexRoute} from 'react-router';
+import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 
+import HookStore from './stores/hookStore';
+
+import ApiDashboard from './views/apiDashboard';
+import ApiNewToken from './views/apiNewToken';
 import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
 import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
+import AdminProjects from './views/adminProjects';
 import AdminSettings from './views/adminSettings';
+import AdminUsers from './views/adminUsers';
 import App from './views/app';
 import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
@@ -22,15 +28,20 @@ import OrganizationAuditLog from './views/organizationAuditLog';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
+import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
+import ProjectAlertSettings from './views/projectAlertSettings';
+import ProjectAlertRules from './views/projectAlertRules';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
-import ProjectInstall from './views/projectInstall';
+import ProjectFilters from './views/projectFilters';
+import ProjectGettingStarted from './views/projectInstall/gettingStarted';
+import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
@@ -61,78 +72,118 @@ function appendTrailingSlash(nextState, replaceState) {
   }
 }
 
-let routes = (
-  <Route path="/" component={errorHandler(App)}>
-    <Route path="/manage/" component={errorHandler(Admin)}>
-      <IndexRoute component={errorHandler(AdminOverview)} />
-      <Route path="buffer/" component={errorHandler(AdminBuffer)} />
-      <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
-      <Route path="settings/" component={errorHandler(AdminSettings)} />
-    </Route>
+function routes() {
+  let hooksRoutes = [];
+  HookStore.get('routes').forEach((cb) => {
+    hooksRoutes.push(cb());
+  });
 
-    <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
-    <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
+  let hooksAdminRoutes = [];
+  HookStore.get('routes:admin').forEach((cb) => {
+    hooksAdminRoutes.push(cb());
+  });
 
-    <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
-      <IndexRoute component={errorHandler(OrganizationDashboard)}/>
+  let hooksOrgRoutes = [];
+  HookStore.get('routes:organization').forEach((cb) => {
+    hooksOrgRoutes.push(cb());
+  });
 
-      <Route path="/organizations/:orgId/audit-log/" component={errorHandler(OrganizationAuditLog)} />
-      <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
-      <Route path="/organizations/:orgId/all-teams/" component={errorHandler(OrganizationTeams)}>
-        <IndexRoute component={errorHandler(AllTeamsList)}/>
+  return (
+    <Route path="/" component={errorHandler(App)}>
+      <Route path="/api/" component={errorHandler(ApiDashboard)} />
+      <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
+
+      <Route path="/manage/" component={errorHandler(Admin)}>
+        <IndexRoute component={errorHandler(AdminOverview)} />
+        <Route path="buffer/" component={errorHandler(AdminBuffer)} />
+        <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
+        <Route path="projects/" component={errorHandler(AdminProjects)} />
+        <Route path="settings/" component={errorHandler(AdminSettings)} />
+        <Route path="users/" component={errorHandler(AdminUsers)} />
+        {hooksAdminRoutes}
       </Route>
-      <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
-      <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
-      <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
-      <Route path="/organizations/:orgId/projects/choose/" component={errorHandler(ProjectChooser)} />
-      <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
-      <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
-      <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
-        <Route path="settings/" component={errorHandler(TeamSettings)} />
-        <Route path="members/" component={errorHandler(TeamMembers)} />
-      </Route>
-      <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
 
-      <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-        <IndexRoute component={errorHandler(Stream)} />
-        <Route path="searches/:searchId/" component={errorHandler(Stream)} />
-        <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
-        <Route path="events/" component={errorHandler(ProjectEvents)} />
-        <Route path="releases/" component={errorHandler(ProjectReleases)} />
-        <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}>
-          <IndexRoute component={errorHandler(ReleaseNewEvents)} />
-          <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
-          <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
+      <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
+      <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
+
+      <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
+        <IndexRoute component={errorHandler(OrganizationDashboard)}/>
+
+        <Route path="/organizations/:orgId/audit-log/" component={errorHandler(OrganizationAuditLog)} />
+        <Route path="/organizations/:orgId/repos/" component={errorHandler(OrganizationRepositories)} />
+        <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
+        <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
+          <IndexRedirect to="settings/" />
+          <Route path="settings/" component={errorHandler(TeamSettings)} />
+          <Route path="members/" component={errorHandler(TeamMembers)} />
         </Route>
-        <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
-        <Route path="settings/" component={errorHandler(ProjectSettings)}>
-          <Route path="install/" component={errorHandler(ProjectInstall)}>
-            <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
-            <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
+
+        <Route path="/organizations/:orgId/all-teams/" component={errorHandler(OrganizationTeams)}>
+          <IndexRoute component={errorHandler(AllTeamsList)}/>
+        </Route>
+        <Route path="/organizations/:orgId/issues/assigned/" component={errorHandler(MyIssuesAssignedToMe)} />
+        <Route path="/organizations/:orgId/issues/bookmarks/" component={errorHandler(MyIssuesBookmarked)} />
+        <Route path="/organizations/:orgId/issues/history/" component={errorHandler(MyIssuesViewed)} />
+
+        <Route path="/organizations/:orgId/projects/choose/" component={errorHandler(ProjectChooser)} />
+        <Route path="/organizations/:orgId/rate-limits/" component={errorHandler(OrganizationRateLimits)} />
+        <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
+
+        <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
+
+        {hooksOrgRoutes}
+
+        <Route path=":projectId/getting-started/" component={errorHandler(ProjectGettingStarted)}>
+          <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
+          <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
+        </Route>
+
+        <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
+          <IndexRoute component={errorHandler(Stream)} />
+          <Route path="searches/:searchId/" component={errorHandler(Stream)} />
+          <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
+          <Route path="events/" component={errorHandler(ProjectEvents)} />
+          <Route path="releases/" component={errorHandler(ProjectReleases)} />
+          <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}>
+            <IndexRoute component={errorHandler(ReleaseNewEvents)} />
+            <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
+            <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
           </Route>
-          <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
-          <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
-          <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
-          <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
-        </Route>
-        <Redirect from="group/:groupId/" to="issues/:groupId/" />
-        <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}
-               ignoreScrollBehavior>
-          <IndexRoute component={errorHandler(GroupEventDetails)} />
+          <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
+          <Route path="settings/" component={errorHandler(ProjectSettings)}>
+            <Route path="alerts/" component={errorHandler(ProjectAlertSettings)} />
+            <Route path="alerts/rules/" component={errorHandler(ProjectAlertRules)} />
+            <Route path="filters/" component={errorHandler(ProjectFilters)} />
+            <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
+            <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
+            <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
+            <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
+            <Route path="install/" component={errorHandler(ProjectDocsContext)}>
+              <IndexRoute component={errorHandler(ProjectInstallOverview)}/>
+              <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)}/>
+            </Route>
+          </Route>
+          <Redirect from="group/:groupId/" to="issues/:groupId/" />
+          <Route path="issues/:groupId/" component={errorHandler(GroupDetails)}
+                 ignoreScrollBehavior>
+            <IndexRoute component={errorHandler(GroupEventDetails)} />
 
-          <Route path="activity/" component={errorHandler(GroupActivity)} />
-          <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
-          <Route path="events/" component={errorHandler(GroupEvents)} />
-          <Route path="hashes/" component={errorHandler(GroupHashes)} />
-          <Route path="tags/" component={errorHandler(GroupTags)} />
-          <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
-          <Route path="feedback/" component={errorHandler(GroupUserReports)} />
+            <Route path="activity/" component={errorHandler(GroupActivity)} />
+            <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
+            <Route path="events/" component={errorHandler(GroupEvents)} />
+            <Route path="hashes/" component={errorHandler(GroupHashes)} />
+            <Route path="tags/" component={errorHandler(GroupTags)} />
+            <Route path="tags/:tagKey/" component={errorHandler(GroupTagValues)} />
+            <Route path="feedback/" component={errorHandler(GroupUserReports)} />
+          </Route>
         </Route>
       </Route>
-    </Route>
 
-    <Route path="*" component={errorHandler(RouteNotFound)} onEnter={appendTrailingSlash}/>
-  </Route>
-);
+      {hooksRoutes}
+
+      <Route path="*" component={errorHandler(RouteNotFound)} onEnter={appendTrailingSlash}/>
+    </Route>
+  );
+}
 
 export default routes;

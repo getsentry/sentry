@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from celery.signals import (
     task_failure,
     task_prerun,
@@ -30,7 +32,7 @@ def _get_task_name(task):
 
 def record_task_signal(signal, name, **options):
     def handler(sender, **kwargs):
-        if not isinstance(sender, basestring):
+        if not isinstance(sender, six.string_types):
             sender = _get_task_name(sender)
         metrics.incr('jobs.{0}'.format(name), instance=sender, **options)
         metrics.incr('jobs.all.{0}'.format(name))
@@ -42,7 +44,7 @@ def record_task_signal(signal, name, **options):
     )
 
 # TODO: https://github.com/getsentry/sentry/issues/2495
-# https://celery.readthedocs.org/en/latest/userguide/signals.html#task-revoked
+# https://celery.readthedocs.io/en/latest/userguide/signals.html#task-revoked
 # def task_revoked_handler(sender, expired=False, **kwargs):
 #     if expired:
 #         metrics.incr('jobs.expired', instance=sender)

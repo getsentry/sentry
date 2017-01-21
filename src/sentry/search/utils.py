@@ -2,16 +2,32 @@ from __future__ import absolute_import, division, print_function
 
 from collections import defaultdict
 from datetime import datetime, timedelta
+
+import six
+from django.db import DataError
 from django.utils import timezone
 
 from sentry.constants import STATUS_CHOICES
-from sentry.models import EventUser, User
-from sentry.search.base import ANY
+from sentry.models import EventUser, Release, User
+from sentry.search.base import ANY, EMPTY
 from sentry.utils.auth import find_users
 
 
 class InvalidQuery(Exception):
     pass
+
+
+def parse_release(project, value):
+    # TODO(dcramer): add environment support
+    if value == 'latest':
+        value = Release.objects.filter(
+            project=project,
+        ).extra(select={
+            'sort': 'COALESCE(date_released, date_added)',
+        }).order_by('-sort').values_list('version', flat=True).first()
+        if value is None:
+            return EMPTY
+    return value
 
 
 def get_user_tag(project, key, value):
@@ -23,19 +39,20 @@ def get_user_tag(project, key, value):
             **{lookup: value}
         )[0]
     except (KeyError, IndexError):
-        return '{}:{}'.format(key, value)
-
+        return u'{}:{}'.format(key, value)
+    except DataError:
+        raise InvalidQuery(u"malformed '{}:' query '{}'.".format(key, value))
     return euser.tag_value
 
 
 def parse_datetime_range(value):
     try:
         flag, count, interval = value[0], int(value[1:-1]), value[-1]
-    except (ValueError, TypeError):
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+    except (ValueError, TypeError, IndexError):
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag not in ('+', '-'):
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if interval == 'h':
         delta = timedelta(hours=count)
@@ -46,7 +63,7 @@ def parse_datetime_range(value):
     elif interval == 'm':
         delta = timedelta(minutes=count)
     else:
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
     if flag == '-':
         return (timezone.now() - delta, None)
@@ -67,17 +84,21 @@ def parse_datetime_comparison(value):
         return (None, parse_datetime_value(value[1:])[0])
     if value[0] == '=':
         return parse_datetime_value(value[1:])
-    raise InvalidQuery('{} is not a valid datetime query'.format(value))
+    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
 def parse_datetime_value(value):
     try:
         return _parse_datetime_value(value)
-    except ValueError:
-        raise InvalidQuery('{} is not a valid datetime query'.format(value))
+    except (ValueError, IndexError):
+        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
 
 
 def _parse_datetime_value(value):
+    # this one is fuzzy, and not entirely correct
+    if value.startswith(('-', '+')):
+        return parse_datetime_range(value)
+
     # timezones are not supported and are assumed UTC
     if value[-1] == 'Z':
         value = value[:-1]
@@ -115,6 +136,18 @@ def parse_datetime_expression(value):
     return parse_datetime_value(value)
 
 
+def parse_user_value(value, user):
+    if value == 'me':
+        return user
+
+    try:
+        return find_users(value)[0]
+    except IndexError:
+        # XXX(dcramer): hacky way to avoid showing any results when
+        # an invalid user is entered
+        return User(id=0)
+
+
 def get_date_params(value, from_field, to_field):
     date_from, date_to = parse_datetime_expression(value)
     result = {}
@@ -129,6 +162,33 @@ def get_date_params(value, from_field, to_field):
             '{}_inclusive'.format(to_field): False,
         })
     return result
+
+reserved_tag_names = frozenset([
+    'query',
+    'is',
+    'assigned',
+    'bookmarks',
+    'subscribed',
+    'first-release',
+    'firstRelease',
+    'release',
+    'level',
+    'user',
+    'user.id',
+    'user.ip',
+    'has',
+    'age',
+    'firstSeen',
+    'activeSince',
+    'last_seen',
+    'lastSeen',
+    'environment',
+    'browser',
+    'device',
+    'os',
+    'os.name',
+    'url',
+    'event.timestamp'])
 
 
 def tokenize_query(query):
@@ -156,21 +216,40 @@ def tokenize_query(query):
             results['query'].append(token)
             continue
 
+        # this handles quoted string, and is duplicated below
+        if token[0] == '"':
+            nvalue = token
+            while nvalue[-1] != '"':
+                try:
+                    nvalue = six.next(tokens_iter)
+                except StopIteration:
+                    break
+                token = '%s %s' % (token, nvalue)
+
+            if token[-1] == '"':
+                token = token[1:-1]
+            else:
+                token = token[1:]
+            results['query'].append(token)
+            continue
+
         key, value = token.split(':', 1)
         if not value:
             results['query'].append(token)
+            if key in reserved_tag_names:
+                raise InvalidQuery(u"query term '{}:' found no arguments. (Terms are space delimited)".format(key))
             continue
 
         if value[0] == '"':
             nvalue = value
             while nvalue[-1] != '"':
                 try:
-                    nvalue = tokens_iter.next()
+                    nvalue = six.next(tokens_iter)
                 except StopIteration:
                     break
                 value = '%s %s' % (value, nvalue)
 
-            if value.endswith('"'):
+            if value[-1] == '"':
                 value = value[1:-1]
             else:
                 value = value[1:]
@@ -183,8 +262,7 @@ def parse_query(project, query, user):
     tokens = tokenize_query(query)
 
     results = {'tags': {}, 'query': []}
-
-    for key, token_list in tokens.iteritems():
+    for key, token_list in six.iteritems(tokens):
         for value in token_list:
             if key == 'query':
                 results['query'].append(value)
@@ -197,31 +275,17 @@ def parse_query(project, query, user):
                     try:
                         results['status'] = STATUS_CHOICES[value]
                     except KeyError:
-                        pass
+                        raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
             elif key == 'assigned':
-                if value == 'me':
-                    results['assigned_to'] = user
-                else:
-                    try:
-                        results['assigned_to'] = find_users(value)[0]
-                    except IndexError:
-                        # XXX(dcramer): hacky way to avoid showing any results when
-                        # an invalid user is entered
-                        results['assigned_to'] = User(id=0)
+                results['assigned_to'] = parse_user_value(value, user)
             elif key == 'bookmarks':
-                if value == 'me':
-                    results['bookmarked_by'] = user
-                else:
-                    try:
-                        results['bookmarked_by'] = find_users(value)[0]
-                    except IndexError:
-                        # XXX(dcramer): hacky way to avoid showing any results when
-                        # an invalid user is entered
-                        results['bookmarked_by'] = User(id=0)
-            elif key == 'first-release':
-                results['first_release'] = value
+                results['bookmarked_by'] = parse_user_value(value, user)
+            elif key == 'subscribed':
+                results['subscribed_by'] = parse_user_value(value, user)
+            elif key in ('first-release', 'firstRelease'):
+                results['first_release'] = parse_release(project, value)
             elif key == 'release':
-                results['tags']['sentry:release'] = value
+                results['tags']['sentry:release'] = parse_release(project, value)
             elif key == 'user':
                 if ':' in value:
                     comp, value = value.split(':', 1)
@@ -235,8 +299,12 @@ def parse_query(project, query, user):
                 elif value == 'release':
                     value = 'sentry:release'
                 results['tags'][value] = ANY
-            elif key == 'age':
+            elif key in ('age', 'firstSeen'):
                 results.update(get_date_params(value, 'age_from', 'age_to'))
+            elif key in ('last_seen', 'lastSeen'):
+                results.update(get_date_params(value, 'last_seen_from', 'last_seen_to'))
+            elif key == 'activeSince':
+                results.update(get_date_params(value, 'active_at_from', 'active_at_to'))
             elif key.startswith('user.'):
                 results['tags']['sentry:user'] = get_user_tag(
                     project, key.split('.', 1)[1], value)

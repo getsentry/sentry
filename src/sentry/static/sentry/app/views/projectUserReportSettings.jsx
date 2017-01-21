@@ -1,8 +1,103 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
+import {FormState, BooleanField} from '../components/forms';
 import {t} from '../locale';
+
+const ProjectFeedbackSettingsForm = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    initialData: React.PropTypes.object.isRequired
+  },
+
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    let formData = {};
+    // We only want to work with a certain set of project options here
+    for (let key of Object.keys(this.props.initialData)) {
+      if (key.lastIndexOf('feedback:') === 0) {
+        formData[key] = this.props.initialData[key];
+      }
+    }
+    return {
+      formData: formData,
+      errors: {},
+    };
+  },
+
+  onFieldChange(name, value) {
+    let formData = this.state.formData;
+    formData[name] = value;
+    this.setState({
+      formData: formData,
+    });
+  },
+
+  onSubmit(e) {
+    e.preventDefault();
+
+    if (this.state.state === FormState.SAVING) {
+      return;
+    }
+    this.setState({
+      state: FormState.SAVING,
+    }, () => {
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      let {orgId, projectId} = this.props;
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        method: 'PUT',
+        data: {options: this.state.formData},
+        success: (data) => {
+          this.setState({
+            state: FormState.READY,
+            errors: {},
+          });
+        },
+        error: (error) => {
+          this.setState({
+            state: FormState.ERROR,
+            errors: error.responseJSON,
+          });
+        },
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
+    });
+  },
+
+  render() {
+    let isSaving = this.state.state === FormState.SAVING;
+    let errors = this.state.errors;
+    return (
+      <form onSubmit={this.onSubmit} className="form-stacked">
+        {this.state.state === FormState.ERROR &&
+          <div className="alert alert-error alert-block">
+            {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
+          </div>
+        }
+        <fieldset>
+          <BooleanField
+            key="branding"
+            name="branding"
+            label={t('Show Sentry Branding')}
+            help={t('Show "powered by Sentry" within the feedback dialog. We appreciate you helping get the word out about Sentry! <3')}
+            value={this.state.formData['feedback:branding']}
+            error={errors['feedback:branding']}
+            onChange={this.onFieldChange.bind(this, 'feedback:branding')} />
+        </fieldset>
+        <fieldset className="form-actions">
+          <button type="submit" className="btn btn-primary"
+                  disabled={isSaving}>{t('Save Changes')}</button>
+        </fieldset>
+      </form>
+    );
+  }
+});
 
 const ProjectUserReportSettings = React.createClass({
   propTypes: {
@@ -15,7 +110,10 @@ const ProjectUserReportSettings = React.createClass({
     return {
       loading: true,
       error: false,
+      expected: 2,
+
       keyList: [],
+      projectOptions: {},
     };
   },
 
@@ -59,16 +157,38 @@ const ProjectUserReportSettings = React.createClass({
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/keys/`, {
       success: (data, _, jqXHR) => {
+        let expected = this.state.expected - 1;
         this.setState({
-          error: false,
-          loading: false,
+          expected: expected,
+          loading: expected > 0,
           keyList: data,
         });
       },
       error: () => {
+        let expected = this.state.expected - 1;
         this.setState({
           error: true,
-          loading: false
+          expected: expected,
+          loading: expected > 0,
+        });
+      }
+    });
+
+    this.api.request(`/projects/${orgId}/${projectId}/`, {
+      success: (data, _, jqXHR) => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          loading: expected > 0,
+          projectOptions: data.options,
+        });
+      },
+      error: () => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          error: true,
+          loading: expected > 0
         });
       }
     });
@@ -127,7 +247,7 @@ const ProjectUserReportSettings = React.createClass({
   handleClick() {
     Raven.showReportDialog({
       // should never make it to the Sentry API, but just in case, use throwaway id
-      eventId: 'ignoreme'
+      eventId: '00000000000000000000000000000000'
     });
   },
 
@@ -143,6 +263,8 @@ const ProjectUserReportSettings = React.createClass({
     if (this.state.loading)
       return this.renderLoading();
 
+    let {orgId, projectId} = this.props.params;
+
     // TODO(dcramer): localize when language is final
     return (
       <div>
@@ -151,18 +273,32 @@ const ProjectUserReportSettings = React.createClass({
         <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
 
         <p>Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.</p>
-
         <p>When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry</p>
-
         <p><a className="btn btn-primary" onClick={this.handleClick}>See the report dialog in action</a></p>
 
-        <p>The following example uses our Django integration. Check the documentation for the SDK you're using for more details.</p>
+        <div className="box">
+          <div className="box-header">
+            <h3>{t('Integration')}</h3>
+          </div>
+          <div className="box-content with-padding">
+            <p>The following example uses our Django integration. Check the documentation for the SDK you're using for more details.</p>
+            <pre>{this.getInstructions()}</pre>
+            <p>If you're capturing an error with our Browser JS SDK, things get even simpler:</p>
+            <pre>{this.getBrowserJSInstructions()}</pre>
+          </div>
+        </div>
 
-        <pre>{this.getInstructions()}</pre>
-
-        <p>If you're capturing an error with our Browser JS SDK, things get even simpler:</p>
-
-        <pre>{this.getBrowserJSInstructions()}</pre>
+        <div className="box">
+          <div className="box-header">
+            <h3>{t('Settings')}</h3>
+          </div>
+          <div className="box-content with-padding">
+            <ProjectFeedbackSettingsForm
+              orgId={orgId}
+              projectId={projectId}
+              initialData={this.state.projectOptions} />
+          </div>
+        </div>
 
       </div>
     );

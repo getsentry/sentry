@@ -5,7 +5,7 @@ import sentry
 
 from django import template
 from django.conf import settings
-from django.utils.html import mark_safe
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from pkg_resources import parse_version
 
@@ -16,6 +16,7 @@ from sentry.utils import json
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.assets import get_asset_url
 from sentry.utils.functional import extract_lazy_object
+from sentry.utils.support import get_support_mail
 
 register = template.Library()
 
@@ -83,7 +84,7 @@ def _get_statuspage():
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
-        user = context['request'].user
+        user = getattr(context['request'], 'user', None) or AnonymousUser()
         messages = get_messages(context['request'])
         try:
             is_superuser = context['request'].is_superuser()
@@ -112,6 +113,7 @@ def get_react_config(context):
 
     context = {
         'singleOrganization': settings.SENTRY_SINGLE_ORGANIZATION,
+        'supportEmail': get_support_mail(),
         'urlPrefix': options.get('system.url-prefix'),
         'version': version_info,
         'features': enabled_features,
@@ -123,6 +125,7 @@ def get_react_config(context):
             'message': msg.message,
             'level': msg.tags,
         } for msg in messages],
+        'isOnPremise': settings.SENTRY_ONPREMISE,
     }
     if user and user.is_authenticated():
         context.update({
@@ -135,4 +138,4 @@ def get_react_config(context):
             'isAuthenticated': False,
             'user': None,
         })
-    return mark_safe(json.dumps(context))
+    return json.dumps_htmlsafe(context)

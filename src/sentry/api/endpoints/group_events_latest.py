@@ -25,12 +25,12 @@ class GroupEventsLatestEndpoint(GroupEndpoint):
     @attach_scenarios([get_latest_group_sample_scenario])
     def get(self, request, group):
         """
-        Latest Sample
-        `````````````
+        Retrieve Latest Event
+        `````````````````````
 
-        Retrieves the details of the latest sample for an aggregate.
+        Retrieves the details of the latest event for an issue.
 
-        :pparam string group_id: the ID of the group to get the latest sample of.
+        :pparam string group_id: the ID of the issue
         """
         event = group.get_latest_event()
         if not event:

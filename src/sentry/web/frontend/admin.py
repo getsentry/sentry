@@ -17,32 +17,31 @@ import pkg_resources
 import six
 from django.conf import settings
 from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Count
 from django.http import HttpResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry import options
 from sentry.app import env
-from sentry.models import Project, Team, User
+from sentry.models import Project, User
 from sentry.plugins import plugins
 from sentry.utils.email import send_mail
 from sentry.utils.http import absolute_uri
-from sentry.utils.warnings import DeprecatedSettingWarning, seen_warnings
+from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, seen_warnings
 from sentry.web.decorators import requires_admin
 from sentry.web.forms import (
     ChangeUserForm, NewUserForm, RemoveUserForm, TestEmailForm
 )
+from sentry.utils import auth
 from sentry.web.helpers import render_to_response, render_to_string
 
 
 def configure_plugin(request, slug):
     plugin = plugins.get(slug)
     if not plugin.has_site_conf():
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(auth.get_login_url())
 
-    view = plugin.configure(request)
+    view = plugin.configure(request=request)
     if isinstance(view, HttpResponse):
         return view
 
@@ -55,70 +54,11 @@ def configure_plugin(request, slug):
 
 
 @requires_admin
-def manage_projects(request):
-    project_list = Project.objects.filter(
-        status=0,
-        team__isnull=False,
-    ).select_related('team')
-
-    project_query = request.GET.get('pquery')
-    if project_query:
-        project_list = project_list.filter(name__icontains=project_query)
-
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'date'):
-        sort = 'date'
-
-    if sort == 'date':
-        order_by = '-date_added'
-    elif sort == 'name':
-        order_by = 'name'
-
-    project_list = project_list.order_by(order_by)
-
-    context = {
-        'project_list': project_list,
-        'project_query': project_query,
-        'sort': sort,
-    }
-
-    return render_to_response('sentry/admin/projects/list.html', context, request)
-
-
-@requires_admin
-def manage_users(request):
-    user_list = User.objects.all().order_by('-date_joined')
-
-    user_query = request.GET.get('uquery')
-    if user_query:
-        user_list = user_list.filter(email__icontains=user_query)
-
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'joined', 'login'):
-        sort = 'joined'
-
-    if sort == 'joined':
-        order_by = '-date_joined'
-    elif sort == 'login':
-        order_by = '-last_login'
-    elif sort == 'name':
-        order_by = 'name'
-
-    user_list = user_list.order_by(order_by)
-
-    return render_to_response('sentry/admin/users/list.html', {
-        'user_list': user_list,
-        'user_query': user_query,
-        'sort': sort,
-    }, request)
-
-
-@requires_admin
 @transaction.atomic
 @csrf_protect
 def create_new_user(request):
     if not request.is_superuser():
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(auth.get_login_url())
 
     form = NewUserForm(request.POST or None, initial={
         'send_welcome_mail': True,
@@ -137,7 +77,7 @@ def create_new_user(request):
             context = {
                 'username': user.username,
                 'password': password,
-                'url': absolute_uri(reverse('sentry')),
+                'url': absolute_uri(auth.get_login_url()),
             }
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
@@ -151,7 +91,7 @@ def create_new_user(request):
                 logger = logging.getLogger('sentry.mail.errors')
                 logger.exception(e)
 
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     context = {
         'form': form,
@@ -165,17 +105,17 @@ def create_new_user(request):
 @csrf_protect
 def edit_user(request, user_id):
     if not request.is_superuser():
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(auth.get_login_url())
 
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     form = ChangeUserForm(request.POST or None, instance=user)
     if form.is_valid():
         user = form.save()
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     project_list = Project.objects.filter(
         status=0,
@@ -195,13 +135,13 @@ def edit_user(request, user_id):
 @requires_admin
 @csrf_protect
 def remove_user(request, user_id):
-    if str(user_id) == str(request.user.id):
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+    if six.text_type(user_id) == six.text_type(request.user.id):
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     form = RemoveUserForm(request.POST or None)
     if form.is_valid():
@@ -210,7 +150,7 @@ def remove_user(request, user_id):
         else:
             User.objects.filter(pk=user.pk).update(is_active=False)
 
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
+        return HttpResponseRedirect(absolute_uri('/manage/users/'))
 
     context = csrf(request)
     context.update({
@@ -219,56 +159,6 @@ def remove_user(request, user_id):
     })
 
     return render_to_response('sentry/admin/users/remove.html', context, request)
-
-
-@requires_admin
-def list_user_projects(request, user_id):
-    try:
-        user = User.objects.get(pk=user_id)
-    except User.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-admin-users'))
-
-    project_list = Project.objects.filter(
-        status=0,
-        organization__member_set__user=user,
-    ).order_by('-date_added')
-
-    context = {
-        'project_list': project_list,
-        'the_user': user,
-    }
-
-    return render_to_response('sentry/admin/users/list_projects.html', context, request)
-
-
-@requires_admin
-def manage_teams(request):
-    team_list = Team.objects.order_by('-date_added')
-
-    team_query = request.GET.get('tquery')
-    if team_query:
-        team_list = team_list.filter(name__icontains=team_query)
-
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'date', 'events'):
-        sort = 'date'
-
-    if sort == 'date':
-        order_by = '-date_added'
-    elif sort == 'name':
-        order_by = 'name'
-    elif sort == 'projects':
-        order_by = '-num_projects'
-
-    team_list = team_list.annotate(
-        num_projects=Count('project'),
-    ).order_by(order_by)
-
-    return render_to_response('sentry/admin/teams/list.html', {
-        'team_list': team_list,
-        'team_query': team_query,
-        'sort': sort,
-    }, request)
 
 
 @requires_admin
@@ -319,6 +209,7 @@ def status_packages(request):
 def status_warnings(request):
     groupings = {
         DeprecatedSettingWarning: 'Deprecated Settings',
+        UnsupportedBackend: 'Unsupported Backends',
     }
 
     groups = defaultdict(list)
@@ -330,12 +221,12 @@ def status_warnings(request):
         else:
             warnings.append(warning)
 
-    sort_by_message = functools.partial(sorted, key=str)
+    sort_by_message = functools.partial(sorted, key=six.binary_type)
 
     return render_to_response(
         'sentry/admin/status/warnings.html',
         {
-            'groups': [(groupings[key], sort_by_message(values)) for key, values in groups.items()],
+            'groups': sorted([(groupings[key], sort_by_message(values)) for key, values in groups.items()]),
             'warnings': sort_by_message(warnings),
         },
         request,

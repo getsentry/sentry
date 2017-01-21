@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -12,6 +13,8 @@ from sentry.api.serializers import serialize
 from sentry.models import AuditLogEntryEvent, Team, TeamStatus
 from sentry.tasks.deletion import delete_team
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 @scenario('GetTeam')
@@ -37,6 +40,8 @@ def update_team_scenario(runner):
 
 
 class TeamSerializer(serializers.ModelSerializer):
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+
     class Meta:
         model = Team
         fields = ('name', 'slug')
@@ -118,16 +123,19 @@ class TeamDetailsEndpoint(TeamEndpoint):
         immediate.  However once deletion has begun the state of a project
         changes and will be hidden from most public views.
         """
-        logging.getLogger('sentry.deletions').info(
-            'Team %s/%s (id=%s) removal requested by user (id=%s)',
-            team.organization.slug, team.slug, team.id, request.user.id)
-
         updated = Team.objects.filter(
             id=team.id,
             status=TeamStatus.VISIBLE,
         ).update(status=TeamStatus.PENDING_DELETION)
         if updated:
-            delete_team.delay(object_id=team.id, countdown=3600)
+            transaction_id = uuid4().hex
+            delete_team.apply_async(
+                kwargs={
+                    'object_id': team.id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=3600,
+            )
 
             self.create_audit_entry(
                 request=request,
@@ -135,6 +143,13 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 target_object=team.id,
                 event=AuditLogEntryEvent.TEAM_REMOVE,
                 data=team.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': team.id,
+                'transaction_id': transaction_id,
+                'model': type(team).__name__,
+            })
 
         return Response(status=204)

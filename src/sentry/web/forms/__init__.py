@@ -10,30 +10,8 @@ from __future__ import absolute_import
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from urllib3._collections import HTTPHeaderDict
-from sentry.constants import HTTP_METHODS
 from sentry.models import User, Activity
 from sentry.web.forms.fields import RadioFieldRenderer, ReadOnlyTextField
-
-
-class ReplayForm(forms.Form):
-    url = forms.URLField(widget=forms.TextInput(attrs={'class': 'span8'}))
-    method = forms.ChoiceField(choices=((k, k) for k in HTTP_METHODS))
-    data = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
-    headers = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
-
-    def clean_headers(self):
-        value = self.cleaned_data.get('headers')
-        if not value:
-            return
-
-        # HTTPHeaderDict will properly handle duplicate header lines
-        # and merge them correctly
-        headers = HTTPHeaderDict(
-            line.split(': ', 1) for line in value.splitlines()
-        )
-        # Convert back into a normal dict for consumption elsewhere
-        return dict(headers)
 
 
 class BaseUserForm(forms.ModelForm):

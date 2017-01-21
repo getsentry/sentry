@@ -6,18 +6,21 @@ install-python:
 	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
-	pip install "file://`pwd`#egg=sentry[dev,dsym]"
+	pip install ujson
+	pip install "file://`pwd`#egg=sentry[dev]"
 
 install-npm:
 	@echo "--> Installing Node dependencies"
-	npm install
+	# we need these to happen explicitly due to NODE_ENV influencing it
+	npm install --only=prod
+	npm install --only=dev
 
 install-python-tests:
-	pip install "file://`pwd`#egg=sentry[dev,tests]"
+	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
 
 develop-only: update-submodules install-python install-python-tests install-npm
 
-develop: update-submodules setup-git develop-only install-python-tests
+develop: develop-only setup-git
 	@echo ""
 
 dev-postgres: install-python
@@ -36,7 +39,6 @@ reset-db:
 setup-git:
 	@echo "--> Installing git hooks"
 	git config branch.autosetuprebase always
-	git config commit.template config/commit-template
 	cd .git/hooks && ln -sf ../../config/hooks/* ./
 	@echo ""
 
@@ -50,7 +52,7 @@ clean:
 	@echo "--> Cleaning pyc files"
 	find . -name "*.pyc" -delete
 	@echo "--> Cleaning python build artifacts"
-	rm -rf build/ dist/ sentry-package.json
+	rm -rf build/ dist/ src/sentry/assets.json
 	@echo ""
 
 build-js-po:
@@ -95,22 +97,28 @@ test-cli:
 	@echo ""
 
 test-js:
+	@echo "--> Building static assets"
+	@${NPM_ROOT}/.bin/webpack -p
 	@echo "--> Running JavaScript tests"
-	@${NPM_ROOT}/.bin/webpack
 	@npm run test
 	@echo ""
 
 test-python:
 	@echo "--> Running Python tests"
-	py.test tests || exit 1
+	py.test tests/integration tests/sentry || exit 1
 	@echo ""
 
+test-acceptance:
+	@echo "--> Building static assets"
+	@${NPM_ROOT}/.bin/webpack -p
+	@echo "--> Running acceptance tests"
+	py.test tests/acceptance
+	@echo ""
 
 test-python-coverage:
 	@echo "--> Running Python tests"
-	coverage run --source=src/sentry,tests -m py.test tests
+	coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
-
 
 lint: lint-python lint-js
 
@@ -136,7 +144,7 @@ extract-api-docs:
 	cd api-docs; python generator.py
 
 
-.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-python-coverage lint lint-python lint-js coverage publish
+.PHONY: develop dev-postgres dev-docs setup-git build clean locale update-transifex update-submodules test testloop test-cli test-js test-python test-acceptance test-python-coverage lint lint-python lint-js coverage publish
 
 
 ############################
@@ -149,39 +157,51 @@ travis-upgrade-pip:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-travis-install-python: travis-upgrade-pip install-python-tests travis-setup-cassandra
+travis-install-python: travis-upgrade-pip install-python install-python-tests
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
 
 .PHONY: travis-upgrade-pip travis-setup-cassandra travis-install-python travis-noop
 
-# Install steps
+travis-install-danger:
+	bundle install
 travis-install-sqlite: travis-install-python
 travis-install-postgres: travis-install-python dev-postgres
 	psql -c 'create database sentry;' -U postgres
-travis-install-js: install-npm
-travis-install-cli: travis-install-python
-travis-install-dist: travis-noop
+travis-install-mysql: travis-install-python
+	pip install mysqlclient
+	echo 'create database sentry;' | mysql -uroot
+travis-install-acceptance: install-npm travis-install-postgres
+travis-install-js: travis-upgrade-pip install-python install-python-tests install-npm
+travis-install-cli: travis-install-postgres
+travis-install-dist: travis-upgrade-pip install-python install-python-tests
 
-.PHONY: travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
+.PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
 # Lint steps
+travis-lint-danger: travis-noop
 travis-lint-sqlite: lint-python
 travis-lint-postgres: lint-python
+travis-lint-mysql: lint-python
+travis-lint-acceptance: travis-noop
 travis-lint-js: lint-js
 travis-lint-cli: travis-noop
 travis-lint-dist: travis-noop
 
-.PHONY: travis-lint-sqlite travis-lint-postgres travis-lint-js travis-lint-cli travis-lint-dist
+.PHONY: travis-lint-danger travis-lint-sqlite travis-lint-postgres travis-lint-mysql travis-lint-js travis-lint-cli travis-lint-dist
 
 # Test steps
+travis-test-danger:
+	bundle exec danger
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
+travis-test-mysql: test-python-coverage
+travis-test-acceptance: test-acceptance
 travis-test-js: test-js
-travis-test-ci: test-ci
+travis-test-cli: test-cli
 travis-test-dist:
 	SENTRY_BUILD=$(TRAVIS_COMMIT) SENTRY_LIGHT_BUILD=0 python setup.py sdist bdist_wheel
 	@ls -lh dist/
 
-.PHONY: travis-test-sqlite travis-test-postgres travis-test-js travis-test-cli travis-test-dist
+.PHONY: travis-test-danger travis-test-sqlite travis-test-postgres travis-test-mysql travis-test-js travis-test-cli travis-test-dist

@@ -9,13 +9,18 @@ from __future__ import absolute_import
 
 import logging
 import os
+import six
 import subprocess
 import tempfile
 import time
+
 from email.utils import parseaddr
+from functools import partial
 from operator import attrgetter
 from random import randrange
 
+import lxml
+import toronado
 from django.conf import settings
 from django.core.mail import get_connection as _get_connection
 from django.core.mail import send_mail as _send_mail
@@ -24,9 +29,9 @@ from django.core.mail.backends.base import BaseEmailBackend
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_bytes, force_str, force_text
-from toronado import from_string as inline_css
 
 from sentry import options
+from sentry.logging import LoggingFormat
 from sentry.models import (
     Activity, Event, Group, GroupEmailThread, Project, User, UserOption
 )
@@ -35,7 +40,18 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.strings import is_valid_dot_atom
 from sentry.web.helpers import render_to_string
 
-logger = logging.getLogger(__name__)
+# The maximum amount of recipients to display in human format.
+MAX_RECIPIENTS = 5
+
+logger = logging.getLogger('sentry.mail')
+
+
+def inline_css(value):
+    tree = lxml.html.document_fromstring(value)
+    toronado.inline(tree)
+    # CSS media query support is inconistent when the DOCTYPE declaration is
+    # missing, so we force it to HTML5 here.
+    return lxml.html.tostring(tree, doctype="<!DOCTYPE html>")
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -81,7 +97,7 @@ def email_to_group_id(address):
 
 
 def group_id_to_email(group_id):
-    signed_data = signer.sign(str(group_id))
+    signed_data = signer.sign(six.text_type(group_id))
     return '@'.join((
         signed_data.replace(':', '+'),
         options.get('mail.reply-hostname') or get_from_email_domain(),
@@ -206,7 +222,7 @@ class ListResolver(object):
                 'Cannot generate mailing list identifier for {!r}'.format(instance)
             )
 
-        label = '.'.join(map(str, handler(instance)))
+        label = '.'.join(map(six.binary_type, handler(instance)))
         assert is_valid_dot_atom(label)
 
         return '{}.{}'.format(label, self.__namespace)
@@ -229,7 +245,7 @@ make_listid_from_instance = ListResolver(
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
                  body=None, html_body=None, headers=None, reference=None,
-                 reply_reference=None, from_email=None):
+                 reply_reference=None, from_email=None, type=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -248,14 +264,15 @@ class MessageBuilder(object):
         self.reply_reference = reply_reference  # The object this message is replying about
         self.from_email = from_email or options.get('mail.from')
         self._send_to = set()
+        self.type = type if type else 'generic'
 
         if reference is not None and 'List-Id' not in headers:
             try:
                 headers['List-Id'] = make_listid_from_instance(reference)
             except ListResolver.UnregisteredTypeError as error:
-                logger.debug(str(error))
+                logger.debug(six.text_type(error))
             except AssertionError as error:
-                logger.warning(str(error))
+                logger.warning(six.text_type(error))
 
     def __render_html_body(self):
         html_body = None
@@ -319,7 +336,7 @@ class MessageBuilder(object):
                 headers.setdefault('References', thread.msgid)
 
         msg = EmailMultiAlternatives(
-            subject=subject,
+            subject=subject.splitlines()[0],
             body=self.__render_text_body(),
             from_email=self.from_email,
             to=(to,),
@@ -330,17 +347,24 @@ class MessageBuilder(object):
 
         html_body = self.__render_html_body()
         if html_body:
-            msg.attach_alternative(html_body, 'text/html')
+            msg.attach_alternative(html_body.decode('utf-8'), 'text/html')
 
         return msg
 
     def get_built_messages(self, to=None, bcc=None):
         send_to = set(to or ())
         send_to.update(self._send_to)
-        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to]
+        results = [self.build(to=email, reply_to=send_to, bcc=bcc) for email in send_to if email]
         if not results:
             logger.debug('Did not build any messages, no users to send to.')
         return results
+
+    def format_to(self, to):
+        if not to:
+            return ''
+        if len(to) > MAX_RECIPIENTS:
+            to = to[:MAX_RECIPIENTS] + ['and {} more.'.format(len(to[MAX_RECIPIENTS:]))]
+        return ', '.join(to)
 
     def send(self, to=None, bcc=None, fail_silently=False):
         return send_messages(
@@ -350,15 +374,43 @@ class MessageBuilder(object):
 
     def send_async(self, to=None, bcc=None):
         from sentry.tasks.email import send_email
+        fmt = options.get('system.logging-format')
         messages = self.get_built_messages(to, bcc=bcc)
+        extra = {
+            'message_type': self.type
+        }
+        loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, 'id')]
+        for context in loggable:
+            extra['%s_id' % type(context).__name__.lower()] = context.id
+
+        log_mail_queued = partial(logger.info, 'mail.queued', extra=extra)
         for message in messages:
-            safe_execute(send_email.delay, message=message)
+            safe_execute(
+                send_email.delay,
+                message=message,
+                _with_transaction=False,
+            )
+            extra['message_id'] = message.extra_headers['Message-Id']
+            if fmt == LoggingFormat.HUMAN:
+                extra['message_to'] = self.format_to(message.to),
+                log_mail_queued()
+            elif fmt == LoggingFormat.MACHINE:
+                for recipient in message.to:
+                    extra['message_to'] = recipient
+                    log_mail_queued()
 
 
 def send_messages(messages, fail_silently=False):
     connection = get_connection(fail_silently=fail_silently)
+    sent = connection.send_messages(messages)
     metrics.incr('email.sent', len(messages))
-    return connection.send_messages(messages)
+    for message in messages:
+        extra = {
+            'message_id': message.extra_headers['Message-Id'],
+            'size': len(message.message().as_bytes()),
+        }
+        logger.info('mail.sent', extra=extra)
+    return sent
 
 
 def get_mail_backend():
@@ -412,7 +464,7 @@ class PreviewBackend(BaseEmailBackend):
     """
     def send_messages(self, email_messages):
         for message in email_messages:
-            content = str(message.message())
+            content = six.binary_type(message.message())
             preview = tempfile.NamedTemporaryFile(
                 delete=False,
                 prefix='sentry-email-preview-',

@@ -7,20 +7,23 @@ import datetime
 import json
 import logging
 import mock
+import six
 import zlib
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
 from django.utils import timezone
-from gzip import GzipFile
 from exam import fixture
+from gzip import GzipFile
 from raven import Client
+from six import StringIO
 
-from sentry.models import Group, Event
+from sentry.models import (
+    Group, GroupTagKey, GroupTagValue, Event, TagKey, TagValue
+)
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.helpers import get_auth_header
-from sentry.utils.compat import StringIO
 from sentry.utils.settings import (
     validate_settings, ConfigurationError, import_string)
 
@@ -109,7 +112,9 @@ class RavenIntegrationTest(TransactionTestCase):
 
     def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
-        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
+        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in six.iteritems(headers))
+        if isinstance(data, six.text_type):
+            data = data.encode('utf-8')
         resp = self.client.post(
             reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
@@ -126,14 +131,14 @@ class RavenIntegrationTest(TransactionTestCase):
         )
 
         with self.tasks():
-            client.capture('Message', message='foo')
+            client.captureMessage(message='foo')
 
         assert send_remote.call_count is 1
         assert Group.objects.count() == 1
         group = Group.objects.get()
         assert group.event_set.count() == 1
         instance = group.event_set.get()
-        assert instance.message == 'foo'
+        assert instance.data['sentry.interfaces.Message']['message'] == 'foo'
 
 
 class SentryRemoteTest(TestCase):
@@ -142,7 +147,7 @@ class SentryRemoteTest(TestCase):
         return reverse('sentry-api-store')
 
     def test_minimal(self):
-        kwargs = {'message': 'hello'}
+        kwargs = {'message': 'hello', 'tags': {'foo': 'bar'}}
 
         resp = self._postWithHeader(kwargs)
 
@@ -152,6 +157,20 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get(event_id=event_id)
 
         assert instance.message == 'hello'
+
+        assert TagKey.objects.filter(
+            key='foo', project=self.project,
+        ).exists()
+        assert TagValue.objects.filter(
+            key='foo', value='bar', project=self.project,
+        ).exists()
+        assert GroupTagKey.objects.filter(
+            key='foo', group=instance.group_id, project=self.project,
+        ).exists()
+        assert GroupTagValue.objects.filter(
+            key='foo', value='bar', group=instance.group_id,
+            project=self.project,
+        ).exists()
 
     def test_timestamp(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
@@ -184,7 +203,7 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_get(self):
         kwargs = {'message': 'hello'}
         resp = self._getWithReferer(kwargs)
@@ -192,7 +211,7 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_get_without_referer(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
@@ -206,7 +225,7 @@ class SentryRemoteTest(TestCase):
         resp = self._getWithReferer(kwargs, referer=None, protocol='4')
         assert resp.status_code == 200, (resp.status_code, resp.get('X-Sentry-Error'))
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_correct_data_with_post_referer(self):
         kwargs = {'message': 'hello'}
         resp = self._postWithReferer(kwargs)
@@ -214,7 +233,7 @@ class SentryRemoteTest(TestCase):
         instance = Event.objects.get()
         assert instance.message == 'hello'
 
-    @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
+    @override_settings(SENTRY_ALLOW_ORIGIN='sentry.io')
     def test_post_without_referer(self):
         self.project.update_option('sentry:origins', '')
         kwargs = {'message': 'hello'}
@@ -437,8 +456,8 @@ class CspReportTest(TestCase):
         assert Event.objects.count() == 1
         e = Event.objects.all()[0]
         Event.objects.bind_nodes([e], 'data')
-        assert e.message == output['message']
-        for key, value in output['tags'].iteritems():
+        assert output['message'] == e.data['sentry.interfaces.Message']['message']
+        for key, value in six.iteritems(output['tags']):
             assert e.get_tag(key) == value
         self.assertDictContainsSubset(output['data'], e.data.data, e.data.data)
 

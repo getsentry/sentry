@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+from uuid import uuid4
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -20,6 +21,8 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 @scenario('RetrieveOrganization')
@@ -47,6 +50,8 @@ def update_organization_scenario(runner):
 
 class OrganizationSerializer(serializers.ModelSerializer):
     projectRateLimit = serializers.IntegerField(min_value=1, max_value=100)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
+                                  required=False)
 
     class Meta:
         model = Organization
@@ -157,26 +162,37 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         if organization.is_default:
             return Response({'detail': ERR_DEFAULT_ORG}, status=400)
 
-        logging.getLogger('sentry.deletions').info(
-            'Organization %s (id=%s) removal requested by user (id=%s)',
-            organization.slug, organization.id, request.user.id)
-
         updated = Organization.objects.filter(
             id=organization.id,
             status=OrganizationStatus.VISIBLE,
         ).update(status=OrganizationStatus.PENDING_DELETION)
         if updated:
-            delete_organization.delay(
-                object_id=organization.id,
-                countdown=3600,
-            )
+            transaction_id = uuid4().hex
+            countdown = 86400
 
-            self.create_audit_entry(
+            entry = self.create_audit_entry(
                 request=request,
                 organization=organization,
                 target_object=organization.id,
                 event=AuditLogEntryEvent.ORG_REMOVE,
                 data=organization.get_audit_log_data(),
+                transaction_id=transaction_id,
             )
+
+            organization.send_delete_confirmation(entry, countdown)
+
+            delete_organization.apply_async(
+                kwargs={
+                    'object_id': organization.id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=countdown,
+            )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': organization.id,
+                'transaction_id': transaction_id,
+                'model': Organization.__name__,
+            })
 
         return Response(status=204)

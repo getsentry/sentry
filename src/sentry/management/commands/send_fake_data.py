@@ -10,6 +10,7 @@ from __future__ import absolute_import
 import datetime
 import itertools
 import random
+import six
 import time
 
 from django.core.management.base import BaseCommand, CommandError, make_option
@@ -36,13 +37,13 @@ def funcs():
     #     return client.capture('Query', query=queries.next(), engine=engine.next(), time_spent=duration, data={'logger': loggers.next(), 'site': 'sql'})
 
     def exception(client):
-        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=timestamps.next())
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=six.next(timestamps))
         try:
-            raise exceptions.next()
+            raise six.next(exceptions)
         except Exception:
-            email = emails.next()
+            email = six.next(emails)
             return client.captureException(data={
-                'logger': loggers.next(),
+                'logger': six.next(loggers),
                 'site': 'web',
                 'sentry.interfaces.User': {
                     'id': email,

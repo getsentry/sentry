@@ -1,7 +1,7 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
 import Footer from '../components/footer';
-import Header from '../components/header';
+import Sidebar from '../components/sidebar';
 import NotFound from '../components/errors/notFound';
 
 const RouteNotFound = React.createClass({
@@ -14,7 +14,7 @@ const RouteNotFound = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          <Header />
+          <Sidebar />
           <div className="container">
             <div className="content">
               <section className="body">
@@ -30,4 +30,3 @@ const RouteNotFound = React.createClass({
 });
 
 export default RouteNotFound;
-

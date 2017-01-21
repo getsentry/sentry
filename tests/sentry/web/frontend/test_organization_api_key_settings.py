@@ -20,6 +20,9 @@ class OrganizationApiKeySettingsPermissionTest(PermissionTestCase):
     def test_member_cannot_load(self):
         self.assert_member_cannot_access(self.path)
 
+    def test_manager_cannot_load(self):
+        self.assert_manager_cannot_access(self.path)
+
     def test_owner_can_load(self):
         self.assert_owner_can_access(self.path)
 
@@ -44,3 +47,16 @@ class OrganizationApiKeySettingsTest(TestCase):
 
         assert resp.context['organization'] == organization
         assert resp.context['key'] == key
+
+    def test_not_found(self):
+        organization = self.create_organization(name='foo', owner=self.user)
+
+        path = reverse('sentry-organization-api-key-settings', args=[
+            organization.slug, 99999,
+        ])
+
+        self.login_as(self.user)
+
+        resp = self.client.get(path)
+
+        assert resp.status_code == 404

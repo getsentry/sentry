@@ -10,6 +10,8 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class AuthIdentity(Model):
+    __core__ = True
+
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey('sentry.AuthProvider')
     ident = models.CharField(max_length=128)
