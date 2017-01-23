@@ -8,9 +8,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName".
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
+        db.commit_transaction()
         for release in orm.Release.objects.all():
           projects = release.projects.values_list('id', flat=True)
           if len(projects) > 1:
@@ -31,6 +29,7 @@ class Migration(DataMigration):
                 release_id=release.id,
                 project_id=projects.first()
             ).update(new_groups=release.new_groups)
+        db.start_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."
