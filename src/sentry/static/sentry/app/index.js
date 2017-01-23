@@ -109,7 +109,7 @@ export default {
     U2fSign: require('./components/u2fsign').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
-      logging: require('./utils/logging').default,
+      logging: require('./utils/logging'),
     }
   }
 };
