@@ -119,6 +119,6 @@ class JavascriptPlugin(Plugin2):
         return False
 
     def get_event_preprocessors(self, data, **kwargs):
-        if data.get('platform') == 'javascript':
+        if data.get('platform') in ['javascript', 'node']:
             return [preprocess_event]
         return []
