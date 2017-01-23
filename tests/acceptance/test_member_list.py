@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from sentry.models import OrganizationMember
 from sentry.testutils import AcceptanceTestCase
 
 
@@ -19,6 +20,17 @@ class ListOrganizationMembersTest(AcceptanceTestCase):
             user=self.user,
             organization=self.org,
             role='owner',
+            teams=[self.team],
+        )
+        OrganizationMember.objects.create(
+            email='bar@example.com',
+            organization=self.org,
+            role='member'
+        )
+        self.create_member(
+            user=self.create_user('baz@example.com'),
+            organization=self.org,
+            role='admin',
             teams=[self.team],
         )
         self.login_as(self.user)
