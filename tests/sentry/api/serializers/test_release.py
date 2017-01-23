@@ -6,7 +6,8 @@ from django.utils import timezone
 from uuid import uuid4
 
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseProject, TagValue, Commit, CommitAuthor, ReleaseCommit
+from sentry.models import (Commit, CommitAuthor,
+    Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail,)
 from sentry.testutils import TestCase
 
 
@@ -90,3 +91,72 @@ class ReleaseSerializerTest(TestCase):
         assert result['version'] == release.version
         assert not result['firstEvent']
         assert not result['lastEvent']
+
+    def test_get_user_from_email(self):
+        user = User.objects.create(email='stebe@sentry.io')
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version=uuid4().hex,
+            new_groups=1,
+        )
+        release.add_project(project)
+        commit_author = CommitAuthor.objects.create(
+            name='stebe',
+            email='stebe@sentry.io',
+            organization_id=project.organization_id,
+        )
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='abc',
+            date_added='2016-12-14T23:37:37.166Z',
+            author=commit_author,
+            message='waddap',
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        result = serialize(release, user)
+        assert result['authors'] == [serialize(user)]
+
+    def test_get_single_user_from_email(self):
+        user = User.objects.create(email='stebe@sentry.io')
+        otheruser = User.objects.create(email='adifferentstebe@sentry.io')
+        UserEmail.objects.create(user=otheruser, email='stebe@sentry.io')
+        project = self.create_project()
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version=uuid4().hex,
+            new_groups=1,
+        )
+        release.add_project(project)
+        commit_author = CommitAuthor.objects.create(
+            name='stebe',
+            email='stebe@sentry.io',
+            organization_id=project.organization_id,
+        )
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='abc',
+            date_added='2016-12-14T23:37:37.166Z',
+            author=commit_author,
+            message='waddap',
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        result = serialize(release, user)
+        assert len(result['authors']) == 1
+        assert result['authors'] == [serialize(user)] or [serialize(user)]
