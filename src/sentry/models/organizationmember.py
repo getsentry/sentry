@@ -186,6 +186,7 @@ class OrganizationMember(Model):
     def get_avatar_type(self):
         if self.user_id:
             return self.user.get_avatar_type()
+        return 'letter_avatar'
 
     def get_audit_log_data(self):
         from sentry.models import Team
