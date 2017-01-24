@@ -104,11 +104,9 @@ const ReleaseDetails = React.createClass({
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
               </div>
-              {(new Set(this.context.organization.features)).has('release-commits') &&
               <div className="col-sm-2 hidden-xs">
                 <ReleaseStats release={release}/>
               </div>
-              }
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
                   <h6 className="nav-header">{t('New Issues')}</h6>

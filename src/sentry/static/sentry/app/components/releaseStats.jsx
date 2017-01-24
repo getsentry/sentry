@@ -18,6 +18,9 @@ const ReleaseStats = React.createClass({
     let release = this.props.release;
     let commitCount = release.commitCount;
     let authorCount = release.authors.length;
+    if (commitCount === 0) {
+      return null;
+    }
     return (
       <div className="release-info">
         <div><b>{commitCount}{t(' commits by ')}{authorCount}{t(' authors')}</b></div>
