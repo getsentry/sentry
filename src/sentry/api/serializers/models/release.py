@@ -8,7 +8,8 @@ from django.db.models import Sum
 from collections import Counter, defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, UserEmail
+from sentry.db.models.query import in_iexact
+from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User
 
 
 @register(Release)
@@ -46,16 +47,28 @@ class ReleaseSerializer(Serializer):
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
 
-        author_emails = set(rc.commit.author.email for rc in release_commits if rc.commit.author is not None)
+        org_ids = set(item.organization_id for item in item_list)
+        assert len(org_ids) == 1
+        org_id = org_ids.pop()
 
-        # TODO: Consider UserEmail models, organization filter
-        # NOTE: Possible to return multiple User objects for a single email
-        useremails = list(UserEmail.objects.filter(email__in=author_emails))
+        author_emails = set([rc.commit.author.email for rc in release_commits if rc.commit.author is not None])
+
+        # Filter users based on the emails provided in the commits
+        # Filter those belonging to the organization associated with the release
+        users = User.objects.filter(
+            in_iexact('emails__email', author_emails),
+            sentry_orgmember_set__organization_id=org_id
+        ).select_related('emails').distinct()
+
+        # Which email resulted in this user?
+        # NOTE: If two users have same secondary email, only
+        #       one will be credited as the author in UI
         users_by_email = {}
-        for useremail in useremails:
-            # Duplicates will clobber existing record in dict
-            users_by_email[useremail.email] = serialize(useremail.user)
-
+        for user in users:
+            serialized_user = serialize(user)
+            for email in user.emails.all():
+                users_by_email[email.email] = serialized_user
+        print users_by_email
         for rc in release_commits:
             # Count commits per release
             commit_count_by_release_id[rc.release_id] += 1

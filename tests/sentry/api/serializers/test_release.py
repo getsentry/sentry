@@ -86,6 +86,26 @@ class ReleaseSerializerTest(TestCase):
             version=uuid4().hex,
         )
         release.add_project(project)
+        commit_author = CommitAuthor.objects.create(
+            name='stebe',
+            email='stebe@sentry.io',
+            organization_id=project.organization_id,
+        )
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='abc',
+            date_added='2016-12-14T23:37:37.166Z',
+            author=commit_author,
+            message='waddap',
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
 
         result = serialize(release, user)
         assert result['version'] == release.version
@@ -94,7 +114,9 @@ class ReleaseSerializerTest(TestCase):
 
     def test_get_user_from_email(self):
         user = User.objects.create(email='stebe@sentry.io')
+        UserEmail.get_primary_email(user=user)
         project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
             organization_id=project.organization_id,
             version=uuid4().hex,
@@ -130,6 +152,7 @@ class ReleaseSerializerTest(TestCase):
         otheruser = User.objects.create(email='adifferentstebe@sentry.io')
         UserEmail.objects.create(user=otheruser, email='stebe@sentry.io')
         project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
         release = Release.objects.create(
             organization_id=project.organization_id,
             version=uuid4().hex,
@@ -159,4 +182,4 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user)
         assert len(result['authors']) == 1
-        assert result['authors'] == [serialize(user)] or [serialize(user)]
+        assert result['authors'] == [serialize(user)] or [serialize(otheruser)]
