@@ -167,7 +167,7 @@ class OrganizationIndexEndpoint(Endpoint):
         limit = options.get('api.rate-limit.org-create')
         if limit and ratelimiter.is_limited(
             u'org-create:{}'.format(request.user.id),
-            limit=5, window=3600,
+            limit=limit, window=3600,
         ):
             return Response({
                 'detail': 'You are attempting to create too many organizations too quickly.'
