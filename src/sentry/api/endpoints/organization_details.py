@@ -9,12 +9,14 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializer
 )
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationOption, OrganizationStatus
+    AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption,
+    OrganizationStatus
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -53,6 +55,11 @@ class OrganizationSerializer(serializers.ModelSerializer):
     projectRateLimit = serializers.IntegerField(min_value=50, max_value=100)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
+    avatar = AvatarField()
+    avatarType = serializers.ChoiceField(choices=(
+        ('upload', 'upload'),
+        ('letter_avatar', 'letter_avatar'),
+    ))
 
     class Meta:
         model = Organization
@@ -62,6 +69,19 @@ class OrganizationSerializer(serializers.ModelSerializer):
         value = attrs[source]
         if Organization.objects.filter(slug=value).exclude(id=self.object.id):
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
+        return attrs
+
+    def validate(self, attrs):
+        attrs = super(OrganizationSerializer, self).validate(attrs)
+        if attrs.get('avatarType') == 'upload':
+            has_existing_file = OrganizationAvatar.objects.filter(
+                organization=self.object,
+                file__isnull=True,
+            ).exists()
+            if not has_existing_file and not attrs.get('avatar'):
+                raise serializers.ValidationError({
+                    'avatarType': 'Cannot set avatarType to upload without avatar',
+                })
         return attrs
 
     def save(self):
@@ -79,6 +99,13 @@ class OrganizationSerializer(serializers.ModelSerializer):
                 organization=self.object,
                 key='sentry:account-rate-limit',
                 value=int(self.init_data['accountRateLimit']),
+            )
+        if 'avatar' or 'avatarType' in self.init_data:
+            OrganizationAvatar.save_avatar(
+                relation={'organization': self.object},
+                type=self.init_data.get('avatarType', 'upload'),
+                avatar=self.init_data.get('avatar'),
+                filename='{}.png'.format(self.object.slug),
             )
         return rv
 

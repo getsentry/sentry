@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-import uuid
-
-from django.db import models
+from django.db import models, transaction
 from PIL import Image
 from six import BytesIO
+from uuid import uuid4
 
 from sentry.db.models import FlexibleForeignKey, Model
 from sentry.utils.cache import cache
@@ -19,6 +18,8 @@ class AvatarBase(Model):
 
     ALLOWED_SIZES = (20, 32, 48, 52, 64, 80, 96, 120)
 
+    FILE_TYPE = None
+
     file = FlexibleForeignKey('sentry.File', unique=True, null=True, on_delete=models.SET_NULL)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
@@ -27,7 +28,7 @@ class AvatarBase(Model):
 
     def save(self, *args, **kwargs):
         if not self.ident:
-            self.ident = uuid.uuid4().hex
+            self.ident = uuid4().hex
         return super(AvatarBase, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
@@ -57,3 +58,36 @@ class AvatarBase(Model):
                 photo = image_file.getvalue()
                 cache.set(cache_key, photo)
         return photo
+
+    def save_avatar(self, relation, type, avatar=None, filename=None):
+        from sentry.models import File
+
+        if avatar:
+            photo = File.objects.create(
+                name=filename,
+                type=self.FILE_TYPE,
+            )
+            photo.putfile(BytesIO(avatar))
+        else:
+            photo = None
+
+        with transaction.atomic():
+            instance, created = self.objects.get_or_create(**relation)
+            if instance.file and photo:
+                instance.file.delete()
+
+            if photo:
+                instance.file = photo
+                instance.ident = uuid4().hex
+
+            instance.avatar_type = [
+                i for i, n in self.AVATAR_TYPES
+                if n == type
+            ][0]
+
+            instance.save()
+
+        if photo and not created:
+            instance.clear_cached_photos()
+
+        return instance
