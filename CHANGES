@@ -8,12 +8,14 @@ Version 8.14 (Unreleased)
 - Removed instruction_offset as a frame attribute from stacktraces
 - [BREAKING] Quotas must now instantiate RateLimited and NotRateLimited return values.
 - [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
+- Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added unique index on ``Release(organization_id, version)``
 - Removed unique index on ``Release(project_id, version)``
+- Added ``GroupCommitResolution`` model.
 
 Version 8.13
 ------------
