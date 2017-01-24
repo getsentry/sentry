@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import math
 import random
+import struct
 
 
 def scale_to_total(value):
@@ -39,6 +40,23 @@ def get_similarity(target, other):
             zip(target, other)
         )
     ) / len(target)
+
+
+formatters = sorted([
+    (2 ** 8 - 1, struct.Struct('>B').pack),
+    (2 ** 16 - 1, struct.Struct('>H').pack),
+    (2 ** 32 - 1, struct.Struct('>L').pack),
+    (2 ** 64 - 1, struct.Struct('>Q').pack),
+    (float('inf'), b'{}'.format),
+])
+
+
+def get_number_formatter(size):
+    for maximum, formatter in formatters:
+        if maximum >= size:
+            return formatter
+
+    raise ValueError('No registered formatter can handle the provided value.')
 
 
 class MinHashIndex(object):
@@ -90,9 +108,11 @@ class MinHashIndex(object):
             for _ in xrange(bands)
         ]
 
+        self.__bucket_formatter = get_number_formatter(rows)
+
     def __format_buckets(self, bucket):
-        return b','.join(
-            map(b'{}'.format, bucket)
+        return b''.join(
+            map(self.__bucket_formatter, bucket)
         )
 
     def get_signature(self, value):

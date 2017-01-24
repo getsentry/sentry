@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from sentry.similarity import MinHashIndex, get_distance, get_similarity, scale_to_total
+from sentry.similarity import MinHashIndex, get_distance, get_number_formatter, get_similarity, scale_to_total
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
@@ -84,6 +84,20 @@ def test_scale_to_total():
         'a': 0.5,
         'b': 0.5,
     }
+
+
+def test_get_number_formatter():
+    assert get_number_formatter(0xFF)(0xFF) == '\xff'
+    assert get_number_formatter(0xFF + 1)(0xFF) == '\x00\xff'
+
+    assert get_number_formatter(0xFFFF)(0xFFFF) == '\xff\xff'
+    assert get_number_formatter(0xFFFF + 1)(0xFFFF) == '\x00\x00\xff\xff'
+
+    assert get_number_formatter(0xFFFFFFFF)(0xFFFFFFFF) == '\xff\xff\xff\xff'
+    assert get_number_formatter(0xFFFFFFFF + 1)(0xFFFFFFFF) == '\x00\x00\x00\x00\xff\xff\xff\xff'
+
+    assert get_number_formatter(0xFFFFFFFFFFFFFFFF)(0xFFFFFFFFFFFFFFFF) == '\xff\xff\xff\xff\xff\xff\xff\xff'
+    assert get_number_formatter(0xFFFFFFFFFFFFFFFF + 1)(0xFFFFFFFFFFFFFFFF) == '18446744073709551615'
 
 
 class MinHashIndexTestCase(TestCase):
