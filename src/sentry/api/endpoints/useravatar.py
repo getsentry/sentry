@@ -23,7 +23,7 @@ class UserAvatarSerializer(serializers.Serializer):
         if attrs.get('avatar_type') == 'upload':
             has_existing_file = UserAvatar.objects.filter(
                 user=self.context['user'],
-                file__isnull=True,
+                file__isnull=False,
             ).exists()
             if not has_existing_file and not attrs.get('avatar_photo'):
                 raise serializers.ValidationError({

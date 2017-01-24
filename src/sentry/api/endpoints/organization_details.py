@@ -76,7 +76,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         if attrs.get('avatarType') == 'upload':
             has_existing_file = OrganizationAvatar.objects.filter(
                 organization=self.object,
-                file__isnull=True,
+                file__isnull=False,
             ).exists()
             if not has_existing_file and not attrs.get('avatar'):
                 raise serializers.ValidationError({

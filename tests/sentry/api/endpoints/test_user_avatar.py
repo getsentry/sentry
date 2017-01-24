@@ -40,6 +40,7 @@ class UserAvatarTest(APITestCase):
 
     def test_put_bad(self):
         user = self.create_user(email='a@example.com')
+        UserAvatar.objects.create(user=user)
 
         self.login_as(user=user)
 

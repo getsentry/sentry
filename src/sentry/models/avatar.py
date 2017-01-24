@@ -59,20 +59,22 @@ class AvatarBase(Model):
                 cache.set(cache_key, photo)
         return photo
 
-    def save_avatar(self, relation, type, avatar=None, filename=None):
+    @classmethod
+    def save_avatar(cls, relation, type, avatar=None, filename=None):
         from sentry.models import File
 
         if avatar:
-            photo = File.objects.create(
-                name=filename,
-                type=self.FILE_TYPE,
-            )
-            photo.putfile(BytesIO(avatar))
+            with transaction.atomic():
+                photo = File.objects.create(
+                    name=filename,
+                    type=cls.FILE_TYPE,
+                )
+                photo.putfile(BytesIO(avatar))
         else:
             photo = None
 
         with transaction.atomic():
-            instance, created = self.objects.get_or_create(**relation)
+            instance, created = cls.objects.get_or_create(**relation)
             if instance.file and photo:
                 instance.file.delete()
 
@@ -81,7 +83,7 @@ class AvatarBase(Model):
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [
-                i for i, n in self.AVATAR_TYPES
+                i for i, n in cls.AVATAR_TYPES
                 if n == type
             ][0]
 
