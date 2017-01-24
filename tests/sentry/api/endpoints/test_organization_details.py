@@ -74,8 +74,8 @@ class OrganizationUpdateTest(APITestCase):
             'organization_slug': org.slug,
         })
         response = self.client.put(url, data={
-            'avatar_type': 'upload',
-            'avatar_photo': b64encode(self.load_fixture('avatar.jpg')),
+            'avatarType': 'upload',
+            'avatar': b64encode(self.load_fixture('avatar.jpg')),
         }, format='json')
 
         avatar = OrganizationAvatar.objects.get(

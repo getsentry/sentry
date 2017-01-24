@@ -18,6 +18,8 @@ class AvatarField(serializers.WritableField):
                  **kwargs):
         super(AvatarField, self).__init__(**kwargs)
         self.max_size = max_size
+        self.min_dimension = min_dimension
+        self.max_dimension = max_dimension
 
     def to_native(self, obj):
         return ''
