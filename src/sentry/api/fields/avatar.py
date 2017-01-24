@@ -22,7 +22,9 @@ class AvatarField(serializers.WritableField):
         self.max_dimension = max_dimension
 
     def to_native(self, obj):
-        return ''
+        if not obj:
+            return ''
+        return obj.getvalue()
 
     def from_native(self, data):
         data = b64decode(data)
@@ -38,9 +40,6 @@ class AvatarField(serializers.WritableField):
             raise APIException('Invalid image format.', status_code=400)
 
         return BytesIO(data)
-        # file_name = '%s.png' % user.id
-        # photo = File.objects.create(name=file_name, type=self.FILE_TYPE)
-        # photo.putfile(BytesIO(photo_string))
 
     def is_valid_size(self, width, height):
         if width != height:

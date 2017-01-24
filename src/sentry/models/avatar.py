@@ -16,7 +16,7 @@ class AvatarBase(Model):
     """
     __core__ = False
 
-    ALLOWED_SIZES = (20, 32, 48, 52, 64, 80, 96, 120)
+    ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 
     FILE_TYPE = None
 
