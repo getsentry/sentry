@@ -47,7 +47,6 @@ formatters = sorted([
     (2 ** 16 - 1, struct.Struct('>H').pack),
     (2 ** 32 - 1, struct.Struct('>L').pack),
     (2 ** 64 - 1, struct.Struct('>Q').pack),
-    (float('inf'), b'{}'.format),
 ])
 
 

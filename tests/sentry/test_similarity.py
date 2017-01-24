@@ -97,7 +97,9 @@ def test_get_number_formatter():
     assert get_number_formatter(0xFFFFFFFF + 1)(0xFFFFFFFF) == '\x00\x00\x00\x00\xff\xff\xff\xff'
 
     assert get_number_formatter(0xFFFFFFFFFFFFFFFF)(0xFFFFFFFFFFFFFFFF) == '\xff\xff\xff\xff\xff\xff\xff\xff'
-    assert get_number_formatter(0xFFFFFFFFFFFFFFFF + 1)(0xFFFFFFFFFFFFFFFF) == '18446744073709551615'
+
+    with pytest.raises(ValueError):
+        assert get_number_formatter(0xFFFFFFFFFFFFFFFF + 1)
 
 
 class MinHashIndexTestCase(TestCase):
