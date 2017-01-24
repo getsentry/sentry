@@ -91,7 +91,7 @@ if securityMatches.any?
 end
 
 # Make it more obvious that a PR is a work in progress and shouldn"t be merged yet
-warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]"
+warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]" || github.pr_body.include?("#wip")
 
 # Warn when there is a big PR
 warn("Big PR -- consider splitting it up into multiple changesets") if git.lines_of_code > @S_BIG_PR_LINES

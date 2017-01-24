@@ -29,6 +29,7 @@ from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
 )
+from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
@@ -676,6 +677,25 @@ class ClientApiHelper(object):
         self._check_value_length(data, 'release')
         self._check_value_length(data, 'build_number')
         self._check_value_length(data, 'environment')
+
+        if data.get('time_spent'):
+            try:
+                data['time_spent'] = int(data['time_spent'])
+            except (ValueError, TypeError):
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'time_spent',
+                    'value': data['time_spent'],
+                })
+                del data['time_spent']
+            else:
+                if data['time_spent'] > BoundedIntegerField.MAX_VALUE:
+                    data['errors'].append({
+                        'type': EventError.VALUE_TOO_LONG,
+                        'name': 'time_spent',
+                        'value': data['time_spent'],
+                    })
+                    del data['time_spent']
 
         return data
 

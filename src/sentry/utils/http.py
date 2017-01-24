@@ -159,15 +159,14 @@ def is_valid_origin(origin, project=None, allowed=None):
 
     parsed = urlparse(origin)
 
-    # There is no hostname, so the header is probably invalid
     if parsed.hostname is None:
-        return False
-
-    try:
-        parsed_hostname = parsed.hostname.encode('idna')
-    except UnicodeError:
-        # We sometimes shove in some garbage input here, so just opting to ignore and carry on
-        parsed_hostname = parsed.hostname
+        parsed_hostname = ''
+    else:
+        try:
+            parsed_hostname = parsed.hostname.encode('idna')
+        except UnicodeError:
+            # We sometimes shove in some garbage input here, so just opting to ignore and carry on
+            parsed_hostname = parsed.hostname
 
     if parsed.port:
         domain_matches = (

@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load sentry_api %}
+{% load sentry_avatars %}
 {% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
@@ -43,8 +44,8 @@
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
-    for (var n in window.exports) {
-      window[n] = window.exports[n];
+    for (var n in window.exports.default) {
+      window[n] = window.exports.default[n];
     }
     window.$ = window.jQuery;
 
@@ -115,12 +116,7 @@
           <div class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
               <span class="avatar">
-                {% letter_avatar_svg request.user.get_display_name request.user.get_label %}
-                {% if request.user.get_avatar_type == 'upload' %}
-                  <img src="{% profile_photo_url request.user.id size 72 %}">
-                {% elif request.user.get_avatar_type == 'gravatar' %}
-                  <img src="{% gravatar_url user.email size 72 default 'blank' %}">
-                {% endif %}
+                {% avatar request.user %}
               </span>
               <i class="icon-arrow-down"></i>
             </a>

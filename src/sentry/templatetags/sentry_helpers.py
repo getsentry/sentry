@@ -16,28 +16,24 @@ import pytz
 import six
 from django import template
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.template.defaultfilters import stringfilter
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from pkg_resources import parse_version as Version
-from templatetag_sugar.parser import Constant, Name, Optional, Variable
+from templatetag_sugar.parser import Constant, Name, Variable
 from templatetag_sugar.register import tag
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
-from sentry.models import Organization, UserAvatar
+from sentry.models import Organization
 from sentry.utils import json
-from sentry.utils.avatar import (
-    get_email_avatar, get_gravatar_url, get_letter_avatar
-)
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
 from six.moves import range
-from six.moves.urllib.parse import quote, urlencode
+from six.moves.urllib.parse import quote
 
 SentryVersion = namedtuple('SentryVersion', [
     'current', 'latest', 'update_available', 'build',
@@ -74,6 +70,11 @@ def absolute_uri(path='', *args):
 def system_origin():
     from sentry.utils.http import absolute_uri, origin_from_url
     return origin_from_url(absolute_uri())
+
+
+@register.simple_tag
+def security_contact():
+    return options.get('system.security-email') or options.get('system.admin-email')
 
 
 @register.filter
@@ -250,46 +251,6 @@ def get_project_dsn(context, user, project, asvar):
         context[asvar] = key.get_dsn()
 
     return ''
-
-
-# Adapted from http://en.gravatar.com/site/implement/images/django/
-# The "mm" default is for the grey, "mystery man" icon. See:
-#   http://en.gravatar.com/site/implement/images/
-@tag(register, [Variable('email'),
-                Optional([Constant('size'), Variable('size')]),
-                Optional([Constant('default'), Variable('default')])])
-def gravatar_url(context, email, size=None, default='mm'):
-    return get_gravatar_url(email, size, default)
-
-
-@tag(register, [Variable('display_name'),
-                Variable('identifier'),
-                Optional([Constant('size'), Variable('size')])])
-def letter_avatar_svg(context, display_name, identifier, size=None):
-    return get_letter_avatar(display_name, identifier, size=size)
-
-
-@tag(register, [Variable('user_id'),
-                Optional([Constant('size'), Variable('size')])])
-def profile_photo_url(context, user_id, size=None):
-    try:
-        avatar = UserAvatar.objects.get(user__id=user_id)
-    except UserAvatar.DoesNotExist:
-        return
-    url = reverse('sentry-user-avatar-url', args=[avatar.ident])
-    if size:
-        url += '?' + urlencode({'s': size})
-    return settings.SENTRY_URL_PREFIX + url
-
-
-# Don't use this in any situations where you're rendering more
-# than 1-2 avatars. It will make a request for every user!
-@tag(register, [Variable('display_name'),
-                Variable('identifier'),
-                Optional([Constant('size'), Variable('size')]),
-                Optional([Constant('try_gravatar'), Variable('try_gravatar')])])
-def email_avatar(context, display_name, identifier, size=None, try_gravatar=True):
-    return get_email_avatar(display_name, identifier, size, try_gravatar)
 
 
 @register.filter

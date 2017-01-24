@@ -16,7 +16,7 @@ default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
-default_manager.add('workflow:release-emails')
+default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
 
 # expose public api
