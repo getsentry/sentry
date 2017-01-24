@@ -9,44 +9,60 @@ from collections import Counter, defaultdict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
-from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User
+from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail
 
 
 @register(Release)
 class ReleaseSerializer(Serializer):
     def _get_users_for_commits(self, release_commits, org_id):
         """
-        Returns a dictionary of author_email => user, if a Sentry
+        Returns a dictionary of author_id => user, if a Sentry
         user object exists for that email. If there is no matching
-        user, no key/value pair in the dictionary is made.
+        Sentry user, a {user, email} dict representation of that
+        author is returned.
 
         e.g.
         {
-            'jane@example.com': <User id=1>,
+            1: serialized(<User id=1>),
+            2: {email: 'not-a-user@example.com', name: 'dunno'},
             ...
         }
         """
-        author_emails = {rc.commit.author.email for rc in release_commits if rc.commit.author is not None}
-        if not len(author_emails):
+        authors = set(rc.commit.author for rc in release_commits if rc.commit.author is not None)
+        if not len(authors):
             return {}
 
         # Filter users based on the emails provided in the commits
-        # Filter those belonging to the organization associated with the release
-        users = User.objects.filter(
-            in_iexact('emails__email', author_emails),
-            sentry_orgmember_set__organization_id=org_id
-        ).distinct()
+        user_emails = UserEmail.objects.filter(
+            in_iexact('email', [a.email for a in authors]),
+        )
 
-        # Which email resulted in this user?
-        # NOTE: If two users have same secondary email, only
-        #       one will be credited as the author in UI
-        # TODO: fix 'emails.all()' subquery in loop
+        # Filter users belonging to the organization associated with
+        # the release
+        users = User.objects.filter(
+            id__in=[ue.user_id for ue in user_emails],
+            sentry_orgmember_set__organization_id=org_id
+        )
+        users_by_id = dict((user.id, serialize(user)) for user in users)
+
+        # Figure out which email address matches to a user
         users_by_email = {}
-        for user in users:
-            serialized_user = serialize(user)
-            for email in user.emails.all():
-                users_by_email[email.email] = serialized_user
-        return users_by_email
+        for user_email in user_emails:
+            if user_email.email in users_by_email:
+                pass
+
+            user = users_by_id.get(user_email.user_id)
+            if user:
+                users_by_email[user_email.email] = user
+
+        author_objs = {}
+        for author in authors:
+            author_objs[author.id] = users_by_email.get(author.email, {
+                "name": author.name,
+                "email": author.email
+            })
+
+        return author_objs
 
     def _get_commit_metadata(self, item_list, user):
         """
@@ -83,23 +99,13 @@ class ReleaseSerializer(Serializer):
 
         for rc in release_commits:
             # Accumulate authors per release
-            release_authors = authors_by_release_id[rc.release_id]
+            author = rc.commit.author
+            if author:
+                authors_by_release_id[rc.release_id][author.id] = \
+                    users_by_email[author.id]
 
             # Increment commit count per release
             commit_count_by_release_id[rc.release_id] += 1
-
-            if rc.commit.author and \
-               rc.commit.author_id not in release_authors:
-
-                author = rc.commit.author
-                if author.email in users_by_email:
-                    # Author has a matching Sentry user
-                    release_authors[author.id] = users_by_email[author.email]
-                else:
-                    release_authors[author.id] = {
-                        "name": author.name,
-                        "email": author.email
-                    }
 
         result = {}
         for item in item_list:
