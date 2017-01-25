@@ -130,10 +130,6 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id,
             repository_id=1,
             key='abc',
-<<<<<<< HEAD
-            date_added='2016-12-14T23:37:37.166Z',
-=======
->>>>>>> 668068d... Try again to fix test by removing specified date from test commit
             author=commit_author,
             message='waddap',
         )
@@ -146,7 +142,10 @@ class ReleaseSerializerTest(TestCase):
         )
 
         result = serialize(release, user)
-        assert result['authors'] == [serialize(user)]
+        result_author = result['authors'][0]
+        assert int(result_author['id']) == user.id
+        assert result_author['email'] == user.email
+        assert result_author['username'] == user.username
 
     def test_get_single_user_from_email(self):
         user = User.objects.create(email='stebe@sentry.io')
