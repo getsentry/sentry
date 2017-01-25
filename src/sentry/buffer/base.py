@@ -7,6 +7,7 @@ sentry.buffer.base
 """
 from __future__ import absolute_import
 
+import json
 import logging
 import six
 
@@ -70,6 +71,8 @@ class Buffer(object):
         return sql, filter_vals
 
     def get_update_sql_and_vals(self, model, columns, filters, extra=None):
+        from sentry.event_manager import ScoreClause
+
         update_strings = []
         update_values = []
         for col, val in six.iteritems(columns):
@@ -77,8 +80,13 @@ class Buffer(object):
             update_values.append(val)
         if extra:
             for k, v in six.iteritems(extra):
-                update_strings.append('%s = %s' % (k, '%s'))
-                update_values.append(v)
+                if isinstance(v, ScoreClause):
+                    update_strings.append('%s = %s' % (k, v.get_sql()))
+                else:
+                    update_strings.append('%s = %s' % (k, '%s'))
+                    if isinstance(v, dict) or isinstance(v, list):
+                        v = json.dumps(v)
+                    update_values.append(v)
 
         where_clause, where_vals = self.get_where_clause_and_values(filters)
         sql = 'UPDATE %s SET %s %s' % (model._meta.db_table,
