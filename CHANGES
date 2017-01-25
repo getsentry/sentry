@@ -11,6 +11,9 @@ Version 8.13 (Unreleased)
 - Add memory and storage information for apple devices
 - The legacy API keys feature is now disabled by default.
 - Show Images Loaded section for cocoa events with version number.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
+- Disallow duplicating primary emails for users moving forward
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -64,9 +67,6 @@ Version 8.11
 - Added additional detail to subscription help text when viewing a group.
 - Add Asana to supported auth backends in social auth (for plugins)
 - Cleaner install UI when creating a new project.
-- Simplified management of secondary email addresses.
-- Fixed an issue where changing primary email address would remove the pre-existing verified email.
-- Disallow duplicating primary emails for users moving forward
 - Added support for recording symbols separately in frames independent of the function.
 - Reduce noisy Postgres logs from inserting duplicate onboarding rows.
 - Added device icons for Apple Watch and Apple TV
