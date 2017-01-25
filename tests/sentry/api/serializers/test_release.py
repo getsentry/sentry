@@ -94,10 +94,6 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id,
             repository_id=1,
             key='abc',
-<<<<<<< HEAD
-            date_added='2016-12-14T23:37:37.166Z',
-=======
->>>>>>> 1e99fa9... Don't specify date at all in test commit
             author=commit_author,
             message='waddap',
         )
@@ -134,7 +130,10 @@ class ReleaseSerializerTest(TestCase):
             organization_id=project.organization_id,
             repository_id=1,
             key='abc',
+<<<<<<< HEAD
             date_added='2016-12-14T23:37:37.166Z',
+=======
+>>>>>>> 668068d... Try again to fix test by removing specified date from test commit
             author=commit_author,
             message='waddap',
         )
