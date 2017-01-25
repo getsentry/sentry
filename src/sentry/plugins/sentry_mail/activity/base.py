@@ -25,7 +25,7 @@ class ActivityEmail(object):
     def _get_subject_prefix(self):
         prefix = ProjectOption.objects.get_value(
             project=self.project,
-            key='subject_prefix',
+            key='mail:subject_prefix',
         )
         if not prefix:
             prefix = options.get('mail.subject-prefix')
@@ -109,6 +109,12 @@ class ActivityEmail(object):
             group.get_level_display().upper(),
             group.title
         )
+
+    def get_subject_with_prefix(self):
+        return u'{}{}'.format(
+            self._get_subject_prefix(),
+            self.get_subject(),
+        ).encode('utf-8')
 
     def get_context(self):
         description = self.get_description()
@@ -239,12 +245,6 @@ class ActivityEmail(object):
         context = self.get_base_context()
         context.update(self.get_context())
 
-        subject_prefix = self._get_subject_prefix()
-
-        subject = (u'{}{}'.format(
-            subject_prefix,
-            self.get_subject(),
-        )).encode('utf-8')
         template = self.get_template()
         html_template = self.get_html_template()
         email_type = self.get_email_type()
@@ -265,7 +265,7 @@ class ActivityEmail(object):
                 })
 
             msg = MessageBuilder(
-                subject=subject,
+                subject=self.get_subject_with_prefix(),
                 template=template,
                 html_template=html_template,
                 headers=headers,

@@ -395,3 +395,18 @@ class ActivityEmailTestCase(TestCase):
         )
 
         assert set(email.get_participants()) == set([user])
+
+    def test_get_subject(self):
+        group, (user,) = self.get_fixture_data(1)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+            )
+        )
+
+        with mock.patch('sentry.models.ProjectOption.objects.get_value') as get_value:
+            get_value.side_effect = lambda project, key, default=None: \
+                "[Example prefix] " if key == "mail:subject_prefix" else default
+            assert email.get_subject_with_prefix().startswith('[Example prefix] ')
