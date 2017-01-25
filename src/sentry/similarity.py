@@ -51,6 +51,10 @@ formatters = sorted([
 
 
 def get_number_formatter(size):
+    """\
+    Returns a function that packs a number no larger than the provided size
+    into to an efficient binary representation.
+    """
     for maximum, formatter in formatters:
         if maximum >= size:
             return formatter
@@ -59,7 +63,7 @@ def get_number_formatter(size):
 
 
 class MinHashIndex(object):
-    """
+    """\
     Implements an index that can be used to efficiently search for items that
     share similar characteristics.
 
@@ -212,13 +216,10 @@ class MinHashIndex(object):
             key=lambda (key, similarity): (similarity * -1, key),
         )
 
-    def record(self, scope, key, value):
-        """
-        Records the observation of the value as part of the group represented
-        by the provided key.
-        """
+    def record(self, scope, key, characteristics):
+        """Records the presence of a set of characteristics within a group."""
         with self.cluster.map() as client:
-            for band, buckets in enumerate(self.get_signature(value)):
+            for band, buckets in enumerate(self.get_signature(characteristics)):
                 buckets = self.__format_buckets(buckets)
                 client.sadd(
                     b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
