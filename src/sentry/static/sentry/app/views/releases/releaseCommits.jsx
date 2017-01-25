@@ -4,6 +4,20 @@ import LoadingError from '../../components/loadingError';
 
 import ApiMixin from '../../mixins/apiMixin';
 
+const ReleaseCommit = React.createClass({
+  render() {
+    return (
+      <li className="list-group-item" key={this.props.commitId}>
+        <div className="row">
+          <div className="col-sm-2 col-xs-2"><strong>{this.props.shortId}</strong></div>
+          <div className="col-sm-7 col-xs-7">{this.props.commitMessage}</div>
+          <div className="col-sm-3 col-xs-3 align-right actions">{this.props.commitDateCreated}</div>
+        </div>
+      </li>
+    );
+  }
+});
+
 const ReleaseCommits = React.createClass({
   mixins: [ApiMixin],
 
@@ -48,26 +62,27 @@ const ReleaseCommits = React.createClass({
 
     let {commitList} = this.state;
     return (
-      <div>
-        <div className="release-group-header">
+      <div className="panel panel-default">
+        <div className="panel-heading">
           <div className="row">
             <div className="col-sm-2 col-xs-2">{'SHA'}</div>
             <div className="col-sm-7 col-xs-7">{'Message'}</div>
             <div className="col-sm-3 col-xs-3 align-right">{'Date'}</div>
           </div>
         </div>
-        <div className="release-list">
+        <ul className="list-group commit-list">
           {commitList.map(commit => {
             let shortId = commit.id.slice(0, 7);
             return (
-              <div className="release release-artifact row" key={commit.id}>
-                <div className="col-sm-2 col-xs-2"><strong>{shortId}</strong></div>
-                <div className="col-sm-7 col-xs-7">{commit.message}</div>
-                <div className="col-sm-3 col-xs-3 align-right actions">{commit.dateCreated}</div>
-              </div>
+              <ReleaseCommit
+                commitId={commit.id}
+                shortId={shortId}
+                commitMessage={commit.message}
+                commitDateCreated={commit.dateCreated}
+                />
             );
           })}
-        </div>
+        </ul>
       </div>
     );
   }
