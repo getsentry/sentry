@@ -29,19 +29,6 @@ def get_distance(target, other):
     )
 
 
-def get_similarity(target, other):
-    assert len(target) == len(other)
-    return 1 - sum(
-        map(
-            lambda (left, right): get_distance(
-                left,
-                right,
-            ) / math.sqrt(2),
-            zip(target, other)
-        )
-    ) / len(target)
-
-
 formatters = sorted([
     (2 ** 8 - 1, struct.Struct('>B').pack),
     (2 ** 16 - 1, struct.Struct('>H').pack),
@@ -55,6 +42,8 @@ def get_number_formatter(size):
     Returns a function that packs a number no larger than the provided size
     into to an efficient binary representation.
     """
+    assert size > 0
+
     for maximum, formatter in formatters:
         if maximum >= size:
             return formatter
@@ -119,7 +108,7 @@ class MinHashIndex(object):
         )
 
     def get_signature(self, value):
-        """Generate a MinHash signature for a value."""
+        """Generate a minhash signature for a value."""
         columns = set(hash(token) % self.rows for token in value)
         return map(
             lambda band: map(
@@ -128,6 +117,27 @@ class MinHashIndex(object):
             ),
             self.bands,
         )
+
+    def get_similarity(self, target, other):
+        """\
+        Calculate the degree of similarity between two bucket frequency
+        sequences which represent two different keys.
+
+        This is mainly an implementation detail for sorting query results, but
+        is exposed publically for testing. This method assumes all input
+        values have already been normalized using ``scale_to_total``.
+        """
+        assert len(target) == len(other)
+        assert len(target) == len(self.bands)
+        return 1 - sum(
+            map(
+                lambda (left, right): get_distance(
+                    left,
+                    right,
+                ) / math.sqrt(2),
+                zip(target, other)
+            )
+        ) / len(target)
 
     def query(self, scope, key):
         """\
@@ -209,7 +219,10 @@ class MinHashIndex(object):
             map(
                 lambda (key, candidate_frequencies): (
                     key,
-                    get_similarity(target_frequencies, candidate_frequencies),
+                    self.get_similarity(
+                        target_frequencies,
+                        candidate_frequencies,
+                    ),
                 ),
                 fetch_bucket_frequencies(candidates).items(),
             ),

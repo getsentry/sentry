@@ -4,7 +4,7 @@ import math
 
 import pytest
 
-from sentry.similarity import MinHashIndex, get_distance, get_number_formatter, get_similarity, scale_to_total
+from sentry.similarity import MinHashIndex, get_distance, get_number_formatter, scale_to_total
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
@@ -29,12 +29,9 @@ def test_get_distance():
 
 
 def test_get_similarity():
-    assert get_similarity(
-        [{'a': 1}],
-        [{'a': 1}],
-    ) == 1.0
+    index = MinHashIndex(None, 0xFFFF, 2, 1)
 
-    assert get_similarity(
+    assert index.get_similarity(
         [
             {'a': 1},
             {'a': 1},
@@ -45,7 +42,7 @@ def test_get_similarity():
         ],
     ) == 1.0
 
-    assert get_similarity(
+    assert index.get_similarity(
         [
             {'a': 1},
             {'a': 1},
@@ -56,7 +53,7 @@ def test_get_similarity():
         ],
     ) == 0
 
-    assert get_similarity(
+    assert index.get_similarity(
         [
             {'a': 1},
             {'b': 1},
@@ -68,7 +65,13 @@ def test_get_similarity():
     ) == 0.5
 
     with pytest.raises(AssertionError):
-        assert get_similarity(
+        assert index.get_similarity(
+            range(10),
+            range(10),
+        )
+
+    with pytest.raises(AssertionError):
+        assert index.get_similarity(
             range(1),
             range(10),
         )
