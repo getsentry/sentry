@@ -245,11 +245,20 @@ class Frame(Interface):
     def to_python(cls, data):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
+        symbol = data.get('symbol')
         function = data.get('function')
         module = data.get('module')
         package = data.get('package')
 
-        for name in ('abs_path', 'filename', 'function', 'module',
+        # For legacy reasons
+        if function == '?':
+            function = None
+
+        # For consistency reasons
+        if symbol == '?':
+            symbol = None
+
+        for name in ('abs_path', 'filename', 'symbol', 'function', 'module',
                      'package'):
             v = data.get(name)
             if v is not None and not isinstance(v, six.string_types):
@@ -272,10 +281,8 @@ class Frame(Interface):
                 filename = abs_path
 
         if not (filename or function or module or package):
-            raise InterfaceValidationError("No 'filename' or 'function' or 'module' or 'package'")
-
-        if function == '?':
-            function = None
+            raise InterfaceValidationError("No 'filename' or 'function' or "
+                                           "'module' or 'package'")
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
@@ -318,13 +325,14 @@ class Frame(Interface):
             raise InterfaceValidationError("Invalid value for 'instruction_offset'")
 
         kwargs = {
-            'abs_path': trim(abs_path, 256),
+            'abs_path': trim(abs_path, 2048),
             'filename': trim(filename, 256),
             'platform': platform,
             'module': trim(module, 256),
             'function': trim(function, 256),
             'package': package,
             'image_addr': to_hex_addr(data.get('image_addr')),
+            'symbol': trim(symbol, 256),
             'symbol_addr': to_hex_addr(data.get('symbol_addr')),
             'instruction_addr': to_hex_addr(data.get('instruction_addr')),
             'instruction_offset': instruction_offset,
@@ -394,6 +402,8 @@ class Frame(Interface):
             # (likely due to a bad JavaScript error) we should just
             # bail on recording this frame
             return output
+        elif self.symbol:
+            output.append(self.symbol)
         elif self.function:
             if self.is_unhashable_function():
                 output.append('<function>')
@@ -414,6 +424,7 @@ class Frame(Interface):
             'instructionOffset': self.instruction_offset,
             'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
+            'symbol': self.symbol,
             'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
@@ -496,10 +507,7 @@ class Frame(Interface):
         if self.platform is not None:
             platform = self.platform
         if platform in ('objc', 'cocoa'):
-            return '%s (%s)' % (
-                self.function or '?',
-                trim_package(self.package),
-            )
+            return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
@@ -805,7 +813,9 @@ class Stacktrace(Interface):
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
-                return frame.get_culprit_string(platform=platform)
+                culprit = frame.get_culprit_string(platform=platform)
+                if culprit:
+                    return culprit
             elif default is None:
                 default = frame.get_culprit_string(platform=platform)
         return default

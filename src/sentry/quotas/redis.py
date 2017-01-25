@@ -38,8 +38,8 @@ class RedisQuota(Quota):
 
     def get_quotas(self, project):
         return (
-            ('p:{}'.format(project.id), self.get_project_quota(project), 60),
-            ('o:{}'.format(project.organization.id), self.get_organization_quota(project.organization), 60),
+            ('p:{}'.format(project.id),) + self.get_project_quota(project),
+            ('o:{}'.format(project.organization.id),) + self.get_organization_quota(project.organization),
         )
 
     def get_redis_key(self, key, timestamp, interval):

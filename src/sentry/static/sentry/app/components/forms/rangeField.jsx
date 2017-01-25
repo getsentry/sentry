@@ -1,5 +1,4 @@
 import jQuery from 'jquery';
-import React from 'react';
 import ReactDOM from 'react-dom';
 
 import InputField from './inputField';
@@ -17,17 +16,25 @@ export default class RangeField extends InputField {
 
   attachSlider() {
     let $value = jQuery('<span class="value" />');
+    let suffixClassNames = '';
+    if (this.props.disabled) {
+      suffixClassNames += ' disabled';
+    }
     jQuery(ReactDOM.findDOMNode(this.refs.input)).on('slider:ready', (e, data) => {
+      let value = parseInt(data.value, 10);
       $value.appendTo(data.el);
-      $value.html(this.props.formatLabel(data.value));
+      $value.html(this.props.formatLabel(value));
     }).on('slider:changed', (e, data) => {
-      $value.html(this.props.formatLabel(data.value));
-      this.props.onChange(data.value);
+      let value = parseInt(data.value, 10);
+      $value.html(this.props.formatLabel(value));
+      this.props.onChange(value);
     }).simpleSlider({
+      value: this.props.defaultValue || this.props.value,
       range: [this.props.min, this.props.max],
       step: this.props.step,
       snap: this.props.snap,
       allowedValues: this.props.allowedValues,
+      classSuffix: suffixClassNames
     });
   }
 
@@ -36,20 +43,12 @@ export default class RangeField extends InputField {
     // implementation
   }
 
-  getField() {
-    return (
-      <input id={this.getId()}
-          type={this.getType()}
-          className="form-control"
-          placeholder={this.props.placeholder}
-          onChange={this.onChange.bind(this)}
-          disabled={this.props.disabled}
-          ref="input"
-          min={this.props.min}
-          max={this.props.max}
-          step={this.props.step}
-          value={this.state.value} />
-    );
+  getAttributes() {
+    return {
+      min: this.props.min,
+      max: this.props.max,
+      step: this.props.step,
+    };
   }
 
   getType() {
@@ -57,9 +56,9 @@ export default class RangeField extends InputField {
   }
 }
 
-RangeField.formatMinutes = (val) => {
-  val = parseInt(val / 60, 10);
-  return `${val} minute${(val != 1 ? 's' : '')}`;
+RangeField.formatMinutes = (value) => {
+  value = value / 60;
+  return `${value} minute${(value != 1 ? 's' : '')}`;
 };
 
 RangeField.defaultProps = {

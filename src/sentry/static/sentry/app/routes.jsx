@@ -28,6 +28,7 @@ import OrganizationAuditLog from './views/organizationAuditLog';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
+import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
@@ -51,6 +52,7 @@ import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ReleaseAllEvents from './views/releaseAllEvents';
 import ReleaseArtifacts from './views/releaseArtifacts';
+import ReleaseCommits from './views/releases/releaseCommits';
 import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import RouteNotFound from './views/routeNotFound';
@@ -109,6 +111,7 @@ function routes() {
         <IndexRoute component={errorHandler(OrganizationDashboard)}/>
 
         <Route path="/organizations/:orgId/audit-log/" component={errorHandler(OrganizationAuditLog)} />
+        <Route path="/organizations/:orgId/repos/" component={errorHandler(OrganizationRepositories)} />
         <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
         <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
           <IndexRedirect to="settings/" />
@@ -146,6 +149,7 @@ function routes() {
             <IndexRoute component={errorHandler(ReleaseNewEvents)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
+            <Route path="commits/" component={errorHandler(ReleaseCommits)}/>
           </Route>
           <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
           <Route path="settings/" component={errorHandler(ProjectSettings)}>

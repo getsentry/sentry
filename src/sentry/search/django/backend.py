@@ -73,6 +73,8 @@ class DjangoSearchBackend(SearchBackend):
                         last_seen_to=None, last_seen_to_inclusive=True,
                         date_from=None, date_from_inclusive=True,
                         date_to=None, date_to_inclusive=True,
+                        active_at_from=None, active_at_from_inclusive=True,
+                        active_at_to=None, active_at_to_inclusive=True,
                         cursor=None, limit=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
@@ -129,7 +131,7 @@ class DjangoSearchBackend(SearchBackend):
             if first_release is EMPTY:
                 return queryset.none()
             queryset = queryset.filter(
-                first_release__project=project,
+                first_release__organization_id=project.organization_id,
                 first_release__version=first_release,
             )
 
@@ -169,6 +171,20 @@ class DjangoSearchBackend(SearchBackend):
                     params['last_seen__lt'] = last_seen_to
             queryset = queryset.filter(**params)
 
+        if active_at_from or active_at_to:
+            params = {}
+            if active_at_from:
+                if active_at_from_inclusive:
+                    params['active_at__gte'] = active_at_from
+                else:
+                    params['active_at__gt'] = active_at_from
+            if active_at_to:
+                if active_at_to_inclusive:
+                    params['active_at__lte'] = active_at_to
+                else:
+                    params['active_at__lt'] = active_at_to
+            queryset = queryset.filter(**params)
+
         if date_from or date_to:
             params = {
                 'project_id': project.id,
@@ -185,6 +201,10 @@ class DjangoSearchBackend(SearchBackend):
                     params['datetime__lt'] = date_to
 
             event_queryset = Event.objects.filter(**params)
+
+            if query:
+                event_queryset = event_queryset.filter(message__icontains=query)
+
             # limit to the first 1000 results
             group_ids = event_queryset.distinct().values_list(
                 'group_id',

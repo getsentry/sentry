@@ -455,9 +455,10 @@ class JavascriptIntegrationTest(TestCase):
     def test_expansion_via_release_artifacts(self):
         project = self.project
         release = Release.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             version='abc',
         )
+        release.add_project(project)
 
         # file.min.js
         # ------------
@@ -474,7 +475,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='~/{}?foo=bar'.format(f_minified.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f_minified,
         )
 
@@ -491,7 +492,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f1.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f1,
         )
 
@@ -507,7 +508,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f2.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f2,
         )
 
@@ -525,7 +526,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f2_empty,
         )
 
@@ -541,7 +542,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f_sourcemap.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f_sourcemap,
         )
 

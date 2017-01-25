@@ -28,7 +28,7 @@ const Pill = React.createClass({
   },
 
   render() {
-    const {name, value, children, className, ...props} = this.props;
+    const {name, children, className, ...props} = this.props;
     let [extraClass, renderedValue] = this.renderValue();
 
     return (

@@ -37,8 +37,10 @@ const EventTags = React.createClass({
             return (
               <Pill key={tag.key} name={tag.key}>
                 <Link
-                  to={`/${orgId}/${projectId}/`}
-                  query={{query: `${tag.key}:"${tag.value}"`}}>
+                  to={{
+                    pathname: `/${orgId}/${projectId}/`,
+                    query: {query: `${tag.key}:"${tag.value}"`}
+                  }}>
                     {deviceNameMapper(tag.value)}
                 </Link>
                 {isUrl(tag.value) &&

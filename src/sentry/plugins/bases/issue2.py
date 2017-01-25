@@ -11,9 +11,11 @@ from django.core.urlresolvers import reverse
 from django.utils.html import format_html
 
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.exceptions import InvalidIdentity, PluginError
+# api compat
+from sentry.exceptions import PluginError  # NOQA
 from sentry.models import Activity, Event, GroupMeta
 from sentry.plugins import Plugin
+from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.signals import issue_tracker_used
 from sentry.utils.auth import get_auth_providers
@@ -36,6 +38,9 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 class IssueTrackingPlugin2(Plugin):
     auth_provider = None
     allowed_actions = ('create', 'link', 'unlink')
+
+    def configure(self, project, request):
+        return react_plugin_config(self, project, request)
 
     def get_plugin_type(self):
         return 'issue-tracking'
@@ -181,28 +186,6 @@ class IssueTrackingPlugin2(Plugin):
                 if value is None or value == '':
                     errors[field['name']] = u'%s is a required field.' % field['label']
         return errors
-
-    def handle_api_error(self, error):
-        context = {
-            'error_type': 'unknown',
-        }
-        if isinstance(error, InvalidIdentity):
-            context.update({
-                'error_type': 'auth',
-                'auth_url': reverse('socialauth_associate', args=[self.auth_provider])
-            })
-            status = 400
-        elif isinstance(error, PluginError):
-            # TODO(dcramer): we should have a proper validation error
-            context.update({
-                'error_type': 'validation',
-                'errors': {'__all__': error.message},
-            })
-            status = 400
-        else:
-            self.logger.exception(six.text_type(error))
-            status = 500
-        return Response(context, status=status)
 
     def view_create(self, request, group, **kwargs):
         auth_errors = self.check_config_and_auth(request, group)

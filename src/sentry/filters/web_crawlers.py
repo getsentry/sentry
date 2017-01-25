@@ -16,6 +16,8 @@ CRAWLERS = re.compile(r'|'.join((
     r'Google',
     # Bing search
     r'BingBot',
+    # Baidu search
+    r'Baiduspider',
     # Yahoo
     r'Slurp',
     # Sogou

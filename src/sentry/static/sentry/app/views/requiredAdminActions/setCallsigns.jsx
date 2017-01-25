@@ -1,5 +1,5 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import ActionOverlay from '../../components/actionOverlay';
 import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
@@ -53,7 +53,7 @@ function getProjectInfoForReview(org) {
 
 
 const SetCallsignsAction = React.createClass({
-  mixins: [ApiMixin, History, OrganizationState],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -77,7 +77,7 @@ const SetCallsignsAction = React.createClass({
       method: 'PUT',
       data: {slugs: this.state.slugs},
       success: (data) => {
-        this.context.history.pushState('refresh', `/${orgId}/`);
+        browserHistory.pushState('refresh', `/${orgId}/`);
       },
       error: (error) => {
         /*eslint no-console:0*/

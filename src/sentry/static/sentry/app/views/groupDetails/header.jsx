@@ -1,6 +1,5 @@
 import React from 'react';
-// import Router from "react-router";
-import {Link, History} from 'react-router';
+import {Link, browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
@@ -25,8 +24,7 @@ const GroupHeader = React.createClass({
 
   mixins: [
     ApiMixin,
-    ProjectState,
-    History
+    ProjectState
   ],
 
   onToggleMute() {
@@ -51,7 +49,7 @@ const GroupHeader = React.createClass({
 
   onShare() {
     let {shareId} = this.props.group;
-    return this.history.pushState(null, `/share/issue/${shareId}/`);
+    return browserHistory.pushState(null, `/share/issue/${shareId}/`);
   },
 
   onTogglePublic() {
@@ -127,7 +125,10 @@ const GroupHeader = React.createClass({
               }
               {group.logger &&
                 <span className="event-annotation">
-                  <Link to={`/${orgId}/${projectId}/`} query={{query: 'logger:' + group.logger}}>
+                  <Link to={{
+                      pathname:`/${orgId}/${projectId}/`,
+                      query: {query: 'logger:' + group.logger}
+                    }}>
                     {group.logger}
                   </Link>
                 </span>
@@ -183,13 +184,13 @@ const GroupHeader = React.createClass({
           </div>
         }
         <ul className="nav nav-tabs">
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={function (to) {
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={() => {
             let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
             let pathname = this.context.location.pathname;
 
             // Because react-router 1.0 removes router.isActive(route)
             return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
-          }.bind(this)}>
+          }}>
             {t('Details')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>

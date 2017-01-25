@@ -7,6 +7,8 @@ sentry.web.frontend.accounts
 """
 from __future__ import absolute_import
 
+import logging
+
 import six
 
 from django.conf import settings
@@ -28,6 +30,7 @@ from sudo.decorators import sudo_required
 from sentry.models import (
     User, UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
+from sentry.security import capture_security_activity
 from sentry.signals import email_verified
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
@@ -37,6 +40,8 @@ from sentry.web.forms.accounts import (
 )
 from sentry.web.helpers import render_to_response
 from sentry.utils import auth
+
+logger = logging.getLogger('sentry.accounts')
 
 
 def send_password_recovery_mail(user):
@@ -65,6 +70,18 @@ def expired(request, user):
 
 
 def recover(request):
+    from sentry.app import ratelimiter
+
+    if request.method == 'POST' and ratelimiter.is_limited(
+        'accounts:recover:{}'.format(request.META['REMOTE_ADDR']),
+        limit=5, window=60,  # 5 per minute should be enough for anyone
+    ):
+        return HttpResponse(
+            'You have made too many password recovery attempts. Please try again later.',
+            content_type='text/plain',
+            status=429,
+        )
+
     form = RecoverPasswordForm(request.POST or None)
     if form.is_valid():
         password_hash = send_password_recovery_mail(form.cleaned_data['user'])
@@ -97,19 +114,28 @@ def recover_confirm(request, user_id, hash):
         if request.method == 'POST':
             form = ChangePasswordRecoverForm(request.POST)
             if form.is_valid():
-                user.set_password(form.cleaned_data['password'])
-                user.refresh_session_nonce(request)
-                user.save()
+                with transaction.atomic():
+                    user.set_password(form.cleaned_data['password'])
+                    user.refresh_session_nonce(request)
+                    user.save()
 
-                # Ugly way of doing this, but Django requires the backend be set
-                user = authenticate(
-                    username=user.username,
-                    password=form.cleaned_data['password'],
-                )
+                    # Ugly way of doing this, but Django requires the backend be set
+                    user = authenticate(
+                        username=user.username,
+                        password=form.cleaned_data['password'],
+                    )
 
-                login_user(request, user)
+                    login_user(request, user)
 
-                password_hash.delete()
+                    password_hash.delete()
+
+                    capture_security_activity(
+                        account=user,
+                        type='password-changed',
+                        actor=request.user,
+                        ip_address=request.META['REMOTE_ADDR'],
+                        send_email=True,
+                    )
 
                 return login_redirect(request)
         else:
@@ -154,6 +180,12 @@ def start_confirm_email(request):
         request.user.send_confirm_emails()
         unverified_emails = [e.email for e in request.user.get_unverified_emails()]
         msg = _('A verification email has been sent to %s.') % (', ').join(unverified_emails)
+        for email in unverified_emails:
+            logger.info('user.email.start_confirm', extra={
+                'user_id': request.user.id,
+                'ip_address': request.META['REMOTE_ADDR'],
+                'email': email,
+            })
     else:
         msg = _('Your email (%s) has already been verified.') % request.user.email
     messages.add_message(request, messages.SUCCESS, msg)
@@ -177,6 +209,11 @@ def confirm_email(request, user_id, hash):
         email.validation_hash = ''
         email.save()
         email_verified.send(email=email.email, sender=email)
+        logger.info('user.email.confirm', extra={
+            'user_id': user_id,
+            'ip_address': request.META['REMOTE_ADDR'],
+            'email': email.email,
+        })
     messages.add_message(request, level, msg)
     return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
@@ -396,6 +433,11 @@ def disconnect_identity(request, identity_id):
             settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
         )
     )
+    logger.info('user.identity.disconnect', extra={
+        'user_id': request.user.id,
+        'ip_address': request.META['REMOTE_ADDR'],
+        'usersocialauth_id': identity_id,
+    })
     return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
 
 
@@ -413,6 +455,12 @@ def show_emails(request):
         email = request.POST.get('email')
         del_email = UserEmail.objects.filter(user=user, email=email)
         del_email.delete()
+        logger.info('user.email.remove', extra={
+            'user_id': user.id,
+            'ip_address': request.META['REMOTE_ADDR'],
+            'email': email,
+        })
+
         return HttpResponseRedirect(request.path)
 
     if 'primary' in request.POST:
@@ -457,6 +505,7 @@ def show_emails(request):
     if email_form.is_valid():
 
         alternative_email = email_form.cleaned_data['alt_email'].lower()
+
         # check if this alternative email already exists for user
         if alternative_email and not UserEmail.objects.filter(user=user, email__iexact=alternative_email):
             # create alternative email for user
@@ -471,8 +520,12 @@ def show_emails(request):
             else:
                 new_email.set_hash()
                 new_email.save()
-
                 user.send_confirm_email_singular(new_email)
+                logger.info('user.email.add', extra={
+                    'user_id': user.id,
+                    'ip_address': request.META['REMOTE_ADDR'],
+                    'email': new_email.email,
+                })
                 msg = _('A confirmation email has been sent to %s.') % new_email.email
                 messages.add_message(
                     request,

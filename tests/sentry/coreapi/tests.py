@@ -79,26 +79,26 @@ class AuthFromRequestTest(BaseAPITest):
             self.helper.auth_from_request(request)
 
 
-class ProjectFromAuthTest(BaseAPITest):
+class ProjectIdFromAuthTest(BaseAPITest):
     def test_invalid_if_missing_key(self):
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, Auth({}))
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, Auth({}))
 
     def test_valid_with_key(self):
         auth = Auth({'sentry_key': self.pk.public_key})
-        result = self.helper.project_from_auth(auth)
-        self.assertEquals(result, self.project)
+        result = self.helper.project_id_from_auth(auth)
+        self.assertEquals(result, self.project.id)
 
     def test_invalid_key(self):
         auth = Auth({'sentry_key': 'z'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
     def test_invalid_secret(self):
         auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
     def test_nonascii_key(self):
         auth = Auth({'sentry_key': '\xc3\xbc'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
 
 class ProcessFingerprintTest(BaseAPITest):
@@ -386,6 +386,32 @@ class ValidateDataTest(BaseAPITest):
             'environment': 42,
         })
         assert data.get('environment') == '42'
+
+    def test_time_spent_too_large(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': 2147483647 + 1,
+        })
+        assert not data.get('time_spent')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'time_spent'
+        assert data['errors'][0]['value'] == 2147483647 + 1
+
+    def test_time_spent_invalid(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': 'lol',
+        })
+        assert not data.get('time_spent')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'time_spent'
+        assert data['errors'][0]['value'] == 'lol'
+
+    def test_time_spent_non_int(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': '123',
+        })
+        assert data['time_spent'] == 123
 
 
 class SafelyLoadJSONStringTest(BaseAPITest):

@@ -7,6 +7,7 @@ from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
 from .endpoints.catchall import CatchallEndpoint
 from .endpoints.event_details import EventDetailsEndpoint
+from .endpoints.event_apple_crash_report import EventAppleCrashReportEndpoint
 from .endpoints.group_details import GroupDetailsEndpoint
 from .endpoints.group_environment_details import GroupEnvironmentDetailsEndpoint
 from .endpoints.group_events import GroupEventsEndpoint
@@ -41,7 +42,9 @@ from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskE
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
+from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
+from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
@@ -154,6 +157,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/audit-logs/$',
         OrganizationAuditLogsEndpoint.as_view(),
         name='sentry-api-0-organization-audit-logs'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/config/repos/$',
+        OrganizationConfigRepositoriesEndpoint.as_view(),
+        name='sentry-api-0-organization-config-repositories'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/issues/new/$',
         OrganizationIssuesNewEndpoint.as_view(),
         name='sentry-api-0-organization-issues-new'),
@@ -184,6 +190,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/$',
         OrganizationRepositoriesEndpoint.as_view(),
         name='sentry-api-0-organization-repositories'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/$',
+        OrganizationRepositoryDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-repository-details'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$',
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-repository-commits'),
@@ -379,6 +388,9 @@ urlpatterns = patterns(
     url(r'^events/(?P<event_id>\d+)/$',
         EventDetailsEndpoint.as_view(),
         name='sentry-api-0-event-details'),
+    url(r'^events/(?P<event_id>\d+)/apple-crash-report$',
+        EventAppleCrashReportEndpoint.as_view(),
+        name='sentry-api-0-event-apple-crash-report'),
 
     # Installation Global Endpoints
     url(r'^system/global-dsyms/$',

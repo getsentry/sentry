@@ -21,6 +21,7 @@ from sentry.lang.javascript.errormapping import (
 )
 from sentry.models import File, Release, ReleaseFile, EventError
 from sentry.testutils import TestCase
+from sentry.utils.strings import truncatechars
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
@@ -34,9 +35,10 @@ class FetchReleaseFileTest(TestCase):
     def test_unicode(self):
         project = self.project
         release = Release.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             version='abc',
         )
+        release.add_project(project)
 
         file = File.objects.create(
             name='file.min.js',
@@ -50,7 +52,7 @@ class FetchReleaseFileTest(TestCase):
         ReleaseFile.objects.create(
             name='file.min.js',
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=file,
         )
 
@@ -138,7 +140,9 @@ class FetchFileTest(TestCase):
             None,
         )
 
-        release = Release.objects.create(project=self.project, version='1')
+        release = Release.objects.create(version='1',
+                                         organization_id=self.project.organization_id)
+        release.add_project(self.project)
 
         result = fetch_file('/example.js', release=release)
         assert result.url == '/example.js'
@@ -168,6 +172,15 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result == result2
+
+    @responses.activate
+    def test_truncated(self):
+        url = truncatechars('http://example.com', 3)
+        with pytest.raises(CannotFetchSource) as exc:
+            fetch_file(url)
+
+        assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
+        assert exc.value.data['url'] == url
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -247,6 +260,18 @@ class FetchSourcemapTest(TestCase):
         assert list(smap_view) == tokens
         assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
+
+    def test_base64_without_padding(self):
+        smap_view = fetch_sourcemap(base64_sourcemap.rstrip('='))
+        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+
+        assert list(smap_view) == tokens
+        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == u'/test.js'
+
+    def test_broken_base64(self):
+        with pytest.raises(UnparseableSourcemap):
+            fetch_sourcemap('data:application/json;base64,xxx')
 
     @responses.activate
     def test_simple_non_utf8(self):

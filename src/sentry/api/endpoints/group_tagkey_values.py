@@ -5,6 +5,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator, Paginator
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
 from sentry.models import GroupTagValue, TagKey, TagKeyStatus, Group
 from sentry.utils.apidocs import scenario
 
@@ -68,10 +69,15 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             order_by = '-id'
             paginator_cls = Paginator
 
+        if key == 'user':
+            serializer_cls = UserTagValueSerializer()
+        else:
+            serializer_cls = None
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by=order_by,
             paginator_cls=paginator_cls,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, serializer_cls),
         )

@@ -23,6 +23,7 @@ from sentry.constants import LANGUAGES
 from sentry.models import (
     Organization, OrganizationStatus, User, UserOption, UserOptionValue
 )
+from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
 from sentry.web.forms.fields import ReadOnlyTextField
 from six.moves import range
@@ -345,6 +346,14 @@ class AccountSettingsForm(forms.Form):
             self.user.set_password(self.cleaned_data['new_password'])
             self.user.refresh_session_nonce(self.request)
 
+            capture_security_activity(
+                account=self.user,
+                type='password-changed',
+                actor=self.request.user,
+                ip_address=self.request.META['REMOTE_ADDR'],
+                send_email=True,
+            )
+
         self.user.name = self.cleaned_data['name']
 
         if self.cleaned_data['email'] != self.user.email:
@@ -643,3 +652,11 @@ class ConfirmPasswordForm(forms.Form):
 
         if not needs_password:
             del self.fields['password']
+
+    def clean_password(self):
+        value = self.cleaned_data.get('password')
+        if value and not self.user.check_password(value):
+            raise forms.ValidationError(_('The password you entered is not correct.'))
+        elif not value:
+            raise forms.ValidationError(_('You must confirm your current password to make changes.'))
+        return value

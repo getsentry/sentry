@@ -21,7 +21,7 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes
+from sentry import eventtypes, features
 from sentry.app import buffer, tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
@@ -162,8 +162,9 @@ def generate_culprit(data, platform=None):
             if e.get('stacktrace')
         ]
     except KeyError:
-        if 'sentry.interfaces.Stacktrace' in data:
-            stacktraces = [data['sentry.interfaces.Stacktrace']]
+        stacktrace = data.get('sentry.interfaces.Stacktrace')
+        if stacktrace:
+            stacktraces = [stacktrace]
         else:
             stacktraces = None
 
@@ -238,7 +239,7 @@ class EventManager(object):
         elif data['level'] not in LOG_LEVELS:
             data['level'] = logging.ERROR
 
-        if not data.get('logger'):
+        if not data.get('logger') or not isinstance(data.get('logger'), six.string_types):
             data['logger'] = DEFAULT_LOGGER_NAME
         else:
             logger = trim(data['logger'].strip(), 64)
@@ -419,7 +420,12 @@ class EventManager(object):
         message = data.pop('message', '')
 
         if not culprit:
+            # if we generate an implicit culprit, lets not call it a
+            # transaction
+            transaction_name = None
             culprit = generate_culprit(data, platform=platform)
+        else:
+            transaction_name = culprit
 
         date = datetime.fromtimestamp(data.pop('timestamp'))
         date = date.replace(tzinfo=timezone.utc)
@@ -437,29 +443,44 @@ class EventManager(object):
             **kwargs
         )
 
-        tags = data.get('tags') or []
-        tags.append(('level', LOG_LEVELS[level]))
+        # convert this to a dict to ensure we're only storing one value per key
+        # as most parts of Sentry dont currently play well with multiple values
+        tags = dict(data.get('tags') or [])
+        tags['level'] = LOG_LEVELS[level]
         if logger_name:
-            tags.append(('logger', logger_name))
+            tags['logger'] = logger_name
         if server_name:
-            tags.append(('server_name', server_name))
+            tags['server_name'] = server_name
         if site:
-            tags.append(('site', site))
-        if release:
-            # TODO(dcramer): we should ensure we create Release objects
-            tags.append(('sentry:release', release))
+            tags['site'] = site
         if environment:
-            tags.append(('environment', environment))
+            tags['environment'] = environment
+        if transaction_name:
+            tags['transaction'] = transaction_name
+
+        if release:
+            # dont allow a conflicting 'release' tag
+            if 'release' in tags:
+                del tags['release']
+            tags['sentry:release'] = release
+
+        event_user = self._get_event_user(project, data)
+        if event_user:
+            # dont allow a conflicting 'user' tag
+            if 'user' in tags:
+                del tags['user']
+            tags['sentry:user'] = event_user.tag_value
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
                                       _with_transaction=False)
             if added_tags:
-                tags.extend(added_tags)
+                # plugins should not override user provided tags
+                for key, value in added_tags:
+                    tags.setdefault(key, value)
 
-        event_user = self._get_event_user(project, data)
-        if event_user:
-            tags.append(('sentry:user', event_user.tag_value))
+        # tags are stored as a tuple
+        tags = tags.items()
 
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
@@ -535,6 +556,7 @@ class EventManager(object):
             'level': level,
             'last_seen': date,
             'first_seen': date,
+            'active_at': date,
             'data': {
                 'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
                 'type': event_type.key,
@@ -569,7 +591,12 @@ class EventManager(object):
                 EventMapping.objects.create(
                     project=project, group=group, event_id=event_id)
         except IntegrityError:
-            self.logger.info('duplicate.found', extra={'event_id': event.id}, exc_info=True)
+            self.logger.info('duplicate.found', exc_info=True, extra={
+                'event_uuid': event_id,
+                'project_id': project.id,
+                'group_id': group.id,
+                'model': EventMapping.__name__,
+            })
             return event
 
         environment = Environment.get_or_create(
@@ -641,10 +668,16 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(Event)):
                     event.save()
             except IntegrityError:
-                self.logger.info('duplicate.found', extra={'event_id': event.id}, exc_info=True)
+                self.logger.info('duplicate.found', exc_info=True, extra={
+                    'event_uuid': event_id,
+                    'project_id': project.id,
+                    'group_id': group.id,
+                    'model': Event.__name__,
+                })
                 return event
 
             index_event_tags.delay(
+                organization_id=project.organization_id,
                 project_id=project.id,
                 group_id=group.id,
                 event_id=event.id,
@@ -801,10 +834,13 @@ class EventManager(object):
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
-        can_sample = should_sample(
-            event.data.get('received') or float(event.datetime.strftime('%s')),
-            group.data.get('last_received') or float(group.last_seen.strftime('%s')),
-            group.times_seen,
+        can_sample = (
+            features.has('projects:sample-events', project=project) and
+            should_sample(
+                event.data.get('received') or float(event.datetime.strftime('%s')),
+                group.data.get('last_received') or float(group.last_seen.strftime('%s')),
+                group.times_seen,
+            )
         )
 
         if not is_new:

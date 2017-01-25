@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+from sentry.utils.strings import codec_lookup
+
 __all__ = ['SourceCache', 'SourceMapCache']
 
 
@@ -38,12 +40,7 @@ class SourceCache(object):
         if callable(body):
             body = body()
 
-        try:
-            body = body.decode(encoding or 'utf8', 'replace').split(u'\n')
-        except LookupError:
-            # We got an encoding that python doesn't support,
-            # so let's just coerce it to utf8
-            body = body.decode('utf8', 'replace').split(u'\n')
+        body = body.decode(codec_lookup(encoding, 'utf-8').name, 'replace').split(u'\n')
 
         # Set back a marker to indicate we've parsed this url
         self._cache[url] = (True, body)

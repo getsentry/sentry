@@ -84,6 +84,7 @@
         {% endwith %}
         {{ form.scrape_javascript|as_crispy_field }}
         {{ form.token|as_crispy_field }}
+        {{ form.token_header|as_crispy_field }}
         {{ form.blacklisted_ips|as_crispy_field }}
       </div>
     </div>
@@ -186,11 +187,6 @@
     <li{% if page == 'alerts' %} class="active"{% endif %}>
         <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{% trans "Alerts" %}</a>
     </li>
-    {% feature projects:quotas project %}
-    <li{% if page == 'quotas' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project-quotas' project.organization.slug project.slug %}">{% trans "Rate Limits" %}</a>
-    </li>
-    {% endfeature %}
     <li{% if page == 'tags' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-tags' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
     </li>

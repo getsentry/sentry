@@ -50,6 +50,10 @@ class InputField extends FormField {
     return 'id-' + this.props.name;
   }
 
+  getAttributes() {
+    return {};
+  }
+
   getField() {
     return (
       <input id={this.getId()}
@@ -60,7 +64,9 @@ class InputField extends FormField {
           disabled={this.props.disabled}
           ref="input"
           required={this.props.required}
-          value={this.state.value} />
+          value={this.state.value}
+          style={this.props.inputStyle}
+          {...this.getAttributes()} />
     );
   }
 
@@ -76,13 +82,16 @@ class InputField extends FormField {
     return (
       <div className={className}>
         <div className="controls">
-          <label htmlFor={this.getId()} className="control-label">{this.props.label}</label>
+          {this.props.label &&
+            <label htmlFor={this.getId()} className="control-label">{this.props.label}</label>
+          }
+          {this.getField()}
           {this.props.disabled && this.props.disabledReason &&
-            <span className="disabled-indicator tip" title={this.props.disabledReason}>
+            <span className="disabled-indicator tip"
+                  title={this.props.disabledReason}>
               <span className="icon-question" />
             </span>
           }
-          {this.getField()}
           {defined(this.props.help) &&
             <p className="help-block">{this.props.help}</p>
           }

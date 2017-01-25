@@ -13,6 +13,7 @@ from sentry.db.models import (
 class ReleaseEnvironment(Model):
     __core__ = False
 
+    organization_id = BoundedPositiveIntegerField(db_index=True)
     project_id = BoundedPositiveIntegerField(db_index=True)
     release_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(db_index=True)
@@ -45,6 +46,7 @@ class ReleaseEnvironment(Model):
                     instance, created = cls.objects.create(
                         release_id=release.id,
                         project_id=project.id,
+                        organization_id=project.organization_id,
                         environment_id=environment.id,
                         first_seen=datetime,
                         last_seen=datetime,
@@ -53,6 +55,7 @@ class ReleaseEnvironment(Model):
                 instance, created = cls.objects.get(
                     release_id=release.id,
                     project_id=project.id,
+                    organization_id=project.organization_id,
                     environment_id=environment.id,
                 ), False
             cache.set(cache_key, instance, 3600)

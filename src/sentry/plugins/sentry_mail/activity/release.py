@@ -12,7 +12,8 @@ class ReleaseActivityEmail(ActivityEmail):
         super(ReleaseActivityEmail, self).__init__(activity)
         try:
             self.release = Release.objects.get(
-                project=self.project,
+                organization_id=self.project.organization_id,
+                projects=self.project,
                 version=activity.data['version'],
             )
         except Release.DoesNotExist:
@@ -50,7 +51,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 sentry_orgmember_set__teams=project.team,
                 is_active=True,
             ).distinct()
-            if features.has('workflow:release-emails', actor=user)
+            if features.has('workflow:release-emails', project=self.project, actor=user)
         }
 
     def get_context(self):

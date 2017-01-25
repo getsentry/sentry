@@ -1,7 +1,7 @@
 """Views
 
 Notes:
-    * Some views are marked to avoid csrf tocken check because they rely
+    * Some views are marked to avoid csrf token check because they rely
       on third party providers that (if using POST) won't be sending csrf
       token back.
 """

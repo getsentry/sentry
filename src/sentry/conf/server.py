@@ -676,14 +676,16 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'organizations:api-keys': True,
+    'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
+    'organizations:release-commits': False,
     'projects:global-events': False,
-    'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
+    'projects:sample-events': True,
     'workflow:release-emails': False,
 }
 
@@ -753,6 +755,7 @@ SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
     'query': 'sentry.interfaces.query.Query',
+    'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -1029,6 +1032,10 @@ STATUS_PAGE_API_HOST = 'statuspage.io'
 
 SENTRY_ONPREMISE = True
 
+# Whether we should look at X-Forwarded-For header or not
+# when checking REMOTE_ADDR ip addresses
+SENTRY_USE_X_FORWARDED_FOR = True
+
 
 def get_raven_config():
     return {
@@ -1060,10 +1067,10 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-js': '3.3.0',
-    'raven-python': '5.23.0',
-    'sentry-laravel': '0.4.0',
-    'sentry-php': '1.5.0',
+    'raven-js': '3.9.1',
+    'raven-python': '5.32.0',
+    'sentry-laravel': '0.5.0',
+    'sentry-php': '1.6.0',
 }
 
 SDK_URLS = {
@@ -1077,4 +1084,5 @@ SDK_URLS = {
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
+    'raven-php': 'sentry-php',
 }

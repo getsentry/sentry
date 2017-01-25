@@ -19,7 +19,8 @@ from sentry.app import tsdb, buffer
 from sentry.models import (
     Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
-    GroupRelease, Environment, ReleaseEnvironment
+    GroupRelease, Environment, ReleaseEnvironment, ReleaseCommit, Commit, Repository,
+    CommitAuthor, CommitFileChange,
 )
 from sentry.signals import mocks_loaded
 from sentry.utils.hashlib import md5_text
@@ -263,23 +264,109 @@ def main(num_events=1):
                     'first_event': timezone.now(),
                 }
             )
+            if not project.first_event:
+                project.update(
+                    first_event=project.date_added,
+                )
 
-            release = Release.objects.get_or_create(
-                version=sha1(uuid4().bytes).hexdigest(),
-                project=project,
-            )[0]
+            with transaction.atomic():
+                has_release = Release.objects.filter(
+                    version=sha1(uuid4().bytes).hexdigest(),
+                    organization_id=project.organization_id,
+                    projects=project
+                ).exists()
+                if not has_release:
+                    release = Release.objects.filter(
+                        version=sha1(uuid4().bytes).hexdigest(),
+                        organization_id=project.organization_id,
+                    ).first()
+                    if not release:
+                        release = Release.objects.create(
+                            version=sha1(uuid4().bytes).hexdigest(),
+                            organization_id=project.organization_id
+                        )
+                    release.add_project(project)
 
-            ReleaseFile.objects.get_or_create(
-                project=project,
-                release=release,
-                name='an-example.js',
-                file=File.objects.get_or_create(
-                    name='an-example.js',
-                    type='release.file',
-                    checksum='abcde' * 8,
-                    size=13043,
-                )[0],
+            raw_commits = [
+                {
+                    'key': '6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
+                    'message': 'Fix widget for real this time\n\nTurns out the sprocket configuration was broken.',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/static/js/widget.js', 'M'),
+                    ],
+                },
+                {
+                    'key': '98a0672968c19e3d7921def5d724cc977e85f527',
+                    'message': 'Added .gitignore',
+                    'author': ('Jane Doe', 'janedoe@example.com'),
+                    'files': [
+                        ('.gitignore', 'A'),
+                        ('.DS_Store', 'D')
+                    ],
+                },
+                {
+                    'key': '631cd9096bd9811a046a472bb0aa8b573e86e1f1',
+                    'message': 'Fix widget',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/static/html/widget.html', 'M'),
+                        ('/static/js/widget.js', 'M'),
+                        ('.DS_Store', 'A'),
+                    ],
+                },
+            ]
+
+            repo = Repository.objects.get_or_create(
+                organization_id=org.id,
+                name='Example Repo',
+                provider='github',
+                external_id='example/example',
             )
+
+            for commit_index, raw_commit in enumerate(raw_commits):
+                commit = Commit.objects.get_or_create(
+                    organization_id=org.id,
+                    repository_id=repo[0].id,
+                    key=raw_commit['key'],
+                    defaults={
+                        'author': CommitAuthor.objects.get_or_create(
+                            organization_id=org.id,
+                            name=raw_commit['author'][0],
+                            email=raw_commit['author'][1],
+                        )[0],
+                        'message': raw_commit['message'],
+                    },
+                )[0]
+
+                for file in raw_commit['files']:
+                    ReleaseFile.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        release=release,
+                        name=file[0],
+                        file=File.objects.get_or_create(
+                            name=file[0],
+                            type='release.file',
+                            checksum='abcde' * 8,
+                            size=13043,
+                        )[0],
+                        defaults={'organization_id': project.organization_id}
+                    )
+
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=org.id,
+                        commit=commit,
+                        filename=file[0],
+                        type=file[1],
+                    )
+
+
+                ReleaseCommit.objects.get_or_create(
+                    organization_id=org.id,
+                    release=release,
+                    commit=commit,
+                    order=commit_index,
+                )
 
             Activity.objects.create(
                 type=Activity.RELEASE,
@@ -412,4 +499,12 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    main(num_events=options.num_events)
+    try:
+        main(num_events=options.num_events)
+    except Exception:
+        # Avoid reporting any issues recursively back into Sentry
+        import traceback
+        import sys
+
+        traceback.print_exc()
+        sys.exit(1)

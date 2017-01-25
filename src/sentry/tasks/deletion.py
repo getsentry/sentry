@@ -10,6 +10,9 @@ from __future__ import absolute_import
 
 import logging
 
+from django.db.models import get_model
+
+from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
 from sentry.tasks.base import instrumented_task, retry
@@ -24,7 +27,8 @@ logger = logging.getLogger('sentry.deletions.async')
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, Repository
+        Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit,
+        ReleaseFile, Repository
     )
 
     try:
@@ -49,7 +53,10 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
             )
         return
 
-    model_list = (OrganizationMember, Commit, CommitAuthor, Repository)
+    model_list = (
+        OrganizationMember, CommitFileChange, Commit, CommitAuthor,
+        Repository, Release, ReleaseCommit, ReleaseFile
+    )
 
     has_more = delete_objects(
         model_list,
@@ -120,8 +127,8 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
-        Release, ReleaseFile, SavedSearchUserDefault, SavedSearch, TagKey,
-        TagValue, UserReport, ReleaseEnvironment, Environment, ReleaseCommit
+        ReleaseEnvironment, ReleaseProject, SavedSearchUserDefault, SavedSearch,
+        TagKey, TagValue, UserReport, Environment
     )
 
     try:
@@ -151,7 +158,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, ReleaseEnvironment, Environment, ReleaseCommit
+        UserReport, ReleaseEnvironment, Environment
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
@@ -187,7 +194,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
 
     # Release needs to handle deletes after Group is cleaned up as the foreign
     # key is protected
-    model_list = (Group, ReleaseFile, Release)
+    model_list = (Group, ReleaseProject)
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
         if has_more:
@@ -305,6 +312,42 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
         'object_id': tagkey_id,
         'transaction_id': transaction_id,
         'model': TagKey.__name__,
+    })
+
+
+@instrumented_task(name='sentry.tasks.deletion.generic_delete', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry(exclude=(DeleteAborted,))
+def generic_delete(app_label, model_name, object_id, transaction_id=None,
+                   continuous=True, actor_id=None, **kwargs):
+    from sentry.models import User
+
+    model = get_model(app_label, model_name)
+
+    try:
+        instance = model.objects.get(id=object_id)
+    except model.DoesNotExist:
+        return
+
+    if instance.status == ObjectStatus.VISIBLE:
+        raise DeleteAborted
+
+    if instance.status == ObjectStatus.PENDING_DELETION:
+        if actor_id:
+            actor = User.objects.get(id=actor_id)
+        else:
+            actor = None
+        instance.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+        pending_delete.send(sender=model, instance=instance, actor=actor)
+
+    # TODO(dcramer): it'd be nice if we could collect relations here and
+    # cascade efficiently
+    instance_id = instance.id
+    instance.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': instance_id,
+        'transaction_id': transaction_id,
+        'model': model.__name__,
     })
 
 

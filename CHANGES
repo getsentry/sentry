@@ -1,6 +1,55 @@
-Version 8.11 (Unreleased)
+Version 8.13 (Unreleased)
 -------------------------
-- add Asana to supported auth backends in social auth (for plugins)
+- Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
+
+- Support for setting a custom security header for javascript fetching.
+- start using ReleaseProject and Release.organization instead of Release.project
+- Project quotas are no longer available, and must now be configured via the organizational rate limits.
+- Quotas implementation now requires a tuple of maximum rate and interval window.
+- Added security emails for adding and removing MFA and password changes.
+- Added the ability to download an apple compatible crash report for cocoa events.
+- Add memory and storage information for apple devices
+- The legacy API keys feature is now disabled by default.
+- Show Images Loaded section for cocoa events with version number.
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Added ``ReleaseProject.new_groups`` column.
+
+Version 8.12
+------------
+
+- Fix bug where some users would incorrectly not receive workflow notifications for projects they were subscribed to.
+- restructured dSYM processing.  It now records errors in the symbolication process
+  more accurately and will report system errors them to the internal logger.
+- Added data migration to backfill legacy release data
+- Added data migration to backfill legacy commit data
+- Added data migration to backfill legacy release file and environment data
+- Allow gziped/deflated JavaScript artifacts to be uploaded through the API.
+- Shared issue view no longer shows SDK.
+- Added ``activeSince`` to search (uses ``active_at``).
+- Added ``firstSeen`` to search (uses ``first_seen``).
+- Added ``lastSeen`` to search (uses ``last_seen``).
+- Added ``firstRelease`` to search (uses ``first_release``).
+- Fixed usage (and propagation) of ``Group.first_release``.
+- The + and - datetime search helpers now work with ranges (e.g. ``<=``).
+- Added the ability to download artifacts from releases.
+
+SDKs
+~~~~
+
+- The `repos` interface has been added.
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Added ``Release.organization`` column.
+- Added ``ReleaseProject`` model.
+- Added ``ReleaseCommit.organization_id`` column.
+- Added ``ReleaseFile.organization`` column.
+- Added ``ReleaseEnvironment.organization_id`` column.
+
+Version 8.11
+------------
 
 - Ignore a ``null`` ``Origin`` header for authentication.
 - Added the ability to search for issues that you are subscribed to from the stream view.
@@ -13,15 +62,35 @@ Version 8.11 (Unreleased)
 - Send email to specific email when adding a new email rather than sending to all unverified email addresses.
 - Allow user to resend email verification to primary email address.
 - Added additional detail to subscription help text when viewing a group.
+- Add Asana to supported auth backends in social auth (for plugins)
 - Cleaner install UI when creating a new project.
 - Simplified management of secondary email addresses.
 - Fixed an issue where changing primary email address would remove the pre-existing verified email.
 - Disallow duplicating primary emails for users moving forward
+- Added support for recording symbols separately in frames independent of the function.
+- Reduce noisy Postgres logs from inserting duplicate onboarding rows.
+- Added device icons for Apple Watch and Apple TV
+- Added export action to group tag details.
+- Improved display of user tags.
+- Added 'transaction' tag which automatically populates from explicit culprits.
+- Added beginnings of repository management to UI (behind `organizations:repos` feature).
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``User.session_nonce`` column.
+- Added ``CommitFileChange`` model.
+- Added ``Repository.url`` column.
+- Added ``Repository.provider`` column.
+- Added ``Repository.config`` column.
+- Added ``Repository.external_id`` column.
+- Added ``Repository.status`` column.
+
+API Changes
+~~~~~~~~~~~
+
+- Added ``/organizations/{org}/config/repos/`` endpoint.
+- Added ``/organizations/{org}/repos/{repo}/`` endpoint.
 
 Version 8.10
 ------------
@@ -42,8 +111,8 @@ Version 8.10
 API Changes
 ~~~~~~~~~~~
 
-- Add ``/organizations/{org}/repositories/`` endpoint.
-- Add ``/organizations/{org}/repositories/{repo}/commits/`` endpoint.
+- Add ``/organizations/{org}/repos/`` endpoint.
+- Add ``/organizations/{org}/repos/{repo}/commits/`` endpoint.
 - Add ``/projects/{org}/{project}/releases/{version}/commits/`` endpoint.
 - SSO restrictions are now applied across session-based API authentication.
 

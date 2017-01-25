@@ -26,6 +26,7 @@ class GenericField extends React.Component {
       error: (this.props.formErrors || {})[config.name],
       disabled: config.readonly,
       key: config.name,
+      formState: this.props.formState,
       help: (
         (defined(config.help) && config.help !== '')
           ? <span dangerouslySetInnerHTML={{__html: config.help}}/>
@@ -52,6 +53,10 @@ class GenericField extends React.Component {
         return <TextareaField {...props} />;
       case 'choice':
       case 'select':
+        // the chrome required tip winds up in weird places
+        // for select2 elements, so just make it look like
+        // it's required (with *) and rely on server validation
+        delete props.required;
         if (props.has_autocomplete) {
           return <Select2FieldAutocomplete {...props} />;
         }
@@ -66,6 +71,7 @@ GenericField.propTypes = {
     config: React.PropTypes.object.isRequired,
     formData: React.PropTypes.object,
     formErrors: React.PropTypes.object,
+    formState: React.PropTypes.string.isRequired,
     onChange: React.PropTypes.func,
 };
 

@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 import string
 
-from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -11,9 +10,11 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.app import locks
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
+from sentry.utils.retries import TimedRetryPolicy
 
 
 @scenario('CreateNewRelease')
@@ -79,7 +80,8 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         query = request.GET.get('query')
 
         queryset = Release.objects.filter(
-            project=project,
+            projects=project,
+            organization_id=project.organization_id
         ).select_related('owner')
 
         if query:
@@ -106,7 +108,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         ````````````````````
 
         Create a new release for the given project.  Releases are used by
-        Sentry to improve it's error reporting abilities by correlating
+        Sentry to improve its error reporting abilities by correlating
         first seen events with the release that might have introduced the
         problem.
 
@@ -136,27 +138,42 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            try:
-                with transaction.atomic():
-                    # release creation is idempotent to simplify user
-                    # experiences
-                    release, created = Release.objects.create(
-                        project=project,
-                        version=result['version'],
-                        ref=result.get('ref'),
-                        url=result.get('url'),
-                        owner=result.get('owner'),
-                        date_started=result.get('dateStarted'),
-                        date_released=result.get('dateReleased'),
-                    ), True
-            except IntegrityError:
-                release, created = Release.objects.get(
-                    project=project,
-                    version=result['version'],
-                ), False
+            # release creation is idempotent to simplify user
+            # experiences
+            release = Release.objects.filter(
+                organization_id=project.organization_id,
+                version=result['version'],
+                projects=project
+            ).first()
+            created = False
+            if release:
                 was_released = bool(release.date_released)
             else:
+                release = Release.objects.filter(
+                    organization_id=project.organization_id,
+                    version=result['version'],
+                ).first()
+                if not release:
+                    lock_key = Release.get_lock_key(project.organization_id, result['version'])
+                    lock = locks.get(lock_key, duration=5)
+                    with TimedRetryPolicy(10)(lock.acquire):
+                        try:
+                            release, created = Release.objects.get(
+                                version=result['version'],
+                                organization_id=project.organization_id
+                            ), False
+                        except Release.DoesNotExist:
+                            release, created = Release.objects.create(
+                                organization_id=project.organization_id,
+                                version=result['version'],
+                                ref=result.get('ref'),
+                                url=result.get('url'),
+                                owner=result.get('owner'),
+                                date_started=result.get('dateStarted'),
+                                date_released=result.get('dateReleased'),
+                            ), True
                 was_released = False
+                release.add_project(project)
 
             commit_list = result.get('commits')
             if commit_list:
