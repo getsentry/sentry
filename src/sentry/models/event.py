@@ -8,6 +8,7 @@ sentry.models.event
 from __future__ import absolute_import
 
 import six
+import string
 import warnings
 
 from collections import OrderedDict
@@ -23,6 +24,7 @@ from sentry.db.models import (
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
 from sentry.utils.safe import safe_execute
+from sentry.utils.strings import truncatechars
 
 
 class Event(Model):
@@ -264,8 +266,47 @@ class Event(Model):
         return ''
 
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            six.text_type(self.get_tag('level')).upper().encode('utf-8'),
-            self.title.encode('utf-8')
+        template = self.project.get_option('mail:subject_template')
+        if template:
+            template = EventSubjectTemplate(template)
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return truncatechars(
+            template.safe_substitute(
+                EventSubjectTemplateData(self),
+            ).encode('utf-8'),
+            128,
         )
+
+
+class EventSubjectTemplate(string.Template):
+    idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
+
+
+class EventSubjectTemplateData(object):
+    tag_aliases = {
+        'release': 'sentry:release',
+    }
+
+    def __init__(self, event):
+        self.event = event
+
+    def __getitem__(self, name):
+        if name.startswith('tag:'):
+            name = name[4:]
+            value = self.event.get_tag(self.tag_aliases.get(name, name))
+            if value is None:
+                raise KeyError
+            return six.text_type(value)
+        elif name == 'project':
+            return self.event.project.get_full_name()
+        elif name == 'projectID':
+            return self.event.project.slug
+        elif name == 'orgID':
+            return self.event.organization.slug
+        elif name == 'title':
+            return self.event.title
+        raise KeyError
+
+
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')
