@@ -650,6 +650,10 @@ class Stacktrace(Interface):
             'frames': frame_list,
         }
 
+        kwargs['register'] = None
+        if data.get('register') and isinstance(data['register'], dict):
+            kwargs['register'] = data.get('register')
+
         if data.get('frames_omitted'):
             if len(data['frames_omitted']) != 2:
                 raise InterfaceValidationError("Invalid value for 'frames_omitted'")
@@ -696,6 +700,7 @@ class Stacktrace(Interface):
         return {
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
+            'register': self.register,
             'hasSystemFrames': self.has_system_frames,
         }
 
@@ -703,6 +708,7 @@ class Stacktrace(Interface):
         return {
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
+            'register': self.register,
             'has_system_frames': self.has_system_frames,
         }
 
