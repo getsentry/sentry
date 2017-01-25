@@ -14,6 +14,7 @@ Version 8.13 (Unreleased)
 - Simplified management of secondary email addresses.
 - Fixed an issue where changing primary email address would remove the pre-existing verified email.
 - Disallow duplicating primary emails for users moving forward
+- Fixed bug where workflow notification subject may not include a custom email prefix.
 
 Schema Changes
 ~~~~~~~~~~~~~~
