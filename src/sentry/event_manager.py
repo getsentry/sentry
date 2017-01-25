@@ -217,16 +217,6 @@ class ScoreClause(object):
 
         return (sql, [])
 
-    def get_sql(self):
-        from sentry.utils.db import is_postgres, is_mysql
-        if is_postgres():
-            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
-        elif is_mysql():
-            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-        else:
-            sql = int(self)
-        return sql
-
     @classmethod
     def calculate(cls, times_seen, last_seen):
         return math.log(times_seen) * 600 + float(last_seen.strftime('%s'))

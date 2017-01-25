@@ -60,9 +60,8 @@ class ReleaseSerializer(Serializer):
             'dateReleased': obj.date_released,
             'dateCreated': obj.date_added,
             'data': obj.data,
+            'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
-            'newGroups': attrs['new_groups']
-
         }
         if attrs['tag']:
             d.update({
