@@ -10,10 +10,11 @@ class Migration(DataMigration):
         "Write your forwards methods here."
         modified = True
         while modified:
-            modified = orm.ReleaseProject.objects.filter(
-                id__in=orm.ReleaseProject.objects.filter(
+            rp_ids = list(orm.ReleaseProject.objects.filter(
                     new_groups__isnull=True
-                ).values_list('id', flat=True)[:1000],
+            ).values_list('id', flat=True)[:1000])
+            modified = orm.ReleaseProject.objects.filter(
+                id__in=rp_ids,
                 new_groups__isnull=True
             ).update(new_groups=0)
 
