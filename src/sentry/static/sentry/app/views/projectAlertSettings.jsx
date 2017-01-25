@@ -204,7 +204,7 @@ const GeneralSettings = React.createClass({
     return (
       <div className="box">
         <div className="box-header">
-          <h3>{t('General')}</h3>
+          <h3>{t('Email Settings')}</h3>
         </div>
 
         <div className="box-content with-padding">
@@ -214,14 +214,6 @@ const GeneralSettings = React.createClass({
                 {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
               </div>
             }
-            <TextField
-                key="subjectPrefix"
-                label={t('Subject prefix')}
-                value={formData.subjectPrefix}
-                required={false}
-                error={errors.subjectPrefix}
-                onChange={this.onFieldChange.bind(this, 'subjectPrefix')}
-                help="Sentry will prefix all emails for this project with the given value." />
 
             <TextField
                 key="subjectTemplate"
@@ -313,7 +305,6 @@ const ProjectAlertSettings = React.createClass({
     this.setState({
       project: {
         ...this.state.project,
-        subjectPrefix: data.subjectPrefix,
         subjectTemplate: data.subjectTemplate,
       },
     });
@@ -382,7 +373,6 @@ const ProjectAlertSettings = React.createClass({
           orgId={orgId}
           projectId={projectId}
           initialData={{
-            'subjectPrefix': project.subjectPrefix,
             'subjectTemplate': project.subjectTemplate
           }}
           onSave={this.onGeneralChange} />
