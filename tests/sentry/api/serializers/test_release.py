@@ -181,4 +181,7 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user)
         assert len(result['authors']) == 1
-        assert result['authors'] == [serialize(user)] or [serialize(otheruser)]
+        result_author = result['authors'][0]
+        assert int(result_author['id']) == user.id or int(result_author['id']) == otheruser.id
+        assert result_author['email'] == user.email or result_author['email'] == otheruser.email
+        assert result_author['username'] == user.username or result_author['username'] == otheruser.username
