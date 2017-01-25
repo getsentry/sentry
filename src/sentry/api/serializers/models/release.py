@@ -35,7 +35,7 @@ class ReleaseSerializer(Serializer):
         # Filter users based on the emails provided in the commits
         user_emails = UserEmail.objects.filter(
             in_iexact('email', [a.email for a in authors]),
-        )
+        ).order_by('id')
 
         # Filter users belonging to the organization associated with
         # the release
