@@ -26,8 +26,11 @@ EXTENSION_EXC_VALUES = re.compile('|'.join((re.escape(x) for x in (
     'EBCallBackMessageReceived',
     # See https://groups.google.com/a/chromium.org/forum/#!topic/chromium-discuss/7VU0_VvC7mE
     '_gCrWeb',
-    # See http://toolbar.conduit.com/Developer/HtmlAndGadget/Methods/JSInjection.aspx
-    'conduitPage'
+    # See http://toolbar.conduit.com/Debveloper/HtmlAndGadget/Methods/JSInjection.aspx
+    'conduitPage',
+    # Google Search app (iOS)
+    # See: https://github.com/getsentry/raven-js/issues/756
+    'null is not an object (evaluating \'elt.parentNode\')'
 ))), re.I)
 
 EXTENSION_EXC_SOURCES = re.compile('|'.join((
