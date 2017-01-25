@@ -11,7 +11,7 @@ class Migration(DataMigration):
         modified = True
         while modified:
             rp_ids = list(orm.ReleaseProject.objects.filter(
-                    new_groups__isnull=True
+                new_groups__isnull=True
             ).values_list('id', flat=True)[:1000])
             modified = orm.ReleaseProject.objects.filter(
                 id__in=rp_ids,
