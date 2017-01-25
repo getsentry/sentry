@@ -17,7 +17,7 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.app import digests
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus, UserOption
+    ProjectStatus, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
@@ -83,6 +83,8 @@ class ProjectAdminSerializer(serializers.Serializer):
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
+    subjectPrefix = serializers.CharField(max_length=200)
+    subjectTemplate = serializers.CharField(max_length=200)
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
@@ -159,6 +161,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'digestsMaxDelay': project.get_option(
                 'digests:mail:maximum_delay', digests.maximum_delay,
             ),
+            'subjectPrefix': project.get_option('mail:subject_prefix'),
+            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
         })
 
         include = set(filter(bool, request.GET.get('include', '').split(',')))
@@ -239,6 +243,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('digests:mail:minimum_delay', result['digestsMinDelay'])
         if result.get('digestsMaxDelay'):
             project.update_option('digests:mail:maximum_delay', result['digestsMaxDelay'])
+        if result.get('subjectPrefix'):
+            project.update_option('mail:subject_prefix', result['subjectPrefix'])
+        if result.get('subjectTemplate'):
+            project.update_option('mail:subject_template', result['subjectTemplate'])
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(request.user, project, 'mail:alert', 1)
@@ -297,6 +305,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'digestsMaxDelay': project.get_option(
                 'digests:mail:maximum_delay', digests.maximum_delay,
             ),
+            'subjectPrefix': project.get_option('mail:subject_prefix'),
+            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
         })
 
         return Response(data)
