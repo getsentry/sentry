@@ -50,7 +50,7 @@
             <form action="" method="post">
               {% csrf_token %}
               <input type='hidden' name='new_primary_email' value='{{ email.email }}'>
-              <button type='submit' name='primary' class='btn btn-default'>Set as Primary Email</button>
+              <button type='submit' name='primary' class='btn btn-default btn-sm'>Set as Primary Email</button>
             </form>
             {% endif %}
           </td>
