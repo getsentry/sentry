@@ -8,17 +8,14 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
-        release_projects = orm.ReleaseProject.objects.filter(
-            new_groups__isnull=True
-        ).values_list('id', flat=True)[:1000]
-        while release_projects:
-            orm.ReleaseProject.objects.filter(
-                id__in=release_projects,
+        modified = True
+        while modified:
+            modified = orm.ReleaseProject.objects.filter(
+                id__in=orm.ReleaseProject.objects.filter(
+                    new_groups__isnull=True
+                ).values_list('id', flat=True)[:1000],
                 new_groups__isnull=True
             ).update(new_groups=0)
-            release_projects = orm.ReleaseProject.objects.filter(
-                new_groups__isnull=True
-            ).values_list('id', flat=True)[:1000]
 
     def backwards(self, orm):
         "Write your backwards methods here."
