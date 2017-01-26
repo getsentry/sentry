@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db import models, transaction
 from PIL import Image
 from six import BytesIO
@@ -69,6 +71,8 @@ class AvatarBase(Model):
                     name=filename,
                     type=cls.FILE_TYPE,
                 )
+                if isinstance(avatar, six.text_types):
+                    avatar = BytesIO(avatar)
                 photo.putfile(avatar)
         else:
             photo = None
