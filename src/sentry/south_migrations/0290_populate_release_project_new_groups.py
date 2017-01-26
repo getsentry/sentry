@@ -1,23 +1,45 @@
 # -*- coding: utf-8 -*-
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 from django.db import models
 
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
-class Migration(SchemaMigration):
+
+class Migration(DataMigration):
 
     def forwards(self, orm):
-        # Adding field 'ReleaseProject.new_groups'
-        db.add_column('sentry_release_project', 'new_groups',
-                      self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(null=True),
-                      keep_default=False)
+        "Write your forwards methods here."
+        db.commit_transaction()
 
+        for release in RangeQuerySetWrapperWithProgressBar(orm.Release.objects.exclude(new_groups=0)):
+            projects = list(release.projects.values_list('id', flat=True))
+            if len(projects) > 1:
+                # do something fancy where we look at Group.first_release
+                # to calculate ReleaseProject.new_group
+                for p_id in projects:
+                    new_groups = orm.Group.objects.filter(
+                        first_release=release,
+                        project_id=p_id
+                    ).count()
+                    if not new_groups:
+                        continue
+                    orm.ReleaseProject.objects.filter(
+                        release_id=release.id,
+                        project_id=p_id
+                    ).update(new_groups=new_groups)
+            elif len(projects) == 1:
+                # copy Release.new_groups to ReleaseProject.new_group
+                orm.ReleaseProject.objects.filter(
+                    release_id=release.id,
+                    project_id=projects[0]
+                ).update(new_groups=release.new_groups)
+
+        db.start_transaction()
 
     def backwards(self, orm):
-        # Deleting field 'ReleaseProject.new_groups'
-        db.delete_column('sentry_release_project', 'new_groups')
-
+        "Write your backwards methods here."
 
     models = {
         'sentry.activity': {
@@ -102,7 +124,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 1, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 2, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -435,6 +457,14 @@ class Migration(SchemaMigration):
             'member': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.OrganizationMember']"}),
             'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
         },
+        'sentry.organizationavatar': {
+            'Meta': {'object_name': 'OrganizationAvatar'},
+            'avatar_type': ('django.db.models.fields.PositiveSmallIntegerField', [], {'default': '0'}),
+            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']", 'unique': 'True', 'null': 'True', 'on_delete': 'models.SET_NULL'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'ident': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '32', 'db_index': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'avatar'", 'unique': 'True', 'to': "orm['sentry.Organization']"})
+        },
         'sentry.organizationmember': {
             'Meta': {'unique_together': "(('organization', 'user'), ('organization', 'email'))", 'object_name': 'OrganizationMember'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
@@ -577,7 +607,7 @@ class Migration(SchemaMigration):
         'sentry.releaseproject': {
             'Meta': {'unique_together': "(('project', 'release'),)", 'object_name': 'ReleaseProject', 'db_table': "'sentry_release_project'"},
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'null': 'True'}),
+            'new_groups': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'null': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"})
         },
@@ -679,7 +709,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'Yd4IetOvMJVJl96tMTF112kVp8ZodCcy'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'hutiIQCjOcZ40FC5LkOIVljGBHRBy1Eo'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
@@ -703,3 +733,4 @@ class Migration(SchemaMigration):
     }
 
     complete_apps = ['sentry']
+    symmetrical = True
