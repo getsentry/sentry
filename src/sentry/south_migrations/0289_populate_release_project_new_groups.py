@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+
 class Migration(DataMigration):
 
     def forwards(self, orm):
@@ -32,10 +33,6 @@ class Migration(DataMigration):
                     release_id=release.id,
                     project_id=projects[0]
                 ).update(new_groups=release.new_groups)
-
-        rp_queryset = orm.ReleaseProject.objects.filter(new_groups__isnull=True)
-        for release_project in RangeQuerySetWrapperWithProgressBar(rp_queryset):
-            release_project.update(new_groups=0)
 
         db.start_transaction()
 
@@ -125,7 +122,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 1, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 2, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -702,7 +699,7 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'9aD5gzNgqMyDlUPs5iDostTofO2MDm5b'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'9g8rFC2A4Xqi1PATWIwhdd8RmQwcJafs'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
