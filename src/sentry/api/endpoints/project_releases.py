@@ -98,7 +98,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by='-sort',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, project=project),
         )
 
     @attach_scenarios([create_new_release_scenario])
