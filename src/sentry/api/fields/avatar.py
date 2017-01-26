@@ -27,6 +27,8 @@ class AvatarField(serializers.WritableField):
         return obj.getvalue()
 
     def from_native(self, data):
+        if not data:
+            return None
         data = b64decode(data)
         if len(data) > self.max_size:
             raise APIException('Image too large.', status_code=413)
