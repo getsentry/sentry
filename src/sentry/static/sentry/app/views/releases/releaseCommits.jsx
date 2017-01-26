@@ -5,6 +5,12 @@ import LoadingError from '../../components/loadingError';
 import ApiMixin from '../../mixins/apiMixin';
 
 const ReleaseCommit = React.createClass({
+  propTypes: {
+    commitId: React.PropTypes.string,
+    shortId: React.PropTypes.string,
+    commitMessage: React.PropTypes.string,
+    commitDateCreated: React.PropTypes.string
+  },
   render() {
     return (
       <li className="list-group-item" key={this.props.commitId}>
