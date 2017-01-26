@@ -71,7 +71,7 @@ class AvatarBase(Model):
                     name=filename,
                     type=cls.FILE_TYPE,
                 )
-                if isinstance(avatar, six.text_types):
+                if isinstance(avatar, six.string_types):
                     avatar = BytesIO(avatar)
                 photo.putfile(avatar)
         else:
