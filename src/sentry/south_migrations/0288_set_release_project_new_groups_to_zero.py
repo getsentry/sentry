@@ -8,6 +8,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
+        db.commit_transaction()
         modified = True
         while modified:
             rp_ids = list(orm.ReleaseProject.objects.filter(
@@ -17,6 +18,8 @@ class Migration(DataMigration):
                 id__in=rp_ids,
                 new_groups__isnull=True
             ).update(new_groups=0)
+
+        db.start_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."
