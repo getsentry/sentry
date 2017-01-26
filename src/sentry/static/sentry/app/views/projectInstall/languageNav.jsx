@@ -19,7 +19,7 @@ const LanguageNav = React.createClass({
   render() {
     let {isVisible} = this.state;
     return (
-      <div>
+      <div className="install-language-nav">
         <ul className="list-group">
           <li className="list-group-item list-group-header">
             <a onClick={this.toggle} style={{display: 'block'}}>
