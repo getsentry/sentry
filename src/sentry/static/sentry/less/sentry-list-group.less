@@ -1,0 +1,31 @@
+//
+// Sentry List Group
+// Extends Bootstrap's list-group
+//
+// Variables for this component can be found in variables.less
+//
+
+.list-group {
+  .list-group-item {
+    padding: 10px 20px;
+
+    .list-group-actions {
+      > .btn-group, > .btn {
+        margin-left: 5px;
+      }
+      > .btn-group .btn,
+        .btn-group .btn+.btn,
+        .btn-group .btn+.btn-group,
+        .btn-group .btn-group+.btn,
+        .btn-group .btn-group+.btn-group {
+          margin-left: -1px;
+        }
+      }
+    }
+
+  &.list-group-lg {
+    .list-group-item {
+      padding: 15px 20px;
+    }
+  }
+}

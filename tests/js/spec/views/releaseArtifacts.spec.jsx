@@ -54,7 +54,7 @@ describe('ReleaseArtifacts', function() {
         }]
       });
 
-      expect(wrapper.find('.release-artifact')).to.have.length(2);
+      expect(wrapper.find('.list-group-item')).to.have.length(2);
     });
 
     it('should have no permission to download', function () {
