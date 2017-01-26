@@ -6,6 +6,7 @@ from uuid import uuid4
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry import roles
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
@@ -14,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
     DetailedOrganizationSerializer
 )
+from sentry.api.serializers.rest_framework import ListField
 from sentry.models import (
     AuditLogEntryEvent, Organization, OrganizationAvatar, OrganizationOption,
     OrganizationStatus
@@ -50,24 +52,32 @@ def update_organization_scenario(runner):
         )
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
-    accountRateLimit = serializers.IntegerField(min_value=0, max_value=1000000)
-    projectRateLimit = serializers.IntegerField(min_value=50, max_value=100)
-    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
-                                  required=False)
-    avatar = AvatarField()
+class OrganizationSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
+    accountRateLimit = serializers.IntegerField(min_value=0, max_value=1000000,
+                                                required=False)
+    projectRateLimit = serializers.IntegerField(min_value=50, max_value=100,
+                                                required=False)
+    avatar = AvatarField(required=False)
     avatarType = serializers.ChoiceField(choices=(
         ('upload', 'upload'),
         ('letter_avatar', 'letter_avatar'),
-    ))
+    ), required=False)
 
-    class Meta:
-        model = Organization
-        fields = ('name', 'slug')
+    openMembership = serializers.BooleanField(required=False)
+    allowSharedIssues = serializers.BooleanField(required=False)
+    enhancedPrivacy = serializers.BooleanField(required=False)
+    dataScrubber = serializers.BooleanField(required=False)
+    dataScrubberDefaults = serializers.BooleanField(required=False)
+    sensitiveFields = ListField(child=serializers.CharField(), required=False)
+    safeFields = ListField(child=serializers.CharField(), required=False)
+    scrubIPAddresses = serializers.BooleanField(required=False)
+    isEarlyAdopter = serializers.BooleanField(required=False)
 
     def validate_slug(self, attrs, source):
         value = attrs[source]
-        if Organization.objects.filter(slug=value).exclude(id=self.object.id):
+        if Organization.objects.filter(slug=value).exclude(id=self.context['organization'].id):
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
         return attrs
 
@@ -75,7 +85,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
         attrs = super(OrganizationSerializer, self).validate(attrs)
         if attrs.get('avatarType') == 'upload':
             has_existing_file = OrganizationAvatar.objects.filter(
-                organization=self.object,
+                organization=self.context['organization'],
                 file__isnull=False,
             ).exists()
             if not has_existing_file and not attrs.get('avatar'):
@@ -85,29 +95,82 @@ class OrganizationSerializer(serializers.ModelSerializer):
         return attrs
 
     def save(self):
-        rv = super(OrganizationSerializer, self).save()
+        org = self.context['organization']
+        if 'openMembership' in self.init_data:
+            org.flags.allow_joinleave = self.init_data['openMembership']
+        if 'allowSharedIssues' in self.init_data:
+            org.flags.disable_shared_issues = not self.init_data['allowSharedIssues']
+        if 'enhancedPrivacy' in self.init_data:
+            org.flags.enhanced_privacy = self.init_data['enhancedPrivacy']
+        if 'isEarlyAdopter' in self.init_data:
+            org.flags.early_adopter = self.init_data['isEarlyAdopter']
+        if 'name' in self.init_data:
+            org.name = self.init_data['name']
+        if 'slug' in self.init_data:
+            org.slug = self.init_data['slug']
+        org.save()
         # XXX(dcramer): this seems wrong, but cant find documentation on how to
         # actually access this data
         if 'projectRateLimit' in self.init_data:
             OrganizationOption.objects.set_value(
-                organization=self.object,
+                organization=org,
                 key='sentry:project-rate-limit',
                 value=int(self.init_data['projectRateLimit']),
             )
         if 'accountRateLimit' in self.init_data:
             OrganizationOption.objects.set_value(
-                organization=self.object,
+                organization=org,
                 key='sentry:account-rate-limit',
                 value=int(self.init_data['accountRateLimit']),
             )
         if 'avatar' in self.init_data or 'avatarType' in self.init_data:
             OrganizationAvatar.save_avatar(
-                relation={'organization': self.object},
+                relation={'organization': org},
                 type=self.init_data.get('avatarType', 'upload'),
                 avatar=self.init_data.get('avatar'),
-                filename='{}.png'.format(self.object.slug),
+                filename='{}.png'.format(org.slug),
             )
-        return rv
+        if 'dataScrubber' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=org,
+                key='sentry:require_scrub_data',
+                value=self.init_data['dataScrubber'],
+            )
+        if 'dataScrubberDefaults' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=org,
+                key='sentry:require_scrub_defaults',
+                value=self.init_data['dataScrubberDefaults'],
+            )
+        if 'sensitiveFields' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=org,
+                key='sentry:sensitive_fields',
+                value=self.init_data['sensitiveFields'],
+            )
+        if 'safeFields' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=org,
+                key='sentry:safe_fields',
+                value=self.init_data['safeFields'],
+            )
+        if 'scrubIPAddresses' in self.init_data:
+            OrganizationOption.objects.set_value(
+                organization=org,
+                key='sentry:require_scrub_ip_address',
+                value=self.init_data['scrubIPAddresses'],
+            )
+        return org
+
+
+class OwnerOrganizationSerializer(OrganizationSerializer):
+    defaultRole = serializers.ChoiceField(choices=roles.get_choices())
+
+    def save(self, *args, **kwargs):
+        org = self.context['organization']
+        if 'defaultRole' in self.init_data:
+            org.default_role = self.init_data['defaultRole']
+        return super(OwnerOrganizationSerializer, self).save(*args, **kwargs)
 
 
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
@@ -149,8 +212,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
-        serializer = OrganizationSerializer(organization, data=request.DATA,
-                                            partial=True)
+        if request.access.has_scope('org:delete'):
+            serializer_cls = OwnerOrganizationSerializer
+        else:
+            serializer_cls = OrganizationSerializer
+        serializer = serializer_cls(
+            data=request.DATA,
+            partial=True,
+            context={'organization': organization},
+        )
         if serializer.is_valid():
             organization = serializer.save()
 
