@@ -9,21 +9,26 @@
   .list-group-item {
     padding: 10px 20px;
 
-
-    // When pairing title / description / meta use <hx> and <p>
+    // When pairing title / description / meta use <h*>, <p>, and <p>
     h1, h2 {
-      font-size: 20px;
+      font-size: 18px;
     }
 
     h3, h4, h5 {
-      font-size: 16px;
-      line-height: 1.1;
+      margin: 1px 0;
+      font-size: 15px;
+      line-height: 1.25;
     }
 
     p {
-      font-size: 15px;
+      font-size: 13px;
       color: @80;
       line-height: 1.3;
+      margin-bottom: 5px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
 
     .list-group-avatar {

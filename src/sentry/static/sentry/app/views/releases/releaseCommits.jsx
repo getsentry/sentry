@@ -16,8 +16,8 @@ const ReleaseCommit = React.createClass({
         <div className="row row-center-vertically">
           <div className="col-sm-8 list-group-avatar">
             <img src="https://github.com/benvinegar.png" className="avatar"/>
-            <h5 className="m-b-0">{this.props.commitMessage}</h5>
-            <p className="m-b-0"><strong>benvinegar</strong> committed {this.props.commitDateCreated}</p>
+            <h5>{this.props.commitMessage}</h5>
+            <p><strong>benvinegar</strong> committed {this.props.commitDateCreated}</p>
           </div>
           <div className="col-sm-2"><span className="badge">getsentry/sentry</span></div>
           <div className="col-sm-2 align-right">
