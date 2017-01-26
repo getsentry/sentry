@@ -13,7 +13,7 @@ class Migration(DataMigration):
         "Write your forwards methods here."
         db.commit_transaction()
 
-        for release in RangeQuerySetWrapperWithProgressBar(orm.Release.objects.all()):
+        for release in RangeQuerySetWrapperWithProgressBar(orm.Release.objects.exclude(new_groups=0)):
             projects = list(release.projects.values_list('id', flat=True))
             if len(projects) > 1:
                 # do something fancy where we look at Group.first_release
@@ -23,6 +23,8 @@ class Migration(DataMigration):
                         first_release=release,
                         project_id=p_id
                     ).count()
+                    if not new_groups:
+                        continue
                     orm.ReleaseProject.objects.filter(
                         release_id=release.id,
                         project_id=p_id
@@ -455,6 +457,14 @@ class Migration(DataMigration):
             'member': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.OrganizationMember']"}),
             'team': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Team']"})
         },
+        'sentry.organizationavatar': {
+            'Meta': {'object_name': 'OrganizationAvatar'},
+            'avatar_type': ('django.db.models.fields.PositiveSmallIntegerField', [], {'default': '0'}),
+            'file': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.File']", 'unique': 'True', 'null': 'True', 'on_delete': 'models.SET_NULL'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'ident': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '32', 'db_index': 'True'}),
+            'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'avatar'", 'unique': 'True', 'to': "orm['sentry.Organization']"})
+        },
         'sentry.organizationmember': {
             'Meta': {'unique_together': "(('organization', 'user'), ('organization', 'email'))", 'object_name': 'OrganizationMember'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
@@ -699,7 +709,7 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'9g8rFC2A4Xqi1PATWIwhdd8RmQwcJafs'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'hutiIQCjOcZ40FC5LkOIVljGBHRBy1Eo'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
