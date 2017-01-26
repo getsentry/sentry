@@ -18,6 +18,7 @@ import sys
 import tempfile
 
 import sentry
+from sentry.utils.types import type_from_value
 
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
@@ -25,6 +26,24 @@ from six.moves.urllib.parse import urlparse
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
+
+
+def env(key, default='', type=None):
+    "Extract an environment variable for use in configuration"
+
+    if 'SENTRY_RUNNING_UWSGI' in os.environ:
+        # We do this so when the process forks off into uwsgi
+        # we want to actually be popping off values. This is so that
+        # at runtime, the variables aren't actually available.
+        fn = os.environ.pop
+    else:
+        fn = os.environ.get
+
+    if type is None:
+        type = type_from_value(default)
+
+    return type(fn(key, default))
+
 
 DEBUG = False
 TEMPLATE_DEBUG = True
