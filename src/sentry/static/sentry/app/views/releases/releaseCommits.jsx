@@ -19,7 +19,7 @@ const ReleaseCommit = React.createClass({
             <h5>{this.props.commitMessage}</h5>
             <p><strong>benvinegar</strong> committed {this.props.commitDateCreated}</p>
           </div>
-          <div className="col-sm-2"><span className="badge">getsentry/sentry</span></div>
+          <div className="col-sm-2"><span className="repo-label">getsentry/sentry</span></div>
           <div className="col-sm-2 align-right">
             <a className="btn btn-default btn-sm"><span className="icon-mark-github"/>&nbsp; {this.props.shortId}</a>
           </div>
