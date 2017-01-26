@@ -274,9 +274,9 @@ class Event(Model):
         return truncatechars(
             template.safe_substitute(
                 EventSubjectTemplateData(self),
-            ).encode('utf-8'),
+            ),
             128,
-        )
+        ).encode('utf-8')
 
 
 class EventSubjectTemplate(string.Template):
