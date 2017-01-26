@@ -14,13 +14,13 @@ const ReleaseCommit = React.createClass({
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
-          <div className="col-sm-8 list-group-avatar">
+          <div className="col-xs-8 list-group-avatar">
             <img src="https://github.com/benvinegar.png" className="avatar"/>
             <h5>{this.props.commitMessage}</h5>
             <p><strong>benvinegar</strong> committed {this.props.commitDateCreated}</p>
           </div>
-          <div className="col-sm-2"><span className="repo-label">getsentry/sentry</span></div>
-          <div className="col-sm-2 align-right">
+          <div className="col-xs-2"><span className="repo-label">getsentry/sentry</span></div>
+          <div className="col-xs-2 align-right">
             <a className="btn btn-default btn-sm"><span className="icon-mark-github"/>&nbsp; {this.props.shortId}</a>
           </div>
         </div>
@@ -76,14 +76,13 @@ const ReleaseCommits = React.createClass({
       <div className="panel panel-default">
         <div className="panel-heading panel-heading-bold">
           <div className="row">
-
-            <div className="col-md-8">
+            <div className="col-xs-8">
               Commit
             </div>
-            <div className="col-md-2">
+            <div className="col-xs-2">
               Repository
             </div>
-            <div className="col-md-2 align-right">
+            <div className="col-xs-2 align-right">
               SHA
             </div>
           </div>
