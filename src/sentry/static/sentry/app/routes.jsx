@@ -29,6 +29,7 @@ import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
 import OrganizationRepositories from './views/organizationRepositories';
+import OrganizationSettings from './views/organizationSettings';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
@@ -112,6 +113,7 @@ function routes() {
 
         <Route path="/organizations/:orgId/audit-log/" component={errorHandler(OrganizationAuditLog)} />
         <Route path="/organizations/:orgId/repos/" component={errorHandler(OrganizationRepositories)} />
+        <Route path="/organizations/:orgId/settings/" component={errorHandler(OrganizationSettings)} />
         <Route path="/organizations/:orgId/teams/" component={errorHandler(OrganizationTeams)} />
         <Route path="/organizations/:orgId/teams/:teamId/" component={errorHandler(TeamDetails)}>
           <IndexRedirect to="settings/" />

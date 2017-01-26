@@ -1,7 +1,7 @@
 Version 8.13 (Unreleased)
 -------------------------
-- Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 
+- Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 - Support for setting a custom security header for javascript fetching.
 - start using ReleaseProject and Release.organization instead of Release.project
 - Project quotas are no longer available, and must now be configured via the organizational rate limits.
@@ -14,14 +14,11 @@ Version 8.13 (Unreleased)
 - Fixed bug where workflow notification subject may not include a custom email prefix.
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
+- Moved organization settings to React.
 
 Schema Changes
 ~~~~~~~~~~~~~~
 - Added ``ReleaseProject.new_groups`` column.
-
-Schema Changes
-~~~~~~~~~~~~~~
-
 - Added ``OrganizationAvatar`` model.
 
 API Changes
