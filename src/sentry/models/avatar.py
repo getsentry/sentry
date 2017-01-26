@@ -69,7 +69,7 @@ class AvatarBase(Model):
                     name=filename,
                     type=cls.FILE_TYPE,
                 )
-                photo.putfile(BytesIO(avatar))
+                photo.putfile(avatar)
         else:
             photo = None
 
