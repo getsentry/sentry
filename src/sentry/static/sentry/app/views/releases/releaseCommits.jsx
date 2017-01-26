@@ -13,10 +13,16 @@ const ReleaseCommit = React.createClass({
   render() {
     return (
       <li className="list-group-item" key={this.props.commitId}>
-        <div className="row">
-          <div className="col-sm-2 col-xs-2"><strong>{this.props.shortId}</strong></div>
-          <div className="col-sm-7 col-xs-7">{this.props.commitMessage}</div>
-          <div className="col-sm-3 col-xs-3 align-right actions">{this.props.commitDateCreated}</div>
+        <div className="row row-center-vertically">
+          <div className="col-sm-8 list-group-avatar">
+            <img src="https://github.com/benvinegar.png" className="avatar"/>
+            <h5 className="m-b-0">{this.props.commitMessage}</h5>
+            <p className="m-b-0"><strong>benvinegar</strong> committed {this.props.commitDateCreated}</p>
+          </div>
+          <div className="col-sm-2"><span className="badge">getsentry/sentry</span></div>
+          <div className="col-sm-2 align-right">
+            <a className="btn btn-default btn-sm"><span className="icon-mark-github"/>&nbsp; {this.props.shortId}</a>
+          </div>
         </div>
       </li>
     );
@@ -70,13 +76,19 @@ const ReleaseCommits = React.createClass({
       <div className="panel panel-default">
         <div className="panel-heading panel-heading-bold">
           <div className="row">
-            <div className="col-sm-2 col-xs-2">{'SHA'}</div>
-            <div className="col-sm-5 col-xs-5">{'Message'}</div>
-            <div className="col-sm-3 col-xs-3 align-right actions">{'Date'}</div>
-            <div className="col-sm-2 col-xs-2 align-right actions">{'Author'}</div>
+
+            <div className="col-md-8">
+              Commit
+            </div>
+            <div className="col-md-2">
+              Repository
+            </div>
+            <div className="col-md-2 align-right">
+              SHA
+            </div>
           </div>
         </div>
-        <ul className="list-group commit-list">
+        <ul className="list-group list-group-lg commit-list">
           {commitList.map(commit => {
             let shortId = commit.id.slice(0, 7);
             return (

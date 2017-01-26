@@ -9,19 +9,48 @@
   .list-group-item {
     padding: 10px 20px;
 
+
+    // When pairing title / description / meta use <hx> and <p>
+    h1, h2 {
+      font-size: 20px;
+    }
+
+    h3, h4, h5 {
+      font-size: 16px;
+      line-height: 1.1;
+    }
+
+    p {
+      font-size: 15px;
+      color: @80;
+      line-height: 1.3;
+    }
+
+    .list-group-avatar {
+      padding-left: 56px;
+      position: relative;
+
+      .avatar {
+        .square(36px);
+        position: absolute;
+        left: 10px;
+        border-radius: 3px;
+      }
+    }
+
     .list-group-actions {
       > .btn-group, > .btn {
         margin-left: 5px;
       }
       > .btn-group .btn,
-        .btn-group .btn+.btn,
-        .btn-group .btn+.btn-group,
-        .btn-group .btn-group+.btn,
-        .btn-group .btn-group+.btn-group {
-          margin-left: -1px;
-        }
+      .btn-group .btn+.btn,
+      .btn-group .btn+.btn-group,
+      .btn-group .btn-group+.btn,
+      .btn-group .btn-group+.btn-group {
+        margin-left: -1px;
       }
     }
+  }
 
   &.list-group-lg {
     .list-group-item {
