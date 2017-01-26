@@ -63,7 +63,7 @@ const ReleaseCommits = React.createClass({
     let {commitList} = this.state;
     return (
       <div className="panel panel-default">
-        <div className="panel-heading">
+        <div className="panel-heading panel-heading-bold">
           <div className="row">
             <div className="col-sm-2 col-xs-2">{'SHA'}</div>
             <div className="col-sm-7 col-xs-7">{'Message'}</div>
