@@ -2,11 +2,14 @@ from __future__ import absolute_import
 
 import six
 
+from base64 import b64encode
 from django.core.urlresolvers import reverse
 from django.core import mail
 from mock import patch
 
-from sentry.models import Organization, OrganizationOption, OrganizationStatus
+from sentry.models import (
+    Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
+)
 from sentry.signals import project_created
 from sentry.testutils import APITestCase
 
@@ -63,6 +66,24 @@ class OrganizationUpdateTest(APITestCase):
         result = OrganizationOption.objects.get_value(
             org, 'sentry:project-rate-limit')
         assert result == 80
+
+    def test_upload_avatar(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'avatarType': 'upload',
+            'avatar': b64encode(self.load_fixture('avatar.jpg')),
+        }, format='json')
+
+        avatar = OrganizationAvatar.objects.get(
+            organization=org,
+        )
+        assert response.status_code == 200, response.content
+        assert avatar.get_avatar_type_display() == 'upload'
+        assert avatar.file
 
 
 class OrganizationDeleteTest(APITestCase):

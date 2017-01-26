@@ -18,6 +18,16 @@ Schema Changes
 ~~~~~~~~~~~~~~
 - Added ``ReleaseProject.new_groups`` column.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``OrganizationAvatar`` model.
+
+API Changes
+~~~~~~~~~~~
+
+- Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
+
 Version 8.12
 ------------
 
