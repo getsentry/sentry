@@ -650,9 +650,9 @@ class Stacktrace(Interface):
             'frames': frame_list,
         }
 
-        kwargs['register'] = None
-        if data.get('register') and isinstance(data['register'], dict):
-            kwargs['register'] = data.get('register')
+        kwargs['registers'] = None
+        if data.get('registers') and isinstance(data['registers'], dict):
+            kwargs['registers'] = data.get('registers')
 
         if data.get('frames_omitted'):
             if len(data['frames_omitted']) != 2:
