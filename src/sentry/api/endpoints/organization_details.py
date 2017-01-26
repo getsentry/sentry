@@ -100,7 +100,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
                 key='sentry:account-rate-limit',
                 value=int(self.init_data['accountRateLimit']),
             )
-        if 'avatar' or 'avatarType' in self.init_data:
+        if 'avatar' in self.init_data or 'avatarType' in self.init_data:
             OrganizationAvatar.save_avatar(
                 relation={'organization': self.object},
                 type=self.init_data.get('avatarType', 'upload'),
