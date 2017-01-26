@@ -134,10 +134,10 @@ class MinHashIndex(object):
                 lambda (left, right): get_distance(
                     left,
                     right,
-                ) / math.sqrt(2),
+                ),
                 zip(target, other)
             )
-        ) / len(target)
+        ) / math.sqrt(2) / len(target)
 
     def query(self, scope, key):
         """\
