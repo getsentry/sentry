@@ -890,6 +890,9 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
+SENTRY_NEWSLETTER_OPTIONS = {}
+
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
