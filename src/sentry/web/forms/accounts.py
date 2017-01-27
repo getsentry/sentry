@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import options
 from sentry.auth import password_validation
-from sentry.app import ratelimiter
+from sentry.app import ratelimiter, newsletter
 from sentry.constants import LANGUAGES
 from sentry.models import (
     Organization, OrganizationStatus, User, UserOption, UserOptionValue
@@ -163,6 +163,16 @@ class RegistrationForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}))
+    subscribe = forms.BooleanField(
+        label=_('Subscribe to product updates newsletter'),
+        required=False,
+        initial=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super(RegistrationForm, self).__init__(*args, **kwargs)
+        if not newsletter.enabled:
+            del self.fields['subscribe']
 
     class Meta:
         fields = ('username',)
@@ -187,6 +197,9 @@ class RegistrationForm(forms.ModelForm):
         user.set_password(self.cleaned_data['password'])
         if commit:
             user.save()
+            if self.cleaned_data.get('subscribe'):
+                newsletter.create_or_update_subscription(
+                    user, list_id=newsletter.DEFAULT_LIST_ID)
         return user
 
 
