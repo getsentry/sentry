@@ -51,6 +51,7 @@ quotas = get_instance('SENTRY_QUOTAS', settings.SENTRY_QUOTA_OPTIONS)
 nodestore = get_instance('SENTRY_NODESTORE', settings.SENTRY_NODESTORE_OPTIONS)
 ratelimiter = get_instance('SENTRY_RATELIMITER', settings.SENTRY_RATELIMITER_OPTIONS)
 search = get_instance('SENTRY_SEARCH', settings.SENTRY_SEARCH_OPTIONS)
+newsletter = get_instance('SENTRY_NEWSLETTER', settings.SENTRY_NEWSLETTER_OPTIONS)
 
 from sentry.tsdb.dummy import DummyTSDB
 tsdb = get_instance('SENTRY_TSDB', settings.SENTRY_TSDB_OPTIONS, (DummyTSDB,))

@@ -41,6 +41,9 @@ class UserEmail(Model):
     def hash_is_valid(self):
         return self.validation_hash and self.date_hash_added > timezone.now() - timedelta(hours=48)
 
+    def is_primary(self):
+        return self.user.email == self.email
+
     @classmethod
     def get_primary_email(self, user):
         return UserEmail.objects.get_or_create(
