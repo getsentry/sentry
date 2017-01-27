@@ -229,17 +229,28 @@ class MinHashIndex(object):
             key=lambda (key, similarity): (similarity * -1, key),
         )
 
+    def record_multi(self, items):
+        """\
+        Records the presence of a set of characteristics within a group for a
+        batch of items. Each item should be represented by a 3-tuple of
+        ``(scope, key, characteristics)``.
+        """
+        with self.cluster.map() as client:
+            for scope, key, characteristics in items:
+                for band, buckets in enumerate(self.get_signature(characteristics)):
+                    buckets = self.__format_buckets(buckets)
+                    client.sadd(
+                        b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
+                        key,
+                    )
+                    client.zincrby(
+                        b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_FREQUENCY, band, key),
+                        buckets,
+                        1,
+                    )
+
     def record(self, scope, key, characteristics):
         """Records the presence of a set of characteristics within a group."""
-        with self.cluster.map() as client:
-            for band, buckets in enumerate(self.get_signature(characteristics)):
-                buckets = self.__format_buckets(buckets)
-                client.sadd(
-                    b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
-                    key,
-                )
-                client.zincrby(
-                    b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_FREQUENCY, band, key),
-                    buckets,
-                    1,
-                )
+        return self.record_multi([
+            (scope, key, characteristics),
+        ])
