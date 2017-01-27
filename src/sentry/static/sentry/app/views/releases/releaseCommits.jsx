@@ -76,7 +76,7 @@ const ReleaseCommits = React.createClass({
 
   emptyState() {
     return(
-      <div className="box empty-stream">
+      <div className="box empty-stream m-y-0">
         <span className="icon icon-exclamation" />
         <p>There are no commits associated with this release.</p>
         {/* Todo: Should we link to repo settings from here?  */}
