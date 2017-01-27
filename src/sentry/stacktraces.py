@@ -16,12 +16,12 @@ StacktraceInfo = namedtuple('StacktraceInfo', [
 
 class StacktraceProcessor(object):
 
-    def __init__(self, data, stacktrace_infos):
+    def __init__(self, data, stacktrace_infos, project=None):
         self.data = data
         self.stacktrace_infos = stacktrace_infos
-        self.project = Project.objects.get_from_cache(
-            id=data['project']
-        )
+        if project is None:
+            project = Project.objects.get_from_cache(id=data['project'])
+        self.project = project
 
     def close(self):
         pass
@@ -102,6 +102,10 @@ def get_processors_for_stacktraces(data, infos):
                                        data=data, stacktrace_infos=infos,
                                        platforms=platforms,
                                        _with_transaction=False) or ())
+
+    if processors:
+        project = Project.objects.get_from_cache(id=data['project'])
+        processors = [x(data, infos, project) for x in processors]
 
     return processors
 

@@ -134,4 +134,4 @@ class JavascriptPlugin(Plugin2):
     def get_stacktrace_processors(self, data, stacktrace_infos,
                                   platforms, **kwargs):
         if 'javascript' in platforms:
-            return [JavaScriptStacktraceProcessor(data, stacktrace_infos)]
+            return [JavaScriptStacktraceProcessor]
