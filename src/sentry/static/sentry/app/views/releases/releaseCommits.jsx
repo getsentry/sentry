@@ -74,6 +74,16 @@ const ReleaseCommits = React.createClass({
     });
   },
 
+  emptyState() {
+    return(
+      <div className="box empty-stream">
+        <span className="icon icon-exclamation" />
+        <p>There are no commits associated with this release.</p>
+        {/* Todo: Should we link to repo settings from here?  */}
+      </div>
+    );
+  },
+
   render() {
     if (this.state.loading)
       return <LoadingIndicator/>;
@@ -82,6 +92,10 @@ const ReleaseCommits = React.createClass({
       return <LoadingError/>;
 
     let {commitList} = this.state;
+
+    if (!commitList.length)
+      return <this.emptyState/>;
+
     return (
       <div className="panel panel-default">
         <div className="panel-heading panel-heading-bold">
