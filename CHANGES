@@ -11,7 +11,24 @@ Version 8.13 (Unreleased)
 - Add memory and storage information for apple devices
 - The legacy API keys feature is now disabled by default.
 - Show Images Loaded section for cocoa events with version number.
-- Added register to stacktrace for cocoa exceptions.
+- Added registers to stacktrace for cocoa exceptions.
+- Fixed bug where workflow notification subject may not include a custom email prefix.
+- Added configurable subject templates for individual alert emails (`mail:subject_template` option).
+- Added data migration to populate ReleaseProject.new_groups
+
+Schema Changes
+~~~~~~~~~~~~~~
+- Added ``ReleaseProject.new_groups`` column.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``OrganizationAvatar`` model.
+
+API Changes
+~~~~~~~~~~~
+
+- Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
 
 Version 8.12
 ------------

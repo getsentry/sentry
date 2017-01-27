@@ -47,7 +47,7 @@ class MailPluginTest(TestCase):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
-        assert msg.subject == '[Sentry] [foo Bar] ERROR: Hello world'
+        assert msg.subject == '[Sentry] [foo Bar] error: Hello world'
         assert 'my rule' in msg.alternatives[0][0]
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
@@ -136,7 +136,7 @@ class MailPluginTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('reference'), group)
-        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+        assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
             self.team.name, self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
@@ -169,7 +169,7 @@ class MailPluginTest(TestCase):
 
         assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+        assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
             self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
@@ -236,7 +236,7 @@ class MailPluginTest(TestCase):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
+        assert msg.subject == u'[Sentry] [foo Bar] error: רונית מגן'
 
     def test_get_digest_subject(self):
         assert self.plugin.get_digest_subject(
@@ -318,7 +318,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -343,7 +343,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
 
 
@@ -395,3 +395,18 @@ class ActivityEmailTestCase(TestCase):
         )
 
         assert set(email.get_participants()) == set([user])
+
+    def test_get_subject(self):
+        group, (user,) = self.get_fixture_data(1)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+            )
+        )
+
+        with mock.patch('sentry.models.ProjectOption.objects.get_value') as get_value:
+            get_value.side_effect = lambda project, key, default=None: \
+                "[Example prefix] " if key == "mail:subject_prefix" else default
+            assert email.get_subject_with_prefix().startswith('[Example prefix] ')

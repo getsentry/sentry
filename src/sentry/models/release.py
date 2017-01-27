@@ -30,6 +30,7 @@ class ReleaseProject(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     release = FlexibleForeignKey('sentry.Release')
+    new_groups = BoundedPositiveIntegerField(null=True, default=0)
 
     class Meta:
         app_label = 'sentry'
