@@ -13,7 +13,19 @@ from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User
 
 
 def get_users_for_commits(item_list):
+    """
+    Returns a dictionary of author_id => user, if a Sentry
+    user object exists for that email. If there is no matching
+    Sentry user, a {user, email} dict representation of that
+    author is returned.
 
+    e.g.
+    {
+        1: serialized(<User id=1>),
+        2: {email: 'not-a-user@example.com', name: 'dunno'},
+        ...
+    }
+    """
     authors = set(c.author for c in item_list if c.author is not None)
     if not len(authors):
         return {}
@@ -45,7 +57,7 @@ def get_users_for_commits(item_list):
 
     author_objs = {}
     for author in authors:
-        author_objs[author.email] = users_by_email.get(author.email, {
+        author_objs[author.id] = users_by_email.get(author.email, {
             "name": author.name,
             "email": author.email
         })
@@ -129,11 +141,7 @@ class ReleaseSerializer(Serializer):
         if not len(release_commits):
             return None
 
-        org_ids = set(item.organization_id for item in item_list)
-        assert len(org_ids) == 1
-        org_id = org_ids.pop()
-
-        users_by_email = self._get_users_for_commits(release_commits, org_id)
+        users_by_email = get_users_for_commits([rc.commit for rc in release_commits])
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
 

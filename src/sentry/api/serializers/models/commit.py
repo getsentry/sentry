@@ -18,7 +18,7 @@ class CommitSerializer(Serializer):
         for item in item_list:
             result[item] = {
                 'repository': repository_objs.get(item.repository_id, {}),
-                'user': author_objs.get(item.author.email, {})
+                'user': author_objs.get(item.author_id, {})
             }
 
         return result
