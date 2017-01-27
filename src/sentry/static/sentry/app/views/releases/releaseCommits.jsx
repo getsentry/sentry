@@ -1,7 +1,6 @@
 import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-import moment from 'moment';
 import ApiMixin from '../../mixins/apiMixin';
 
 const ReleaseCommit = React.createClass({

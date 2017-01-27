@@ -82,7 +82,6 @@ class ReleaseSerializer(Serializer):
         If there are no commits, returns None.
         """
 
-        # TODO: change to select_related commit, author
         release_commits = list(ReleaseCommit.objects.filter(
             release__in=item_list).select_related("commit", "commit__author"))
 
@@ -153,7 +152,7 @@ class ReleaseSerializer(Serializer):
             result[item] = {
                 'tag': tags.get(item.version),
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
-                'new_groups': group_counts_by_release.get(item.id) or 0
+                'new_groups': group_counts_by_release.get(item.id) or 0,
                 'commit_count': 0,
                 'authors': [],
             }
