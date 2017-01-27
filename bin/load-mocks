@@ -322,6 +322,9 @@ def main(num_events=1):
                 name='Example Repo',
                 provider='github',
                 external_id='example/example',
+                defaults={
+                    'url': 'https://github.com/example/example',
+                }
             )
 
             for commit_index, raw_commit in enumerate(raw_commits):
