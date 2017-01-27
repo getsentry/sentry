@@ -104,9 +104,7 @@ const Stream = React.createClass({
 
     if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
       // TODO(dcramer): handle 404 from popState on searchId
-      this.setState(this.getQueryState(nextProps), () => {
-        this.fetchData();
-      });
+      this.setState(this.getQueryState(nextProps), this.fetchData);
     }
   },
 
