@@ -4,20 +4,14 @@ import logging
 
 from sentry.models import Project
 from sentry.utils.safe import safe_execute
+from collections import namedtuple
 
 
 logger = logging.getLogger(__name__)
 
 
-class StacktraceInfo(object):
-    """A wrapper around a stacktrace that was extracted from event
-    data.
-    """
-
-    def __init__(self, stacktrace, container=None, platforms=None):
-        self.stacktrace = stacktrace
-        self.container = container
-        self.platforms = platforms
+StacktraceInfo = namedtuple('StacktraceInfo', [
+    'stacktrace', 'container', 'platforms'])
 
 
 class StacktraceProcessor(object):
