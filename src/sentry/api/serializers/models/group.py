@@ -167,7 +167,6 @@ class GroupSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         status = obj.status
         status_details = {}
-
         if attrs['ignore_duration']:
             if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
                 status = GroupStatus.UNRESOLVED
