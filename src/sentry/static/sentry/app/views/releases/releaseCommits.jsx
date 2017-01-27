@@ -1,7 +1,9 @@
 import React from 'react';
+
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import Avatar from '../../components/avatar';
+import TimeSince from '../../components/timeSince';
 
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -22,7 +24,7 @@ const ReleaseCommit = React.createClass({
           <div className="col-xs-8 list-group-avatar">
             <Avatar user={this.props.author}/>
             <h5>{this.props.commitMessage}</h5>
-            <p><strong>{this.props.author.name}</strong> committed {this.props.commitDateCreated}</p>
+            <p><strong>{this.props.author.name}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
           </div>
           <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
