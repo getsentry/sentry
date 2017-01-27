@@ -30,7 +30,7 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
     GroupRelease, GroupResolution, GroupStatus, Project, Release,
-    ReleaseEnvironment, TagKey, UserReport
+    ReleaseEnvironment, ReleaseProject, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -691,8 +691,9 @@ class EventManager(object):
             ), timestamp=event.datetime)
 
         if is_new and release:
-            buffer.incr(Release, {'new_groups': 1}, {
-                'id': release.id,
+            buffer.incr(ReleaseProject, {'new_groups': 1}, {
+                'release_id': release.id,
+                'project_id': project.id
             })
 
         safe_execute(Group.objects.add_tags, group, tags,

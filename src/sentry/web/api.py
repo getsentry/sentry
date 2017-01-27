@@ -159,6 +159,8 @@ class APIView(BaseView):
                 'Content-Type, Authentication'
             response['Access-Control-Allow-Methods'] = \
                 ', '.join(self._allowed_methods())
+            response['Access-Control-Expose-Headers'] = \
+                'X-Sentry-Error, Retry-After'
 
         return response
 

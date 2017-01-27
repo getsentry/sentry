@@ -121,6 +121,8 @@ class BaseTestCase(Fixtures, Exam):
     def load_fixture(self, filepath):
         filepath = os.path.join(
             MODULE_ROOT,
+            os.pardir,
+            os.pardir,
             'tests',
             'fixtures',
             filepath,
