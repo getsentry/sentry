@@ -345,13 +345,13 @@ def preprocess_apple_crash_event(data):
 
 class NativeStacktraceProcessor(StacktraceProcessor):
 
-    def __init__(self, data, stacktrace_infos):
-        StacktraceProcessor.__init__(self, data, stacktrace_infos)
-        debug_meta = data.get('debug_meta')
+    def __init__(self, *args, **kwargs):
+        StacktraceProcessor.__init__(self, *args, **kwargs)
+        debug_meta = self.data.get('debug_meta')
         if debug_meta:
             self.available = True
             self.debug_meta = debug_meta
-            self.sdk_info = get_sdk_from_event(data)
+            self.sdk_info = get_sdk_from_event(self.data)
         else:
             self.available = False
 
@@ -464,4 +464,4 @@ class NativePlugin(Plugin2):
     def get_stacktrace_processors(self, data, stacktrace_infos,
                                   platforms, **kwargs):
         if 'cocoa' in platforms:
-            return [NativeStacktraceProcessor(data, stacktrace_infos)]
+            return [NativeStacktraceProcessor]
