@@ -16,8 +16,8 @@ const ReleaseStats = React.createClass({
 
   render() {
     let release = this.props.release;
-    let commitCount = release.commitCount;
-    let authorCount = release.authors.length;
+    let commitCount = release.commitCount || 0;
+    let authorCount = release.authors && release.authors.length || 0;
     if (commitCount === 0) {
       return null;
     }
