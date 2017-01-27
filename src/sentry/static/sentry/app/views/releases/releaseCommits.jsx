@@ -1,6 +1,8 @@
 import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
+import Avatar from '../../components/avatar';
+
 import ApiMixin from '../../mixins/apiMixin';
 
 const ReleaseCommit = React.createClass({
@@ -8,20 +10,26 @@ const ReleaseCommit = React.createClass({
     commitId: React.PropTypes.string,
     shortId: React.PropTypes.string,
     commitMessage: React.PropTypes.string,
-    commitDateCreated: React.PropTypes.string
+    commitDateCreated: React.PropTypes.string,
+    author: React.PropTypes.object,
+    repository: React.PropTypes.object,
+
   },
   render() {
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
           <div className="col-xs-8 list-group-avatar">
-            <img src="https://github.com/benvinegar.png" className="avatar"/>
+            <Avatar user={this.props.author}/>
             <h5>{this.props.commitMessage}</h5>
-            <p><strong>benvinegar</strong> committed {this.props.commitDateCreated}</p>
+            <p><strong>{this.props.author.name}</strong> committed {this.props.commitDateCreated}</p>
           </div>
-          <div className="col-xs-2"><span className="repo-label">getsentry/sentry</span></div>
+          <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
-            <a className="btn btn-default btn-sm"><span className="icon-mark-github"/>&nbsp; {this.props.shortId}</a>
+            <a className="btn btn-default btn-sm"
+               href={this.props.repository.url + '/' + this.props.commitId}
+               target="_blank"><span
+               className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a>
           </div>
         </div>
       </li>
@@ -92,10 +100,13 @@ const ReleaseCommits = React.createClass({
             let shortId = commit.id.slice(0, 7);
             return (
               <ReleaseCommit
+                key={commit.id}
                 commitId={commit.id}
                 shortId={shortId}
+                author={commit.author}
                 commitMessage={commit.message}
                 commitDateCreated={commit.dateCreated}
+                repository={commit.repository}
                 />
             );
           })}
