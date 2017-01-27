@@ -74,7 +74,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                                           release belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      releases of.
-        :qparam string query: this parameter can beu sed to create a
+        :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
         """
         query = request.GET.get('query')
