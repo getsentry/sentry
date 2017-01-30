@@ -50,10 +50,9 @@ def get_users_for_commits(item_list):
     # Figure out which email address matches to a user
     users_by_email = {}
     for email in user_emails:
-        if email.email in users_by_email:
-            pass
-        user = users_by_id.get(email.user_id)
-        users_by_email[email.email] = user
+        if email.email not in users_by_email:
+            user = users_by_id.get(email.user_id)
+            users_by_email[email.email] = user
 
     author_objs = {}
     for author in authors:

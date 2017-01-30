@@ -150,9 +150,9 @@ class ReleaseSerializerTest(TestCase):
     def test_get_single_user_from_email(self):
         user = User.objects.create(email='stebe@sentry.io')
         otheruser = User.objects.create(email='adifferentstebe@sentry.io')
-        UserEmail.objects.create(user=otheruser, email='stebe@sentry.io')
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
+        self.create_member(user=otheruser, organization=project.organization)
         release = Release.objects.create(
             organization_id=project.organization_id,
             version=uuid4().hex,
