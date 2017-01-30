@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
 import logging
-from uuid import uuid4
+import six
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from uuid import uuid4
 
 from sentry import roles
 from sentry.api.base import DocSection
@@ -25,6 +26,17 @@ from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 ERR_DEFAULT_ORG = 'You cannot remove the default organization.'
+
+ORG_OPTIONS = (
+    # serializer field name, option key name, type
+    ('projectRateLimit', 'sentry:project-rate-limit', int),
+    ('accountRateLimit', 'sentry:account-rate-limit', int),
+    ('dataScrubber', 'sentry:require_scrub_data', bool),
+    ('dataScrubberDefaults', 'sentry:require_scrub_defaults', bool),
+    ('sensitiveFields', 'sentry:sensitive_fields', list),
+    ('safeFields', 'sentry:safe_fields', list),
+    ('scrubIPAddresses', 'sentry:require_scrub_ip_address', bool),
+)
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -109,56 +121,19 @@ class OrganizationSerializer(serializers.Serializer):
         if 'slug' in self.init_data:
             org.slug = self.init_data['slug']
         org.save()
-        # XXX(dcramer): this seems wrong, but cant find documentation on how to
-        # actually access this data
-        if 'projectRateLimit' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:project-rate-limit',
-                value=int(self.init_data['projectRateLimit']),
-            )
-        if 'accountRateLimit' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:account-rate-limit',
-                value=int(self.init_data['accountRateLimit']),
-            )
+        for key, context in six.iteritems(ORG_OPTIONS):
+            if key in self.init_data:
+                OrganizationOption.objects.set_value(
+                    organization=org,
+                    key=context[0],
+                    value=context[1](self.init_data[key]),
+                )
         if 'avatar' in self.init_data or 'avatarType' in self.init_data:
             OrganizationAvatar.save_avatar(
                 relation={'organization': org},
                 type=self.init_data.get('avatarType', 'upload'),
                 avatar=self.init_data.get('avatar'),
                 filename='{}.png'.format(org.slug),
-            )
-        if 'dataScrubber' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:require_scrub_data',
-                value=self.init_data['dataScrubber'],
-            )
-        if 'dataScrubberDefaults' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:require_scrub_defaults',
-                value=self.init_data['dataScrubberDefaults'],
-            )
-        if 'sensitiveFields' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:sensitive_fields',
-                value=self.init_data['sensitiveFields'],
-            )
-        if 'safeFields' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:safe_fields',
-                value=self.init_data['safeFields'],
-            )
-        if 'scrubIPAddresses' in self.init_data:
-            OrganizationOption.objects.set_value(
-                organization=org,
-                key='sentry:require_scrub_ip_address',
-                value=self.init_data['scrubIPAddresses'],
             )
         return org
 

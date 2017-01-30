@@ -53,8 +53,10 @@ const OrganizationSettingsForm = React.createClass({
   },
 
   onFieldChange(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
+    let formData = {
+      ...this.state.formData,
+      [name]: value
+    };
     this.setState({
       hasChanges: true,
       formData: formData,
@@ -109,10 +111,8 @@ const OrganizationSettingsForm = React.createClass({
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
-    let errors = this.state.errors;
-    let access = this.props.access;
-    let formData = this.state.formData;
-    let initialData = this.props.initialData;
+    let {errors, formData} = this.state;
+    let {access, initialData} = this.props;
 
     let sensitiveFieldsHelp = (
       <span>
