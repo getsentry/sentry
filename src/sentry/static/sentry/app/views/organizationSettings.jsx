@@ -343,7 +343,7 @@ const OrganizationSettings = React.createClass({
               <p>{t('Removing this organization will delete all data including projects and their associated events.')}</p>
 
               <fieldset className="form-actions">
-                <a href="" className="btn btn-danger">{t('Remove Organization')}</a>
+                <a href={`/organizations/${orgId}/remove/`} className="btn btn-danger">{t('Remove Organization')}</a>
               </fieldset>
             </div>
           </div>

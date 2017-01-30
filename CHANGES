@@ -14,6 +14,7 @@ Version 8.13 (Unreleased)
 - Fixed bug where workflow notification subject may not include a custom email prefix.
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
+- Moved organization settings to React.
 
 Schema Changes
 ~~~~~~~~~~~~~~
