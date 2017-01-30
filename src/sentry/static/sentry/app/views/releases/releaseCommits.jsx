@@ -1,7 +1,6 @@
 import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-
 import ApiMixin from '../../mixins/apiMixin';
 
 const ReleaseCommit = React.createClass({
@@ -72,8 +71,9 @@ const ReleaseCommits = React.createClass({
         <div className="panel-heading panel-heading-bold">
           <div className="row">
             <div className="col-sm-2 col-xs-2">{'SHA'}</div>
-            <div className="col-sm-7 col-xs-7">{'Message'}</div>
-            <div className="col-sm-3 col-xs-3 align-right">{'Date'}</div>
+            <div className="col-sm-5 col-xs-5">{'Message'}</div>
+            <div className="col-sm-3 col-xs-3 align-right actions">{'Date'}</div>
+            <div className="col-sm-2 col-xs-2 align-right actions">{'Author'}</div>
           </div>
         </div>
         <ul className="list-group commit-list">
