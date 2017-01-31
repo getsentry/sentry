@@ -22,6 +22,7 @@ Version 8.13
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
 - Added support for managing newsletter subscriptions with Sentry.io
+- Added data migration to merge legacy releases
 
 Schema Changes
 ~~~~~~~~~~~~~~
