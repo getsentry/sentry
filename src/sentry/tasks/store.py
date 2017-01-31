@@ -118,6 +118,7 @@ def process_event(cache_key, start_time=None, **kwargs):
         if issues:
             create_failed_event(cache_key, project, issues)
             return
+
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(cache_key=cache_key, data=None, start_time=start_time)
@@ -127,6 +128,9 @@ def create_failed_event(cache_key, project, issues):
     """If processing failed we put the original data from the cache into a
     raw event.
     """
+    # We need to get the original data here instead of passing the data in
+    # from the last processing step because we do not want any
+    # modifications to take place.
     data = default_cache.get(cache_key)
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'failed_raw'})
