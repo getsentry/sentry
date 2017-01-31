@@ -51,8 +51,11 @@ def get_users_for_commits(item_list):
     users_by_email = {}
     for email in user_emails:
         if email.email not in users_by_email:
-            user = users_by_id.get(email.user_id)
-            users_by_email[email.email] = user
+            user = users_by_id.get(email.user_id, None)
+            # user can be None if there's a user associated
+            # with user_email in separate organization
+            if user:
+                users_by_email[email.email] = user
 
     author_objs = {}
     for author in authors:

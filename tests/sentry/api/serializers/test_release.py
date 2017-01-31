@@ -148,8 +148,13 @@ class ReleaseSerializerTest(TestCase):
         assert result_author['username'] == user.username
 
     def test_get_single_user_from_email(self):
+        """
+        Tests that the first useremail will be used to
+        associate a user with a commit author email
+        """
         user = User.objects.create(email='stebe@sentry.io')
         otheruser = User.objects.create(email='adifferentstebe@sentry.io')
+        UserEmail.objects.create(email='stebe@sentry.io', user=otheruser)
         project = self.create_project()
         self.create_member(user=user, organization=project.organization)
         self.create_member(user=otheruser, organization=project.organization)
@@ -185,3 +190,76 @@ class ReleaseSerializerTest(TestCase):
         assert int(result_author['id']) == user.id
         assert result_author['email'] == user.email
         assert result_author['username'] == user.username
+
+    def test_select_user_from_appropriate_org(self):
+        """
+        Tests that a user not belonging to the organization
+        is not returned as the author
+        """
+        user = User.objects.create(email='stebe@sentry.io')
+        email = UserEmail.objects.get(user=user, email='stebe@sentry.io')
+        otheruser = User.objects.create(email='adifferentstebe@sentry.io')
+        otheremail = UserEmail.objects.create(email='stebe@sentry.io', user=otheruser)
+        project = self.create_project()
+        self.create_member(user=otheruser, organization=project.organization)
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version=uuid4().hex,
+            new_groups=1,
+        )
+        release.add_project(project)
+        commit_author = CommitAuthor.objects.create(
+            name='stebe',
+            email='stebe@sentry.io',
+            organization_id=project.organization_id,
+        )
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='abc',
+            author=commit_author,
+            message='waddap',
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        assert email.id < otheremail.id
+        result = serialize(release, user)
+        assert len(result['authors']) == 1
+        result_author = result['authors'][0]
+        assert int(result_author['id']) == otheruser.id
+        assert result_author['email'] == otheruser.email
+        assert result_author['username'] == otheruser.username
+
+    def test_no_commit_author(self):
+        user = User.objects.create(email='stebe@sentry.io')
+        otheruser = User.objects.create(email='adifferentstebe@sentry.io')
+        project = self.create_project()
+        self.create_member(user=otheruser, organization=project.organization)
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version=uuid4().hex,
+            new_groups=1,
+        )
+        release.add_project(project)
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='abc',
+            message='waddap',
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        result = serialize(release, user)
+        assert result['authors'] == []
