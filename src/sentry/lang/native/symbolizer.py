@@ -27,7 +27,7 @@ _sim_platform_re = re.compile(r'/\w+?Simulator\.platform/')
 _known_app_bundled_frameworks_re = re.compile(r'''(?x)
     /Frameworks/(
             libswift([a-zA-Z0-9]+)\.dylib$
-        |   (KSCrash|SentrySwift)\.framework/
+        |   (KSCrash|SentrySwift|Sentry)\.framework/
     )
 ''')
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
@@ -188,17 +188,17 @@ class Symbolizer(object):
             return False
         return True
 
-    def _is_app_bundled_framework(self, frame, img):
+    def _is_known_app_bundled_framework(self, frame, img):
         fn = self._get_frame_package(frame, img)
         return _known_app_bundled_frameworks_re.search(fn) is not None
 
     def _is_app_frame(self, frame, img):
         if not self._is_app_bundled_frame(frame, img):
             return False
-        return not self._is_app_bundled_framework(frame, img)
+        return not self._is_known_app_bundled_framework(frame, img)
 
     def _is_optional_app_bundled_framework(self, frame, img):
-        if not self._is_app_bundled_framework(frame, img):
+        if not self._is_known_app_bundled_framework(frame, img):
             return False
         symbol_name = frame.get('symbol_name')
         return symbol_name and symbol_name not in KNOWN_GARBAGE_SYMBOLS
