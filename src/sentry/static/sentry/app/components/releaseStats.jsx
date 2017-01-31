@@ -22,16 +22,18 @@ const ReleaseStats = React.createClass({
       return null;
     }
     return (
-      <div className="release-info">
-        <div><b>{commitCount}{t(' commits by ')}{authorCount}{t(' authors')}</b></div>
-        {release.authors.map(author => {
-          return (
-            <span className="assignee-selector tip"
-                 title={author.name + ' ' + author.email}>
-              <Avatar user={author}/>
-            </span>
-          );
-        })}
+      <div className="release-stats">
+        <h6>{commitCount}{t(' commits by ')}{authorCount}{t(' authors')}</h6>
+        <div className="avatar-grid">
+          {release.authors.map(author => {
+            return (
+              <span className="avatar-grid-item tip"
+                   title={author.name + ' ' + author.email}>
+                <Avatar user={author}/>
+              </span>
+            );
+          })}
+        </div>
       </div>
     );
   }
