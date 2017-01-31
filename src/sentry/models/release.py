@@ -116,24 +116,30 @@ class Release(Model):
             if not release:
                 release = cls.objects.filter(
                     organization_id=project.organization_id,
-                    version=version
+                    version='%s-%s' % (project.slug, version),
+                    projects=project
                 ).first()
                 if not release:
-                    lock_key = cls.get_lock_key(project.organization_id, version)
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            release = cls.objects.get(
-                                organization_id=project.organization_id,
-                                version=version
-                            )
-                        except cls.DoesNotExist:
-                            release = cls.objects.create(
-                                organization_id=project.organization_id,
-                                version=version,
-                                date_added=date_added
-                            )
-                release.add_project(project)
+                    release = cls.objects.filter(
+                        organization_id=project.organization_id,
+                        version=version
+                    ).first()
+                    if not release:
+                        lock_key = cls.get_lock_key(project.organization_id, version)
+                        lock = locks.get(lock_key, duration=5)
+                        with TimedRetryPolicy(10)(lock.acquire):
+                            try:
+                                release = cls.objects.get(
+                                    organization_id=project.organization_id,
+                                    version=version
+                                )
+                            except cls.DoesNotExist:
+                                release = cls.objects.create(
+                                    organization_id=project.organization_id,
+                                    version=version,
+                                    date_added=date_added
+                                )
+                    release.add_project(project)
 
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
