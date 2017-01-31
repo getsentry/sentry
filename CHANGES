@@ -29,6 +29,7 @@ API Changes
 
 - Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
 - Provide commit and author information associated with a given release
+- Provide repository information for commits
 
 Version 8.12
 ------------
