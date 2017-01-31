@@ -9,9 +9,11 @@ sentry.tasks.store
 from __future__ import absolute_import
 
 import logging
+from datetime import datetime
 
 from raven.contrib.django.models import client as Raven
 from time import time
+from django.utils import timezone
 
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
@@ -112,9 +114,37 @@ def process_event(cache_key, start_time=None, **kwargs):
     assert data['project'] == project, 'Project cannot be mutated by preprocessor'
 
     if has_changed:
+        issues = data.get('processing_issues')
+        if issues:
+            create_failed_event(cache_key, project, issues)
+            return
         default_cache.set(cache_key, data, 3600)
 
     save_event.delay(cache_key=cache_key, data=None, start_time=start_time)
+
+
+def create_failed_event(cache_key, project, issues):
+    """If processing failed we put the original data from the cache into a
+    raw event.
+    """
+    data = default_cache.get(cache_key)
+    if data is None:
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'failed_raw'})
+        error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
+        return
+
+    from sentry.models import RawEvent
+    RawEvent.objects.create(
+        project_id=project,
+        event_id=data['event_id'],
+        datetime=datetime.utcfromtimestamp(
+            data['timestamp']).replace(tzinfo=timezone.utc),
+        data=data
+    )
+
+    # TODO: store associated issues
+
+    default_cache.delete(cache_key)
 
 
 @instrumented_task(
