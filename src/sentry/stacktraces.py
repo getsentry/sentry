@@ -160,6 +160,16 @@ def process_single_stacktrace(stacktrace_info, processors):
     )
 
 
+def get_metrics_key(platforms):
+    if len(platforms) == 1:
+        platform = next(iter(platforms))
+        if platform == 'javascript':
+            return 'sourcemaps.process'
+        if platform == 'cocoa':
+            return 'dsym.process'
+    return 'mixed.process'
+
+
 def process_stacktraces(data, make_processors=None):
     infos = find_stacktraces_in_data(data)
     if make_processors is None:
@@ -174,7 +184,9 @@ def process_stacktraces(data, make_processors=None):
 
     changed = False
 
-    with metrics.timer('stacktraces.process', instance=data['project']):
+    mkey = get_metrics_key(infos.platforms)
+
+    with metrics.timer(mkey, instance=data['project']):
         for processor in processors:
             if processor.preprocess_related_data():
                 changed = True
