@@ -14,8 +14,13 @@ from sentry.models import DSymSymbol, EventError
 from sentry.constants import MAX_SYM
 
 
+FATAL_ERRORS = (
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+)
 USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM,
     EventError.NATIVE_MISSING_SYMBOL,
 )
@@ -64,6 +69,11 @@ class SymbolicationFailed(Exception):
     def is_user_fixable(self):
         """These are errors that a user can fix themselves."""
         return self.type in USER_FIXABLE_ERRORS
+
+    @property
+    def is_fatal(self):
+        """If this is true then a processing issues has to be reported."""
+        return self.type in FATAL_ERRORS
 
     @property
     def is_sdk_failure(self):
