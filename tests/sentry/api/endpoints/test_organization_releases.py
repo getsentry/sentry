@@ -158,11 +158,25 @@ class OrganizationReleaseListTest(APITestCase):
 
 class OrganizationReleaseCreateTest(APITestCase):
     def test_minimal(self):
-        self.login_as(user=self.user)
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
 
-        project = self.create_project(name='foo', organization=org)
-        project2 = self.create_project(name='bar', organization=org)
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+        project2 = self.create_project(
+            name='bar',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug,
@@ -188,14 +202,23 @@ class OrganizationReleaseCreateTest(APITestCase):
         ).exists()
 
     def test_duplicate(self):
-        self.login_as(user=self.user)
-
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         release = Release.objects.create(version='1.2.1',
                                          organization=org)
-
-        project = self.create_project(name='foo', organization=org)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug,
@@ -216,17 +239,30 @@ class OrganizationReleaseCreateTest(APITestCase):
         ).exists()
 
     def test_activity(self):
-        self.login_as(user=self.user)
-
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+        project2 = self.create_project(
+            name='bar',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         release = Release.objects.create(version='1.2.1',
                                          date_released=datetime.utcnow(),
                                          organization=org)
-
-        project = self.create_project(name='foo', organization=org)
         release.add_project(project)
-        project2 = self.create_project(name='bar', organization=org)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug,
@@ -250,10 +286,20 @@ class OrganizationReleaseCreateTest(APITestCase):
         ).exists()
 
     def test_version_whitespace(self):
-        self.login_as(user=self.user)
-
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        project = self.create_project(name='foo', organization=org)
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug
@@ -303,10 +349,20 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert not release.owner
 
     def test_features(self):
-        self.login_as(user=self.user)
-
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        project = self.create_project(name='foo', organization=org)
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug
@@ -327,10 +383,20 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert release.owner == self.user
 
     def test_commits(self):
-        self.login_as(user=self.user)
-
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
-        project = self.create_project(name='foo', organization=org)
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug
@@ -360,16 +426,82 @@ class OrganizationReleaseCreateTest(APITestCase):
             assert rc.organization_id
 
     def test_bad_project_slug(self):
-        self.login_as(user=self.user)
-
+        user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug
         })
         response = self.client.post(url, data={
             'version': '1.2.1',
-            'projects': ['foo']
+            'projects': [project.slug, 'banana']
         })
         assert response.status_code == 400
         assert 'Invalid project slugs' in response.content
+
+    def test_project_permissions(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project1 = self.create_project(team=team1, organization=org)
+        project2 = self.create_project(team=team2, organization=org)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+
+        release1 = Release.objects.create(
+            organization_id=org.id,
+            version='1',
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release1.add_project(project1)
+
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='2',
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+        )
+        release2.add_project(project2)
+
+        release3 = Release.objects.create(
+            organization_id=org.id,
+            version='3',
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
+            date_released=datetime(2013, 8, 15, 3, 8, 24, 880386),
+        )
+        release3.add_project(project1)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'projects': [project1.slug, project2.slug]
+        })
+
+        assert response.status_code == 400
+        assert 'Invalid project slugs' in response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'projects': [project1.slug]
+        })
+
+        assert response.status_code == 201, response.content

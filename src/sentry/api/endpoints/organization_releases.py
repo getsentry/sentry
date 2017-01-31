@@ -11,7 +11,9 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.app import locks
-from sentry.models import Activity, OrganizationMemberTeam, Project, Release, ReleaseProject, Team
+from sentry.models import (
+    Activity, OrganizationMemberTeam, Project, Release, ReleaseProject, Team
+)
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -50,11 +52,9 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
         """
         query = request.GET.get('query')
 
-        allowed_projects = self.get_allowed_projects(request, organization)
-
         queryset = Release.objects.filter(
             organization=organization,
-            projects=allowed_projects
+            projects=self.get_allowed_projects(request, organization)
         ).select_related('owner')
 
         if query:
@@ -107,11 +107,15 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
-            projects = Project.objects.filter(organization=organization,
-                                              slug__in=result['projects'])
-            invalid_projects = set(result['projects']) - {p.slug for p in projects}
-            if invalid_projects:
-                return Response({'projects': ['Invalid project slugs']}, status=400)
+            allowed_projects = {
+                p.slug: p for p in self.get_allowed_projects(request, organization)
+            }
+
+            projects = []
+            for slug in result['projects']:
+                if slug not in allowed_projects:
+                    return Response({'projects': ['Invalid project slugs']}, status=400)
+                projects.append(allowed_projects[slug])
 
             # release creation is idempotent to simplify user
             # experiences
