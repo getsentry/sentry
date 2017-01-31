@@ -26,7 +26,7 @@ const DebugMetaInterface = React.createClass({
       if (img.major_version == 0 &&
         img.minor_version == 0 &&
         img.revision_version == 0) { // we show the version
-        version = `${evt.release.version}`;
+        version = evt.release && evt.release.version || 'unknown';
       } else
         version = `${img.major_version}.${img.minor_version}.${img.revision_version}`;
     } else
