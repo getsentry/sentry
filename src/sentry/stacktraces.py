@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.models import Project
+from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from collections import namedtuple
 
@@ -165,29 +166,36 @@ def process_stacktraces(data, make_processors=None):
         processors = get_processors_for_stacktraces(data, infos)
     else:
         processors = make_processors(data, infos)
+
+    # Early out if we have no processors.  We don't want to record a timer
+    # in that case.
+    if not processors:
+        return
+
     changed = False
 
-    for processor in processors:
-        if processor.preprocess_related_data():
-            changed = True
+    with metrics.timer('stacktraces.process', instance=data['project']):
+        for processor in processors:
+            if processor.preprocess_related_data():
+                changed = True
 
-    for stacktrace_info in infos:
-        new_stacktrace, raw_stacktrace, errors = process_single_stacktrace(
-            stacktrace_info, processors)
-        if new_stacktrace is not None:
-            stacktrace_info.stacktrace.clear()
-            stacktrace_info.stacktrace.update(new_stacktrace)
-            changed = True
-        if raw_stacktrace is not None and \
-           stacktrace_info.container is not None:
-            stacktrace_info.container['raw_stacktrace'] = raw_stacktrace
-            changed = True
-        if errors:
-            data.setdefault('errors', []).extend(errors)
-            changed = True
+        for stacktrace_info in infos:
+            new_stacktrace, raw_stacktrace, errors = process_single_stacktrace(
+                stacktrace_info, processors)
+            if new_stacktrace is not None:
+                stacktrace_info.stacktrace.clear()
+                stacktrace_info.stacktrace.update(new_stacktrace)
+                changed = True
+            if raw_stacktrace is not None and \
+               stacktrace_info.container is not None:
+                stacktrace_info.container['raw_stacktrace'] = raw_stacktrace
+                changed = True
+            if errors:
+                data.setdefault('errors', []).extend(errors)
+                changed = True
 
-    for processor in processors:
-        processor.close()
+        for processor in processors:
+            processor.close()
 
     if changed:
         return data
