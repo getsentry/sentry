@@ -467,8 +467,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             new_frame['instruction_addr'] = '0x%x' % parse_addr(
                 sfrm['instruction_addr'])
 
-        in_app = self.sym.is_in_app(sym_frame)
-        new_frame['in_app'] = raw_frame['in_app'] = in_app
+        # Trust the original client's assessment about if somethign is
+        # in_app if the client sent something along.
+        if frame.get('in_app') is None:
+            in_app = self.sym.is_in_app(sym_frame)
+            new_frame['in_app'] = raw_frame['in_app'] = in_app
+
         return [new_frame], [raw_frame], errors
 
 
