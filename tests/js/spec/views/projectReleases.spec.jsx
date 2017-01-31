@@ -33,7 +33,7 @@ describe('ProjectReleases', function () {
 
   describe('fetchData()', function () {
     it('should call releases endpoint', function () {
-      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?limit=50&query=derp');
+      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?limit=0&query=derp&per_page=20');
     });
   });
 
