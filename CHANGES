@@ -18,10 +18,6 @@ Version 8.13 (Unreleased)
 Schema Changes
 ~~~~~~~~~~~~~~
 - Added ``ReleaseProject.new_groups`` column.
-
-Schema Changes
-~~~~~~~~~~~~~~
-
 - Added ``OrganizationAvatar`` model.
 
 API Changes
