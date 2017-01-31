@@ -116,7 +116,7 @@ def process_event(cache_key, start_time=None, **kwargs):
     if has_changed:
         issues = data.get('processing_issues')
         if issues:
-            create_failed_event(cache_key, project, issues)
+            create_failed_event(cache_key, project, list(issues.values()))
             return
 
         default_cache.set(cache_key, data, 3600)
@@ -137,8 +137,8 @@ def create_failed_event(cache_key, project, issues):
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return
 
-    from sentry.models import RawEvent
-    RawEvent.objects.create(
+    from sentry.models import RawEvent, ProcessingIssue
+    raw_event = RawEvent.objects.create(
         project_id=project,
         event_id=data['event_id'],
         datetime=datetime.utcfromtimestamp(
@@ -146,7 +146,15 @@ def create_failed_event(cache_key, project, issues):
         data=data
     )
 
-    # TODO: store associated issues
+    for issue in issues:
+        ProcessingIssue.objects.record_processing_issue(
+            project=project,
+            raw_event=raw_event,
+            scope=issue['scope'],
+            object=issue['object'],
+            type=issue['type'],
+            data=issue['data'],
+        )
 
     default_cache.delete(cache_key)
 
