@@ -29,6 +29,36 @@ class ProcessingIssueManager(BaseManager):
         """Given scope, object and type this marks all issues as resolved
         and returns a list of events that now require reprocessing.
         """
+        checksum = get_processing_issue_checksum(scope, object, type)
+
+        # Find all raw events that suffer from this issue.
+        raw_events = set(EventProcessingIssue.objects.filter(
+            processing_issue__project=project,
+            processing_issue__checksum=checksum,
+        ).values_list('raw_event_id', flat=True).distinct())
+
+        # Delete all affected processing issue mappings
+        EventProcessingIssue.objects.filter(
+            raw_event__project=project,
+            raw_event__checksum=checksum,
+        ).delete()
+        ProcessingIssue.objects.filter(
+            project=project,
+            checksum=checksum,
+        ).delete()
+
+        # If we did not find any raw events, we can bail here now safely.
+        if not raw_events:
+            return []
+
+        # Now look for all the raw events that now have no processing
+        # issues left.
+        still_broken = set(EventProcessingIssue.objects.filter(
+            raw_event__in=list(raw_events),
+            processing_issue__project=project,
+        ).value_list('raw_event_id', flat=True).distinct())
+
+        return list(raw_events - still_broken)
 
     def record_processing_issue(self, project, raw_event, scope, object,
                                 type, data=None):
