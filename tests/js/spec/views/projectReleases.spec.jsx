@@ -20,7 +20,7 @@ describe('ProjectReleases', function () {
     this.props = {
       setProjectNavSection: function () {},
       params: {orgId: '123', projectId: '456'},
-      location: {query: {limit: 0, query: 'derp'}}
+      location: {query: {per_page: 0, query: 'derp'}}
     };
     this.projectReleases = TestUtils.renderIntoDocument(
       <ProjectReleases {...this.props}/>
@@ -33,7 +33,7 @@ describe('ProjectReleases', function () {
 
   describe('fetchData()', function () {
     it('should call releases endpoint', function () {
-      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?limit=0&query=derp&per_page=20');
+      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?query=derp&per_page=20');
     });
   });
 
