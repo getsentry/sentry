@@ -15,24 +15,24 @@ const ReleaseList = React.createClass({
     let {orgId, projectId} = this.props;
 
     return (
-      <ul className="release-list">
+      <ul className="list-group">
           {this.props.releaseList.map((release) => {
             return (
-              <li className="release" key={release.version}>
-                <div className="row">
-                  <div className="col-sm-6 col-xs-4">
-                    <h4><Version orgId={orgId} projectId={projectId} version={release.version} /></h4>
-                    <div className="release-meta">
+              <li className="list-group-item" key={release.version}>
+                <div className="row row-center-vertically">
+                  <div className="col-sm-4 col-xs-6">
+                    <h2><Version orgId={orgId} projectId={projectId} version={release.version} /></h2>
+                    <p className="m-b-0">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
-                    </div>
+                    </p>
                   </div>
-                  <div className="col-sm-2 col-xs-2">
+                  <div className="col-sm-4 hidden-xs">
                     <ReleaseStats release={release}/>
                   </div>
-                  <div className="col-sm-2 col-xs-3 release-stats stream-count">
+                  <div className="col-sm-2 col-xs-3">
                     <Count className="release-count" value={release.newGroups} />
                   </div>
-                  <div className="col-sm-2 col-xs-3 release-stats">
+                  <div className="col-sm-2 col-xs-3">
                     {release.lastEvent ?
                       <TimeSince date={release.lastEvent} />
                     :
