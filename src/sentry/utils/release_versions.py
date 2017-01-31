@@ -48,9 +48,7 @@ def is_word_and_date(version):
     return bool(re.match(r'([a-z]*)-(\d{4})-(\d{2})-(\d{2})', version))
 
 
-def merge(to_release, from_releases, sentry_models):
-    # WARNING: this script does not attempt to merge ReleaseFiles, so
-    # any release in the `from_releases` arg should not have ReleaseFiles
+def merge(to_release, from_releases, sentry_models=None):
     # The following models reference release:
     # ReleaseCommit.release
     # ReleaseEnvironment.release_id
@@ -58,11 +56,15 @@ def merge(to_release, from_releases, sentry_models):
     # GroupRelease.release_id
     # GroupResolution.release
     # Group.first_release
-    # ReleaseFile.release -- NOT handled
+    # ReleaseFile.release
+    if sentry_models is None:
+        from sentry import models
+        sentry_models = models
 
     model_list = (
         sentry_models.ReleaseCommit,
         sentry_models.ReleaseEnvironment,
+        sentry_models.ReleaseFile,
         sentry_models.ReleaseProject,
         sentry_models.GroupRelease,
         sentry_models.GroupResolution
