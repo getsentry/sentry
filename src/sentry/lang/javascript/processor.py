@@ -802,7 +802,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
             frame['pre_context'], frame['context_line'], frame['post_context'] \
                 = get_source_context(source=source, lineno=frame['lineno'],
-                                     colno=frame['colno'] or 0)
+                                     colno=frame.get('colno') or 0)
             return True
         return False
 
