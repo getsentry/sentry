@@ -39,6 +39,12 @@ _java_enhancer_re = re.compile(r'''
 (\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
 ''', re.X)
 
+# React-Native:
+#  file:///var/containers/Bundle/Application/{DEVICE_ID}/HelloWorld.app/main.jsbundle
+# Electron:
+#   file:///x/yy/zzz/Electron.app/Contents/app.asar/file1.js
+_js_native_path_re = re.compile(r'^(file\:\/\/)?/.*\/[^\.\/]+(\.app|CodePush|\.app/Contents/Resources/app(\.asar)?/|/resources/app(\.asar)?/)\/')
+
 
 def max_addr(cur, addr):
     if addr is None:
@@ -240,6 +246,11 @@ def handle_nan(value):
     return value
 
 
+def strip_js_native_components(value):
+    # we maintain the leading prefix for compat
+    return _js_native_path_re.sub('/', value)
+
+
 class Frame(Interface):
     @classmethod
     def to_python(cls, data):
@@ -263,6 +274,10 @@ class Frame(Interface):
             v = data.get(name)
             if v is not None and not isinstance(v, six.string_types):
                 raise InterfaceValidationError("Invalid value for '%s'" % name)
+
+        # JS sdk only sends filename
+        if filename and filename.startswith('file://'):
+            filename = strip_js_native_components(filename)
 
         # absolute path takes priority over filename
         # (in the end both will get set)
