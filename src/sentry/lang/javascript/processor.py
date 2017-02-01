@@ -779,7 +779,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
                 # Column might be missing here
                 'column': new_frame.get('colno'),
-                'row': new_frame['lineno'],
+                # Line might be missing here
+                'row': new_frame.get('lineno'),
                 'source': new_frame['abs_path'],
             })
 
