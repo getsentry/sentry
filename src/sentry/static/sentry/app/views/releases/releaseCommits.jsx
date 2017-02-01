@@ -1,6 +1,10 @@
 import React from 'react';
+
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
+import Avatar from '../../components/avatar';
+import TimeSince from '../../components/timeSince';
+
 import ApiMixin from '../../mixins/apiMixin';
 
 const ReleaseCommit = React.createClass({
@@ -8,15 +12,27 @@ const ReleaseCommit = React.createClass({
     commitId: React.PropTypes.string,
     shortId: React.PropTypes.string,
     commitMessage: React.PropTypes.string,
-    commitDateCreated: React.PropTypes.string
+    commitDateCreated: React.PropTypes.string,
+    author: React.PropTypes.object,
+    repository: React.PropTypes.object,
+
   },
   render() {
     return (
       <li className="list-group-item" key={this.props.commitId}>
-        <div className="row">
-          <div className="col-sm-2 col-xs-2"><strong>{this.props.shortId}</strong></div>
-          <div className="col-sm-7 col-xs-7">{this.props.commitMessage}</div>
-          <div className="col-sm-3 col-xs-3 align-right actions">{this.props.commitDateCreated}</div>
+        <div className="row row-center-vertically">
+          <div className="col-xs-8 list-group-avatar">
+            <Avatar user={this.props.author}/>
+            <h5>{this.props.commitMessage}</h5>
+            <p><strong>{this.props.author.name}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
+          </div>
+          <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
+          <div className="col-xs-2 align-right">
+            <a className="btn btn-default btn-sm"
+               href={this.props.repository.url + '/' + this.props.commitId}
+               target="_blank"><span
+               className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a>
+          </div>
         </div>
       </li>
     );
@@ -58,6 +74,16 @@ const ReleaseCommits = React.createClass({
     });
   },
 
+  emptyState() {
+    return(
+      <div className="box empty-stream m-y-0">
+        <span className="icon icon-exclamation" />
+        <p>There are no commits associated with this release.</p>
+        {/* Todo: Should we link to repo settings from here?  */}
+      </div>
+    );
+  },
+
   render() {
     if (this.state.loading)
       return <LoadingIndicator/>;
@@ -66,25 +92,37 @@ const ReleaseCommits = React.createClass({
       return <LoadingError/>;
 
     let {commitList} = this.state;
+
+    if (!commitList.length)
+      return <this.emptyState/>;
+
     return (
       <div className="panel panel-default">
         <div className="panel-heading panel-heading-bold">
           <div className="row">
-            <div className="col-sm-2 col-xs-2">{'SHA'}</div>
-            <div className="col-sm-5 col-xs-5">{'Message'}</div>
-            <div className="col-sm-3 col-xs-3 align-right actions">{'Date'}</div>
-            <div className="col-sm-2 col-xs-2 align-right actions">{'Author'}</div>
+            <div className="col-xs-8">
+              Commit
+            </div>
+            <div className="col-xs-2">
+              Repository
+            </div>
+            <div className="col-xs-2 align-right">
+              SHA
+            </div>
           </div>
         </div>
-        <ul className="list-group commit-list">
+        <ul className="list-group list-group-lg commit-list">
           {commitList.map(commit => {
             let shortId = commit.id.slice(0, 7);
             return (
               <ReleaseCommit
+                key={commit.id}
                 commitId={commit.id}
                 shortId={shortId}
+                author={commit.author}
                 commitMessage={commit.message}
                 commitDateCreated={commit.dateCreated}
+                repository={commit.repository}
                 />
             );
           })}
