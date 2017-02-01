@@ -7,12 +7,12 @@ from sentry.utils.safe import trim
 __all__ = ('Threads',)
 
 
-def get_stacktrace(value):
+def get_stacktrace(value, raw=False):
     # Special case: if the thread has no frames we set the
     # stacktrace to none.  Otherwise this will fail really
     # badly.
     if value and value.get('frames'):
-        return Stacktrace.to_python(value, slim_frames=True)
+        return Stacktrace.to_python(value, slim_frames=True, raw=raw)
 
 
 class Threads(Interface):
@@ -25,7 +25,8 @@ class Threads(Interface):
         for thread in data.get('values') or ():
             threads.append({
                 'stacktrace': get_stacktrace(thread.get('stacktrace')),
-                'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace')),
+                'raw_stacktrace': get_stacktrace(thread.get('raw_stacktrace'),
+                                                 raw=True),
                 'id': trim(thread.get('id'), 40),
                 'crashed': bool(thread.get('crashed')),
                 'current': bool(thread.get('current')),

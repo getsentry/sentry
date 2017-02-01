@@ -39,6 +39,13 @@ class EventError(object):
     NATIVE_NO_CRASHED_THREAD = 'native_no_crashed_thread'
     NATIVE_INTERNAL_FAILURE = 'native_internal_failure'
     NATIVE_NO_SYMSYND = 'native_no_symsynd'
+    NATIVE_BAD_DSYM = 'native_bad_dsym'
+    NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM = 'native_optionally_bundled_dsym'
+    NATIVE_MISSING_DSYM = 'native_missing_dsym'
+    NATIVE_MISSING_SYSTEM_DSYM = 'native_missing_system_dsym'
+    NATIVE_MISSING_SYMBOL = 'native_missing_symbol'
+    NATIVE_SIMULATOR_FRAME = 'native_simulator_frame'
+    NATIVE_UNKNOWN_IMAGE = 'native_unknown_image'
 
     _messages = {
         INVALID_DATA: u'Discarded invalid value for parameter \'{name}\'',
@@ -61,6 +68,13 @@ class EventError(object):
         NATIVE_NO_CRASHED_THREAD: u'No crashed thread found in crash report',
         NATIVE_INTERNAL_FAILURE: u'Internal failure when attempting to symbolicate: {error}',
         NATIVE_NO_SYMSYND: u'The symbolizer is not configured for this system.',
+        NATIVE_BAD_DSYM: u'The debug symbol file used was broken.',
+        NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM: u'An optional debug symbol file was missing.',
+        NATIVE_MISSING_DSYM: u'A required debug symbol file was missing.',
+        NATIVE_MISSING_SYSTEM_DSYM: u'A system debug symbol file was missing.',
+        NATIVE_MISSING_SYMBOL: u'Unable to resolve a symbol.',
+        NATIVE_SIMULATOR_FRAME: u'Encountered an unprocessable simulator frame.',
+        NATIVE_UNKNOWN_IMAGE: u'An binary image is referenced that is unknown.'
     }
 
     @classmethod
