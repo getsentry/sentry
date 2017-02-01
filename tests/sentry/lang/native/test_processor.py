@@ -3,8 +3,7 @@ from __future__ import absolute_import
 from mock import patch
 
 from sentry.testutils import TestCase
-from sentry.lang.native.plugin import NativeStacktraceProcessor
-from sentry.stacktraces import process_stacktraces
+from sentry.lang.native.plugin import resolve_frame_symbols
 
 
 OBJECT_NAME = (
@@ -165,10 +164,7 @@ class BasicResolvingFileTest(TestCase):
             }
         }
 
-        def make_processors(data, infos):
-            return [NativeStacktraceProcessor(data, infos)]
-        event_data = process_stacktraces(
-            event_data, make_processors=make_processors)
+        resolve_frame_symbols(event_data)
 
         bt = event_data['sentry.interfaces.Exception']['values'][0]['stacktrace']
         frames = bt['frames']

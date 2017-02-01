@@ -164,7 +164,7 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.post_context == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert not frame.pre_context
+        assert frame.pre_context is None
         assert frame.context_line == 'h'
         assert frame.post_context == ['e', 'l', 'l', 'o', ' ']
 
@@ -287,7 +287,7 @@ class JavascriptIntegrationTest(TestCase):
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
-        assert not raw_frame.pre_context
+        assert raw_frame.pre_context == []
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
         assert raw_frame.post_context == ['//@ sourceMappingURL=file.sourcemap.js']
         assert raw_frame.lineno == 1
@@ -419,7 +419,7 @@ class JavascriptIntegrationTest(TestCase):
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
-        assert not raw_frame.pre_context
+        assert raw_frame.pre_context == []
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
         assert raw_frame.post_context == [
             'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}',
@@ -650,9 +650,9 @@ class JavascriptIntegrationTest(TestCase):
         frame = frame_list[0]
 
         # no context information ...
-        assert not frame.pre_context
-        assert not frame.context_line
-        assert not frame.post_context
+        assert frame.pre_context is None
+        assert frame.context_line is None
+        assert frame.post_context is None
 
         # ... but line, column numbers are still correctly mapped
         assert frame.lineno == 3

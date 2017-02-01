@@ -17,26 +17,8 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.stacktraces import process_stacktraces, \
-    should_process_for_stacktraces
 
 error_logger = logging.getLogger('sentry.errors.events')
-
-
-def should_process(data):
-    """Quick check if processing is needed at all."""
-    from sentry.plugins import plugins
-
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors, data=data,
-                                  _with_transaction=False)
-        if processors:
-            return True
-
-    if should_process_for_stacktraces(data):
-        return True
-
-    return False
 
 
 @instrumented_task(
@@ -46,6 +28,8 @@ def should_process(data):
     soft_time_limit=60,
 )
 def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
+    from sentry.plugins import plugins
+
     if cache_key:
         data = default_cache.get(cache_key)
 
@@ -59,9 +43,16 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
         'project': project,
     })
 
-    if should_process(data):
-        process_event.delay(cache_key=cache_key, start_time=start_time)
-        return
+    # Iterate over all plugins looking for processors based on the input data
+    # plugins should yield a processor function only if it actually can operate
+    # on the input data, otherwise it should yield nothing
+    for plugin in plugins.all(version=2):
+        processors = safe_execute(plugin.get_event_preprocessors, data=data, _with_transaction=False)
+        for processor in (processors or ()):
+            # On the first processor found, we just defer to the process_event
+            # queue to handle the actual work.
+            process_event.delay(cache_key=cache_key, start_time=start_time)
+            return
 
     # If we get here, that means the event had no preprocessing needed to be done
     # so we can jump directly to save_event
@@ -90,19 +81,11 @@ def process_event(cache_key, start_time=None, **kwargs):
     Raven.tags_context({
         'project': project,
     })
-    has_changed = False
-
-    # Stacktrace based event processors.  These run before anything else.
-    new_data = process_stacktraces(data)
-    if new_data is not None:
-        has_changed = True
-        data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
-    # Default event processors.
+    has_changed = False
     for plugin in plugins.all(version=2):
-        processors = safe_execute(plugin.get_event_preprocessors,
-                                  data=data, _with_transaction=False)
+        processors = safe_execute(plugin.get_event_preprocessors, data=data, _with_transaction=False)
         for processor in (processors or ()):
             result = safe_execute(processor, data)
             if result:

@@ -27,7 +27,6 @@ API Changes
 - Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
 - Provide commit and author information associated with a given release
 - Provide repository information for commits
-- Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 
 Version 8.12
 ------------
