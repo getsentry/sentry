@@ -88,7 +88,7 @@ const ProjectReleases = React.createClass({
     let params = this.props.params;
     let queryParams = {
       ...this.props.location.query,
-      limit: 50,
+      per_page: 20,
       query: this.state.query
     };
 

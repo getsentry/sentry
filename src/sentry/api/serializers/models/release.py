@@ -12,58 +12,63 @@ from sentry.db.models.query import in_iexact
 from sentry.models import Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail
 
 
+def get_users_for_commits(item_list):
+    """
+    Returns a dictionary of author_id => user, if a Sentry
+    user object exists for that email. If there is no matching
+    Sentry user, a {user, email} dict representation of that
+    author is returned.
+
+    e.g.
+    {
+        1: serialized(<User id=1>),
+        2: {email: 'not-a-user@example.com', name: 'dunno'},
+        ...
+    }
+    """
+    authors = set(c.author for c in item_list if c.author is not None)
+    if not len(authors):
+        return {}
+
+    # Filter users based on the emails provided in the commits
+    user_emails = UserEmail.objects.filter(
+        in_iexact('email', [a.email for a in authors]),
+    ).order_by('id')
+
+    org_ids = set(item.organization_id for item in item_list)
+    assert len(org_ids) == 1
+    org_id = org_ids.pop()
+
+    # Filter users belonging to the organization associated with
+    # the release
+    users = User.objects.filter(
+        id__in=[ue.user_id for ue in user_emails],
+        sentry_orgmember_set__organization_id=org_id
+    )
+    users_by_id = dict((user.id, serialize(user)) for user in users)
+
+    # Figure out which email address matches to a user
+    users_by_email = {}
+    for email in user_emails:
+        if email.email not in users_by_email:
+            user = users_by_id.get(email.user_id, None)
+            # user can be None if there's a user associated
+            # with user_email in separate organization
+            if user:
+                users_by_email[email.email] = user
+
+    author_objs = {}
+    for author in authors:
+        author_objs[author.id] = users_by_email.get(author.email, {
+            "name": author.name,
+            "email": author.email
+        })
+
+    return author_objs
+
+
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def _get_users_for_commits(self, release_commits, org_id):
-        """
-        Returns a dictionary of author_id => user, if a Sentry
-        user object exists for that email. If there is no matching
-        Sentry user, a {user, email} dict representation of that
-        author is returned.
-
-        e.g.
-        {
-            1: serialized(<User id=1>),
-            2: {email: 'not-a-user@example.com', name: 'dunno'},
-            ...
-        }
-        """
-        authors = set(rc.commit.author for rc in release_commits if rc.commit.author is not None)
-        if not len(authors):
-            return {}
-
-        # Filter users based on the emails provided in the commits
-        user_emails = UserEmail.objects.filter(
-            in_iexact('email', [a.email for a in authors]),
-        ).order_by('id')
-
-        # Filter users belonging to the organization associated with
-        # the release
-        users = User.objects.filter(
-            id__in=[ue.user_id for ue in user_emails],
-            sentry_orgmember_set__organization_id=org_id
-        )
-        users_by_id = dict((user.id, serialize(user)) for user in users)
-
-        # Figure out which email address matches to a user
-        users_by_email = {}
-        for user_email in user_emails:
-            if user_email.email in users_by_email:
-                pass
-
-            user = users_by_id.get(user_email.user_id)
-            if user:
-                users_by_email[user_email.email] = user
-
-        author_objs = {}
-        for author in authors:
-            author_objs[author.id] = users_by_email.get(author.email, {
-                "name": author.name,
-                "email": author.email
-            })
-
-        return author_objs
-
     def _get_commit_metadata(self, item_list, user):
         """
         Returns a dictionary of release_id => commit metadata,
@@ -88,11 +93,7 @@ class ReleaseSerializer(Serializer):
         if not len(release_commits):
             return None
 
-        org_ids = set(item.organization_id for item in item_list)
-        assert len(org_ids) == 1
-        org_id = org_ids.pop()
-
-        users_by_email = self._get_users_for_commits(release_commits, org_id)
+        users_by_email = get_users_for_commits([rc.commit for rc in release_commits])
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
 
