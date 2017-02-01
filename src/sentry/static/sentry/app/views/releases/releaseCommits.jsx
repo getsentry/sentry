@@ -18,6 +18,9 @@ const ReleaseCommit = React.createClass({
 
   },
   render() {
+    let name = this.props.repository.name;
+    let match = name.match(/:(.+)/);
+    let repoPath = match[1];
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
@@ -29,7 +32,10 @@ const ReleaseCommit = React.createClass({
           <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
             <a className="btn btn-default btn-sm"
-               href={this.props.repository.url + '/' + this.props.commitId}
+               href={this.props.repository.url
+                ? (this.props.repository.url + '/' + this.props.commitId)
+                : ('http://' + this.props.repository.provider.id + '.com/' + repoPath + '/' + this.props.commitId)
+               }
                target="_blank"><span
                className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a>
           </div>
