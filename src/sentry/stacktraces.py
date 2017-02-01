@@ -160,7 +160,11 @@ def process_single_stacktrace(stacktrace_info, processors):
     )
 
 
-def get_metrics_key(platforms):
+def get_metrics_key(stacktrace_infos):
+    platforms = set()
+    for info in stacktrace_infos:
+        platforms.update(info.platforms)
+
     if len(platforms) == 1:
         platform = next(iter(platforms))
         if platform == 'javascript':
@@ -184,7 +188,7 @@ def process_stacktraces(data, make_processors=None):
 
     changed = False
 
-    mkey = get_metrics_key(infos.platforms)
+    mkey = get_metrics_key(infos)
 
     with metrics.timer(mkey, instance=data['project']):
         for processor in processors:
