@@ -653,13 +653,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         all_errors = []
         sourcemap_applied = False
 
-        errors = cache.get_errors(frame['abs_path'])
-        if errors:
-            all_errors.extend(errors)
-
         # can't fetch source if there's no filename present
         if not frame.get('abs_path'):
             return
+
+        errors = cache.get_errors(frame['abs_path'])
+        if errors:
+            all_errors.extend(errors)
 
         # This might fail but that's okay, we try with a different path a
         # bit later down the road.
