@@ -348,6 +348,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         debug_meta = self.data.get('debug_meta')
+        self.sym = None
         if debug_meta:
             self.available = True
             self.debug_meta = debug_meta
@@ -357,7 +358,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def close(self):
         StacktraceProcessor.close(self)
-        self.sym.close()
+        if self.sym is not None:
+            self.sym.close()
+            self.sym = None
 
     def preprocess_related_data(self):
         if not self.available:
