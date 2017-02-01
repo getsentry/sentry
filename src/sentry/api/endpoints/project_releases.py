@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 import string
 
+from django.db import IntegrityError, transaction
+
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -11,7 +13,7 @@ from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.app import locks
-from sentry.models import Activity, Release
+from sentry.models import Activity, Release, ReleaseProject
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.retries import TimedRetryPolicy
@@ -107,10 +109,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         Create a New Release
         ````````````````````
 
-        Create a new release for the given project.  Releases are used by
-        Sentry to improve its error reporting abilities by correlating
-        first seen events with the release that might have introduced the
-        problem.
+        Create a new release and/or associate a project with a release.
+        Release versions that are the same across multiple projects
+        within an Organization will be treated as the same release in Sentry.
+
+        Releases are used by Sentry to improve its error reporting abilities
+        by correlating first seen events with the release that might have
+        introduced the problem.
 
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
@@ -173,7 +178,12 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                                 date_released=result.get('dateReleased'),
                             ), True
                 was_released = False
-                release.add_project(project)
+                try:
+                    with transaction.atomic():
+                        ReleaseProject.objects.create(project=project, release=release)
+                    created = True
+                except IntegrityError:
+                    pass
 
             commit_list = result.get('commits')
             if commit_list:
