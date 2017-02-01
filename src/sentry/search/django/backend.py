@@ -81,7 +81,6 @@ class DjangoSearchBackend(SearchBackend):
         engine = get_db_engine('default')
 
         queryset = Group.objects.filter(project=project)
-
         if query:
             # TODO(dcramer): if we want to continue to support search on SQL
             # we should at least optimize this in Postgres so that it does
@@ -93,12 +92,13 @@ class DjangoSearchBackend(SearchBackend):
             )
 
         if status is None:
-            status_in = (
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-                GroupStatus.PENDING_MERGE,
+            queryset = queryset.exclude(
+                status__in=(
+                    GroupStatus.PENDING_DELETION,
+                    GroupStatus.DELETION_IN_PROGRESS,
+                    GroupStatus.PENDING_MERGE,
+                )
             )
-            queryset = queryset.exclude(status__in=status_in)
         else:
             queryset = queryset.filter(status=status)
 

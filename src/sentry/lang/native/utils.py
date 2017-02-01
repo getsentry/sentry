@@ -57,26 +57,17 @@ def find_stacktrace_referenced_images(debug_images, stacktraces):
 
 def find_all_stacktraces(data):
     """Given a data dictionary from an event this returns all
-    relevant stacktraces in a list.  If a frame contains a raw_stacktrace
-    property it's preferred over the processed one.
+    relevant stacktraces in a list.
     """
     rv = []
-
-    def _probe_for_stacktrace(container):
-        raw = container.get('raw_stacktrace')
-        if raw is not None:
-            rv.append((raw, container))
-        else:
-            processed = container.get('stacktrace')
-            if processed is not None:
-                rv.append((processed, container))
 
     exc_container = data.get('sentry.interfaces.Exception')
     if exc_container:
         for exc in exc_container['values']:
-            _probe_for_stacktrace(exc)
+            stacktrace = exc.get('stacktrace')
+            if stacktrace:
+                rv.append((stacktrace, exc))
 
-    # The legacy stacktrace interface does not support raw stacktraces
     stacktrace = data.get('sentry.interfaces.Stacktrace')
     if stacktrace:
         rv.append((stacktrace, None))
@@ -84,7 +75,9 @@ def find_all_stacktraces(data):
     threads = data.get('threads')
     if threads:
         for thread in threads['values']:
-            _probe_for_stacktrace(thread)
+            stacktrace = thread.get('stacktrace')
+            if stacktrace:
+                rv.append((stacktrace, thread))
 
     return rv
 
