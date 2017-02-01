@@ -101,7 +101,7 @@ class BasicResolvingIntegrationTest(TestCase):
             "sentry.interfaces.Exception": {
                 "values": [
                     {
-                        "stacktrace": {
+                        'stacktrace': {
                             "frames": [
                                 {
                                     "function": "<redacted>",
@@ -174,7 +174,7 @@ class BasicResolvingIntegrationTest(TestCase):
                 "values": [
                     {
                         "id": 39,
-                        "stacktrace": {
+                        'stacktrace': {
                             "frames": [
                                 {
                                     "in_app": False,
