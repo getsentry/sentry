@@ -1,5 +1,8 @@
-Version 8.13 (Unreleased)
+Version 8.14 (Unreleased)
 -------------------------
+
+Version 8.13
+------------
 - Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 
 - Support for setting a custom security header for javascript fetching.
