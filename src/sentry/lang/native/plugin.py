@@ -292,7 +292,7 @@ def preprocess_apple_crash_event(data):
     sym = Symbolizer(project, crash_report['binary_images'],
                      referenced_images=referenced_images)
 
-    with sym:
+    try:
         if crashed_thread is None:
             append_error(data, {
                 'type': EventError.NATIVE_NO_CRASHED_THREAD,
@@ -331,6 +331,8 @@ def preprocess_apple_crash_event(data):
                 append_error(data, error)
             thread['stacktrace'] = convert_stacktrace(
                 bt, system, raw_thread.get('notable_addresses'))
+    finally:
+        sym.close()
 
     if threads:
         data['threads'] = {
