@@ -79,6 +79,11 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 9',
     title: 'Internet Explorer',
   },
+  'ie10': {
+    icon: 'internet-explorer',
+    helpText: 'Version 10',
+    title: 'Internet Explorer',
+  },
   'opera_pre_15': {
     icon: 'opera',
     helpText: 'Version 14 and lower',

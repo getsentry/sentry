@@ -2,6 +2,7 @@ Version 8.14 (Unreleased)
 -------------------------
 
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
+- Add IE10 legacy browser filter
 
 Version 8.13
 ------------
