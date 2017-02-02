@@ -288,6 +288,24 @@ class LegacyBrowsersFilterTest(TestCase):
         browser = ua['user_agent']
         assert self.filter_cls(self.project).filter_ie_pre_9(browser) is True
 
+    def test_does_filter_ie9(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value={'ie9'}
+        )
+        data = self.get_mock_data(USER_AGENTS['ie_9'])
+        assert self.apply_filter(data) is True
+
+    def test_does_filter_ie10(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value={'ie10'}
+        )
+        data = self.get_mock_data(USER_AGENTS['ie_10'])
+        assert self.apply_filter(data) is True
+
     def test_does_not_filter_ie10(self):
         data = self.get_mock_data(USER_AGENTS['ie_10'])
         ua_data = self.filter_cls(self.project).get_user_agent(data)
