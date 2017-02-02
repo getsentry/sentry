@@ -700,7 +700,7 @@ class Stacktrace(Interface):
         return {
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
-            'register': self.register,
+            'registers': self.register,
             'hasSystemFrames': self.has_system_frames,
         }
 
@@ -708,7 +708,7 @@ class Stacktrace(Interface):
         return {
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
-            'register': self.register,
+            'registers': self.register,
             'has_system_frames': self.has_system_frames,
         }
 
