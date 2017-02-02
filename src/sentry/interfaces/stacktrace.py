@@ -514,7 +514,9 @@ class Frame(Interface):
         if not fileloc:
             return ''
         elif platform == 'javascript':
-            return '{}({})'.format(self.function or '?', fileloc)
+            # function and fileloc might be unicode here, so let it coerce
+            # to a unicode string if needed.
+            return '%s(%s)' % (self.function or '?', fileloc)
         return '%s in %s' % (
             fileloc,
             self.function or '?',
