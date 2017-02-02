@@ -6,40 +6,44 @@ from rest_framework.response import Response
 
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
+from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.app import locks
-from sentry.models import (
-    Activity, OrganizationMemberTeam, Project, Release, ReleaseProject, Team
-)
+from sentry.models import Activity, Release, ReleaseProject
+from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.retries import TimedRetryPolicy
+
+
+@scenario('CreateNewOrganizationRelease')
+def create_new_org_release_scenario(runner):
+    runner.request(
+        method='POST',
+        path='/organizations/%s/releases/' % (runner.org.slug,),
+        data={
+            'version': '2.0rc2',
+            'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
+        }
+    )
+
+
+@scenario('ListOrganizationReleases')
+def list_org_releases_scenario(runner):
+    runner.request(
+        method='GET',
+        path='/organizations/%s/releases/' % (runner.org.slug,)
+    )
 
 
 class ReleaseSerializerWithProjects(ReleaseSerializer):
     projects = ListField()
 
 
-class OrganizationReleasesEndpoint(OrganizationEndpoint):
+class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (OrganizationReleasePermission,)
 
-    def get_allowed_projects(self, request, organization):
-        if not request.user.is_authenticated():
-            return []
-
-        if request.is_superuser() or organization.flags.allow_joinleave:
-            allowed_teams = Team.objects.filter(
-                organization=organization
-            ).values_list('id', flat=True)
-        else:
-            allowed_teams = OrganizationMemberTeam.objects.filter(
-                organizationmember__user=request.user,
-                team__organization_id=organization.id,
-            ).values_list('team_id', flat=True)
-        return Project.objects.filter(team_id__in=allowed_teams)
-
+    @attach_scenarios([list_org_releases_scenario])
     def get(self, request, organization):
         """
         List an Organizations Releases
@@ -74,6 +78,7 @@ class OrganizationReleasesEndpoint(OrganizationEndpoint):
             on_results=lambda x: serialize(x, request.user),
         )
 
+    @attach_scenarios([create_new_org_release_scenario])
     def post(self, request, organization):
         """
         Create a New Release for an Organization

@@ -16,6 +16,7 @@ Schema Changes
 - Added unique index on ``Release(organization_id, version)``
 - Removed unique index on ``Release(project_id, version)``
 - Added ``GroupCommitResolution`` model.
+- Added OrganizationReleasesEndpoint
 
 Version 8.13
 ------------
@@ -35,7 +36,6 @@ Version 8.13
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
 - Added support for managing newsletter subscriptions with Sentry.io
-- Added OrganizationReleasesEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
