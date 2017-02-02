@@ -7,6 +7,9 @@ from rest_framework import serializers
 from sentry.models import ProjectOption
 from sentry.api.fields import MultipleChoiceField
 
+"""
+For default (legacy) filter
+"""
 MIN_VERSIONS = {
     'Chrome': 0,
     'IE': 10,
@@ -23,6 +26,7 @@ class LegacyBrowserFilterSerializer(serializers.Serializer):
     subfilters = MultipleChoiceField(choices=[
         'ie_pre_9',
         'ie9',
+        'ie10',
         'opera_pre_15',
         'android_pre_4',
         'safari_pre_6'
@@ -80,6 +84,9 @@ class LegacyBrowsersFilter(Filter):
             return ''
 
     def filter_default(self, browser):
+        """
+        Legacy filter - new users specify individual filters
+        """
         try:
             minimum_version = MIN_VERSIONS[browser['family']]
         except KeyError:
@@ -137,7 +144,7 @@ class LegacyBrowsersFilter(Filter):
 
         return False
 
-    def filter_ie9(self, browser):
+    def _filter_ie(self, browser, compare_version):
         if not browser['family'] == "IE":
             return False
 
@@ -146,24 +153,16 @@ class LegacyBrowsersFilter(Filter):
         except (TypeError, ValueError):
             return False
 
-        if major_browser_version == 9:
-            return True
+        return compare_version(major_browser_version)
 
-        return False
+    def filter_ie10(self, browser):
+        return self._filter_ie(browser, lambda major_ver: major_ver == 10)
+
+    def filter_ie9(self, browser):
+        return self._filter_ie(browser, lambda major_ver: major_ver == 9)
 
     def filter_ie_pre_9(self, browser):
-        if not browser['family'] == "IE":
-            return False
-
-        try:
-            major_browser_version = int(browser['major'])
-        except (TypeError, ValueError):
-            return False
-
-        if major_browser_version <= 8:
-            return True
-
-        return False
+        return self._filter_ie(browser, lambda major_ver: major_ver <= 8)
 
     def test(self, data):
         if data.get('platform') != 'javascript':
