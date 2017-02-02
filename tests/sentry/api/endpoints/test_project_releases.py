@@ -153,7 +153,8 @@ class ProjectReleaseCreateTest(APITestCase):
             'version': '1.2.1',
         })
 
-        assert response.status_code == 208, response.content
+        # since project2 was added, should be 201
+        assert response.status_code == 201, response.content
         assert Release.objects.filter(
             version='1.2.1',
             organization_id=project.organization_id
