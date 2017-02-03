@@ -1,4 +1,6 @@
+import csv
 import re
+import sys
 
 from django.db import models
 from sentry.models import Release, ReleaseFile, TagValue
@@ -57,6 +59,10 @@ def update_version(release):
 
 def main(is_dry_run):
 
+    fieldnames = ['org_id', 'release_id', 'version', 'date_added', 'action']
+    writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
+    writer.writeheader()
+
     dupe_releases = Release.objects.values('version', 'organization_id')\
                                            .annotate(vcount=models.Count('id'))\
                                            .filter(vcount__gt=1)
@@ -78,7 +84,15 @@ def main(is_dry_run):
         # instead of trying to merge
         if len(releases_with_files) > 1:
             for release in releases:
-                update_version(release)
+                if not is_dry_run:
+                    update_version(release)
+                writer.writerow({
+                    'org_id': release.organization_id,
+                    'release_id': release.id,
+                    'version': release.version,
+                    'date_added': release.date_added,
+                    'action': 'updated_version'
+                })
             continue
 
         if len(releases_with_files) == 1:
@@ -93,10 +107,19 @@ def main(is_dry_run):
             from_releases = releases[1:]
 
         if is_full_sha(version):
-            Release.merge(
-                to_release=to_release,
-                from_releases=from_releases
-            )
+            if not is_dry_run:
+                Release.merge(
+                    to_release=to_release,
+                    from_releases=from_releases
+                )
+            for release in [to_release] + from_releases:
+                writer.writerow({
+                    'org_id': release.organization_id,
+                    'release_id': release.id,
+                    'version': release.version,
+                    'date_added': release.date_added,
+                    'action': 'merge'
+                })
             continue
 
         affected_projects = set()
@@ -131,20 +154,46 @@ def main(is_dry_run):
                 is_short_sha_and_date(version):
             # if projects are across multiple environments, allow 1 week difference
             if projects_split_by_env and date_diff and date_diff < 604800:
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases,
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases,
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
                 continue
             # +/- 8 hours
             if date_diff and date_diff > 28800:
                 for release in releases:
-                    update_version(release)
+                    if not is_dry_run:
+                        update_version(release)
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'updated_version'
+                    })
             else:
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
             continue
 
         if is_semver_like(version):
@@ -152,27 +201,62 @@ def main(is_dry_run):
             refs = {release.ref for release in releases}
             urls = {release.url for release in releases}
             if (len(refs) == 1 and None not in refs) or (len(urls) == 1 and None not in urls):
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
                 continue
             # if projects are across multiple environments, allow 1 week difference
             if projects_split_by_env and date_diff and date_diff < 604800:
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
                 continue
             # +/- 30 mins
             if date_diff and date_diff > 1800:
                 for release in releases:
-                    update_version(release)
+                    if not is_dry_run:
+                        update_version(release)
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'updated_version'
+                    })
             else:
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
             continue
 
         if len(version) >= 20 or is_travis_build(version) or \
@@ -180,25 +264,59 @@ def main(is_dry_run):
                 is_word_and_date(version):
             # if projects are across multiple environments, allow 1 week difference
             if projects_split_by_env and date_diff and date_diff < 604800:
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
                 continue
             # +/- 4 hours
             if date_diff and date_diff > 14400:
                 for release in releases:
-                    update_version(release)
+                    if not is_dry_run:
+                        update_version(release)
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'updated_version'
+                    })
             else:
-                Release.merge(
-                    to_release=to_release,
-                    from_releases=from_releases
-                )
+                if not is_dry_run:
+                    Release.merge(
+                        to_release=to_release,
+                        from_releases=from_releases
+                    )
+                for release in [to_release] + from_releases:
+                    writer.writerow({
+                        'org_id': release.organization_id,
+                        'release_id': release.id,
+                        'version': release.version,
+                        'date_added': release.date_added,
+                        'action': 'merge'
+                    })
             continue
 
         # if we made it this far, assume we should just rename
         for release in releases:
-            update_version(release)
+            if not is_dry_run:
+                update_version(release)
+            writer.writerow({
+                'org_id': release.organization_id,
+                'release_id': release.id,
+                'version': release.version,
+                'date_added': release.date_added,
+                'action': 'updated_version'
+            })
 
 
 if __name__ == '__main__':
