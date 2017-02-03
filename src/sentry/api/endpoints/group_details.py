@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+import logging
+from uuid import uuid4
+
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -20,6 +23,8 @@ from sentry.models import (
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 @scenario('RetrieveAggregate')
@@ -334,9 +339,29 @@ class GroupDetailsEndpoint(GroupEndpoint):
         ).update(status=GroupStatus.PENDING_DELETION)
         if updated:
             GroupHash.objects.filter(group=group).delete()
+
+            transaction_id = uuid4().hex
+            project = group.project
+
             delete_group.apply_async(
-                kwargs={'object_id': group.id},
+                kwargs={
+                    'object_id': group.id,
+                    'transaction_id': transaction_id,
+                },
                 countdown=3600,
             )
+
+            self.create_audit_entry(
+                request=request,
+                organization_id=project.organization_id if project else None,
+                target_object=group.id,
+                transaction_id=transaction_id,
+            )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': group.id,
+                'transaction_id': transaction_id,
+                'model': type(group).__name__,
+            })
 
         return Response(status=202)
