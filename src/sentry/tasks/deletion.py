@@ -260,7 +260,7 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
         return
     g_id = group.id
     group.delete()
-    logger.info('object.delete.queued', extra={
+    logger.info('object.delete.executed', extra={
         'object_id': g_id,
         'transaction_id': transaction_id,
         'model': Group.__name__,
