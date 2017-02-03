@@ -25,7 +25,6 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.utils.http import absolute_uri
-from sentry.utils.release_versions import merge as release_merge
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -247,7 +246,7 @@ class Organization(Model):
                     id=release.id
                 ).update(organization=to_org)
             else:
-                release_merge(to_release, [release])
+                Release.merge(to_release, [release])
 
         for model in (ApiKey, AuditLogEntry, ReleaseFile):
             model.objects.filter(

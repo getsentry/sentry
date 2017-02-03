@@ -1,10 +1,109 @@
 # -*- coding: utf-8 -*-
+import re
+
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models
+from django.db import IntegrityError, models, transaction
 
-from sentry.utils import release_versions
+
+def is_full_sha(version):
+    # sha1 or md5
+    return bool(re.match(r'[a-f0-9]{40}$', version) or re.match(r'[a-f0-9]{32}$', version))
+
+
+def is_short_sha(version):
+    # short sha
+    return bool(re.match(r'[a-f0-9]{7,40}$', version))
+
+
+def is_semver_like(version):
+    return bool(re.match(r'([a-z]*)?(\-)?v?(?:\d+\.)*\d+', version))
+
+
+def is_travis_build(version):
+    # TRAVIS_12345
+    return bool(re.match(r'(travis)(\_|\-)([a-f0-9]{1,40}$)', version, re.IGNORECASE))
+
+
+def is_jenkins_build(version):
+    # jenkins-123-abcdeff
+    return bool(re.match(r'(jenkins)(\_|\-)([0-9]{1,40})(\_|\-)([a-f0-9]{5,40}$)', version, re.IGNORECASE))
+
+
+def is_head_tag(version):
+    # HEAD-abcdefg, master@abcdeff, master(abcdeff)
+    return bool(re.match(r'(head|master|qa)(\_|\-|\@|\()([a-f0-9]{6,40})(\)?)$', version, re.IGNORECASE))
+
+
+def is_short_sha_and_date(version):
+    # abcdefg-2016-03-16
+    return bool(re.match(r'([a-f0-9]{7,40})-(\d{4})-(\d{2})-(\d{2})', version))
+
+
+def is_word_and_date(version):
+    # release-2016-01-01
+    return bool(re.match(r'([a-z]*)-(\d{4})-(\d{2})-(\d{2})', version))
+
+
+def merge(to_release, from_releases, sentry_models):
+    # The following models reference release:
+    # ReleaseCommit.release
+    # ReleaseEnvironment.release_id
+    # ReleaseProject.release
+    # GroupRelease.release_id
+    # GroupResolution.release
+    # Group.first_release
+    # ReleaseFile.release
+
+    model_list = (
+        sentry_models.ReleaseCommit,
+        sentry_models.ReleaseEnvironment,
+        sentry_models.ReleaseFile,
+        sentry_models.ReleaseProject,
+        sentry_models.GroupRelease,
+        sentry_models.GroupResolution
+    )
+    for release in from_releases:
+        for model in model_list:
+            if hasattr(model, 'release'):
+                update_kwargs = {'release': to_release}
+            else:
+                update_kwargs = {'release_id': to_release.id}
+            try:
+                with transaction.atomic():
+                    model.objects.filter(
+                        release_id=release.id
+                    ).update(**update_kwargs)
+            except IntegrityError:
+                for item in model.objects.filter(release_id=release.id):
+                    try:
+                        with transaction.atomic():
+                            model.objects.filter(
+                                id=item.id
+                            ).update(**update_kwargs)
+                    except IntegrityError:
+                        item.delete()
+
+        sentry_models.Group.objects.filter(
+            first_release=release
+        ).update(first_release=to_release)
+
+        release.delete()
+
+
+def update_version(release, sentry_models):
+    old_version = release.version
+    project_slug = release.projects.values_list('slug', flat=True)[0]
+    new_version = '%s-%s' % (project_slug, old_version)
+    sentry_models.Release.objects.filter(
+        id=release.id
+    ).update(version=new_version)
+    sentry_models.TagValue.objects.filter(
+        project__in=release.projects.all(),
+        key='sentry:release',
+        value=old_version
+    ).update(value=new_version)
 
 
 class Migration(DataMigration):
@@ -33,7 +132,7 @@ class Migration(DataMigration):
             # instead of trying to merge
             if len(releases_with_files) > 1:
                 for release in releases:
-                    release_versions.update_version(release, orm)
+                    update_version(release, orm)
                 continue
 
             if len(releases_with_files) == 1:
@@ -47,8 +146,8 @@ class Migration(DataMigration):
                 to_release = releases[0]
                 from_releases = releases[1:]
 
-            if release_versions.is_full_sha(version):
-                release_versions.merge(
+            if is_full_sha(version):
+                merge(
                     to_release=to_release,
                     from_releases=from_releases,
                     sentry_models=orm
@@ -82,12 +181,12 @@ class Migration(DataMigration):
                 if date_diff is None or diff > date_diff:
                     date_diff = diff
 
-            if release_versions.is_short_sha(version) or \
-                    release_versions.is_head_tag(version) or \
-                    release_versions.is_short_sha_and_date(version):
+            if is_short_sha(version) or \
+                    is_head_tag(version) or \
+                    is_short_sha_and_date(version):
                 # if projects are across multiple environments, allow 1 week difference
                 if projects_split_by_env and date_diff and date_diff < 604800:
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
@@ -96,21 +195,21 @@ class Migration(DataMigration):
                 # +/- 8 hours
                 if date_diff and date_diff > 28800:
                     for release in releases:
-                        release_versions.update_version(release, orm)
+                        update_version(release, orm)
                 else:
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
                     )
                 continue
 
-            if release_versions.is_semver_like(version):
+            if is_semver_like(version):
                 # check ref string and urls
                 refs = {release.ref for release in releases}
                 urls = {release.url for release in releases}
                 if (len(refs) == 1 and None not in refs) or (len(urls) == 1 and None not in urls):
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
@@ -118,7 +217,7 @@ class Migration(DataMigration):
                     continue
                 # if projects are across multiple environments, allow 1 week difference
                 if projects_split_by_env and date_diff and date_diff < 604800:
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
@@ -127,21 +226,21 @@ class Migration(DataMigration):
                 # +/- 30 mins
                 if date_diff and date_diff > 1800:
                     for release in releases:
-                        release_versions.update_version(release, orm)
+                        update_version(release, orm)
                 else:
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
                     )
                 continue
 
-            if len(version) >= 20 or release_versions.is_travis_build(version) or \
-                    release_versions.is_jenkins_build(version) or \
-                    release_versions.is_word_and_date(version):
+            if len(version) >= 20 or is_travis_build(version) or \
+                    is_jenkins_build(version) or \
+                    is_word_and_date(version):
                 # if projects are across multiple environments, allow 1 week difference
                 if projects_split_by_env and date_diff and date_diff < 604800:
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
@@ -150,9 +249,9 @@ class Migration(DataMigration):
                 # +/- 4 hours
                 if date_diff and date_diff > 14400:
                     for release in releases:
-                        release_versions.update_version(release, orm)
+                        update_version(release, orm)
                 else:
-                    release_versions.merge(
+                    merge(
                         to_release=to_release,
                         from_releases=from_releases,
                         sentry_models=orm
@@ -161,7 +260,7 @@ class Migration(DataMigration):
 
             # if we made it this far, assume we should just rename
             for release in releases:
-                release_versions.update_version(release, orm)
+                update_version(release, orm)
 
         db.start_transaction()
 
