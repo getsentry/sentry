@@ -62,10 +62,13 @@ class RedisQuotaTest(TestCase):
     def test_uses_defined_quotas(self):
         self.get_project_quota.return_value = (200, 60)
         self.get_organization_quota.return_value = (300, 60)
-        assert set(self.quota.get_quotas(self.project)) == set((
-            ('p:{}'.format(self.project.id), 200, 60),
-            ('o:{}'.format(self.project.organization.id), 300, 60),
-        ))
+        quotas = self.quota.get_quotas(self.project)
+        assert quotas[0].key == 'p:{}'.format(self.project.id)
+        assert quotas[0].limit == 200
+        assert quotas[0].window == 60
+        assert quotas[1].key == 'o:{}'.format(self.project.organization.id)
+        assert quotas[1].limit == 300
+        assert quotas[1].window == 60
 
     @mock.patch('sentry.quotas.redis.is_rate_limited')
     @mock.patch.object(RedisQuota, 'get_quotas', return_value=[])

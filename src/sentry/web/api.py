@@ -371,6 +371,7 @@ class StoreView(APIView):
                 ip=remote_addr,
                 project=project,
                 sender=type(self),
+                reason_code=rate_limit.reason_code if rate_limit else None,
             )
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)
