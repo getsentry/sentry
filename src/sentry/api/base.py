@@ -99,12 +99,17 @@ class Endpoint(APIView):
         user = request.user if request.user.is_authenticated() else None
         api_key = request.auth if isinstance(request.auth, ApiKey) else None
 
-        entry = AuditLogEntry.objects.create(
+        entry = AuditLogEntry(
             actor=user,
             actor_key=api_key,
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
+
+        # Only create a real AuditLogEntry record if we are passing an event type
+        # otherwise, we want to still log to our actual logging
+        if entry.event is not None:
+            entry.save()
 
         extra = {
             'ip_address': entry.ip_address,
