@@ -165,7 +165,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         Return a list of issues (groups) bound to a project.  All parameters are
         supplied as query string parameters.
 
-        A default query of ``is:resolved`` is applied. To return results
+        A default query of ``is:unresolved`` is applied. To return results
         with other statuses send an new query value (i.e. ``?query=`` for all
         results).
 
@@ -183,7 +183,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                     Set to `1` to enable.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
-                                   ``"is:resolved"`` is assumed.)
+                                   ``"is:unresolved"`` is assumed.)
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
