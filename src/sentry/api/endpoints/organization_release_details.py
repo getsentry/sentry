@@ -4,54 +4,38 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Group, Release, ReleaseFile
-from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
 
 
-@scenario('RetrieveRelease')
-def retrieve_release_scenario(runner):
+@scenario('RetrieveOrganizationRelease')
+def retrieve_organization_release_scenario(runner):
     runner.request(
         method='GET',
-        path='/projects/%s/%s/releases/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version)
+        path='/organizations/%s/releases/%s/' % (
+            runner.org.slug, runner.default_release.version)
     )
 
 
-@scenario('UpdateRelease')
-def update_release_scenario(runner):
+@scenario('UpdateOrganizationRelease')
+def update_organization_release_scenario(runner):
     release = runner.utils.create_release(runner.default_project,
                                           runner.me, version='3000')
     runner.request(
         method='PUT',
-        path='/projects/%s/%s/releases/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            release.version),
+        path='/organization/%s/releases/%s/' % (
+            runner.org.slug, release.version),
         data={
             'url': 'https://vcshub.invalid/user/project/refs/deadbeef1337',
             'ref': 'deadbeef1337'
         }
     )
-
-# TODO(dcramer): this can't work with the current fixtures
-# as an existing Group references the Release
-# @scenario('DeleteRelease')
-# def delete_release_scenario(runner):
-#     release = runner.utils.create_release(runner.default_project,
-#                                           runner.me, version='4000')
-#     runner.request(
-#         method='DELETE',
-#         path='/projects/%s/%s/releases/%s/' % (
-#             runner.org.slug, runner.default_project.slug,
-#             release.version)
-#     )
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -62,49 +46,46 @@ class ReleaseSerializer(serializers.Serializer):
     commits = ListField(child=CommitSerializer(), required=False)
 
 
-class ReleaseDetailsEndpoint(ProjectEndpoint):
+class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission,)
 
-    @attach_scenarios([retrieve_release_scenario])
-    def get(self, request, project, version):
+    @attach_scenarios([retrieve_organization_release_scenario])
+    def get(self, request, organization, version):
         """
-        Retrieve a Release
-        ``````````````````
+        Retrieve an Organization's Release
+        ``````````````````````````````````
 
         Return details on an individual release.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
-                                     release of.
         :pparam string version: the version identifier of the release.
         :auth: required
         """
         try:
+            # TODO(jess): fix this if merging of legacy releases
+            # hasn't happened yet
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization.id,
+                projects__in=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user, project=project))
+        return Response(serialize(release, request.user))
 
-    @attach_scenarios([update_release_scenario])
-    def put(self, request, project, version):
+    @attach_scenarios([update_organization_release_scenario])
+    def put(self, request, organization, version):
         """
-        Update a Release
-        ````````````````
+        Update an Organization's Release
+        ````````````````````````````````
 
-        Update a release.  This can change some metadata associated with
+        Update a release. This can change some metadata associated with
         the release (the ref, url, and dates).
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to change the
-                                     release of.
         :pparam string version: the version identifier of the release.
         :param string ref: an optional commit reference.  This is useful if
                            a tagged version has been provided.
@@ -119,9 +100,11 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
         try:
+            # TODO(jess): fix this if merging of legacy releases
+            # hasn't happened yet
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization,
+                projects__in=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
@@ -151,41 +134,40 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
 
         commit_list = result.get('commits')
         if commit_list:
-            hook = ReleaseHook(project)
             # TODO(dcramer): handle errors with release payloads
-            hook.set_commits(release.version, commit_list)
+            release.set_commits(commit_list)
 
         if (not was_released and release.date_released):
-            activity = Activity.objects.create(
-                type=Activity.RELEASE,
-                project=project,
-                ident=release.version,
-                data={'version': release.version},
-                datetime=release.date_released,
-            )
+            for project in release.projects.all():
+                activity = Activity.objects.create(
+                    type=Activity.RELEASE,
+                    project=project,
+                    ident=release.version,
+                    data={'version': release.version},
+                    datetime=release.date_released,
+                )
             activity.send_notification()
 
         return Response(serialize(release, request.user))
 
-    # @attach_scenarios([delete_release_scenario])
-    def delete(self, request, project, version):
+    def delete(self, request, organization, version):
         """
-        Delete a Release
-        ````````````````
+        Delete an Organization's Release
+        ````````````````````````````````
 
         Permanently remove a release and all of its files.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to delete the
-                                     release of.
         :pparam string version: the version identifier of the release.
         :auth: required
         """
         try:
+            # TODO(jess): fix this if merging of legacy releases
+            # hasn't happened yet
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization.id,
+                projects__in=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
