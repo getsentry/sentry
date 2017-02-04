@@ -19,3 +19,17 @@ def report_processing_issue(event_data, scope, object=None, type=None, data=None
         'type': type,
         'data': data,
     }
+
+
+def resolve_processing_issue(project, scope, object=None, type=None):
+    if object is None:
+        object = '*'
+    from sentry.models import ProcessingIssue
+    from sentry.tasks.store import reprocess_events
+    raw_event_ids = ProcessingIssue.objects.resolve_processing_issue(
+        project=project,
+        scope=scope,
+        object=object,
+        type=type
+    )
+    reprocess_events.delay(raw_event_ids=raw_event_ids)

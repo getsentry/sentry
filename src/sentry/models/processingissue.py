@@ -15,9 +15,8 @@ from sentry.db.models import (
 )
 
 
-def get_processing_issue_checksum(scope, object, type):
+def get_processing_issue_checksum(scope, object):
     h = sha1()
-    h.update(type.encode('utf-8') + '\x00')
     h.update(scope.encode('utf-8') + '\x00')
     h.update(object.encode('utf-8') + '\x00')
     return h.hexdigest()
@@ -29,23 +28,26 @@ class ProcessingIssueManager(BaseManager):
         """Given scope, object and type this marks all issues as resolved
         and returns a list of events that now require reprocessing.
         """
-        checksum = get_processing_issue_checksum(scope, object, type)
+        checksum = get_processing_issue_checksum(scope, object)
 
         # Find all raw events that suffer from this issue.
-        raw_events = set(EventProcessingIssue.objects.filter(
+        q = EventProcessingIssue.objects.filter(
             processing_issue__project=project,
             processing_issue__checksum=checksum,
-        ).values_list('raw_event_id', flat=True).distinct())
+        )
+        if type is not None:
+            q = q.filter(processing_issue__type=type)
+        raw_events = set(q.values_list('raw_event_id', flat=True).distinct())
 
         # Delete all affected processing issue mappings
-        EventProcessingIssue.objects.filter(
-            raw_event__project=project,
-            raw_event__checksum=checksum,
-        ).delete()
-        ProcessingIssue.objects.filter(
+        q.delete()
+        q = ProcessingIssue.objects.filter(
             project=project,
             checksum=checksum,
-        ).delete()
+        )
+        if type is not None:
+            q = q.filter(type=type)
+        q.delete()
 
         # If we did not find any raw events, we can bail here now safely.
         if not raw_events:
@@ -63,13 +65,13 @@ class ProcessingIssueManager(BaseManager):
     def record_processing_issue(self, project, raw_event, scope, object,
                                 type, data=None):
         data = dict(data or {})
-        checksum = get_processing_issue_checksum(scope, object, type)
+        checksum = get_processing_issue_checksum(scope, object)
         data['_scope'] = scope
         data['_object'] = object
-        data['_type'] = type
         issue = ProcessingIssue.objects.get_or_create(
             project=project,
             checksum=checksum,
+            type=type,
             data=data,
         )
         EventProcessingIssue.objects.get_or_create(
@@ -81,8 +83,9 @@ class ProcessingIssueManager(BaseManager):
 class ProcessingIssue(Model):
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
-    checksum = models.CharField(max_length=40)
+    project = FlexibleForeignKey('sentry.Project', db_index=True)
+    checksum = models.CharField(max_length=40, db_index=True)
+    type = models.IntegerField()
     data = GzippedDictField()
 
     objects = BaseManager()
@@ -90,7 +93,7 @@ class ProcessingIssue(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_processingissue'
-        unique_together = (('project', 'checksum'),)
+        unique_together = (('project', 'checksum', 'type'),)
 
     __repr__ = sane_repr('project_id')
 
@@ -101,10 +104,6 @@ class ProcessingIssue(Model):
     @property
     def object(self):
         return self.data['_object']
-
-    @property
-    def type(self):
-        return self.data['_type']
 
 
 class EventProcessingIssue(Model):

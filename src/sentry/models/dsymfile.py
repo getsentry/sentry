@@ -26,6 +26,7 @@ from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
 from sentry.utils.native import parse_addr
 from sentry.constants import KNOWN_DSYM_TYPES
+from sentry.reprocessing import resolve_processing_issue
 
 
 class DSymSDKManager(BaseManager):
@@ -386,7 +387,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     file.putfile(fileobj)
     try:
         with transaction.atomic():
-            return cls.objects.create(
+            rv = cls.objects.create(
                 file=file,
                 uuid=uuid,
                 cpu_name=cpu_name,
@@ -395,7 +396,15 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
             )
     except IntegrityError:
         file.delete()
-        return cls.objects.get(uuid=uuid, **extra)
+        rv = cls.objects.get(uuid=uuid, **extra)
+
+    resolve_processing_issue(
+        project=project,
+        scope='native',
+        object='dsym:%s' % uuid,
+    )
+
+    return rv
 
 
 def create_files_from_macho_zip(fileobj, project=None):

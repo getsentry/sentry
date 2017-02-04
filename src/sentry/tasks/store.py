@@ -189,3 +189,19 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         if start_time:
             metrics.timing('events.time-to-process', time() - start_time,
                            instance=data['platform'])
+
+
+@instrumented_task(
+    name='sentry.tasks.store.reprocess_events',
+    queue='events.reprocess_events')
+def reprocess_events(raw_event_ids, **kwargs):
+    from sentry.models import RawEvent
+    from sentry.coreapi import ClientApiHelper
+    helper = ClientApiHelper()
+
+    for id in raw_event_ids:
+        raw_event = RawEvent.objects.get(id)
+        if raw_event is None:
+            continue
+        helper.insert_data_to_database(raw_event.data)
+        raw_event.delete()
