@@ -18,6 +18,7 @@ from sentry.lang.native.utils import \
     APPLE_SDK_MAPPING
 from sentry.utils.native import parse_addr
 from sentry.stacktraces import StacktraceProcessor
+from sentry.reprocessing import report_processing_issue
 
 
 logger = logging.getLogger(__name__)
@@ -410,9 +411,31 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         try:
             sfrm = self.sym.symbolize_frame(sym_frame, self.sdk_info)
         except SymbolicationFailed as e:
+            # User fixable but fatal errors are reported as processing
+            # issues.
+            if e.is_user_fixable and e.is_fatal:
+                report_processing_issue(self.data,
+                    scope='native',
+                    object='dsym:%s' % e.image_uuid,
+                    type=e.type,
+                    data={
+                        'image_path': e.image_path,
+                        'image_arch': e.image_arch,
+                        'message': e.message,
+                    }
+                )
+
+            # This in many ways currently does not really do anything.
+            # The reason is that once a processing issue is reported
+            # the event will only be stored as a raw event and no
+            # group will be generated.  As a result it also means that
+            # we will not have any user facing event or error showing
+            # up at all.  We want to keep this here though in case we
+            # do not want to report some processing issues (eg:
+            # optional dsyms)
             if e.is_user_fixable or e.is_sdk_failure:
                 errors.append({
-                    'type': EventError.NATIVE_INTERNAL_FAILURE,
+                    'type': e.type,
                     'image_uuid': e.image_uuid,
                     'image_path': e.image_path,
                     'image_arch': e.image_arch,
@@ -452,8 +475,12 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             new_frame['instruction_addr'] = '0x%x' % parse_addr(
                 sfrm['instruction_addr'])
 
-        in_app = self.sym.is_in_app(sym_frame)
-        new_frame['in_app'] = raw_frame['in_app'] = in_app
+        # Trust the original client's assessment about if somethign is
+        # in_app if the client sent something along.
+        if frame.get('in_app') is None:
+            in_app = self.sym.is_in_app(sym_frame)
+            new_frame['in_app'] = raw_frame['in_app'] = in_app
+
         return [new_frame], [raw_frame], errors
 
 
