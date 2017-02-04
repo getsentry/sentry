@@ -19,7 +19,7 @@ def get_processing_issue_checksum(scope, object, type):
     h = sha1()
     h.update(type.encode('utf-8') + '\x00')
     h.update(scope.encode('utf-8') + '\x00')
-    h.update(scope.encode('utf-8') + '\x00')
+    h.update(object.encode('utf-8') + '\x00')
     return h.hexdigest()
 
 
