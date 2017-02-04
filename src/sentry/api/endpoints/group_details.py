@@ -101,6 +101,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 activity.append(item)
 
         activity.append(Activity(
+            id=0,
             project=group.project,
             group=group,
             type=Activity.FIRST_SEEN,

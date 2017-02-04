@@ -101,7 +101,7 @@ install_requires = [
     'django-picklefield>=0.3.0,<0.4.0',
     'django-sudo>=2.1.0,<3.0.0',
     'django-templatetag-sugar>=0.1.0',
-    'djangorestframework>=2.3.8,<2.4.0',
+    'djangorestframework>=2.4.8,<2.5.0',
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<1.2.0',
     'exam>=0.5.1',
@@ -113,6 +113,7 @@ install_requires = [
 
     'ipaddress>=1.0.16,<1.1.0',
     'libsourcemap>=0.5.0,<0.6.0',
+    'loremipsum>=1.0.5,<1.1.0',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',

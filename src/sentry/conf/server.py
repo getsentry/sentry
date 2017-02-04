@@ -293,9 +293,12 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks',
     'social_auth',
-    'south',
     'sudo',
 )
+
+import django
+if django.VERSION < (1, 7):
+    INSTALLED_APPS += ('south',)
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
@@ -606,7 +609,7 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'null': {
-            'class': 'django.utils.log.NullHandler',
+            'class': 'logging.NullHandler',
         },
         'console': {
             'class': 'sentry.logging.handlers.StructLogHandler',

@@ -13,7 +13,10 @@ import operator
 from uuid import uuid4
 
 from django.db.models import F
-from django.db.models.expressions import ExpressionNode
+try:
+    from django.db.models.expressions import ExpressionNode
+except ImportError:
+    from django.db.models.expressions import Combinable as ExpressionNode
 from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
 
