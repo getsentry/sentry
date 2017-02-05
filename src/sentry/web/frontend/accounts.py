@@ -27,6 +27,7 @@ from social_auth.backends import get_backend
 from social_auth.models import UserSocialAuth
 from sudo.decorators import sudo_required
 
+from sentry.app import newsletter
 from sentry.models import (
     UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
@@ -273,6 +274,7 @@ def account_settings(request):
         'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'AUTH_PROVIDERS': auth.get_auth_providers(),
         'email': UserEmail.get_primary_email(user),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/settings.html', context, request)
 
@@ -294,6 +296,7 @@ def twofactor_settings(request):
         'page': 'security',
         'has_2fa': any(x.is_enrolled and not x.is_backup_interface for x in interfaces),
         'interfaces': interfaces,
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/twofactor.html', context, request)
 
@@ -307,6 +310,7 @@ def avatar_settings(request):
     context.update({
         'page': 'avatar',
         'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/avatar.html', context, request)
 
@@ -336,6 +340,7 @@ def appearance_settings(request):
         'form': form,
         'page': 'appearance',
         'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/appearance.html', context, request)
 
@@ -378,6 +383,7 @@ def list_identities(request):
         'identity_list': identity_list,
         'page': 'identities',
         'AUTH_PROVIDERS': AUTH_PROVIDERS,
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/identities.html', context, request)
 
@@ -480,6 +486,11 @@ def show_emails(request):
                 user_email.set_hash()
                 user_email.save()
                 user.send_confirm_email_singular(user_email)
+                # Update newsletter subscription and mark as unverified
+                newsletter.update_subscription(
+                    user=user,
+                    verified=False,
+                )
                 logger.info('user.email.add', extra={
                     'user_id': user.id,
                     'ip_address': request.META['REMOTE_ADDR'],
@@ -529,5 +540,47 @@ def show_emails(request):
         'alt_emails': alt_emails,
         'page': 'emails',
         'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/emails.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+def manage_subscriptions(request):
+    user = request.user
+    email = UserEmail.get_primary_email(user)
+
+    if request.method == 'GET':
+        context = csrf(request)
+        context.update({
+            'page': 'subscriptions',
+            'email': email,
+            'AUTH_PROVIDERS': auth.get_auth_providers(),
+            'has_newsletters': newsletter.is_enabled,
+            'subscriptions': newsletter.get_subscriptions(user),
+        })
+        return render_to_response('sentry/account/subscriptions.html', context, request)
+
+    subscribed = request.POST.get('subscribed') == '1'
+    try:
+        list_id = int(request.POST.get('listId', ''))
+    except ValueError:
+        return HttpResponse('bad request', status=400)
+
+    kwargs = {
+        'list_id': list_id,
+        'subscribed': subscribed,
+        'verified': email.is_verified,
+    }
+    if not subscribed:
+        kwargs['unsubscribed_date'] = timezone.now()
+    else:
+        kwargs['subscribed_date'] = timezone.now()
+
+    newsletter.create_or_update_subscription(
+        user,
+        **kwargs
+    )
+    return HttpResponse()

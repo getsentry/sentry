@@ -1,5 +1,11 @@
-Version 8.13 (Unreleased)
+Version 8.14 (Unreleased)
 -------------------------
+
+- Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
+- Add IE10 legacy browser filter
+
+Version 8.13
+------------
 
 - Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 - Support for setting a custom security header for javascript fetching.
@@ -11,10 +17,12 @@ Version 8.13 (Unreleased)
 - Add memory and storage information for apple devices
 - The legacy API keys feature is now disabled by default.
 - Show Images Loaded section for cocoa events with version number.
+- Added registers to stacktrace for cocoa exceptions.
 - Fixed bug where workflow notification subject may not include a custom email prefix.
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
 - Moved organization settings to React.
+- Added support for managing newsletter subscriptions with Sentry.io
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -32,6 +40,7 @@ API Changes
 
 - Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
 - Provide commit and author information associated with a given release
+- Provide repository information for commits
 
 Version 8.12
 ------------

@@ -855,6 +855,24 @@ table.integrations {
 }
 
 /**
+* Avatar Grid
+* ============================================================================
+*/
+
+.avatar-grid {
+  display: flex;
+  flex-wrap: wrap;
+
+  .avatar-grid-item {
+    margin: 0 4px 4px 0;
+
+    .avatar {
+      .square(24px);
+    }
+  }
+}
+
+/**
 * Filter Grid
 * ============================================================================
 */
@@ -2646,7 +2664,7 @@ ul.faces {
 }
 
 /**
-* Project nav
+* Badge
 * ============================================================================
 */
 
@@ -2707,6 +2725,20 @@ ul.faces {
   vertical-align: baseline;
   border-radius: .25em;
   margin-left: 4px;
+}
+
+/**
+* Repository label
+* ============================================================================
+*/
+
+.repo-label {
+  .label;
+  display: inline-block;
+  vertical-align: text-bottom;
+  padding: 4px 8px 6px;
+  line-height: 1;
+  background: @40;
 }
 
 /**

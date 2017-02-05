@@ -276,6 +276,8 @@ urlpatterns += patterns(
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
         name='sentry-account-settings-identities'),
+    url(r'^account/settings/subscriptions/$', accounts.manage_subscriptions,
+        name='sentry-account-settings-subscriptions'),
     url(r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
         accounts.disconnect_identity,
         name='sentry-account-disconnect-identity'),

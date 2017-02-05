@@ -11,6 +11,7 @@ import {
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
+import OrganizationStore from '../stores/organizationStore';
 import {t} from '../locale';
 
 
@@ -310,7 +311,9 @@ const OrganizationSettings = React.createClass({
   },
 
   onSave(data) {
+    // TODO(dcramer): this shoudl propag
     this.setState({data: data});
+    OrganizationStore.add(data);
   },
 
   render() {

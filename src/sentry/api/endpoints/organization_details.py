@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import six
 
 from rest_framework import serializers, status
 from rest_framework.response import Response
@@ -121,12 +120,12 @@ class OrganizationSerializer(serializers.Serializer):
         if 'slug' in self.init_data:
             org.slug = self.init_data['slug']
         org.save()
-        for key, context in six.iteritems(ORG_OPTIONS):
+        for key, option, type_ in ORG_OPTIONS:
             if key in self.init_data:
                 OrganizationOption.objects.set_value(
                     organization=org,
-                    key=context[0],
-                    value=context[1](self.init_data[key]),
+                    key=option,
+                    value=type_(self.init_data[key]),
                 )
         if 'avatar' in self.init_data or 'avatarType' in self.init_data:
             OrganizationAvatar.save_avatar(
