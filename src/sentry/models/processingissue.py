@@ -9,9 +9,11 @@ from __future__ import absolute_import
 
 from hashlib import sha1
 from django.db import models
+from django.db.models.aggregates import Count
 
 from sentry.db.models import (
-    BaseManager, Model, FlexibleForeignKey, GzippedDictField, sane_repr
+    BaseManager, Model, FlexibleForeignKey, GzippedDictField, RawEvent,
+    sane_repr
 )
 
 
@@ -24,59 +26,57 @@ def get_processing_issue_checksum(scope, object):
 
 class ProcessingIssueManager(BaseManager):
 
-    def resolve_processing_issue(self, project, scope, object, type):
-        """Given scope, object and type this marks all issues as resolved
-        and returns a list of events that now require reprocessing.
+    def resolve_processing_issue(self, project, scope, object, type=None):
+        """Resolves the given processing issues.  If not type is given
+        all processing issues for scope and object are resolved regardless
+        of the type.
         """
         checksum = get_processing_issue_checksum(scope, object)
-
-        # Find all raw events that suffer from this issue.
-        q = EventProcessingIssue.objects.filter(
-            processing_issue__project=project,
-            processing_issue__checksum=checksum,
-        )
-        if type is not None:
-            q = q.filter(processing_issue__type=type)
-        raw_events = set(q.values_list('raw_event_id', flat=True).distinct())
-
-        # Delete all affected processing issue mappings
-        q.delete()
         q = ProcessingIssue.objects.filter(
             project=project,
             checksum=checksum,
         )
         if type is not None:
             q = q.filter(type=type)
+        probably_resolved = q[:1].first() is not None
         q.delete()
+        return probably_resolved
 
-        # If we did not find any raw events, we can bail here now safely.
-        if not raw_events:
-            return []
+    def find_resolved(self, project_id, limit=100):
+        """Returns a list of raw events that generally match the given
+        processing issue and no longer have any issues remaining.  Returns
+        a list of raw events that are now resolved and a bool that indicates
+        if there are more.
+        """
+        rv = list(RawEvent.objects
+            .filter(project_id=project_id)
+            .annotate(eventissue_count=Count('eventprocessingissue'))
+            .filter(count=0)[:limit])
+        if len(rv) > limit:
+            rv = rv[:limit]
+            has_more = True
+        else:
+            has_more = False
+        return rv, has_more
 
-        # Now look for all the raw events that now have no processing
-        # issues left.
-        still_broken = set(EventProcessingIssue.objects.filter(
-            raw_event__in=list(raw_events),
-            processing_issue__project=project,
-        ).value_list('raw_event_id', flat=True).distinct())
-
-        return list(raw_events - still_broken)
-
-    def record_processing_issue(self, project, raw_event, scope, object,
+    def record_processing_issue(self, raw_event, scope, object,
                                 type, data=None):
+        """Records a new processing issue for the given raw event."""
         data = dict(data or {})
         checksum = get_processing_issue_checksum(scope, object)
         data['_scope'] = scope
         data['_object'] = object
-        issue = ProcessingIssue.objects.get_or_create(
-            project=project,
+        issue, _ = ProcessingIssue.objects.get_or_create(
+            project_id=raw_event.project_id,
             checksum=checksum,
             type=type,
-            data=data,
+            data=data
         )
+        # In case the issue moved away from unresolved we want to make
+        # sure it's back to unresolved
         EventProcessingIssue.objects.get_or_create(
             raw_event=raw_event,
-            issue=issue,
+            processing_issue=issue,
         )
 
 
@@ -85,10 +85,10 @@ class ProcessingIssue(Model):
 
     project = FlexibleForeignKey('sentry.Project', db_index=True)
     checksum = models.CharField(max_length=40, db_index=True)
-    type = models.IntegerField()
+    type = models.CharField(max_length=30)
     data = GzippedDictField()
 
-    objects = BaseManager()
+    objects = ProcessingIssueManager()
 
     class Meta:
         app_label = 'sentry'
