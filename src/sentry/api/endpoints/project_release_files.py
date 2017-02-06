@@ -64,7 +64,7 @@ class ConditionalContentNegotiation(DefaultContentNegotiation):
         )
 
 
-class ReleaseFilesEndpoint(ProjectEndpoint):
+class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
     content_negotiation_class = ConditionalContentNegotiation
     permission_classes = (ProjectReleasePermission,)
