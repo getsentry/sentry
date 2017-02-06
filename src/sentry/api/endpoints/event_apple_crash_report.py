@@ -45,6 +45,11 @@ class EventAppleCrashReportEndpoint(Endpoint):
             event.data.get('threads'
         )).get('values')
 
+        exception = event.data.get(
+            'sentry.interfaces.Exception',
+            event.data.get('exception'
+        )).get('values')
+
         symbolicated = (request.GET.get('minified') not in ('1', 'true'))
         debug_images = None
         if (event.data.get('debug_meta') and
@@ -55,7 +60,8 @@ class EventAppleCrashReportEndpoint(Endpoint):
             threads=threads,
             context=event.data.get('contexts'),
             debug_images=debug_images,
-            symbolicated=symbolicated
+            symbolicated=symbolicated,
+            exception=exception
         ))
 
         response = HttpResponse(apple_crash_report_string, content_type='text/plain')

@@ -312,3 +312,32 @@ def test__convert_debug_meta_to_binary_image_row():
         'uuid': 'B427AE1D-BF36-3B50-936F-D78A7D1C8340'
     })
     assert binary_image == '0xd69a000 - 0xd712fff SentrySwift x86  <b427ae1dbf363b50936fd78a7d1c8340> /Users/haza/Library/Developer/CoreSimulator/Devices/DDB32F4C-97CF-4E2B-BD10-EB940553F223/data/Containers/Bundle/Application/8F8140DF-B25B-4088-B5FB-57F474A49CD6/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift'
+
+
+def test__get_exception_info():
+    acr = AppleCrashReport(exception=[{
+        "value": "Attempted to dereference garbage pointer 0x10.",
+        "mechanism": {
+            "posix_signal": {
+                "name": "SIGBUS",
+                "code_name": "BUS_NOOP",
+                "signal": 10,
+                "code": 0
+            },
+            "relevant_address": "0x10",
+            "mach_exception": {
+                "exception": 1,
+                "exception_name": "EXC_BAD_ACCESS",
+                "subcode": 8,
+                "code": 16
+            }
+        },
+        "type": "EXC_BAD_ACCESS",
+        "thread_id": 0
+    }])
+    exception_info = acr._get_exception_info()
+    assert exception_info == 'Exception Type: EXC_BAD_ACCESS (SIGBUS)\n\
+Exception Codes: BUS_NOOP at 0x10\n\
+Crashed Thread: 0\n\n\
+Application Specific Information:\n\
+Attempted to dereference garbage pointer 0x10.'

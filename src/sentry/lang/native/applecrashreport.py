@@ -9,16 +9,18 @@ REPORT_VERSION = '104'
 @implements_to_string
 class AppleCrashReport(object):
 
-    def __init__(self, threads=None, context=None,
-                debug_images=None, symbolicated=False):
+    def __init__(self, threads=None, context=None, debug_images=None,
+            symbolicated=False, exception=None):
         self.threads = threads
         self.context = context
         self.debug_images = debug_images
         self.symbolicated = symbolicated
+        self.exception = exception
 
     def __str__(self):
         rv = []
         rv.append(self._get_meta_header())
+        rv.append(self._get_exception_info())
         rv.append(self.get_threads_apple_string())
         rv.append(self.get_binary_images_apple_string())
         return '\n\n'.join(rv) + '\n\nEOF'
@@ -30,6 +32,85 @@ class AppleCrashReport(object):
             self.context.get('os').get('build'),
             REPORT_VERSION
         )
+
+    def _get_exception_info(self):
+        rv = []
+        if self.exception and self.exception[0]:
+            # We only have one exception at a time
+            exception = self.exception[0]
+            signal = ""
+            if (exception
+                .get('mechanism')
+                .get('posix_signal')
+                .get('name')
+               ):
+                signal = ' ({})'.format(
+                    exception
+                    .get('mechanism')
+                    .get('posix_signal')
+                    .get('name')
+                )
+
+            name = ""
+            if (exception
+                .get('mechanism')
+                .get('mach_exception')
+                .get('exception_name')
+               ):
+                name = '{}'.format(
+                    exception
+                    .get('mechanism')
+                    .get('mach_exception')
+                    .get('exception_name')
+                )
+
+            if name or signal:
+                rv.append('Exception Type: {}{}'.format(
+                    name,
+                    signal
+                ))
+
+            exc_name = ""
+            if (exception
+                .get('mechanism')
+                .get('posix_signal')
+                .get('code_name')
+               ):
+                exc_name = '{}'.format(
+                    exception
+                    .get('mechanism')
+                    .get('posix_signal')
+                    .get('code_name')
+                )
+
+            exc_addr = ""
+            if (exception
+                .get('mechanism')
+                .get('relevant_address')
+               ):
+                exc_addr = ' at {}'.format(
+                    exception
+                    .get('mechanism')
+                    .get('relevant_address')
+                )
+
+            if exc_name and exc_addr:
+                rv.append('Exception Codes: {}{}'.format(
+                    exc_name,
+                    exc_addr
+                ))
+
+            if exception.get('thread_id') is not None:
+                rv.append('Crashed Thread: {}'.format(
+                    exception.get('thread_id')
+                ))
+
+            if exception.get('value'):
+                rv.append('\nApplication Specific Information:\n{}'.format(
+                    exception.get('value')
+                ))
+
+        return "\n".join(rv)
 
     def get_threads_apple_string(self):
         rv = []
