@@ -19,7 +19,6 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 
@@ -200,30 +199,3 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         if start_time:
             metrics.timing('events.time-to-process', time() - start_time,
                            instance=data['platform'])
-
-
-@instrumented_task(
-    name='sentry.tasks.store.reprocess_events',
-    queue='events.reprocess_events')
-def reprocess_events(project_id, **kwargs):
-    from sentry.models import ProcessingIssue
-    from sentry.coreapi import ClientApiHelper
-    helper = ClientApiHelper()
-
-    from sentry import app
-
-    lock_key = 'events:reprocess_events:%s' % project_id
-    have_more = False
-    lock = app.locks.get(lock_key, duration=60)
-    try:
-        with lock.acquire():
-            raw_events, have_more = ProcessingIssue.find_resolved(project_id)
-            for raw_event in raw_events:
-                helper.insert_data_to_database(raw_event.data)
-                raw_event.delete()
-    except UnableToAcquireLock as error:
-        error_logger.warning('reprocess_events.fail', extra={'error': error})
-
-    # There are more, kick us off again
-    if have_more:
-        reprocess_events.delay(project_id=project_id)
