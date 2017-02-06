@@ -3,9 +3,9 @@ from __future__ import absolute_import
 import re
 import six
 
-from symsynd.driver import Driver, SymbolicationError
+from symsynd.driver import Driver, SymbolicationError, normalize_dsym_path
 from symsynd.report import ReportSymbolizer
-from symsynd.macho.arch import get_cpu_name
+from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
@@ -14,6 +14,11 @@ from sentry.models import DSymSymbol, EventError
 from sentry.constants import MAX_SYM
 
 
+USER_FIXABLE_ERRORS = (
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+    EventError.NATIVE_MISSING_SYMBOL,
+)
 APP_BUNDLE_PATHS = (
     '/var/containers/Bundle/Application/',
     '/private/var/containers/Bundle/Application/',
@@ -28,6 +33,12 @@ _known_app_bundled_frameworks_re = re.compile(r'''(?x)
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
 
+KNOWN_GARBAGE_SYMBOLS = set([
+    '_mh_execute_header',
+    '<redacted>',
+    '<unknown>',
+])
+
 
 @implements_to_string
 class SymbolicationFailed(Exception):
@@ -38,16 +49,21 @@ class SymbolicationFailed(Exception):
         self.message = six.text_type(message)
         self.type = type
         if image is not None:
-            self.image_uuid = image['uuid']
+            self.image_uuid = image['uuid'].lower()
+            self.image_path = image['name']
             self.image_name = image['name'].rsplit('/', 1)[-1]
+            self.image_arch = get_cpu_name(image['cpu_type'],
+                                           image['cpu_subtype'])
         else:
             self.image_uuid = None
             self.image_name = None
+            self.image_path = None
+            self.image_arch = None
 
     @property
     def is_user_fixable(self):
         """These are errors that a user can fix themselves."""
-        return self.type in ('missing-dsym', 'bad-dsym')
+        return self.type in USER_FIXABLE_ERRORS
 
     @property
     def is_sdk_failure(self):
@@ -113,16 +129,40 @@ def make_symbolizer(project, binary_images, referenced_images=None):
 
 class Symbolizer(object):
 
-    def __init__(self, project, binary_images, referenced_images=None):
+    def __init__(self, project, binary_images, referenced_images=None,
+                 is_debug_build=None):
         self.symsynd_symbolizer = make_symbolizer(
             project, binary_images, referenced_images=referenced_images)
         self.images = dict((img['image_addr'], img) for img in binary_images)
+        self.is_debug_build = is_debug_build
 
-    def __enter__(self):
-        return self.symsynd_symbolizer.driver.__enter__()
+    def resolve_missing_vmaddrs(self):
+        """When called this changes the vmaddr on all contained images from
+        the information in the dsym files (if there is no vmaddr already).
+        This changes both the image data from the original event submission
+        in the debug meta as well as the image data that the symbolizer uses.
+        """
+        changed_any = False
 
-    def __exit__(self, *args):
-        return self.symsynd_symbolizer.driver.__exit__(*args)
+        loaded_images = self.symsynd_symbolizer.images
+        for image_addr, image in six.iteritems(self.images):
+            if image.get('image_vmaddr') or not image.get('image_addr'):
+                continue
+            image_info = loaded_images.get(image['image_addr'])
+            if not image_info:
+                continue
+            dsym_path = normalize_dsym_path(image_info['dsym_path'])
+            cpu_name = image_info['cpu_name']
+            image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name)
+            if image_vmaddr:
+                image['image_vmaddr'] = image_vmaddr
+                image_info['image_vmaddr'] = image_vmaddr
+                changed_any = True
+
+        return changed_any
+
+    def close(self):
+        self.symsynd_symbolizer.driver.close()
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
@@ -148,15 +188,20 @@ class Symbolizer(object):
             return False
         return True
 
+    def _is_app_bundled_framework(self, frame, img):
+        fn = self._get_frame_package(frame, img)
+        return _known_app_bundled_frameworks_re.search(fn) is not None
+
     def _is_app_frame(self, frame, img):
         if not self._is_app_bundled_frame(frame, img):
             return False
-        fn = self._get_frame_package(frame, img)
-        # Ignore known frameworks
-        match = _known_app_bundled_frameworks_re.search(fn)
-        if match is not None:
+        return not self._is_app_bundled_framework(frame, img)
+
+    def _is_optional_app_bundled_framework(self, frame, img):
+        if not self._is_app_bundled_framework(frame, img):
             return False
-        return True
+        symbol_name = frame.get('symbol_name')
+        return symbol_name and symbol_name not in KNOWN_GARBAGE_SYMBOLS
 
     def _is_simulator_frame(self, frame, img):
         fn = self._get_frame_package(frame, img)
@@ -168,11 +213,12 @@ class Symbolizer(object):
 
     def symbolize_app_frame(self, frame, img):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
+            if self._is_optional_app_bundled_framework(frame, img):
+                type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
+            else:
+                type = EventError.NATIVE_MISSING_DSYM
             raise SymbolicationFailed(
-                type='missing-dsym',
-                message=(
-                    'Frame references a missing dSYM file.'
-                ),
+                type=type,
                 image=img
             )
 
@@ -181,17 +227,14 @@ class Symbolizer(object):
                 frame, silent=False, demangle=False)
         except SymbolicationError as e:
             raise SymbolicationFailed(
-                type='bad-dsym',
-                message='Symbolication failed due to bad dsym: %s' % e,
+                type=EventError.NATIVE_BAD_DSYM,
+                message=six.text_type(e),
                 image=img
             )
 
         if new_frame is None:
             raise SymbolicationFailed(
-                type='missing-symbol',
-                message=(
-                    'Upon symbolication a frame could not be resolved.'
-                ),
+                type=EventError.NATIVE_MISSING_SYMBOL,
                 image=img
             )
 
@@ -203,18 +246,11 @@ class Symbolizer(object):
         if symbol is None:
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
-                type = 'simulator-frame'
-                message = 'Cannot symbolicate simulator system frames.'
+                type = EventError.NATIVE_SIMULATOR_FRAME
             else:
-                type = 'missing-system-dsym'
-                message = (
-                    'Attempted to look up system in the system symbols but '
-                    'no symbol could be found.  This might happen with beta '
-                    'releases of SDKs.'
-                )
+                type = EventError.NATIVE_MISSING_SYSTEM_DSYM
             raise SymbolicationFailed(
                 type=type,
-                message=message,
                 image=img
             )
 
@@ -227,11 +263,7 @@ class Symbolizer(object):
         img = self.images.get(frame['object_addr'])
         if img is None:
             raise SymbolicationFailed(
-                type='unknown-image',
-                message=(
-                    'The stacktrace referred to an object at an address '
-                    'that was not registered in the debug meta information.'
-                )
+                type=EventError.NATIVE_UNKNOWN_IMAGE
             )
 
         # If we are dealing with a frame that is not bundled with the app
@@ -249,8 +281,9 @@ class Symbolizer(object):
 
         for idx, frm in enumerate(backtrace):
             try:
-                rv.append(self.symbolize_frame(frm, sdk_info) or frm)
+                rv.append(self.symbolize_frame(frm, sdk_info))
             except SymbolicationFailed as e:
+                rv.append(frm)
                 errors.append({
                     'type': EventError.NATIVE_INTERNAL_FAILURE,
                     'frame': frm,

@@ -183,8 +183,8 @@ class Organization(Model):
 
     def merge_to(from_org, to_org):
         from sentry.models import (
-            ApiKey, AuditLogEntry, OrganizationMember, OrganizationMemberTeam,
-            Project, Team
+            ApiKey, AuditLogEntry, Commit, OrganizationMember, OrganizationMemberTeam,
+            Project, Release, ReleaseCommit, ReleaseEnvironment, ReleaseFile, Team
         )
 
         for from_member in OrganizationMember.objects.filter(organization=from_org):
@@ -232,10 +232,17 @@ class Organization(Model):
                     slug=project.slug,
                 )
 
-        for model in (ApiKey, AuditLogEntry):
+        # TODO(jess): figure out how to merge Releases and related models
+        # once we add organization, version unique constraint
+        for model in (ApiKey, AuditLogEntry, Release, ReleaseFile):
             model.objects.filter(
                 organization=from_org,
             ).update(organization=to_org)
+
+        for model in (Commit, ReleaseCommit, ReleaseEnvironment):
+            model.objects.filter(
+                organization_id=from_org.id,
+            ).update(organization_id=to_org.id)
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):

@@ -164,7 +164,7 @@ class JavascriptIntegrationTest(TestCase):
         assert frame.post_context == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert frame.pre_context is None
+        assert not frame.pre_context
         assert frame.context_line == 'h'
         assert frame.post_context == ['e', 'l', 'l', 'o', ' ']
 
@@ -287,7 +287,7 @@ class JavascriptIntegrationTest(TestCase):
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
-        assert raw_frame.pre_context == []
+        assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multip {snip}'
         assert raw_frame.post_context == ['//@ sourceMappingURL=file.sourcemap.js']
         assert raw_frame.lineno == 1
@@ -419,7 +419,7 @@ class JavascriptIntegrationTest(TestCase):
 
         raw_frame_list = exception.values[0].raw_stacktrace.frames
         raw_frame = raw_frame_list[0]
-        assert raw_frame.pre_context == []
+        assert not raw_frame.pre_context
         assert raw_frame.context_line == 'function add(a,b){"use strict";return a+b}'
         assert raw_frame.post_context == [
             'function multiply(a,b){"use strict";return a*b}function divide(a,b){"use strict";try{return multiply(add(a,b),a,b)/c}catch(e){Raven.captureE {snip}',
@@ -455,7 +455,6 @@ class JavascriptIntegrationTest(TestCase):
     def test_expansion_via_release_artifacts(self):
         project = self.project
         release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='abc',
         )
@@ -476,7 +475,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='~/{}?foo=bar'.format(f_minified.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f_minified,
         )
 
@@ -493,7 +492,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f1.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f1,
         )
 
@@ -509,7 +508,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f2.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f2,
         )
 
@@ -527,7 +526,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f2_empty,
         )
 
@@ -543,7 +542,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f_sourcemap.name),
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=f_sourcemap,
         )
 
@@ -651,9 +650,9 @@ class JavascriptIntegrationTest(TestCase):
         frame = frame_list[0]
 
         # no context information ...
-        assert frame.pre_context is None
-        assert frame.context_line is None
-        assert frame.post_context is None
+        assert not frame.pre_context
+        assert not frame.context_line
+        assert not frame.post_context
 
         # ... but line, column numbers are still correctly mapped
         assert frame.lineno == 3

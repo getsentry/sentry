@@ -31,7 +31,8 @@ const GroupTagValues = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.location.search !== this.props.location.search) {
+    if (prevProps.location.search !== this.props.location.search ||
+      prevProps.params.tagKey !== this.props.params.tagKey) {
       this.fetchData();
     }
   },
@@ -106,7 +107,7 @@ const GroupTagValues = React.createClass({
                   query: {query: `${tagKey.key}:"${tagValue.value}"`}
                 }}>
               {tagKey.key === 'user' ? [
-                <Avatar user={tagValue} size={16} className="avatar" />,
+                <Avatar user={tagValue} size={20} className="avatar" />,
                 <span style={{marginLeft: 10}}>{this.getUserDisplayName(tagValue)}</span>
               ] :
                 deviceNameMapper(tagValue.name)

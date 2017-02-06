@@ -111,6 +111,8 @@ class PluginComponentBase extends React.Component {
   }
 
   renderField(props) {
+    props = {...props};
+    props.formState = this.state.state;
     return <GenericField {...props}/>;
   }
 }

@@ -9,16 +9,21 @@ install-python:
 	pip install ujson
 	pip install "file://`pwd`#egg=sentry[dev]"
 
-install-npm:
+install-yarn:
 	@echo "--> Installing Node dependencies"
-	npm install
+	@hash yarn 2> /dev/null || npm install -g yarn
+	# Use NODE_ENV=development so that yarn installs both dependencies + devDependencies
+	NODE_ENV=development yarn install --ignore-optional --pure-lockfile
+	# Fix phantomjs-prebuilt not installed via yarn
+	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
+	node ./node_modules/phantomjs-prebuilt/install.js
 
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
 
-develop-only: update-submodules install-python install-python-tests install-npm
+develop-only: update-submodules install-python install-python-tests install-yarn
 
-develop: update-submodules setup-git develop-only install-python-tests
+develop: develop-only setup-git
 	@echo ""
 
 dev-postgres: install-python
@@ -96,7 +101,7 @@ test-cli:
 
 test-js:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack -p
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running JavaScript tests"
 	@npm run test
 	@echo ""
@@ -108,7 +113,7 @@ test-python:
 
 test-acceptance:
 	@echo "--> Building static assets"
-	@${NPM_ROOT}/.bin/webpack -p
+	@${NPM_ROOT}/.bin/webpack
 	@echo "--> Running acceptance tests"
 	py.test tests/acceptance
 	@echo ""
@@ -170,10 +175,10 @@ travis-install-postgres: travis-install-python dev-postgres
 travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
-travis-install-acceptance: install-npm travis-install-postgres
-travis-install-js: travis-upgrade-pip install-python install-python-tests install-npm
+travis-install-acceptance: install-yarn travis-install-postgres
+travis-install-js: travis-upgrade-pip install-python install-python-tests install-yarn
 travis-install-cli: travis-install-postgres
-travis-install-dist: travis-upgrade-pip install-python install-python-tests
+travis-install-dist: travis-upgrade-pip install-python install-python-tests install-yarn
 
 .PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 

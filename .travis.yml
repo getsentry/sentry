@@ -3,19 +3,29 @@ language: python
 rvm:
   - 2.2
 cache:
+  yarn: true
   directories:
     - node_modules
     - $HOME/.cache/pip/wheels
 branches:
   only:
   - master
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
 env:
   global:
     - NODE_ENV=production
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
+    - TRAVIS_NODE_VERSION=4
+    - CXX=g++-4.8
 install:
+  - nvm install $TRAVIS_NODE_VERSION
   - make travis-install-$TEST_SUITE
 before_script:
   - pip freeze
@@ -25,7 +35,7 @@ script:
 after_success:
   - codecov -e TEST_SUITE
 after_failure:
-  - dmesg
+  - dmesg | tail -n 100
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true

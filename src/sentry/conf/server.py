@@ -18,6 +18,7 @@ import sys
 import tempfile
 
 import sentry
+from sentry.utils.types import type_from_value
 
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
@@ -25,6 +26,24 @@ from six.moves.urllib.parse import urlparse
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
+
+
+def env(key, default='', type=None):
+    "Extract an environment variable for use in configuration"
+
+    if 'SENTRY_RUNNING_UWSGI' in os.environ:
+        # We do this so when the process forks off into uwsgi
+        # we want to actually be popping off values. This is so that
+        # at runtime, the variables aren't actually available.
+        fn = os.environ.pop
+    else:
+        fn = os.environ.get
+
+    if type is None:
+        type = type_from_value(default)
+
+    return type(fn(key, default))
+
 
 DEBUG = False
 TEMPLATE_DEBUG = True
@@ -676,15 +695,16 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'organizations:api-keys': True,
+    'organizations:api-keys': False,
     'organizations:create': True,
     'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
+    'organizations:release-commits': False,
     'projects:global-events': False,
-    'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
+    'projects:sample-events': True,
     'workflow:release-emails': False,
 }
 
@@ -869,6 +889,9 @@ SENTRY_SEARCH_OPTIONS = {}
 # Time-series storage backend
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
+
+SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
+SENTRY_NEWSLETTER_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -1066,10 +1089,10 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-js': '3.3.0',
-    'raven-python': '5.23.0',
-    'sentry-laravel': '0.4.0',
-    'sentry-php': '1.5.0',
+    'raven-js': '3.9.1',
+    'raven-python': '5.32.0',
+    'sentry-laravel': '0.5.0',
+    'sentry-php': '1.6.0',
 }
 
 SDK_URLS = {
@@ -1083,4 +1106,5 @@ SDK_URLS = {
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
+    'raven-php': 'sentry-php',
 }

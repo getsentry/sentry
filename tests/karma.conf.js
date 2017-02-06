@@ -19,7 +19,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'node_modules/babel-core/browser-polyfill.min.js',
+      'node_modules/babel-polyfill/dist/polyfill.min.js',
       'tests/tests.webpack.js'
     ],
 
@@ -35,8 +35,8 @@ module.exports = function(config) {
           sinon: 'sinon/pkg/sinon', // see [1] above
           'sentry-locale': path.join(__dirname, '..', 'src', 'sentry', 'locale')
         },
-        modulesDirectories: ['node_modules'],
-        extensions: ['', '.jsx', '.js', '.json']
+        modules: ['node_modules'],
+        extensions: ['*', '.jsx', '.js', '.json']
       },
       module: {
         noParse: [

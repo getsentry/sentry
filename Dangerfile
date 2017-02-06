@@ -40,7 +40,7 @@
 # content changes within the diff
 @S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|sudo/
 # dont ever match against changes in these files
-@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests/
+@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests|yarn\.lock/
 
 @S_BACKPORTED_FILES ||= [
     "src/sentry/auth/password_validation.py",
@@ -91,7 +91,7 @@ if securityMatches.any?
 end
 
 # Make it more obvious that a PR is a work in progress and shouldn"t be merged yet
-warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]"
+warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]" || github.pr_body.include?("#wip")
 
 # Warn when there is a big PR
 warn("Big PR -- consider splitting it up into multiple changesets") if git.lines_of_code > @S_BIG_PR_LINES
@@ -103,6 +103,6 @@ fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_F
 warn("This change includes modification to a file that was backported from newer Django.") if @S_BACKPORTED_FILES && checkFiles(@S_BACKPORTED_FILES).any?
 
 # Reasonable commits must update CHANGES
-if @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
+if !github.pr_body.include?("#nochanges") && @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
     fail("You need to update CHANGES due to the size of this PR")
 end

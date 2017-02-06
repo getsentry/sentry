@@ -8,6 +8,7 @@ from sentry.models import (
     GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar,
     UserOption
 )
+from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
@@ -24,7 +25,7 @@ class ActivityEmail(object):
     def _get_subject_prefix(self):
         prefix = ProjectOption.objects.get_value(
             project=self.project,
-            key='subject_prefix',
+            key='mail:subject_prefix',
         )
         if not prefix:
             prefix = options.get('mail.subject-prefix')
@@ -105,9 +106,15 @@ class ActivityEmail(object):
 
         return u'[%s] %s: %s' % (
             self.project.get_full_name(),
-            group.get_level_display().upper(),
+            group.get_level_display(),
             group.title
         )
+
+    def get_subject_with_prefix(self):
+        return u'{}{}'.format(
+            self._get_subject_prefix(),
+            self.get_subject(),
+        ).encode('utf-8')
 
     def get_context(self):
         description = self.get_description()
@@ -152,7 +159,9 @@ class ActivityEmail(object):
     def avatar_as_html(self):
         user = self.activity.user
         if not user:
-            return '<span class="avatar sentry"></span>'
+            return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
+                escape(self._get_sentry_avatar_url())
+            )
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
             return '<img class="avatar" src="{}" />'.format(
@@ -164,6 +173,10 @@ class ActivityEmail(object):
         else:
             return get_email_avatar(
                 user.get_display_name(), user.get_label(), 20, True)
+
+    def _get_sentry_avatar_url(self):
+        url = '/images/sentry-email-avatar.png'
+        return get_asset_url('sentry', url)
 
     def _get_user_avatar_url(self, user, size=20):
         try:
@@ -232,12 +245,6 @@ class ActivityEmail(object):
         context = self.get_base_context()
         context.update(self.get_context())
 
-        subject_prefix = self._get_subject_prefix()
-
-        subject = (u'{}{}'.format(
-            subject_prefix,
-            self.get_subject(),
-        )).encode('utf-8')
         template = self.get_template()
         html_template = self.get_html_template()
         email_type = self.get_email_type()
@@ -258,7 +265,7 @@ class ActivityEmail(object):
                 })
 
             msg = MessageBuilder(
-                subject=subject,
+                subject=self.get_subject_with_prefix(),
                 template=template,
                 html_template=html_template,
                 headers=headers,

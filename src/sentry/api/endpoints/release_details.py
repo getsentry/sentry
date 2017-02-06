@@ -83,13 +83,14 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                project=project,
+                organization_id=project.organization_id,
+                projects=project,
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+        return Response(serialize(release, request.user, project=project))
 
     @attach_scenarios([update_release_scenario])
     def put(self, request, project, version):
@@ -119,7 +120,8 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                project=project,
+                organization_id=project.organization_id,
+                projects=project,
                 version=version,
             )
         except Release.DoesNotExist:
@@ -182,7 +184,8 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                project=project,
+                organization_id=project.organization_id,
+                projects=project,
                 version=version,
             )
         except Release.DoesNotExist:

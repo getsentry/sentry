@@ -60,7 +60,6 @@ from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
 from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
 from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_plugins import ProjectPluginsView
-from sentry.web.frontend.project_quotas import ProjectQuotasView
 from sentry.web.frontend.project_release_tracking import \
     ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
@@ -114,10 +113,19 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
     from sentry.web.frontend.debug.debug_error_embed import (
         DebugErrorPageEmbedView
     )
+    from sentry.web.frontend.debug.debug_mfa_added_email import (
+        DebugMfaAddedEmailView
+    )
+    from sentry.web.frontend.debug.debug_mfa_removed_email import (
+        DebugMfaRemovedEmailView
+    )
     from sentry.web.frontend.debug.debug_new_release_email import (
         DebugNewReleaseEmailView
     )
     from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
+    from sentry.web.frontend.debug.debug_password_changed_email import (
+        DebugPasswordChangedEmailView
+    )
     from sentry.web.frontend.debug.debug_regression_email import (
         DebugRegressionEmailView, DebugRegressionReleaseEmailView
     )
@@ -172,6 +180,12 @@ if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
             DebugUnassignedEmailView.as_view()),
         url(r'^debug/mail/org-delete-confirm/$',
             sentry.web.frontend.debug.mail.org_delete_confirm),
+        url(r'^debug/mail/mfa-removed/$',
+            DebugMfaRemovedEmailView.as_view()),
+        url(r'^debug/mail/mfa-added/$',
+            DebugMfaAddedEmailView.as_view()),
+        url(r'^debug/mail/password-changed/$',
+            DebugPasswordChangedEmailView.as_view()),
         url(r'^debug/embed/error-page/$',
             DebugErrorPageEmbedView.as_view()),
         url(r'^debug/trigger-error/$',
@@ -263,6 +277,8 @@ urlpatterns += patterns(
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
         name='sentry-account-settings-identities'),
+    url(r'^account/settings/subscriptions/$', accounts.manage_subscriptions,
+        name='sentry-account-settings-subscriptions'),
     url(r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
         accounts.disconnect_identity,
         name='sentry-account-disconnect-identity'),
@@ -415,10 +431,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/tags/$',
         ProjectTagsView.as_view(),
         name='sentry-manage-project-tags'),
-
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/quotas/$',
-        ProjectQuotasView.as_view(),
-        name='sentry-manage-project-quotas'),
 
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/alerts/rules/new/$',
         ProjectRuleEditView.as_view(),

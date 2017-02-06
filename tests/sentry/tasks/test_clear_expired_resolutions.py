@@ -19,7 +19,6 @@ class ClearExpiredResolutionsTest(TestCase):
         project = self.create_project()
 
         old_release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='a',
         )
@@ -43,7 +42,6 @@ class ClearExpiredResolutionsTest(TestCase):
         )
 
         new_release = Release.objects.create(
-            project=project,
             organization_id=project.organization_id,
             version='b',
             date_added=timezone.now() + timedelta(minutes=1),

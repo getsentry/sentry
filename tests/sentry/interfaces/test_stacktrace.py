@@ -388,6 +388,19 @@ class StacktraceTest(TestCase):
         ]))
         assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
+    def test_emoji_culprit(self):
+        stacktrace = Stacktrace.to_python(dict(frames=[
+            {
+                'filename': 'foo/baz.c',
+                'package': '/foo/bar/baz.dylib',
+                'module': u'\U0001f62d',
+                'lineno': 1,
+                'in_app': True,
+                'function': u'\U0001f60d',
+            }
+        ]))
+        assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
+
     def test_exclude_libswiftCore_from_in_app(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
             {
@@ -529,6 +542,11 @@ class StacktraceTest(TestCase):
         with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'module': 1,
+            })
+
+        with self.assertRaises(InterfaceValidationError):
+            Frame.to_python({
+                'function': '?',
             })
 
     def test_context_with_nan(self):
