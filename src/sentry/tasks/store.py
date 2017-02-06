@@ -19,6 +19,7 @@ from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
 
@@ -124,6 +125,14 @@ def process_event(cache_key, start_time=None, **kwargs):
     save_event.delay(cache_key=cache_key, data=None, start_time=start_time)
 
 
+def delete_raw_event(project_id, event_id):
+    from sentry.models import RawEvent
+    RawEvent.objects.filter(
+        project_id=project_id,
+        event_id=event_id
+    ).delete()
+
+
 def create_failed_event(cache_key, project, issues):
     """If processing failed we put the original data from the cache into a
     raw event.
@@ -137,6 +146,8 @@ def create_failed_event(cache_key, project, issues):
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return
 
+    delete_raw_event(project, data['event_id'])
+
     from sentry.models import RawEvent, ProcessingIssue
     raw_event = RawEvent.objects.create(
         project_id=project,
@@ -148,7 +159,6 @@ def create_failed_event(cache_key, project, issues):
 
     for issue in issues:
         ProcessingIssue.objects.record_processing_issue(
-            project=project,
             raw_event=raw_event,
             scope=issue['scope'],
             object=issue['object'],
@@ -176,6 +186,7 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
         return
 
     project = data.pop('project')
+    delete_raw_event(project, data['event_id'])
     Raven.tags_context({
         'project': project,
     })
@@ -194,14 +205,25 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
 @instrumented_task(
     name='sentry.tasks.store.reprocess_events',
     queue='events.reprocess_events')
-def reprocess_events(raw_event_ids, **kwargs):
-    from sentry.models import RawEvent
+def reprocess_events(project_id, **kwargs):
+    from sentry.models import ProcessingIssue
     from sentry.coreapi import ClientApiHelper
     helper = ClientApiHelper()
 
-    for id in raw_event_ids:
-        raw_event = RawEvent.objects.get(id)
-        if raw_event is None:
-            continue
-        helper.insert_data_to_database(raw_event.data)
-        raw_event.delete()
+    from sentry import app
+
+    lock_key = 'events:reprocess_events:%s' % project_id
+    have_more = False
+    lock = app.locks.get(lock_key, duration=60)
+    try:
+        with lock.acquire():
+            raw_events, have_more = ProcessingIssue.find_resolved(project_id)
+            for raw_event in raw_events:
+                helper.insert_data_to_database(raw_event.data)
+                raw_event.delete()
+    except UnableToAcquireLock as error:
+        error_logger.warning('reprocess_events.fail', extra={'error': error})
+
+    # There are more, kick us off again
+    if have_more:
+        reprocess_events.delay(project_id=project_id)

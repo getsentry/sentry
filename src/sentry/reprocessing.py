@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from sentry.models import EventError
-
 
 def report_processing_issue(event_data, scope, object=None, type=None, data=None):
     """Reports a processing issue for a given scope and object.  Per
@@ -11,6 +9,7 @@ def report_processing_issue(event_data, scope, object=None, type=None, data=None
     if object is None:
         object = '*'
     if type is None:
+        from sentry.models import EventError
         type = EventError.INVALID_DATA
     uid = '%s:%s' % (scope, object)
     event_data.setdefault('processing_issues', {})[uid] = {
@@ -22,14 +21,14 @@ def report_processing_issue(event_data, scope, object=None, type=None, data=None
 
 
 def resolve_processing_issue(project, scope, object=None, type=None):
+    """Given a project, scope and object (and optionally a type) this marks
+    affected processing issues are resolved and kicks off a task to move
+    events back to reprocessing.
+    """
     if object is None:
         object = '*'
     from sentry.models import ProcessingIssue
     from sentry.tasks.store import reprocess_events
-    raw_event_ids = ProcessingIssue.objects.resolve_processing_issue(
-        project=project,
-        scope=scope,
-        object=object,
-        type=type
-    )
-    reprocess_events.delay(raw_event_ids=raw_event_ids)
+    if ProcessingIssue.objects.resolve_processing_issue(
+            project=project, scope=scope, object=object, type=type):
+        reprocess_events.delay(project_id=project.id)
