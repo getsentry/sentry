@@ -24,6 +24,7 @@ def test_lookahead():
         (0, 1),
         (1, 2),
         (2, None),
+    ]
 
 
 def test_advance():

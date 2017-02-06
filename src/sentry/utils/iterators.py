@@ -25,6 +25,7 @@ def shingle(n, iterator):
         )
     )
 
+
 def chunked(iterator, size):
     chunk = []
     for item in iterator:
