@@ -307,7 +307,7 @@ urlpatterns = patterns(
         name='sentry-api-0-project-release-files'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
         ProjectReleaseFileDetailsEndpoint.as_view(),
-        name='sentry-api-0-release-file-details'),
+        name='sentry-api-0-project-release-file-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/$',
         DSymFilesEndpoint.as_view(),
         name='sentry-api-0-dsym-files'),
