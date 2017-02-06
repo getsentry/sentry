@@ -28,7 +28,8 @@ def resolve_processing_issue(project, scope, object=None, type=None):
     if object is None:
         object = '*'
     from sentry.models import ProcessingIssue
-    from sentry.tasks.store import reprocess_events
+    from sentry.tasks.reprocessing import reprocess_events
+    # XXX: consider moving to task?
     if ProcessingIssue.objects.resolve_processing_issue(
             project=project, scope=scope, object=object, type=type):
         reprocess_events.delay(project_id=project.id)

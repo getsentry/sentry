@@ -1,0 +1,58 @@
+from __future__ import absolute_import, print_function
+
+import logging
+from datetime import timedelta
+
+from django.conf import settings
+from django.utils import timezone
+
+from sentry.tasks.base import instrumented_task
+from sentry.utils.locking import UnableToAcquireLock
+
+logger = logging.getLogger(__name__)
+
+
+@instrumented_task(
+    name='sentry.tasks.store.reprocess_events',
+    queue='events.reprocess_events')
+def reprocess_events(project_id, **kwargs):
+    from sentry.models import ProcessingIssue
+    from sentry.coreapi import ClientApiHelper
+    from sentry import app
+
+    lock_key = 'events:reprocess_events:%s' % project_id
+    have_more = False
+    lock = app.locks.get(lock_key, duration=60)
+    try:
+        with lock.acquire():
+            raw_events, have_more = ProcessingIssue.find_resolved(project_id)
+            if raw_events:
+                helper = ClientApiHelper()
+                for raw_event in raw_events:
+                    helper.insert_data_to_database(raw_event.data)
+                    raw_event.delete()
+    except UnableToAcquireLock as error:
+        logger.warning('reprocess_events.fail', extra={'error': error})
+
+    # There are more, kick us off again
+    if have_more:
+        reprocess_events.delay(project_id=project_id)
+
+
+@instrumented_task(name='sentry.tasks.clear_expired_raw_events',
+                   time_limit=15,
+                   soft_time_limit=10)
+def clear_expired_raw_events():
+    from sentry.models import RawEvent, ProcessingIssue
+
+    cutoff = timezone.now() - timedelta(settings.SENTRY_RAW_EVENT_MAX_AGE)
+    RawEvent.objects.filter(
+        datetime__lt=cutoff
+    ).delete()
+
+    # Processing issues get a bit of extra time before we delete them
+    cutoff = timezone.now() - timedelta(int(
+        settings.SENTRY_RAW_EVENT_MAX_AGE * 1.3))
+    ProcessingIssue.objects.filter(
+        datetime__lt=cutoff
+    ).delete()

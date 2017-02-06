@@ -428,6 +428,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.dsymcache',
+    'sentry.tasks.reprocessing',
     'sentry.tasks.email',
     'sentry.tasks.merge',
     'sentry.tasks.options',
@@ -526,6 +527,13 @@ CELERYBEAT_SCHEDULE = {
     'clear-expired-snoozes': {
         'task': 'sentry.tasks.clear_expired_snoozes',
         'schedule': timedelta(minutes=5),
+        'options': {
+            'expires': 300,
+        },
+    },
+    'clear-expired-raw-events': {
+        'task': 'sentry.tasks.clear_expired_raw_events',
+        'schedule': timedelta(minutes=15),
         'options': {
             'expires': 300,
         },
@@ -1047,6 +1055,9 @@ SENTRY_WATCHERS = (
 
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
+
+# The maximum age of raw events before they are deleted
+SENTRY_RAW_EVENT_MAX_AGE = 60 * 60 * 24 * 10
 
 # statuspage.io support
 STATUS_PAGE_ID = None

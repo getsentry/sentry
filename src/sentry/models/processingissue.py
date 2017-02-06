@@ -10,9 +10,10 @@ from __future__ import absolute_import
 from hashlib import sha1
 from django.db import models
 from django.db.models.aggregates import Count
+from django.utils import timezone
 
 from sentry.db.models import (
-    BaseManager, Model, FlexibleForeignKey, GzippedDictField, RawEvent,
+    BaseManager, Model, FlexibleForeignKey, GzippedDictField,
     sane_repr
 )
 
@@ -48,6 +49,7 @@ class ProcessingIssueManager(BaseManager):
         a list of raw events that are now resolved and a bool that indicates
         if there are more.
         """
+        from sentry.models import RawEvent
         rv = list(RawEvent.objects
             .filter(project_id=project_id)
             .annotate(eventissue_count=Count('eventprocessingissue'))
@@ -72,6 +74,9 @@ class ProcessingIssueManager(BaseManager):
             type=type,
             data=data
         )
+        ProcessingIssue.objects \
+            .filter(pk=issue.id) \
+            .update(datetime=timezone.now())
         # In case the issue moved away from unresolved we want to make
         # sure it's back to unresolved
         EventProcessingIssue.objects.get_or_create(
@@ -87,6 +92,7 @@ class ProcessingIssue(Model):
     checksum = models.CharField(max_length=40, db_index=True)
     type = models.CharField(max_length=30)
     data = GzippedDictField()
+    datetime = models.DateTimeField(default=timezone.now)
 
     objects = ProcessingIssueManager()
 
