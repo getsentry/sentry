@@ -45,7 +45,7 @@ from sentry.utils import auth
 logger = logging.getLogger('sentry.accounts')
 
 
-def send_password_recovery_mail(user):
+def send_password_recovery_mail(request, user):
     password_hash, created = LostPasswordHash.objects.get_or_create(
         user=user
     )
@@ -53,7 +53,7 @@ def send_password_recovery_mail(user):
         password_hash.date_added = timezone.now()
         password_hash.set_hash()
         password_hash.save()
-    password_hash.send_recover_mail()
+    password_hash.send_recover_mail(request)
     return password_hash
 
 
@@ -64,7 +64,7 @@ def login_redirect(request):
 
 
 def expired(request, user):
-    password_hash = send_password_recovery_mail(user)
+    password_hash = send_password_recovery_mail(request, user)
     return render_to_response('sentry/account/recover/expired.html', {
         'email': password_hash.user.email,
     }, request)
@@ -85,7 +85,7 @@ def recover(request):
 
     form = RecoverPasswordForm(request.POST or None)
     if form.is_valid():
-        password_hash = send_password_recovery_mail(form.cleaned_data['user'])
+        password_hash = send_password_recovery_mail(request, form.cleaned_data['user'])
 
         return render_to_response('sentry/account/recover/sent.html', {
             'email': password_hash.user.email,
