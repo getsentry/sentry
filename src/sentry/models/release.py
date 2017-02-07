@@ -108,7 +108,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            project_version = '%s-%s' % (project.slug, version)
+            project_version = ('%s-%s' % (project.slug, version))[:64]
             releases = list(cls.objects.filter(
                 organization_id=project.organization_id,
                 version__in=[version, project_version],
