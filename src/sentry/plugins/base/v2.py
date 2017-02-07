@@ -415,6 +415,20 @@ class IPlugin2(local, PluginConfigMixin):
         """
         return []
 
+    def get_custom_contexts(self):
+        """Return a custom dictionary of context types.
+
+        from sentry.interfaces.contexts import ContextType
+
+        class MyContextType(ContextType):
+            ...
+
+        def get_custom_contexts(self):
+            return {
+                'my_type': MyContextType,
+            }
+        """
+
     def configure(self, project, request):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
