@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import itertools
 import math
-import random
 import struct
+
+import mmh3
 
 
 def scale_to_total(value):
@@ -106,25 +108,21 @@ class MinHashIndex(object):
         self.cluster = cluster
         self.rows = rows
 
-        generator = random.Random(0)
-
-        def shuffle(value):
-            generator.shuffle(value)
-            return value
-
-        self.bands = [
-            [shuffle(range(rows)) for _ in xrange(buckets)]
-            for _ in xrange(bands)
-        ]
+        sequence = itertools.count()
+        self.bands = [[next(sequence) for j in xrange(buckets)] for i in xrange(bands)]
 
         self.__bucket_format = get_number_format(rows, buckets)
 
     def get_signature(self, value):
-        """Generate a minhash signature for a value."""
-        columns = set(hash(token) % self.rows for token in value)
+        """Generate a signature for a value."""
         return map(
             lambda band: map(
-                lambda permutation: next(i for i, a in enumerate(permutation) if a in columns),
+                lambda bucket: min(
+                    map(
+                        lambda item: mmh3.hash(item, bucket) % self.rows,
+                        value,
+                    ),
+                ),
                 band,
             ),
             self.bands,
