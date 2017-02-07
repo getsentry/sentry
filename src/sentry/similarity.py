@@ -46,24 +46,24 @@ def get_manhattan_distance(target, other):
     )
 
 
-formatters = sorted([
-    (2 ** 8 - 1, struct.Struct('>B').pack),
-    (2 ** 16 - 1, struct.Struct('>H').pack),
-    (2 ** 32 - 1, struct.Struct('>L').pack),
-    (2 ** 64 - 1, struct.Struct('>Q').pack),
+formats = sorted([
+    (2 ** 8 - 1, 'B'),
+    (2 ** 16 - 1, 'H'),
+    (2 ** 32 - 1, 'L'),
+    (2 ** 64 - 1, 'Q'),
 ])
 
 
-def get_number_formatter(size):
+def get_number_format(size, width=1):
     """\
-    Returns a function that packs a number no larger than the provided size
-    into to an efficient binary representation.
+    Returns a ``Struct`` object that can be used packs (and unpack) a number no
+    larger than the provided size into to an efficient binary representation.
     """
     assert size > 0
 
-    for maximum, formatter in formatters:
+    for maximum, format in formats:
         if maximum >= size:
-            return formatter
+            return struct.Struct('>%s' % (format * width))
 
     raise ValueError('No registered formatter can handle the provided value.')
 
@@ -117,12 +117,7 @@ class MinHashIndex(object):
             for _ in xrange(bands)
         ]
 
-        self.__bucket_formatter = get_number_formatter(rows)
-
-    def __format_buckets(self, bucket):
-        return b''.join(
-            map(self.__bucket_formatter, bucket)
-        )
+        self.__bucket_format = get_number_format(rows, buckets)
 
     def get_signature(self, value):
         """Generate a minhash signature for a value."""
@@ -191,9 +186,9 @@ class MinHashIndex(object):
                 # for each bucket to [0,1] value (the proportion of items
                 # observed in that band that belong to the bucket for the key.)
                 result[key] = map(
-                    lambda promise: scale_to_total(
-                        dict(promise.value)
-                    ),
+                    lambda promise: scale_to_total({
+                        self.__bucket_format.unpack(k): v for k, v in promise.value
+                    }),
                     promises,
                 )
 
@@ -205,7 +200,13 @@ class MinHashIndex(object):
                 responses = map(
                     lambda (band, buckets): map(
                         lambda bucket: client.smembers(
-                            b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, bucket)
+                            b'{}:{}:{}:{}:{}'.format(
+                                self.namespace,
+                                scope,
+                                self.BUCKET_MEMBERSHIP,
+                                band,
+                                self.__bucket_format.pack(*bucket),
+                            )
                         ),
                         buckets,
                     ),
@@ -257,7 +258,7 @@ class MinHashIndex(object):
         with self.cluster.map() as client:
             for scope, key, characteristics in items:
                 for band, buckets in enumerate(self.get_signature(characteristics)):
-                    buckets = self.__format_buckets(buckets)
+                    buckets = self.__bucket_format.pack(*buckets)
                     client.sadd(
                         b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
                         key,
