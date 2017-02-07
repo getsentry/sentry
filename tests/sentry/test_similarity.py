@@ -4,31 +4,78 @@ import math
 
 import pytest
 
-from sentry.similarity import MinHashIndex, get_distance, get_number_formatter, scale_to_total
+from sentry.similarity import (
+    MinHashIndex, get_euclidian_distance, get_manhattan_distance,
+    get_number_formatter, scale_to_total
+)
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
 
-def test_get_distance():
-    assert get_distance({}, {}) == 0
+def test_get_euclidian_distance():
+    assert get_euclidian_distance({}, {}) == 0
 
-    assert get_distance(
+    assert get_euclidian_distance(
         {'a': 1},
         {'a': 1},
     ) == 0
 
-    assert get_distance(
+    assert get_euclidian_distance(
         {'a': 1, 'b': 0},
         {'a': 0, 'b': 1},
     ) == math.sqrt(2)
 
-    assert get_distance(
+    assert get_euclidian_distance(
         {'a': 1},
         {'b': 1},
     ) == math.sqrt(2)
 
 
+def test_get_manhattan_distance():
+    assert get_manhattan_distance({}, {}) == 0
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'a': 1},
+    ) == 0
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'b': 1},
+    ) == get_manhattan_distance(
+        {'a': 1},
+        {'b': 0.5, 'c': 0.5},
+    ) == 2
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'a': 1, 'b': 1},
+    ) == 1
+
+    assert get_manhattan_distance(
+        {'a': 1, 'b': 0},
+        {'a': 0, 'b': 1},
+    ) == 2
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'b': 1},
+    ) == 2
+
+
 def test_get_similarity():
+    index = MinHashIndex(None, 0xFFFF, 1, 1)
+
+    assert index.get_similarity(
+        [{'a': 1}],
+        [{'a': 0.5, 'b': 0.25, 'c': 0.25}],
+    ) == 0.5
+
+    assert index.get_similarity(
+        [{'a': 1}],
+        [{'b': 0.5, 'c': 0.5}],
+    ) == 0
+
     index = MinHashIndex(None, 0xFFFF, 2, 1)
 
     assert index.get_similarity(

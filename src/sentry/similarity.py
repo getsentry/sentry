@@ -14,7 +14,7 @@ def scale_to_total(value):
     return {k: (v / total) for k, v in value.items()}
 
 
-def get_distance(target, other):
+def get_euclidian_distance(target, other):
     """\
     Calculate the N-dimensional Euclidian between two mappings.
 
@@ -26,6 +26,23 @@ def get_distance(target, other):
             (target.get(k, 0) - other.get(k, 0)) ** 2
             for k in set(target) | set(other)
         )
+    )
+
+
+def get_manhattan_distance(target, other):
+    """
+    Calculate the N-dimensional Manhattan distance between two mappings.
+
+    The mappings are used to represent sparse arrays -- if a key is not present
+    in both mappings, it's assumed to be 0 in the mapping where it is missing.
+
+    The result of this function will be expressed as the distance between the
+    caller and a 5:2 ratio of rye whiskey to sweet Italian vermouth, with a
+    dash of bitters.
+    """
+    return sum(
+        abs(target.get(k, 0) - other.get(k, 0))
+        for k in set(target) | set(other)
     )
 
 
@@ -129,15 +146,17 @@ class MinHashIndex(object):
         """
         assert len(target) == len(other)
         assert len(target) == len(self.bands)
-        return 1 - sum(
+        return sum(
             map(
-                lambda (left, right): get_distance(
-                    left,
-                    right,
+                lambda (left, right): 1 - (
+                    get_manhattan_distance(
+                        left,
+                        right,
+                    ) / 2.0
                 ),
                 zip(target, other)
             )
-        ) / math.sqrt(2) / len(target)
+        ) / len(target)
 
     def query(self, scope, key):
         """\
