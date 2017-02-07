@@ -114,10 +114,12 @@ class Release(Model):
                 version__in=[version, project_version],
                 projects=project
             ))
-            if len(releases) == 1:
-                release = releases[0]
-            elif len(releases) > 1:
-                release = [r for r in releases if r.version == project_version][0]
+            if releases:
+                # TODO(jess): clean this up once all releases have been migrated
+                try:
+                    release = [r for r in releases if r.version == project_version][0]
+                except IndexError:
+                    release = releases[0]
             else:
                 release = cls.objects.filter(
                     organization_id=project.organization_id,
