@@ -4,28 +4,50 @@ import math
 
 import pytest
 
-from sentry.similarity import MinHashIndex, get_distance, get_number_formatter, scale_to_total
+from sentry.similarity import (
+    MinHashIndex, get_euclidian_distance, get_manhattan_distance,
+    get_number_formatter, scale_to_total
+)
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
 
-def test_get_distance():
-    assert get_distance({}, {}) == 0
+def test_get_euclidian_distance():
+    assert get_euclidian_distance({}, {}) == 0
 
-    assert get_distance(
+    assert get_euclidian_distance(
         {'a': 1},
         {'a': 1},
     ) == 0
 
-    assert get_distance(
+    assert get_euclidian_distance(
         {'a': 1, 'b': 0},
         {'a': 0, 'b': 1},
     ) == math.sqrt(2)
 
-    assert get_distance(
+    assert get_euclidian_distance(
         {'a': 1},
         {'b': 1},
     ) == math.sqrt(2)
+
+
+def test_get_manhattan_distance():
+    assert get_manhattan_distance({}, {}) == 0
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'a': 1},
+    ) == 0
+
+    assert get_manhattan_distance(
+        {'a': 1, 'b': 0},
+        {'a': 0, 'b': 1},
+    ) == 2
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'b': 1},
+    ) == 2
 
 
 def test_get_similarity():
