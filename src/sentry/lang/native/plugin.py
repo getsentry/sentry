@@ -381,7 +381,29 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # dict.
         return self.sym.resolve_missing_vmaddrs()
 
-    def process_frame(self, frame, idx=None):
+    def _get_frame_meta(self, stacktrace_info, idx):
+        # We only need to provide meta information for frame zero
+        if idx != 0:
+            return None
+
+        # The signal is useful information for symsynd in some situations
+        # to disambiugate the first frame.  If we can get this information
+        # from the mechanism we want to pass it onwards.
+        signal = None
+        exc = self.data.get('sentry.interfaces.Exception')
+        if exc is not None:
+            mechanism = exc['values'][0].get('mechanism')
+            if mechanism and 'posix_signal' in mechanism and \
+               'signal' in mechanism['posix_signal']:
+                signal = mechanism['posix_signal']['signal']
+
+        return {
+            'frame_number': 0,
+            'registers': stacktrace_info.stacktrace.get('registers'),
+            'signal': signal,
+        }
+
+    def process_frame(self, frame, stacktrace_info, idx):
         # XXX: warn on missing availability?
 
         # Only process frames here that are of supported platforms and
@@ -404,11 +426,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'symbol_name': frame.get('function'),
             'symbol_addr': frame['symbol_addr'],
         }
+        meta = self._get_frame_meta(stacktrace_info, idx)
+
         new_frame = dict(frame)
         raw_frame = dict(frame)
 
         try:
-            sfrm = self.sym.symbolize_frame(sym_frame, self.sdk_info)
+            sfrm = self.sym.symbolize_frame(sym_frame, self.sdk_info,
+                                            meta=meta)
         except SymbolicationFailed as e:
             if e.is_user_fixable or e.is_sdk_failure:
                 errors.append({

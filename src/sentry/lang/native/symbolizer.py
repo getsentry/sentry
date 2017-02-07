@@ -211,7 +211,7 @@ class Symbolizer(object):
         img = self.images.get(frame['object_addr'])
         return img is not None and self._is_app_frame(frame, img)
 
-    def symbolize_app_frame(self, frame, img):
+    def symbolize_app_frame(self, frame, img, meta=None):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
             if self._is_optional_app_bundled_framework(frame, img):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
@@ -224,7 +224,7 @@ class Symbolizer(object):
 
         try:
             new_frame = self.symsynd_symbolizer.symbolize_frame(
-                frame, silent=False, demangle=False)
+                frame, silent=False, demangle=False, meta=meta)
         except SymbolicationError as e:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
@@ -259,7 +259,7 @@ class Symbolizer(object):
                   object_name=img['name'])
         return self._process_frame(rv, img)
 
-    def symbolize_frame(self, frame, sdk_info=None):
+    def symbolize_frame(self, frame, sdk_info=None, meta=None):
         img = self.images.get(frame['object_addr'])
         if img is None:
             raise SymbolicationFailed(
@@ -272,9 +272,10 @@ class Symbolizer(object):
         if not self._is_app_bundled_frame(frame, img):
             return self.symbolize_system_frame(frame, img, sdk_info)
 
-        return self.symbolize_app_frame(frame, img)
+        return self.symbolize_app_frame(frame, img, meta)
 
     def symbolize_backtrace(self, backtrace, sdk_info=None):
+        # TODO: kill me
         rv = []
         errors = []
         idx = -1
