@@ -381,7 +381,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # dict.
         return self.sym.resolve_missing_vmaddrs()
 
-    def process_frame(self, frame):
+    def process_frame(self, frame, idx=None):
         # XXX: warn on missing availability?
 
         # Only process frames here that are of supported platforms and

@@ -33,7 +33,7 @@ class StacktraceProcessor(object):
     def get_effective_platform(self, frame):
         return frame.get('platform') or self.data['platform']
 
-    def process_frame(self, frame):
+    def process_frame(self, frame, idx=None):
         pass
 
 
@@ -119,13 +119,14 @@ def process_single_stacktrace(stacktrace_info, processors):
     processed_frames = []
     all_errors = []
 
-    for frame in stacktrace_info.stacktrace['frames']:
+    frame_count = len(stacktrace_info.stacktrace['frames'])
+    for idx, frame in enumerate(stacktrace_info.stacktrace['frames']):
         need_processed_frame = True
         need_raw_frame = True
         errors = None
         for processor in processors:
             try:
-                rv = processor.process_frame(frame)
+                rv = processor.process_frame(frame, frame_count - idx - 1)
                 if rv is None:
                     continue
             except Exception:
