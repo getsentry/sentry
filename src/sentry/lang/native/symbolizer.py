@@ -211,7 +211,8 @@ class Symbolizer(object):
         img = self.images.get(frame['object_addr'])
         return img is not None and self._is_app_frame(frame, img)
 
-    def symbolize_app_frame(self, frame, img, meta=None):
+    def symbolize_app_frame(self, frame, img, meta=None,
+                            symbolize_inlined=False):
         if frame['object_addr'] not in self.symsynd_symbolizer.images:
             if self._is_optional_app_bundled_framework(frame, img):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
@@ -223,8 +224,9 @@ class Symbolizer(object):
             )
 
         try:
-            new_frame = self.symsynd_symbolizer.symbolize_frame(
-                frame, silent=False, demangle=False, meta=meta)
+            rv = self.symsynd_symbolizer.symbolize_frame(
+                frame, silent=False, demangle=False, meta=meta,
+                symbolize_inlined=symbolize_inlined)
         except SymbolicationError as e:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
@@ -232,15 +234,18 @@ class Symbolizer(object):
                 image=img
             )
 
-        if new_frame is None:
+        if not rv:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL,
                 image=img
             )
 
-        return self._process_frame(new_frame, img)
+        if symbolize_inlined:
+            return [self._process_frame(nf, img) for nf in rv]
+        return self._process_frame(rv, img)
 
-    def symbolize_system_frame(self, frame, img, sdk_info):
+    def symbolize_system_frame(self, frame, img, sdk_info,
+                               symbolize_inlined=False):
         """Symbolizes a frame with system symbols only."""
         symbol = find_system_symbol(img, frame['instruction_addr'], sdk_info)
         if symbol is None:
@@ -254,12 +259,19 @@ class Symbolizer(object):
                 image=img
             )
 
-        rv = dict(frame, symbol_name=symbol, filename=None,
-                  line=0, column=0, uuid=img['uuid'],
-                  object_name=img['name'])
-        return self._process_frame(rv, img)
+        rv = self._process_frame(dict(frame,
+            symbol_name=symbol, filename=None, line=0, column=0,
+            uuid=img['uuid'], object_name=img['name']), img)
 
-    def symbolize_frame(self, frame, sdk_info=None, meta=None):
+        # We actually do not support inline symbolication for system
+        # frames, so we just only ever return a single frame here.  Maybe
+        # we can improve this in the future.
+        if symbolize_inlined:
+            return [rv]
+        return rv
+
+    def symbolize_frame(self, frame, sdk_info=None, meta=None,
+                        symbolize_inlined=False):
         img = self.images.get(frame['object_addr'])
         if img is None:
             raise SymbolicationFailed(
@@ -270,9 +282,11 @@ class Symbolizer(object):
         # we look at system symbols.  If that fails, we go to looking for
         # app symbols explicitly.
         if not self._is_app_bundled_frame(frame, img):
-            return self.symbolize_system_frame(frame, img, sdk_info)
+            return self.symbolize_system_frame(frame, img, sdk_info,
+                                               symbolize_inlined)
 
-        return self.symbolize_app_frame(frame, img, meta)
+        return self.symbolize_app_frame(frame, img, meta,
+                                        symbolize_inlined)
 
     def symbolize_backtrace(self, backtrace, sdk_info=None):
         # TODO: kill me
