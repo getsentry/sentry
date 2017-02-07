@@ -40,6 +40,19 @@ def test_get_manhattan_distance():
     ) == 0
 
     assert get_manhattan_distance(
+        {'a': 1},
+        {'b': 1},
+    ) == get_manhattan_distance(
+        {'a': 1},
+        {'b': 0.5, 'c': 0.5},
+    ) == 2
+
+    assert get_manhattan_distance(
+        {'a': 1},
+        {'a': 1, 'b': 1},
+    ) == 1
+
+    assert get_manhattan_distance(
         {'a': 1, 'b': 0},
         {'a': 0, 'b': 1},
     ) == 2
