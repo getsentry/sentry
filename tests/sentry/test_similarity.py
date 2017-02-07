@@ -64,6 +64,18 @@ def test_get_manhattan_distance():
 
 
 def test_get_similarity():
+    index = MinHashIndex(None, 0xFFFF, 1, 1)
+
+    assert index.get_similarity(
+        [{'a': 1}],
+        [{'a': 0.5, 'b': 0.25, 'c': 0.25}],
+    ) == 0.5
+
+    assert index.get_similarity(
+        [{'a': 1}],
+        [{'b': 0.5, 'c': 0.5}],
+    ) == 0
+
     index = MinHashIndex(None, 0xFFFF, 2, 1)
 
     assert index.get_similarity(
