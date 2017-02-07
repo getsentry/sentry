@@ -650,6 +650,8 @@ def recover_account(request):
                 args=[request.user.id, 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX']
             )),
             'domain': get_server_hostname(),
+            'ip_address': request.META['REMOTE_ADDR'],
+            'datetime': timezone.now(),
         },
     ).render(request)
 
