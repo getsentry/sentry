@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db import connection
+from django.http import HttpRequest
 from django.utils import timezone
 from exam import fixture
 
@@ -59,8 +60,12 @@ class LostPasswordTest(TestCase):
         )
 
     def test_send_recover_mail(self):
+        request = HttpRequest()
+        request.method = 'GET'
+        request.META['REMOTE_ADDR'] = '1.1.1.1'
+
         with self.options({'system.url-prefix': 'http://testserver'}), self.tasks():
-            self.password_hash.send_recover_mail()
+            self.password_hash.send_recover_mail(request)
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
