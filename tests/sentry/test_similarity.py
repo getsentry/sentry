@@ -171,6 +171,6 @@ class MinHashIndexTestCase(TestCase):
         results = index.query('example', '1')
         assert results[0] == ('1', 1.0)
         assert results[1] == ('2', 1.0)  # identical contents
-        assert results[2][0] == '3'
-        assert results[3][0] == '4'
+        assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
+        assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
