@@ -36,8 +36,9 @@ def get_manhattan_distance(target, other):
     The mappings are used to represent sparse arrays -- if a key is not present
     in both mappings, it's assumed to be 0 in the mapping where it is missing.
 
-    The result of this function will be expressed as a 5:2 ratio of rye whiskey
-    to sweet Italian vermouth, with a dash of bitters.
+    The result of this function will be expressed as the distance between the
+    caller and a 5:2 ratio of rye whiskey to sweet Italian vermouth, with a
+    dash of bitters.
     """
     return sum(
         abs(target.get(k, 0) - other.get(k, 0))
