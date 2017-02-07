@@ -6,7 +6,7 @@ import pytest
 
 from sentry.similarity import (
     MinHashIndex, get_euclidian_distance, get_manhattan_distance,
-    get_number_formatter, scale_to_total
+    get_number_format, scale_to_total
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -136,20 +136,20 @@ def test_scale_to_total():
     }
 
 
-def test_get_number_formatter():
-    assert get_number_formatter(0xFF)(0xFF) == '\xff'
-    assert get_number_formatter(0xFF + 1)(0xFF) == '\x00\xff'
+def test_get_number_format():
+    assert get_number_format(0xFF).pack(0xFF) == '\xff'
+    assert get_number_format(0xFF + 1).pack(0xFF) == '\x00\xff'
 
-    assert get_number_formatter(0xFFFF)(0xFFFF) == '\xff\xff'
-    assert get_number_formatter(0xFFFF + 1)(0xFFFF) == '\x00\x00\xff\xff'
+    assert get_number_format(0xFFFF).pack(0xFFFF) == '\xff\xff'
+    assert get_number_format(0xFFFF + 1).pack(0xFFFF) == '\x00\x00\xff\xff'
 
-    assert get_number_formatter(0xFFFFFFFF)(0xFFFFFFFF) == '\xff\xff\xff\xff'
-    assert get_number_formatter(0xFFFFFFFF + 1)(0xFFFFFFFF) == '\x00\x00\x00\x00\xff\xff\xff\xff'
+    assert get_number_format(0xFFFFFFFF).pack(0xFFFFFFFF) == '\xff\xff\xff\xff'
+    assert get_number_format(0xFFFFFFFF + 1).pack(0xFFFFFFFF) == '\x00\x00\x00\x00\xff\xff\xff\xff'
 
-    assert get_number_formatter(0xFFFFFFFFFFFFFFFF)(0xFFFFFFFFFFFFFFFF) == '\xff\xff\xff\xff\xff\xff\xff\xff'
+    assert get_number_format(0xFFFFFFFFFFFFFFFF).pack(0xFFFFFFFFFFFFFFFF) == '\xff\xff\xff\xff\xff\xff\xff\xff'
 
     with pytest.raises(ValueError):
-        assert get_number_formatter(0xFFFFFFFFFFFFFFFF + 1)
+        assert get_number_format(0xFFFFFFFFFFFFFFFF + 1)
 
 
 class MinHashIndexTestCase(TestCase):
