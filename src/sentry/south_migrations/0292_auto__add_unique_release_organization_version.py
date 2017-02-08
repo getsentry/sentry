@@ -10,25 +10,18 @@ from sentry.utils.db import is_postgres
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding index on 'Release', fields ['organization', 'version']
+        # Adding unique constraint on 'Release', fields ['organization', 'version']
         if is_postgres():
             db.commit_transaction()
-            db.execute("CREATE INDEX CONCURRENTLY {} ON sentry_release (organization_id, version)".format(
+            db.execute("CREATE UNIQUE INDEX CONCURRENTLY {} ON sentry_release (organization_id, version)".format(
                 db.create_index_name('sentry_release', ['organization_id', 'version']),
             ))
             db.start_transaction()
         else:
-            db.create_index('sentry_release', ['organization_id', 'version'])
-
-        # Adding unique constraint on 'Release', fields ['organization', 'version']
-        db.create_unique('sentry_release', ['organization_id', 'version'])
-
+            db.create_unique('sentry_release', ['organization_id', 'version'])
 
 
     def backwards(self, orm):
-        # Removing index on 'Release', fields ['organization', 'version']
-        db.delete_index('sentry_release', ['organization_id', 'version'])
-
         # Removing unique constraint on 'Release', fields ['organization', 'version']
         db.delete_unique('sentry_release', ['organization_id', 'version'])
 
@@ -552,7 +545,7 @@ class Migration(SchemaMigration):
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.release': {
-            'Meta': {'unique_together': "(('project_id', 'version'), ('organization', 'version'))", 'object_name': 'Release', 'index_together': "(('organization', 'version'),)"},
+            'Meta': {'unique_together': "(('project_id', 'version'), ('organization', 'version'))", 'object_name': 'Release'},
             'data': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'date_released': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
@@ -701,7 +694,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'KSiHBYfoLJZylUrBpDz04Umh5BYrAqT2'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'4ZnvpeLyHeQ4JSkx3xclu7Auhtm5KZog'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
