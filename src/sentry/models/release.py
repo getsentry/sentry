@@ -65,7 +65,8 @@ class Release(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_release'
-        unique_together = (('organization', 'version'),)
+        unique_together = (('project_id', 'version'), ('organization', 'version'),)
+        index_together = (('organization', 'version'),)
 
     __repr__ = sane_repr('organization', 'version')
 
