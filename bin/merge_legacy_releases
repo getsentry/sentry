@@ -46,7 +46,12 @@ def is_word_and_date(version):
 
 def update_version(release):
     old_version = release.version
-    project_slug = release.projects.values_list('slug', flat=True)[0]
+    try:
+        project_slug = release.projects.values_list('slug', flat=True)[0]
+    except IndexError:
+        # delete releases if they have no projects
+        release.delete()
+        return 'release_deleted'
     new_version = ('%s-%s' % (project_slug, old_version))[:64]
     Release.objects.filter(
         id=release.id
@@ -56,6 +61,7 @@ def update_version(release):
         key='sentry:release',
         value=old_version
     ).update(value=new_version)
+    return 'updated_version'
 
 def main(is_dry_run):
 
@@ -84,14 +90,15 @@ def main(is_dry_run):
         # instead of trying to merge
         if len(releases_with_files) > 1:
             for release in releases:
+                action = 'updated_version'
                 if not is_dry_run:
-                    update_version(release)
+                    action = update_version(release)
                 writer.writerow({
                     'org_id': release.organization_id,
                     'release_id': release.id,
                     'version': release.version,
                     'date_added': release.date_added,
-                    'action': 'updated_version'
+                    'action': action
                 })
             continue
 
@@ -171,14 +178,15 @@ def main(is_dry_run):
             # +/- 8 hours
             if date_diff and date_diff > 28800:
                 for release in releases:
+                    action = 'updated_version'
                     if not is_dry_run:
-                        update_version(release)
+                        action = update_version(release)
                     writer.writerow({
                         'org_id': release.organization_id,
                         'release_id': release.id,
                         'version': release.version,
                         'date_added': release.date_added,
-                        'action': 'updated_version'
+                        'action': action
                     })
             else:
                 if not is_dry_run:
@@ -234,14 +242,15 @@ def main(is_dry_run):
             # +/- 30 mins
             if date_diff and date_diff > 1800:
                 for release in releases:
+                    action = 'updated_version'
                     if not is_dry_run:
-                        update_version(release)
+                        action = update_version(release)
                     writer.writerow({
                         'org_id': release.organization_id,
                         'release_id': release.id,
                         'version': release.version,
                         'date_added': release.date_added,
-                        'action': 'updated_version'
+                        'action': action
                     })
             else:
                 if not is_dry_run:
@@ -281,14 +290,15 @@ def main(is_dry_run):
             # +/- 4 hours
             if date_diff and date_diff > 14400:
                 for release in releases:
+                    action = 'updated_version'
                     if not is_dry_run:
-                        update_version(release)
+                        action = update_version(release)
                     writer.writerow({
                         'org_id': release.organization_id,
                         'release_id': release.id,
                         'version': release.version,
                         'date_added': release.date_added,
-                        'action': 'updated_version'
+                        'action': action
                     })
             else:
                 if not is_dry_run:
@@ -308,14 +318,15 @@ def main(is_dry_run):
 
         # if we made it this far, assume we should just rename
         for release in releases:
+            action = 'updated_version'
             if not is_dry_run:
-                update_version(release)
+                action = update_version(release)
             writer.writerow({
                 'org_id': release.organization_id,
                 'release_id': release.id,
                 'version': release.version,
                 'date_added': release.date_added,
-                'action': 'updated_version'
+                'action': action
             })
 
 
