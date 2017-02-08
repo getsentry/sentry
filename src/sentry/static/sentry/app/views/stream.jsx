@@ -520,13 +520,13 @@ const Stream = React.createClass({
     return (
       <div className="processing-issues">
         <strong>{t('Unprocessed Issues: ')}</strong>
-        {tct('there [issues].', {
+        {tct('there [issues]', {
           issues: issues
         })}
         {' '}
         <span className="last-seen">({t('last issue')}: <TimeSince date={pi.lastSeen}/>)</span>
         {' '}
-        <Link to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('show issues')}</Link>
+        <Link to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('show details')}</Link>
       </div>
     );
   },
