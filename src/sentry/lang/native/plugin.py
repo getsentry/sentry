@@ -381,27 +381,31 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # dict.
         return self.sym.resolve_missing_vmaddrs()
 
-    def _get_frame_meta(self, stacktrace_info, idx):
+    def find_best_instruction(self, frame, stacktrace_info, idx):
+        """Given a frame, stacktrace info and frame index this returns the
+        interpolated instruction address we then use for symbolication later.
+        """
+        meta = None
+
         # We only need to provide meta information for frame zero
-        if idx != 0:
-            return None
+        if idx == 0:
+            # The signal is useful information for symsynd in some situations
+            # to disambiugate the first frame.  If we can get this information
+            # from the mechanism we want to pass it onwards.
+            signal = None
+            exc = self.data.get('sentry.interfaces.Exception')
+            if exc is not None:
+                mechanism = exc['values'][0].get('mechanism')
+                if mechanism and 'posix_signal' in mechanism and \
+                   'signal' in mechanism['posix_signal']:
+                    signal = mechanism['posix_signal']['signal']
+            meta = {
+                'frame_number': 0,
+                'registers': stacktrace_info.stacktrace.get('registers'),
+                'signal': signal,
+            }
 
-        # The signal is useful information for symsynd in some situations
-        # to disambiugate the first frame.  If we can get this information
-        # from the mechanism we want to pass it onwards.
-        signal = None
-        exc = self.data.get('sentry.interfaces.Exception')
-        if exc is not None:
-            mechanism = exc['values'][0].get('mechanism')
-            if mechanism and 'posix_signal' in mechanism and \
-               'signal' in mechanism['posix_signal']:
-                signal = mechanism['posix_signal']['signal']
-
-        return {
-            'frame_number': 0,
-            'registers': stacktrace_info.stacktrace.get('registers'),
-            'signal': signal,
-        }
+        return self.sym.find_best_instruction(frame, meta=meta)
 
     def process_frame(self, frame, stacktrace_info, idx):
         # XXX: warn on missing availability?
@@ -410,30 +414,27 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # have the mandatory requirements for
         if not self.available or \
            self.get_effective_platform(frame) != 'cocoa' or \
-           'image_addr' not in frame or \
-           'instruction_addr' not in frame or \
-           'symbol_addr' not in frame:
+           'instruction_addr' not in frame:
             return None
 
         errors = []
 
         # Construct a raw frame that is used by the symbolizer
-        # backend.
-        sym_frame = {
+        # backend.  We only assemble the bare minimum we need here.
+        sym_input_frame = {
             'object_name': frame.get('package'),
-            'object_addr': frame['image_addr'],
-            'instruction_addr': frame['instruction_addr'],
+            'instruction_addr': self.find_best_instruction(
+                frame['instruction_addr'], stacktrace_info, idx),
             'symbol_name': frame.get('function'),
-            'symbol_addr': frame['symbol_addr'],
         }
-        meta = self._get_frame_meta(stacktrace_info, idx)
+        in_app = self.sym.is_in_app(sym_input_frame)
 
-        new_frame = dict(frame)
+        new_frames = []
         raw_frame = dict(frame)
 
         try:
-            sfrm = self.sym.symbolize_frame(sym_frame, self.sdk_info,
-                                            meta=meta)
+            symbolicated_frames = self.sym.symbolize_frame(
+                sym_input_frame, self.sdk_info, symbolize_inlined=True)
         except SymbolicationFailed as e:
             if e.is_user_fixable or e.is_sdk_failure:
                 errors.append({
@@ -447,39 +448,45 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 logger.debug('Failed to symbolicate with native backend',
                              exc_info=True)
         else:
-            symbol = sfrm.get('symbol_name') or \
-                new_frame.get('function') or '<unknown>'
-            function = demangle_symbol(symbol, simplified=True)
+            for sfrm in symbolicated_frames:
+                symbol = sfrm.get('symbol_name') or \
+                    frame.get('function') or '<unknown>'
+                function = demangle_symbol(symbol, simplified=True)
 
-            new_frame['function'] = function
+                new_frame = dict(frame)
+                new_frame['function'] = function
 
-            # If we demangled something, store the original in the
-            # symbol portion of the frame
-            if function != symbol:
-                new_frame['symbol'] = symbol
+                # If we demangled something, store the original in the
+                # symbol portion of the frame
+                if function != symbol:
+                    new_frame['symbol'] = symbol
 
-            new_frame['abs_path'] = sfrm.get('filename') or None
-            if new_frame['abs_path']:
-                new_frame['filename'] = posixpath.basename(
-                    new_frame['abs_path'])
-            if sfrm.get('line') is not None:
-                new_frame['lineno'] = sfrm['line']
-            else:
-                new_frame['instruction_offset'] = \
-                    parse_addr(sfrm['instruction_addr']) - \
+                new_frame['abs_path'] = sfrm.get('filename') or None
+                if new_frame['abs_path']:
+                    new_frame['filename'] = posixpath.basename(
+                        new_frame['abs_path'])
+                if sfrm.get('line') is not None:
+                    new_frame['lineno'] = sfrm['line']
+                else:
+                    new_frame['instruction_offset'] = \
+                        parse_addr(sfrm['instruction_addr']) - \
+                        parse_addr(sfrm['symbol_addr'])
+                if sfrm.get('column') is not None:
+                    new_frame['colno'] = sfrm['column']
+                new_frame['package'] = sfrm['object_name'] \
+                    or new_frame.get('package')
+                new_frame['symbol_addr'] = '0x%x' % \
                     parse_addr(sfrm['symbol_addr'])
-            if sfrm.get('column') is not None:
-                new_frame['colno'] = sfrm['column']
-            new_frame['package'] = sfrm['object_name'] \
-                or new_frame.get('package')
-            new_frame['symbol_addr'] = '0x%x' % \
-                parse_addr(sfrm['symbol_addr'])
-            new_frame['instruction_addr'] = '0x%x' % parse_addr(
-                sfrm['instruction_addr'])
+                new_frame['instruction_addr'] = '0x%x' % parse_addr(
+                    sfrm['instruction_addr'])
 
-        in_app = self.sym.is_in_app(sym_frame)
-        new_frame['in_app'] = raw_frame['in_app'] = in_app
-        return [new_frame], [raw_frame], errors
+                if new_frame.get('in_app') is None:
+                    new_frame['in_app'] = in_app
+                new_frames.append(new_frame)
+
+        if raw_frame.get('in_app') is None:
+            raw_frame['in_app'] = in_app
+        return new_frames, [raw_frame], errors
 
 
 class NativePlugin(Plugin2):

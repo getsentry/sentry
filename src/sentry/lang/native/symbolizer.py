@@ -130,6 +130,9 @@ def make_symbolizer(project, binary_images, referenced_images=None):
 
 
 class Symbolizer(object):
+    """This symbolizer dispatches to both symsynd and the system symbols
+    we have in the database and reports errors slightly differently.
+    """
 
     def __init__(self, project, binary_images, referenced_images=None,
                  is_debug_build=None):
@@ -147,6 +150,13 @@ class Symbolizer(object):
             self._image_addresses.append(img_addr)
             self._image_references[img_addr] = img
         self._image_addresses.sort()
+
+    def find_best_instruction(self, frame, meta=None):
+        """Finds the best instruction for a given frame."""
+        if not self.images:
+            return parse_addr(frame['instruction_addr'])
+        return self.symsynd_symbolizer.find_best_instruction(
+            frame['instruction_addr'], meta=meta)
 
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
@@ -291,16 +301,8 @@ class Symbolizer(object):
             return [rv]
         return rv
 
-    def symbolize_frame(self, frame, sdk_info=None, meta=None,
-                        symbolize_inlined=False):
-        # We ask the lower level symbolizer from symsynd to find the best
-        # instruction for this frame separately.  This is done because we
-        # need this information going into either the system or app path
-        # and because we are interested in the image.
-        instruction_addr = self.symsynd_symbolizer.find_best_instruction(
-            frame['instruction_addr'], meta=meta)
-
-        img = self.find_image(instruction_addr)
+    def symbolize_frame(self, frame, sdk_info=None, symbolize_inlined=False):
+        img = self.find_image(frame['instruction_addr'])
         if img is None:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_UNKNOWN_IMAGE
@@ -316,7 +318,7 @@ class Symbolizer(object):
         return self.symbolize_app_frame(frame, img, symbolize_inlined)
 
     def symbolize_backtrace(self, backtrace, sdk_info=None):
-        # TODO: kill me
+        # TODO: kill me.  This makes bad results
         rv = []
         errors = []
         idx = -1
