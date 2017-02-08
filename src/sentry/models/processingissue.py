@@ -42,9 +42,7 @@ class ProcessingIssueManager(BaseManager):
         )
         if type is not None:
             q = q.filter(type=type)
-        probably_resolved = bool(q[:1].all())
         q.delete()
-        return probably_resolved
 
     def find_resolved(self, project_id, limit=100):
         """Returns a list of raw events that generally match the given
