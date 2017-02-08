@@ -7,7 +7,7 @@ from six.moves.urllib.parse import urlencode
 from templatetag_sugar.parser import Constant, Optional, Variable
 from templatetag_sugar.register import tag
 
-from sentry.models import UserAvatar
+from sentry.models import User, UserAvatar
 from sentry.utils.avatar import (
     get_email_avatar, get_gravatar_url, get_letter_avatar
 )
@@ -58,9 +58,18 @@ def email_avatar(context, display_name, identifier, size=None, try_gravatar=True
 
 @register.inclusion_tag('sentry/partial/avatar.html')
 def avatar(user, size=36):
+    # user can be User or OrganizationMember
+    if isinstance(user, User):
+        user_id = user.id
+        email = user.email
+    else:
+        user_id = user.user_id
+        email = user.email
+        if user_id:
+            email = user.user.email
     return {
-        'email': user.email,
-        'user_id': user.id,
+        'email': email,
+        'user_id': user_id,
         'size': size,
         'avatar_type': user.get_avatar_type(),
         'display_name': user.get_display_name(),
@@ -70,10 +79,19 @@ def avatar(user, size=36):
 
 @register.inclusion_tag('sentry/partial/avatar.html')
 def avatar_for_email(user, size=36):
+    # user can be User or OrganizationMember
+    if isinstance(user, User):
+        user_id = user.id
+        email = user.email
+    else:
+        user_id = user.user_id
+        email = user.email
+        if user_id:
+            email = user.user.email
     return {
         'for_email': True,
-        'email': user.email,
-        'user_id': user.id,
+        'email': email,
+        'user_id': user_id,
         'size': size,
         'avatar_type': user.get_avatar_type(),
         'display_name': user.get_display_name(),
