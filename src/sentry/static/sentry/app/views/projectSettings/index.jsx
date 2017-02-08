@@ -78,6 +78,7 @@ const ProjectSettings = React.createClass({
     let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
     let isEarlyAdopter = this.context.organization.isEarlyAdopter;
     let path = this.props.location.pathname;
+    let processingIssues = this.state.project.processingIssues;
 
     return (
       <div className="row">
@@ -95,7 +96,12 @@ const ProjectSettings = React.createClass({
             <li><a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a></li>
             <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>{t('Saved Searches')}</ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>{t('Debug Symbols')}</ListLink>
-            <ListLink to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('Processing Issues')}</ListLink>
+            <ListLink className="badged" to={`/${orgId}/${projectId}/settings/processing-issues/`}>
+              {t('Processing Issues')}
+              {processingIssues > 0 &&
+                <span className="badge new">{processingIssues > 99 ? '99+' : processingIssues}</span>
+              }
+            </ListLink>
           </ul>
           <h6 className="nav-header">{t('Data')}</h6>
           <ul className="nav nav-stacked">

@@ -4,6 +4,7 @@ import six
 
 from collections import defaultdict
 from django.db.models import Q
+from django.db.models.aggregates import Count
 
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.models import (
@@ -67,6 +68,15 @@ class ProjectSerializer(Serializer):
         for project_id, platform in platforms:
             platforms_by_project[project_id].append(platform)
 
+        num_issues_projects = Project.objects.filter(
+            id__in=project_ids
+        ).annotate(num_issues=Count('processingissue')) \
+            .values_list('id', 'num_issues')
+
+        processing_issues_by_project = {}
+        for project_id, num_issues in num_issues_projects:
+            processing_issues_by_project[project_id] = num_issues
+
         result = {}
         for item in item_list:
             result[item] = {
@@ -78,6 +88,7 @@ class ProjectSerializer(Serializer):
                 'default_environment': default_environments.get(item.id),
                 'reviewed-callsign': reviewed_callsigns.get(item.id),
                 'platforms': platforms_by_project[item.id],
+                'processing_issues': processing_issues_by_project.get(item.id, 0),
             }
         return result
 
@@ -108,6 +119,7 @@ class ProjectSerializer(Serializer):
             'features': feature_list,
             'status': status_label,
             'platforms': attrs['platforms'],
+            'processingIssues': attrs['processing_issues'],
         }
 
 
