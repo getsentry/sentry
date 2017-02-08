@@ -1,10 +1,16 @@
 from __future__ import absolute_import
 
 import itertools
+import logging
 import math
+import operator
 import struct
 
 import mmh3
+
+from sentry.utils import redis
+from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.iterators import shingle
 
 
 def scale_to_total(value):
@@ -32,7 +38,7 @@ def get_euclidian_distance(target, other):
 
 
 def get_manhattan_distance(target, other):
-    """
+    """\
     Calculate the N-dimensional Manhattan distance between two mappings.
 
     The mappings are used to represent sparse arrays -- if a key is not present
@@ -99,8 +105,8 @@ class MinHashIndex(object):
       what other keys may be similar to the lookup key (but not the degree of
       similarity.)
     """
-    BUCKET_MEMBERSHIP = '0'
-    BUCKET_FREQUENCY = '1'
+    BUCKET_MEMBERSHIP = b'\x00'
+    BUCKET_FREQUENCY = b'\x01'
 
     def __init__(self, cluster, rows, bands, buckets):
         self.namespace = b'sim'
@@ -111,6 +117,7 @@ class MinHashIndex(object):
         sequence = itertools.count()
         self.bands = [[next(sequence) for j in xrange(buckets)] for i in xrange(bands)]
 
+        self.__band_format = get_number_format(bands)
         self.__bucket_format = get_number_format(rows, buckets)
 
     def get_signature(self, value):
@@ -168,7 +175,13 @@ class MinHashIndex(object):
                 responses = {
                     key: map(
                         lambda band: client.zrange(
-                            b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_FREQUENCY, band, key),
+                            b'{}:{}:{}:{}:{}'.format(
+                                self.namespace,
+                                scope,
+                                self.BUCKET_FREQUENCY,
+                                self.__band_format.pack(band),
+                                key,
+                            ),
                             0,
                             -1,
                             desc=True,
@@ -202,7 +215,7 @@ class MinHashIndex(object):
                                 self.namespace,
                                 scope,
                                 self.BUCKET_MEMBERSHIP,
-                                band,
+                                self.__band_format.pack(band),
                                 self.__bucket_format.pack(*bucket),
                             )
                         ),
@@ -258,11 +271,23 @@ class MinHashIndex(object):
                 for band, buckets in enumerate(self.get_signature(characteristics)):
                     buckets = self.__bucket_format.pack(*buckets)
                     client.sadd(
-                        b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
+                        b'{}:{}:{}:{}:{}'.format(
+                            self.namespace,
+                            scope,
+                            self.BUCKET_MEMBERSHIP,
+                            self.__band_format.pack(band),
+                            buckets,
+                        ),
                         key,
                     )
                     client.zincrby(
-                        b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_FREQUENCY, band, key),
+                        b'{}:{}:{}:{}:{}'.format(
+                            self.namespace,
+                            scope,
+                            self.BUCKET_FREQUENCY,
+                            self.__band_format.pack(band),
+                            key,
+                        ),
                         buckets,
                         1,
                     )
@@ -272,3 +297,209 @@ class MinHashIndex(object):
         return self.record_multi([
             (scope, key, characteristics),
         ])
+
+
+FRAME_ITEM_SEPARATOR = b'\x00'
+FRAME_PAIR_SEPARATOR = b'\x01'
+FRAME_SEPARATOR = b'\x02'
+
+FRAME_FUNCTION_KEY = b'\x10'
+FRAME_MODULE_KEY = b'\x12'
+FRAME_FILENAME_KEY = b'\x13'
+
+
+def serialize_frame(frame):
+    """\
+    Convert a frame value from a ``Stacktrace`` interface into a bytes object.
+    """
+    # TODO(tkaemming): This should likely result in an intermediate data
+    # structure that is easier to introspect than this one, and a separate
+    # serialization step before hashing.
+    # TODO(tkaemming): These frame values need platform-specific normalization.
+    # This probably should be done prior to this method being called...?
+    attributes = {
+        FRAME_FUNCTION_KEY: frame['function']
+    }
+
+    module = frame.get('module')
+    if module:
+        attributes[FRAME_MODULE_KEY] = module
+    else:
+        attributes[FRAME_FILENAME_KEY] = frame['filename']
+
+    return FRAME_ITEM_SEPARATOR.join(
+        map(
+            lambda item: FRAME_PAIR_SEPARATOR.join(
+                map(
+                    operator.methodcaller('encode', 'utf8'),
+                    item,
+                ),
+            ),
+            attributes.items(),
+        ),
+    )
+
+
+def get_application_chunks(exception):
+    return map(
+        lambda (in_app, frames): list(frames),
+        itertools.ifilter(
+            lambda (in_app, frames): in_app,
+            itertools.groupby(
+                exception['stacktrace']['frames'],
+                key=lambda frame: frame.get('in_app', False),
+            )
+        )
+    )
+
+
+class ExceptionProcessor(object):
+    def __init__(self, function):
+        self.function = function
+        self.logger = logging.getLogger(__name__)
+
+    def process(self, event):
+        try:
+            exceptions = event.data['sentry.interfaces.Exception']['values']
+        except KeyError as error:
+            self.logger.info('Could not create signature(s) for %r due error: %r', event, error, exc_info=True)
+            return
+
+        for exception in exceptions:
+            try:
+                yield self.function(exception)
+            except Exception as error:
+                self.logger.exception('Could not create signature for exception in %r due to error: %r', event, error)
+
+
+class MessageProcessor(object):
+    def __init__(self, function):
+        self.function = function
+        self.logger = logging.getLogger(__name__)
+
+    def process(self, event):
+        try:
+            message = event.data['sentry.interfaces.Message']
+        except KeyError as error:
+            self.logger.info('Could not create signature(s) for %r due error: %r', event, error, exc_info=True)
+            return
+
+        try:
+            yield self.function(message)
+        except Exception as error:
+            self.logger.exception('Could not create signature for message of %r due to error: %r', event, error)
+
+
+class ProcessorSet(object):
+    def __init__(self, index, aliases, processors):
+        self.index = index
+        self.aliases = aliases
+        self.processors = processors
+        self.__number_format = get_number_format(0xFFFFFFFF)
+        assert set(self.aliases) == set(self.processors)
+
+    def record(self, event):
+        items = []
+        for label, processor in self.processors.items():
+            alias = self.aliases[label]
+            scope = ':'.join((
+                alias,
+                self.__number_format.pack(event.project_id),
+            ))
+            for characteristics in processor.process(event):
+                if characteristics:
+                    items.append((
+                        scope,
+                        self.__number_format.pack(event.group_id),
+                        characteristics,
+                    ))
+        return self.index.record_multi(items)
+
+    def query(self, group):
+        results = {}
+        key = self.__number_format.pack(group.id)
+        for label in self.processors.keys():
+            alias = self.aliases[label]
+            scope = ':'.join((
+                alias,
+                self.__number_format.pack(group.project_id)
+            ))
+            results[label] = map(
+                lambda (id, score): (
+                    self.__number_format.unpack(id)[0],
+                    score,
+                ),
+                self.index.query(scope, key)
+            )
+        return results
+
+
+def serialize_text_shingle(value, separator=b''):
+    """\
+    Convert a sequence of Unicode strings into a bytes object.
+    """
+    return separator.join(
+        map(
+            operator.methodcaller('encode', 'utf8'),
+            value,
+        ),
+    )
+
+
+processors = ProcessorSet(
+    MinHashIndex(
+        redis.clusters.get('ephemeral'),
+        0xFFFF,
+        8,
+        2,
+    ),
+    BidirectionalMapping({
+        'exception:message:character-shingles': '\x00',
+        'exception:stacktrace:application-chunks': '\x01',
+        'exception:stacktrace:pairs': '\x02',
+        'message:message:character-shingles': '\x03',
+    }),
+    {
+        'exception:message:character-shingles': ExceptionProcessor(
+            lambda exception: map(
+                serialize_text_shingle,
+                shingle(
+                    13,
+                    exception['value'],
+                ),
+            )
+        ),
+        'exception:stacktrace:application-chunks': ExceptionProcessor(
+            lambda exception: map(
+                lambda frames: FRAME_SEPARATOR.join(
+                    map(
+                        serialize_frame,
+                        frames,
+                    ),
+                ),
+                get_application_chunks(exception),
+            ),
+        ),
+        'exception:stacktrace:pairs': ExceptionProcessor(
+            lambda exception: map(
+                FRAME_SEPARATOR.join,
+                shingle(
+                    2,
+                    map(
+                        serialize_frame,
+                        exception['stacktrace']['frames'],
+                    ),
+                ),
+            ),
+        ),
+        'message:message:character-shingles': MessageProcessor(
+            lambda message: map(
+                serialize_text_shingle,
+                shingle(
+                    13,
+                    message['message'],
+                ),
+            ),
+        ),
+    }
+)
