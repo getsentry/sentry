@@ -39,7 +39,7 @@ class ProcessingIssueManager(BaseManager):
         )
         if type is not None:
             q = q.filter(type=type)
-        probably_resolved = q[:1].first() is not None
+        probably_resolved = bool(q[:1].all())
         q.delete()
         return probably_resolved
 

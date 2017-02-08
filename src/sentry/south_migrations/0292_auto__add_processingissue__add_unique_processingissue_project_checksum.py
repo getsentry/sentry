@@ -8,6 +8,20 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'ProcessingIssue'
+        db.create_table('sentry_processingissue', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
+            ('checksum', self.gf('django.db.models.fields.CharField')(max_length=40, db_index=True)),
+            ('type', self.gf('django.db.models.fields.CharField')(max_length=30)),
+            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
+            ('datetime', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+        ))
+        db.send_create_signal('sentry', ['ProcessingIssue'])
+
+        # Adding unique constraint on 'ProcessingIssue', fields ['project', 'checksum', 'type']
+        db.create_unique('sentry_processingissue', ['project_id', 'checksum', 'type'])
+
         # Adding model 'RawEvent'
         db.create_table('sentry_rawevent', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -20,19 +34,6 @@ class Migration(SchemaMigration):
 
         # Adding unique constraint on 'RawEvent', fields ['project', 'event_id']
         db.create_unique('sentry_rawevent', ['project_id', 'event_id'])
-
-        # Adding model 'ProcessingIssue'
-        db.create_table('sentry_processingissue', (
-            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('project', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Project'])),
-            ('checksum', self.gf('django.db.models.fields.CharField')(max_length=40, db_index=True)),
-            ('type', self.gf('django.db.models.fields.CharField')(max_length=30)),
-            ('data', self.gf('sentry.db.models.fields.gzippeddict.GzippedDictField')()),
-        ))
-        db.send_create_signal('sentry', ['ProcessingIssue'])
-
-        # Adding unique constraint on 'ProcessingIssue', fields ['project', 'checksum', 'type']
-        db.create_unique('sentry_processingissue', ['project_id', 'checksum', 'type'])
 
         # Adding model 'EventProcessingIssue'
         db.create_table('sentry_eventprocessingissue', (
@@ -50,17 +51,17 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'EventProcessingIssue', fields ['raw_event', 'processing_issue']
         db.delete_unique('sentry_eventprocessingissue', ['raw_event_id', 'processing_issue_id'])
 
-        # Removing unique constraint on 'ProcessingIssue', fields ['project', 'checksum', 'type']
-        db.delete_unique('sentry_processingissue', ['project_id', 'checksum', 'type'])
-
         # Removing unique constraint on 'RawEvent', fields ['project', 'event_id']
         db.delete_unique('sentry_rawevent', ['project_id', 'event_id'])
 
-        # Deleting model 'RawEvent'
-        db.delete_table('sentry_rawevent')
+        # Removing unique constraint on 'ProcessingIssue', fields ['project', 'checksum', 'type']
+        db.delete_unique('sentry_processingissue', ['project_id', 'checksum', 'type'])
 
         # Deleting model 'ProcessingIssue'
         db.delete_table('sentry_processingissue')
+
+        # Deleting model 'RawEvent'
+        db.delete_table('sentry_rawevent')
 
         # Deleting model 'EventProcessingIssue'
         db.delete_table('sentry_eventprocessingissue')
@@ -149,7 +150,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 13, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 15, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -539,6 +540,7 @@ class Migration(SchemaMigration):
             'Meta': {'unique_together': "(('project', 'checksum', 'type'),)", 'object_name': 'ProcessingIssue'},
             'checksum': ('django.db.models.fields.CharField', [], {'max_length': '40', 'db_index': 'True'}),
             'data': ('sentry.db.models.fields.gzippeddict.GzippedDictField', [], {}),
+            'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']"}),
             'type': ('django.db.models.fields.CharField', [], {'max_length': '30'})
@@ -756,7 +758,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'HHA0QD94XqBrRTBi2Uh5KYhfzoRpsFzv'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'Ai364FIgjA5fHLxpJDcbN17YOiaTLafc'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
