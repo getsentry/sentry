@@ -144,11 +144,11 @@ class Symbolizer(object):
         # will only load images that it can find dsyms for but we also
         # have system symbols which there are no dsyms for.
         self._image_addresses = []
-        self._image_references = {}
+        self.images = {}
         for img in binary_images:
             img_addr = parse_addr(img['image_addr'])
             self._image_addresses.append(img_addr)
-            self._image_references[img_addr] = img
+            self.images[img_addr] = img
         self._image_addresses.sort()
 
     def find_best_instruction(self, frame, meta=None):
@@ -167,7 +167,7 @@ class Symbolizer(object):
         changed_any = False
 
         loaded_images = self.symsynd_symbolizer.images
-        for image_addr, image in six.iteritems(self._image_references):
+        for image_addr, image in six.iteritems(self.images):
             if image.get('image_vmaddr') or not image.get('image_addr'):
                 continue
             image_info = loaded_images.get(image_addr)
@@ -192,7 +192,7 @@ class Symbolizer(object):
         """
         idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
         if idx > 0:
-            return self._image_references[self._image_addresses[idx - 1]]
+            return self.images[self._image_addresses[idx - 1]]
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
