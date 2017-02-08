@@ -2,10 +2,12 @@ from __future__ import absolute_import
 
 import re
 import six
+import bisect
 
 from symsynd.driver import Driver, SymbolicationError, normalize_dsym_path
 from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
+from symsynd.utils import parse_addr
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
@@ -133,8 +135,18 @@ class Symbolizer(object):
                  is_debug_build=None):
         self.symsynd_symbolizer = make_symbolizer(
             project, binary_images, referenced_images=referenced_images)
-        self.images = dict((img['image_addr'], img) for img in binary_images)
         self.is_debug_build = is_debug_build
+
+        # This is a duplication from symsynd.  The reason is that symsynd
+        # will only load images that it can find dsyms for but we also
+        # have system symbols which there are no dsyms for.
+        self._image_addresses = []
+        self._image_references = {}
+        for img in binary_images:
+            img_addr = parse_addr(img['image_addr'])
+            self._image_addresses.append(img_addr)
+            self._image_references[img_addr] = img
+        self._image_addresses.sort()
 
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
@@ -145,10 +157,10 @@ class Symbolizer(object):
         changed_any = False
 
         loaded_images = self.symsynd_symbolizer.images
-        for image_addr, image in six.iteritems(self.images):
+        for image_addr, image in six.iteritems(self._image_references):
             if image.get('image_vmaddr') or not image.get('image_addr'):
                 continue
-            image_info = loaded_images.get(image['image_addr'])
+            image_info = loaded_images.get(image_addr)
             if not image_info:
                 continue
             dsym_path = normalize_dsym_path(image_info['dsym_path'])
@@ -163,6 +175,14 @@ class Symbolizer(object):
 
     def close(self):
         self.symsynd_symbolizer.driver.close()
+
+    def find_image(self, addr):
+        """Given an instruction address this locates the image this address
+        is contained in.
+        """
+        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
+        if idx > 0:
+            return self._image_references[self._image_addresses[idx - 1]]
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
@@ -208,12 +228,13 @@ class Symbolizer(object):
         return _sim_platform_re.search(fn) is not None
 
     def is_in_app(self, frame):
-        img = self.images.get(frame['object_addr'])
+        img = self.find_image(frame['instruction_addr'])
         return img is not None and self._is_app_frame(frame, img)
 
-    def symbolize_app_frame(self, frame, img, meta=None,
-                            symbolize_inlined=False):
-        if frame['object_addr'] not in self.symsynd_symbolizer.images:
+    def symbolize_app_frame(self, frame, img, symbolize_inlined=False):
+        # If we have an image but we can't find the image in the symsynd
+        # symbolizer it means we are dealing with a missing dsym here.
+        if parse_addr(img['image_addr']) not in self.symsynd_symbolizer.images:
             if self._is_optional_app_bundled_framework(frame, img):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
@@ -225,7 +246,7 @@ class Symbolizer(object):
 
         try:
             rv = self.symsynd_symbolizer.symbolize_frame(
-                frame, silent=False, demangle=False, meta=meta,
+                frame, silent=False, demangle=False,
                 symbolize_inlined=symbolize_inlined)
         except SymbolicationError as e:
             raise SymbolicationFailed(
@@ -272,7 +293,14 @@ class Symbolizer(object):
 
     def symbolize_frame(self, frame, sdk_info=None, meta=None,
                         symbolize_inlined=False):
-        img = self.images.get(frame['object_addr'])
+        # We ask the lower level symbolizer from symsynd to find the best
+        # instruction for this frame separately.  This is done because we
+        # need this information going into either the system or app path
+        # and because we are interested in the image.
+        instruction_addr = self.symsynd_symbolizer.find_best_instruction(
+            frame['instruction_addr'], meta=meta)
+
+        img = self.find_image(instruction_addr)
         if img is None:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_UNKNOWN_IMAGE
@@ -285,8 +313,7 @@ class Symbolizer(object):
             return self.symbolize_system_frame(frame, img, sdk_info,
                                                symbolize_inlined)
 
-        return self.symbolize_app_frame(frame, img, meta,
-                                        symbolize_inlined)
+        return self.symbolize_app_frame(frame, img, symbolize_inlined)
 
     def symbolize_backtrace(self, backtrace, sdk_info=None):
         # TODO: kill me
