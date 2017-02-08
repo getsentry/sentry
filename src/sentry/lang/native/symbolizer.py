@@ -153,7 +153,7 @@ class Symbolizer(object):
 
         # This should always succeed but you never quite know.
         self.cpu_name = None
-        for img in six.itervalues(self.images.itervalues):
+        for img in six.itervalues(self.images):
             cpu_name = get_cpu_name(img['cpu_type'],
                                     img['cpu_subtype'])
             if self.cpu_name is None:
