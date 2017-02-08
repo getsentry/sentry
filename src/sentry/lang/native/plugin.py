@@ -424,13 +424,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         sym_input_frame = {
             'object_name': frame.get('package'),
             'instruction_addr': self.find_best_instruction(
-                frame['instruction_addr'], stacktrace_info, idx),
+                frame, stacktrace_info, idx),
             'symbol_name': frame.get('function'),
         }
         in_app = self.sym.is_in_app(sym_input_frame)
 
         new_frames = []
         raw_frame = dict(frame)
+        raw_frame['in_app'] = in_app
 
         try:
             symbolicated_frames = self.sym.symbolize_frame(
@@ -438,7 +439,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         except SymbolicationFailed as e:
             if e.is_user_fixable or e.is_sdk_failure:
                 errors.append({
-                    'type': EventError.NATIVE_INTERNAL_FAILURE,
+                    'type': e.type,
                     'image_uuid': e.image_uuid,
                     'image_path': e.image_path,
                     'image_arch': e.image_arch,
@@ -447,45 +448,43 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             else:
                 logger.debug('Failed to symbolicate with native backend',
                              exc_info=True)
-        else:
-            for sfrm in symbolicated_frames:
-                symbol = sfrm.get('symbol_name') or \
-                    frame.get('function') or '<unknown>'
-                function = demangle_symbol(symbol, simplified=True)
+            return None, [raw_frame], errors
 
-                new_frame = dict(frame)
-                new_frame['function'] = function
+        for sfrm in symbolicated_frames:
+            symbol = sfrm.get('symbol_name') or \
+                frame.get('function') or '<unknown>'
+            function = demangle_symbol(symbol, simplified=True)
 
-                # If we demangled something, store the original in the
-                # symbol portion of the frame
-                if function != symbol:
-                    new_frame['symbol'] = symbol
+            new_frame = dict(frame)
+            new_frame['function'] = function
 
-                new_frame['abs_path'] = sfrm.get('filename') or None
-                if new_frame['abs_path']:
-                    new_frame['filename'] = posixpath.basename(
-                        new_frame['abs_path'])
-                if sfrm.get('line') is not None:
-                    new_frame['lineno'] = sfrm['line']
-                else:
-                    new_frame['instruction_offset'] = \
-                        parse_addr(sfrm['instruction_addr']) - \
-                        parse_addr(sfrm['symbol_addr'])
-                if sfrm.get('column') is not None:
-                    new_frame['colno'] = sfrm['column']
-                new_frame['package'] = sfrm['object_name'] \
-                    or new_frame.get('package')
-                new_frame['symbol_addr'] = '0x%x' % \
+            # If we demangled something, store the original in the
+            # symbol portion of the frame
+            if function != symbol:
+                new_frame['symbol'] = symbol
+
+            new_frame['abs_path'] = sfrm.get('filename') or None
+            if new_frame['abs_path']:
+                new_frame['filename'] = posixpath.basename(
+                    new_frame['abs_path'])
+            if sfrm.get('line') is not None:
+                new_frame['lineno'] = sfrm['line']
+            else:
+                new_frame['instruction_offset'] = \
+                    parse_addr(frame['instruction_addr']) - \
                     parse_addr(sfrm['symbol_addr'])
-                new_frame['instruction_addr'] = '0x%x' % parse_addr(
-                    sfrm['instruction_addr'])
+            if sfrm.get('column') is not None:
+                new_frame['colno'] = sfrm['column']
+            new_frame['package'] = sfrm['object_name'] \
+                or new_frame.get('package')
+            new_frame['symbol_addr'] = '0x%x' % \
+                parse_addr(sfrm['symbol_addr'])
+            new_frame['instruction_addr'] = '0x%x' % parse_addr(
+                frame['instruction_addr'])
 
-                if new_frame.get('in_app') is None:
-                    new_frame['in_app'] = in_app
-                new_frames.append(new_frame)
+            new_frame['in_app'] = in_app
+            new_frames.append(new_frame)
 
-        if raw_frame.get('in_app') is None:
-            raw_frame['in_app'] = in_app
         return new_frames, [raw_frame], errors
 
 
