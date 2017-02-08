@@ -20,8 +20,10 @@ const MESSAGES = {
 };
 
 const HELP_LINKS = {
-  'native:missing-dsym': 'https://docs.sentry.io/clients/cocoa/dsym/',
-  'native:bad-dsym': 'https://docs.sentry.io/clients/cocoa/dsym/',
+  'native_missing_dsym': 'https://docs.sentry.io/clients/cocoa/dsym/',
+  'native_bad_dsym': 'https://docs.sentry.io/clients/cocoa/dsym/',
+  'native_missing_system_dsym': 'https://docs.sentry.io/server/dsym/',
+  'native_missing_symbol': 'https://docs.sentry.io/server/dsym/',
 };
 
 
@@ -108,6 +110,7 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div className="processing-issue">
         <span className="description">{description}</span>
+        {' '}
         {helpLink &&
           <a href={helpLink} className="help-link"><span className="icon-question" /></a>}
       </div>
