@@ -472,16 +472,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     new_frame['abs_path'])
             if sfrm.get('line') is not None:
                 new_frame['lineno'] = sfrm['line']
-            else:
+            elif sfrm.get('symbol_addr') is not None:
+                # XXX: this is technically incorrect because the instruction
+                # address might move away from the symbol address if we
+                # find a different symbol than the client did.  However
+                # our symbolizer cannot tell us where a symbol is so this
+                # is the best we can do for now.
                 new_frame['instruction_offset'] = \
                     parse_addr(frame['instruction_addr']) - \
-                    parse_addr(sfrm['symbol_addr'])
+                    parse_addr(frame['symbol_addr'])
             if sfrm.get('column') is not None:
                 new_frame['colno'] = sfrm['column']
             new_frame['package'] = sfrm['object_name'] \
                 or new_frame.get('package')
-            new_frame['symbol_addr'] = '0x%x' % \
-                parse_addr(sfrm['symbol_addr'])
 
             new_frame['in_app'] = in_app
             new_frames.append(new_frame)
