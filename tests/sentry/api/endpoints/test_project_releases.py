@@ -43,7 +43,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release4 = Release.objects.create(
             organization_id=project2.organization_id,
-            version='1',
+            version='4',
         )
         release4.add_project(project2)
 
