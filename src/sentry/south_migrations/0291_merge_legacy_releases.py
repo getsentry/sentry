@@ -94,7 +94,12 @@ def merge(to_release, from_releases, sentry_models):
 
 def update_version(release, sentry_models):
     old_version = release.version
-    project_slug = release.projects.values_list('slug', flat=True)[0]
+    try:
+        project_slug = release.projects.values_list('slug', flat=True)[0]
+    except IndexError:
+        # delete releases if they have no projects
+        release.delete()
+        return
     new_version = ('%s-%s' % (project_slug, old_version))[:64]
     sentry_models.Release.objects.filter(
         id=release.id
