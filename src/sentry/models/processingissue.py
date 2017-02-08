@@ -27,6 +27,9 @@ def get_processing_issue_checksum(scope, object):
 
 class ProcessingIssueManager(BaseManager):
 
+    def with_num_events(self):
+        return self.annotate(num_events=Count('eventprocessingissue'))
+
     def resolve_processing_issue(self, project, scope, object, type=None):
         """Resolves the given processing issues.  If not type is given
         all processing issues for scope and object are resolved regardless

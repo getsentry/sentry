@@ -19,10 +19,11 @@ import StreamTagActions from '../actions/streamTagActions';
 import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
+import TimeSince from '../components/timeSince';
 import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
-import {t, tct} from '../locale';
+import {t, tn, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -73,6 +74,7 @@ const Stream = React.createClass({
       tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false,
+      processingIssues: null,
       ...this.getQueryState()
     };
   },
@@ -86,6 +88,7 @@ const Stream = React.createClass({
     });
 
     this.fetchSavedSearches();
+    this.fetchProcessingIssues();
     this.fetchTags();
     if (!this.state.loading) {
       this.fetchData();
@@ -190,6 +193,23 @@ const Stream = React.createClass({
     });
   },
 
+  fetchProcessingIssues() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+      success: (data) => {
+        if (data.hasIssues) {
+          this.setState({
+            processingIssues: data,
+          });
+        }
+      },
+      error: (error) => {
+        logAjaxError(error);
+        // this is okay. it's just a ui hint
+      }
+    });
+  },
+
   fetchTags() {
     StreamTagStore.reset();
     StreamTagActions.loadTags();
@@ -209,6 +229,10 @@ const Stream = React.createClass({
         StreamTagActions.loadTagsError();
       }
     });
+  },
+
+  showingProcessingIssues() {
+    return this.state.query && this.state.query.trim() == 'is:unprocessed';
   },
 
   onSavedSearchCreate(data) {
@@ -483,6 +507,30 @@ const Stream = React.createClass({
     browserHistory.pushState(null, path, queryParams);
   },
 
+  renderProcessingIssuesHint() {
+    let pi = this.state.processingIssues;
+    if (!pi || this.showingProcessingIssues()) {
+      return null;
+    }
+
+    let issues = tn('is %d problem', 'are %d problems', pi.numIssues);
+
+    let {orgId, projectId} = this.props.params;
+
+    return (
+      <div className="processing-issues">
+        <strong>{t('Unprocessed Issues: ')}</strong>
+        {tct('there [issues].', {
+          issues: issues
+        })}
+        {' '}
+        <span className="last-seen">({t('last issue')}: <TimeSince date={pi.lastSeen}/>)</span>
+        {' '}
+        <Link to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('show issues')}</Link>
+      </div>
+    );
+  },
+
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map((id) => {
@@ -612,6 +660,7 @@ const Stream = React.createClass({
                 </div>
               </div>
             </Sticky>
+            {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}
             <Pagination pageLinks={this.state.pageLinks}/>
           </div>

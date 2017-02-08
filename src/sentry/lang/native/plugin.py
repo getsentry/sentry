@@ -420,6 +420,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     type=e.type,
                     data={
                         'image_path': e.image_path,
+                        'image_uuid': e.image_uuid,
                         'image_arch': e.image_arch,
                         'message': e.message,
                     }
