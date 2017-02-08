@@ -70,7 +70,7 @@ class SymbolicationFailed(Exception):
     @property
     def is_sdk_failure(self):
         """An error that most likely happened because of a bad SDK."""
-        return self.type == 'unknown-image'
+        return self.type == EventError.NATIVE_UNKNOWN_IMAGE
 
     def __str__(self):
         rv = []
@@ -151,12 +151,23 @@ class Symbolizer(object):
             self.images[img_addr] = img
         self._image_addresses.sort()
 
+        # This should always succeed but you never quite know.
+        self.cpu_name = None
+        for img in six.itervalues(self.images.itervalues):
+            cpu_name = get_cpu_name(img['cpu_type'],
+                                    img['cpu_subtype'])
+            if self.cpu_name is None:
+                self.cpu_name = cpu_name
+            elif self.cpu_name != cpu_name:
+                self.cpu_name = None
+                break
+
     def find_best_instruction(self, frame, meta=None):
         """Finds the best instruction for a given frame."""
         if not self.images:
             return parse_addr(frame['instruction_addr'])
         return self.symsynd_symbolizer.find_best_instruction(
-            frame['instruction_addr'], meta=meta)
+            frame['instruction_addr'], cpu_name=self.cpu_name, meta=meta)
 
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
@@ -302,6 +313,14 @@ class Symbolizer(object):
         return rv
 
     def symbolize_frame(self, frame, sdk_info=None, symbolize_inlined=False):
+        # If we do not have a CPU name we fail.  We currently only support
+        # a single cpu architecture.
+        if self.cpu_name is None:
+            raise SymbolicationFailed(
+                type=EventError.NATIVE_INTERNAL_FAILURE,
+                message='Found multiple architectures.'
+            )
+
         img = self.find_image(frame['instruction_addr'])
         if img is None:
             raise SymbolicationFailed(
