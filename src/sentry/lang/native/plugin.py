@@ -436,7 +436,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         try:
             symbolicated_frames = self.sym.symbolize_frame(
                 sym_input_frame, self.sdk_info, symbolize_inlined=True)
+            if not symbolicated_frames:
+                return None, [raw_frame], []
         except SymbolicationFailed as e:
+            errors = []
             if e.is_user_fixable or e.is_sdk_failure:
                 errors.append({
                     'type': e.type,
@@ -479,13 +482,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 or new_frame.get('package')
             new_frame['symbol_addr'] = '0x%x' % \
                 parse_addr(sfrm['symbol_addr'])
-            new_frame['instruction_addr'] = '0x%x' % parse_addr(
-                frame['instruction_addr'])
 
             new_frame['in_app'] = in_app
             new_frames.append(new_frame)
 
-        return new_frames, [raw_frame], errors
+        return new_frames, [raw_frame], []
 
 
 class NativePlugin(Plugin2):
