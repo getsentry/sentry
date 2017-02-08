@@ -69,6 +69,7 @@ The following plugins are available and maintained by members of the Sentry comm
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
 * `sentry-statsd <https://github.com/dreadatour/sentry-statsd>`_
 * `sentry-teamwork <https://github.com/getsentry/sentry-teamwork>`_
+* `sentry-telegram <https://github.com/butorov/sentry-telegram>`_
 * `sentry-top <https://github.com/getsentry/sentry-top>`_
 * `sentry-unfuddle <https://github.com/rkeilty/sentry-unfuddle>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_

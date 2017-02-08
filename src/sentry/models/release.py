@@ -108,12 +108,19 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release = cls.objects.filter(
+            project_version = ('%s-%s' % (project.slug, version))[:64]
+            releases = list(cls.objects.filter(
                 organization_id=project.organization_id,
-                version=version,
+                version__in=[version, project_version],
                 projects=project
-            ).first()
-            if not release:
+            ))
+            if releases:
+                # TODO(jess): clean this up once all releases have been migrated
+                try:
+                    release = [r for r in releases if r.version == project_version][0]
+                except IndexError:
+                    release = releases[0]
+            else:
                 release = cls.objects.filter(
                     organization_id=project.organization_id,
                     version=version
@@ -140,6 +147,53 @@ class Release(Model):
             cache.set(cache_key, release, 3600)
 
         return release
+
+    @classmethod
+    def merge(cls, to_release, from_releases):
+        # The following models reference release:
+        # ReleaseCommit.release
+        # ReleaseEnvironment.release_id
+        # ReleaseProject.release
+        # GroupRelease.release_id
+        # GroupResolution.release
+        # Group.first_release
+        # ReleaseFile.release
+
+        from sentry.models import (
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject,
+            Group, GroupRelease, GroupResolution
+        )
+
+        model_list = (
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject,
+            GroupRelease, GroupResolution
+        )
+        for release in from_releases:
+            for model in model_list:
+                if hasattr(model, 'release'):
+                    update_kwargs = {'release': to_release}
+                else:
+                    update_kwargs = {'release_id': to_release.id}
+                try:
+                    with transaction.atomic():
+                        model.objects.filter(
+                            release_id=release.id
+                        ).update(**update_kwargs)
+                except IntegrityError:
+                    for item in model.objects.filter(release_id=release.id):
+                        try:
+                            with transaction.atomic():
+                                model.objects.filter(
+                                    id=item.id
+                                ).update(**update_kwargs)
+                        except IntegrityError:
+                            item.delete()
+
+            Group.objects.filter(
+                first_release=release
+            ).update(first_release=to_release)
+
+            release.delete()
 
     @property
     def short_version(self):

@@ -1,8 +1,10 @@
 from __future__ import absolute_import
 
+import itertools
 import math
-import random
 import struct
+
+import mmh3
 
 
 def scale_to_total(value):
@@ -14,7 +16,7 @@ def scale_to_total(value):
     return {k: (v / total) for k, v in value.items()}
 
 
-def get_distance(target, other):
+def get_euclidian_distance(target, other):
     """\
     Calculate the N-dimensional Euclidian between two mappings.
 
@@ -29,24 +31,41 @@ def get_distance(target, other):
     )
 
 
-formatters = sorted([
-    (2 ** 8 - 1, struct.Struct('>B').pack),
-    (2 ** 16 - 1, struct.Struct('>H').pack),
-    (2 ** 32 - 1, struct.Struct('>L').pack),
-    (2 ** 64 - 1, struct.Struct('>Q').pack),
+def get_manhattan_distance(target, other):
+    """
+    Calculate the N-dimensional Manhattan distance between two mappings.
+
+    The mappings are used to represent sparse arrays -- if a key is not present
+    in both mappings, it's assumed to be 0 in the mapping where it is missing.
+
+    The result of this function will be expressed as the distance between the
+    caller and a 5:2 ratio of rye whiskey to sweet Italian vermouth, with a
+    dash of bitters.
+    """
+    return sum(
+        abs(target.get(k, 0) - other.get(k, 0))
+        for k in set(target) | set(other)
+    )
+
+
+formats = sorted([
+    (2 ** 8 - 1, 'B'),
+    (2 ** 16 - 1, 'H'),
+    (2 ** 32 - 1, 'L'),
+    (2 ** 64 - 1, 'Q'),
 ])
 
 
-def get_number_formatter(size):
+def get_number_format(size, width=1):
     """\
-    Returns a function that packs a number no larger than the provided size
-    into to an efficient binary representation.
+    Returns a ``Struct`` object that can be used packs (and unpack) a number no
+    larger than the provided size into to an efficient binary representation.
     """
     assert size > 0
 
-    for maximum, formatter in formatters:
+    for maximum, format in formats:
         if maximum >= size:
-            return formatter
+            return struct.Struct('>%s' % (format * width))
 
     raise ValueError('No registered formatter can handle the provided value.')
 
@@ -89,30 +108,21 @@ class MinHashIndex(object):
         self.cluster = cluster
         self.rows = rows
 
-        generator = random.Random(0)
+        sequence = itertools.count()
+        self.bands = [[next(sequence) for j in xrange(buckets)] for i in xrange(bands)]
 
-        def shuffle(value):
-            generator.shuffle(value)
-            return value
-
-        self.bands = [
-            [shuffle(range(rows)) for _ in xrange(buckets)]
-            for _ in xrange(bands)
-        ]
-
-        self.__bucket_formatter = get_number_formatter(rows)
-
-    def __format_buckets(self, bucket):
-        return b''.join(
-            map(self.__bucket_formatter, bucket)
-        )
+        self.__bucket_format = get_number_format(rows, buckets)
 
     def get_signature(self, value):
-        """Generate a minhash signature for a value."""
-        columns = set(hash(token) % self.rows for token in value)
+        """Generate a signature for a value."""
         return map(
             lambda band: map(
-                lambda permutation: next(i for i, a in enumerate(permutation) if a in columns),
+                lambda bucket: min(
+                    map(
+                        lambda item: mmh3.hash(item, bucket) % self.rows,
+                        value,
+                    ),
+                ),
                 band,
             ),
             self.bands,
@@ -129,15 +139,17 @@ class MinHashIndex(object):
         """
         assert len(target) == len(other)
         assert len(target) == len(self.bands)
-        return 1 - sum(
+        return sum(
             map(
-                lambda (left, right): get_distance(
-                    left,
-                    right,
+                lambda (left, right): 1 - (
+                    get_manhattan_distance(
+                        left,
+                        right,
+                    ) / 2.0
                 ),
                 zip(target, other)
             )
-        ) / math.sqrt(2) / len(target)
+        ) / len(target)
 
     def query(self, scope, key):
         """\
@@ -172,9 +184,9 @@ class MinHashIndex(object):
                 # for each bucket to [0,1] value (the proportion of items
                 # observed in that band that belong to the bucket for the key.)
                 result[key] = map(
-                    lambda promise: scale_to_total(
-                        dict(promise.value)
-                    ),
+                    lambda promise: scale_to_total({
+                        self.__bucket_format.unpack(k): v for k, v in promise.value
+                    }),
                     promises,
                 )
 
@@ -186,7 +198,13 @@ class MinHashIndex(object):
                 responses = map(
                     lambda (band, buckets): map(
                         lambda bucket: client.smembers(
-                            b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, bucket)
+                            b'{}:{}:{}:{}:{}'.format(
+                                self.namespace,
+                                scope,
+                                self.BUCKET_MEMBERSHIP,
+                                band,
+                                self.__bucket_format.pack(*bucket),
+                            )
                         ),
                         buckets,
                     ),
@@ -238,7 +256,7 @@ class MinHashIndex(object):
         with self.cluster.map() as client:
             for scope, key, characteristics in items:
                 for band, buckets in enumerate(self.get_signature(characteristics)):
-                    buckets = self.__format_buckets(buckets)
+                    buckets = self.__bucket_format.pack(*buckets)
                     client.sadd(
                         b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
                         key,

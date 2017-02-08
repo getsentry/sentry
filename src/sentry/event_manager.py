@@ -462,7 +462,13 @@ class EventManager(object):
             # dont allow a conflicting 'release' tag
             if 'release' in tags:
                 del tags['release']
-            tags['sentry:release'] = release
+            release = Release.get_or_create(
+                project=project,
+                version=release,
+                date_added=date,
+            )
+
+            tags['sentry:release'] = release.version
 
         event_user = self._get_event_user(project, data)
         if event_user:
@@ -567,12 +573,6 @@ class EventManager(object):
         })
 
         if release:
-            release = Release.get_or_create(
-                project=project,
-                version=release,
-                date_added=date,
-            )
-
             group_kwargs['first_release'] = release
 
         group, is_new, is_regression, is_sample = self._save_aggregate(

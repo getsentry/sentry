@@ -437,6 +437,44 @@ class EventManagerTest(TransactionTestCase):
         group = event.group
         assert group.first_release.version == '1.0'
 
+    def test_release_project_slug(self):
+        project = self.create_project(name='foo')
+        release = Release.objects.create(
+            version='foo-1.0',
+            organization=project.organization
+        )
+        release.add_project(project)
+
+        manager = EventManager(self.make_event(release='1.0'))
+        event = manager.save(project.id)
+
+        group = event.group
+        assert group.first_release.version == 'foo-1.0'
+        release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
+        assert release_tag == 'foo-1.0'
+
+        manager = EventManager(self.make_event(release='2.0'))
+        event = manager.save(project.id)
+
+        group = event.group
+        assert group.first_release.version == 'foo-1.0'
+
+    def test_release_project_slug_long(self):
+        project = self.create_project(name='foo')
+        release = Release.objects.create(
+            version='foo-%s' % ('a' * 60,),
+            organization=project.organization
+        )
+        release.add_project(project)
+
+        manager = EventManager(self.make_event(release=('a' * 61)))
+        event = manager.save(project.id)
+
+        group = event.group
+        assert group.first_release.version == 'foo-%s' % ('a' * 60,)
+        release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
+        assert release_tag == 'foo-%s' % ('a' * 60,)
+
     def test_group_release_no_env(self):
         manager = EventManager(self.make_event(release='1.0'))
         event = manager.save(1)

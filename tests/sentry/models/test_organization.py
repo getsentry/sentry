@@ -19,8 +19,10 @@ class OrganizationTest(TestCase):
             team=from_team_two,
             slug='bizzy',
         )
-        from_release = Release.objects.create(version='abcabcabc',
-                                              organization=from_org)
+        from_release = Release.objects.create(
+            version='abcabcabc',
+            organization=from_org
+        )
         from_release_file = ReleaseFile.objects.create(
             release=from_release,
             organization=from_org,
@@ -65,6 +67,10 @@ class OrganizationTest(TestCase):
             slug='bizzy',
         )
         to_member = self.create_member(organization=to_org, user=other_user)
+        to_release = Release.objects.create(
+            version='abcabcabc',
+            organization=to_org
+        )
 
         OrganizationMemberTeam.objects.create(
             organizationmember=to_member,
@@ -113,13 +119,18 @@ class OrganizationTest(TestCase):
         assert to_project_two.organization == to_org
         assert to_project_two.team == to_team_two
 
-        assert Release.objects.get(id=from_release.id).organization == to_org
+        assert not Release.objects.filter(id=from_release.id).exists()
         assert ReleaseFile.objects.get(id=from_release_file.id).organization == to_org
+        assert ReleaseFile.objects.get(id=from_release_file.id).release == to_release
         assert Commit.objects.get(id=from_commit.id).organization_id == to_org.id
         assert ReleaseCommit.objects.get(id=from_release_commit.id).organization_id == to_org.id
+        assert ReleaseCommit.objects.get(id=from_release_commit.id).release == to_release
         assert ReleaseEnvironment.objects.get(
             id=from_release_environment.id
         ).organization_id == to_org.id
+        assert ReleaseEnvironment.objects.get(
+            id=from_release_environment.id
+        ).release_id == to_release.id
 
     def test_get_default_owner(self):
         user = self.create_user('foo@example.com')
