@@ -5,6 +5,10 @@ Version 8.14 (Unreleased)
 - Add IE10 legacy browser filter
 - Added data migration to merge legacy releases
 
+Schema Changes
+~~~~~~~~~~~~~~
+- Added unique index on ``Release(organization_id, version)``
+
 Version 8.13
 ------------
 
