@@ -4,10 +4,13 @@ Version 8.14 (Unreleased)
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 - Add IE10 legacy browser filter
 - Added data migration to merge legacy releases
+- Added support for symbolizing inlined frames and added heuristics for fixing up native stacktraces.
+- Removed instruction_offset as a frame attribute from stacktraces
 
 Schema Changes
 ~~~~~~~~~~~~~~
 - Added unique index on ``Release(organization_id, version)``
+- Removed unique index on ``Release(project_id, version)``
 
 Version 8.13
 ------------
