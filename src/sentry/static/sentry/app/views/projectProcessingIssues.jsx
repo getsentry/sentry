@@ -179,8 +179,8 @@ const ProjectProcessingIssues = React.createClass({
     if (issues.resolveableIssues <= 0) {
       return null;
     }
-    let fixButton = tn('Click here to trigger reprocessing for %d Issue',
-      'Click here to trigger reprocessing for %d Issues',
+    let fixButton = tn('Click here to trigger reprocessing for %d pending event',
+      'Click here to trigger reprocessing for %d pending events',
       issues.resolveableIssues);
     return (
       <div className="alert alert-block alert-info">
