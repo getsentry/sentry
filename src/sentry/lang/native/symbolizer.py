@@ -13,7 +13,7 @@ from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import DSymSymbol, EventError
-from sentry.constants import MAX_SYM
+from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 
 FATAL_ERRORS = (
@@ -43,7 +43,7 @@ SIM_APP_PATH = '/Containers/Bundle/Application/'
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
     '<redacted>',
-    '<unknown>',
+    NATIVE_UNKNOWN_STRING,
 ])
 
 
