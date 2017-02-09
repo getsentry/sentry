@@ -5,6 +5,7 @@ Version 8.14 (Unreleased)
 - Add IE10 legacy browser filter
 - Added data migration to merge legacy releases
 - Added support for symbolizing inlined frames and added heuristics for fixing up native stacktraces.
+- Removed instruction_offset as a frame attribute from stacktraces
 
 Schema Changes
 ~~~~~~~~~~~~~~

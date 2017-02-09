@@ -321,11 +321,6 @@ class Frame(Interface):
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
-        instruction_offset = data.get('instruction_offset')
-        if instruction_offset is not None and \
-           not isinstance(instruction_offset, six.integer_types):
-            raise InterfaceValidationError("Invalid value for 'instruction_offset'")
-
         kwargs = {
             'abs_path': trim(abs_path, 2048),
             'filename': trim(filename, 256),
@@ -337,7 +332,6 @@ class Frame(Interface):
             'symbol': trim(symbol, 256),
             'symbol_addr': to_hex_addr(data.get('symbol_addr')),
             'instruction_addr': to_hex_addr(data.get('instruction_addr')),
-            'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -423,7 +417,6 @@ class Frame(Interface):
             'package': self.package,
             'platform': self.platform,
             'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
-            'instructionOffset': self.instruction_offset,
             'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
             'symbol': self.symbol,

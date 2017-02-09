@@ -168,9 +168,6 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
         # the beginning of the symbol.
         function = frame.get('symbol_name') or '<unknown>'
         lineno = frame.get('line')
-        offset = None
-        if not lineno:
-            offset = frame['instruction_addr'] - frame['symbol_addr']
 
         cframe = {
             'abs_path': fn,
@@ -183,7 +180,6 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
             'package': frame.get('object_name'),
             'symbol_addr': '0x%x' % frame['symbol_addr'],
             'instruction_addr': '0x%x' % frame['instruction_addr'],
-            'instruction_offset': offset,
             'lineno': lineno,
         }
         cframe['in_app'] = is_in_app(cframe, app_uuid)
@@ -472,9 +468,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     new_frame['abs_path'])
             if sfrm.get('line') is not None:
                 new_frame['lineno'] = sfrm['line']
-            instruction_offset = sfrm.get('instruction_offset')
-            if instruction_offset is not None:
-                new_frame['instruction_offset'] = instruction_offset
             if sfrm.get('column') is not None:
                 new_frame['colno'] = sfrm['column']
             new_frame['package'] = sfrm['object_name'] \
