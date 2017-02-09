@@ -531,7 +531,7 @@ const Stream = React.createClass({
           })}
           {' '}
           <span className="last-seen">({t('last issue')}:
-            <TimeSince date={pi.lastSeen}/>)
+            {' '}<TimeSince date={pi.lastSeen}/>)
           </span>
           {' '}
           <Link to={link}>{t('show details')}</Link>
