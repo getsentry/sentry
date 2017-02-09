@@ -63,8 +63,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            # TODO(jess): fix this if merging of legacy releases
-            # hasn't happened yet
             release = Release.objects.get(
                 organization_id=organization.id,
                 projects__in=self.get_allowed_projects(request, organization),
@@ -100,8 +98,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            # TODO(jess): fix this if merging of legacy releases
-            # hasn't happened yet
             release = Release.objects.get(
                 organization_id=organization,
                 projects__in=self.get_allowed_projects(request, organization),
@@ -163,8 +159,6 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :auth: required
         """
         try:
-            # TODO(jess): fix this if merging of legacy releases
-            # hasn't happened yet
             release = Release.objects.get(
                 organization_id=organization.id,
                 projects__in=self.get_allowed_projects(request, organization),
