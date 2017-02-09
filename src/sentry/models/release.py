@@ -65,9 +65,9 @@ class Release(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_release'
-        unique_together = (('project_id', 'version'),)
+        unique_together = (('project_id', 'version'), ('organization', 'version'),)
 
-    __repr__ = sane_repr('project_id', 'version')
+    __repr__ = sane_repr('organization', 'version')
 
     @classmethod
     def get_cache_key(cls, project_id, version):
