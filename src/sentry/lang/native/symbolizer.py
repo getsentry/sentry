@@ -233,7 +233,7 @@ class Symbolizer(object):
         symbol_addr = frame.get('symbol_addr')
         if symbol_addr is not None:
             symbol_addr = parse_addr(symbol_addr)
-            slide_value = img.get('image_vmaddr') or 0
+            slide_value = parse_addr(img.get('image_vmaddr') or 0)
             rv['instruction_offset'] = parse_addr(frame['instruction_addr']) \
                 - slide_value - symbol_addr
 
