@@ -215,6 +215,11 @@ class Symbolizer(object):
                 rv['object_name'] = img['name']
             rv['uuid'] = img['uuid']
 
+        # XXX: this is technically incorrect because the instruction
+        # address might move away from the symbol address if we
+        # find a different symbol than the client did.  However
+        # our symbolizer cannot tell us where a symbol is so this
+        # is the best we can do for now.  Maybe we kill it?
         symbol_addr = frame.get('symbol_addr')
         if symbol_addr is not None:
             symbol_addr = parse_addr(symbol_addr)
