@@ -353,12 +353,12 @@ def get_application_chunks(exception):
     )
 
 
-class ExceptionProcessor(object):
+class ExceptionFeature(object):
     def __init__(self, function):
         self.function = function
         self.logger = logging.getLogger(__name__)
 
-    def process(self, event):
+    def extract(self, event):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
@@ -372,12 +372,12 @@ class ExceptionProcessor(object):
                 self.logger.exception('Could not create signature for exception in %r due to error: %r', event, error)
 
 
-class MessageProcessor(object):
+class MessageFeature(object):
     def __init__(self, function):
         self.function = function
         self.logger = logging.getLogger(__name__)
 
-    def process(self, event):
+    def extract(self, event):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
@@ -390,23 +390,23 @@ class MessageProcessor(object):
             self.logger.exception('Could not create signature for message of %r due to error: %r', event, error)
 
 
-class ProcessorSet(object):
-    def __init__(self, index, aliases, processors):
+class FeatureSet(object):
+    def __init__(self, index, aliases, features):
         self.index = index
         self.aliases = aliases
-        self.processors = processors
+        self.features = features
         self.__number_format = get_number_format(0xFFFFFFFF)
-        assert set(self.aliases) == set(self.processors)
+        assert set(self.aliases) == set(self.features)
 
     def record(self, event):
         items = []
-        for label, processor in self.processors.items():
+        for label, feature in self.features.items():
             alias = self.aliases[label]
             scope = ':'.join((
                 alias,
                 self.__number_format.pack(event.project_id),
             ))
-            for characteristics in processor.process(event):
+            for characteristics in feature.extract(event):
                 if characteristics:
                     items.append((
                         scope,
@@ -418,7 +418,7 @@ class ProcessorSet(object):
     def query(self, group):
         results = {}
         key = self.__number_format.pack(group.id)
-        for label in self.processors.keys():
+        for label in self.features.keys():
             alias = self.aliases[label]
             scope = ':'.join((
                 alias,
@@ -446,7 +446,7 @@ def serialize_text_shingle(value, separator=b''):
     )
 
 
-processors = ProcessorSet(
+features = FeatureSet(
     MinHashIndex(
         redis.clusters.get('ephemeral'),
         0xFFFF,
@@ -460,7 +460,7 @@ processors = ProcessorSet(
         'message:message:character-shingles': '\x03',
     }),
     {
-        'exception:message:character-shingles': ExceptionProcessor(
+        'exception:message:character-shingles': ExceptionFeature(
             lambda exception: map(
                 serialize_text_shingle,
                 shingle(
@@ -469,7 +469,7 @@ processors = ProcessorSet(
                 ),
             )
         ),
-        'exception:stacktrace:application-chunks': ExceptionProcessor(
+        'exception:stacktrace:application-chunks': ExceptionFeature(
             lambda exception: map(
                 lambda frames: FRAME_SEPARATOR.join(
                     map(
@@ -480,7 +480,7 @@ processors = ProcessorSet(
                 get_application_chunks(exception),
             ),
         ),
-        'exception:stacktrace:pairs': ExceptionProcessor(
+        'exception:stacktrace:pairs': ExceptionFeature(
             lambda exception: map(
                 FRAME_SEPARATOR.join,
                 shingle(
@@ -492,7 +492,7 @@ processors = ProcessorSet(
                 ),
             ),
         ),
-        'message:message:character-shingles': MessageProcessor(
+        'message:message:character-shingles': MessageFeature(
             lambda message: map(
                 serialize_text_shingle,
                 shingle(
