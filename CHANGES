@@ -10,6 +10,7 @@ Version 8.14 (Unreleased)
 Schema Changes
 ~~~~~~~~~~~~~~
 - Added unique index on ``Release(organization_id, version)``
+- Removed unique index on ``Release(project_id, version)``
 
 Version 8.13
 ------------
