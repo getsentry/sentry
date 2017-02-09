@@ -10,10 +10,8 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.app import locks
 from sentry.models import Activity, Release, ReleaseProject
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.retries import TimedRetryPolicy
 
 
 @scenario('CreateNewOrganizationRelease')
@@ -124,31 +122,22 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
 
             # release creation is idempotent to simplify user
             # experiences
-            release = Release.objects.filter(
-                organization_id=organization.id,
-                version=result['version']
-            ).first()
-            if release:
-                created = False
-            else:
-                lock_key = Release.get_lock_key(organization.id, result['version'])
-                lock = locks.get(lock_key, duration=5)
-                with TimedRetryPolicy(10)(lock.acquire):
-                    try:
-                        release, created = Release.objects.get(
-                            version=result['version'],
-                            organization_id=organization.id
-                        ), False
-                    except Release.DoesNotExist:
-                        release, created = Release.objects.create(
-                            organization_id=organization.id,
-                            version=result['version'],
-                            ref=result.get('ref'),
-                            url=result.get('url'),
-                            owner=result.get('owner'),
-                            date_started=result.get('dateStarted'),
-                            date_released=result.get('dateReleased'),
-                        ), True
+            try:
+                with transaction.atomic():
+                    release, created = Release.objects.create(
+                        organization_id=organization.id,
+                        version=result['version'],
+                        ref=result.get('ref'),
+                        url=result.get('url'),
+                        owner=result.get('owner'),
+                        date_started=result.get('dateStarted'),
+                        date_released=result.get('dateReleased'),
+                    ), True
+            except IntegrityError:
+                release, created = Release.objects.get(
+                    organization_id=organization.id,
+                    version=result['version'],
+                ), False
 
             new_projects = []
             for project in projects:
@@ -175,7 +164,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
             if commit_list:
                 release.set_commits(commit_list)
 
-            if not created:
+            if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want
                 # a unique 2xx response code so people can understand when
                 # behavior differs.

@@ -229,7 +229,8 @@ class OrganizationReleaseCreateTest(APITestCase):
             'projects': [project.slug]
         })
 
-        assert response.status_code == 208, response.content
+        # should be 201 because project was added
+        assert response.status_code == 201, response.content
         assert Release.objects.filter(
             version='1.2.1', organization=org
         ).count() == 1
@@ -270,10 +271,17 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         response = self.client.post(url, data={
             'version': '1.2.1',
+            'projects': [project.slug]
+        })
+        assert response.status_code == 208, response.content
+
+        response = self.client.post(url, data={
+            'version': '1.2.1',
             'projects': [project.slug, project2.slug]
         })
 
-        assert response.status_code == 208, response.content
+        # should be 201 because 1 project was added
+        assert response.status_code == 201, response.content
         assert not Activity.objects.filter(
             type=Activity.RELEASE,
             project=project,
