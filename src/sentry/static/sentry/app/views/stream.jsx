@@ -518,39 +518,46 @@ const Stream = React.createClass({
     let {orgId, projectId} = this.props.params;
     let link = `/${orgId}/${projectId}/settings/processing-issues/`;
     let showLink = false;
-    let label = t('Unprocessed Issues: ');
+    let label = null;
+    let className = 'processing-issues';
+    let issues = null;
+    let lastEvent = null;
 
     if (pi.numIssues > 0) {
-      let issues = tn('is %d problem', 'are %d problems', pi.numIssues);
-
-      return (
-        <div className="processing-issues failing">
-          <strong>{label}</strong>
-          {tct('there [issues]', {
-            issues: issues
-          })}
-          {' '}
-          <span className="last-seen">({t('last issue')}:
-            {' '}<TimeSince date={pi.lastSeen}/>)
-          </span>
-          {' '}
-          <Link to={link}>{t('show details')}</Link>
-        </div>
+      label = t('Unprocessed Events: ');
+      issues = tn('there is %d issue blocking event processing',
+                  'there are %d issues blocking event processing',
+                  pi.numIssues);
+      lastEvent = (
+        <span className="last-seen">({tct('last event from [ago]', {
+          ago: <TimeSince date={pi.lastSeen}/>
+        })})
+        </span>
       );
+      className += ' failing';
+      showLink = true;
     } else if (pi.issuesProcessing > 0) {
-      label = tn('Currently processing %d Issue...',
-        'Currently processing %d Issues...',
+      className += ' processing';
+      label = tn('Reprocessing %d event …',
+        'Reprocessing %d events …',
         pi.issuesProcessing);
     } else if (pi.resolveableIssues > 0) {
-      label = tn('Currently pending %d Issue...',
-        'Currently pending %d Issues...',
+      className += ' pending';
+      label = tn('%d event pending reprocessing.',
+        '%d events pending reprocessing.',
         pi.resolveableIssues);
       showLink = true;
+    } else {
+      /* we should not go here but what do we know */
+      return null;
     }
 
     return (
-      <div className="processing-issues pending">
+      <div className={className}>
         <strong>{label}</strong>
+        {issues}
+        {' '}
+        {lastEvent}
         {' '}
         {showLink &&
           <Link to={link}>{t('show details')}</Link>
