@@ -747,7 +747,8 @@ class ClientApiHelper(object):
             data = dict(data.items())
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
-        preprocess_event.delay(cache_key=cache_key, start_time=time())
+        preprocess_event.delay(cache_key=cache_key, start_time=time(),
+            event_id=data['event_id'])
 
 
 class CspApiHelper(ClientApiHelper):
