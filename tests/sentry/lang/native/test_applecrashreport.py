@@ -76,6 +76,76 @@ Thread 2 name: com.apple.test\n\
 1   SwiftExample                    0xf6cd4             0xf0000 + 60'
 
 
+def test_get_threads_apple_string_symbolicated():
+    acr = AppleCrashReport(symbolicated=True, threads=[
+        {'crashed': True,
+        'current': True,
+        'id': 1,
+        'name': None,
+        'stacktrace': {'frames': [
+            {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
+             'colno': 0,
+             'filename': 'SentrySwizzle.swift',
+             'function': '@objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
+             'image_addr': '0x2c8000',
+             'in_app': False,
+             'instruction_addr': '0x31caa4',
+             'lineno': 0,
+             'object_addr': '0x2c8000',
+             'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+             'symbol': '_TToFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
+             'symbol_addr': '0x31ca38'},
+            {'abs_path': '/Users/haza/Projects/sentry-swift/Sources/ios/SentrySwizzle.swift',
+             'colno': 84,
+             'filename': 'SentrySwizzle.swift',
+             'function': 'UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool',
+             'image_addr': '0x2c8000',
+             'in_app': False,
+             'instruction_addr': '0x31c3e8',
+             'lineno': 92,
+             'object_addr': '0x2c8000',
+             'package': '/private/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/Frameworks/SentrySwift.framework/SentrySwift',
+             'symbol': '_TFE11SentrySwiftCSo13UIApplication23sentryClient_sendActionfTV10ObjectiveC8Selector2toGSqPs9AnyObject__4fromGSqPS3___3forGSqCSo7UIEvent__Sb',
+             'symbol_addr': '0x31b9f8'}]
+        }},
+        {'crashed': False,
+        'current': False,
+        'id': 2,
+        'name': 'com.apple.test',
+        'stacktrace': {'frames': [
+            {'abs_path': '/Users/haza/Projects/sentry-swift/Examples/SwiftExample/SwiftExample/ViewController.swift',
+             'colno': 0,
+             'filename': 'ViewController.swift',
+             'function': '@objc ViewController.onClickFatalError(AnyObject) -> ()',
+             'image_addr': '0xf0000',
+             'in_app': True,
+             'instruction_addr': '0xf6cd4',
+             'lineno': 0,
+             'object_addr': '0xf0000',
+             'package': '/var/containers/Bundle/Application/06EA18D0-49C5-452C-B431-92B1098FB4AD/SwiftExample.app/SwiftExample',
+             'symbol': '_TToFC12SwiftExample14ViewController17onClickFatalErrorfPs9AnyObject_T_',
+             'symbol_addr': '0xf6c98'},
+            {'colno': 36,
+             'image_addr': '0xf0000',
+             'in_app': True,
+             'instruction_addr': '0xf6c78',
+             'lineno': 110,
+             'object_addr': '0xf0000',
+             'symbol_addr': '0xf6c04'}]
+        }},
+    ])
+    threads = acr.get_threads_apple_string()
+    assert threads.rstrip() == '''\
+Thread 1 name: \n\
+Thread 1 Crashed:
+0   SentrySwift                     0x31c3e8            UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool (SentrySwizzle.swift:92)
+1   SentrySwift                     0x31caa4            @objc UIApplication.sentryClient_sendAction(Selector, to : AnyObject?, from : AnyObject?, for : UIEvent?) -> Bool
+
+Thread 2 name: com.apple.test
+0   <unknown>                       0xf6c78             <unknown> + 116
+1   SwiftExample                    0xf6cd4             @objc ViewController.onClickFatalError(AnyObject) -> ()'''
+
+
 # 0   libswiftCore.dylib              0x0000000100556cc4 0x1003f8000 + 1436868
 # 1   libswiftCore.dylib              0x0000000100556cc4 0x1003f8000 + 1436868
 # 2   SentrySwift                     0x0000000100312308 @objc SentryClient.crash() -> () (Sentry.swift:0)
