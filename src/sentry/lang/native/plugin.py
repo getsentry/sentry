@@ -472,7 +472,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     new_frame['abs_path'])
             if sfrm.get('line') is not None:
                 new_frame['lineno'] = sfrm['line']
-            elif sfrm.get('symbol_addr') is not None:
+            elif frame.get('symbol_addr') is not None:
                 # XXX: this is technically incorrect because the instruction
                 # address might move away from the symbol address if we
                 # find a different symbol than the client did.  However
