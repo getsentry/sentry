@@ -35,7 +35,6 @@ def test_legacy_stacktrace_converter():
          'function': 'objc_exception_throw',
          'in_app': False,
          'instruction_addr': '0x196857f80',
-         'instruction_offset': 56,
          'lineno': None,
          'package': 'libobjc.A.dylib',
          'symbol_addr': '0x196857f48'},
@@ -44,7 +43,6 @@ def test_legacy_stacktrace_converter():
          'function': '<redacted>',
          'in_app': False,
          'instruction_addr': '0x182300f5c',
-         'instruction_offset': 124,
          'lineno': None,
          'package': 'CoreFoundation',
          'symbol_addr': '0x182300ee0',
@@ -108,7 +106,6 @@ class BasicResolvingIntegrationTest(TestCase):
                                 {
                                     "function": "<redacted>",
                                     "abs_path": None,
-                                    "instruction_offset": 4,
                                     "package": "/usr/lib/system/libdyld.dylib",
                                     "filename": None,
                                     "symbol_addr": "0x002ac28b4",
@@ -216,7 +213,6 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[1].colno == 23
         assert frames[1].package == object_name
         assert frames[1].instruction_addr == '0x100026330'
-        assert frames[1].instruction_offset is None
         assert frames[1].in_app
 
         assert frames[2].platform == 'javascript'
@@ -225,7 +221,6 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[2].lineno == 268
         assert frames[2].colno == 16
         assert frames[2].filename == '../../sentry/scripts/views.js'
-        assert frames[2].instruction_offset is None
         assert frames[2].in_app
 
         assert len(event.interfaces['threads'].values) == 1
@@ -300,7 +295,6 @@ class BasicResolvingIntegrationTest(TestCase):
                                 {
                                     "function": "<redacted>",
                                     "abs_path": None,
-                                    "instruction_offset": 4,
                                     "package": "/usr/lib/system/libdyld.dylib",
                                     "filename": None,
                                     "symbol_addr": "0x002ac28b4",
@@ -386,7 +380,6 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[1].colno == 23
         assert frames[1].package == object_name
         assert frames[1].instruction_addr == '0x100020014'
-        assert frames[1].instruction_offset is None
         assert frames[1].in_app
 
         assert frames[2].function == 'other_main'
@@ -395,7 +388,6 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[2].colno == 23
         assert frames[2].package == object_name
         assert frames[2].instruction_addr == '0x10002001c'
-        assert frames[2].instruction_offset is None
         assert frames[2].in_app
 
         assert frames[3].platform == 'javascript'
@@ -404,7 +396,6 @@ class BasicResolvingIntegrationTest(TestCase):
         assert frames[3].lineno == 268
         assert frames[3].colno == 16
         assert frames[3].filename == '../../sentry/scripts/views.js'
-        assert frames[3].instruction_offset is None
         assert frames[3].in_app
 
         x = bt.get_api_context()
