@@ -10,7 +10,6 @@ from sentry.testutils import TestCase
 
 class MergeReleasesTest(TestCase):
     def test_simple(self):
-        version = 'abcdabc'
         org = self.create_organization()
         commit = Commit.objects.create(
             organization_id=org.id,
@@ -23,7 +22,7 @@ class MergeReleasesTest(TestCase):
 
         # merge to
         project = self.create_project(organization=org, name='foo')
-        release = Release.objects.create(version=version, organization=org)
+        release = Release.objects.create(version='abcdabc', organization=org)
         release.add_project(project)
         release_commit = ReleaseCommit.objects.create(
             organization_id=org.id,
@@ -50,7 +49,7 @@ class MergeReleasesTest(TestCase):
 
         # merge from #1
         project2 = self.create_project(organization=org, name='bar')
-        release2 = Release.objects.create(version=version, organization=org)
+        release2 = Release.objects.create(version='bbbbbbb', organization=org)
         release2.add_project(project2)
         release_commit2 = ReleaseCommit.objects.create(
             organization_id=org.id,
@@ -77,7 +76,7 @@ class MergeReleasesTest(TestCase):
 
         # merge from #2
         project3 = self.create_project(organization=org, name='baz')
-        release3 = Release.objects.create(version=version, organization=org)
+        release3 = Release.objects.create(version='cccccc', organization=org)
         release3.add_project(project3)
         release_commit3 = ReleaseCommit.objects.create(
             organization_id=org.id,
