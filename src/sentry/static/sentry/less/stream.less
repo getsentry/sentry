@@ -200,7 +200,16 @@
   padding: 5px 10px;
   text-align: center;
 
-  &.issues {
+  &.failing {
+    border: 1px solid @orange;
+    background: lighten(@orange-light, 33%);
+    color: @orange-dark;
+    a {
+      color: @orange-dark;
+    }
+  }
+
+  &.pending {
     border: 1px solid @purple-light;
     background: lighten(@purple-lightest, 15%);
     color: @purple-dark;
@@ -209,7 +218,7 @@
     }
   }
 
-  &.resolveable {
+  &.processing {
     border: 1px solid @green;
     background: lighten(@green-light, 33%);
     color: @green-dark;

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import ProcessingIssue
+from sentry.models import ProcessingIssue, ReprocessingReport
 
 
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
@@ -23,12 +23,16 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         resolveable_issues, has_more = ProcessingIssue.objects \
             .find_resolved(project_id=project.id)
 
+        reprocessing_issues = ReprocessingReport.objects \
+            .filter(project_id=project.id).count()
+
         data = {
             'hasIssues': num_issues > 0,
             'numIssues': num_issues,
             'lastSeen': last_seen and serialize(last_seen.datetime) or None,
             'resolveableIssues': len(resolveable_issues),
             'hasMoreResolveableIssues': has_more,
+            'issuesProcessing': reprocessing_issues,
         }
 
         if request.GET.get('detailed') == '1':

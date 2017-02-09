@@ -197,7 +197,9 @@ const Stream = React.createClass({
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       success: (data) => {
-        if (data.hasIssues || data.resolveableIssues > 0) {
+        if (data.hasIssues
+          || data.resolveableIssues > 0
+          || data.issuesProcessing > 0) {
           this.setState({
             processingIssues: data,
           });
@@ -515,37 +517,46 @@ const Stream = React.createClass({
 
     let {orgId, projectId} = this.props.params;
     let link = `/${orgId}/${projectId}/settings/processing-issues/`;
+    let showLink = false;
+    let label = t('Unprocessed Issues: ');
 
     if (pi.numIssues > 0) {
       let issues = tn('is %d problem', 'are %d problems', pi.numIssues);
 
       return (
-        <div className="processing-issues issues">
-          <strong>{t('Unprocessed Issues: ')}</strong>
+        <div className="processing-issues failing">
+          <strong>{label}</strong>
           {tct('there [issues]', {
             issues: issues
           })}
           {' '}
           <span className="last-seen">({t('last issue')}:
-            <TimeSince date={pi.lastSeen}/>)</span>
+            <TimeSince date={pi.lastSeen}/>)
+          </span>
           {' '}
           <Link to={link}>{t('show details')}</Link>
         </div>
       );
+    } else if (pi.issuesProcessing > 0) {
+      label = tn('Currently processing %d Issue...',
+        'Currently processing %d Issues...',
+        pi.issuesProcessing);
     } else if (pi.resolveableIssues > 0) {
-      let fixableEvents = tn('Fix (%d) unprocessed Event',
-        'Fix (%d) unprocessed Events',
+      label = tn('Currently pending %d Issue...',
+        'Currently pending %d Issues...',
         pi.resolveableIssues);
-
-      return (
-        <div className="processing-issues resolveable">
-          <strong>{fixableEvents}:</strong>
-          {' '}
-          <Link to={link}>{t('show details')}</Link>
-        </div>
-      );
+      showLink = true;
     }
-    return null;
+
+    return (
+      <div className="processing-issues pending">
+        <strong>{label}</strong>
+        {' '}
+        {showLink &&
+          <Link to={link}>{t('show details')}</Link>
+        }
+      </div>
+    );
   },
 
   renderGroupNodes(ids, statsPeriod) {
