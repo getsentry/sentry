@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
+import Badge from '../../components/badge';
 import ListLink from '../../components/listLink';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -99,7 +100,7 @@ const ProjectSettings = React.createClass({
             <ListLink className="badged" to={`/${orgId}/${projectId}/settings/processing-issues/`}>
               {t('Processing Issues')}
               {processingIssues > 0 &&
-                <span className="badge new">{processingIssues > 99 ? '99+' : processingIssues}</span>
+                <Badge text={processingIssues > 99 ? '99+' : processingIssues} isNew={true} />
               }
             </ListLink>
           </ul>
