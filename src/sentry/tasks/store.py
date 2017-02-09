@@ -47,13 +47,14 @@ def should_process(data):
     time_limit=65,
     soft_time_limit=60,
 )
-def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
+def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
     if cache_key:
         data = default_cache.get(cache_key)
 
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'pre'})
-        error_logger.error('preprocess.failed.empty', extra={'cache_key': cache_key})
+        error_logger.error('preprocess.failed.empty',
+            extra={'cache_key': cache_key})
         return
 
     project = data['project']
@@ -62,14 +63,16 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
     })
 
     if should_process(data):
-        process_event.delay(cache_key=cache_key, start_time=start_time)
+        process_event.delay(cache_key=cache_key, start_time=start_time,
+            event_id=event_id)
         return
 
     # If we get here, that means the event had no preprocessing needed to be done
     # so we can jump directly to save_event
     if cache_key:
         data = None
-    save_event.delay(cache_key=cache_key, data=data, start_time=start_time)
+    save_event.delay(cache_key=cache_key, data=data, start_time=start_time,
+        event_id=event_id)
 
 
 @instrumented_task(
@@ -78,14 +81,15 @@ def preprocess_event(cache_key=None, data=None, start_time=None, **kwargs):
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, **kwargs):
+def process_event(cache_key, start_time=None, event_id=None, **kwargs):
     from sentry.plugins import plugins
 
     data = default_cache.get(cache_key)
 
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'process'})
-        error_logger.error('process.failed.empty', extra={'cache_key': cache_key})
+        error_logger.error('process.failed.empty',
+            extra={'cache_key': cache_key})
         return
 
     project = data['project']
@@ -116,15 +120,21 @@ def process_event(cache_key, start_time=None, **kwargs):
     if has_changed:
         issues = data.get('processing_issues')
         if issues:
-            create_failed_event(cache_key, project, list(issues.values()))
+            create_failed_event(cache_key, project, list(issues.values()),
+                event_id=event_id)
             return
 
         default_cache.set(cache_key, data, 3600)
 
-    save_event.delay(cache_key=cache_key, data=None, start_time=start_time)
+    save_event.delay(cache_key=cache_key, data=None, start_time=start_time,
+        event_id=event_id)
 
 
 def delete_raw_event(project_id, event_id):
+    if event_id is None:
+        error_logger.error('process.failed_delete_raw_event',
+            extra={'project_id': project_id})
+        return
     from sentry.models import RawEvent
     RawEvent.objects.filter(
         project_id=project_id,
@@ -132,25 +142,24 @@ def delete_raw_event(project_id, event_id):
     ).delete()
 
 
-def create_failed_event(cache_key, project, issues):
+def create_failed_event(cache_key, project, issues, event_id):
     """If processing failed we put the original data from the cache into a
     raw event.
     """
     # We need to get the original data here instead of passing the data in
     # from the last processing step because we do not want any
     # modifications to take place.
+    delete_raw_event(project, event_id)
     data = default_cache.get(cache_key)
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'failed_raw'})
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return
 
-    delete_raw_event(project, data['event_id'])
-
     from sentry.models import RawEvent, ProcessingIssue
     raw_event = RawEvent.objects.create(
         project_id=project,
-        event_id=data['event_id'],
+        event_id=event_id,
         datetime=datetime.utcfromtimestamp(
             data['timestamp']).replace(tzinfo=timezone.utc),
         data=data
@@ -171,7 +180,7 @@ def create_failed_event(cache_key, project, issues):
 @instrumented_task(
     name='sentry.tasks.store.save_event',
     queue='events.save_event')
-def save_event(cache_key=None, data=None, start_time=None, **kwargs):
+def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
     """
     Saves an event to the database.
     """
@@ -180,12 +189,15 @@ def save_event(cache_key=None, data=None, start_time=None, **kwargs):
     if cache_key:
         data = default_cache.get(cache_key)
 
+    if event_id is None and data is not None:
+        event_id = data['event_id']
+    delete_raw_event(project, event_id)
+
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
     project = data.pop('project')
-    delete_raw_event(project, data['event_id'])
     Raven.tags_context({
         'project': project,
     })
