@@ -40,7 +40,6 @@ def patched_symbolize_system_frame(self, frame, img, sdk_info,
         return [{
             'object_name': '/usr/lib/whatever.dylib',
             'symbol_name': 'whatever_system',
-            'instruction_offset': 4
         }]
     return []
 
@@ -176,9 +175,7 @@ class BasicResolvingFileTest(TestCase):
         assert frames[1]['colno'] == 23
         assert frames[1]['package'] == OBJECT_NAME
         assert frames[1]['instruction_addr'] == 4295123760
-        assert frames[1].get('instruction_offset') is None
 
         assert frames[2]['function'] == 'whatever_system'
         assert frames[2]['package'] == '/usr/lib/whatever.dylib'
         assert frames[2]['instruction_addr'] == 6020
-        assert frames[2].get('instruction_offset') == 4
