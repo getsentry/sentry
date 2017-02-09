@@ -23,7 +23,14 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         # Removing unique constraint on 'Release', fields ['organization', 'version']
-        db.delete_unique('sentry_release', ['organization_id', 'version'])
+        if is_postgres():
+            db.commit_transaction()
+            db.execute("DROP INDEX CONCURRENTLY {}".format(
+                db.create_index_name('sentry_release', ['organization_id', 'version']),
+            ))
+            db.start_transaction()
+        else:
+            db.delete_unique('sentry_release', ['organization_id', 'version'])
 
 
     models = {
