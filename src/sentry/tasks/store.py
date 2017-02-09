@@ -189,10 +189,6 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     if cache_key:
         data = default_cache.get(cache_key)
 
-    if event_id is None and data is not None:
-        event_id = data['event_id']
-    delete_raw_event(project, event_id)
-
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
@@ -201,6 +197,10 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     Raven.tags_context({
         'project': project,
     })
+
+    if event_id is None and data is not None:
+        event_id = data['event_id']
+    delete_raw_event(project, event_id)
 
     try:
         manager = EventManager(data)
