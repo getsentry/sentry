@@ -198,13 +198,27 @@
   font-size: 14px;
   font-weight: 400;
   padding: 5px 10px;
-  border: 1px solid @purple-light;
-  background: lighten(@purple-lightest, 15%);
-  color: @purple-dark;
   text-align: center;
 
-  a {
+  &.issues {
+    border: 1px solid @purple-light;
+    background: lighten(@purple-lightest, 15%);
     color: @purple-dark;
+    a {
+      color: @purple-dark;
+    }
+  }
+
+  &.resolveable {
+    border: 1px solid @green;
+    background: lighten(@green-light, 33%);
+    color: @green-dark;
+    a {
+      color: @green-dark;
+    }
+  }
+
+  a {
     font-weight: bold;
     text-decoration: underline;
   }

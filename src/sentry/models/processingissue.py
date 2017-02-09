@@ -54,12 +54,15 @@ class ProcessingIssueManager(BaseManager):
         rv = list(RawEvent.objects
             .filter(project_id=project_id)
             .annotate(eventissue_count=Count('eventprocessingissue'))
-            .filter(count=0)[:limit])
+            .filter(eventissue_count=0)[:limit])
         if len(rv) > limit:
             rv = rv[:limit]
             has_more = True
         else:
             has_more = False
+
+        rv = list(rv)
+        RawEvent.objects.bind_nodes(rv, 'data')
         return rv, has_more
 
     def record_processing_issue(self, raw_event, scope, object,

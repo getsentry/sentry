@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
-    name='sentry.tasks.store.reprocess_events',
+    name='sentry.tasks.reprocess_events',
     queue='events.reprocess_events')
 def reprocess_events(project_id, **kwargs):
     from sentry.models import ProcessingIssue
@@ -25,11 +25,12 @@ def reprocess_events(project_id, **kwargs):
     lock = app.locks.get(lock_key, duration=60)
     try:
         with lock.acquire():
-            raw_events, have_more = ProcessingIssue.find_resolved(project_id)
+            raw_events, have_more = ProcessingIssue.objects \
+                .find_resolved(project_id)
             if raw_events:
                 helper = ClientApiHelper()
                 for raw_event in raw_events:
-                    helper.insert_data_to_database(raw_event.data)
+                    helper.insert_data_to_database(raw_event.data.data)
                     raw_event.delete()
     except UnableToAcquireLock as error:
         logger.warning('reprocess_events.fail', extra={'error': error})
