@@ -214,6 +214,14 @@ class Symbolizer(object):
                ('/' not in rv['object_name'] and '/' in img['name']):
                 rv['object_name'] = img['name']
             rv['uuid'] = img['uuid']
+
+        symbol_addr = frame.get('symbol_addr')
+        if symbol_addr is not None:
+            symbol_addr = parse_addr(symbol_addr)
+            slide_value = img.get('image_vmaddr') or 0
+            rv['instruction_offset'] = parse_addr(frame['instruction_addr']) \
+                - slide_value - symbol_addr
+
         return rv
 
     def _get_frame_package(self, frame, img):
