@@ -7,6 +7,7 @@ import operator
 import struct
 
 import mmh3
+from django.conf import settings
 
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
@@ -448,7 +449,13 @@ def serialize_text_shingle(value, separator=b''):
 
 features = FeatureSet(
     MinHashIndex(
-        redis.clusters.get('ephemeral'),
+        redis.clusters.get(
+            getattr(
+                settings,
+                'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
+                'default',
+            ),
+        ),
         0xFFFF,
         8,
         2,
