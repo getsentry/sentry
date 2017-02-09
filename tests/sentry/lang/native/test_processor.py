@@ -28,7 +28,7 @@ def patched_symbolize_app_frame(self, frame, img, symbolize_inlined=False):
         'line': 42,
         'column': 23,
         'object_name': OBJECT_NAME,
-        'symbol_name': 'real_main'
+        'symbol_name': 'real_main',
     }]
 
 
@@ -40,6 +40,7 @@ def patched_symbolize_system_frame(self, frame, img, sdk_info,
         return [{
             'object_name': '/usr/lib/whatever.dylib',
             'symbol_name': 'whatever_system',
+            'instruction_offset': 4
         }]
     return []
 
