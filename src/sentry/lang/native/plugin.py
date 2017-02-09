@@ -472,11 +472,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     new_frame['abs_path'])
             if sfrm.get('line') is not None:
                 new_frame['lineno'] = sfrm['line']
-            # XXX: this is technically incorrect because the instruction
-            # address might move away from the symbol address if we
-            # find a different symbol than the client did.  However
-            # our symbolizer cannot tell us where a symbol is so this
-            # is the best we can do for now.  Maybe we kill it?
             instruction_offset = sfrm.get('instruction_offset')
             if instruction_offset is not None:
                 new_frame['instruction_offset'] = instruction_offset
