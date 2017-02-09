@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from sentry.utils.compat import implements_to_string
 from sentry.utils.native import parse_addr
+from sentry.constants import NATIVE_UNKNOWN_STRING
 
 REPORT_VERSION = '104'
 
@@ -135,7 +136,8 @@ class AppleCrashReport(object):
         image_addr = slide_value + parse_addr(frame.get('image_addr'))
         offset = ''
         if frame.get('image_addr') is not None and \
-           (not self.symbolicated or (frame.get('function') or '<unknown>') == '<unknown>'):
+           (not self.symbolicated or (
+                frame.get('function') or NATIVE_UNKNOWN_STRING) == NATIVE_UNKNOWN_STRING):
             offset = ' + %s' % (
                 instruction_addr - slide_value - parse_addr(
                     frame.get('symbol_addr'))
@@ -145,16 +147,16 @@ class AppleCrashReport(object):
             file = ''
             if frame.get('filename') and frame.get('lineno'):
                 file = ' (%s:%s)' % (
-                    frame.get('filename') or '<unknown>',
+                    frame.get('filename') or NATIVE_UNKNOWN_STRING,
                     frame['lineno']
                 )
             symbol = '%s%s' % (
-                frame.get('function') or '<unknown>',
+                frame.get('function') or NATIVE_UNKNOWN_STRING,
                 file
             )
         return '%s%s%s%s%s' % (
             str(number).ljust(4, ' '),
-            (frame.get('package') or '<unknown>').rsplit('/', 1)[-1].ljust(32, ' '),
+            (frame.get('package') or NATIVE_UNKNOWN_STRING).rsplit('/', 1)[-1].ljust(32, ' '),
             hex(instruction_addr).ljust(20, ' '),
             symbol,
             offset

@@ -18,6 +18,7 @@ from sentry.lang.native.utils import \
     APPLE_SDK_MAPPING
 from sentry.utils.native import parse_addr
 from sentry.stacktraces import StacktraceProcessor
+from sentry.constants import NATIVE_UNKNOWN_STRING
 
 
 logger = logging.getLogger(__name__)
@@ -167,7 +168,7 @@ def convert_stacktrace(frames, system=None, notable_addresses=None):
         # We only record the offset if we found a symbol but we did not
         # find a line number.  In that case it's the offset in bytes from
         # the beginning of the symbol.
-        function = frame.get('symbol_name') or '<unknown>'
+        function = frame.get('symbol_name') or NATIVE_UNKNOWN_STRING
         lineno = frame.get('line')
         offset = None
         if not lineno:
@@ -423,7 +424,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                              exc_info=True)
         else:
             symbol = sfrm.get('symbol_name') or \
-                new_frame.get('function') or '<unknown>'
+                new_frame.get('function') or NATIVE_UNKNOWN_STRING
             function = demangle_symbol(symbol, simplified=True)
 
             new_frame['function'] = function
