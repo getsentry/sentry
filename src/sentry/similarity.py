@@ -362,14 +362,14 @@ class ExceptionFeature(object):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
-            self.logger.info('Could not create signature(s) for %r due error: %r', event, error, exc_info=True)
+            self.logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
             return
 
         for exception in exceptions:
             try:
                 yield self.function(exception)
             except Exception as error:
-                self.logger.exception('Could not create signature for exception in %r due to error: %r', event, error)
+                self.logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
 
 
 class MessageFeature(object):
@@ -381,13 +381,13 @@ class MessageFeature(object):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
-            self.logger.info('Could not create signature(s) for %r due error: %r', event, error, exc_info=True)
+            self.logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
             return
 
         try:
             yield self.function(message)
         except Exception as error:
-            self.logger.exception('Could not create signature for message of %r due to error: %r', event, error)
+            self.logger.exception('Could not extract characteristic(s) from message of %r due to error: %r', event, error)
 
 
 class FeatureSet(object):
