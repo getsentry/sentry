@@ -34,6 +34,7 @@ const ProjectProcessingIssues = React.createClass({
   getInitialState() {
     return {
       loading: true,
+      reprocessing: false,
       error: false,
       processingIssues: null,
     };
@@ -64,14 +65,26 @@ const ProjectProcessingIssues = React.createClass({
   },
 
   sendReprocessing() {
+    this.setState({
+      reprocessing: true
+    });
     let loadingIndicator = IndicatorStore.add(t('Started reprocessing..'));
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
       success: (data, _, jqXHR) => {
-
+        setTimeout(() => {
+          this.fetchData();
+          IndicatorStore.remove(loadingIndicator);
+          this.setState({
+            reprocessing: false
+          });
+        }, 1000);
       },
       error: () => {
+        this.setState({
+          reprocessing: false
+        });
         IndicatorStore.remove(loadingIndicator);
       }
     });
@@ -160,21 +173,18 @@ const ProjectProcessingIssues = React.createClass({
 
   renderResolveButton() {
     let issues = this.state.processingIssues;
-    if (issues === null) {
+    if (issues === null || this.state.reprocessing) {
       return null;
     }
-    let disabled = true;
-    let fixButton = t('Fix Events');
-    if (issues.resolveableIssues > 0) {
-      disabled = false;
-      fixButton = tn('Fix (%d) unprocessed Event', 'Fix (%d) unprocessed Events', issues.resolveableIssues);
+    if (issues.resolveableIssues <= 0) {
+      return null;
     }
+    let fixButton = tn('Click here to trigger reprocessing for %d Issue',
+      'Click here to trigger reprocessing for %d Issues',
+      issues.resolveableIssues);
     return (
-      <div className="form-actions">
-        <button className="btn btn-primary"
-                disabled={disabled}
-                onClick={this.sendReprocessing}
-                type="submit">{fixButton}</button>
+      <div className="alert alert-block alert-info">
+        Pro Tip: <a onClick={this.sendReprocessing}>{fixButton}</a>
       </div>
     );
   },

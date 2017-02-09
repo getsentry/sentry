@@ -135,8 +135,12 @@ def delete_raw_event(project_id, event_id):
         error_logger.error('process.failed_delete_raw_event',
             extra={'project_id': project_id})
         return
-    from sentry.models import RawEvent
+    from sentry.models import RawEvent, ReprocessingReport
     RawEvent.objects.filter(
+        project_id=project_id,
+        event_id=event_id
+    ).delete()
+    ReprocessingReport.objects.filter(
         project_id=project_id,
         event_id=event_id
     ).delete()
@@ -189,18 +193,20 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
     if cache_key:
         data = default_cache.get(cache_key)
 
+    if event_id is None and data is not None:
+        event_id = data['event_id']
+
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'post'})
         return
 
     project = data.pop('project')
+
+    delete_raw_event(project, event_id)
+
     Raven.tags_context({
         'project': project,
     })
-
-    if event_id is None and data is not None:
-        event_id = data['event_id']
-    delete_raw_event(project, event_id)
 
     try:
         manager = EventManager(data)

@@ -23,6 +23,7 @@ def reprocess_events(project_id, **kwargs):
     lock_key = 'events:reprocess_events:%s' % project_id
     have_more = False
     lock = app.locks.get(lock_key, duration=60)
+
     try:
         with lock.acquire():
             raw_events, have_more = ProcessingIssue.objects \
@@ -31,6 +32,8 @@ def reprocess_events(project_id, **kwargs):
                 helper = ClientApiHelper()
                 for raw_event in raw_events:
                     helper.insert_data_to_database(raw_event.data.data)
+                    create_reprocessing_report(project_id=project_id,
+                        event_id=raw_event.event_id)
                     raw_event.delete()
     except UnableToAcquireLock as error:
         logger.warning('reprocess_events.fail', extra={'error': error})
@@ -38,6 +41,14 @@ def reprocess_events(project_id, **kwargs):
     # There are more, kick us off again
     if have_more:
         reprocess_events.delay(project_id=project_id)
+
+
+def create_reprocessing_report(project_id, event_id):
+    from sentry.models import ReprocessingReport
+    return ReprocessingReport.objects.create(
+        project_id=project_id,
+        event_id=event_id
+    )
 
 
 @instrumented_task(name='sentry.tasks.clear_expired_raw_events',
