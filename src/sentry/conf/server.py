@@ -448,6 +448,7 @@ CELERY_QUEUES = [
     Queue('email', routing_key='email'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
     Queue('events.process_event', routing_key='events.process_event'),
+    Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),

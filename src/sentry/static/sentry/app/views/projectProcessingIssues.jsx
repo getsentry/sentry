@@ -4,7 +4,8 @@ import ApiMixin from '../mixins/apiMixin';
 import TimeSince from '../components/timeSince';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import IndicatorStore from '../stores/indicatorStore';
+import {t, tn} from '../locale';
 
 const MESSAGES = {
     'native_no_crashed_thread': t('No crashed thread found in crash report'),
@@ -58,6 +59,20 @@ const ProjectProcessingIssues = React.createClass({
           error: true,
           loading: false
         });
+      }
+    });
+  },
+
+  sendReprocessing() {
+    let loadingIndicator = IndicatorStore.add(t('Started reprocessing..'));
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
+      method: 'POST',
+      success: (data, _, jqXHR) => {
+
+      },
+      error: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
@@ -143,6 +158,27 @@ const ProjectProcessingIssues = React.createClass({
     );
   },
 
+  renderResolveButton() {
+    let issues = this.state.processingIssues;
+    if (issues === null) {
+      return null;
+    }
+    let disabled = true;
+    let fixButton = t('Fix Events');
+    if (issues.resolveableIssues > 0) {
+      disabled = false;
+      fixButton = tn('Fix (%d) unprocessed Event', 'Fix (%d) unprocessed Events', issues.resolveableIssues);
+    }
+    return (
+      <div className="form-actions">
+        <button className="btn btn-primary"
+                disabled={disabled}
+                onClick={this.sendReprocessing}
+                type="submit">{fixButton}</button>
+      </div>
+    );
+  },
+
   renderResults() {
     return (
       <table className="table processing-issues">
@@ -182,6 +218,7 @@ const ProjectProcessingIssues = React.createClass({
           them.
         `)}</p>
         {this.renderDebugTable()}
+        {this.renderResolveButton()}
       </div>
     );
   }

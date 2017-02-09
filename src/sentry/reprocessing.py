@@ -28,7 +28,6 @@ def resolve_processing_issue(project, scope, object=None, type=None):
     if object is None:
         object = '*'
     from sentry.models import ProcessingIssue
-    # XXX: consider moving to task?
     ProcessingIssue.objects.resolve_processing_issue(
         project=project, scope=scope, object=object, type=type)
 

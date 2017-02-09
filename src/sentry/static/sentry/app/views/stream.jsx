@@ -197,7 +197,7 @@ const Stream = React.createClass({
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
       success: (data) => {
-        if (data.hasIssues) {
+        if (data.hasIssues || data.resolveableIssues > 0) {
           this.setState({
             processingIssues: data,
           });
@@ -513,22 +513,39 @@ const Stream = React.createClass({
       return null;
     }
 
-    let issues = tn('is %d problem', 'are %d problems', pi.numIssues);
-
     let {orgId, projectId} = this.props.params;
+    let link = `/${orgId}/${projectId}/settings/processing-issues/`;
 
-    return (
-      <div className="processing-issues">
-        <strong>{t('Unprocessed Issues: ')}</strong>
-        {tct('there [issues]', {
-          issues: issues
-        })}
-        {' '}
-        <span className="last-seen">({t('last issue')}: <TimeSince date={pi.lastSeen}/>)</span>
-        {' '}
-        <Link to={`/${orgId}/${projectId}/settings/processing-issues/`}>{t('show details')}</Link>
-      </div>
-    );
+    if (pi.numIssues > 0) {
+      let issues = tn('is %d problem', 'are %d problems', pi.numIssues);
+
+      return (
+        <div className="processing-issues issues">
+          <strong>{t('Unprocessed Issues: ')}</strong>
+          {tct('there [issues]', {
+            issues: issues
+          })}
+          {' '}
+          <span className="last-seen">({t('last issue')}:
+            <TimeSince date={pi.lastSeen}/>)</span>
+          {' '}
+          <Link to={link}>{t('show details')}</Link>
+        </div>
+      );
+    } else if (pi.resolveableIssues > 0) {
+      let fixableEvents = tn('Fix (%d) unprocessed Event',
+        'Fix (%d) unprocessed Events',
+        pi.resolveableIssues);
+
+      return (
+        <div className="processing-issues resolveable">
+          <strong>{fixableEvents}:</strong>
+          {' '}
+          <Link to={link}>{t('show details')}</Link>
+        </div>
+      );
+    }
+    return null;
   },
 
   renderGroupNodes(ids, statsPeriod) {

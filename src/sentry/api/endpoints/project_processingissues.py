@@ -20,10 +20,15 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
             project=project
         ).order_by('-datetime').first()
 
+        resolveable_issues, has_more = ProcessingIssue.objects \
+            .find_resolved(project_id=project.id)
+
         data = {
             'hasIssues': num_issues > 0,
             'numIssues': num_issues,
-            'lastSeen': serialize(last_seen.datetime),
+            'lastSeen': last_seen and serialize(last_seen.datetime) or None,
+            'resolveableIssues': len(resolveable_issues),
+            'hasMoreResolveableIssues': has_more,
         }
 
         if request.GET.get('detailed') == '1':
