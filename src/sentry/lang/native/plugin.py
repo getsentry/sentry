@@ -16,7 +16,6 @@ from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
     APPLE_SDK_MAPPING
-from sentry.utils.native import parse_addr
 from sentry.stacktraces import StacktraceProcessor
 
 
@@ -426,6 +425,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'instruction_addr': self.find_best_instruction(
                 frame, stacktrace_info, idx),
             'symbol_name': frame.get('function'),
+            'symbol_addr': frame.get('symbol_addr'),
         }
         in_app = self.sym.is_in_app(sym_input_frame)
 
@@ -477,10 +477,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # find a different symbol than the client did.  However
             # our symbolizer cannot tell us where a symbol is so this
             # is the best we can do for now.  Maybe we kill it?
-            if frame.get('symbol_addr') is not None:
-                new_frame['instruction_offset'] = \
-                    parse_addr(frame['instruction_addr']) - \
-                    parse_addr(frame['symbol_addr'])
+            instruction_offset = sfrm.get('instruction_offset')
+            if instruction_offset is not None:
+                new_frame['instruction_offset'] = instruction_offset
             if sfrm.get('column') is not None:
                 new_frame['colno'] = sfrm['column']
             new_frame['package'] = sfrm['object_name'] \
