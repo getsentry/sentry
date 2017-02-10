@@ -335,8 +335,8 @@ def main(num_events=1, extra_events=False):
                     defaults={
                         'author': CommitAuthor.objects.get_or_create(
                             organization_id=org.id,
-                            name=raw_commit['author'][0],
                             email=raw_commit['author'][1],
+                            defaults={'name': raw_commit['author'][0]}
                         )[0],
                         'message': raw_commit['message'],
                     },
