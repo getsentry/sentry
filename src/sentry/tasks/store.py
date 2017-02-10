@@ -188,7 +188,7 @@ def create_failed_event(cache_key, project, issues, event_id):
     delete_raw_event(project, event_id)
     data = default_cache.get(cache_key)
     if data is None:
-        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'failed_raw'})
+        metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'})
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
         return
 
