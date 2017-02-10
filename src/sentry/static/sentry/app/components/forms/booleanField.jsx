@@ -5,13 +5,6 @@ import {defined} from '../../utils';
 import InputField from './inputField';
 
 export default class BooleanField extends InputField {
-
-  componentWillReceiveProps(nextProps) {
-    this.setState({
-      value: this.valueFromProps(nextProps)
-    });
-  }
-
   valueFromProps(props) {
     let value = super.valueFromProps(props);
     return value ? true : false;
@@ -31,10 +24,10 @@ export default class BooleanField extends InputField {
           type={this.getType()}
           onChange={this.onChange.bind(this)}
           disabled={this.props.disabled}
-          defaultChecked={this.state.value}
-          checked={this.state.value} />
+          defaultChecked={this.state.value} />
     );
   }
+
 
   render() {
     let className = this.getClassName();

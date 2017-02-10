@@ -37,7 +37,7 @@ const ProjectProcessingIssues = React.createClass({
       formData: {},
       loading: true,
       reprocessing: false,
-      expected: 2,
+      expected: 0,
       error: false,
       processingIssues: null,
     };
@@ -57,7 +57,9 @@ const ProjectProcessingIssues = React.createClass({
 
   fetchData() {
     let {orgId, projectId} = this.props.params;
-
+    this.setState({
+      expected: (this.state.expected + 2),
+    });
     this.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, _, jqXHR) => {
         let expected = this.state.expected - 1;
@@ -119,6 +121,33 @@ const ProjectProcessingIssues = React.createClass({
         });
       }, complete: () => {
         IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
+  deleteProcessingIssues() {
+    let {orgId, projectId} = this.props.params;
+    this.setState({
+      expected: (this.state.expected + 1),
+    });
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
+      method: 'DELETE',
+      success: (data, _, jqXHR) => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          error: false,
+          loading: expected > 0,
+        });
+        this.fetchData();
+      },
+      error: () => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          error: true,
+          loading: expected > 0
+        });
       }
     });
   },
@@ -250,6 +279,9 @@ const ProjectProcessingIssues = React.createClass({
   },
 
   renderReprocessingCheckbox() {
+    if (this.state.loading) {
+      return this.renderLoading();
+    }
     let isSaving = this.state.formState === FormState.SAVING;
     let errors = this.state.errors;
     return (
@@ -269,11 +301,11 @@ const ProjectProcessingIssues = React.createClass({
                 key="reprocessing-active"
                 name="reprocessing-active"
                 label={t('Reprocessing active')}
-                help={t(`If you are having issues with the reprocessing feature
-                  you can turn it off here. If you save the changes all Issues
-                  will be deleted and the Events will be processed. Keep in mind
-                  that these Events will probably show incomplete stacktraces.
-                  Everything will be fine again, we promise ;)`)}
+                help={t(`If you are having problems with the reprocessing feature
+                  you can turn it off here. If you save the changes all Processing
+                  Issues will be deleted and the Events will be processed.
+                  Keep in mind that these Events will probably show incomplete
+                  stacktraces. Everything will be fine again, we promise ;)`)}
                 value={this.state.formData['sentry:reprocessing_active']}
                 error={errors ? errors['sentry:reprocessing_active'] : ''}
                 onChange={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
@@ -306,6 +338,7 @@ const ProjectProcessingIssues = React.createClass({
             state: FormState.READY,
             errors: {},
           });
+          this.deleteProcessingIssues();
         },
         error: (error) => {
           this.setState({

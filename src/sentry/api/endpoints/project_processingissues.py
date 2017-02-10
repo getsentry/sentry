@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProcessingIssue, ReprocessingReport
+from sentry.reprocessing import trigger_reprocessing
 
 
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
@@ -42,3 +43,18 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
             data['issues'] = [serialize(x, request.user) for x in q]
 
         return Response(serialize(data, request.user))
+
+    def delete(self, request, project):
+        """
+        This deletes all open processing issues and triggers reprocessing if
+        the user disabled the checkbox
+        """
+        reprocessing_active = bool(
+            project.get_option('sentry:reprocessing_active', True)
+        )
+        if not reprocessing_active:
+            ProcessingIssue.objects. \
+                resolve_all_processing_issue(project=project)
+            trigger_reprocessing(project)
+            return Response(status=200)
+        return Response(status=304)

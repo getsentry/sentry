@@ -44,6 +44,15 @@ class ProcessingIssueManager(BaseManager):
             q = q.filter(type=type)
         q.delete()
 
+    def resolve_all_processing_issue(self, project):
+        """
+        Resolves all processing issues.
+        """
+        q = ProcessingIssue.objects.filter(
+            project=project,
+        )
+        q.delete()
+
     def find_resolved(self, project_id, limit=100):
         """Returns a list of raw events that generally match the given
         processing issue and no longer have any issues remaining.  Returns
