@@ -139,7 +139,8 @@ const ProjectProcessingIssues = React.createClass({
           error: false,
           loading: expected > 0,
         });
-        this.fetchData();
+        // we reload to get rid of the badge in the sidebar
+        window.location.reload();
       },
       error: () => {
         let expected = this.state.expected - 1;
@@ -241,8 +242,8 @@ const ProjectProcessingIssues = React.createClass({
     if (issues.resolveableIssues <= 0) {
       return null;
     }
-    let fixButton = tn('Click here to trigger reprocessing for %d pending event',
-      'Click here to trigger reprocessing for %d pending events',
+    let fixButton = tn('Click here to trigger processing for %d pending event',
+      'Click here to trigger processing for %d pending events',
       issues.resolveableIssues);
     return (
       <div className="alert alert-block alert-info">
