@@ -294,17 +294,24 @@ class Symbolizer(object):
         """Symbolizes a frame with system symbols only."""
         # This is most likely a good enough cache match even though we are
         # ignoring the image here since we cache by instruction address.
-        cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
-            frame['instruction_addr'],
-            get_cpu_name(img['cpu_type'], img['cpu_subtype']),
-            sdk_info['sdk_name'],
-            sdk_info['dsym_type'],
-            sdk_info['version_major'],
-            sdk_info['version_minor'],
-            sdk_info['version_patchlevel'],
-        )
+        #
+        # In some cases old clients might not send an sdk_info with it
+        # in which case the caching won't work.
+        if sdk_info is not None:
+            cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
+                frame['instruction_addr'],
+                get_cpu_name(img['cpu_type'], img['cpu_subtype']),
+                sdk_info['sdk_name'],
+                sdk_info['dsym_type'],
+                sdk_info['version_major'],
+                sdk_info['version_minor'],
+                sdk_info['version_patchlevel'],
+            )
+            symbol = cache.get(cache_key)
+        else:
+            cache_key = None
+            symbol = None
 
-        symbol = cache.get(cache_key)
         if symbol is None:
             symbol = find_system_symbol(
                 img, frame['instruction_addr'], sdk_info)
@@ -319,7 +326,7 @@ class Symbolizer(object):
                 type=type,
                 image=img
             )
-        else:
+        elif cache_key is not None:
             cache.set(cache_key, symbol, 3600)
 
         rv = self._process_frame(dict(frame,
