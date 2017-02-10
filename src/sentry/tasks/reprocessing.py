@@ -57,14 +57,16 @@ def create_reprocessing_report(project_id, event_id):
 def clear_expired_raw_events():
     from sentry.models import RawEvent, ProcessingIssue
 
-    cutoff = timezone.now() - timedelta(settings.SENTRY_RAW_EVENT_MAX_AGE)
+    cutoff = timezone.now() - \
+        timedelta(days=settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS)
+
     RawEvent.objects.filter(
         datetime__lt=cutoff
     ).delete()
 
     # Processing issues get a bit of extra time before we delete them
-    cutoff = timezone.now() - timedelta(int(
-        settings.SENTRY_RAW_EVENT_MAX_AGE * 1.3))
+    cutoff = timezone.now() - timedelta(days=int(
+        settings.SENTRY_RAW_EVENT_MAX_AGE_DAYS * 1.3))
     ProcessingIssue.objects.filter(
         datetime__lt=cutoff
     ).delete()
