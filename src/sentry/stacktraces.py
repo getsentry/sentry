@@ -7,6 +7,7 @@ from sentry.models import Project
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from collections import namedtuple
+from six import integer_types
 
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,9 @@ class StacktraceProcessor(object):
     def close(self):
         pass
 
+    def get_frame_cache_attributes(self):
+        return None
+
     def preprocess_related_data(self):
         return False
 
@@ -38,11 +42,6 @@ class StacktraceProcessor(object):
 
     def process_frame(self, processable_frame):
         pass
-
-
-def get_frame_cache_key(frame):
-    h = hashlib.md5()
-    return h.hexdigest()
 
 
 def find_stacktraces_in_data(data):
@@ -119,6 +118,31 @@ def get_processors_for_stacktraces(data, infos):
     return processors
 
 
+def _get_frame_cache_key(processor, frame):
+    attributes = processor.get_frame_cache_attributes(frame)
+    if attributes is None:
+        return None
+
+    h = hashlib.md5()
+
+    def _hash_value(value):
+        if value is None:
+            h.update(b'\x00')
+        elif value is True:
+            h.update(b'\x01')
+        elif value is False:
+            h.update(b'\x02')
+        elif isinstance(value, integer_types):
+            h.update(str(value).encode('ascii') + b'\x00')
+
+    for attr_name in attributes:
+        value = frame.get(attr_name)
+        h.update(attr_name.encode('ascii') + b'\x00')
+        _hash_value(value)
+
+    return h.hexdigest()
+
+
 def get_processable_frames(stacktrace_info, processors):
     frame_count = len(stacktrace_info.stacktrace['frames'])
     rv = []
@@ -128,7 +152,7 @@ def get_processable_frames(stacktrace_info, processors):
         if processor is not None:
             rv.append(ProcessableFrame(
                 frame, frame_count - idx - 1, processor,
-                stacktrace_info, get_frame_cache_key(frame)))
+                stacktrace_info, _get_frame_cache_key(processor, frame)))
     return rv
 
 
