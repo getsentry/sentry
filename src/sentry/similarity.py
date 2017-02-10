@@ -342,6 +342,11 @@ def serialize_frame(frame):
 
 
 def get_application_chunks(exception):
+    """\
+    Filters out system and framework frames from a stacktrace in order to
+    better align similar logical application paths. This returns a sequence of
+    application code "chunks": blocks of contiguously called application code.
+    """
     return map(
         lambda (in_app, frames): list(frames),
         itertools.ifilter(

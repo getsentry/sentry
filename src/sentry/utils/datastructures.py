@@ -7,6 +7,14 @@ __unset__ = object()
 
 
 class BidirectionalMapping(MutableMapping):
+    """\
+    An associative data structure in which the ``(key, value)`` pairs form a
+    one-to-one correspondence in both directions.
+
+    For example, when ``(a, b)`` is added to the mapping, ``b`` can be found
+    when ``a`` is used as a key, and ``a`` can *also* be found when ``b`` is
+    provided to ``get_key``.
+    """
     def __init__(self, data):
         self.__data = data
         self.__inverse = {v: k for k, v in self.__data.items()}
