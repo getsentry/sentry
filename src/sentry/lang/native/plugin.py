@@ -342,6 +342,7 @@ def preprocess_apple_crash_event(data):
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
+    platforms = ('cocoa',)
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
@@ -377,14 +378,14 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # dict.
         return self.sym.resolve_missing_vmaddrs()
 
-    def find_best_instruction(self, frame, stacktrace_info, idx):
+    def find_best_instruction(self, processable_frame):
         """Given a frame, stacktrace info and frame index this returns the
         interpolated instruction address we then use for symbolication later.
         """
         meta = None
 
         # We only need to provide meta information for frame zero
-        if idx == 0:
+        if processable_frame.idx == 0:
             # The signal is useful information for symsynd in some situations
             # to disambiugate the first frame.  If we can get this information
             # from the mechanism we want to pass it onwards.
@@ -397,22 +398,22 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     signal = mechanism['posix_signal']['signal']
             meta = {
                 'frame_number': 0,
-                'registers': stacktrace_info.stacktrace.get('registers'),
+                'registers': processable_frame.stacktrace_info.stacktrace.get('registers'),
                 'signal': signal,
             }
 
-        return self.sym.find_best_instruction(frame, meta=meta)
+        return self.sym.find_best_instruction(processable_frame.frame, meta=meta)
 
-    def process_frame(self, frame, stacktrace_info, idx):
-        # XXX: warn on missing availability?
+    def handles_frame(self, frame, stacktrace_info):
+        platform = frame.get('platform') or self.data.get('platform')
+        return (
+            platform == 'cocoa' and
+            self.available and
+            'instruction_addr' not in frame
+        )
 
-        # Only process frames here that are of supported platforms and
-        # have the mandatory requirements for
-        if not self.available or \
-           self.get_effective_platform(frame) != 'cocoa' or \
-           'instruction_addr' not in frame:
-            return None
-
+    def process_frame(self, processable_frame):
+        frame = processable_frame.frame
         errors = []
 
         # Construct a raw frame that is used by the symbolizer
@@ -420,7 +421,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         sym_input_frame = {
             'object_name': frame.get('package'),
             'instruction_addr': self.find_best_instruction(
-                frame, stacktrace_info, idx),
+                processable_frame),
             'symbol_name': frame.get('function'),
             'symbol_addr': frame.get('symbol_addr'),
         }

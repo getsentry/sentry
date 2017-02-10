@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import hashlib
 
 from sentry.models import Project
 from sentry.utils import metrics
@@ -11,6 +12,8 @@ from collections import namedtuple
 logger = logging.getLogger(__name__)
 
 
+ProcessableFrame = namedtuple('ProcessableFrame', [
+    'frame', 'idx', 'processor', 'stacktrace_info', 'cache_key'])
 StacktraceInfo = namedtuple('StacktraceInfo', [
     'stacktrace', 'container', 'platforms'])
 
@@ -30,11 +33,16 @@ class StacktraceProcessor(object):
     def preprocess_related_data(self):
         return False
 
-    def get_effective_platform(self, frame):
-        return frame.get('platform') or self.data['platform']
+    def handles_frame(self, frame, stacktrace_info):
+        return False
 
-    def process_frame(self, frame, stacktrace_info, idx):
+    def process_frame(self, processable_frame):
         pass
+
+
+def get_frame_cache_key(frame):
+    h = hashlib.md5()
+    return h.hexdigest()
 
 
 def find_stacktraces_in_data(data):
@@ -111,6 +119,19 @@ def get_processors_for_stacktraces(data, infos):
     return processors
 
 
+def get_processable_frames(stacktrace_info, processors):
+    frame_count = len(stacktrace_info.stacktrace['frames'])
+    rv = []
+    for idx, frame in enumerate(stacktrace_info.stacktrace['frames']):
+        processor = next((p for p in processors
+                          if p.handles_frame(frame, stacktrace_info)), None)
+        if processor is not None:
+            rv.append(ProcessableFrame(
+                frame, frame_count - idx - 1, processor,
+                stacktrace_info, get_frame_cache_key(frame)))
+    return rv
+
+
 def process_single_stacktrace(stacktrace_info, processors):
     # TODO: associate errors with the frames and processing issues
     changed_raw = False
@@ -119,38 +140,26 @@ def process_single_stacktrace(stacktrace_info, processors):
     processed_frames = []
     all_errors = []
 
-    frame_count = len(stacktrace_info.stacktrace['frames'])
-    for idx, frame in enumerate(stacktrace_info.stacktrace['frames']):
-        need_processed_frame = True
-        need_raw_frame = True
-        errors = None
-        for processor in processors:
-            try:
-                rv = processor.process_frame(frame, stacktrace_info,
-                                             frame_count - idx - 1)
-                if rv is None:
-                    continue
-            except Exception:
-                logger.exception('Failed to process frame')
-                continue
+    processable_frames = get_processable_frames(stacktrace_info, processors)
 
-            expand_processed, expand_raw, errors = rv or (None, None, None)
-            if expand_processed is not None:
-                processed_frames.extend(expand_processed)
-                changed_processed = True
-                need_processed_frame = False
+    for processable_frame in processable_frames:
+        try:
+            rv = processable_frame.processor.process_frame(processable_frame)
+        except Exception:
+            logger.exception('Failed to process frame')
+        expand_processed, expand_raw, errors = rv or (None, None, None)
 
-            if expand_raw is not None:
-                raw_frames.extend(expand_raw)
-                changed_raw = True
-                need_raw_frame = False
+        if expand_processed is not None:
+            processed_frames.extend(expand_processed)
+            changed_processed = True
+        else:
+            processed_frames.append(processable_frame.frame)
 
-            break
-
-        if need_processed_frame:
-            processed_frames.append(frame)
-        if need_raw_frame:
-            raw_frames.append(frame)
+        if expand_raw is not None:
+            raw_frames.extend(expand_raw)
+            changed_raw = True
+        else:
+            raw_frames.append(processable_frame.frame)
         all_errors.extend(errors or ())
 
     return (

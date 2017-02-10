@@ -640,11 +640,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.populate_source_cache(frames)
         return True
 
-    def process_frame(self, frame, stacktrace_info, idx):
-        if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT or \
-           self.get_effective_platform(frame) != 'javascript':
-            return
+    def handles_frame(self, frame, stacktrace_info):
+        platform = frame.get('platform') or self.data.get('platform')
+        return (
+            settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and
+            platform == 'javascript'
+        )
 
+    def process_frame(self, processable_frame):
+        frame = processable_frame.frame
         last_token = None
         token = None
 
