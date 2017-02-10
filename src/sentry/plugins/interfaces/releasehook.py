@@ -16,7 +16,6 @@ from django.utils import timezone
 from sentry.models import Activity, Release
 
 
-
 class ReleaseHook(object):
     def __init__(self, project):
         self.project = project
