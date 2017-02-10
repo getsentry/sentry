@@ -41,13 +41,8 @@ def should_process(data):
     return False
 
 
-@instrumented_task(
-    name='sentry.tasks.store.preprocess_event',
-    queue='events.preprocess_event',
-    time_limit=65,
-    soft_time_limit=60,
-)
-def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
+def _do_preprocess_event(cache_key, data, start_time, event_id,
+                         process_event):
     if cache_key:
         data = default_cache.get(cache_key)
 
@@ -76,12 +71,29 @@ def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, 
 
 
 @instrumented_task(
-    name='sentry.tasks.store.process_event',
-    queue='events.process_event',
+    name='sentry.tasks.store.preprocess_event',
+    queue='events.preprocess_event',
     time_limit=65,
     soft_time_limit=60,
 )
-def process_event(cache_key, start_time=None, event_id=None, **kwargs):
+def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, **kwargs):
+    return _do_preprocess_event(cache_key, data, start_time, event_id,
+                                process_event)
+
+
+@instrumented_task(
+    name='sentry.tasks.store.preprocess_event_from_reprocessing',
+    queue='events.preprocess_event_from_reprocessing',
+    time_limit=65,
+    soft_time_limit=60,
+)
+def preprocess_event_from_reprocessing(cache_key=None, data=None,
+                                       start_time=None, event_id=None, **kwargs):
+    return _do_preprocess_event(cache_key, data, start_time, event_id,
+                                process_event_from_reprocessing)
+
+
+def _do_process_event(cache_key, start_time, event_id):
     from sentry.plugins import plugins
 
     data = default_cache.get(cache_key)
@@ -128,6 +140,26 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
 
     save_event.delay(cache_key=cache_key, data=None, start_time=start_time,
         event_id=event_id)
+
+
+@instrumented_task(
+    name='sentry.tasks.store.process_event',
+    queue='events.process_event',
+    time_limit=65,
+    soft_time_limit=60,
+)
+def process_event(cache_key, start_time=None, event_id=None, **kwargs):
+    return _do_process_event(cache_key, start_time, event_id)
+
+
+@instrumented_task(
+    name='sentry.tasks.store.process_event_from_reprocessing',
+    queue='events.process_event_from_reprocessing',
+    time_limit=65,
+    soft_time_limit=60,
+)
+def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, **kwargs):
+    return _do_process_event(cache_key, start_time, event_id)
 
 
 def delete_raw_event(project_id, event_id):
