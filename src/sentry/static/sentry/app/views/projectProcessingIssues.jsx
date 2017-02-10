@@ -5,6 +5,7 @@ import TimeSince from '../components/timeSince';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import IndicatorStore from '../stores/indicatorStore';
+import {FormState, BooleanField} from '../components/forms';
 import {t, tn} from '../locale';
 
 const MESSAGES = {
@@ -33,8 +34,10 @@ const ProjectProcessingIssues = React.createClass({
 
   getInitialState() {
     return {
+      formData: {},
       loading: true,
       reprocessing: false,
+      expected: 2,
       error: false,
       processingIssues: null,
     };
@@ -44,21 +47,53 @@ const ProjectProcessingIssues = React.createClass({
     this.fetchData();
   },
 
+  onFieldChange(name, value) {
+    let formData = this.state.formData;
+    formData[name] = value;
+    this.setState({
+      formData: formData,
+    });
+  },
+
   fetchData() {
     let {orgId, projectId} = this.props.params;
+
+    this.api.request(`/projects/${orgId}/${projectId}/`, {
+      success: (data, _, jqXHR) => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          loading: expected > 0,
+          formData: data.options,
+        });
+      },
+      error: () => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          error: true,
+          loading: expected > 0
+        });
+      }
+    });
+
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/?detailed=1`, {
       success: (data, _, jqXHR) => {
+        let expected = this.state.expected - 1;
         this.setState({
+          expected: expected,
           error: false,
-          loading: false,
+          loading: expected > 0,
           processingIssues: data,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
+        let expected = this.state.expected - 1;
         this.setState({
+          expected: expected,
           error: true,
-          loading: false
+          loading: expected > 0
         });
       }
     });
@@ -73,18 +108,16 @@ const ProjectProcessingIssues = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
       method: 'POST',
       success: (data, _, jqXHR) => {
-        setTimeout(() => {
-          this.fetchData();
-          IndicatorStore.remove(loadingIndicator);
-          this.setState({
-            reprocessing: false
-          });
-        }, 1000);
+        this.fetchData();
+        this.setState({
+          reprocessing: false
+        });
       },
       error: () => {
         this.setState({
           reprocessing: false
         });
+      }, complete: () => {
         IndicatorStore.remove(loadingIndicator);
       }
     });
@@ -216,6 +249,77 @@ const ProjectProcessingIssues = React.createClass({
     );
   },
 
+  renderReprocessingCheckbox() {
+    let isSaving = this.state.formState === FormState.SAVING;
+    let errors = this.state.errors;
+    return (
+      <div className="box">
+        <div className="box-header">
+          <h3>{t('Settings')}</h3>
+        </div>
+        <div className="box-content with-padding">
+          <form onSubmit={this.onSubmit} className="form-stacked">
+            {this.state.state === FormState.ERROR &&
+              <div className="alert alert-error alert-block">
+                {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
+              </div>
+            }
+            <fieldset>
+              <BooleanField
+                key="reprocessing-active"
+                name="reprocessing-active"
+                label={t('Reprocessing active')}
+                help={t(`If you are having issues with the reprocessing feature
+                  you can turn it off here. If you save the changes all Issues
+                  will be deleted and the Events will be processed. Keep in mind
+                  that these Events will probably show incomplete stacktraces.
+                  Everything will be fine again, we promise ;)`)}
+                value={this.state.formData['sentry:reprocessing_active']}
+                error={errors ? errors['sentry:reprocessing_active'] : ''}
+                onChange={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
+            </fieldset>
+            <fieldset className="form-actions">
+              <button type="submit" className="btn btn-primary"
+                      disabled={isSaving}>{t('Save Changes')}</button>
+            </fieldset>
+          </form>
+        </div>
+      </div>
+    );
+  },
+
+  onSubmit(e) {
+    e.preventDefault();
+    if (this.state.formState === FormState.SAVING) {
+      return;
+    }
+    this.setState({
+      state: FormState.SAVING,
+    }, () => {
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      let {orgId, projectId} = this.props.params;
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        method: 'PUT',
+        data: {options: this.state.formData},
+        success: (data) => {
+          this.setState({
+            state: FormState.READY,
+            errors: {},
+          });
+        },
+        error: (error) => {
+          this.setState({
+            state: FormState.ERROR,
+            errors: error.responseJSON,
+          });
+        },
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
+    });
+  },
+
   render() {
     return (
       <div>
@@ -229,6 +333,7 @@ const ProjectProcessingIssues = React.createClass({
         `)}</p>
         {this.renderDebugTable()}
         {this.renderResolveButton()}
+        {this.renderReprocessingCheckbox()}
       </div>
     );
   }

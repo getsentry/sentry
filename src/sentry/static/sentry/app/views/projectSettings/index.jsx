@@ -100,7 +100,7 @@ const ProjectSettings = React.createClass({
             <ListLink className="badged" to={`/${orgId}/${projectId}/settings/processing-issues/`}>
               {t('Processing Issues')}
               {processingIssues > 0 &&
-                <Badge text={processingIssues > 99 ? '99+' : processingIssues} isNew={true} />
+                <Badge text={processingIssues > 99 ? '99+' : processingIssues + ''} isNew={true} />
               }
             </ListLink>
           </ul>

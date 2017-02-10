@@ -437,9 +437,17 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if not symbolicated_frames:
                 return None, [raw_frame], []
         except SymbolicationFailed as e:
+            project = Project.objects.get_from_cache(
+                id=self.data.get('project'),
+            )
+            reprocessing_active = True
+            if project:
+                reprocessing_active = bool(
+                    project.get_option('sentry:reprocessing_active', True)
+                )
             # User fixable but fatal errors are reported as processing
-            # issues.
-            if e.is_user_fixable and e.is_fatal:
+            # issues but only if the feature is activated.
+            if reprocessing_active and e.is_user_fixable and e.is_fatal:
                 report_processing_issue(self.data,
                     scope='native',
                     object='dsym:%s' % e.image_uuid,
