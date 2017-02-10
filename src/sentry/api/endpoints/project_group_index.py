@@ -222,7 +222,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     looks_like_short_id(query):
                 try:
                     matching_group = Group.objects.by_qualified_short_id(
-                        project.organization, query)
+                        project.organization_id, query)
                 except Group.DoesNotExist:
                     matching_group = None
 
