@@ -519,7 +519,9 @@ const Stream = React.createClass({
     let link = `/${orgId}/${projectId}/settings/processing-issues/`;
     let showLink = false;
     let label = null;
-    let className = 'processing-issues';
+    let className = {
+      'processing-issues': true
+    };
     let issues = null;
     let lastEvent = null;
 
@@ -534,15 +536,15 @@ const Stream = React.createClass({
         })})
         </span>
       );
-      className += ' failing';
+      className.failing = true;
       showLink = true;
     } else if (pi.issuesProcessing > 0) {
-      className += ' processing';
+      className.processing = true;
       label = tn('Reprocessing %d event …',
         'Reprocessing %d events …',
         pi.issuesProcessing);
     } else if (pi.resolveableIssues > 0) {
-      className += ' pending';
+      className.pending = true;
       label = tn('%d event pending reprocessing.',
         '%d events pending reprocessing.',
         pi.resolveableIssues);
@@ -553,7 +555,7 @@ const Stream = React.createClass({
     }
 
     return (
-      <div className={className}>
+      <div className={classNames(className)}>
         <strong>{label}</strong>
         {issues}
         {' '}
