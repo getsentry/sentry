@@ -9,6 +9,8 @@ from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
 from symsynd.utils import parse_addr
 
+from django.core.cache import cache
+
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -290,7 +292,23 @@ class Symbolizer(object):
     def symbolize_system_frame(self, frame, img, sdk_info,
                                symbolize_inlined=False):
         """Symbolizes a frame with system symbols only."""
-        symbol = find_system_symbol(img, frame['instruction_addr'], sdk_info)
+        # This is most likely a good enough cache match even though we are
+        # ignoring the image here since we cache by instruction address.
+        cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
+            frame['instruction_addr'],
+            get_cpu_name(img['cpu_type'], img['cpu_subtype']),
+            sdk_info['sdk_name'],
+            sdk_info['dsym_type'],
+            sdk_info['version_major'],
+            sdk_info['version_minor'],
+            sdk_info['version_patchlevel'],
+        )
+
+        symbol = cache.get(cache_key)
+        if symbol is None:
+            symbol = find_system_symbol(
+                img, frame['instruction_addr'], sdk_info)
+
         if symbol is None:
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
@@ -301,6 +319,8 @@ class Symbolizer(object):
                 type=type,
                 image=img
             )
+        else:
+            cache.set(cache_key, symbol, 3600)
 
         rv = self._process_frame(dict(frame,
             symbol_name=symbol, filename=None, line=0, column=0,
