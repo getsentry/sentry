@@ -292,8 +292,11 @@ class Symbolizer(object):
     def symbolize_system_frame(self, frame, img, sdk_info,
                                symbolize_inlined=False):
         """Symbolizes a frame with system symbols only."""
-        cache_key = 'ssym:%s:%s:%s:%s:%s:%s' % (
+        # This is most likely a good enough cache match even though we are
+        # ignoring the image here since we cache by instruction address.
+        cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
             frame['instruction_addr'],
+            get_cpu_name(img['cpu_type'], img['cpu_subtype']),
             sdk_info['sdk_name'],
             sdk_info['dsym_type'],
             sdk_info['version_major'],
