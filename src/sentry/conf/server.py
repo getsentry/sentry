@@ -1058,7 +1058,7 @@ SENTRY_WATCHERS = (
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
 # The maximum age of raw events before they are deleted
-SENTRY_RAW_EVENT_MAX_AGE = 60 * 60 * 24 * 10
+SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
 STATUS_PAGE_ID = None
