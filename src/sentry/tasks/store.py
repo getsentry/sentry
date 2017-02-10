@@ -83,7 +83,7 @@ def preprocess_event(cache_key=None, data=None, start_time=None, event_id=None, 
 
 @instrumented_task(
     name='sentry.tasks.store.preprocess_event_from_reprocessing',
-    queue='events.preprocess_event_from_reprocessing',
+    queue='events.reprocessing.preprocess_event',
     time_limit=65,
     soft_time_limit=60,
 )
@@ -154,7 +154,7 @@ def process_event(cache_key, start_time=None, event_id=None, **kwargs):
 
 @instrumented_task(
     name='sentry.tasks.store.process_event_from_reprocessing',
-    queue='events.process_event_from_reprocessing',
+    queue='events.reprocessing.process_event',
     time_limit=65,
     soft_time_limit=60,
 )
