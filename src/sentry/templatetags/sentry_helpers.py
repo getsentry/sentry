@@ -200,7 +200,7 @@ def timesince(value, now=None):
         return _('just now')
     if value == _('1 day'):
         return _('yesterday')
-    return value + _(' ago')
+    return _('%s ago') % value
 
 
 @register.filter
