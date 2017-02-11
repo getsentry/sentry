@@ -5,8 +5,8 @@ import math
 import pytest
 
 from sentry.similarity import (
-    MinHashIndex, get_euclidian_distance, get_manhattan_distance,
-    get_number_format, scale_to_total
+    MinHashIndex, get_exception_frames, get_euclidian_distance,
+    get_manhattan_distance, get_number_format, scale_to_total
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -150,6 +150,30 @@ def test_get_number_format():
 
     with pytest.raises(ValueError):
         assert get_number_format(0xFFFFFFFFFFFFFFFF + 1)
+
+
+def test_get_exception_frames():
+    assert get_exception_frames({}) == []
+
+    assert get_exception_frames({
+        'stacktrace': None,
+    }) == []
+
+    assert get_exception_frames({
+        'stacktrace': {},
+    }) == []
+
+    assert get_exception_frames({
+        'stacktrace': {
+            'frames': None,
+        },
+    }) == []
+
+    assert get_exception_frames({
+        'stacktrace': {
+            'frames': 13,
+        },
+    }) == []
 
 
 class MinHashIndexTestCase(TestCase):
