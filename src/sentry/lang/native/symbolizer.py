@@ -9,6 +9,8 @@ from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
 from symsynd.utils import parse_addr
 
+from django.core.cache import cache
+
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -164,7 +166,9 @@ class Symbolizer(object):
 
     def find_best_instruction(self, frame, meta=None):
         """Finds the best instruction for a given frame."""
-        if not self.images:
+        # If we have no images or cpu name we cannot possibly fix the
+        # instruction here.
+        if not self.images or self.cpu_name is None:
             return parse_addr(frame['instruction_addr'])
         return self.symsynd_symbolizer.find_best_instruction(
             frame['instruction_addr'], cpu_name=self.cpu_name, meta=meta)
@@ -290,7 +294,30 @@ class Symbolizer(object):
     def symbolize_system_frame(self, frame, img, sdk_info,
                                symbolize_inlined=False):
         """Symbolizes a frame with system symbols only."""
-        symbol = find_system_symbol(img, frame['instruction_addr'], sdk_info)
+        # This is most likely a good enough cache match even though we are
+        # ignoring the image here since we cache by instruction address.
+        #
+        # In some cases old clients might not send an sdk_info with it
+        # in which case the caching won't work.
+        if sdk_info is not None:
+            cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
+                frame['instruction_addr'],
+                get_cpu_name(img['cpu_type'], img['cpu_subtype']),
+                sdk_info['sdk_name'],
+                sdk_info['dsym_type'],
+                sdk_info['version_major'],
+                sdk_info['version_minor'],
+                sdk_info['version_patchlevel'],
+            )
+            symbol = cache.get(cache_key)
+        else:
+            cache_key = None
+            symbol = None
+
+        if symbol is None:
+            symbol = find_system_symbol(
+                img, frame['instruction_addr'], sdk_info)
+
         if symbol is None:
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
@@ -301,6 +328,8 @@ class Symbolizer(object):
                 type=type,
                 image=img
             )
+        elif cache_key is not None:
+            cache.set(cache_key, symbol, 3600)
 
         rv = self._process_frame(dict(frame,
             symbol_name=symbol, filename=None, line=0, column=0,

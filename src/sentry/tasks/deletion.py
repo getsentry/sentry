@@ -219,9 +219,9 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
 @retry(exclude=(DeleteAborted,))
 def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
-        EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash, GroupMeta,
-        GroupRelease, GroupResolution, GroupRuleStatus, GroupSnooze,
-        GroupSubscription, GroupStatus, GroupTagKey, GroupTagValue,
+        EventMapping, Group, GroupAssignee, GroupBookmark, GroupCommitResolution,
+        GroupHash, GroupMeta, GroupRelease, GroupResolution, GroupRuleStatus,
+        GroupSnooze, GroupSubscription, GroupStatus, GroupTagKey, GroupTagValue,
         GroupEmailThread, GroupRedirect, UserReport
     )
 
@@ -235,10 +235,10 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
 
     bulk_model_list = (
         # prioritize GroupHash
-        GroupHash, GroupAssignee, GroupBookmark, GroupMeta, GroupRelease,
-        GroupResolution, GroupRuleStatus, GroupSnooze, GroupTagValue,
-        GroupTagKey, EventMapping, GroupEmailThread, UserReport, GroupRedirect,
-        GroupSubscription,
+        GroupHash, GroupAssignee, GroupCommitResolution, GroupBookmark,
+        GroupMeta, GroupRelease, GroupResolution, GroupRuleStatus, GroupSnooze,
+        GroupTagValue, GroupTagKey, EventMapping, GroupEmailThread, GroupRedirect,
+        GroupSubscription, UserReport,
     )
     for model in bulk_model_list:
         has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
