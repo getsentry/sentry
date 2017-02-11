@@ -18,6 +18,7 @@ default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
 default_manager.add('workflow:release-emails', ProjectFeature)  # NOQA
 default_manager.add('projects:sample-events', ProjectFeature)  # NOQA
+default_manager.add('projects:similarity-indexing', ProjectFeature)  # NOQA
 
 # expose public api
 add = default_manager.add

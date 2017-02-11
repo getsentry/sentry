@@ -12,11 +12,9 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.app import locks
 from sentry.models import Activity, Release, ReleaseProject
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
-from sentry.utils.retries import TimedRetryPolicy
 
 
 @scenario('CreateNewRelease')
@@ -145,45 +143,31 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             # release creation is idempotent to simplify user
             # experiences
-            release = Release.objects.filter(
-                organization_id=project.organization_id,
-                version=result['version'],
-                projects=project
-            ).first()
-            created = False
-            if release:
-                was_released = bool(release.date_released)
-            else:
-                release = Release.objects.filter(
+            try:
+                with transaction.atomic():
+                    release, created = Release.objects.create(
+                        organization_id=project.organization_id,
+                        version=result['version'],
+                        ref=result.get('ref'),
+                        url=result.get('url'),
+                        owner=result.get('owner'),
+                        date_started=result.get('dateStarted'),
+                        date_released=result.get('dateReleased'),
+                    ), True
+                was_released = False
+            except IntegrityError:
+                release, created = Release.objects.get(
                     organization_id=project.organization_id,
                     version=result['version'],
-                ).first()
-                if not release:
-                    lock_key = Release.get_lock_key(project.organization_id, result['version'])
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            release, created = Release.objects.get(
-                                version=result['version'],
-                                organization_id=project.organization_id
-                            ), False
-                        except Release.DoesNotExist:
-                            release, created = Release.objects.create(
-                                organization_id=project.organization_id,
-                                version=result['version'],
-                                ref=result.get('ref'),
-                                url=result.get('url'),
-                                owner=result.get('owner'),
-                                date_started=result.get('dateStarted'),
-                                date_released=result.get('dateReleased'),
-                            ), True
-                was_released = False
-                try:
-                    with transaction.atomic():
-                        ReleaseProject.objects.create(project=project, release=release)
-                    created = True
-                except IntegrityError:
-                    pass
+                ), False
+                was_released = bool(release.date_released)
+
+            try:
+                with transaction.atomic():
+                    ReleaseProject.objects.create(project=project, release=release)
+                created = True
+            except IntegrityError:
+                pass
 
             commit_list = result.get('commits')
             if commit_list:

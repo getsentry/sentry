@@ -699,8 +699,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 token = None
                 all_errors.append({
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    'column': frame['colno'],
-                    'row': frame['lineno'],
+                    'column': frame.get('colno'),
+                    'row': frame.get('lineno'),
                     'source': frame['abs_path'],
                     'sourcemap': sourcemap_label,
                 })
