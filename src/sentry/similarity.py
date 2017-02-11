@@ -353,7 +353,7 @@ def get_exception_frames(exception):
     """
     try:
         frames = exception['stacktrace']['frames']
-    except KeyError:
+    except (TypeError, KeyError):
         logger.info('Could not extract frames from exception, returning empty sequence.', exc_info=True)
         frames = []
     else:
