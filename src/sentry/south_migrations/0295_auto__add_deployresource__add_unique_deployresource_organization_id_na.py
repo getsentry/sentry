@@ -8,6 +8,17 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'DeployResource'
+        db.create_table('sentry_deployresource', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
+        ))
+        db.send_create_signal('sentry', ['DeployResource'])
+
+        # Adding unique constraint on 'DeployResource', fields ['organization_id', 'name']
+        db.create_unique('sentry_deployresource', ['organization_id', 'name'])
+
         # Adding model 'Deploy'
         db.create_table('sentry_deploy', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -33,33 +44,22 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Deploy', fields ['organization_id', 'release', 'environment_id']
         db.create_unique('sentry_deploy', ['organization_id', 'release_id', 'environment_id'])
 
-        # Adding model 'DeployResource'
-        db.create_table('sentry_deployresource', (
-            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=64)),
-        ))
-        db.send_create_signal('sentry', ['DeployResource'])
-
-        # Adding unique constraint on 'DeployResource', fields ['organization_id', 'name']
-        db.create_unique('sentry_deployresource', ['organization_id', 'name'])
-
 
     def backwards(self, orm):
+        # Removing unique constraint on 'Deploy', fields ['organization_id', 'release', 'environment_id']
+        db.delete_unique('sentry_deploy', ['organization_id', 'release_id', 'environment_id'])
+
         # Removing unique constraint on 'DeployResource', fields ['organization_id', 'name']
         db.delete_unique('sentry_deployresource', ['organization_id', 'name'])
 
-        # Removing unique constraint on 'Deploy', fields ['organization_id', 'release', 'environment_id']
-        db.delete_unique('sentry_deploy', ['organization_id', 'release_id', 'environment_id'])
+        # Deleting model 'DeployResource'
+        db.delete_table('sentry_deployresource')
 
         # Deleting model 'Deploy'
         db.delete_table('sentry_deploy')
 
         # Removing M2M table for field resources on 'Deploy'
         db.delete_table(db.shorten_name('sentry_deploy_resources'))
-
-        # Deleting model 'DeployResource'
-        db.delete_table('sentry_deployresource')
 
 
     models = {
@@ -145,7 +145,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 9, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 18, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -364,6 +364,13 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['sentry.Project']"}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'sentry_bookmark_set'", 'to': "orm['sentry.User']"})
+        },
+        'sentry.groupcommitresolution': {
+            'Meta': {'unique_together': "(('group_id', 'commit_id'),)", 'object_name': 'GroupCommitResolution'},
+            'commit_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
+            'datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
+            'group_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'})
         },
         'sentry.groupemailthread': {
             'Meta': {'unique_together': "(('email', 'group'), ('email', 'msgid'))", 'object_name': 'GroupEmailThread'},
@@ -599,7 +606,7 @@ class Migration(SchemaMigration):
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.release': {
-            'Meta': {'unique_together': "(('project_id', 'version'),)", 'object_name': 'Release'},
+            'Meta': {'unique_together': "(('organization', 'version'),)", 'object_name': 'Release'},
             'data': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'date_released': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
@@ -748,7 +755,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'MoHiqjWsgL13fR0rjoi5IJt6B7Kee0Os'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'0hIY2RX7OHpXGbaVQxci5lpbNWHUqqn9'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
