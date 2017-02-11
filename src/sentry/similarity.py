@@ -5,6 +5,7 @@ import logging
 import math
 import operator
 import struct
+from collections import Sequence
 
 import mmh3
 from django.conf import settings
@@ -12,6 +13,9 @@ from django.conf import settings
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
+
+
+logger = logging.getLogger(__name__)
 
 
 def scale_to_total(value):
@@ -341,6 +345,25 @@ def serialize_frame(frame):
     )
 
 
+def get_exception_frames(exception):
+    """\
+    Extracts frames from an ``Exception`` interface, returning an empty
+    sequence if no frame value was provided or if the value is of an invalid or
+    unexpected type.
+    """
+    try:
+        frames = exception['stacktrace']['frames']
+    except KeyError:
+        logger.info('Could not extract frames from exception, returning empty sequence.', exc_info=True)
+        frames = []
+    else:
+        if not isinstance(frames, Sequence):
+            logger.info('Expected frames to be a sequence but got %r, returning empty sequence instead.', type(frames))
+            frames = []
+
+    return frames
+
+
 def get_application_chunks(exception):
     """\
     Filters out system and framework frames from a stacktrace in order to
@@ -352,7 +375,7 @@ def get_application_chunks(exception):
         itertools.ifilter(
             lambda (in_app, frames): in_app,
             itertools.groupby(
-                exception['stacktrace']['frames'],
+                get_exception_frames(exception),
                 key=lambda frame: frame.get('in_app', False),
             )
         )
@@ -362,38 +385,36 @@ def get_application_chunks(exception):
 class ExceptionFeature(object):
     def __init__(self, function):
         self.function = function
-        self.logger = logging.getLogger(__name__)
 
     def extract(self, event):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
-            self.logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
             return
 
         for exception in exceptions:
             try:
                 yield self.function(exception)
             except Exception as error:
-                self.logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
+                logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
 
 
 class MessageFeature(object):
     def __init__(self, function):
         self.function = function
-        self.logger = logging.getLogger(__name__)
 
     def extract(self, event):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
-            self.logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
             return
 
         try:
             yield self.function(message)
         except Exception as error:
-            self.logger.exception('Could not extract characteristic(s) from message of %r due to error: %r', event, error)
+            logger.exception('Could not extract characteristic(s) from message of %r due to error: %r', event, error)
 
 
 class FeatureSet(object):
@@ -499,7 +520,7 @@ features = FeatureSet(
                     2,
                     map(
                         serialize_frame,
-                        exception['stacktrace']['frames'],
+                        get_exception_frames(exception),
                     ),
                 ),
             ),
