@@ -31,6 +31,10 @@ class UserIndexEndpoint(Endpoint):
                         Q(email__icontains=value) |
                         Q(emails__email__icontains=value)
                     )
+                elif key == 'id':
+                    queryset = queryset.filter(
+                        id__in=value,
+                    )
                 elif key == 'name':
                     queryset = queryset.filter(
                         in_iexact('name', value)
@@ -43,6 +47,8 @@ class UserIndexEndpoint(Endpoint):
                     queryset = queryset.filter(
                         in_iexact('username', value)
                     )
+                else:
+                    queryset = queryset.none()
 
         status = request.GET.get('status')
         if status == 'active':
