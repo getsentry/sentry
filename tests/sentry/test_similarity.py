@@ -5,8 +5,8 @@ import math
 import pytest
 
 from sentry.similarity import (
-    MinHashIndex, get_euclidian_distance, get_manhattan_distance,
-    get_number_formatter, scale_to_total
+    MinHashIndex, get_exception_frames, get_euclidian_distance,
+    get_manhattan_distance, get_number_format, scale_to_total
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -136,20 +136,44 @@ def test_scale_to_total():
     }
 
 
-def test_get_number_formatter():
-    assert get_number_formatter(0xFF)(0xFF) == '\xff'
-    assert get_number_formatter(0xFF + 1)(0xFF) == '\x00\xff'
+def test_get_number_format():
+    assert get_number_format(0xFF).pack(0xFF) == '\xff'
+    assert get_number_format(0xFF + 1).pack(0xFF) == '\x00\xff'
 
-    assert get_number_formatter(0xFFFF)(0xFFFF) == '\xff\xff'
-    assert get_number_formatter(0xFFFF + 1)(0xFFFF) == '\x00\x00\xff\xff'
+    assert get_number_format(0xFFFF).pack(0xFFFF) == '\xff\xff'
+    assert get_number_format(0xFFFF + 1).pack(0xFFFF) == '\x00\x00\xff\xff'
 
-    assert get_number_formatter(0xFFFFFFFF)(0xFFFFFFFF) == '\xff\xff\xff\xff'
-    assert get_number_formatter(0xFFFFFFFF + 1)(0xFFFFFFFF) == '\x00\x00\x00\x00\xff\xff\xff\xff'
+    assert get_number_format(0xFFFFFFFF).pack(0xFFFFFFFF) == '\xff\xff\xff\xff'
+    assert get_number_format(0xFFFFFFFF + 1).pack(0xFFFFFFFF) == '\x00\x00\x00\x00\xff\xff\xff\xff'
 
-    assert get_number_formatter(0xFFFFFFFFFFFFFFFF)(0xFFFFFFFFFFFFFFFF) == '\xff\xff\xff\xff\xff\xff\xff\xff'
+    assert get_number_format(0xFFFFFFFFFFFFFFFF).pack(0xFFFFFFFFFFFFFFFF) == '\xff\xff\xff\xff\xff\xff\xff\xff'
 
     with pytest.raises(ValueError):
-        assert get_number_formatter(0xFFFFFFFFFFFFFFFF + 1)
+        assert get_number_format(0xFFFFFFFFFFFFFFFF + 1)
+
+
+def test_get_exception_frames():
+    assert get_exception_frames({}) == []
+
+    assert get_exception_frames({
+        'stacktrace': None,
+    }) == []
+
+    assert get_exception_frames({
+        'stacktrace': {},
+    }) == []
+
+    assert get_exception_frames({
+        'stacktrace': {
+            'frames': None,
+        },
+    }) == []
+
+    assert get_exception_frames({
+        'stacktrace': {
+            'frames': 13,
+        },
+    }) == []
 
 
 class MinHashIndexTestCase(TestCase):
@@ -171,6 +195,6 @@ class MinHashIndexTestCase(TestCase):
         results = index.query('example', '1')
         assert results[0] == ('1', 1.0)
         assert results[1] == ('2', 1.0)  # identical contents
-        assert results[2][0] == '3'
-        assert results[3][0] == '4'
+        assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
+        assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'

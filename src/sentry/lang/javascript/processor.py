@@ -640,7 +640,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.populate_source_cache(frames)
         return True
 
-    def process_frame(self, frame):
+    def process_frame(self, frame, stacktrace_info, idx):
         if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT or \
            self.get_effective_platform(frame) != 'javascript':
             return
@@ -695,8 +695,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 token = None
                 all_errors.append({
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    'column': frame['colno'],
-                    'row': frame['lineno'],
+                    'column': frame.get('colno'),
+                    'row': frame.get('lineno'),
                     'source': frame['abs_path'],
                     'sourcemap': sourcemap_label,
                 })
