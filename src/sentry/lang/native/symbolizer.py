@@ -93,15 +93,16 @@ def trim_frame(frame):
     return frame
 
 
-def find_system_symbol(img, instruction_addr, sdk_info=None):
+def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
     """Finds a system symbol."""
+    img_cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
+    cpu_name = img_cpu_name or cpu_name
     return DSymSymbol.objects.lookup_symbol(
         instruction_addr=instruction_addr,
         image_addr=img['image_addr'],
         image_vmaddr=img['image_vmaddr'],
         uuid=img['uuid'],
-        cpu_name=get_cpu_name(img['cpu_type'],
-                              img['cpu_subtype']),
+        cpu_name=cpu_name,
         object_path=img['name'],
         sdk_info=sdk_info
     )
@@ -137,10 +138,9 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, binary_images, referenced_images=None,
-                 is_debug_build=None):
+                 cpu_name=None):
         self.symsynd_symbolizer = make_symbolizer(
             project, binary_images, referenced_images=referenced_images)
-        self.is_debug_build = is_debug_build
 
         # This is a duplication from symsynd.  The reason is that symsynd
         # will only load images that it can find dsyms for but we also
@@ -154,15 +154,16 @@ class Symbolizer(object):
         self._image_addresses.sort()
 
         # This should always succeed but you never quite know.
-        self.cpu_name = None
-        for img in six.itervalues(self.images):
-            cpu_name = get_cpu_name(img['cpu_type'],
-                                    img['cpu_subtype'])
-            if self.cpu_name is None:
-                self.cpu_name = cpu_name
-            elif self.cpu_name != cpu_name:
-                self.cpu_name = None
-                break
+        self.cpu_name = cpu_name
+        if self.cpu_name is None:
+            for img in six.itervalues(self.images):
+                cpu_name = get_cpu_name(img['cpu_type'],
+                                        img['cpu_subtype'])
+                if self.cpu_name is None:
+                    self.cpu_name = cpu_name
+                elif self.cpu_name != cpu_name:
+                    self.cpu_name = None
+                    break
 
     def find_best_instruction(self, frame, meta=None):
         """Finds the best instruction for a given frame."""
@@ -189,6 +190,8 @@ class Symbolizer(object):
             if not image_info:
                 continue
             dsym_path = normalize_dsym_path(image_info['dsym_path'])
+            # Here we use the CPU name from the image as it might be
+            # slightly different (armv7 vs armv7f for instance)
             cpu_name = image_info['cpu_name']
             image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name)
             if image_vmaddr:
@@ -316,7 +319,7 @@ class Symbolizer(object):
 
         if symbol is None:
             symbol = find_system_symbol(
-                img, frame['instruction_addr'], sdk_info)
+                img, frame['instruction_addr'], sdk_info, self.cpu_name)
 
         if symbol is None:
             # Simulator frames cannot be symbolicated
