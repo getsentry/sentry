@@ -416,17 +416,15 @@ class IPlugin2(local, PluginConfigMixin):
         return []
 
     def get_custom_contexts(self):
-        """Return a custom dictionary of context types.
+        """Return a list of of context types.
 
         from sentry.interfaces.contexts import ContextType
 
         class MyContextType(ContextType):
-            ...
+            type = 'my_type'
 
         def get_custom_contexts(self):
-            return {
-                'my_type': MyContextType,
-            }
+            return [MyContextType]
         """
 
     def configure(self, project, request):
