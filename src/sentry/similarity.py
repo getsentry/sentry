@@ -503,7 +503,7 @@ features = FeatureSet(
                 serialize_text_shingle,
                 shingle(
                     13,
-                    exception['value'],
+                    exception.get('value') or '',
                 ),
             )
         ),
