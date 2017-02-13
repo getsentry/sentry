@@ -365,13 +365,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        is_debug_build = self.debug_meta.get('is_debug_build')
         referenced_images = find_stacktrace_referenced_images(
             self.debug_meta['images'], [
                 x.stacktrace for x in self.stacktrace_infos])
         self.sym = Symbolizer(self.project, self.debug_meta['images'],
-                              referenced_images=referenced_images,
-                              is_debug_build=is_debug_build)
+                              referenced_images=referenced_images)
 
         # The symbolizer gets a reference to the debug meta's images so
         # when it resolves the missing vmaddrs it changes them in the data
