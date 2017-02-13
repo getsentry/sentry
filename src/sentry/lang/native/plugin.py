@@ -15,7 +15,7 @@ from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
-    cpu_name_from_data, APPLE_SDK_MAPPING
+    APPLE_SDK_MAPPING
 from sentry.stacktraces import StacktraceProcessor
 from sentry.constants import NATIVE_UNKNOWN_STRING
 
@@ -286,7 +286,6 @@ def preprocess_apple_crash_event(data):
     referenced_images = find_apple_crash_report_referenced_images(
         crash_report['binary_images'], raw_threads.values())
     sym = Symbolizer(project, crash_report['binary_images'],
-                     cpu_name=cpu_name_from_data(data),
                      referenced_images=referenced_images)
 
     try:

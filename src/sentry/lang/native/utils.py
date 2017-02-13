@@ -1,9 +1,6 @@
 from __future__ import absolute_import
 
-import six
 import logging
-
-from sentry.interfaces.contexts import DeviceContextType
 
 
 logger = logging.getLogger(__name__)
@@ -143,12 +140,3 @@ def get_sdk_from_apple_system_info(info):
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
     }
-
-
-def cpu_name_from_data(data):
-    """Returns the CPU name from the given data if it exists."""
-    device = DeviceContextType.primary_value_for_data(data)
-    if device:
-        arch = device.get('arch')
-        if isinstance(arch, six.string_types):
-            return arch

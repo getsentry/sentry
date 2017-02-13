@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.lang.native.utils import get_sdk_from_event, cpu_name_from_data
+from sentry.lang.native.utils import get_sdk_from_event
 
 
 def test_get_sdk_from_event():
@@ -36,33 +36,3 @@ def test_get_sdk_from_event():
     assert sdk_info['version_major'] == 9
     assert sdk_info['version_minor'] == 3
     assert sdk_info['version_patchlevel'] == 1
-
-
-def test_cpu_name_from_data():
-    cpu_name = cpu_name_from_data({
-        'contexts': {
-            'device': {
-                'type': 'device',
-                'arch': 'arm64'
-            },
-            'device2': {
-                'type': 'device',
-                'arch': 'arm7'
-            },
-        }
-    })
-
-    assert cpu_name == 'arm64'
-
-
-def test_cpu_name_from_data_inferred_type():
-    cpu_name = cpu_name_from_data({
-        'contexts': {
-            'some_device': {
-                'type': 'device',
-                'arch': 'arm64'
-            }
-        }
-    })
-
-    assert cpu_name == 'arm64'
