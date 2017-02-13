@@ -44,9 +44,8 @@ def init_plugin(plugin):
     # Register contexts from plugins if necessary
     if hasattr(plugin, 'get_custom_contexts'):
         from sentry.interfaces.contexts import contexttype
-        contexts = plugin.get_custom_contexts()
-        for key, cls in six.iteritems(contexts or {}):
-            contexttype(key)(cls)
+        for cls in plugin.get_custom_contexts() or ():
+            contexttype(cls)
 
 
 def initialize_receivers():
