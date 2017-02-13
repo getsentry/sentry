@@ -77,18 +77,18 @@ def resolved_in_commit(instance, created, **kwargs):
                 user_list = list(instance.author.find_users())
             else:
                 user_list = ()
-
-            for user in user_list:
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=Activity.SET_RESOLVED_IN_COMMIT,
-                    ident=instance.id,
-                    user=user,
-                    data={
-                        'commit': instance.id,
-                    }
-                )
+            if user_list:
+                for user in user_list:
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=Activity.SET_RESOLVED_IN_COMMIT,
+                        ident=instance.id,
+                        user=user,
+                        data={
+                            'commit': instance.id,
+                        }
+                    )
             else:
                 Activity.objects.create(
                     project_id=group.project_id,
