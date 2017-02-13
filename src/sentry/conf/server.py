@@ -31,18 +31,32 @@ socket.setdefaulttimeout(5)
 def env(key, default='', type=None):
     "Extract an environment variable for use in configuration"
 
-    if 'SENTRY_RUNNING_UWSGI' in os.environ:
-        # We do this so when the process forks off into uwsgi
-        # we want to actually be popping off values. This is so that
-        # at runtime, the variables aren't actually available.
-        fn = os.environ.pop
-    else:
-        fn = os.environ.get
+    # First check an internal cache, so we can `pop` multiple times
+    # without actually losing the value.
+    try:
+        rv = env._cache[key]
+    except KeyError:
+        if 'SENTRY_RUNNING_UWSGI' in os.environ:
+            # We do this so when the process forks off into uwsgi
+            # we want to actually be popping off values. This is so that
+            # at runtime, the variables aren't actually available.
+            fn = os.environ.pop
+        else:
+            fn = os.environ.__getitem__
+
+        try:
+            rv = fn(key)
+            env._cache[key] = rv
+        except KeyError:
+            rv = default
 
     if type is None:
         type = type_from_value(default)
 
-    return type(fn(key, default))
+    return type(rv)
+
+
+env._cache = {}
 
 
 DEBUG = False
