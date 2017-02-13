@@ -39,12 +39,14 @@ class Activity(Model):
     SET_RESOLVED_IN_RELEASE = 13
     MERGE = 14
     SET_RESOLVED_BY_AGE = 15
+    SET_RESOLVED_IN_COMMIT = 16
 
     TYPE = (
         # (TYPE, verb-slug)
         (SET_RESOLVED, 'set_resolved'),
         (SET_RESOLVED_BY_AGE, 'set_resolved_by_age'),
         (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
+        (SET_RESOLVED_IN_COMMIT, 'set_resolved_in_commit'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_IGNORED, 'set_ignored'),
         (SET_PUBLIC, 'set_public'),

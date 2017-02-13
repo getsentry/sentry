@@ -1,278 +1,21 @@
 # -*- coding: utf-8 -*-
-import re
-
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import DataMigration
-from django.db import IntegrityError, models, transaction
+from south.v2 import SchemaMigration
+from django.db import models
 
 
-def is_full_sha(version):
-    # sha1 or md5
-    return bool(re.match(r'[a-f0-9]{40}$', version) or re.match(r'[a-f0-9]{32}$', version))
-
-
-def is_short_sha(version):
-    # short sha
-    return bool(re.match(r'[a-f0-9]{7,40}$', version))
-
-
-def is_semver_like(version):
-    return bool(re.match(r'([a-z]*)?(\-)?v?(?:\d+\.)*\d+', version))
-
-
-def is_travis_build(version):
-    # TRAVIS_12345
-    return bool(re.match(r'(travis)(\_|\-)([a-f0-9]{1,40}$)', version, re.IGNORECASE))
-
-
-def is_jenkins_build(version):
-    # jenkins-123-abcdeff
-    return bool(re.match(r'(jenkins)(\_|\-)([0-9]{1,40})(\_|\-)([a-f0-9]{5,40}$)', version, re.IGNORECASE))
-
-
-def is_head_tag(version):
-    # HEAD-abcdefg, master@abcdeff, master(abcdeff)
-    return bool(re.match(r'(head|master|qa)(\_|\-|\@|\()([a-f0-9]{6,40})(\)?)$', version, re.IGNORECASE))
-
-
-def is_short_sha_and_date(version):
-    # abcdefg-2016-03-16
-    return bool(re.match(r'([a-f0-9]{7,40})-(\d{4})-(\d{2})-(\d{2})', version))
-
-
-def is_word_and_date(version):
-    # release-2016-01-01
-    return bool(re.match(r'([a-z]*)-(\d{4})-(\d{2})-(\d{2})', version))
-
-
-def merge(to_release, from_releases, sentry_models):
-    # The following models reference release:
-    # ReleaseCommit.release
-    # ReleaseEnvironment.release_id
-    # ReleaseProject.release
-    # GroupRelease.release_id
-    # GroupResolution.release
-    # Group.first_release
-    # ReleaseFile.release
-
-    model_list = (
-        sentry_models.ReleaseCommit,
-        sentry_models.ReleaseEnvironment,
-        sentry_models.ReleaseFile,
-        sentry_models.ReleaseProject,
-        sentry_models.GroupRelease,
-        sentry_models.GroupResolution
-    )
-    for release in from_releases:
-        for model in model_list:
-            if hasattr(model, 'release'):
-                update_kwargs = {'release': to_release}
-            else:
-                update_kwargs = {'release_id': to_release.id}
-            try:
-                with transaction.atomic():
-                    model.objects.filter(
-                        release_id=release.id
-                    ).update(**update_kwargs)
-            except IntegrityError:
-                for item in model.objects.filter(release_id=release.id):
-                    try:
-                        with transaction.atomic():
-                            model.objects.filter(
-                                id=item.id
-                            ).update(**update_kwargs)
-                    except IntegrityError:
-                        item.delete()
-
-        sentry_models.Group.objects.filter(
-            first_release=release
-        ).update(first_release=to_release)
-
-        release.delete()
-
-
-def update_version(release, sentry_models):
-    old_version = release.version
-    try:
-        project_slug = release.projects.values_list('slug', flat=True)[0]
-    except IndexError:
-        # delete releases if they have no projects
-        release.delete()
-        return
-    new_version = ('%s-%s' % (project_slug, old_version))[:64]
-    sentry_models.Release.objects.filter(
-        id=release.id
-    ).update(version=new_version)
-    sentry_models.TagValue.objects.filter(
-        project__in=release.projects.all(),
-        key='sentry:release',
-        value=old_version
-    ).update(value=new_version)
-
-
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.commit_transaction()
-
-        dupe_releases = orm.Release.objects.values('version', 'organization_id')\
-                                           .annotate(vcount=models.Count('id'))\
-                                           .filter(vcount__gt=1)
-
-        for r in dupe_releases:
-            org_id = r['organization_id']
-            version = r['version']
-
-            releases = list(orm.Release.objects.filter(
-                organization_id=org_id,
-                version=version
-            ).order_by('date_added'))
-
-            releases_with_files = list(orm.ReleaseFile.objects.filter(
-                release__in=releases
-            ).values('release_id').distinct())
-
-            # if multiple releases have files, just rename them
-            # instead of trying to merge
-            if len(releases_with_files) > 1:
-                for release in releases:
-                    update_version(release, orm)
-                continue
-
-            if len(releases_with_files) == 1:
-                from_releases = []
-                for release in releases:
-                    if release.id == releases_with_files[0]['release_id']:
-                        to_release = release
-                    else:
-                        from_releases.append(release)
-            else:
-                to_release = releases[0]
-                from_releases = releases[1:]
-
-            if is_full_sha(version):
-                merge(
-                    to_release=to_release,
-                    from_releases=from_releases,
-                    sentry_models=orm
-                )
-                continue
-
-            affected_projects = set()
-            for release in releases:
-                affected_projects.update([
-                    p for p in release.projects.values_list('slug', flat=True)
-                ])
-            has_prod = False
-            has_staging = False
-            has_dev = False
-            for p in affected_projects:
-                if 'prod' in p:
-                    has_prod = True
-                elif 'stag' in p or 'stg' in p:
-                    has_staging = True
-                elif 'dev' in p:
-                    has_dev = True
-            # assume projects are split by environment if there
-            # are at least prod/staging or prod/dev, etc
-            projects_split_by_env = len([x for x in [has_prod, has_dev, has_staging] if x]) >= 2
-
-            # compare date_added
-            date_diff = None
-            dates = [release.date_added for release in releases]
-            if dates:
-                diff = (max(dates) - min(dates)).total_seconds()
-                if date_diff is None or diff > date_diff:
-                    date_diff = diff
-
-            if is_short_sha(version) or \
-                    is_head_tag(version) or \
-                    is_short_sha_and_date(version):
-                # if projects are across multiple environments, allow 1 week difference
-                if projects_split_by_env and date_diff and date_diff < 604800:
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                    continue
-                # +/- 8 hours
-                if date_diff and date_diff > 28800:
-                    for release in releases:
-                        update_version(release, orm)
-                else:
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                continue
-
-            if is_semver_like(version):
-                # check ref string and urls
-                refs = {release.ref for release in releases}
-                urls = {release.url for release in releases}
-                if (len(refs) == 1 and None not in refs) or (len(urls) == 1 and None not in urls):
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                    continue
-                # if projects are across multiple environments, allow 1 week difference
-                if projects_split_by_env and date_diff and date_diff < 604800:
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                    continue
-                # +/- 30 mins
-                if date_diff and date_diff > 1800:
-                    for release in releases:
-                        update_version(release, orm)
-                else:
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                continue
-
-            if len(version) >= 20 or is_travis_build(version) or \
-                    is_jenkins_build(version) or \
-                    is_word_and_date(version):
-                # if projects are across multiple environments, allow 1 week difference
-                if projects_split_by_env and date_diff and date_diff < 604800:
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                    continue
-                # +/- 4 hours
-                if date_diff and date_diff > 14400:
-                    for release in releases:
-                        update_version(release, orm)
-                else:
-                    merge(
-                        to_release=to_release,
-                        from_releases=from_releases,
-                        sentry_models=orm
-                    )
-                continue
-
-            # if we made it this far, assume we should just rename
-            for release in releases:
-                update_version(release, orm)
-
-        db.start_transaction()
+        # Removing unique constraint on 'Release', fields ['project_id', 'version']
+        db.delete_unique(u'sentry_release', ['project_id', 'version'])
 
 
     def backwards(self, orm):
-        "Write your backwards methods here."
-        pass
+        # Adding unique constraint on 'Release', fields ['project_id', 'version']
+        db.create_unique(u'sentry_release', ['project_id', 'version'])
+
 
     models = {
         'sentry.activity': {
@@ -357,7 +100,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 2, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 2, 16, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -793,7 +536,7 @@ class Migration(DataMigration):
             'project_id': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.release': {
-            'Meta': {'unique_together': "(('project_id', 'version'),)", 'object_name': 'Release'},
+            'Meta': {'unique_together': "(('organization', 'version'),)", 'object_name': 'Release'},
             'data': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'date_released': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
@@ -942,7 +685,7 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'eoUxyDO82qJrLEXmZNPgefpGSvdT4CsY'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'CZAb0H8HQQoHmAvfxAiZubXh8JoDvBMH'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
@@ -966,4 +709,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['sentry']
-    symmetrical = True

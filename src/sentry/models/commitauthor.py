@@ -18,3 +18,13 @@ class CommitAuthor(Model):
         unique_together = (('organization_id', 'email'),)
 
     __repr__ = sane_repr('organization_id', 'email', 'name')
+
+    def find_users(self):
+        from sentry.models import User
+
+        return User.objects.filter(
+            emails__email__iexact=self.email,
+            emails__is_verified=True,
+            sentry_orgmember_set__organization=self.organization_id,
+            is_active=True,
+        )

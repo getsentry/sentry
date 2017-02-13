@@ -37,7 +37,7 @@ from sentry.utils.strings import strip, truncatechars
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9-._]+)$')
+_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
 
 def looks_like_short_id(value):
@@ -83,7 +83,7 @@ def get_group_with_redirect(id, queryset=None):
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
-    def by_qualified_short_id(self, org, short_id):
+    def by_qualified_short_id(self, organization_id, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:
             raise Group.DoesNotExist()
@@ -99,7 +99,7 @@ class GroupManager(BaseManager):
         except ValueError:
             raise Group.DoesNotExist()
         return Group.objects.get(
-            project__organization=org,
+            project__organization=organization_id,
             project__slug=callsign,
             short_id=short_id,
         )

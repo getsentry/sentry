@@ -1,8 +1,21 @@
 from __future__ import absolute_import
 
+import itertools
+import logging
 import math
-import random
+import operator
 import struct
+from collections import Sequence
+
+import mmh3
+from django.conf import settings
+
+from sentry.utils import redis
+from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.iterators import shingle
+
+
+logger = logging.getLogger(__name__)
 
 
 def scale_to_total(value):
@@ -30,7 +43,7 @@ def get_euclidian_distance(target, other):
 
 
 def get_manhattan_distance(target, other):
-    """
+    """\
     Calculate the N-dimensional Manhattan distance between two mappings.
 
     The mappings are used to represent sparse arrays -- if a key is not present
@@ -46,24 +59,24 @@ def get_manhattan_distance(target, other):
     )
 
 
-formatters = sorted([
-    (2 ** 8 - 1, struct.Struct('>B').pack),
-    (2 ** 16 - 1, struct.Struct('>H').pack),
-    (2 ** 32 - 1, struct.Struct('>L').pack),
-    (2 ** 64 - 1, struct.Struct('>Q').pack),
+formats = sorted([
+    (2 ** 8 - 1, 'B'),
+    (2 ** 16 - 1, 'H'),
+    (2 ** 32 - 1, 'L'),
+    (2 ** 64 - 1, 'Q'),
 ])
 
 
-def get_number_formatter(size):
+def get_number_format(size, width=1):
     """\
-    Returns a function that packs a number no larger than the provided size
-    into to an efficient binary representation.
+    Returns a ``Struct`` object that can be used packs (and unpack) a number no
+    larger than the provided size into to an efficient binary representation.
     """
     assert size > 0
 
-    for maximum, formatter in formatters:
+    for maximum, format in formats:
         if maximum >= size:
-            return formatter
+            return struct.Struct('>%s' % (format * width))
 
     raise ValueError('No registered formatter can handle the provided value.')
 
@@ -97,8 +110,8 @@ class MinHashIndex(object):
       what other keys may be similar to the lookup key (but not the degree of
       similarity.)
     """
-    BUCKET_MEMBERSHIP = '0'
-    BUCKET_FREQUENCY = '1'
+    BUCKET_MEMBERSHIP = b'\x00'
+    BUCKET_FREQUENCY = b'\x01'
 
     def __init__(self, cluster, rows, bands, buckets):
         self.namespace = b'sim'
@@ -106,30 +119,22 @@ class MinHashIndex(object):
         self.cluster = cluster
         self.rows = rows
 
-        generator = random.Random(0)
+        sequence = itertools.count()
+        self.bands = [[next(sequence) for j in xrange(buckets)] for i in xrange(bands)]
 
-        def shuffle(value):
-            generator.shuffle(value)
-            return value
-
-        self.bands = [
-            [shuffle(range(rows)) for _ in xrange(buckets)]
-            for _ in xrange(bands)
-        ]
-
-        self.__bucket_formatter = get_number_formatter(rows)
-
-    def __format_buckets(self, bucket):
-        return b''.join(
-            map(self.__bucket_formatter, bucket)
-        )
+        self.__band_format = get_number_format(bands)
+        self.__bucket_format = get_number_format(rows, buckets)
 
     def get_signature(self, value):
-        """Generate a minhash signature for a value."""
-        columns = set(hash(token) % self.rows for token in value)
+        """Generate a signature for a value."""
         return map(
             lambda band: map(
-                lambda permutation: next(i for i, a in enumerate(permutation) if a in columns),
+                lambda bucket: min(
+                    map(
+                        lambda item: mmh3.hash(item, bucket) % self.rows,
+                        value,
+                    ),
+                ),
                 band,
             ),
             self.bands,
@@ -175,7 +180,13 @@ class MinHashIndex(object):
                 responses = {
                     key: map(
                         lambda band: client.zrange(
-                            b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_FREQUENCY, band, key),
+                            b'{}:{}:{}:{}:{}'.format(
+                                self.namespace,
+                                scope,
+                                self.BUCKET_FREQUENCY,
+                                self.__band_format.pack(band),
+                                key,
+                            ),
                             0,
                             -1,
                             desc=True,
@@ -191,9 +202,9 @@ class MinHashIndex(object):
                 # for each bucket to [0,1] value (the proportion of items
                 # observed in that band that belong to the bucket for the key.)
                 result[key] = map(
-                    lambda promise: scale_to_total(
-                        dict(promise.value)
-                    ),
+                    lambda promise: scale_to_total({
+                        self.__bucket_format.unpack(k): v for k, v in promise.value
+                    }),
                     promises,
                 )
 
@@ -205,7 +216,13 @@ class MinHashIndex(object):
                 responses = map(
                     lambda (band, buckets): map(
                         lambda bucket: client.smembers(
-                            b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, bucket)
+                            b'{}:{}:{}:{}:{}'.format(
+                                self.namespace,
+                                scope,
+                                self.BUCKET_MEMBERSHIP,
+                                self.__band_format.pack(band),
+                                self.__bucket_format.pack(*bucket),
+                            )
                         ),
                         buckets,
                     ),
@@ -257,13 +274,25 @@ class MinHashIndex(object):
         with self.cluster.map() as client:
             for scope, key, characteristics in items:
                 for band, buckets in enumerate(self.get_signature(characteristics)):
-                    buckets = self.__format_buckets(buckets)
+                    buckets = self.__bucket_format.pack(*buckets)
                     client.sadd(
-                        b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_MEMBERSHIP, band, buckets),
+                        b'{}:{}:{}:{}:{}'.format(
+                            self.namespace,
+                            scope,
+                            self.BUCKET_MEMBERSHIP,
+                            self.__band_format.pack(band),
+                            buckets,
+                        ),
                         key,
                     )
                     client.zincrby(
-                        b'{}:{}:{}:{}:{}'.format(self.namespace, scope, self.BUCKET_FREQUENCY, band, key),
+                        b'{}:{}:{}:{}:{}'.format(
+                            self.namespace,
+                            scope,
+                            self.BUCKET_FREQUENCY,
+                            self.__band_format.pack(band),
+                            key,
+                        ),
                         buckets,
                         1,
                     )
@@ -273,3 +302,237 @@ class MinHashIndex(object):
         return self.record_multi([
             (scope, key, characteristics),
         ])
+
+
+FRAME_ITEM_SEPARATOR = b'\x00'
+FRAME_PAIR_SEPARATOR = b'\x01'
+FRAME_SEPARATOR = b'\x02'
+
+FRAME_FUNCTION_KEY = b'\x10'
+FRAME_MODULE_KEY = b'\x11'
+FRAME_FILENAME_KEY = b'\x12'
+
+
+def serialize_frame(frame):
+    """\
+    Convert a frame value from a ``Stacktrace`` interface into a bytes object.
+    """
+    # TODO(tkaemming): This should likely result in an intermediate data
+    # structure that is easier to introspect than this one, and a separate
+    # serialization step before hashing.
+    # TODO(tkaemming): These frame values need platform-specific normalization.
+    # This probably should be done prior to this method being called...?
+    attributes = {
+        FRAME_FUNCTION_KEY: frame['function']
+    }
+
+    module = frame.get('module')
+    if module:
+        attributes[FRAME_MODULE_KEY] = module
+    else:
+        attributes[FRAME_FILENAME_KEY] = frame['filename']
+
+    return FRAME_ITEM_SEPARATOR.join(
+        map(
+            lambda item: FRAME_PAIR_SEPARATOR.join(
+                map(
+                    operator.methodcaller('encode', 'utf8'),
+                    item,
+                ),
+            ),
+            attributes.items(),
+        ),
+    )
+
+
+def get_exception_frames(exception):
+    """\
+    Extracts frames from an ``Exception`` interface, returning an empty
+    sequence if no frame value was provided or if the value is of an invalid or
+    unexpected type.
+    """
+    try:
+        frames = exception['stacktrace']['frames']
+    except (TypeError, KeyError):
+        logger.info('Could not extract frames from exception, returning empty sequence.', exc_info=True)
+        frames = []
+    else:
+        if not isinstance(frames, Sequence):
+            logger.info('Expected frames to be a sequence but got %r, returning empty sequence instead.', type(frames))
+            frames = []
+
+    return frames
+
+
+def get_application_chunks(exception):
+    """\
+    Filters out system and framework frames from a stacktrace in order to
+    better align similar logical application paths. This returns a sequence of
+    application code "chunks": blocks of contiguously called application code.
+    """
+    return map(
+        lambda (in_app, frames): list(frames),
+        itertools.ifilter(
+            lambda (in_app, frames): in_app,
+            itertools.groupby(
+                get_exception_frames(exception),
+                key=lambda frame: frame.get('in_app', False),
+            )
+        )
+    )
+
+
+class ExceptionFeature(object):
+    def __init__(self, function):
+        self.function = function
+
+    def extract(self, event):
+        try:
+            exceptions = event.data['sentry.interfaces.Exception']['values']
+        except KeyError as error:
+            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            return
+
+        for exception in exceptions:
+            try:
+                yield self.function(exception)
+            except Exception as error:
+                logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
+
+
+class MessageFeature(object):
+    def __init__(self, function):
+        self.function = function
+
+    def extract(self, event):
+        try:
+            message = event.data['sentry.interfaces.Message']
+        except KeyError as error:
+            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            return
+
+        try:
+            yield self.function(message)
+        except Exception as error:
+            logger.exception('Could not extract characteristic(s) from message of %r due to error: %r', event, error)
+
+
+class FeatureSet(object):
+    def __init__(self, index, aliases, features):
+        self.index = index
+        self.aliases = aliases
+        self.features = features
+        self.__number_format = get_number_format(0xFFFFFFFF)
+        assert set(self.aliases) == set(self.features)
+
+    def record(self, event):
+        items = []
+        for label, feature in self.features.items():
+            alias = self.aliases[label]
+            scope = ':'.join((
+                alias,
+                self.__number_format.pack(event.project_id),
+            ))
+            for characteristics in feature.extract(event):
+                if characteristics:
+                    items.append((
+                        scope,
+                        self.__number_format.pack(event.group_id),
+                        characteristics,
+                    ))
+        return self.index.record_multi(items)
+
+    def query(self, group):
+        results = {}
+        key = self.__number_format.pack(group.id)
+        for label in self.features.keys():
+            alias = self.aliases[label]
+            scope = ':'.join((
+                alias,
+                self.__number_format.pack(group.project_id)
+            ))
+            results[label] = map(
+                lambda (id, score): (
+                    self.__number_format.unpack(id)[0],
+                    score,
+                ),
+                self.index.query(scope, key)
+            )
+        return results
+
+
+def serialize_text_shingle(value, separator=b''):
+    """\
+    Convert a sequence of Unicode strings into a bytes object.
+    """
+    return separator.join(
+        map(
+            operator.methodcaller('encode', 'utf8'),
+            value,
+        ),
+    )
+
+
+features = FeatureSet(
+    MinHashIndex(
+        redis.clusters.get(
+            getattr(
+                settings,
+                'SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER',
+                'default',
+            ),
+        ),
+        0xFFFF,
+        8,
+        2,
+    ),
+    BidirectionalMapping({
+        'exception:message:character-shingles': '\x00',
+        'exception:stacktrace:application-chunks': '\x01',
+        'exception:stacktrace:pairs': '\x02',
+        'message:message:character-shingles': '\x03',
+    }),
+    {
+        'exception:message:character-shingles': ExceptionFeature(
+            lambda exception: map(
+                serialize_text_shingle,
+                shingle(
+                    13,
+                    exception['value'],
+                ),
+            )
+        ),
+        'exception:stacktrace:application-chunks': ExceptionFeature(
+            lambda exception: map(
+                lambda frames: FRAME_SEPARATOR.join(
+                    map(
+                        serialize_frame,
+                        frames,
+                    ),
+                ),
+                get_application_chunks(exception),
+            ),
+        ),
+        'exception:stacktrace:pairs': ExceptionFeature(
+            lambda exception: map(
+                FRAME_SEPARATOR.join,
+                shingle(
+                    2,
+                    map(
+                        serialize_frame,
+                        get_exception_frames(exception),
+                    ),
+                ),
+            ),
+        ),
+        'message:message:character-shingles': MessageFeature(
+            lambda message: map(
+                serialize_text_shingle,
+                shingle(
+                    13,
+                    message['message'],
+                ),
+            ),
+        ),
+    }
+)

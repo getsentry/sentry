@@ -217,6 +217,8 @@ KNOWN_DSYM_TYPES = {
     'application/x-mach-binary': 'macho'
 }
 
+NATIVE_UNKNOWN_STRING = '<unknown>'
+
 
 class ObjectStatus(object):
     VISIBLE = 0

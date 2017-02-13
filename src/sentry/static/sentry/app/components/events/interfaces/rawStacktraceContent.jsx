@@ -108,9 +108,6 @@ export function getCocoaFrame(frame) {
     result += ljust(frame.instructionAddr, 12);
   }
   result += ' ' + (frame.function || frame.symbolAddr);
-  if (frame.instructionOffset) {
-    result += ' + ' + frame.instructionOffset;
-  }
   if (defined(frame.filename)) {
     result += ' (' + frame.filename;
     if (defined(frame.lineNo) && frame.lineNo >= 0) {
