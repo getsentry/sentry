@@ -326,11 +326,16 @@ def serialize_frame(frame):
         FRAME_FUNCTION_KEY: frame['function']
     }
 
-    module = frame.get('module')
-    if module:
-        attributes[FRAME_MODULE_KEY] = module
-    else:
-        attributes[FRAME_FILENAME_KEY] = frame['filename']
+    scopes = (
+        (FRAME_MODULE_KEY, 'module'),
+        (FRAME_FILENAME_KEY, 'filename'),
+    )
+
+    for key, name in scopes:
+        value = frame.get(name)
+        if value:
+            attributes[key] = value
+            break
 
     return FRAME_ITEM_SEPARATOR.join(
         map(
