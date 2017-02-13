@@ -15,7 +15,7 @@ from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
-    APPLE_SDK_MAPPING
+    cpu_name_from_data, APPLE_SDK_MAPPING
 from sentry.stacktraces import StacktraceProcessor
 from sentry.constants import NATIVE_UNKNOWN_STRING
 
@@ -286,6 +286,7 @@ def preprocess_apple_crash_event(data):
     referenced_images = find_apple_crash_report_referenced_images(
         crash_report['binary_images'], raw_threads.values())
     sym = Symbolizer(project, crash_report['binary_images'],
+                     cpu_name=cpu_name_from_data(data),
                      referenced_images=referenced_images)
 
     try:
@@ -364,13 +365,11 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        is_debug_build = self.debug_meta.get('is_debug_build')
         referenced_images = find_stacktrace_referenced_images(
             self.debug_meta['images'], [
                 x.stacktrace for x in self.stacktrace_infos])
         self.sym = Symbolizer(self.project, self.debug_meta['images'],
-                              referenced_images=referenced_images,
-                              is_debug_build=is_debug_build)
+                              referenced_images=referenced_images)
 
         # The symbolizer gets a reference to the debug meta's images so
         # when it resolves the missing vmaddrs it changes them in the data
