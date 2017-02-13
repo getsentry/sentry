@@ -7,7 +7,9 @@ from sentry.models import Project
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from collections import namedtuple
-from six import integer_types
+
+import six
+from six import integer_types, text_type
 
 
 logger = logging.getLogger(__name__)
@@ -124,6 +126,7 @@ def _get_frame_cache_key(processor, frame):
         return None
 
     h = hashlib.md5()
+    h.update((u'%s\xff' % processor.__class__.__name__).encode('utf-8'))
 
     def _hash_value(value):
         if value is None:
@@ -133,9 +136,25 @@ def _get_frame_cache_key(processor, frame):
         elif value is False:
             h.update(b'\x02')
         elif isinstance(value, integer_types):
-            h.update(str(value).encode('ascii') + b'\x00')
+            h.update(b'\x03' + text_type(value).encode('ascii') + b'\x00')
+        elif isinstance(value, (tuple, list)):
+            h.update(b'\x04' + text_type(len(value)).encode('utf-8'))
+            for item in value:
+                _hash_value(item)
+        elif isinstance(value, dict):
+            h.update(b'\x05' + text_type(len(value)).encode('utf-8'))
+            for k, v in six.iteritems(value):
+                _hash_value(k)
+                _hash_value(v)
+        elif isinstance(value, bytes):
+            h.update(b'\x06' + value + b'\x00')
+        elif isinstance(value, text_type):
+            h.update(b'\x07' + value.encode('utf-8') + b'\x00')
+        else:
+            raise TypeError('Invalid value for frame cache')
 
     for attr_name in attributes:
+        h.update((u'\xff%s|' % attr_name).encode('utf-8'))
         value = frame.get(attr_name)
         h.update(attr_name.encode('ascii') + b'\x00')
         _hash_value(value)
