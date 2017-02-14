@@ -411,7 +411,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'instruction_addr' not in frame
         )
 
-    def process_frame(self, processable_frame, task):
+    def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         errors = []
 
