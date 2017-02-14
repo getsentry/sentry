@@ -11,6 +11,7 @@ Version 8.14 (Unreleased)
 - Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
 - Added OrganizationReleasesEndpoint
 - Added context type app for cocoa events
+- Added basic encryption facilities (``sentry.utils.encryption``).
 
 Schema Changes
 ~~~~~~~~~~~~~~
