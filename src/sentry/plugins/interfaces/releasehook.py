@@ -10,22 +10,15 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ReleaseHook']
 
-import re
-
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from sentry.models import (
-    Activity, Commit, CommitAuthor, Release, ReleaseCommit, Repository
-)
+from sentry.models import Activity, Release
 
 
 class ReleaseHook(object):
     def __init__(self, project):
         self.project = project
-
-    def _to_email(self, name):
-        return re.sub(r'[^a-zA-Z0-9\-_\.]*', '', name).lower() + '@localhost'
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
@@ -68,61 +61,7 @@ class ReleaseHook(object):
             )
         release.add_project(project)
 
-        with transaction.atomic():
-            # TODO(dcramer): would be good to optimize the logic to avoid these
-            # deletes but not overly important
-            ReleaseCommit.objects.filter(
-                release=release,
-            ).delete()
-
-            authors = {}
-            repos = {}
-            for idx, data in enumerate(commit_list):
-                repo_name = data.get('repository') or 'project-{}'.format(project.id)
-                if repo_name not in repos:
-                    repos[repo_name] = repo = Repository.objects.get_or_create(
-                        organization_id=project.organization_id,
-                        name=repo_name,
-                    )[0]
-                else:
-                    repo = repos[repo_name]
-
-                author_email = data.get('author_email')
-                if author_email is None and data.get('author_name'):
-                    author_email = self._to_email(data['author_name'])
-
-                if not author_email:
-                    author = None
-                elif author_email not in authors:
-                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                        organization_id=project.organization_id,
-                        email=author_email,
-                        defaults={
-                            'name': data.get('author_name'),
-                        }
-                    )[0]
-                    if data.get('author_name') and author.name != data['author_name']:
-                        author.update(name=data['author_name'])
-                else:
-                    author = authors[author_email]
-
-                commit = Commit.objects.get_or_create(
-                    organization_id=project.organization_id,
-                    repository_id=repo.id,
-                    key=data['id'],
-                    defaults={
-                        'message': data.get('message'),
-                        'author': author,
-                        'date_added': data.get('timestamp') or timezone.now(),
-                    }
-                )[0]
-
-                ReleaseCommit.objects.create(
-                    organization_id=project.organization_id,
-                    release=release,
-                    commit=commit,
-                    order=idx,
-                )
+        release.set_commits(commit_list)
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
