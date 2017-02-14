@@ -9,6 +9,7 @@ Version 8.14 (Unreleased)
 - [BREAKING] Quotas must now instantiate RateLimited and NotRateLimited return values.
 - [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
 - Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
+- Added OrganizationReleasesEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -16,7 +17,6 @@ Schema Changes
 - Added unique index on ``Release(organization_id, version)``
 - Removed unique index on ``Release(project_id, version)``
 - Added ``GroupCommitResolution`` model.
-- Added OrganizationReleasesEndpoint
 
 Version 8.13
 ------------
