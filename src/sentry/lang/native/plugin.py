@@ -362,7 +362,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.sym.close()
             self.sym = None
 
-    def preprocess_related_data(self, task):
+    def preprocess_related_data(self, processing_task):
         if not self.available:
             return False
 
