@@ -625,7 +625,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             ])
         return frames
 
-    def preprocess_related_data(self):
+    def preprocess_related_data(self, task):
         frames = self.get_valid_frames()
         if not frames:
             logger.debug('Event %r has no frames with enough context to '
@@ -647,7 +647,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             platform == 'javascript'
         )
 
-    def process_frame(self, processable_frame):
+    def process_frame(self, processable_frame, task):
         frame = processable_frame.frame
         last_token = None
         token = None
