@@ -362,7 +362,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.sym.close()
             self.sym = None
 
-    def preprocess_related_data(self):
+    def preprocess_related_data(self, task):
         if not self.available:
             return False
 
@@ -411,7 +411,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'instruction_addr' not in frame
         )
 
-    def process_frame(self, processable_frame):
+    def process_frame(self, processable_frame, task):
         frame = processable_frame.frame
         errors = []
 

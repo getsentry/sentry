@@ -3,10 +3,13 @@ from __future__ import absolute_import
 import logging
 import hashlib
 
+from collections import namedtuple, OrderedDict
+
+from django.core.cache import cache
+
 from sentry.models import Project
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
-from collections import namedtuple
 
 import six
 from six import integer_types, text_type
@@ -19,6 +22,8 @@ ProcessableFrame = namedtuple('ProcessableFrame', [
     'frame', 'idx', 'processor', 'stacktrace_info', 'cache_key'])
 StacktraceInfo = namedtuple('StacktraceInfo', [
     'stacktrace', 'container', 'platforms'])
+ProcessorTask = namedtuple('ProcessorTask', [
+    'processor', 'processable_frames', 'frame_cache'])
 
 
 class StacktraceProcessor(object):
@@ -36,13 +41,18 @@ class StacktraceProcessor(object):
     def get_frame_cache_attributes(self):
         return None
 
-    def preprocess_related_data(self):
+    def get_frame_cache_values(self, frame):
+        attributes = self.get_frame_cache_attributes()
+        if attributes is not None:
+            return [(attr, frame.get(attr)) for attr in attributes]
+
+    def preprocess_related_data(self, task):
         return False
 
     def handles_frame(self, frame, stacktrace_info):
         return False
 
-    def process_frame(self, processable_frame):
+    def process_frame(self, processable_frame, task):
         pass
 
 
@@ -121,8 +131,8 @@ def get_processors_for_stacktraces(data, infos):
 
 
 def _get_frame_cache_key(processor, frame):
-    attributes = processor.get_frame_cache_attributes(frame)
-    if attributes is None:
+    values = processor.get_frame_cache_values(frame)
+    if values is None:
         return None
 
     h = hashlib.md5()
@@ -153,7 +163,7 @@ def _get_frame_cache_key(processor, frame):
         else:
             raise TypeError('Invalid value for frame cache')
 
-    for attr_name in attributes:
+    for attr_name, value in values:
         h.update((u'\xff%s|' % attr_name).encode('utf-8'))
         value = frame.get(attr_name)
         h.update(attr_name.encode('ascii') + b'\x00')
@@ -175,7 +185,7 @@ def get_processable_frames(stacktrace_info, processors):
     return rv
 
 
-def process_single_stacktrace(stacktrace_info, processors):
+def process_single_stacktrace(processable_frames, tasks):
     # TODO: associate errors with the frames and processing issues
     changed_raw = False
     changed_processed = False
@@ -183,11 +193,11 @@ def process_single_stacktrace(stacktrace_info, processors):
     processed_frames = []
     all_errors = []
 
-    processable_frames = get_processable_frames(stacktrace_info, processors)
-
     for processable_frame in processable_frames:
+        task = tasks[processable_frame.processor]
         try:
-            rv = processable_frame.processor.process_frame(processable_frame)
+            rv = processable_frame.processor.process_frame(
+                processable_frame, task)
         except Exception:
             logger.exception('Failed to process frame')
         expand_processed, expand_raw, errors = rv or (None, None, None)
@@ -206,10 +216,8 @@ def process_single_stacktrace(stacktrace_info, processors):
         all_errors.extend(errors or ())
 
     return (
-        dict(stacktrace_info.stacktrace,
-             frames=processed_frames) if changed_processed else None,
-        dict(stacktrace_info.stacktrace,
-             frames=raw_frames) if changed_raw else None,
+        processed_frames if changed_processed else None,
+        raw_frames if changed_raw else None,
         all_errors,
     )
 
@@ -228,6 +236,42 @@ def get_metrics_key(stacktrace_infos):
     return 'mixed.process'
 
 
+def lookup_frame_cache(keys):
+    rv = {}
+    for key in keys:
+        rv[key] = cache.get(key)
+    return rv
+
+
+def get_processor_tasks_and_frames(infos, processors):
+    """Returns a list of all tasks for the processors.  This can skip over
+    processors that seem to not handle any frames.
+    """
+    by_processor = {}
+    by_stacktrace_info = OrderedDict()
+    to_lookup = {}
+
+    # Find all processable frames and group them by processor
+    for info in infos:
+        processable_frames = get_processable_frames(info, processors)
+        for processable_frame in processable_frames:
+            by_processor.setdefault(processable_frame.processor, []) \
+                .append(processable_frame)
+            by_stacktrace_info.setdefault(processable_frame.stacktrace_info, []) \
+                .append(processable_frame)
+            if processable_frame.cache_key is not None:
+                to_lookup[processable_frame.cache_key] = processable_frame
+
+    # Now fetch all cache data in one go and fetch from cache
+    frame_cache_data = lookup_frame_cache(to_lookup)
+
+    tasks = {}
+    for processor, frames in six.iteritems(by_processor):
+        tasks[processor] = ProcessorTask(processor, frames, frame_cache_data)
+
+    return tasks, list(by_stacktrace_info.items())
+
+
 def process_stacktraces(data, make_processors=None):
     infos = find_stacktraces_in_data(data)
     if make_processors is None:
@@ -243,22 +287,24 @@ def process_stacktraces(data, make_processors=None):
     changed = False
 
     mkey = get_metrics_key(infos)
-
     with metrics.timer(mkey, instance=data['project']):
-        for processor in processors:
-            if processor.preprocess_related_data():
+        tasks, processable_stacks = \
+            get_processor_tasks_and_frames(infos, processors)
+
+        for task in tasks:
+            if task.processor.preprocess_related_data(task):
                 changed = True
 
-        for stacktrace_info in infos:
-            new_stacktrace, raw_stacktrace, errors = process_single_stacktrace(
-                stacktrace_info, processors)
-            if new_stacktrace is not None:
-                stacktrace_info.stacktrace.clear()
-                stacktrace_info.stacktrace.update(new_stacktrace)
+        for stacktrace_info, processable_frames in processable_stacks:
+            new_frames, new_raw_frames, errors = process_single_stacktrace(
+                processable_frames, tasks)
+            if new_frames is not None:
+                stacktrace_info.stacktrace['frames'] = new_frames
                 changed = True
-            if raw_stacktrace is not None and \
+            if new_raw_frames is not None and \
                stacktrace_info.container is not None:
-                stacktrace_info.container['raw_stacktrace'] = raw_stacktrace
+                stacktrace_info.container['raw_stacktrace'] = dict(
+                    stacktrace_info.stacktrace, frames=new_raw_frames)
                 changed = True
             if errors:
                 data.setdefault('errors', []).extend(errors)
