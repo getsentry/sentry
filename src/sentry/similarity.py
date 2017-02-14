@@ -322,11 +322,11 @@ def get_frame_signature(frame, lines=5):
     return struct.pack(
         '>i',
         mmh3.hash(
-            '\n'.join(
-                frame.get('pre_context', [])[-lines:] +
+            u'\n'.join(
+                (frame.get('pre_context') or [])[-lines:] +
                 [frame['context_line']] +
-                frame.get('post_context', [])[:lines]
-            )
+                (frame.get('post_context') or [])[:lines]
+            ).encode('utf8')
         ),
     )
 
