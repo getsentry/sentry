@@ -6,8 +6,8 @@ import pytest
 
 from sentry.similarity import (
     MinHashIndex, get_exception_frames, get_euclidian_distance,
-    get_manhattan_distance, get_number_format, scale_to_total,
-    serialize_frame,
+    get_manhattan_distance, get_number_format, get_frame_signature,
+    scale_to_total, serialize_frame,
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -220,6 +220,32 @@ def test_serialize_frame():
             'pre_context': ['foo'],
             'post_context': ['baz'],
         })
+
+
+def test_get_frame_signature():
+    assert get_frame_signature({
+        'context_line': 'bar'
+    }) == get_frame_signature({
+        'pre_context': None,
+        'context_line': 'bar',
+        'post_context': None,
+    }) == get_frame_signature({
+        'pre_context': [],
+        'context_line': 'bar',
+        'post_context': [],
+    })
+
+    get_frame_signature({
+        'pre_context': ['foo'],
+        'context_line': 'bar',
+        'post_context': ['baz'],
+    })
+
+    get_frame_signature({
+        'pre_context': [u'\N{SNOWMAN WITHOUT SNOW}'],
+        'context_line': u'\N{SNOWMAN}',
+        'post_context': [u'\N{BLACK SNOWMAN}'],
+    })
 
 
 class MinHashIndexTestCase(TestCase):
