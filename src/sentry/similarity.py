@@ -412,7 +412,7 @@ class ExceptionFeature(object):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
             return
 
         for exception in exceptions:
@@ -430,7 +430,7 @@ class MessageFeature(object):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
             return
 
         try:
