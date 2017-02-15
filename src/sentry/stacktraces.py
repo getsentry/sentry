@@ -18,17 +18,79 @@ from six import integer_types, text_type
 logger = logging.getLogger(__name__)
 
 
-ProcessableFrame = namedtuple('ProcessableFrame', [
-    'frame', 'idx', 'processor', 'stacktrace_info', 'cache_key'])
 StacktraceInfo = namedtuple('StacktraceInfo', [
     'stacktrace', 'container', 'platforms'])
 
 
+class ProcessableFrame(object):
+
+    def __init__(self, frame, idx, processor, stacktrace_info):
+        self.frame = frame
+        self.idx = idx
+        self.processor = processor
+        self.stacktrace_info = stacktrace_info
+        self.data = None
+        self.cache_key = None
+        self.cache_value = None
+
+    def __contains__(self, key):
+        return key in self.frame
+
+    def __getitem__(self, key):
+        return self.frame[key]
+
+    def get(self, key, default=None):
+        return self.frame.get(key, default)
+
+    def set_cache_value(self, value):
+        if self.cache_key is not None:
+            cache.set(self.cache_key, value, 3600)
+            return True
+        return False
+
+    def set_cache_key_from_values(self, values):
+        if values is None:
+            self.cache_key = None
+            return
+
+        h = hashlib.md5()
+        h.update((u'%s\xff' % self.processor.__class__.__name__).encode('utf-8'))
+
+        def _hash_value(value):
+            if value is None:
+                h.update(b'\x00')
+            elif value is True:
+                h.update(b'\x01')
+            elif value is False:
+                h.update(b'\x02')
+            elif isinstance(value, integer_types):
+                h.update(b'\x03' + text_type(value).encode('ascii') + b'\x00')
+            elif isinstance(value, (tuple, list)):
+                h.update(b'\x04' + text_type(len(value)).encode('utf-8'))
+                for item in value:
+                    _hash_value(item)
+            elif isinstance(value, dict):
+                h.update(b'\x05' + text_type(len(value)).encode('utf-8'))
+                for k, v in six.iteritems(value):
+                    _hash_value(k)
+                    _hash_value(v)
+            elif isinstance(value, bytes):
+                h.update(b'\x06' + value + b'\x00')
+            elif isinstance(value, text_type):
+                h.update(b'\x07' + value.encode('utf-8') + b'\x00')
+            else:
+                raise TypeError('Invalid value for frame cache')
+
+        for value in values:
+            _hash_value(value)
+
+        self.cache_key = 'pf:%s' % h.hexdigest()
+
+
 class StacktraceProcessingTask(object):
 
-    def __init__(self, processable_stacktraces, frame_cache, processors):
+    def __init__(self, processable_stacktraces, processors):
         self.processable_stacktraces = processable_stacktraces
-        self.frame_cache = frame_cache
         self.processors = processors
 
     def iter_processors(self):
@@ -37,13 +99,11 @@ class StacktraceProcessingTask(object):
     def iter_processable_stacktraces(self):
         return six.iteritems(self.processable_stacktraces)
 
-    def get_frame_cache_data(self, processing_frame):
-        if processing_frame.cache_key:
-            return self.frame_cache.get(processing_frame.cache_key)
-
-    def set_frame_cache_data(self, processing_frame, value):
-        if processing_frame.cache_key:
-            cache.set(processing_frame.cache_key, value, 3600)
+    def iter_processable_frames(self, processor=None):
+        for frames in self.iter_processable_stacktraces():
+            for frame in frames:
+                if processor is None or frame.processor == processor:
+                    yield frame
 
 
 class StacktraceProcessor(object):
@@ -58,22 +118,35 @@ class StacktraceProcessor(object):
     def close(self):
         pass
 
-    def get_frame_cache_attributes(self):
-        return None
-
-    def get_frame_cache_values(self, frame):
-        attributes = self.get_frame_cache_attributes()
-        if attributes is not None:
-            return [(attr, frame.get(attr)) for attr in attributes]
-
-    def preprocess_related_data(self, processing_task):
-        return False
-
     def handles_frame(self, frame, stacktrace_info):
+        """Returns true if this processor can handle this frame.  This is the
+        earliest check and operates on a raw frame and stacktrace info.  If
+        this returns `True` a processable frame is created.
+        """
         return False
+
+    def preprocess_frame(self, processable_frame):
+        """After a processable frame has been created this method is invoked
+        to give the processor a chance to store additional data to the frame
+        if wanted.  In particular a cache key can be set here.
+        """
+        pass
 
     def process_frame(self, processable_frame, processing_task):
-        pass
+        """Processes the processable frame and returns a tuple of three
+        lists: ``(frames, raw_frames, errors)`` where frames is the list of
+        processed frames, raw_frames is the list of raw unprocessed frames
+        (which however can also be modified if needed) as well as a list of
+        optional errors.  Each one of the items can be `None` in which case
+        the original input frame is assumed.
+        """
+
+    def preprocess_step(self, processing_task):
+        """After frames are preprocesed but before frame processing kicks in
+        the preprocessing step is run.  This already has access to the cache
+        values on the frames.
+        """
+        return False
 
 
 def find_stacktraces_in_data(data):
@@ -150,48 +223,6 @@ def get_processors_for_stacktraces(data, infos):
     return processors
 
 
-def _get_frame_cache_key(processor, frame):
-    values = processor.get_frame_cache_values(frame)
-    if values is None:
-        return None
-
-    h = hashlib.md5()
-    h.update((u'%s\xff' % processor.__class__.__name__).encode('utf-8'))
-
-    def _hash_value(value):
-        if value is None:
-            h.update(b'\x00')
-        elif value is True:
-            h.update(b'\x01')
-        elif value is False:
-            h.update(b'\x02')
-        elif isinstance(value, integer_types):
-            h.update(b'\x03' + text_type(value).encode('ascii') + b'\x00')
-        elif isinstance(value, (tuple, list)):
-            h.update(b'\x04' + text_type(len(value)).encode('utf-8'))
-            for item in value:
-                _hash_value(item)
-        elif isinstance(value, dict):
-            h.update(b'\x05' + text_type(len(value)).encode('utf-8'))
-            for k, v in six.iteritems(value):
-                _hash_value(k)
-                _hash_value(v)
-        elif isinstance(value, bytes):
-            h.update(b'\x06' + value + b'\x00')
-        elif isinstance(value, text_type):
-            h.update(b'\x07' + value.encode('utf-8') + b'\x00')
-        else:
-            raise TypeError('Invalid value for frame cache')
-
-    for attr_name, value in values:
-        h.update((u'\xff%s|' % attr_name).encode('utf-8'))
-        value = frame.get(attr_name)
-        h.update(attr_name.encode('ascii') + b'\x00')
-        _hash_value(value)
-
-    return h.hexdigest()
-
-
 def get_processable_frames(stacktrace_info, processors):
     """Returns thin wrappers around the frames in a stacktrace associated
     with the processor for it.
@@ -204,7 +235,7 @@ def get_processable_frames(stacktrace_info, processors):
         if processor is not None:
             rv.append(ProcessableFrame(
                 frame, frame_count - idx - 1, processor,
-                stacktrace_info, _get_frame_cache_key(processor, frame)))
+                stacktrace_info))
     return rv
 
 
@@ -277,6 +308,7 @@ def get_stacktrace_processing_task(infos, processors):
     for info in infos:
         processable_frames = get_processable_frames(info, processors)
         for processable_frame in processable_frames:
+            processable_frame.processor.preprocess_frame(processable_frame)
             by_processor.setdefault(processable_frame.processor, []) \
                 .append(processable_frame)
             by_stacktrace_info.setdefault(processable_frame.stacktrace_info, []) \
@@ -284,9 +316,12 @@ def get_stacktrace_processing_task(infos, processors):
             if processable_frame.cache_key is not None:
                 to_lookup[processable_frame.cache_key] = processable_frame
 
+    frame_cache = lookup_frame_cache(to_lookup)
+    for cache_key, processable_frame in six.iteritems(to_lookup):
+        processable_frames.cache_value = frame_cache.get(cache_key)
+
     return StacktraceProcessingTask(
         processable_stacktraces=by_stacktrace_info,
-        frame_cache=lookup_frame_cache(to_lookup),
         processors=by_processor
     )
 
@@ -312,7 +347,7 @@ def process_stacktraces(data, make_processors=None):
 
         # Preprocess step
         for processor in processing_task.iter_processors():
-            if processor.preprocess_related_data(processing_task):
+            if processor.preprocess_step(processing_task):
                 changed = True
 
         # Process all stacktraces

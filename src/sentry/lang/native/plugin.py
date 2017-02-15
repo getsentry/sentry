@@ -14,14 +14,15 @@ from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
-    find_stacktrace_referenced_images, get_sdk_from_apple_system_info, \
-    cpu_name_from_data, APPLE_SDK_MAPPING
+    get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING
 from sentry.stacktraces import StacktraceProcessor
 from sentry.constants import NATIVE_UNKNOWN_STRING
 
 
 logger = logging.getLogger(__name__)
 
+
+FRAME_CACHE_VERSION = 1
 model_re = re.compile(r'^(\S+?)\d')
 
 APP_BUNDLE_PATHS = (
@@ -362,21 +363,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.sym.close()
             self.sym = None
 
-    def preprocess_related_data(self, processing_task):
-        if not self.available:
-            return False
-
-        referenced_images = find_stacktrace_referenced_images(
-            self.debug_meta['images'], [
-                x.stacktrace for x in self.stacktrace_infos])
-        self.sym = Symbolizer(self.project, self.debug_meta['images'],
-                              referenced_images=referenced_images)
-
-        # The symbolizer gets a reference to the debug meta's images so
-        # when it resolves the missing vmaddrs it changes them in the data
-        # dict.
-        return self.sym.resolve_missing_vmaddrs()
-
     def find_best_instruction(self, processable_frame):
         """Given a frame, stacktrace info and frame index this returns the
         interpolated instruction address we then use for symbolication later.
@@ -411,44 +397,87 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'instruction_addr' not in frame
         )
 
+    def preprocess_frame(self, processable_frame, processing_task):
+        instr_addr = self.find_best_instruction(processable_frame)
+        img = self.sym.find_image(instr_addr)
+
+        processable_frame.data = {
+            'instruction_addr': instr_addr,
+        }
+
+        if img is not None:
+            processable_frame.set_cache_key_from_values(
+                FRAME_CACHE_VERSION,
+                processable_frame.data['instruction_addr'],
+                img['uuid'],
+                img['cpu_type'],
+                img['cpu_subtype'],
+                img['image_size'],
+                img['image_addr']
+            )
+
+    def preprocess_step(self, processing_task):
+        if not self.available:
+            return False
+
+        referenced_images = set(
+            pf.data['image']['uuid']
+            for pf in processing_task.iter_processable_frames(self)
+            if pf.cache_value is None)
+
+        self.sym = Symbolizer(self.project, self.debug_meta['images'],
+                              referenced_images=referenced_images)
+
+        # The symbolizer gets a reference to the debug meta's images so
+        # when it resolves the missing vmaddrs it changes them in the data
+        # dict.
+        return self.sym.resolve_missing_vmaddrs()
+
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         errors = []
 
-        # Construct a raw frame that is used by the symbolizer
-        # backend.  We only assemble the bare minimum we need here.
-        sym_input_frame = {
-            'object_name': frame.get('package'),
-            'instruction_addr': self.find_best_instruction(
-                processable_frame),
-            'symbol_name': frame.get('function'),
-            'symbol_addr': frame.get('symbol_addr'),
-        }
-        in_app = self.sym.is_in_app(sym_input_frame)
-
         new_frames = []
         raw_frame = dict(frame)
-        raw_frame['in_app'] = in_app
 
-        try:
-            symbolicated_frames = self.sym.symbolize_frame(
-                sym_input_frame, self.sdk_info, symbolize_inlined=True)
-            if not symbolicated_frames:
-                return None, [raw_frame], []
-        except SymbolicationFailed as e:
-            errors = []
-            if e.is_user_fixable or e.is_sdk_failure:
-                errors.append({
-                    'type': e.type,
-                    'image_uuid': e.image_uuid,
-                    'image_path': e.image_path,
-                    'image_arch': e.image_arch,
-                    'message': e.message,
-                })
-            else:
-                logger.debug('Failed to symbolicate with native backend',
-                             exc_info=True)
-            return None, [raw_frame], errors
+        if frame.cache_value is None:
+            # Construct a raw frame that is used by the symbolizer
+            # backend.  We only assemble the bare minimum we need here.
+            sym_input_frame = {
+                'object_name': frame.get('package'),
+                'instruction_addr': processable_frame.data['instruction_addr'],
+                'symbol_name': frame.get('function'),
+                'symbol_addr': frame.get('symbol_addr'),
+            }
+            in_app = self.sym.is_in_app(sym_input_frame)
+            raw_frame['in_app'] = in_app
+            try:
+                symbolicated_frames = self.sym.symbolize_frame(
+                    sym_input_frame, self.sdk_info, symbolize_inlined=True)
+                if not symbolicated_frames:
+                    return None, [raw_frame], []
+            except SymbolicationFailed as e:
+                errors = []
+                if e.is_user_fixable or e.is_sdk_failure:
+                    errors.append({
+                        'type': e.type,
+                        'image_uuid': e.image_uuid,
+                        'image_path': e.image_path,
+                        'image_arch': e.image_arch,
+                        'message': e.message,
+                    })
+                else:
+                    logger.debug('Failed to symbolicate with native backend',
+                                 exc_info=True)
+                return None, [raw_frame], errors
+
+            frame.set_cache_value({
+                'in_app': in_app,
+                'symbolicated_frames': symbolicated_frames,
+            })
+        else:
+            raw_frame['in_app'] = in_app = frame.cache_value['in_app']
+            symbolicated_frames = frame.cache_value['symbolicated_frames']
 
         for sfrm in symbolicated_frames:
             symbol = sfrm.get('symbol_name') or \
