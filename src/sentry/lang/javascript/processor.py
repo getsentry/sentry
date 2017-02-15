@@ -62,6 +62,7 @@ VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 # fetched
 MAX_RESOURCE_FETCHES = 100
 MAX_URL_LENGTH = 150
+NODE_MODULES_RE = re.compile(r'\bnode_modules/')
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
@@ -766,7 +767,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     new_frame['module'] = generate_module(filename)
 
                 if is_react_native:
-                    if 'node_modules' in filename:
+                    if NODE_MODULES_RE.match(filename):
                         in_app = False
                     else:
                         in_app = True
