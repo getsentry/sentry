@@ -5,11 +5,10 @@ import hashlib
 
 from collections import namedtuple
 
-from django.core.cache import cache
-
 from sentry.models import Project
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+from sentry.utils.cache import cache
 
 import six
 from six import integer_types, text_type
@@ -87,7 +86,8 @@ class ProcessableFrame(object):
         for value in values:
             _hash_value(value)
 
-        self.cache_key = 'pf:%s' % h.hexdigest()
+        self.cache_key = rv = 'pf:%s' % h.hexdigest()
+        return rv
 
 
 class StacktraceProcessingTask(object):

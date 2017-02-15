@@ -417,12 +417,15 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if img is not None:
             processable_frame.set_cache_key_from_values((
                 FRAME_CACHE_VERSION,
-                processable_frame.data['instruction_addr'],
-                img['uuid'],
+                # Because the images can move around, we want to rebase
+                # the address for the cache key to be within the image
+                # the same way as we do it in the symbolizer.
+                (parse_addr(img['image_vmaddr']) +
+                 instr_addr - parse_addr(img['image_addr'])),
+                img['uuid'].lower(),
                 img['cpu_type'],
                 img['cpu_subtype'],
                 img['image_size'],
-                img['image_addr']
             ))
 
     def preprocess_step(self, processing_task):
