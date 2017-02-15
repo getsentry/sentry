@@ -8,6 +8,7 @@ import logging
 import posixpath
 
 from symsynd.demangle import demangle_symbol
+from symsynd.heuristics import find_best_instruction
 
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
@@ -349,6 +350,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
         debug_meta = self.data.get('debug_meta')
+        self.cpu_name = cpu_name_from_data(self.data)
         self.sym = None
         if debug_meta:
             self.available = True
@@ -387,7 +389,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 'signal': signal,
             }
 
-        return self.sym.find_best_instruction(processable_frame.frame, meta=meta)
+        return find_best_instruction(
+            processable_frame.frame, self.cpu_name, meta=meta)
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
@@ -426,6 +429,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             if pf.cache_value is None)
 
         self.sym = Symbolizer(self.project, self.debug_meta['images'],
+                              self.cpu_name,
                               referenced_images=referenced_images)
 
         # The symbolizer gets a reference to the debug meta's images so

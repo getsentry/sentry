@@ -165,15 +165,6 @@ class Symbolizer(object):
                     self.cpu_name = None
                     break
 
-    def find_best_instruction(self, frame, meta=None):
-        """Finds the best instruction for a given frame."""
-        # If we have no images or cpu name we cannot possibly fix the
-        # instruction here.
-        if not self.images or self.cpu_name is None:
-            return parse_addr(frame['instruction_addr'])
-        return self.symsynd_symbolizer.find_best_instruction(
-            frame['instruction_addr'], cpu_name=self.cpu_name, meta=meta)
-
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
         the information in the dsym files (if there is no vmaddr already).
