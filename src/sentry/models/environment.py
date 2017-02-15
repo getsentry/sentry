@@ -60,6 +60,7 @@ class Environment(Model):
             env = cls.objects.get_or_create(
                 project_id=project.id,
                 name=name,
+                defaults={'organization_id': project.organization_id}
             )[0]
             if env.organization_id is None:
                 cls.objects.filter(id=env.id).update(
