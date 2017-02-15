@@ -10,6 +10,7 @@ Version 8.14 (Unreleased)
 - [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
 - Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
 - Added OrganizationReleasesEndpoint
+- Added context type app for cocoa events
 
 Schema Changes
 ~~~~~~~~~~~~~~
