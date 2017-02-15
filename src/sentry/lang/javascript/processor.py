@@ -761,7 +761,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # We want to explicitly generate a webpack module name
                     new_frame['module'] = generate_module(filename)
 
-                if abs_path.startswith('react-native:'):
+                if frame['abs_path'].startswith('react-native:'):
                     if NODE_MODULES_RE.match(filename):
                         in_app = False
                     else:
