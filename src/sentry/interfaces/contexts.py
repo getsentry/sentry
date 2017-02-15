@@ -102,8 +102,7 @@ class DefaultContextType(ContextType):
 class AppContextType(ContextType):
     type = 'app'
     indexed_fields = {
-        '': u'{app_id}',
-        'app_id': u'{app_id}',
+        'device': u'{device_app_hash}',
     }
 
 

@@ -131,20 +131,15 @@ class ContextsTest(TestCase):
             'app': {
                 'app_id': '1234',
                 'device_app_hash': '5678',
-                'binary_cpu_type': '12',
-                'binary_sub_cpu_type': '13',
             },
         })
         assert sorted(ctx.iter_tags()) == [
-            ('app', '1234'),
-            ('app.app_id', '1234'),
+            ('app.device', '5678'),
         ]
         assert ctx.to_json() == {
             'app': {
                 'type': 'app',
                 'app_id': '1234',
                 'device_app_hash': '5678',
-                'binary_cpu_type': '12',
-                'binary_sub_cpu_type': '13',
             }
         }
