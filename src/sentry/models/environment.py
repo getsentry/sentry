@@ -63,9 +63,7 @@ class Environment(Model):
                 defaults={'organization_id': project.organization_id}
             )[0]
             if env.organization_id is None:
-                cls.objects.filter(id=env.id).update(
-                    organization_id=project.organization_id
-                )
+                env.update(organization_id=project.organization_id)
             env.add_project(project)
             cache.set(cache_key, env, 3600)
 
