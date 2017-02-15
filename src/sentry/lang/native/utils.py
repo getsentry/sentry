@@ -42,22 +42,6 @@ def find_apple_crash_report_referenced_images(binary_images, threads):
     return list(to_load)
 
 
-def find_stacktrace_referenced_images(debug_images, stacktraces):
-    image_map = {}
-    for image in debug_images:
-        image_map[image['image_addr']] = image['uuid']
-
-    to_load = set()
-    for stacktrace in stacktraces:
-        for frame in stacktrace['frames']:
-            if 'image_addr' in frame:
-                img_uuid = image_map.get(frame['image_addr'])
-                if img_uuid is not None:
-                    to_load.add(img_uuid)
-
-    return list(to_load)
-
-
 def find_all_stacktraces(data):
     """Given a data dictionary from an event this returns all
     relevant stacktraces in a list.  If a frame contains a raw_stacktrace
