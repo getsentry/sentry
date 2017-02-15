@@ -187,6 +187,7 @@ reserved_tag_names = frozenset([
     'browser',
     'device',
     'os',
+    'app',
     'os.name',
     'url',
     'event.timestamp'])

@@ -28,7 +28,7 @@ const DeviceContextType = React.createClass({
   render() {
     let {name, family, model, model_id, arch, battery_level, orientation,
       simulator, memory_size, free_memory, usable_memory, storage_size,
-      ...data} = this.props.data;
+      boot_time, timezone, ...data} = this.props.data;
       let memory = this.formatMemory(memory_size, free_memory, usable_memory);
       let storage = this.formatStorage(storage_size);
     return (
@@ -45,6 +45,8 @@ const DeviceContextType = React.createClass({
           ['?Memory', memory],
           ['?Capacity', storage],
           ['?Simulator', simulator],
+          ['?Boot Time', boot_time],
+          ['?Timezone', timezone],
         ]}
         alias={this.props.alias} />
     );
