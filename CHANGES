@@ -9,7 +9,12 @@ Version 8.14 (Unreleased)
 - [BREAKING] Quotas must now instantiate RateLimited and NotRateLimited return values.
 - [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
 - Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
-- Added OrganizationReleasesEndpoint
+
+API Changes
+~~~~~~~~~~~
+
+- Added OrganizationReleasesEndpoint.
+- Added ``assignedTo`` param to ``/projects/{org}/{project}/issues/``.
 
 Schema Changes
 ~~~~~~~~~~~~~~

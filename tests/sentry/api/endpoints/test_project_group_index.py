@@ -13,9 +13,9 @@ from exam import fixture
 from mock import patch
 
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupTagValue,
-    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    Release
+    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
+    GroupTagValue, GroupResolution, GroupSeen, GroupSnooze, GroupStatus,
+    GroupSubscription, Release
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
@@ -747,6 +747,69 @@ class GroupUpdateTest(APITestCase):
             to_object_id=group2.id,
             transaction_id='abc123',
         )
+
+    def test_assign(self):
+        group1 = self.create_group(checksum='a' * 32, is_public=True)
+        group2 = self.create_group(checksum='b' * 32, is_public=True)
+        user = self.user
+
+        self.login_as(user=user)
+        url = '{url}?id={group1.id}'.format(
+            url=self.path,
+            group1=group1,
+        )
+        response = self.client.put(url, data={
+            'assignedTo': user.username,
+        })
+
+        assert response.status_code == 200
+        assert response.data['assignedTo']['id'] == six.text_type(user.id)
+
+        assert GroupAssignee.objects.filter(
+            group=group1, user=user
+        ).exists()
+
+        assert not GroupAssignee.objects.filter(
+            group=group2, user=user
+        ).exists()
+
+        assert Activity.objects.filter(
+            group=group1, user=user, type=Activity.ASSIGNED,
+        ).count() == 1
+
+        assert GroupSubscription.objects.filter(
+            user=user,
+            group=group1,
+            is_active=True,
+        ).exists()
+
+        response = self.client.put(url, data={
+            'assignedTo': '',
+        }, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['assignedTo'] is None
+
+        assert not GroupAssignee.objects.filter(
+            group=group1, user=user
+        ).exists()
+
+    def test_assign_non_member(self):
+        group = self.create_group(checksum='a' * 32, is_public=True)
+        member = self.user
+        non_member = self.create_user('bar@example.com')
+
+        self.login_as(user=member)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'assignedTo': non_member.username,
+        }, format='json')
+
+        assert response.status_code == 400, response.content
 
 
 class GroupDeleteTest(APITestCase):

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
@@ -19,8 +20,8 @@ from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
+    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
     GroupSubscriptionReason, Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
@@ -81,7 +82,7 @@ class ValidationError(Exception):
     pass
 
 
-class GroupSerializer(serializers.Serializer):
+class GroupValidator(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
@@ -91,9 +92,16 @@ class GroupSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
+    assignedTo = UserField()
 
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
+
+    def validate_assignedTo(self, attrs, source):
+        value = attrs[source]
+        if value and not self.context['project'].member_set.filter(user=value).exists():
+            raise serializers.ValidationError('Cannot assign to non-team member')
+        return attrs
 
 
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
@@ -305,6 +313,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
+        :param string assignedTo: the username of the user that should be
+                                  assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -324,7 +334,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         else:
             group_list = None
 
-        serializer = GroupSerializer(data=request.DATA, partial=True)
+        serializer = GroupValidator(
+            data=request.DATA,
+            partial=True,
+            context={'project': project},
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -522,6 +536,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                 reason=GroupSubscriptionReason.status_change,
                             )
                         activity.send_notification()
+
+        if 'assignedTo' in result:
+            if result['assignedTo']:
+                for group in group_list:
+                    GroupAssignee.objects.assign(group, result['assignedTo'],
+                                                 acting_user)
+
+                    if 'isSubscribed' not in result or result['assignedTo'] != request.user:
+                        GroupSubscription.objects.subscribe(
+                            group=group,
+                            user=result['assignedTo'],
+                            reason=GroupSubscriptionReason.assigned,
+                        )
+                result['assignedTo'] = serialize(result['assignedTo'])
+            else:
+                for group in group_list:
+                    GroupAssignee.objects.deassign(group, acting_user)
 
         if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
             for group in group_list:
