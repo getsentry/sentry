@@ -460,7 +460,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 'object_name': frame.get('package'),
                 'instruction_addr': processable_frame.data['instruction_addr'],
                 'symbol_name': frame.get('function'),
-                'symbol_addr': frame.get('symbol_addr'),
             }
             in_app = self.sym.is_in_app(sym_input_frame)
             raw_frame['in_app'] = in_app
@@ -484,13 +483,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                                  exc_info=True)
                 return None, [raw_frame], errors
 
-            processable_frame.set_cache_value({
-                'in_app': in_app,
-                'symbolicated_frames': symbolicated_frames,
-            })
+            processable_frame.set_cache_value([in_app, symbolicated_frames])
         else:
-            raw_frame['in_app'] = in_app = processable_frame.cache_value['in_app']
-            symbolicated_frames = processable_frame.cache_value['symbolicated_frames']
+            in_app, symbolicated_frames = processable_frame.cache_value
+            raw_frame['in_app'] = in_app
 
         for sfrm in symbolicated_frames:
             symbol = sfrm.get('symbol_name') or \
