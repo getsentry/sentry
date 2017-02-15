@@ -191,3 +191,63 @@ class Release(Model):
                 ReleaseProject.objects.create(project=project, release=self)
         except IntegrityError:
             pass
+
+    def set_commits(self, commit_list):
+        from sentry.models import Commit, CommitAuthor, ReleaseCommit, Repository
+
+        with transaction.atomic():
+            # TODO(dcramer): would be good to optimize the logic to avoid these
+            # deletes but not overly important
+            ReleaseCommit.objects.filter(
+                release=self,
+            ).delete()
+
+            authors = {}
+            repos = {}
+            for idx, data in enumerate(commit_list):
+                repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
+                if repo_name not in repos:
+                    repos[repo_name] = repo = Repository.objects.get_or_create(
+                        organization_id=self.organization_id,
+                        name=repo_name,
+                    )[0]
+                else:
+                    repo = repos[repo_name]
+
+                author_email = data.get('author_email')
+                if author_email is None and data.get('author_name'):
+                    author_email = (re.sub(r'[^a-zA-Z0-9\-_\.]*', '', data['author_name']).lower() +
+                                    '@localhost')
+
+                if not author_email:
+                    author = None
+                elif author_email not in authors:
+                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                        organization_id=self.organization_id,
+                        email=author_email,
+                        defaults={
+                            'name': data.get('author_name'),
+                        }
+                    )[0]
+                    if data.get('author_name') and author.name != data['author_name']:
+                        author.update(name=data['author_name'])
+                else:
+                    author = authors[author_email]
+
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id,
+                    repository_id=repo.id,
+                    key=data['id'],
+                    defaults={
+                        'message': data.get('message'),
+                        'author': author,
+                        'date_added': data.get('timestamp') or timezone.now(),
+                    }
+                )[0]
+
+                ReleaseCommit.objects.create(
+                    organization_id=self.organization_id,
+                    release=self,
+                    commit=commit,
+                    order=idx,
+                )

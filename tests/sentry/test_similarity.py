@@ -6,7 +6,8 @@ import pytest
 
 from sentry.similarity import (
     MinHashIndex, get_exception_frames, get_euclidian_distance,
-    get_manhattan_distance, get_number_format, scale_to_total
+    get_manhattan_distance, get_number_format, get_frame_signature,
+    scale_to_total, serialize_frame,
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -174,6 +175,77 @@ def test_get_exception_frames():
             'frames': 13,
         },
     }) == []
+
+
+def test_serialize_frame():
+    with pytest.raises(Exception):
+        serialize_frame({})
+
+    serialize_frame({
+        'function': u'\N{SNOWMAN}',
+    })
+
+    serialize_frame({
+        'module': u'\N{SNOWMAN WITHOUT SNOW}',
+        'function': u'\N{SNOWMAN}',
+    })
+
+    serialize_frame({
+        'filename': u'\N{BLACK SNOWMAN}',
+        'function': u'\N{SNOWMAN}',
+    })
+
+    context = {
+        'pre_context': ['foo'],
+        'context_line': 'bar',
+        'post_context': ['baz'],
+    }
+
+    assert serialize_frame(context) == \
+        serialize_frame(dict({'function': '<lambda>'}, **context)) == \
+        serialize_frame(dict({'function': None}, **context))
+
+    assert serialize_frame({
+        'pre_context': (['red'] * 10) + (['foo'] * 5),
+        'context_line': 'bar',
+        'post_context': (['foo'] * 5) + (['red'] * 10),
+    }) == serialize_frame({
+        'pre_context': (['blue'] * 10) + (['foo'] * 5),
+        'context_line': 'bar',
+        'post_context': (['foo'] * 5) + (['blue'] * 10),
+    })
+
+    with pytest.raises(Exception):
+        serialize_frame({
+            'pre_context': ['foo'],
+            'post_context': ['baz'],
+        })
+
+
+def test_get_frame_signature():
+    assert get_frame_signature({
+        'context_line': 'bar'
+    }) == get_frame_signature({
+        'pre_context': None,
+        'context_line': 'bar',
+        'post_context': None,
+    }) == get_frame_signature({
+        'pre_context': [],
+        'context_line': 'bar',
+        'post_context': [],
+    })
+
+    get_frame_signature({
+        'pre_context': ['foo'],
+        'context_line': 'bar',
+        'post_context': ['baz'],
+    })
+
+    get_frame_signature({
+        'pre_context': [u'\N{SNOWMAN WITHOUT SNOW}'],
+        'context_line': u'\N{SNOWMAN}',
+        'post_context': [u'\N{BLACK SNOWMAN}'],
+    })
 
 
 class MinHashIndexTestCase(TestCase):

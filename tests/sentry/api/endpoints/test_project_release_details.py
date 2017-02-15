@@ -29,7 +29,7 @@ class ReleaseDetailsTest(APITestCase):
             release=release
         ).update(new_groups=5)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -56,7 +56,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -83,7 +83,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -118,7 +118,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -163,7 +163,7 @@ class ReleaseDeleteTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -188,7 +188,7 @@ class ReleaseDeleteTest(APITestCase):
         release.add_project(project2)
         self.create_group(first_release=release)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,

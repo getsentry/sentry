@@ -311,6 +311,24 @@ FRAME_SEPARATOR = b'\x02'
 FRAME_FUNCTION_KEY = b'\x10'
 FRAME_MODULE_KEY = b'\x11'
 FRAME_FILENAME_KEY = b'\x12'
+FRAME_SIGNATURE_KEY = b'\x13'
+
+
+def get_frame_signature(frame, lines=5):
+    """\
+    Creates a "signature" for a frame from the surrounding context lines,
+    reading up to ``lines`` values from each side.
+    """
+    return struct.pack(
+        '>i',
+        mmh3.hash(
+            u'\n'.join(
+                (frame.get('pre_context') or [])[-lines:] +
+                [frame['context_line']] +
+                (frame.get('post_context') or [])[:lines]
+            ).encode('utf8')
+        ),
+    )
 
 
 def serialize_frame(frame):
@@ -322,9 +340,13 @@ def serialize_frame(frame):
     # serialization step before hashing.
     # TODO(tkaemming): These frame values need platform-specific normalization.
     # This probably should be done prior to this method being called...?
-    attributes = {
-        FRAME_FUNCTION_KEY: frame['function']
-    }
+    attributes = {}
+
+    function_name = frame.get('function')
+    if function_name in set(['<lambda>', None]):
+        attributes[FRAME_SIGNATURE_KEY] = get_frame_signature(frame)
+    else:
+        attributes[FRAME_FUNCTION_KEY] = function_name.encode('utf8')
 
     scopes = (
         (FRAME_MODULE_KEY, 'module'),
@@ -334,17 +356,12 @@ def serialize_frame(frame):
     for key, name in scopes:
         value = frame.get(name)
         if value:
-            attributes[key] = value
+            attributes[key] = value.encode('utf8')
             break
 
     return FRAME_ITEM_SEPARATOR.join(
         map(
-            lambda item: FRAME_PAIR_SEPARATOR.join(
-                map(
-                    operator.methodcaller('encode', 'utf8'),
-                    item,
-                ),
-            ),
+            FRAME_PAIR_SEPARATOR.join,
             attributes.items(),
         ),
     )
@@ -395,7 +412,7 @@ class ExceptionFeature(object):
         try:
             exceptions = event.data['sentry.interfaces.Exception']['values']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
             return
 
         for exception in exceptions:
@@ -413,7 +430,7 @@ class MessageFeature(object):
         try:
             message = event.data['sentry.interfaces.Message']
         except KeyError as error:
-            logger.info('Could not extract characteristic(s) from %r due error: %r', event, error, exc_info=True)
+            logger.info('Could not extract characteristic(s) from %r due to error: %r', event, error, exc_info=True)
             return
 
         try:
