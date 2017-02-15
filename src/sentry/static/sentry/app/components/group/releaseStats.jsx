@@ -10,7 +10,7 @@ import GroupState from '../../mixins/groupState';
 import GroupReleaseChart from './releaseChart';
 import MenuItem from '../menuItem';
 import SeenInfo from './seenInfo';
-import {defined, toTitleCase} from '../../utils';
+import {toTitleCase} from '../../utils';
 import {t} from '../../locale';
 
 const DEFAULT_ENV_NAME = '(Default Environment)';
@@ -148,7 +148,7 @@ const GroupReleaseStats = React.createClass({
     let lastSeenEnv = data.lastSeen;
 
     let envList = this.state.envList;
-    let hasRelease = defined(group.lastRelease);
+    let hasRelease = this.getProjectFeatures().has('releases');
 
     return (
       <div className="env-stats">

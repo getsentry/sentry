@@ -12,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
-from sentry.models import Activity, Release, ReleaseProject
+from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -162,12 +162,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 ), False
                 was_released = bool(release.date_released)
 
-            try:
-                with transaction.atomic():
-                    ReleaseProject.objects.create(project=project, release=release)
-                created = True
-            except IntegrityError:
-                pass
+            created = release.add_project(project)
 
             commit_list = result.get('commits')
             if commit_list:

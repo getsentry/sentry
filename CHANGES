@@ -9,6 +9,7 @@ Version 8.14 (Unreleased)
 - [BREAKING] Quotas must now instantiate RateLimited and NotRateLimited return values.
 - [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
 - Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
+- Release functionality is now detected at a project level to enable various features.
 - Added OrganizationReleasesEndpoint
 - Added context type app for cocoa events
 
@@ -20,6 +21,7 @@ Schema Changes
 - Added ``GroupCommitResolution`` model.
 - Added ``Environment.organization_id`` column.
 - Added ``EnvironmentProject`` model.
+- Added ``Project.flags`` column.
 
 Version 8.13
 ------------
