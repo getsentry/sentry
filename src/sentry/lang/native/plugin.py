@@ -397,7 +397,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         return (
             platform == 'cocoa' and
             self.available and
-            'instruction_addr' not in frame
+            'instruction_addr' in frame
         )
 
     def preprocess_frame(self, processable_frame):
