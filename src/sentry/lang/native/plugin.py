@@ -347,7 +347,6 @@ def preprocess_apple_crash_event(data):
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
-    platforms = ('cocoa',)
 
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
