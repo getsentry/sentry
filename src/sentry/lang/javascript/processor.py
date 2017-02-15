@@ -647,7 +647,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             platform == 'javascript'
         )
 
-    def process_frame(self, processable_frame):
+    def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
         last_token = None
         token = None
