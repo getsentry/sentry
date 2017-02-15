@@ -9,10 +9,12 @@ import posixpath
 
 from symsynd.demangle import demangle_symbol
 from symsynd.heuristics import find_best_instruction
+from symsynd.utils import parse_addr
 
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
-from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
+from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed, \
+    ImageLookup
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING
@@ -356,6 +358,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.available = True
             self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
+            self.image_lookup = ImageLookup(self.debug_meta['images'])
         else:
             self.available = False
 
@@ -369,6 +372,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         """Given a frame, stacktrace info and frame index this returns the
         interpolated instruction address we then use for symbolication later.
         """
+        if self.cpu_name is None:
+            return parse_addr(processable_frame['instruction_addr'])
         meta = None
 
         # We only need to provide meta information for frame zero
@@ -390,7 +395,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             }
 
         return find_best_instruction(
-            processable_frame.frame, self.cpu_name, meta=meta)
+            processable_frame['instruction_addr'],
+            self.cpu_name, meta=meta)
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get('platform') or self.data.get('platform')
@@ -402,14 +408,15 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def preprocess_frame(self, processable_frame):
         instr_addr = self.find_best_instruction(processable_frame)
-        img = self.sym.find_image(instr_addr)
+        img = self.image_lookup.find_image(instr_addr)
 
         processable_frame.data = {
             'instruction_addr': instr_addr,
+            'image_uuid': img['uuid'] if img is not None else None,
         }
 
         if img is not None:
-            processable_frame.set_cache_key_from_values(
+            processable_frame.set_cache_key_from_values((
                 FRAME_CACHE_VERSION,
                 processable_frame.data['instruction_addr'],
                 img['uuid'],
@@ -417,19 +424,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 img['cpu_subtype'],
                 img['image_size'],
                 img['image_addr']
-            )
+            ))
 
     def preprocess_step(self, processing_task):
         if not self.available:
             return False
 
         referenced_images = set(
-            pf.data['image']['uuid']
+            pf.data['image_uuid']
             for pf in processing_task.iter_processable_frames(self)
-            if pf.cache_value is None)
+            if pf.cache_value is None and pf.data['image_uuid'] is not None)
 
-        self.sym = Symbolizer(self.project, self.debug_meta['images'],
-                              self.cpu_name,
+        self.sym = Symbolizer(self.project, self.image_lookup,
+                              cpu_name=self.cpu_name,
                               referenced_images=referenced_images)
 
         # The symbolizer gets a reference to the debug meta's images so
@@ -444,7 +451,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         new_frames = []
         raw_frame = dict(frame)
 
-        if frame.cache_value is None:
+        if processable_frame.cache_value is None:
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
             sym_input_frame = {
@@ -475,13 +482,13 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                                  exc_info=True)
                 return None, [raw_frame], errors
 
-            frame.set_cache_value({
+            processable_frame.set_cache_value({
                 'in_app': in_app,
                 'symbolicated_frames': symbolicated_frames,
             })
         else:
-            raw_frame['in_app'] = in_app = frame.cache_value['in_app']
-            symbolicated_frames = frame.cache_value['symbolicated_frames']
+            raw_frame['in_app'] = in_app = processable_frame.cache_value['in_app']
+            symbolicated_frames = processable_frame.cache_value['symbolicated_frames']
 
         for sfrm in symbolicated_frames:
             symbol = sfrm.get('symbol_name') or \

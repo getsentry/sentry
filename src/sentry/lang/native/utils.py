@@ -3,6 +3,8 @@ from __future__ import absolute_import
 import six
 import logging
 
+from symsynd.macho.arch import get_cpu_name
+
 from sentry.interfaces.contexts import DeviceContextType
 
 
@@ -136,3 +138,17 @@ def cpu_name_from_data(data):
         arch = device.get('arch')
         if isinstance(arch, six.string_types):
             return arch
+
+    # TODO: kill this here.  we want to not support that going forward
+    unique_cpu_name = None
+    images = (data.get('debug_meta') or {}).get('images') or []
+    for img in images:
+        cpu_name = get_cpu_name(img['cpu_type'],
+                                img['cpu_subtype'])
+        if unique_cpu_name is None:
+            unique_cpu_name = cpu_name
+        elif unique_cpu_name != cpu_name:
+            unique_cpu_name = None
+            break
+
+    return unique_cpu_name
