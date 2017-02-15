@@ -332,7 +332,7 @@ class Symbolizer(object):
 
         rv = self._process_frame(dict(frame,
             symbol_name=symbol, filename=None, line=0, column=0,
-            uuid=img['uuid'], object_name=img['name']), img)
+            object_name=img['name']), img)
 
         # We actually do not support inline symbolication for system
         # frames, so we just only ever return a single frame here.  Maybe
