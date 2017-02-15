@@ -54,3 +54,44 @@ class ReleaseDeploysListTest(APITestCase):
         assert response.data[0]['environment'] == 'staging'
         assert response.data[1]['environment'] == 'production'
         assert response.data[1]['resources'] == ['foo', 'bar']
+
+
+class ReleaseDeploysCreateTest(APITestCase):
+    def test_simple(self):
+        project = self.create_project(
+            name='foo',
+        )
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='1',
+        )
+        release.add_project(project)
+
+        Environment.objects.create(
+            project_id=project.id,
+            name='production',
+        )
+
+        url = reverse('sentry-api-0-organization-release-deploys', kwargs={
+            'organization_slug': project.organization.slug,
+            'version': release.version,
+        })
+
+        self.login_as(user=self.user)
+
+        response = self.client.post(url, data={
+            'name': 'foo',
+            'environment': 'production',
+            'url': 'https://www.example.com',
+            'resources': ['server-one', 'server-two']
+        })
+        assert response.status_code == 201, response.content
+        # TODO(jess): figure out why this was causing issues
+        response.data.pop('dateFinished')
+        assert response.data == {
+            'name': 'foo',
+            'url': 'https://www.example.com',
+            'environment': 'production',
+            'dateStarted': None,
+            'resources': ['server-one', 'server-two']
+        }
