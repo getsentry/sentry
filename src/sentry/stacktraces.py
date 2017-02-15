@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 StacktraceInfo = namedtuple('StacktraceInfo', [
     'stacktrace', 'container', 'platforms'])
+StacktraceInfo.__hash__ = lambda x: id(x)
+StacktraceInfo.__eq__ = lambda a, b: a is b
+StacktraceInfo.__ne__ = lambda a, b: a is not b
 
 
 class ProcessableFrame(object):
