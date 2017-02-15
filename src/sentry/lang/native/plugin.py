@@ -397,7 +397,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             'instruction_addr' not in frame
         )
 
-    def preprocess_frame(self, processable_frame, processing_task):
+    def preprocess_frame(self, processable_frame):
         instr_addr = self.find_best_instruction(processable_frame)
         img = self.sym.find_image(instr_addr)
 
