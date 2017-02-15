@@ -99,6 +99,15 @@ class DefaultContextType(ContextType):
 
 
 @contexttype
+class AppContextType(ContextType):
+    type = 'app'
+    indexed_fields = {
+        '': u'{app_id}',
+        'app_id': u'{app_id}',
+    }
+
+
+@contexttype
 class DeviceContextType(ContextType):
     type = 'device'
     indexed_fields = {

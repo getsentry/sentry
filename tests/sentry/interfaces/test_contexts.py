@@ -125,3 +125,26 @@ class ContextsTest(TestCase):
 
     def test_path(self):
         assert Contexts().get_path() == 'contexts'
+
+    def test_app(self):
+        ctx = Contexts.to_python({
+            'app': {
+                'app_id': '1234',
+                'device_app_hash': '5678',
+                'binary_cpu_type': '12',
+                'binary_sub_cpu_type': '13',
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('app', '1234'),
+            ('app.app_id', '1234'),
+        ]
+        assert ctx.to_json() == {
+            'app': {
+                'type': 'app',
+                'app_id': '1234',
+                'device_app_hash': '5678',
+                'binary_cpu_type': '12',
+                'binary_sub_cpu_type': '13',
+            }
+        }
