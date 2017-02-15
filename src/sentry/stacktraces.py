@@ -103,7 +103,7 @@ class StacktraceProcessingTask(object):
         return six.iteritems(self.processable_stacktraces)
 
     def iter_processable_frames(self, processor=None):
-        for frames in self.iter_processable_stacktraces():
+        for _, frames in self.iter_processable_stacktraces():
             for frame in frames:
                 if processor is None or frame.processor == processor:
                     yield frame
@@ -257,6 +257,7 @@ def process_single_stacktrace(processing_task, stacktrace_info,
                 processable_frame, processing_task)
         except Exception:
             logger.exception('Failed to process frame')
+            rv = None
         expand_processed, expand_raw, errors = rv or (None, None, None)
 
         if expand_processed is not None:
@@ -321,7 +322,7 @@ def get_stacktrace_processing_task(infos, processors):
 
     frame_cache = lookup_frame_cache(to_lookup)
     for cache_key, processable_frame in six.iteritems(to_lookup):
-        processable_frames.cache_value = frame_cache.get(cache_key)
+        processable_frame.cache_value = frame_cache.get(cache_key)
 
     return StacktraceProcessingTask(
         processable_stacktraces=by_stacktrace_info,
