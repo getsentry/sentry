@@ -133,7 +133,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
     def _get_release_info(self, request, group, version):
         try:
             release = Release.objects.get(
-                project=group.project,
+                projects=group.project,
+                organization_id=group.project.organization_id,
                 version=version,
             )
         except Release.DoesNotExist:

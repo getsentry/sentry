@@ -12,9 +12,10 @@ class ReleaseCommitsListTest(APITestCase):
             name='foo',
         )
         release = Release.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             version='1',
         )
+        release.add_project(project)
         repo = Repository.objects.create(
             organization_id=project.organization_id,
             name=project.name,
@@ -30,13 +31,13 @@ class ReleaseCommitsListTest(APITestCase):
             key='b' * 40,
         )
         ReleaseCommit.objects.create(
-            project_id=project.id,
+            organization_id=project.organization_id,
             release=release,
             commit=commit,
             order=1,
         )
         ReleaseCommit.objects.create(
-            project_id=project.id,
+            organization_id=project.organization_id,
             release=release,
             commit=commit2,
             order=0,

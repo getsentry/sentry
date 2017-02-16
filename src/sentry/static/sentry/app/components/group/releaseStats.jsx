@@ -1,5 +1,5 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../dropdownLink';
@@ -10,7 +10,7 @@ import GroupState from '../../mixins/groupState';
 import GroupReleaseChart from './releaseChart';
 import MenuItem from '../menuItem';
 import SeenInfo from './seenInfo';
-import {defined, toTitleCase} from '../../utils';
+import {toTitleCase} from '../../utils';
 import {t} from '../../locale';
 
 const DEFAULT_ENV_NAME = '(Default Environment)';
@@ -33,8 +33,7 @@ const GroupReleaseStats = React.createClass({
 
   mixins: [
     ApiMixin,
-    GroupState,
-    History,
+    GroupState
   ],
 
   getDefaultProps() {
@@ -136,7 +135,7 @@ const GroupReleaseStats = React.createClass({
     let queryParams = Object.assign({}, this.props.location.query);
     queryParams.environment = env;
 
-    this.history.pushState(null, this.props.location.pathname, queryParams);
+    browserHistory.pushState(null, this.props.location.pathname, queryParams);
   },
 
   render() {
@@ -149,7 +148,7 @@ const GroupReleaseStats = React.createClass({
     let lastSeenEnv = data.lastSeen;
 
     let envList = this.state.envList;
-    let hasRelease = defined(group.lastRelease);
+    let hasRelease = this.getProjectFeatures().has('releases');
 
     return (
       <div className="env-stats">

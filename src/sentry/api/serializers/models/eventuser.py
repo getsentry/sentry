@@ -12,6 +12,7 @@ class EventUserSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
+            'tagValue': obj.tag_value,
             'identifier': obj.ident,
             'username': obj.username,
             'email': obj.email,

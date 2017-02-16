@@ -81,6 +81,12 @@ const ActivityItem = React.createClass({
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
+      case 'set_resolved_in_commit':
+        return tct('[author] marked [link:an issue] as fixed in [version]', {
+          author: author,
+          version: data.commit.id.substr(0, 12),
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'set_unresolved':
         return tct('[author] marked [link:an issue] as unresolved', {
           author: author,

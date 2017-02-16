@@ -10,10 +10,9 @@ from libsourcemap import Token
 from mock import patch
 from requests.exceptions import RequestException
 
-from sentry.interfaces.stacktrace import Stacktrace
 from sentry.lang.javascript.processor import (
     BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
-    SourceProcessor, trim_line, UrlResult, fetch_release_file, CannotFetchSource,
+    trim_line, UrlResult, fetch_release_file, CannotFetchSource,
     UnparseableSourcemap,
 )
 from sentry.lang.javascript.errormapping import (
@@ -21,6 +20,7 @@ from sentry.lang.javascript.errormapping import (
 )
 from sentry.models import File, Release, ReleaseFile, EventError
 from sentry.testutils import TestCase
+from sentry.utils.strings import truncatechars
 
 base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
@@ -34,9 +34,10 @@ class FetchReleaseFileTest(TestCase):
     def test_unicode(self):
         project = self.project
         release = Release.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             version='abc',
         )
+        release.add_project(project)
 
         file = File.objects.create(
             name='file.min.js',
@@ -50,7 +51,7 @@ class FetchReleaseFileTest(TestCase):
         ReleaseFile.objects.create(
             name='file.min.js',
             release=release,
-            project=project,
+            organization_id=project.organization_id,
             file=file,
         )
 
@@ -138,7 +139,9 @@ class FetchFileTest(TestCase):
             None,
         )
 
-        release = Release.objects.create(project=self.project, version='1')
+        release = Release.objects.create(version='1',
+                                         organization_id=self.project.organization_id)
+        release.add_project(self.project)
 
         result = fetch_file('/example.js', release=release)
         assert result.url == '/example.js'
@@ -168,6 +171,15 @@ class FetchFileTest(TestCase):
         assert len(responses.calls) == 1
 
         assert result == result2
+
+    @responses.activate
+    def test_truncated(self):
+        url = truncatechars('http://example.com', 3)
+        with pytest.raises(CannotFetchSource) as exc:
+            fetch_file(url)
+
+        assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
+        assert exc.value.data['url'] == url
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -248,6 +260,18 @@ class FetchSourcemapTest(TestCase):
         assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
         assert smap_view.get_source_name(0) == u'/test.js'
 
+    def test_base64_without_padding(self):
+        smap_view = fetch_sourcemap(base64_sourcemap.rstrip('='))
+        tokens = [Token(1, 0, '/test.js', 0, 0, 0, None)]
+
+        assert list(smap_view) == tokens
+        assert smap_view.get_source_contents(0) == 'console.log("hello, World!")'
+        assert smap_view.get_source_name(0) == u'/test.js'
+
+    def test_broken_base64(self):
+        with pytest.raises(UnparseableSourcemap):
+            fetch_sourcemap('data:application/json;base64,xxx')
+
     @responses.activate
     def test_simple_non_utf8(self):
         responses.add(responses.GET, 'http://example.com', body='{}',
@@ -279,130 +303,72 @@ class TrimLineTest(TestCase):
         assert trim_line(self.long_line, column=9999) == '{snip} gn. It is, in effect, conditioned to prefer bad design, because that is what it lives with. The new becomes threatening, the old reassuring.'
 
 
-class SourceProcessorTest(TestCase):
-    def test_get_stacktraces_returns_stacktrace_interface(self):
-        data = {
-            'message': 'hello',
-            'platform': 'javascript',
-            'sentry.interfaces.Stacktrace': {
-                'frames': [
-                    {
-                        'abs_path': 'http://example.com/foo.js',
-                        'filename': 'foo.js',
-                        'lineno': 4,
-                        'colno': 0,
-                    },
-                    {
-                        'abs_path': 'http://example.com/foo.js',
-                        'filename': 'foo.js',
-                        'lineno': 1,
-                        'colno': 0,
-                    },
-                ],
-            },
+def test_get_culprit_is_patched():
+    from sentry.lang.javascript.plugin import fix_culprit, generate_modules
+
+    data = {
+        'message': 'hello',
+        'platform': 'javascript',
+        'sentry.interfaces.Exception': {
+            'values': [{
+                'type': 'Error',
+                'stacktrace': {
+                    'frames': [
+                        {
+                            'abs_path': 'http://example.com/foo.js',
+                            'filename': 'foo.js',
+                            'lineno': 4,
+                            'colno': 0,
+                            'function': 'thing',
+                        },
+                        {
+                            'abs_path': 'http://example.com/bar.js',
+                            'filename': 'bar.js',
+                            'lineno': 1,
+                            'colno': 0,
+                            'function': 'oops',
+                        },
+                    ],
+                },
+            }],
         }
+    }
+    generate_modules(data)
+    fix_culprit(data)
+    assert data['culprit'] == 'bar in oops'
 
-        processor = SourceProcessor(project=self.project)
-        result = processor.get_stacktraces(data)
-        assert len(result) == 1
-        assert type(result[0][1]) is Stacktrace
 
-    def test_get_stacktraces_returns_exception_interface(self):
-        data = {
-            'message': 'hello',
-            'platform': 'javascript',
-            'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 1,
-                                'colno': 0,
-                            },
-                        ],
-                    },
-                }],
-            }
+def test_ensure_module_names():
+    from sentry.lang.javascript.plugin import generate_modules
+    data = {
+        'message': 'hello',
+        'platform': 'javascript',
+        'sentry.interfaces.Exception': {
+            'values': [{
+                'type': 'Error',
+                'stacktrace': {
+                    'frames': [
+                        {
+                            'filename': 'foo.js',
+                            'lineno': 4,
+                            'colno': 0,
+                            'function': 'thing',
+                        },
+                        {
+                            'abs_path': 'http://example.com/foo/bar.js',
+                            'filename': 'bar.js',
+                            'lineno': 1,
+                            'colno': 0,
+                            'function': 'oops',
+                        },
+                    ],
+                },
+            }],
         }
-
-        processor = SourceProcessor(project=self.project)
-        result = processor.get_stacktraces(data)
-        assert len(result) == 1
-        assert type(result[0][1]) is Stacktrace
-
-    def test_get_culprit_is_patched(self):
-        data = {
-            'message': 'hello',
-            'platform': 'javascript',
-            'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'abs_path': 'http://example.com/foo.js',
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                                'function': 'thing',
-                            },
-                            {
-                                'abs_path': 'http://example.com/bar.js',
-                                'filename': 'bar.js',
-                                'lineno': 1,
-                                'colno': 0,
-                                'function': 'oops',
-                            },
-                        ],
-                    },
-                }],
-            }
-        }
-
-        processor = SourceProcessor(project=self.project)
-        result = processor.process(data)
-        assert result['culprit'] == 'bar in oops'
-
-    def test_ensure_module_names(self):
-        data = {
-            'message': 'hello',
-            'platform': 'javascript',
-            'sentry.interfaces.Exception': {
-                'values': [{
-                    'type': 'Error',
-                    'stacktrace': {
-                        'frames': [
-                            {
-                                'filename': 'foo.js',
-                                'lineno': 4,
-                                'colno': 0,
-                                'function': 'thing',
-                            },
-                            {
-                                'abs_path': 'http://example.com/foo/bar.js',
-                                'filename': 'bar.js',
-                                'lineno': 1,
-                                'colno': 0,
-                                'function': 'oops',
-                            },
-                        ],
-                    },
-                }],
-            }
-        }
-        processor = SourceProcessor(project=self.project)
-        result = processor.process(data)
-        exc = result['sentry.interfaces.Exception']['values'][0]
-        assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
+    }
+    generate_modules(data)
+    exc = data['sentry.interfaces.Exception']['values'][0]
+    assert exc['stacktrace']['frames'][1]['module'] == 'foo/bar'
 
 
 class ErrorMappingTest(TestCase):

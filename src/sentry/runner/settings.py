@@ -18,7 +18,7 @@ DEFAULT_SETTINGS_OVERRIDE = 'sentry.conf.py'
 
 def generate_secret_key():
     from django.utils.crypto import get_random_string
-    chars = u'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+    chars = u'abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)'
     return get_random_string(50, chars)
 
 

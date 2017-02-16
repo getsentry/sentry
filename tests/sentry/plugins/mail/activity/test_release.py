@@ -40,9 +40,10 @@ class ReleaseTestCase(TestCase):
         )
         self.release = Release.objects.create(
             version='a' * 40,
-            project_id=self.project.id,
+            organization_id=self.project.organization_id,
             date_released=timezone.now(),
         )
+        self.release.add_project(self.project)
         repository = Repository.objects.create(
             organization_id=self.org.id,
             name=self.project.name,
@@ -68,13 +69,13 @@ class ReleaseTestCase(TestCase):
             )
         )
         ReleaseCommit.objects.create(
-            project_id=self.project.id,
+            organization_id=self.project.organization_id,
             release=self.release,
             commit=self.commit,
             order=0,
         )
         ReleaseCommit.objects.create(
-            project_id=self.project.id,
+            organization_id=self.project.organization_id,
             release=self.release,
             commit=self.commit2,
             order=1,

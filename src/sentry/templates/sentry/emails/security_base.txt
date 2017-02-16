@@ -1,0 +1,21 @@
+{% spaceless %}
+{% load sentry_helpers %}
+{% autoescape off %}
+Security Notice
+---------------
+{% block security_body %}{% endblock %}
+
+Details
+-------
+
+Account: {{ account.email }}
+IP: {{ ip_address }}
+When: {{ datetime }} UTC
+{% block security_metadata %}{% endblock %}
+
+Don't recognize this activity?
+------------------------------
+
+If you didn't trigger this action, we recommend you immediately review your account security, including changing your password. If you determine that this activity is malicious please contact {% security_contact %}.
+{% endautoescape %}
+{% endspaceless %}

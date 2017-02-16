@@ -9,6 +9,7 @@ from sentry.models import (
     ApiKey,
     Organization,
     OrganizationAccessRequest,
+    OrganizationAvatar,
     OrganizationOnboardingTask,
     OrganizationOption,
     Team,
@@ -18,13 +19,39 @@ from sentry.models import (
 
 @register(Organization)
 class OrganizationSerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        avatars = {
+            a.organization_id: a
+            for a in OrganizationAvatar.objects.filter(
+                organization__in=item_list
+            )
+        }
+        data = {}
+        for item in item_list:
+            data[item] = {
+                'avatar': avatars.get(item.id),
+            }
+        return data
+
     def serialize(self, obj, attrs, user):
+        if attrs.get('avatar'):
+            avatar = {
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+            }
+        else:
+            avatar = {
+                'avatarType': 'letter_avatar',
+                'avatarUuid': None,
+            }
+
         return {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'avatar': avatar,
         }
 
 
@@ -57,6 +84,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         ).select_related('user'))
 
         feature_list = []
+        if features.has('organizations:repos', obj, actor=user):
+            feature_list.append('repos')
         if features.has('organizations:sso', obj, actor=user):
             feature_list.append('sso')
         if features.has('organizations:callsigns', obj, actor=user):
@@ -67,6 +96,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has('organizations:api-keys', obj, actor=user) or \
                 ApiKey.objects.filter(organization=obj).exists():
             feature_list.append('api-keys')
+        if features.has('organizations:release-commits', obj, actor=user):
+            feature_list.append('release-commits')
 
         if getattr(obj.flags, 'allow_joinleave'):
             feature_list.append('open-membership')
@@ -75,8 +106,15 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context = super(DetailedOrganizationSerializer, self).serialize(
             obj, attrs, user)
+        max_rate = quotas.get_maximum_quota(obj)
         context['quota'] = {
-            'maxRate': quotas.get_organization_quota(obj),
+            'maxRate': max_rate[0],
+            'maxRateInterval': max_rate[1],
+            'accountLimit': int(OrganizationOption.objects.get_value(
+                organization=obj,
+                key='sentry:account-rate-limit',
+                default=0,
+            )),
             'projectLimit': int(OrganizationOption.objects.get_value(
                 organization=obj,
                 key='sentry:project-rate-limit',

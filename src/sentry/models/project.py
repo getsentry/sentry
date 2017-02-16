@@ -11,6 +11,7 @@ import logging
 import six
 import warnings
 
+from bitfield import BitField
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -18,6 +19,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.app import locks
+from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
@@ -29,11 +31,7 @@ from sentry.utils.retries import TimedRetryPolicy
 
 
 # TODO(dcramer): pull in enum library
-class ProjectStatus(object):
-    VISIBLE = 0
-    HIDDEN = 1
-    PENDING_DELETION = 2
-    DELETION_IN_PROGRESS = 3
+ProjectStatus = ObjectStatus
 
 
 class ProjectManager(BaseManager):
@@ -85,13 +83,16 @@ class Project(Model):
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = BoundedPositiveIntegerField(default=0, choices=(
-        (ProjectStatus.VISIBLE, _('Active')),
-        (ProjectStatus.PENDING_DELETION, _('Pending Deletion')),
-        (ProjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
+        (ObjectStatus.VISIBLE, _('Active')),
+        (ObjectStatus.PENDING_DELETION, _('Pending Deletion')),
+        (ObjectStatus.DELETION_IN_PROGRESS, _('Deletion in Progress')),
     ), db_index=True)
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
+    flags = BitField(flags=(
+        ('has_releases', 'This Project has sent release data'),
+    ), default=0, null=True)
 
     objects = ProjectManager(cache_fields=[
         'pk',

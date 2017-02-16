@@ -18,6 +18,16 @@ from sentry.utils.redis import get_cluster_from_options, load_script
 is_rate_limited = load_script('quotas/is_rate_limited.lua')
 
 
+class BasicRedisQuota(object):
+    __slots__ = ['key', 'limit', 'window', 'reason_code']
+
+    def __init__(self, key, limit=0, window=60, reason_code=None):
+        self.key = key
+        self.limit = limit
+        self.window = window
+        self.reason_code = reason_code
+
+
 class RedisQuota(Quota):
     #: The ``grace`` period allows accomodating for clock drift in TTL
     #: calculation since the clock on the Redis instance used to store quota
@@ -37,9 +47,21 @@ class RedisQuota(Quota):
             raise InvalidConfiguration(six.text_type(e))
 
     def get_quotas(self, project):
+        pquota = self.get_project_quota(project)
+        oquota = self.get_organization_quota(project.organization)
         return (
-            ('p:{}'.format(project.id), self.get_project_quota(project), 60),
-            ('o:{}'.format(project.organization.id), self.get_organization_quota(project.organization), 60),
+            BasicRedisQuota(
+                key='p:{}'.format(project.id),
+                limit=pquota[0],
+                window=pquota[1],
+                reason_code='project_quota',
+            ),
+            BasicRedisQuota(
+                key='o:{}'.format(project.organization.id),
+                limit=oquota[0],
+                window=oquota[1],
+                reason_code='org_quota',
+            ),
         )
 
     def get_redis_key(self, key, timestamp, interval):
@@ -49,15 +71,15 @@ class RedisQuota(Quota):
         timestamp = time()
 
         quotas = [
-            (key, limit, interval)
-            for key, limit, interval in self.get_quotas(project)
+            quota
+            for quota in self.get_quotas(project)
             # x = (key, limit, interval)
-            if limit and limit > 0  # a zero limit means "no limit", not "reject all"
+            if quota.limit > 0  # a zero limit means "no limit", not "reject all"
         ]
 
         # If there are no quotas to actually check, skip the trip to the database.
         if not quotas:
-            return NotRateLimited
+            return NotRateLimited()
 
         def get_next_period_start(interval):
             """Return the timestamp when the next rate limit period begins for an interval."""
@@ -65,15 +87,24 @@ class RedisQuota(Quota):
 
         keys = []
         args = []
-        for key, limit, interval in quotas:
-            keys.append(self.get_redis_key(key, timestamp, interval))
-            expiry = get_next_period_start(interval) + self.grace
-            args.extend((limit, int(expiry)))
+        for quota in quotas:
+            keys.append(self.get_redis_key(quota.key, timestamp, quota.window))
+            expiry = get_next_period_start(quota.window) + self.grace
+            args.extend((quota.limit, int(expiry)))
 
         client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
         rejections = is_rate_limited(client, keys, args)
         if any(rejections):
-            delay = max(get_next_period_start(interval) - timestamp for (key, limit, interval), rejected in zip(quotas, rejections) if rejected)
-            return RateLimited(retry_after=delay)
+            worst_case = (0, None)
+            for quota, rejected in zip(quotas, rejections):
+                if not rejected:
+                    continue
+                delay = get_next_period_start(quota.window) - timestamp
+                if delay > worst_case[0]:
+                    worst_case = (delay, quota.reason_code)
+            return RateLimited(
+                retry_after=worst_case[0],
+                reason_code=worst_case[1],
+            )
         else:
-            return NotRateLimited
+            return NotRateLimited()

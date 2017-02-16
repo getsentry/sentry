@@ -88,6 +88,8 @@ def pytest_configure(config):
 
     settings.DEBUG_VIEWS = True
 
+    settings.SENTRY_ENCRYPTION_SCHEMES = ()
+
     settings.DISABLE_RAVEN = True
 
     settings.CACHES = {
@@ -134,6 +136,11 @@ def pytest_configure(config):
     from sentry.plugins.utils import TestIssuePlugin2
 
     plugins.register(TestIssuePlugin2)
+
+    from sentry.plugins import bindings
+    from sentry.plugins.providers.dummy import DummyRepositoryProvider
+
+    bindings.add('repository.provider', DummyRepositoryProvider, id='dummy')
 
     from sentry.utils.redis import clusters
 

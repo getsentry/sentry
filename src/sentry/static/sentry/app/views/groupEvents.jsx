@@ -1,5 +1,5 @@
 import React from 'react';
-import {History, Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
@@ -10,12 +10,12 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import SearchBar from '../components/searchBar.jsx';
 import {t} from '../locale';
+import {deviceNameMapper} from '../utils';
 
 const GroupEvents = React.createClass({
   mixins: [
     ApiMixin,
-    GroupState,
-    History
+    GroupState
   ],
 
   getInitialState() {
@@ -49,7 +49,7 @@ const GroupEvents = React.createClass({
       targetQueryParams.query = query;
 
     let {groupId, orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
   },
 
   getEndpoint() {
@@ -161,7 +161,7 @@ const GroupEvents = React.createClass({
           {tagList.map((tag) => {
             return (
               <td key={tag.key}>
-                {tagMap[tag.key]}
+                {tag.key === 'device' ? deviceNameMapper(tagMap[tag.key]) : tagMap[tag.key]}
               </td>
             );
           })}

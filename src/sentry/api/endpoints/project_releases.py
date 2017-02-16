@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import string
 
 from django.db import IntegrityError, transaction
+
 from rest_framework import serializers
 from rest_framework.response import Response
 
@@ -73,13 +74,14 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                                           release belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      releases of.
-        :qparam string query: this parameter can beu sed to create a
+        :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
         """
         query = request.GET.get('query')
 
         queryset = Release.objects.filter(
-            project=project,
+            projects=project,
+            organization_id=project.organization_id
         ).select_related('owner')
 
         if query:
@@ -96,19 +98,22 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             queryset=queryset,
             order_by='-sort',
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, project=project),
         )
 
     @attach_scenarios([create_new_release_scenario])
     def post(self, request, project):
         """
-        Create a New Release
-        ````````````````````
+        Create a New Release for a Project
+        ``````````````````````````````````
 
-        Create a new release for the given project.  Releases are used by
-        Sentry to improve it's error reporting abilities by correlating
-        first seen events with the release that might have introduced the
-        problem.
+        Create a new release and/or associate a project with a release.
+        Release versions that are the same across multiple projects
+        within an Organization will be treated as the same release in Sentry.
+
+        Releases are used by Sentry to improve its error reporting abilities
+        by correlating first seen events with the release that might have
+        introduced the problem.
 
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
@@ -136,12 +141,12 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.object
 
+            # release creation is idempotent to simplify user
+            # experiences
             try:
                 with transaction.atomic():
-                    # release creation is idempotent to simplify user
-                    # experiences
                     release, created = Release.objects.create(
-                        project=project,
+                        organization_id=project.organization_id,
                         version=result['version'],
                         ref=result.get('ref'),
                         url=result.get('url'),
@@ -149,14 +154,15 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                         date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
+                was_released = False
             except IntegrityError:
                 release, created = Release.objects.get(
-                    project=project,
+                    organization_id=project.organization_id,
                     version=result['version'],
                 ), False
                 was_released = bool(release.date_released)
-            else:
-                was_released = False
+
+            created = release.add_project(project)
 
             commit_list = result.get('commits')
             if commit_list:

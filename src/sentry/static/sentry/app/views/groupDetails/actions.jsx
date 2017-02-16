@@ -1,5 +1,5 @@
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import DropdownLink from '../../components/dropdownLink';
 import CustomSnoozeModal from '../../components/customSnoozeModal';
@@ -9,7 +9,6 @@ import IssuePluginActions from '../../components/group/issuePluginActions';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
-import {defined} from '../../utils';
 import {t} from '../../locale';
 
 const Snooze = {
@@ -24,7 +23,6 @@ const GroupActions = React.createClass({
   mixins: [
     ApiMixin,
     GroupState,
-    History,
     TooltipMixin({
       selector: '.tip',
       container: 'body',
@@ -45,7 +43,7 @@ const GroupActions = React.createClass({
       complete: () => {
         IndicatorStore.remove(loadingIndicator);
 
-        this.history.pushState(null, `/${org.slug}/${project.slug}/`);
+        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
       }
     });
   },
@@ -116,7 +114,7 @@ const GroupActions = React.createClass({
       ignoreClassName += ' active';
     }
 
-    let hasRelease = defined(group.lastRelease);
+    let hasRelease = this.getProjectFeatures().has('releases');
     let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
 
     // account for both old and new style plugins

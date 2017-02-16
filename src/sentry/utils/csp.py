@@ -91,13 +91,13 @@ def is_valid_csp_report(report, project=None):
     if not any((blocked_uri, source_file)):
         return False
 
-    if project is None or bool(project.get_option('sentry:csp_ignore_hosts_defaults', True)):
+    if project is None or bool(project.get_option('sentry:csp_ignored_sources_defaults', True)):
         disallowed_sources = DISALLOWED_SOURCES
     else:
         disallowed_sources = ()
 
     if project is not None:
-        disallowed_sources += tuple(project.get_option('sentry:csp_ignore_hosts', []))
+        disallowed_sources += tuple(project.get_option('sentry:csp_ignored_sources', []))
 
     if not disallowed_sources:
         return True

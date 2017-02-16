@@ -111,8 +111,9 @@ class GroupTest(TestCase):
         project = self.create_project()
         release = Release.objects.create(
             version='a',
-            project=project,
+            organization_id=project.organization_id,
         )
+        release.add_project(project)
         group = self.create_group(
             project=project,
             first_release=release,
@@ -153,3 +154,14 @@ class GroupTest(TestCase):
     def test_invalid_shared_id(self):
         with pytest.raises(Group.DoesNotExist):
             Group.from_share_id('adc7a5b902184ce3818046302e94f8ec')
+
+    def test_qualified_share_id(self):
+        project = self.create_project(name='foo bar')
+        group = self.create_group(project=project, short_id=project.next_short_id())
+        short_id = group.qualified_short_id
+
+        assert short_id.startswith('FOO-BAR-')
+
+        group2 = Group.objects.by_qualified_short_id(group.organization.id, short_id)
+
+        assert group2 == group

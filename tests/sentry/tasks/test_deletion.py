@@ -1,8 +1,11 @@
 from __future__ import absolute_import
 
+import pytest
+
+from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    Event, EventMapping, EventTag,
+    Environment, EnvironmentProject, Event, EventMapping, EventTag,
     Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
     Release, TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor,
@@ -10,7 +13,7 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import (
     delete_group, delete_organization, delete_project, delete_tag_key,
-    delete_team
+    delete_team, generic_delete
 )
 from sentry.testutils import TestCase
 
@@ -23,6 +26,8 @@ class DeleteOrganizationTest(TestCase):
         )
         self.create_team(organization=org, name='test1')
         self.create_team(organization=org, name='test2')
+        release = Release.objects.create(version='a' * 32,
+                                         organization_id=org.id)
         repo = Repository.objects.create(
             organization_id=org.id,
             name=org.name,
@@ -38,11 +43,27 @@ class DeleteOrganizationTest(TestCase):
             author=commit_author,
             key='a' * 40,
         )
+        ReleaseCommit.objects.create(
+            organization_id=org.id,
+            release=release,
+            commit=commit,
+            order=0,
+        )
+
+        env = Environment.objects.create(
+            organization_id=org.id,
+            project_id=4,
+            name='foo'
+        )
+
         with self.tasks():
             delete_organization(object_id=org.id)
 
         assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(id=env.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()
+        assert not ReleaseCommit.objects.filter(organization_id=org.id).exists()
+        assert not Release.objects.filter(organization_id=org.id).exists()
         assert not CommitAuthor.objects.filter(id=commit_author.id).exists()
         assert not Commit.objects.filter(id=commit.id).exists()
 
@@ -99,8 +120,16 @@ class DeleteProjectTest(TestCase):
         group = self.create_group(project=project)
         GroupAssignee.objects.create(group=group, project=project, user=self.user)
         GroupMeta.objects.create(group=group, key='foo', value='bar')
-        release = Release.objects.create(version='a' * 32, project=project)
+        release = Release.objects.create(version='a' * 32,
+                                         organization_id=project.organization_id)
+        release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
+        env = Environment.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            name='foo'
+        )
+        env.add_project(project)
         repo = Repository.objects.create(
             organization_id=project.organization_id,
             name=project.name,
@@ -117,6 +146,7 @@ class DeleteProjectTest(TestCase):
             key='a' * 40,
         )
         ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
             project_id=project.id,
             release=release,
             commit=commit,
@@ -127,7 +157,13 @@ class DeleteProjectTest(TestCase):
             delete_project(object_id=project.id)
 
         assert not Project.objects.filter(id=project.id).exists()
-        assert not ReleaseCommit.objects.filter(project_id=project.id).exists()
+        assert not EnvironmentProject.objects.filter(
+            project_id=project.id,
+            environment_id=env.id
+        ).exists()
+        assert Environment.objects.filter(id=env.id).exists()
+        assert Release.objects.filter(id=release.id).exists()
+        assert ReleaseCommit.objects.filter(release_id=release.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
 
     def test_cancels_without_pending_status(self):
@@ -226,3 +262,27 @@ class DeleteGroupTest(TestCase):
         ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
+
+
+class GenericDeleteTest(TestCase):
+    def test_does_not_delete_visible(self):
+        project = self.create_project(
+            status=ObjectStatus.VISIBLE,
+        )
+
+        with self.tasks():
+            with pytest.raises(DeleteAborted):
+                generic_delete('sentry', 'project', object_id=project.id)
+
+        project = Project.objects.get(id=project.id)
+        assert project.status == ObjectStatus.VISIBLE
+
+    def test_deletes(self):
+        project = self.create_project(
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        with self.tasks():
+            generic_delete('sentry', 'project', object_id=project.id)
+
+        assert not Project.objects.filter(id=project.id).exists()

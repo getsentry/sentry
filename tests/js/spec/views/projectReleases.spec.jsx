@@ -1,6 +1,7 @@
 import React from 'react';
 import TestUtils from 'react-addons-test-utils';
 
+import {browserHistory} from 'react-router';
 import stubReactComponents from '../../helpers/stubReactComponent';
 
 import {Client} from 'app/api';
@@ -14,11 +15,12 @@ describe('ProjectReleases', function () {
 
     this.sandbox.stub(Client.prototype, 'request');
     stubReactComponents(this.sandbox, [SearchBar, Pagination]);
+    this.sandbox.stub(browserHistory, 'pushState');
 
     this.props = {
       setProjectNavSection: function () {},
       params: {orgId: '123', projectId: '456'},
-      location: {query: {limit: 0, query: 'derp'}}
+      location: {query: {per_page: 0, query: 'derp'}}
     };
     this.projectReleases = TestUtils.renderIntoDocument(
       <ProjectReleases {...this.props}/>
@@ -31,7 +33,7 @@ describe('ProjectReleases', function () {
 
   describe('fetchData()', function () {
     it('should call releases endpoint', function () {
-      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?limit=50&query=derp');
+      expect(Client.prototype.request.args[0][0]).to.equal('/projects/123/456/releases/?per_page=20&query=derp');
     });
   });
 
@@ -45,15 +47,10 @@ describe('ProjectReleases', function () {
     it('should change query string with new search parameter', function () {
       let projectReleases = this.projectReleases;
 
-      let pushState = this.sandbox.stub();
-      projectReleases.history = {
-        pushState: pushState
-      };
-
       projectReleases.onSearch('searchquery');
 
-      expect(pushState.calledOnce).to.be.ok;
-      expect(pushState.args[0]).to.eql([
+      expect(browserHistory.pushState.calledOnce).to.be.ok;
+      expect(browserHistory.pushState.args[0]).to.eql([
         null,
         '/123/456/releases/',
         {query: 'searchquery'}

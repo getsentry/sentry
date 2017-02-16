@@ -11,6 +11,7 @@ import mimetypes
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from django.conf import settings
+from django.db import transaction
 from pytz import utc
 from random import randint
 from six import StringIO
@@ -308,10 +309,23 @@ class MockUtils(object):
         from sentry.models import Release, Activity
         if version is None:
             version = os.urandom(20).encode('hex')
-        release = Release.objects.get_or_create(
-            version=version,
-            project=project,
-        )[0]
+        with transaction.atomic():
+            release = Release.objects.filter(
+                version=version,
+                organization_id=project.organization_id,
+                projects=project
+            ).first()
+            if not release:
+                release = Release.objects.filter(
+                    version=version,
+                    organization_id=project.organization_id,
+                ).first()
+                if not release:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=project.organization_id,
+                    )
+                release.add_project(project)
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
@@ -337,7 +351,7 @@ class MockUtils(object):
         )
         f.putfile(StringIO(contents or ''))
         return ReleaseFile.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             release=release,
             file=f,
             name=path

@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 
-__all__ = ['SourceProcessor']
+__all__ = ['JavaScriptStacktraceProcessor']
 
 import codecs
 import logging
@@ -27,7 +27,6 @@ except ImportError:
         pass
 
 from sentry import http
-from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.exceptions import RestrictedIPAddress
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
@@ -37,6 +36,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
 from sentry.utils.strings import truncatechars
 from sentry.utils import metrics
+from sentry.stacktraces import StacktraceProcessor
 
 from .cache import SourceCache, SourceMapCache
 
@@ -139,7 +139,7 @@ def trim_line(line, column=0):
 
 def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     if not source:
-        return [], '', []
+        return None, None, None
 
     # lineno's in JS are 1-indexed
     # just in case. sometimes math is hard
@@ -164,7 +164,7 @@ def get_source_context(source, lineno, colno, context=LINES_OF_CONTEXT):
     except IndexError:
         post_context = []
 
-    return pre_context, context_line, post_context
+    return pre_context or None, context_line, post_context or None
 
 
 def discover_sourcemap(result):
@@ -300,6 +300,13 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
     Attempts to fetch from the cache.
     """
+    # If our url has been truncated, it'd be impossible to fetch
+    # so we check for this early and bail
+    if url[-3:] == '...':
+        raise CannotFetchSource({
+            'type': EventError.JS_MISSING_SOURCE,
+            'url': expose_url(url),
+        })
     if release:
         with metrics.timer('sourcemaps.release_file'):
             result = fetch_release_file(url, release)
@@ -346,7 +353,11 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         if project and is_valid_origin(url, project=project):
             token = project.get_option('sentry:token')
             if token:
-                headers['X-Sentry-Token'] = token
+                token_header = project.get_option(
+                    'sentry:token_header',
+                    'X-Sentry-Token',
+                )
+                headers[token_header] = token
 
         logger.debug('Fetching %r from the internet', url)
 
@@ -426,8 +437,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
                     # TODO(dcramer): we want to be less aggressive on disabling domains
                     cache.set(domain_key, error or '', 300)
-                    logger.warning('Disabling sources to %s for %ss', domain, 300,
-                                   exc_info=True)
+                    logger.warning('source.disabled', extra=error)
                     raise CannotFetchSource(error)
 
                 body = b''.join(contents)
@@ -496,7 +506,15 @@ def is_utf8(encoding):
 
 def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
-        body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
+        try:
+            body = base64.b64decode(
+                url[BASE64_PREAMBLE_LENGTH:] + (b'=' * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
+            )
+        except TypeError as e:
+            raise UnparseableSourcemap({
+                'url': '<base64>',
+                'reason': e.message,
+            })
     else:
         result = fetch_file(url, project=project, release=release,
                             allow_scraping=allow_scraping)
@@ -555,7 +573,7 @@ def generate_module(src):
     return CLEAN_MODULE_RE.sub('', filename) or UNKNOWN_MODULE
 
 
-class SourceProcessor(object):
+class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Attempts to fetch source code for javascript frames.
 
@@ -568,14 +586,16 @@ class SourceProcessor(object):
 
     Mutates the input ``data`` with expanded context if available.
     """
-    def __init__(self, project, max_fetches=MAX_RESOURCE_FETCHES,
-                 allow_scraping=True):
-        self.allow_scraping = allow_scraping
-        self.max_fetches = max_fetches
+
+    def __init__(self, *args, **kwargs):
+        StacktraceProcessor.__init__(self, *args, **kwargs)
+        self.max_fetches = MAX_RESOURCE_FETCHES
+        self.allow_scraping = self.project.get_option(
+            'sentry:scrape_javascript', True)
         self.fetch_count = 0
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
-        self.project = project
+        self.release = None
 
     def get_stacktraces(self, data):
         try:
@@ -595,117 +615,36 @@ class SourceProcessor(object):
             for s in stacktraces
         ]
 
-    def get_valid_frames(self, stacktraces):
+    def get_valid_frames(self):
         # build list of frames that we can actually grab source for
         frames = []
-        for _, stacktrace in stacktraces:
+        for info in self.stacktrace_infos:
             frames.extend([
-                f for f in stacktrace.frames
-                if f.lineno is not None
+                f for f in info.stacktrace['frames']
+                if f.get('lineno') is not None
             ])
         return frames
 
-    def get_release(self, data):
-        if not data.get('release'):
-            return
-
-        return Release.get(
-            project=self.project,
-            version=data['release'],
-        )
-
-    def process(self, data):
-        stacktraces = self.get_stacktraces(data)
-        if not stacktraces:
-            logger.debug('No stacktrace for event %r', data['event_id'])
-            return
-
-        # TODO(dcramer): we need this to do more than just sourcemaps
-        frames = self.get_valid_frames(stacktraces)
+    def preprocess_related_data(self):
+        frames = self.get_valid_frames()
         if not frames:
-            logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
+            logger.debug('Event %r has no frames with enough context to '
+                         'fetch remote source', self.data['event_id'])
+            return False
+
+        if self.data.get('release'):
+            self.release = Release.get(
+                project=self.project,
+                version=self.data['release'],
+            )
+        self.populate_source_cache(frames)
+        return True
+
+    def process_frame(self, frame, stacktrace_info, idx):
+        if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT or \
+           self.get_effective_platform(frame) != 'javascript':
             return
 
-        data.setdefault('errors', [])
-        errors = data['errors']
-
-        release = self.get_release(data)
-        # all of these methods assume mutation on the original
-        # objects rather than re-creation
-        self.populate_source_cache(frames, release)
-        with metrics.timer('sourcemaps.expand_frames'):
-            expand_errors, sourcemap_applied = self.expand_frames(frames, release)
-        errors.extend(expand_errors or [])
-        self.ensure_module_names(frames)
-        self.fix_culprit(data, stacktraces)
-        self.update_stacktraces(stacktraces)
-        if sourcemap_applied:
-            self.add_raw_stacktraces(data, release)
-        return data
-
-    def fix_culprit(self, data, stacktraces):
-        # This is a bit weird, since the original culprit we get
-        # will be wrong, so we want to touch it up after we've processed
-        # a stack trace.
-
-        # In this case, we have a list of all stacktraces as a tuple
-        # (stacktrace as dict, stacktrace class)
-        # So we need to take the [1] index to get the Stacktrace class,
-        # then extract the culprit string from that.
-        data['culprit'] = truncatechars(
-            stacktraces[-1][1].get_culprit_string(),
-            MAX_CULPRIT_LENGTH,
-        )
-
-    def update_stacktraces(self, stacktraces):
-        for raw, interface in stacktraces:
-            raw.update(interface.to_json())
-
-    def add_raw_stacktraces(self, data, release):
-        try:
-            values = data['sentry.interfaces.Exception']['values']
-        except KeyError:
-            return
-
-        for exc in values:
-            if not exc.get('stacktrace'):
-                continue
-
-            raw_frames = []
-            for frame in exc['stacktrace']['frames']:
-                if 'data' not in frame or 'raw' not in frame['data']:
-                    continue
-
-                frame = frame['data']['raw']
-
-                if frame['lineno'] is not None:
-                    source = self.get_source(frame['abs_path'], release)
-                    if source is None:
-                        logger.debug('No source found for %s', frame['abs_path'])
-                        continue
-
-                    frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
-                        source=source, lineno=frame['lineno'], colno=frame['colno'] or 0)
-
-            for frame in exc['stacktrace']['frames']:
-                try:
-                    # TODO(dcramer): we should refactor this to avoid this
-                    # push/pop process
-                    raw_frames.append(frame['data'].pop('raw'))
-                except KeyError:
-                    raw_frames.append(frame.copy())
-
-            exc['raw_stacktrace'] = {'frames': raw_frames}
-
-    def ensure_module_names(self, frames):
-        # TODO(dcramer): this doesn't really fit well with generic URLs so we
-        # whitelist it to http/https
-        for frame in frames:
-            if not frame.module and frame.abs_path \
-               and frame.abs_path.startswith(('http:', 'https:', 'webpack:')):
-                frame.module = generate_module(frame.abs_path)
-
-    def expand_frames(self, frames, release):
         last_token = None
         token = None
 
@@ -714,146 +653,165 @@ class SourceProcessor(object):
         all_errors = []
         sourcemap_applied = False
 
-        for frame in frames:
-            errors = cache.get_errors(frame.abs_path)
-            if errors:
-                all_errors.extend(errors)
+        # can't fetch source if there's no filename present
+        if not frame.get('abs_path'):
+            return
 
-            # can't fetch source if there's no filename present
-            if not frame.abs_path:
-                continue
+        errors = cache.get_errors(frame['abs_path'])
+        if errors:
+            all_errors.extend(errors)
 
-            source = self.get_source(frame.abs_path, release)
-            if source is None:
-                logger.debug('No source found for %s', frame.abs_path)
-                continue
+        # This might fail but that's okay, we try with a different path a
+        # bit later down the road.
+        source = self.get_source(frame['abs_path'])
 
-            sourcemap_url, sourcemap_view = sourcemaps.get_link(frame.abs_path)
-            if sourcemap_view and frame.colno is None:
-                all_errors.append({
-                    'type': EventError.JS_NO_COLUMN,
-                    'url': expose_url(frame.abs_path),
-                })
-            elif sourcemap_view:
-                last_token = token
+        in_app = None
+        new_frame = dict(frame)
+        raw_frame = dict(frame)
 
-                if is_data_uri(sourcemap_url):
-                    sourcemap_label = frame.abs_path
-                else:
-                    sourcemap_label = sourcemap_url
+        sourcemap_url, sourcemap_view = sourcemaps.get_link(frame['abs_path'])
+        if sourcemap_view and frame.get('colno') is None:
+            all_errors.append({
+                'type': EventError.JS_NO_COLUMN,
+                'url': expose_url(frame['abs_path']),
+            })
+        elif sourcemap_view:
+            last_token = token
 
-                sourcemap_label = expose_url(sourcemap_label)
+            if is_data_uri(sourcemap_url):
+                sourcemap_label = frame['abs_path']
+            else:
+                sourcemap_label = sourcemap_url
 
-                try:
-                    # Errors are 1-indexed in the frames, so we need to -1 to get
-                    # zero-indexed value from tokens.
-                    assert frame.lineno > 0, "line numbers are 1-indexed"
-                    token = sourcemap_view.lookup_token(frame.lineno - 1, frame.colno)
-                except Exception:
-                    token = None
-                    all_errors.append({
-                        'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                        'column': frame.colno,
-                        'row': frame.lineno,
-                        'source': frame.abs_path,
-                        'sourcemap': sourcemap_label,
-                    })
+            sourcemap_label = expose_url(sourcemap_label)
 
-                # Store original data in annotation
-                # HACK(dcramer): we stuff things into raw which gets popped off
-                # later when adding the raw_stacktrace attribute.
-                raw_frame = frame.to_json()
-                frame.data = {
-                    'raw': raw_frame,
-                    'sourcemap': sourcemap_label,
-                }
-
-                sourcemap_applied = True
-
-                if token is not None:
-                    abs_path = urljoin(sourcemap_url, token.src)
-
-                    logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
-                    source = self.get_source(abs_path, release)
-
-                if not source:
-                    errors = cache.get_errors(abs_path)
-                    if errors:
-                        all_errors.extend(errors)
-                    else:
-                        all_errors.append({
-                            'type': EventError.JS_MISSING_SOURCE,
-                            'url': expose_url(abs_path),
-                        })
-
-                if token is not None:
-                    # Token's return zero-indexed lineno's
-                    frame.lineno = token.src_line + 1
-                    frame.colno = token.src_col
-                    # The offending function is always the previous function in the stack
-                    # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
-                    if last_token:
-                        frame.function = last_token.name or frame.function
-                    else:
-                        frame.function = token.name or frame.function
-
-                    filename = token.src
-                    # special case webpack support
-                    # abs_path will always be the full path with webpack:/// prefix.
-                    # filename will be relative to that
-                    if abs_path.startswith('webpack:'):
-                        filename = abs_path
-                        # webpack seems to use ~ to imply "relative to resolver root"
-                        # which is generally seen for third party deps
-                        # (i.e. node_modules)
-                        if '/~/' in filename:
-                            filename = '~/' + abs_path.split('/~/', 1)[-1]
-                        else:
-                            filename = filename.split('webpack:///', 1)[-1]
-
-                        # As noted above, '~/' means they're coming from node_modules,
-                        # so these are not app dependencies
-                        if filename.startswith('~/'):
-                            frame.in_app = False
-                        # And conversely, local dependencies start with './'
-                        elif filename.startswith('./'):
-                            frame.in_app = True
-
-                        # Update 'raw' copy to have same in_app status
-                        raw_frame['in_app'] = frame.in_app
-
-                        # We want to explicitly generate a webpack module name
-                        frame.module = generate_module(filename)
-
-                    frame.abs_path = abs_path
-                    frame.filename = filename
-                    if not frame.module and abs_path.startswith(('http:', 'https:', 'webpack:')):
-                        frame.module = generate_module(abs_path)
-
-            elif sourcemap_url:
-                frame.data = {
-                    'sourcemap': expose_url(sourcemap_url),
-                }
-
-            # TODO: theoretically a minified source could point to another mapped, minified source
-            frame.pre_context, frame.context_line, frame.post_context = get_source_context(
-                source=source, lineno=frame.lineno, colno=frame.colno or 0)
-
-            if not frame.context_line and source:
+            try:
+                # Errors are 1-indexed in the frames, so we need to -1 to get
+                # zero-indexed value from tokens.
+                assert frame['lineno'] > 0, "line numbers are 1-indexed"
+                token = sourcemap_view.lookup_token(
+                    frame['lineno'] - 1, frame['colno'])
+            except Exception:
+                token = None
                 all_errors.append({
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    'column': frame.colno,
-                    'row': frame.lineno,
-                    'source': frame.abs_path,
+                    'column': frame.get('colno'),
+                    'row': frame.get('lineno'),
+                    'source': frame['abs_path'],
+                    'sourcemap': sourcemap_label,
                 })
-        return all_errors, sourcemap_applied
 
-    def get_source(self, filename, release):
+            # Store original data in annotation
+            new_frame['data'] = dict(frame.get('data') or {},
+                                     sourcemap=sourcemap_label)
+
+            sourcemap_applied = True
+
+            if token is not None:
+                abs_path = urljoin(sourcemap_url, token.src)
+
+                logger.debug('Mapping compressed source %r to mapping in %r',
+                             frame['abs_path'], abs_path)
+                source = self.get_source(abs_path)
+
+            if not source:
+                errors = cache.get_errors(abs_path)
+                if errors:
+                    all_errors.extend(errors)
+                else:
+                    all_errors.append({
+                        'type': EventError.JS_MISSING_SOURCE,
+                        'url': expose_url(abs_path),
+                    })
+
+            if token is not None:
+                # Token's return zero-indexed lineno's
+                new_frame['lineno'] = token.src_line + 1
+                new_frame['colno'] = token.src_col
+                # The offending function is always the previous function in the stack
+                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                if last_token:
+                    new_frame['function'] = last_token.name or frame.get('function')
+                else:
+                    new_frame['function'] = token.name or frame.get('function')
+
+                filename = token.src
+                # special case webpack support
+                # abs_path will always be the full path with webpack:/// prefix.
+                # filename will be relative to that
+                if abs_path.startswith('webpack:'):
+                    filename = abs_path
+                    # webpack seems to use ~ to imply "relative to resolver root"
+                    # which is generally seen for third party deps
+                    # (i.e. node_modules)
+                    if '/~/' in filename:
+                        filename = '~/' + abs_path.split('/~/', 1)[-1]
+                    else:
+                        filename = filename.split('webpack:///', 1)[-1]
+
+                    # As noted above, '~/' means they're coming from node_modules,
+                    # so these are not app dependencies
+                    if filename.startswith('~/'):
+                        in_app = False
+                    # And conversely, local dependencies start with './'
+                    elif filename.startswith('./'):
+                        in_app = True
+
+                    # We want to explicitly generate a webpack module name
+                    new_frame['module'] = generate_module(filename)
+
+                new_frame['abs_path'] = abs_path
+                new_frame['filename'] = filename
+                if not frame.get('module') and abs_path.startswith(
+                        ('http:', 'https:', 'webpack:')):
+                    new_frame['module'] = generate_module(abs_path)
+
+        elif sourcemap_url:
+            new_frame['data'] = dict(new_frame.get('data') or {},
+                                     sourcemap=expose_url(sourcemap_url))
+
+        # TODO: theoretically a minified source could point to
+        # another mapped, minified source
+        changed_frame = self.expand_frame(new_frame, source=source)
+
+        if not new_frame.get('context_line') and source:
+            all_errors.append({
+                'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                # Column might be missing here
+                'column': new_frame.get('colno'),
+                # Line might be missing here
+                'row': new_frame.get('lineno'),
+                'source': new_frame['abs_path'],
+            })
+
+        changed_raw = sourcemap_applied and self.expand_frame(raw_frame)
+        if sourcemap_applied or all_errors or changed_frame or \
+           changed_raw:
+            if in_app is not None:
+                new_frame['in_app'] = in_app
+                raw_frame['in_app'] = in_app
+            return [new_frame], [raw_frame] if changed_raw else None, all_errors
+
+    def expand_frame(self, frame, source=None):
+        if frame.get('lineno') is not None:
+            if source is None:
+                source = self.get_source(frame['abs_path'])
+                if source is None:
+                    logger.debug('No source found for %s', frame['abs_path'])
+                    return False
+
+            frame['pre_context'], frame['context_line'], frame['post_context'] \
+                = get_source_context(source=source, lineno=frame['lineno'],
+                                     colno=frame.get('colno') or 0)
+            return True
+        return False
+
+    def get_source(self, filename):
         if filename not in self.cache:
-            self.cache_source(filename, release)
+            self.cache_source(filename)
         return self.cache.get(filename)
 
-    def cache_source(self, filename, release):
+    def cache_source(self, filename):
         sourcemaps = self.sourcemaps
         cache = self.cache
 
@@ -868,7 +826,8 @@ class SourceProcessor(object):
         # TODO: respect cache-control/max-age headers to some extent
         logger.debug('Fetching remote source %r', filename)
         try:
-            result = fetch_file(filename, project=self.project, release=release,
+            result = fetch_file(filename, project=self.project,
+                                release=self.release,
                                 allow_scraping=self.allow_scraping)
         except BadSource as exc:
             cache.add_error(filename, exc.data)
@@ -881,7 +840,8 @@ class SourceProcessor(object):
         if not sourcemap_url:
             return
 
-        logger.debug('Found sourcemap %r for minified script %r', sourcemap_url[:256], result.url)
+        logger.debug('Found sourcemap %r for minified script %r',
+                     sourcemap_url[:256], result.url)
         sourcemaps.link(filename, sourcemap_url)
         if sourcemap_url in sourcemaps:
             return
@@ -891,7 +851,7 @@ class SourceProcessor(object):
             sourcemap_view = fetch_sourcemap(
                 sourcemap_url,
                 project=self.project,
-                release=release,
+                release=self.release,
                 allow_scraping=self.allow_scraping,
             )
         except BadSource as exc:
@@ -909,7 +869,7 @@ class SourceProcessor(object):
                     None,
                 )
 
-    def populate_source_cache(self, frames, release):
+    def populate_source_cache(self, frames):
         """
         Fetch all sources that we know are required (being referenced directly
         in frames).
@@ -917,18 +877,17 @@ class SourceProcessor(object):
         pending_file_list = set()
         for f in frames:
             # We can't even attempt to fetch source if abs_path is None
-            if f.abs_path is None:
+            if f.get('abs_path') is None:
                 continue
             # tbh not entirely sure how this happens, but raven-js allows this
             # to be caught. I think this comes from dev consoles and whatnot
             # where there is no page. This just bails early instead of exposing
             # a fetch error that may be confusing.
-            if f.abs_path == '<anonymous>':
+            if f['abs_path'] == '<anonymous>':
                 continue
-            pending_file_list.add(f.abs_path)
+            pending_file_list.add(f['abs_path'])
 
         for idx, filename in enumerate(pending_file_list):
             self.cache_source(
                 filename=filename,
-                release=release,
             )

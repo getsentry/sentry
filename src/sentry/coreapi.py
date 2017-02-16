@@ -29,10 +29,11 @@ from sentry.constants import (
     CLIENT_RESERVED_ATTRS, DEFAULT_LOG_LEVEL, LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH, VALID_PLATFORMS
 )
+from sentry.db.models import BoundedIntegerField
 from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
-from sentry.models import EventError, Project, ProjectKey, TagKey, TagValue
+from sentry.models import EventError, ProjectKey, TagKey, TagValue
 from sentry.tasks.store import preprocess_event
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
@@ -210,7 +211,7 @@ class ClientApiHelper(object):
         """
         return origin_from_request(request)
 
-    def project_from_auth(self, auth):
+    def project_id_from_auth(self, auth):
         if not auth.public_key:
             raise APIUnauthorized('Invalid api key')
 
@@ -235,7 +236,7 @@ class ClientApiHelper(object):
         if not pk.roles.store:
             raise APIUnauthorized('Key does not allow event storage access')
 
-        return Project.objects.get_from_cache(id=pk.project_id)
+        return pk.project_id
 
     def decode_data(self, encoded_data):
         try:
@@ -692,6 +693,25 @@ class ClientApiHelper(object):
                     'value': data['environment'],
                 })
                 del data['environment']
+
+        if data.get('time_spent'):
+            try:
+                data['time_spent'] = int(data['time_spent'])
+            except (ValueError, TypeError):
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'time_spent',
+                    'value': data['time_spent'],
+                })
+                del data['time_spent']
+            else:
+                if data['time_spent'] > BoundedIntegerField.MAX_VALUE:
+                    data['errors'].append({
+                        'type': EventError.VALUE_TOO_LONG,
+                        'name': 'time_spent',
+                        'value': data['time_spent'],
+                    })
+                    del data['time_spent']
 
         return data
 

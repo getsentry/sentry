@@ -5,6 +5,7 @@ import sentry
 
 from django import template
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from pkg_resources import parse_version
 
@@ -83,7 +84,7 @@ def _get_statuspage():
 @register.simple_tag(takes_context=True)
 def get_react_config(context):
     if 'request' in context:
-        user = context['request'].user
+        user = getattr(context['request'], 'user', None) or AnonymousUser()
         messages = get_messages(context['request'])
         try:
             is_superuser = context['request'].is_superuser()
@@ -125,6 +126,7 @@ def get_react_config(context):
             'level': msg.tags,
         } for msg in messages],
         'isOnPremise': settings.SENTRY_ONPREMISE,
+        'gravatarBaseUrl': settings.SENTRY_GRAVATAR_BASE_URL,
     }
     if user and user.is_authenticated():
         context.update({

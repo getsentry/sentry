@@ -9,7 +9,8 @@ from __future__ import absolute_import, print_function
 
 import re
 
-from django.db import models
+from django.db import models, IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -19,7 +20,21 @@ from sentry.db.models import (
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
+
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
+
+
+class ReleaseProject(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey('sentry.Project')
+    release = FlexibleForeignKey('sentry.Release')
+    new_groups = BoundedPositiveIntegerField(null=True, default=0)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_release_project'
+        unique_together = (('project', 'release'),)
 
 
 class Release(Model):
@@ -29,7 +44,10 @@ class Release(Model):
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
+    organization = FlexibleForeignKey('sentry.Organization')
+    projects = models.ManyToManyField('sentry.Project', related_name='releases',
+                                      through=ReleaseProject)
+    project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
     ref = models.CharField(max_length=64, null=True, blank=True)
@@ -46,23 +64,24 @@ class Release(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_release'
-        unique_together = (('project', 'version'),)
+        unique_together = (('organization', 'version'),)
 
-    __repr__ = sane_repr('project_id', 'version')
+    __repr__ = sane_repr('organization', 'version')
 
     @classmethod
-    def get_cache_key(cls, project_id, version):
-        return 'release:2:%s:%s' % (project_id, md5_text(version).hexdigest())
+    def get_cache_key(cls, organization_id, version):
+        return 'release:3:%s:%s' % (organization_id, md5_text(version).hexdigest())
 
     @classmethod
     def get(cls, project, version):
-        cache_key = cls.get_cache_key(project.id, version)
+        cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
         if release is None:
             try:
                 release = cls.objects.get(
-                    project=project,
+                    organization_id=project.organization_id,
+                    projects=project,
                     version=version,
                 )
             except cls.DoesNotExist:
@@ -76,27 +95,178 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added):
-        cache_key = cls.get_cache_key(project.id, version)
+        from sentry.models import Project
+
+        cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
-            release = cls.objects.get_or_create(
-                project=project,
-                version=version,
-                defaults={
-                    'date_added': date_added,
-                },
-            )[0]
+            project_version = ('%s-%s' % (project.slug, version))[:64]
+            releases = list(cls.objects.filter(
+                organization_id=project.organization_id,
+                version__in=[version, project_version],
+                projects=project
+            ))
+            if releases:
+                try:
+                    release = [r for r in releases if r.version == project_version][0]
+                except IndexError:
+                    release = releases[0]
+            else:
+                try:
+                    with transaction.atomic():
+                        release = cls.objects.create(
+                            organization_id=project.organization_id,
+                            version=version,
+                            date_added=date_added
+                        )
+                except IntegrityError:
+                    release = cls.objects.get(
+                        organization_id=project.organization_id,
+                        version=version
+                    )
+                release.add_project(project)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(flags=F('flags').bitor(Project.flags.has_releases))
+
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
 
         return release
 
+    @classmethod
+    def merge(cls, to_release, from_releases):
+        # The following models reference release:
+        # ReleaseCommit.release
+        # ReleaseEnvironment.release_id
+        # ReleaseProject.release
+        # GroupRelease.release_id
+        # GroupResolution.release
+        # Group.first_release
+        # ReleaseFile.release
+
+        from sentry.models import (
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject,
+            Group, GroupRelease, GroupResolution
+        )
+
+        model_list = (
+            ReleaseCommit, ReleaseEnvironment, ReleaseFile, ReleaseProject,
+            GroupRelease, GroupResolution
+        )
+        for release in from_releases:
+            for model in model_list:
+                if hasattr(model, 'release'):
+                    update_kwargs = {'release': to_release}
+                else:
+                    update_kwargs = {'release_id': to_release.id}
+                try:
+                    with transaction.atomic():
+                        model.objects.filter(
+                            release_id=release.id
+                        ).update(**update_kwargs)
+                except IntegrityError:
+                    for item in model.objects.filter(release_id=release.id):
+                        try:
+                            with transaction.atomic():
+                                model.objects.filter(
+                                    id=item.id
+                                ).update(**update_kwargs)
+                        except IntegrityError:
+                            item.delete()
+
+            Group.objects.filter(
+                first_release=release
+            ).update(first_release=to_release)
+
+            release.delete()
+
     @property
     def short_version(self):
         if _sha1_re.match(self.version):
             return self.version[:12]
         return self.version
+
+    def add_project(self, project):
+        """
+        Add a project to this release.
+
+        Returns True if the project was added and did not already exist.
+        """
+        from sentry.models import Project
+        try:
+            with transaction.atomic():
+                ReleaseProject.objects.create(project=project, release=self)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(
+                        flags=F('flags').bitor(Project.flags.has_releases),
+                    )
+        except IntegrityError:
+            return False
+        else:
+            return True
+
+    def set_commits(self, commit_list):
+        from sentry.models import Commit, CommitAuthor, ReleaseCommit, Repository
+
+        with transaction.atomic():
+            # TODO(dcramer): would be good to optimize the logic to avoid these
+            # deletes but not overly important
+            ReleaseCommit.objects.filter(
+                release=self,
+            ).delete()
+
+            authors = {}
+            repos = {}
+            for idx, data in enumerate(commit_list):
+                repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
+                if repo_name not in repos:
+                    repos[repo_name] = repo = Repository.objects.get_or_create(
+                        organization_id=self.organization_id,
+                        name=repo_name,
+                    )[0]
+                else:
+                    repo = repos[repo_name]
+
+                author_email = data.get('author_email')
+                if author_email is None and data.get('author_name'):
+                    author_email = (re.sub(r'[^a-zA-Z0-9\-_\.]*', '', data['author_name']).lower() +
+                                    '@localhost')
+
+                if not author_email:
+                    author = None
+                elif author_email not in authors:
+                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                        organization_id=self.organization_id,
+                        email=author_email,
+                        defaults={
+                            'name': data.get('author_name'),
+                        }
+                    )[0]
+                    if data.get('author_name') and author.name != data['author_name']:
+                        author.update(name=data['author_name'])
+                else:
+                    author = authors[author_email]
+
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id,
+                    repository_id=repo.id,
+                    key=data['id'],
+                    defaults={
+                        'message': data.get('message'),
+                        'author': author,
+                        'date_added': data.get('timestamp') or timezone.now(),
+                    }
+                )[0]
+
+                ReleaseCommit.objects.create(
+                    organization_id=self.organization_id,
+                    release=self,
+                    commit=commit,
+                    order=idx,
+                )

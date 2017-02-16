@@ -1,7 +1,8 @@
 import React from 'react';
-import {History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
+import OrganizationState from '../mixins/organizationState';
+import TooltipMixin from '../mixins/tooltip';
 import FileSize from '../components/fileSize';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -18,7 +19,11 @@ const ReleaseArtifacts = React.createClass({
 
   mixins: [
     ApiMixin,
-    History
+    OrganizationState,
+    TooltipMixin({
+      selector: '.tip',
+      trigger: 'hover'
+    })
   ],
 
   getInitialState() {
@@ -61,6 +66,7 @@ const ReleaseArtifacts = React.createClass({
           fileList: data,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
+        this.attachTooltips();
       },
       error: () => {
         this.setState({
@@ -113,38 +119,56 @@ const ReleaseArtifacts = React.createClass({
         </div>
       );
 
+    let access = this.getAccess();
+
     // TODO(dcramer): files should allow you to download them
     return (
       <div>
-        <div className="release-group-header">
-          <div className="row">
-            <div className="col-sm-9 col-xs-8">{'Name'}</div>
-            <div className="col-sm-2 col-xs-2 align-right">{'Size'}</div>
-            <div className="col-sm-1 col-xs-2 align-right"></div>
-          </div>
-        </div>
-        <div className="release-list">
-        {this.state.fileList.map((file) => {
-          return (
-            <div className="release release-artifact row" key={file.id}>
-              <div className="col-sm-9 col-xs-8" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
-              <div className="col-sm-2 col-xs-2 align-right"><FileSize bytes={file.size} /></div>
-              <div className="col-sm-1 col-xs-2 align-right">
-                <LinkWithConfirmation
-                  className="btn btn-sm btn-default"
-                  title={t('Delete artifact')}
-                  message={t('Are you sure you want to remove this artifact?')}
-                  onConfirm={this.handleRemove.bind(this, file.id)}>
-
-                  <span className="icon icon-trash" />
-                </LinkWithConfirmation>
-              </div>
+        <div className="panel panel-default">
+          <div className="panel-heading panel-heading-bold">
+            <div className="row">
+              <div className="col-sm-8 col-xs-7">{'Name'}</div>
+              <div className="col-sm-2 col-xs-2">{'Size'}</div>
+              <div className="col-sm-2 col-xs-3 align-right"></div>
             </div>
-          );
-        })}
-        </div>
-        <Pagination pageLinks={this.state.pageLinks}/>
+          </div>
+          <ul className="list-group">
+          {this.state.fileList.map((file) => {
+            return (
+              <li className="list-group-item" key={file.id}>
+                <div className="row row-flex row-center-vertically">
+                  <div className="col-md-8 col-sm-9" style={{wordWrap: 'break-word'}}><strong>{file.name || '(empty)'}</strong></div>
+                  <div className="col-md-2 col-sm-12"><FileSize bytes={file.size} /></div>
+                  <div className="col-md-2 col-sm-3 align-right list-group-actions">
+                    {access.has('project:write') ?
+                      <a
+                          href={this.api.baseUrl + this.getFilesEndpoint() + `${file.id}/?download=1`}
+                          className="btn btn-sm btn-default">
+                          <span className="icon icon-open" />
+                      </a>
+                      :
+                      <div
+                        className="btn btn-sm btn-default disabled tip" title={t('You do not have the required permission to download this artifact.')}>
+                        <span className="icon icon-open" />
+                      </div>
+                    }
+                    <LinkWithConfirmation
+                      className="btn btn-sm btn-default"
+                      title={t('Delete artifact')}
+                      message={t('Are you sure you want to remove this artifact?')}
+                      onConfirm={this.handleRemove.bind(this, file.id)}>
+
+                      <span className="icon icon-trash" />
+                    </LinkWithConfirmation>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       </div>
+      <Pagination pageLinks={this.state.pageLinks}/>
+    </div>
     );
   }
 });

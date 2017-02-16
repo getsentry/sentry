@@ -17,7 +17,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning
 
 def register_plugins(settings):
     from pkg_resources import iter_entry_points
-    from sentry.plugins import register
+    from sentry.plugins import plugins
     # entry_points={
     #    'sentry.plugins': [
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
@@ -31,7 +31,21 @@ def register_plugins(settings):
             import traceback
             click.echo("Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True)
         else:
-            register(plugin)
+            plugins.register(plugin)
+
+    for plugin in plugins.all(version=None):
+        init_plugin(plugin)
+
+
+def init_plugin(plugin):
+    from sentry.plugins import bindings
+    plugin.setup(bindings)
+
+    # Register contexts from plugins if necessary
+    if hasattr(plugin, 'get_custom_contexts'):
+        from sentry.interfaces.contexts import contexttype
+        for cls in plugin.get_custom_contexts() or ():
+            contexttype(cls)
 
 
 def initialize_receivers():

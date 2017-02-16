@@ -19,7 +19,7 @@ const HttpRenderer = React.createClass({
 
   render() {
     let {crumb} = this.props;
-    let {method, status_code, reason, url, ...extra} = (crumb.data || {});
+    let {method, status_code, url, ...extra} = (crumb.data || {});
     let summary = (
       <SummaryLine crumb={crumb}>
         <pre>

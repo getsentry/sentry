@@ -1,5 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
+import {browserHistory} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import DocumentTitle from 'react-document-title';
 import GroupHeader from './groupDetails/header';
@@ -8,7 +9,6 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PropTypes from '../proptypes';
 import {t} from '../locale';
-import {History} from 'react-router';
 
 let ERROR_TYPES = {
   GROUP_NOT_FOUND: 'GROUP_NOT_FOUND'
@@ -22,11 +22,11 @@ const GroupDetails = React.createClass({
 
   childContextTypes: {
     group: PropTypes.Group,
+    location: React.PropTypes.object
   },
 
   mixins: [
     ApiMixin,
-    History,
     Reflux.listenTo(GroupStore, 'onGroupChange')
   ],
 
@@ -42,6 +42,7 @@ const GroupDetails = React.createClass({
   getChildContext() {
     return {
       group: this.state.group,
+      location: this.props.location
     };
   },
 
@@ -77,7 +78,7 @@ const GroupDetails = React.createClass({
         // https://github.com/reactjs/react-router/blob/v2.0.1/modules/index.js#L25
         if (this.props.params.groupId != data.id) {
           let location = this.props.location;
-          return void this.history.pushState(
+          return void browserHistory.pushState(
             null,
             location.pathname.replace(
               `/issues/${this.props.params.groupId}/`,

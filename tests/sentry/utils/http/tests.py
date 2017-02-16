@@ -215,6 +215,22 @@ class IsValidOriginTestCase(TestCase):
         result = self.isValidOrigin('http://example.com', ['.'])
         assert result is False
 
+    def test_wildcard_hostname_with_port(self):
+        result = self.isValidOrigin('http://example.com:1234', ['*:1234'])
+        assert result is True
+
+    def test_without_hostname(self):
+        result = self.isValidOrigin('foo://', ['foo://*'])
+        assert result is True
+        result = self.isValidOrigin('foo://', ['foo://'])
+        assert result is True
+        result = self.isValidOrigin('foo://', ['example.com'])
+        assert result is False
+        result = self.isValidOrigin('foo://a', ['foo://'])
+        assert result is False
+        result = self.isValidOrigin('foo://a', ['foo://*'])
+        assert result is True
+
 
 class IsValidIPTestCase(TestCase):
     def is_valid_ip(self, ip, inputs):

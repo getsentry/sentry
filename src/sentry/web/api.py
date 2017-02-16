@@ -22,7 +22,7 @@ from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
     LazyData
 )
-from sentry.models import Project, OrganizationOption
+from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
     event_accepted, event_dropped, event_filtered, event_received
 )
@@ -159,6 +159,8 @@ class APIView(BaseView):
                 'Content-Type, Authentication'
             response['Access-Control-Allow-Methods'] = \
                 ', '.join(self._allowed_methods())
+            response['Access-Control-Expose-Headers'] = \
+                'X-Sentry-Error, Retry-After'
 
         return response
 
@@ -184,19 +186,23 @@ class APIView(BaseView):
         else:
             auth = self._parse_header(request, helper, project)
 
-            project_ = helper.project_from_auth(auth)
+            project_id = helper.project_id_from_auth(auth)
 
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
-                if not project_:
-                    raise APIError('Unable to identify project')
-                project = project_
+                project = Project.objects.get_from_cache(id=project_id)
                 helper.context.bind_project(project)
-            elif project_ != project:
+            elif project_id != project.id:
                 raise APIError('Two different projects were specified')
 
             helper.context.bind_auth(auth)
             Raven.tags_context(helper.context.get_tags_context())
+
+            # Explicitly bind Organization so we don't implicitly query it later
+            # this just allows us to comfortably assure that `project.organization` is safe.
+            # This also allows us to pull the object from cache, instead of being
+            # implicitly fetched from database.
+            project.organization = Organization.objects.get_from_cache(id=project.organization_id)
 
             if auth.version != '2.0':
                 if not auth.secret_key:
@@ -222,7 +228,16 @@ class APIView(BaseView):
             )
 
         if origin:
-            response['Access-Control-Allow-Origin'] = origin
+            if origin == 'null':
+                # If an Origin is `null`, but we got this far, that means
+                # we've gotten past our CORS check for some reason. But the
+                # problem is that we can't return "null" as a valid response
+                # to `Access-Control-Allow-Origin` and we don't have another
+                # value to work with, so just allow '*' since they've gotten
+                # this far.
+                response['Access-Control-Allow-Origin'] = '*'
+            else:
+                response['Access-Control-Allow-Origin'] = origin
 
         return response
 
@@ -356,6 +371,7 @@ class StoreView(APIView):
                 ip=remote_addr,
                 project=project,
                 sender=type(self),
+                reason_code=rate_limit.reason_code if rate_limit else None,
             )
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)
@@ -462,8 +478,8 @@ class CspReportView(StoreView):
         # `sentry_version` to be set in querystring
         auth = helper.auth_from_request(request)
 
-        project_ = helper.project_from_auth(auth)
-        if project_ != project:
+        project_id = helper.project_id_from_auth(auth)
+        if project_id != project.id:
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)

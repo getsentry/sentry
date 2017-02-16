@@ -383,10 +383,58 @@ class StacktraceTest(TestCase):
                 'package': '/foo/bar/baz.dylib',
                 'lineno': 1,
                 'in_app': True,
+                'function': '-[CRLCrashAsyncSafeThread crash]',
+            }
+        ]))
+        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
+
+    def test_emoji_culprit(self):
+        stacktrace = Stacktrace.to_python(dict(frames=[
+            {
+                'filename': 'foo/baz.c',
+                'package': '/foo/bar/baz.dylib',
+                'module': u'\U0001f62d',
+                'lineno': 1,
+                'in_app': True,
+                'function': u'\U0001f60d',
+            }
+        ]))
+        assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
+
+    def test_exclude_libswiftCore_from_in_app(self):
+        stacktrace = Stacktrace.to_python(dict(frames=[
+            {
+                'filename': 'foo/baz.c',
+                'package': '/foo/bar/libswiftCore.dylib',
+                'lineno': 1,
+                'in_app': True,
                 'function': 'fooBar',
             }
         ]))
-        assert stacktrace.get_culprit_string(platform='cocoa') == 'fooBar (baz)'
+        assert stacktrace.frames[0].in_app is False
+
+    def test_cocoa_strict_stacktrace(self):
+        stacktrace = Stacktrace.to_python(dict(frames=[
+            {
+                'filename': 'foo/baz.c',
+                'package': '/foo/bar/libswiftCore.dylib',
+                'lineno': 1,
+                'in_app': False,
+                'function': 'fooBar',
+            },
+            {
+                'package': '/foo/bar/MyApp',
+                'in_app': True,
+                'function': 'fooBar2',
+            },
+            {
+                'filename': 'Mycontroller.swift',
+                'package': '/foo/bar/MyApp',
+                'in_app': True,
+                'function': '-[CRLCrashAsyncSafeThread crash]',
+            }
+        ]))
+        assert stacktrace.get_culprit_string(platform='cocoa') == '-[CRLCrashAsyncSafeThread crash]'
 
     def test_get_hash_does_not_group_different_js_errors(self):
         interface = Stacktrace.to_python({
@@ -399,6 +447,30 @@ class StacktraceTest(TestCase):
         })
         result = interface.get_hash()
         assert result == []
+
+    def test_get_hash_uses_symbol_instead_of_function(self):
+        interface = Frame.to_python({
+            'module': 'libfoo',
+            'function': 'int main()',
+            'symbol': '_main',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'libfoo',
+            '_main',
+        ])
+
+    def test_get_hash_skips_symbol_if_unknown(self):
+        interface = Frame.to_python({
+            'module': 'libfoo',
+            'function': 'main',
+            'symbol': '?',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'libfoo',
+            'main',
+        ])
 
     @mock.patch('sentry.interfaces.stacktrace.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
@@ -470,6 +542,11 @@ class StacktraceTest(TestCase):
         with self.assertRaises(InterfaceValidationError):
             Frame.to_python({
                 'module': 1,
+            })
+
+        with self.assertRaises(InterfaceValidationError):
+            Frame.to_python({
+                'function': '?',
             })
 
     def test_context_with_nan(self):

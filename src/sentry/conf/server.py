@@ -18,6 +18,7 @@ import sys
 import tempfile
 
 import sentry
+from sentry.utils.types import type_from_value
 
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
@@ -25,6 +26,38 @@ from six.moves.urllib.parse import urlparse
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
+
+
+def env(key, default='', type=None):
+    "Extract an environment variable for use in configuration"
+
+    # First check an internal cache, so we can `pop` multiple times
+    # without actually losing the value.
+    try:
+        rv = env._cache[key]
+    except KeyError:
+        if 'SENTRY_RUNNING_UWSGI' in os.environ:
+            # We do this so when the process forks off into uwsgi
+            # we want to actually be popping off values. This is so that
+            # at runtime, the variables aren't actually available.
+            fn = os.environ.pop
+        else:
+            fn = os.environ.__getitem__
+
+        try:
+            rv = fn(key)
+            env._cache[key] = rv
+        except KeyError:
+            rv = default
+
+    if type is None:
+        type = type_from_value(default)
+
+    return type(rv)
+
+
+env._cache = {}
+
 
 DEBUG = False
 TEMPLATE_DEBUG = True
@@ -676,14 +709,16 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'organizations:api-keys': True,
+    'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:repos': False,
     'organizations:sso': True,
     'organizations:callsigns': False,
+    'organizations:release-commits': False,
     'projects:global-events': False,
-    'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
+    'projects:sample-events': True,
     'workflow:release-emails': False,
 }
 
@@ -753,6 +788,7 @@ SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
     'query': 'sentry.interfaces.query.Query',
+    'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -867,6 +903,9 @@ SENTRY_SEARCH_OPTIONS = {}
 # Time-series storage backend
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
+
+SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
+SENTRY_NEWSLETTER_OPTIONS = {}
 
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
@@ -1009,6 +1048,15 @@ SENTRY_DEFAULT_OPTIONS = {}
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
 
+# Encryption schemes available to Sentry. You should *never* remove from this
+# list until the key is no longer used in the database. The first listed
+# implementation is considered the default and will be used to encrypt all
+# values (as well as re-encrypt data when it's re-saved).
+SENTRY_ENCRYPTION_SCHEMES = (
+    # identifier: implementation
+    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
+)
+
 # Delay (in ms) to induce on API responses
 SENTRY_API_RESPONSE_DELAY = 0
 
@@ -1028,6 +1076,10 @@ STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = 'statuspage.io'
 
 SENTRY_ONPREMISE = True
+
+# Whether we should look at X-Forwarded-For header or not
+# when checking REMOTE_ADDR ip addresses
+SENTRY_USE_X_FORWARDED_FOR = True
 
 
 def get_raven_config():
@@ -1060,10 +1112,10 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-js': '3.3.0',
-    'raven-python': '5.23.0',
-    'sentry-laravel': '0.4.0',
-    'sentry-php': '1.5.0',
+    'raven-js': '3.9.1',
+    'raven-python': '5.32.0',
+    'sentry-laravel': '0.5.0',
+    'sentry-php': '1.6.0',
 }
 
 SDK_URLS = {
@@ -1077,4 +1129,5 @@ SDK_URLS = {
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
+    'raven-php': 'sentry-php',
 }
