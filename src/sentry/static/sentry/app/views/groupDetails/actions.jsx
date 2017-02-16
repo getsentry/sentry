@@ -9,7 +9,6 @@ import IssuePluginActions from '../../components/group/issuePluginActions';
 import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
-import {defined} from '../../utils';
 import {t} from '../../locale';
 
 const Snooze = {
@@ -115,7 +114,7 @@ const GroupActions = React.createClass({
       ignoreClassName += ' active';
     }
 
-    let hasRelease = defined(group.lastRelease);
+    let hasRelease = this.getProjectFeatures().has('releases');
     let releaseTrackingUrl = '/' + this.getOrganization().slug + '/' + this.getProject().slug + '/settings/release-tracking/';
 
     // account for both old and new style plugins

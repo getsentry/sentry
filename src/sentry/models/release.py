@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import re
 
 from django.db import models, IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -94,6 +95,8 @@ class Release(Model):
 
     @classmethod
     def get_or_create(cls, project, version, date_added):
+        from sentry.models import Project
+
         cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
@@ -125,6 +128,9 @@ class Release(Model):
                         version=version
                     )
                 release.add_project(project)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(flags=F('flags').bitor(Project.flags.has_releases))
 
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
@@ -186,11 +192,24 @@ class Release(Model):
         return self.version
 
     def add_project(self, project):
+        """
+        Add a project to this release.
+
+        Returns True if the project was added and did not already exist.
+        """
+        from sentry.models import Project
         try:
             with transaction.atomic():
                 ReleaseProject.objects.create(project=project, release=self)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(
+                        flags=F('flags').bitor(Project.flags.has_releases),
+                    )
         except IntegrityError:
-            pass
+            return False
+        else:
+            return True
 
     def set_commits(self, commit_list):
         from sentry.models import Commit, CommitAuthor, ReleaseCommit, Repository
