@@ -12,6 +12,7 @@ Version 8.14 (Unreleased)
 - Release functionality is now detected at a project level to enable various features.
 - Added OrganizationReleasesEndpoint
 - Added context type app for cocoa events
+- Added basic encryption facilities (``sentry.utils.encryption``).
 
 Schema Changes
 ~~~~~~~~~~~~~~
