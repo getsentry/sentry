@@ -11,6 +11,7 @@ import logging
 import six
 import warnings
 
+from bitfield import BitField
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -89,6 +90,9 @@ class Project(Model):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
+    flags = BitField(flags=(
+        ('has_releases', 'This Project has sent release data'),
+    ), default=0, null=True)
 
     objects = ProjectManager(cache_fields=[
         'pk',

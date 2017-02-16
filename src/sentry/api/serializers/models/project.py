@@ -89,6 +89,9 @@ class ProjectSerializer(Serializer):
             if features.has('projects:' + feature, obj, actor=user):
                 feature_list.append(feature)
 
+        if obj.flags.has_releases:
+            feature_list.append('releases')
+
         status_label = STATUS_LABELS.get(obj.status, 'unknown')
 
         return {
