@@ -465,22 +465,27 @@ class FeatureSet(object):
         return self.index.record_multi(items)
 
     def query(self, group):
-        results = {}
         key = self.__number_format.pack(group.id)
+
+        results = {}
         for label in self.features.keys():
             alias = self.aliases[label]
             scope = ':'.join((
                 alias,
-                self.__number_format.pack(group.project_id)
+                self.__number_format.pack(group.project_id),
             ))
-            results[label] = map(
-                lambda (id, score): (
+
+            for id, score in self.index.query(scope, key):
+                results.setdefault(
                     self.__number_format.unpack(id)[0],
-                    score,
-                ),
-                self.index.query(scope, key)
-            )
-        return results
+                    {},
+                )[label] = score
+
+        return sorted(
+            results.items(),
+            key=lambda (id, features): sum(features.values()),
+            reverse=True,
+        )
 
 
 def serialize_text_shingle(value, separator=b''):
