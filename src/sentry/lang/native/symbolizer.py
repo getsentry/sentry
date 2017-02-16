@@ -108,7 +108,7 @@ def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
     )
 
 
-def make_symbolizer(project, binary_images, referenced_images=None):
+def make_symbolizer(project, image_lookup, referenced_images=None):
     """Creates a symbolizer for the given project and binary images.  If a
     list of referenced images is referenced (UUIDs) then only images
     needed by those frames are loaded.
@@ -117,7 +117,7 @@ def make_symbolizer(project, binary_images, referenced_images=None):
 
     to_load = referenced_images
     if to_load is None:
-        to_load = [x['uuid'] for x in binary_images]
+        to_load = image_lookup.get_uuids()
 
     dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
 
@@ -125,11 +125,41 @@ def make_symbolizer(project, binary_images, referenced_images=None):
     # symbolizer to avoid the expensive FS operations that will otherwise
     # happen.
     user_images = []
-    for img in binary_images:
+    for img in image_lookup.iter_images():
         if img['uuid'] in loaded:
             user_images.append(img)
 
     return ReportSymbolizer(driver, dsym_paths, user_images)
+
+
+class ImageLookup(object):
+
+    def __init__(self, images):
+        self._image_addresses = []
+        self.images = {}
+        for img in images:
+            img_addr = parse_addr(img['image_addr'])
+            self._image_addresses.append(img_addr)
+            self.images[img_addr] = img
+        self._image_addresses.sort()
+
+    def iter_images(self):
+        return six.itervalues(self.images)
+
+    def get_uuids(self):
+        return list(self.iter_uuids())
+
+    def iter_uuids(self):
+        for img in self.iter_images():
+            yield img['uuid']
+
+    def find_image(self, addr):
+        """Given an instruction address this locates the image this address
+        is contained in.
+        """
+        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
+        if idx > 0:
+            return self.images[self._image_addresses[idx - 1]]
 
 
 class Symbolizer(object):
@@ -139,40 +169,14 @@ class Symbolizer(object):
 
     def __init__(self, project, binary_images, referenced_images=None,
                  cpu_name=None):
+        if isinstance(binary_images, ImageLookup):
+            self.image_lookup = binary_images
+        else:
+            self.image_lookup = ImageLookup(binary_images)
         self.symsynd_symbolizer = make_symbolizer(
-            project, binary_images, referenced_images=referenced_images)
-
-        # This is a duplication from symsynd.  The reason is that symsynd
-        # will only load images that it can find dsyms for but we also
-        # have system symbols which there are no dsyms for.
-        self._image_addresses = []
-        self.images = {}
-        for img in binary_images:
-            img_addr = parse_addr(img['image_addr'])
-            self._image_addresses.append(img_addr)
-            self.images[img_addr] = img
-        self._image_addresses.sort()
-
-        # This should always succeed but you never quite know.
+            project, self.image_lookup,
+            referenced_images=referenced_images)
         self.cpu_name = cpu_name
-        if self.cpu_name is None:
-            for img in six.itervalues(self.images):
-                cpu_name = get_cpu_name(img['cpu_type'],
-                                        img['cpu_subtype'])
-                if self.cpu_name is None:
-                    self.cpu_name = cpu_name
-                elif self.cpu_name != cpu_name:
-                    self.cpu_name = None
-                    break
-
-    def find_best_instruction(self, frame, meta=None):
-        """Finds the best instruction for a given frame."""
-        # If we have no images or cpu name we cannot possibly fix the
-        # instruction here.
-        if not self.images or self.cpu_name is None:
-            return parse_addr(frame['instruction_addr'])
-        return self.symsynd_symbolizer.find_best_instruction(
-            frame['instruction_addr'], cpu_name=self.cpu_name, meta=meta)
 
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
@@ -183,7 +187,7 @@ class Symbolizer(object):
         changed_any = False
 
         loaded_images = self.symsynd_symbolizer.images
-        for image_addr, image in six.iteritems(self.images):
+        for image_addr, image in six.iteritems(self.image_lookup.images):
             if image.get('image_vmaddr') or not image.get('image_addr'):
                 continue
             image_info = loaded_images.get(image_addr)
@@ -203,14 +207,6 @@ class Symbolizer(object):
 
     def close(self):
         self.symsynd_symbolizer.driver.close()
-
-    def find_image(self, addr):
-        """Given an instruction address this locates the image this address
-        is contained in.
-        """
-        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
-        if idx > 0:
-            return self.images[self._image_addresses[idx - 1]]
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
@@ -257,7 +253,7 @@ class Symbolizer(object):
         return _sim_platform_re.search(fn) is not None
 
     def is_in_app(self, frame):
-        img = self.find_image(frame['instruction_addr'])
+        img = self.image_lookup.find_image(frame['instruction_addr'])
         return img is not None and self._is_app_frame(frame, img)
 
     def symbolize_app_frame(self, frame, img, symbolize_inlined=False):
@@ -336,7 +332,7 @@ class Symbolizer(object):
 
         rv = self._process_frame(dict(frame,
             symbol_name=symbol, filename=None, line=0, column=0,
-            uuid=img['uuid'], object_name=img['name']), img)
+            object_name=img['name']), img)
 
         # We actually do not support inline symbolication for system
         # frames, so we just only ever return a single frame here.  Maybe
@@ -354,7 +350,7 @@ class Symbolizer(object):
                 message='Found multiple architectures.'
             )
 
-        img = self.find_image(frame['instruction_addr'])
+        img = self.image_lookup.find_image(frame['instruction_addr'])
         if img is None:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_UNKNOWN_IMAGE
