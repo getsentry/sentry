@@ -5,7 +5,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    Event, EventMapping, EventTag,
+    Environment, EnvironmentProject, Event, EventMapping, EventTag,
     Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
     Release, TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor,
@@ -50,10 +50,17 @@ class DeleteOrganizationTest(TestCase):
             order=0,
         )
 
+        env = Environment.objects.create(
+            organization_id=org.id,
+            project_id=4,
+            name='foo'
+        )
+
         with self.tasks():
             delete_organization(object_id=org.id)
 
         assert not Organization.objects.filter(id=org.id).exists()
+        assert not Environment.objects.filter(id=env.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()
         assert not ReleaseCommit.objects.filter(organization_id=org.id).exists()
         assert not Release.objects.filter(organization_id=org.id).exists()
@@ -117,6 +124,12 @@ class DeleteProjectTest(TestCase):
                                          organization_id=project.organization_id)
         release.add_project(project)
         GroupResolution.objects.create(group=group, release=release)
+        env = Environment.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            name='foo'
+        )
+        env.add_project(project)
         repo = Repository.objects.create(
             organization_id=project.organization_id,
             name=project.name,
@@ -144,6 +157,11 @@ class DeleteProjectTest(TestCase):
             delete_project(object_id=project.id)
 
         assert not Project.objects.filter(id=project.id).exists()
+        assert not EnvironmentProject.objects.filter(
+            project_id=project.id,
+            environment_id=env.id
+        ).exists()
+        assert Environment.objects.filter(id=env.id).exists()
         assert Release.objects.filter(id=release.id).exists()
         assert ReleaseCommit.objects.filter(release_id=release.id).exists()
         assert Commit.objects.filter(id=commit.id).exists()
