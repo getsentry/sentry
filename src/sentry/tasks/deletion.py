@@ -27,7 +27,7 @@ logger = logging.getLogger('sentry.deletions.async')
 def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, CommitFileChange, Release, ReleaseCommit,
+        Commit, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit,
         ReleaseFile, Repository
     )
 
@@ -55,7 +55,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
 
     model_list = (
         OrganizationMember, CommitFileChange, Commit, CommitAuthor,
-        Repository, Release, ReleaseCommit, ReleaseFile
+        Environment, Repository, Release, ReleaseCommit, ReleaseFile
     )
 
     has_more = delete_objects(
@@ -128,7 +128,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
         ReleaseEnvironment, ReleaseProject, SavedSearchUserDefault, SavedSearch,
-        TagKey, TagValue, UserReport, Environment
+        TagKey, TagValue, UserReport, EnvironmentProject
     )
 
     try:
@@ -158,7 +158,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, ReleaseEnvironment, Environment
+        UserReport, ReleaseEnvironment, EnvironmentProject
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
