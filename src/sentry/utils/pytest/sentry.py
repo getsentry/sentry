@@ -88,6 +88,8 @@ def pytest_configure(config):
 
     settings.DEBUG_VIEWS = True
 
+    settings.SENTRY_ENCRYPTION_SCHEMES = ()
+
     settings.DISABLE_RAVEN = True
 
     settings.CACHES = {

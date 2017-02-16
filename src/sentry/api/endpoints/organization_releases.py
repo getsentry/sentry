@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.models import Activity, Release, ReleaseProject
+from sentry.models import Activity, Release
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -141,12 +141,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
 
             new_projects = []
             for project in projects:
-                try:
-                    with transaction.atomic():
-                        ReleaseProject.objects.create(project=project, release=release)
-                except IntegrityError:
-                    pass
-                else:
+                created = release.add_project(project)
+                if created:
                     new_projects.append(project)
 
             if release.date_released:
