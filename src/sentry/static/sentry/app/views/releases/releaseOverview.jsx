@@ -4,7 +4,7 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 
 import FileChange from '../../components/fileChange';
-
+import CommitAuthorStats from '../../components/commitAuthorStats';
 import ApiMixin from '../../mixins/apiMixin';
 
 const ReleaseOverview = React.createClass({
@@ -52,6 +52,7 @@ const ReleaseOverview = React.createClass({
   },
 
   render() {
+    let {orgId, projectId, version} = this.props.params;
 
     if (this.state.loading)
       return <LoadingIndicator/>;
@@ -96,6 +97,11 @@ const ReleaseOverview = React.createClass({
             );
           })}
         </ul>
+        <CommitAuthorStats
+          orgId={orgId}
+          projectId={projectId}
+          version={version}
+        />
       </div>
     );
   }
