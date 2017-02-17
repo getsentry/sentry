@@ -1,5 +1,7 @@
 import React from 'react';
+import Avatar from '../components/Avatar';
 
+import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
 
 // import LoadingError from '../components/loadingError';
@@ -15,7 +17,10 @@ const FileChange = React.createClass({
   },
 
   mixins: [
-    ApiMixin
+    ApiMixin,
+    TooltipMixin({
+      selector: '.tip'
+    }),
   ],
 
   getInitialState() {
@@ -29,23 +34,27 @@ const FileChange = React.createClass({
     authors = Array.from(authors);
     types = Array.from(types);
     return (
-      <li div className="row">
-        <div className="col-sm-4">{filename}</div>
-        <div className="col-sm-4">
+      <li className="row">
+        <div className="col-sm-3">{filename}</div>
+        <div className="col-sm-3 avatar-grid">
         {authors.map(author => {
-          return (<span>{author} </span>);
+            return (
+              <span className="avatar-grid-item tip"
+                   title={author.name + ' ' + author.email}>
+                <Avatar user={author}/>
+              </span>);
         })}
         </div>
-        <div className="col-sm-4">
+        <div className="col-sm-3">
         {types.map(type => {
           if (type ===  'A') {
-            return (<span>Added </span>);
+            return (<span key={type}>Added </span>);
           }
           else if (type === 'D') {
-            return (<span>Deleted </span>);
+            return (<span key={type}>Deleted </span>);
           }
           else if (type === 'M') {
-            return (<span>Modified </span>);
+            return (<span key={type}>Modified </span>);
           }
         })}
         </div>
