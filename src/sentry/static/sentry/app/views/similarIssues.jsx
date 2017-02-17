@@ -103,7 +103,6 @@ const GroupEvents = React.createClass({
     let {orgId, projectId, groupId} = this.props.params;
 
     let children = this.state.issueList.map(([issue, score]) => {
-      console.log(issue);
       let tagMap = tagList.map( (key) => {
         return {key, value:issue[key]};
       });
@@ -120,10 +119,13 @@ const GroupEvents = React.createClass({
           {tagMap.map((tag) => {
             return (
               <td key={tag.key}>
-                {tag.value}
+                {tag.value.substr(0,20)}
               </td>
             );
           })}
+          <td key="score">
+            {score['message:message:character-shingles']}
+          </td>
           <td key="button">
             <button>merge</button>
           </td>
@@ -145,6 +147,9 @@ const GroupEvents = React.createClass({
                     </th>
                   );
                 })}
+                <th key="score">
+                  Similarity Score
+                </th>
                 <th key="button">
                   Merge
                 </th>
