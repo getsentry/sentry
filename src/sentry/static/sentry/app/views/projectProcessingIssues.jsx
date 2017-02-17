@@ -279,7 +279,7 @@ const ProjectProcessingIssues = React.createClass({
     );
   },
 
-  renderReprocessingCheckbox() {
+  renderReprocessingSettings() {
     if (this.state.loading) {
       return this.renderLoading();
     }
@@ -302,11 +302,8 @@ const ProjectProcessingIssues = React.createClass({
                 key="reprocessing-active"
                 name="reprocessing-active"
                 label={t('Reprocessing active')}
-                help={t(`If you are having problems with the reprocessing feature
-                  you can turn it off here. If you save the changes all Processing
-                  Issues will be deleted and the Events will be processed.
-                  Keep in mind that these Events will probably show incomplete
-                  stacktraces. Everything will be fine again, we promise ;)`)}
+                help={t(`When you save the changes all Processing
+                  Issues will be deleted and future Events can be reprocessed.`)}
                 value={this.state.formData['sentry:reprocessing_active']}
                 error={errors ? errors['sentry:reprocessing_active'] : ''}
                 onChange={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
@@ -357,6 +354,7 @@ const ProjectProcessingIssues = React.createClass({
   render() {
     return (
       <div>
+        {this.renderReprocessingSettings()}
         <h1>{t('Processing Issues')}</h1>
         <p>{t(`
           For some platforms the event processing requires configuration or
@@ -367,7 +365,6 @@ const ProjectProcessingIssues = React.createClass({
         `)}</p>
         {this.renderDebugTable()}
         {this.renderResolveButton()}
-        {this.renderReprocessingCheckbox()}
       </div>
     );
   }
