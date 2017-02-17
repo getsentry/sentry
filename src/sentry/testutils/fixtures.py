@@ -349,6 +349,8 @@ class Fixtures(object):
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:
             warnings.warn('Checksum passed to create_group', DeprecationWarning)
+        if project is None:
+            project = self.project
         kwargs.setdefault('message', 'Hello world')
         kwargs.setdefault('data', {})
         if 'type' not in kwargs['data']:
@@ -358,7 +360,9 @@ class Fixtures(object):
                     'title': kwargs['message'],
                 },
             })
+        if 'short_id' not in kwargs:
+            kwargs['short_id'] = project.next_short_id()
         return Group.objects.create(
-            project=project or self.project,
+            project=project,
             **kwargs
         )

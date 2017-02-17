@@ -35,16 +35,14 @@ def format_index_expr(format_string, data):
         six.text_type(format_string), (), data).strip())
 
 
-def contexttype(name):
-    def decorator(cls):
-        cls.type = name
-        context_types[name] = cls
-        return cls
-    return decorator
+def contexttype(cls):
+    context_types[cls.type] = cls
+    return cls
 
 
 class ContextType(object):
     indexed_fields = None
+    type = None
 
     def __init__(self, alias, data):
         self.alias = alias
@@ -61,6 +59,25 @@ class ContextType(object):
         rv['type'] = self.type
         return rv
 
+    @classmethod
+    def values_for_data(cls, data):
+        contexts = data.get('contexts') or {}
+        rv = []
+        for context in six.itervalues(contexts):
+            if context.get('type') == cls.type:
+                rv.append(context)
+        return rv
+
+    @classmethod
+    def primary_value_for_data(cls, data):
+        contexts = data.get('contexts') or {}
+        val = contexts.get(cls.type)
+        if val and val.get('type') == cls.type:
+            return val
+        rv = cls.values_for_data(data)
+        if len(rv) == 1:
+            return rv[0]
+
     def iter_tags(self):
         if self.indexed_fields:
             for field, f_string in six.iteritems(self.indexed_fields):
@@ -76,13 +93,22 @@ class ContextType(object):
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
-@contexttype('default')
+@contexttype
 class DefaultContextType(ContextType):
-    pass
+    type = 'default'
 
 
-@contexttype('device')
+@contexttype
+class AppContextType(ContextType):
+    type = 'app'
+    indexed_fields = {
+        'device': u'{device_app_hash}',
+    }
+
+
+@contexttype
 class DeviceContextType(ContextType):
+    type = 'device'
     indexed_fields = {
         '': u'{model}',
         'family': u'{family}',
@@ -90,16 +116,18 @@ class DeviceContextType(ContextType):
     # model_id, arch
 
 
-@contexttype('runtime')
+@contexttype
 class RuntimeContextType(ContextType):
+    type = 'runtime'
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',
     }
 
 
-@contexttype('browser')
+@contexttype
 class BrowserContextType(ContextType):
+    type = 'browser'
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',
@@ -107,8 +135,9 @@ class BrowserContextType(ContextType):
     # viewport
 
 
-@contexttype('os')
+@contexttype
 class OsContextType(ContextType):
+    type = 'os'
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',

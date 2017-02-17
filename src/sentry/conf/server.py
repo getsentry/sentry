@@ -31,18 +31,32 @@ socket.setdefaulttimeout(5)
 def env(key, default='', type=None):
     "Extract an environment variable for use in configuration"
 
-    if 'SENTRY_RUNNING_UWSGI' in os.environ:
-        # We do this so when the process forks off into uwsgi
-        # we want to actually be popping off values. This is so that
-        # at runtime, the variables aren't actually available.
-        fn = os.environ.pop
-    else:
-        fn = os.environ.get
+    # First check an internal cache, so we can `pop` multiple times
+    # without actually losing the value.
+    try:
+        rv = env._cache[key]
+    except KeyError:
+        if 'SENTRY_RUNNING_UWSGI' in os.environ:
+            # We do this so when the process forks off into uwsgi
+            # we want to actually be popping off values. This is so that
+            # at runtime, the variables aren't actually available.
+            fn = os.environ.pop
+        else:
+            fn = os.environ.__getitem__
+
+        try:
+            rv = fn(key)
+            env._cache[key] = rv
+        except KeyError:
+            rv = default
 
     if type is None:
         type = type_from_value(default)
 
-    return type(fn(key, default))
+    return type(rv)
+
+
+env._cache = {}
 
 
 DEBUG = False
@@ -1046,6 +1060,15 @@ SENTRY_DEFAULT_OPTIONS = {}
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
+
+# Encryption schemes available to Sentry. You should *never* remove from this
+# list until the key is no longer used in the database. The first listed
+# implementation is considered the default and will be used to encrypt all
+# values (as well as re-encrypt data when it's re-saved).
+SENTRY_ENCRYPTION_SCHEMES = (
+    # identifier: implementation
+    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
+)
 
 # Delay (in ms) to induce on API responses
 SENTRY_API_RESPONSE_DELAY = 0

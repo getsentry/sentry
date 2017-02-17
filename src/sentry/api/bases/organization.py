@@ -7,7 +7,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
-from sentry.models import Organization, OrganizationStatus
+from sentry.models import (
+    Organization, OrganizationMemberTeam, OrganizationStatus, Project, Team
+)
 from sentry.models.apikey import ROOT_KEY
 from sentry.utils import auth
 
@@ -56,6 +58,18 @@ class OrganizationPermission(ScopedPermission):
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
 
+# These are based on ProjectReleasePermission
+# additional checks to limit actions to releases
+# associated with projects people have access to
+class OrganizationReleasePermission(OrganizationPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete', 'project:releases'],
+        'POST': ['project:write', 'project:delete', 'project:releases'],
+        'PUT': ['project:write', 'project:delete', 'project:releases'],
+        'DELETE': ['project:delete', 'project:releases'],
+    }
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
@@ -78,3 +92,22 @@ class OrganizationEndpoint(Endpoint):
 
         kwargs['organization'] = organization
         return (args, kwargs)
+
+
+class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
+    permission_classes = (OrganizationReleasePermission,)
+
+    def get_allowed_projects(self, request, organization):
+        if not request.user.is_authenticated():
+            return []
+
+        if request.is_superuser() or organization.flags.allow_joinleave:
+            allowed_teams = Team.objects.filter(
+                organization=organization
+            ).values_list('id', flat=True)
+        else:
+            allowed_teams = OrganizationMemberTeam.objects.filter(
+                organizationmember__user=request.user,
+                team__organization_id=organization.id,
+            ).values_list('team_id', flat=True)
+        return Project.objects.filter(team_id__in=allowed_teams)

@@ -10,57 +10,33 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ReleaseHook']
 
-import re
-
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from sentry.app import locks
-from sentry.models import (
-    Activity, Commit, CommitAuthor, Release, ReleaseCommit, Repository
-)
-from sentry.utils.retries import TimedRetryPolicy
+from sentry.models import Activity, Release
 
 
 class ReleaseHook(object):
     def __init__(self, project):
         self.project = project
 
-    def _to_email(self, name):
-        return re.sub(r'[^a-zA-Z0-9\-_\.]*', '', name).lower() + '@localhost'
-
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
-
-        affected = Release.objects.filter(
-            version=version,
-            organization_id=self.project.organization_id,
-            projects=self.project,
-        ).update(**values)
-        if not affected:
-            release = Release.objects.filter(
+        try:
+            with transaction.atomic():
+                release = Release.objects.create(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                    **values
+                )
+        except IntegrityError:
+            release = Release.objects.get(
                 version=version,
                 organization_id=self.project.organization_id,
-            ).first()
-            if release:
-                release.update(**values)
-            else:
-                lock_key = Release.get_lock_key(self.project.organization_id, version)
-                lock = locks.get(lock_key, duration=5)
-                with TimedRetryPolicy(10)(lock.acquire):
-                    try:
-                        release = Release.objects.get(
-                            version=version,
-                            organization_id=self.project.organization_id
-                        )
-                    except Release.DoesNotExist:
-                        release = Release.objects.create(
-                            version=version,
-                            organization_id=self.project.organization_id,
-                            **values
-                        )
+            )
+            release.update(**values)
 
-            release.add_project(self.project)
+        release.add_project(self.project)
 
     # TODO(dcramer): this is being used by the release details endpoint, but
     # it'd be ideal if most if not all of this logic lived there, and this
@@ -72,118 +48,38 @@ class ReleaseHook(object):
         Calling this method will remove all existing commit history.
         """
         project = self.project
-        release = Release.objects.filter(
-            organization_id=project.organization_id,
-            version=version,
-            projects=self.project
-        ).first()
-        if not release:
-            release = Release.objects.filter(
-                organization_id=project.organization_id,
-                version=version,
-            ).first()
-            if not release:
-                lock_key = Release.get_lock_key(project.organization_id, version)
-                lock = locks.get(lock_key, duration=5)
-                with TimedRetryPolicy(10)(lock.acquire):
-                    try:
-                        release = Release.objects.get(
-                            organization_id=project.organization_id,
-                            version=version
-                        )
-                    except Release.DoesNotExist:
-                        release = Release.objects.create(
-                            organization_id=project.organization_id,
-                            version=version
-                        )
-            release.add_project(project)
-
-        with transaction.atomic():
-            # TODO(dcramer): would be good to optimize the logic to avoid these
-            # deletes but not overly important
-            ReleaseCommit.objects.filter(
-                release=release,
-            ).delete()
-
-            authors = {}
-            repos = {}
-            for idx, data in enumerate(commit_list):
-                repo_name = data.get('repository') or 'project-{}'.format(project.id)
-                if repo_name not in repos:
-                    repos[repo_name] = repo = Repository.objects.get_or_create(
-                        organization_id=project.organization_id,
-                        name=repo_name,
-                    )[0]
-                else:
-                    repo = repos[repo_name]
-
-                author_email = data.get('author_email')
-                if author_email is None and data.get('author_name'):
-                    author_email = self._to_email(data['author_name'])
-
-                if not author_email:
-                    author = None
-                elif author_email not in authors:
-                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                        organization_id=project.organization_id,
-                        email=author_email,
-                        defaults={
-                            'name': data.get('author_name'),
-                        }
-                    )[0]
-                    if data.get('author_name') and author.name != data['author_name']:
-                        author.update(name=data['author_name'])
-                else:
-                    author = authors[author_email]
-
-                commit = Commit.objects.get_or_create(
+        try:
+            with transaction.atomic():
+                release = Release.objects.create(
                     organization_id=project.organization_id,
-                    repository_id=repo.id,
-                    key=data['id'],
-                    defaults={
-                        'message': data.get('message'),
-                        'author': author,
-                        'date_added': data.get('timestamp') or timezone.now(),
-                    }
-                )[0]
-
-                ReleaseCommit.objects.create(
-                    organization_id=project.organization_id,
-                    release=release,
-                    commit=commit,
-                    order=idx,
+                    version=version
                 )
+        except IntegrityError:
+            release = Release.objects.get(
+                organization_id=project.organization_id,
+                version=version
+            )
+        release.add_project(project)
+
+        release.set_commits(commit_list)
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
-        affected = Release.objects.filter(
-            version=version,
-            organization_id=self.project.organization_id,
-            projects=self.project,
-        ).update(**values)
-        if not affected:
-            release = Release.objects.filter(
+        try:
+            with transaction.atomic():
+                release = Release.objects.create(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                    **values
+                )
+        except IntegrityError:
+            release = Release.objects.get(
                 version=version,
                 organization_id=self.project.organization_id,
-            ).first()
-            if release:
-                release.update(**values)
-            else:
-                lock_key = Release.get_lock_key(self.project.organization_id, version)
-                lock = locks.get(lock_key, duration=5)
-                with TimedRetryPolicy(10)(lock.acquire):
-                    try:
-                        release = Release.objects.get(
-                            version=version,
-                            organization_id=self.project.organization_id,
-                        )
-                    except Release.DoesNotExist:
-                        release = Release.objects.create(
-                            version=version,
-                            organization_id=self.project.organization_id,
-                            **values
-                        )
-            release.add_project(self.project)
+            )
+            release.update(**values)
+
+        release.add_project(self.project)
 
         activity = Activity.objects.create(
             type=Activity.RELEASE,
