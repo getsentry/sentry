@@ -297,7 +297,7 @@ urlpatterns = patterns(
         name='sentry-api-0-release-commits'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$',
         CommitFileChangeEndpoint.as_view(),
-        name='sentry-api-0-release-commits'),
+        name='sentry-api-0-release-commitfilechange'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',
         ReleaseFilesEndpoint.as_view(),
         name='sentry-api-0-release-files'),
