@@ -10,16 +10,15 @@ from __future__ import absolute_import, print_function
 import re
 
 from django.db import models, IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from jsonfield import JSONField
 
-from sentry.app import locks
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.utils.retries import TimedRetryPolicy
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
@@ -70,14 +69,12 @@ class Release(Model):
     __repr__ = sane_repr('organization', 'version')
 
     @classmethod
-    def get_cache_key(cls, project_id, version):
-        # TODO(jess): update this to use organization id when adding
-        # unique on Release for organization, version
-        return 'release:2:%s:%s' % (project_id, md5_text(version).hexdigest())
+    def get_cache_key(cls, organization_id, version):
+        return 'release:3:%s:%s' % (organization_id, md5_text(version).hexdigest())
 
     @classmethod
     def get(cls, project, version):
-        cache_key = cls.get_cache_key(project.id, version)
+        cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
         if release is None:
@@ -97,12 +94,10 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_lock_key(cls, organization_id, version):
-        return 'release:%s:%s' % (organization_id, md5_text(version).hexdigest())
-
-    @classmethod
     def get_or_create(cls, project, version, date_added):
-        cache_key = cls.get_cache_key(project.id, version)
+        from sentry.models import Project
+
+        cache_key = cls.get_cache_key(project.organization_id, version)
 
         release = cache.get(cache_key)
         if release in (None, -1):
@@ -115,32 +110,27 @@ class Release(Model):
                 projects=project
             ))
             if releases:
-                # TODO(jess): clean this up once all releases have been migrated
                 try:
                     release = [r for r in releases if r.version == project_version][0]
                 except IndexError:
                     release = releases[0]
             else:
-                release = cls.objects.filter(
-                    organization_id=project.organization_id,
-                    version=version
-                ).first()
-                if not release:
-                    lock_key = cls.get_lock_key(project.organization_id, version)
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            release = cls.objects.get(
-                                organization_id=project.organization_id,
-                                version=version
-                            )
-                        except cls.DoesNotExist:
-                            release = cls.objects.create(
-                                organization_id=project.organization_id,
-                                version=version,
-                                date_added=date_added
-                            )
+                try:
+                    with transaction.atomic():
+                        release = cls.objects.create(
+                            organization_id=project.organization_id,
+                            version=version,
+                            date_added=date_added
+                        )
+                except IntegrityError:
+                    release = cls.objects.get(
+                        organization_id=project.organization_id,
+                        version=version
+                    )
                 release.add_project(project)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(flags=F('flags').bitor(Project.flags.has_releases))
 
             # TODO(dcramer): upon creating a new release, check if it should be
             # the new "latest release" for this project
@@ -202,8 +192,81 @@ class Release(Model):
         return self.version
 
     def add_project(self, project):
+        """
+        Add a project to this release.
+
+        Returns True if the project was added and did not already exist.
+        """
+        from sentry.models import Project
         try:
             with transaction.atomic():
                 ReleaseProject.objects.create(project=project, release=self)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(
+                        flags=F('flags').bitor(Project.flags.has_releases),
+                    )
         except IntegrityError:
-            pass
+            return False
+        else:
+            return True
+
+    def set_commits(self, commit_list):
+        from sentry.models import Commit, CommitAuthor, ReleaseCommit, Repository
+
+        with transaction.atomic():
+            # TODO(dcramer): would be good to optimize the logic to avoid these
+            # deletes but not overly important
+            ReleaseCommit.objects.filter(
+                release=self,
+            ).delete()
+
+            authors = {}
+            repos = {}
+            for idx, data in enumerate(commit_list):
+                repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
+                if repo_name not in repos:
+                    repos[repo_name] = repo = Repository.objects.get_or_create(
+                        organization_id=self.organization_id,
+                        name=repo_name,
+                    )[0]
+                else:
+                    repo = repos[repo_name]
+
+                author_email = data.get('author_email')
+                if author_email is None and data.get('author_name'):
+                    author_email = (re.sub(r'[^a-zA-Z0-9\-_\.]*', '', data['author_name']).lower() +
+                                    '@localhost')
+
+                if not author_email:
+                    author = None
+                elif author_email not in authors:
+                    authors[author_email] = author = CommitAuthor.objects.get_or_create(
+                        organization_id=self.organization_id,
+                        email=author_email,
+                        defaults={
+                            'name': data.get('author_name'),
+                        }
+                    )[0]
+                    if data.get('author_name') and author.name != data['author_name']:
+                        author.update(name=data['author_name'])
+                else:
+                    author = authors[author_email]
+
+                commit = Commit.objects.get_or_create(
+                    organization_id=self.organization_id,
+                    repository_id=repo.id,
+                    key=data['id'],
+                    defaults={
+                        'message': data.get('message'),
+                        'author': author,
+                        'date_added': data.get('timestamp') or timezone.now(),
+                    }
+                )[0]
+
+                ReleaseCommit.objects.create(
+                    organization_id=self.organization_id,
+                    release=self,
+                    commit=commit,
+                    order=idx,
+                )

@@ -9,6 +9,8 @@ from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
 from symsynd.utils import parse_addr
 
+from django.core.cache import cache
+
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -101,21 +103,22 @@ def trim_frame(frame):
     return frame
 
 
-def find_system_symbol(img, instruction_addr, sdk_info=None):
+def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
     """Finds a system symbol."""
+    img_cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
+    cpu_name = img_cpu_name or cpu_name
     return DSymSymbol.objects.lookup_symbol(
         instruction_addr=instruction_addr,
         image_addr=img['image_addr'],
         image_vmaddr=img['image_vmaddr'],
         uuid=img['uuid'],
-        cpu_name=get_cpu_name(img['cpu_type'],
-                              img['cpu_subtype']),
+        cpu_name=cpu_name,
         object_path=img['name'],
         sdk_info=sdk_info
     )
 
 
-def make_symbolizer(project, binary_images, referenced_images=None):
+def make_symbolizer(project, image_lookup, referenced_images=None):
     """Creates a symbolizer for the given project and binary images.  If a
     list of referenced images is referenced (UUIDs) then only images
     needed by those frames are loaded.
@@ -124,7 +127,7 @@ def make_symbolizer(project, binary_images, referenced_images=None):
 
     to_load = referenced_images
     if to_load is None:
-        to_load = [x['uuid'] for x in binary_images]
+        to_load = image_lookup.get_uuids()
 
     dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
 
@@ -132,11 +135,41 @@ def make_symbolizer(project, binary_images, referenced_images=None):
     # symbolizer to avoid the expensive FS operations that will otherwise
     # happen.
     user_images = []
-    for img in binary_images:
+    for img in image_lookup.iter_images():
         if img['uuid'] in loaded:
             user_images.append(img)
 
     return ReportSymbolizer(driver, dsym_paths, user_images)
+
+
+class ImageLookup(object):
+
+    def __init__(self, images):
+        self._image_addresses = []
+        self.images = {}
+        for img in images:
+            img_addr = parse_addr(img['image_addr'])
+            self._image_addresses.append(img_addr)
+            self.images[img_addr] = img
+        self._image_addresses.sort()
+
+    def iter_images(self):
+        return six.itervalues(self.images)
+
+    def get_uuids(self):
+        return list(self.iter_uuids())
+
+    def iter_uuids(self):
+        for img in self.iter_images():
+            yield img['uuid']
+
+    def find_image(self, addr):
+        """Given an instruction address this locates the image this address
+        is contained in.
+        """
+        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
+        if idx > 0:
+            return self.images[self._image_addresses[idx - 1]]
 
 
 class Symbolizer(object):
@@ -145,39 +178,15 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, binary_images, referenced_images=None,
-                 is_debug_build=None):
+                 cpu_name=None):
+        if isinstance(binary_images, ImageLookup):
+            self.image_lookup = binary_images
+        else:
+            self.image_lookup = ImageLookup(binary_images)
         self.symsynd_symbolizer = make_symbolizer(
-            project, binary_images, referenced_images=referenced_images)
-        self.is_debug_build = is_debug_build
-
-        # This is a duplication from symsynd.  The reason is that symsynd
-        # will only load images that it can find dsyms for but we also
-        # have system symbols which there are no dsyms for.
-        self._image_addresses = []
-        self.images = {}
-        for img in binary_images:
-            img_addr = parse_addr(img['image_addr'])
-            self._image_addresses.append(img_addr)
-            self.images[img_addr] = img
-        self._image_addresses.sort()
-
-        # This should always succeed but you never quite know.
-        self.cpu_name = None
-        for img in six.itervalues(self.images):
-            cpu_name = get_cpu_name(img['cpu_type'],
-                                    img['cpu_subtype'])
-            if self.cpu_name is None:
-                self.cpu_name = cpu_name
-            elif self.cpu_name != cpu_name:
-                self.cpu_name = None
-                break
-
-    def find_best_instruction(self, frame, meta=None):
-        """Finds the best instruction for a given frame."""
-        if not self.images:
-            return parse_addr(frame['instruction_addr'])
-        return self.symsynd_symbolizer.find_best_instruction(
-            frame['instruction_addr'], cpu_name=self.cpu_name, meta=meta)
+            project, self.image_lookup,
+            referenced_images=referenced_images)
+        self.cpu_name = cpu_name
 
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
@@ -188,13 +197,15 @@ class Symbolizer(object):
         changed_any = False
 
         loaded_images = self.symsynd_symbolizer.images
-        for image_addr, image in six.iteritems(self.images):
+        for image_addr, image in six.iteritems(self.image_lookup.images):
             if image.get('image_vmaddr') or not image.get('image_addr'):
                 continue
             image_info = loaded_images.get(image_addr)
             if not image_info:
                 continue
             dsym_path = normalize_dsym_path(image_info['dsym_path'])
+            # Here we use the CPU name from the image as it might be
+            # slightly different (armv7 vs armv7f for instance)
             cpu_name = image_info['cpu_name']
             image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name)
             if image_vmaddr:
@@ -206,14 +217,6 @@ class Symbolizer(object):
 
     def close(self):
         self.symsynd_symbolizer.driver.close()
-
-    def find_image(self, addr):
-        """Given an instruction address this locates the image this address
-        is contained in.
-        """
-        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
-        if idx > 0:
-            return self.images[self._image_addresses[idx - 1]]
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
@@ -285,7 +288,7 @@ class Symbolizer(object):
         return _sim_platform_re.search(fn) is not None
 
     def is_in_app(self, frame):
-        img = self.find_image(frame['instruction_addr'])
+        img = self.image_lookup.find_image(frame['instruction_addr'])
         return img is not None and self._is_app_frame(frame, img)
 
     def symbolize_app_frame(self, frame, img, symbolize_inlined=False):
@@ -325,7 +328,30 @@ class Symbolizer(object):
     def symbolize_system_frame(self, frame, img, sdk_info,
                                symbolize_inlined=False):
         """Symbolizes a frame with system symbols only."""
-        symbol = find_system_symbol(img, frame['instruction_addr'], sdk_info)
+        # This is most likely a good enough cache match even though we are
+        # ignoring the image here since we cache by instruction address.
+        #
+        # In some cases old clients might not send an sdk_info with it
+        # in which case the caching won't work.
+        if sdk_info is not None:
+            cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
+                frame['instruction_addr'],
+                get_cpu_name(img['cpu_type'], img['cpu_subtype']),
+                sdk_info['sdk_name'],
+                sdk_info['dsym_type'],
+                sdk_info['version_major'],
+                sdk_info['version_minor'],
+                sdk_info['version_patchlevel'],
+            )
+            symbol = cache.get(cache_key)
+        else:
+            cache_key = None
+            symbol = None
+
+        if symbol is None:
+            symbol = find_system_symbol(
+                img, frame['instruction_addr'], sdk_info, self.cpu_name)
+
         if symbol is None:
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
@@ -336,10 +362,12 @@ class Symbolizer(object):
                 type=type,
                 image=img
             )
+        elif cache_key is not None:
+            cache.set(cache_key, symbol, 3600)
 
         rv = self._process_frame(dict(frame,
             symbol_name=symbol, filename=None, line=0, column=0,
-            uuid=img['uuid'], object_name=img['name']), img)
+            object_name=img['name']), img)
 
         # We actually do not support inline symbolication for system
         # frames, so we just only ever return a single frame here.  Maybe
@@ -357,7 +385,7 @@ class Symbolizer(object):
                 message='Found multiple architectures.'
             )
 
-        img = self.find_image(frame['instruction_addr'])
+        img = self.image_lookup.find_image(frame['instruction_addr'])
         if img is None:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_UNKNOWN_IMAGE
