@@ -205,6 +205,9 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Related Events')}
           </ListLink>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
+            {t('Similar Issues')} <span className="badge animated">{'?'}</span>
+          </ListLink>
         </ul>
       </div>
     );
