@@ -62,3 +62,6 @@ def is_docker():
 __version__ = VERSION
 __build__ = get_revision()
 __docformat__ = 'restructuredtext en'
+
+# This triggers monkey patches
+__import__('sentry.monkey')
