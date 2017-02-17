@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import os
 import re
 from six.moves.urllib.parse import urljoin
 
@@ -214,17 +213,3 @@ class Itc(object):
 
     def __exit__(self, exc_type, exc_value, tb):
         self.close()
-
-
-def test():
-    import pprint
-    itc = Itc(os.environ['ITC_EMAIL'], os.environ['ITC_PASSWORD'])
-
-    itc2 = Itc.from_json(itc.to_json())
-    itc.close()
-
-    pprint.pprint(itc2.to_json())
-    for app in itc2.iter_apps():
-        for build in itc.iter_app_builds(app['id']):
-            print '       ', build
-    itc2.close()
