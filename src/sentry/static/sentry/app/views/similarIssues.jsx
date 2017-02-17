@@ -105,8 +105,12 @@ const GroupEvents = React.createClass({
     'message:message:character-shingles': 'message',
   },
 
+  displaySimilarity(value) {
+    return isNaN(value) ? '' : `${Math.round(value * 100)}%`;
+  },
+
   renderResults() {
-    let tagList = ['count', 'culprit'];
+    let tagList = ['count'];//, 'culprit'];
 
     let {orgId, projectId, groupId} = this.props.params;
 
@@ -125,16 +129,16 @@ const GroupEvents = React.createClass({
         return {key, value:issue[key]};
       });
       let scoreElements = Object.keys(seenScoreComponents).map(key=>{
-          return (<td key>{score[key]}</td>);
+          return (<td key={key}>{this.displaySimilarity(score[key])}</td>);
       });
       return (
         <tr key={issue.id}>
           <td>
             <h5>
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${issue.id}/`}>
-                <DateTime date={issue.firstSeen} />
+                {(issue.title || '').substr(0, 70)}
               </Link>
-              <small>{(issue.title || '').substr(0, 70)}</small>
+              <small><DateTime date={issue.firstSeen} /></small>
             </h5>
           </td>
           {tagMap.map((tag) => {
@@ -153,9 +157,8 @@ const GroupEvents = React.createClass({
     });
 
     let scoreHeaders = Object.keys(seenScoreComponents).map(key=>{
-        return (<th key>{seenScoreComponents[key]}</th>);
+        return (<th key={key}>{seenScoreComponents[key]} similarity</th>);
     });
-
     return (
       <div>
         <div className="event-list">
