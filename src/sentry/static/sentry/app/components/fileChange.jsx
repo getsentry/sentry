@@ -11,6 +11,7 @@ const FileChange = React.createClass({
   propTypes: {
     filename: React.PropTypes.string.isRequired,
     authors: React.PropTypes.object.isRequired,
+    types: React.PropTypes.object.isRequired,
   },
 
   mixins: [
@@ -24,14 +25,30 @@ const FileChange = React.createClass({
   },
 
   render() {
-    let {filename, authors} = this.props;
+    let {filename, authors, types} = this.props;
     authors = Array.from(authors);
+    types = Array.from(types);
     return (
-      <li>
-        <div>{filename}</div>
+      <li div className="row">
+        <div className="col-sm-4">{filename}</div>
+        <div className="col-sm-4">
         {authors.map(author => {
-          return (<div>{author}</div>);
+          return (<span>{author} </span>);
         })}
+        </div>
+        <div className="col-sm-4">
+        {types.map(type => {
+          if (type ===  'A') {
+            return (<span>Added </span>);
+          }
+          else if (type === 'D') {
+            return (<span>Deleted </span>);
+          }
+          else if (type === 'M') {
+            return (<span>Modified </span>);
+          }
+        })}
+        </div>
       </li>
     );
   }

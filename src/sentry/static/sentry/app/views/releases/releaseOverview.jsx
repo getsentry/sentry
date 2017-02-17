@@ -69,11 +69,13 @@ const ReleaseOverview = React.createClass({
     for (let i = 0; i < fileList.length; i++) {
       if (!fileInfo[fileList[i].filename]) {
         fileInfo[fileList[i].filename] = {
-          authors: new Set([fileList[i].author])
+          authors: new Set([fileList[i].author]),
+          types: new Set([fileList[i].type])
         };
       }
       else {
         fileInfo[fileList[i].filename].authors.add(fileList[i].author);
+        fileInfo[fileList[i].filename].types.add(fileList[i].type);
       }
     }
 
@@ -89,6 +91,7 @@ const ReleaseOverview = React.createClass({
                 key={file}
                 filename={file}
                 authors={fileInfo[file].authors}
+                types={fileInfo[file].types}
                 />
             );
           })}
