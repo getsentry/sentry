@@ -98,13 +98,34 @@ const GroupEvents = React.createClass({
     );
   },
 
+  scoreComponents : {
+    'exception:message:character-shingles': 'exception',
+    'exception:stacktrace:application-chunks': 'application code paths',
+    'exception:stacktrace:pairs': 'stacktrace',
+    'message:message:character-shingles': 'message',
+  },
+
   renderResults() {
     let tagList = ['count', 'culprit'];
+
     let {orgId, projectId, groupId} = this.props.params;
+
+    let seenScoreComponents = {};
+
+    this.state.issueList.forEach(([_, score]) => {
+      for(let sc in this.scoreComponents){
+        if(score[sc]){
+          seenScoreComponents[sc] = this.scoreComponents[sc];
+        }
+      }
+    });
 
     let children = this.state.issueList.map(([issue, score]) => {
       let tagMap = tagList.map( (key) => {
         return {key, value:issue[key]};
+      });
+      let scoreElements = Object.keys(seenScoreComponents).map(key=>{
+          return (<td key>{score[key]}</td>);
       });
       return (
         <tr key={issue.id}>
@@ -113,24 +134,26 @@ const GroupEvents = React.createClass({
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${issue.id}/`}>
                 <DateTime date={issue.firstSeen} />
               </Link>
-              <small>{(issue.title || '').substr(0, 100)}</small>
+              <small>{(issue.title || '').substr(0, 70)}</small>
             </h5>
           </td>
           {tagMap.map((tag) => {
             return (
               <td key={tag.key}>
-                {tag.value.substr(0,20)}
+                {tag.value.substr(0,100)}
               </td>
             );
           })}
-          <td key="score">
-            {score['message:message:character-shingles']}
-          </td>
+          {scoreElements}
           <td key="button">
-            <button>merge</button>
+            <a className="btn btn-default">merge</a>
           </td>
         </tr>
       );
+    });
+
+    let scoreHeaders = Object.keys(seenScoreComponents).map(key=>{
+        return (<th key>{seenScoreComponents[key]}</th>);
     });
 
     return (
@@ -139,7 +162,7 @@ const GroupEvents = React.createClass({
           <table className="table">
             <thead>
               <tr>
-                <th>{t('ID')}</th>
+                <th>{t('title')}</th>
                 {tagList.map((tag) => {
                   return (
                     <th key={tag}>
@@ -147,9 +170,7 @@ const GroupEvents = React.createClass({
                     </th>
                   );
                 })}
-                <th key="score">
-                  Similarity Score
-                </th>
+                {scoreHeaders}
                 <th key="button">
                   Merge
                 </th>
