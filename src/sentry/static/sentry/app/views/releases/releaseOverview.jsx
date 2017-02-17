@@ -64,16 +64,31 @@ const ReleaseOverview = React.createClass({
     if (!fileList.length)
       return <this.emptyState/>;
 
+    let fileInfo = {};
+
+    for (let i = 0; i < fileList.length; i++) {
+      if (!fileInfo[fileList[i].filename]) {
+        fileInfo[fileList[i].filename] = {
+          authors: new Set([fileList[i].author])
+        };
+      }
+      else {
+        fileInfo[fileList[i].filename].authors.add(fileList[i].author);
+      }
+    }
+
+    let fileCount = Object.keys(fileInfo).length;
+
     return (
       <div className="panel panel-default">
-        <b>Files Changed</b>
+        <b>{fileCount} Files Changed</b>
         <ul className="crumbs">
-          {fileList.map(file => {
+          {Object.keys(fileInfo).map(file => {
             return (
               <FileChange
-                key={file.id}
-                filename={file.filename}
-                author={file.author}
+                key={file}
+                filename={file}
+                authors={fileInfo[file].authors}
                 />
             );
           })}

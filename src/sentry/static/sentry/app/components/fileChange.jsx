@@ -10,7 +10,7 @@ import ApiMixin from '../mixins/apiMixin';
 const FileChange = React.createClass({
   propTypes: {
     filename: React.PropTypes.string.isRequired,
-    author: React.PropTypes.string.isRequired,
+    authors: React.PropTypes.object.isRequired,
   },
 
   mixins: [
@@ -24,10 +24,14 @@ const FileChange = React.createClass({
   },
 
   render() {
-    let {filename, author} = this.props;
+    let {filename, authors} = this.props;
+    authors = Array.from(authors);
     return (
       <li>
-        <div>{filename}{author}</div>
+        <div>{filename}</div>
+        {authors.map(author => {
+          return (<div>{author}</div>);
+        })}
       </li>
     );
   }
