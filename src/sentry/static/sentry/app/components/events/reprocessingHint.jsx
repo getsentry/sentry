@@ -88,7 +88,7 @@ const ReprocessingHint = React.createClass({
           <p>
             <a className="pull-right" onClick={this.hide}>{t('Dismiss')}</a>
             {
-              t('Errors like this can be fixes with reprocessing.')
+              t('Errors like this can be fixed with reprocessing.')
             }
             {' '}
             <a href={link}>{t('Show me')}</a>
