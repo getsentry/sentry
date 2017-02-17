@@ -762,7 +762,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     new_frame['module'] = generate_module(filename)
 
                 if abs_path.startswith('app:'):
-                    if NODE_MODULES_RE.match(filename):
+                    if NODE_MODULES_RE.search(filename):
                         in_app = False
                     else:
                         in_app = True
