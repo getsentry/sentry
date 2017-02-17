@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import string
+import re
 
 from django.db import IntegrityError, transaction
 
@@ -15,6 +15,9 @@ from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+
+_VERSION_NEWLINE_RE = re.compile(r'[^\S ]')
 
 
 @scenario('CreateNewRelease')
@@ -43,7 +46,7 @@ def list_releases_scenario(runner):
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=64, required=True)
+    version = serializers.RegexField(r'[a-zA-Z0-9\-_\. \(\)]', max_length=64, required=True)
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
@@ -53,7 +56,7 @@ class ReleaseSerializer(serializers.Serializer):
 
     def validate_version(self, attrs, source):
         value = attrs[source]
-        if not set(value).isdisjoint(set(string.whitespace)):
+        if _VERSION_NEWLINE_RE.search(value):
             raise serializers.ValidationError('Enter a valid value')
         return attrs
 
