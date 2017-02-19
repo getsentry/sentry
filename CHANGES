@@ -13,6 +13,7 @@ Version 8.14 (Unreleased)
 - Added OrganizationReleasesEndpoint
 - Added context type app for cocoa events
 - Added basic encryption facilities (``sentry.utils.encryption``).
+- Aded bulk "Resolve in Next Release" to stream actions.
 
 Schema Changes
 ~~~~~~~~~~~~~~
