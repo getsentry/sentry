@@ -84,14 +84,14 @@ const ReprocessingHint = React.createClass({
             event={this.props.event}
             type="hint"
             className="errors hint">
-            <span className="icon icon-exclamation event" />
+            <span className="icon icon-question event" />
           <p>
             <a className="pull-right" onClick={this.hide}>{t('Dismiss')}</a>
             {
-              t('Errors like this can be fixed with reprocessing.')
+              t('Errors like these can be fixed with reprocessing')
             }
             {' '}
-            <a href={link}>{t('Show me')}</a>
+            <small><a style={{marginLeft: 10}} href={link}>{t('Show me')}</a></small>
           </p>
         </EventDataSection>
     );
