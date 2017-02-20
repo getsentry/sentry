@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import ipaddress
 import platform
+import requests
 import responses
 import pytest
 
@@ -53,3 +54,8 @@ class HttpTest(TestCase):
         with pytest.raises(SuspiciousOperation):
             # '0177.0000.0000.0001' is an octal for '127.0.0.1'
             http.safe_urlopen('http://0177.0000.0000.0001')
+
+    def test_unsafe_session(self):
+        with pytest.raises(TypeError):
+            http.safe_urlopen('http://0177.0000.0000.0001',
+                              session=requests.Session())
