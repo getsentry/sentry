@@ -17,6 +17,7 @@ class SavedSearch(Model):
     query = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
     is_default = models.BooleanField(default=False)
+    owner = FlexibleForeignKey('sentry.User', null=True)
 
     class Meta:
         app_label = 'sentry'
