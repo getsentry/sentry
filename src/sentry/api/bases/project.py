@@ -49,6 +49,16 @@ class ProjectSettingPermission(ProjectPermission):
     }
 
 
+class RelaxedSearchPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:delete'],
+        # members can do writes
+        'POST': ['project:write', 'project:delete', 'project:read'],
+        'PUT': ['project:write', 'project:delete', 'project:read'],
+        'DELETE': ['project:delete'],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
