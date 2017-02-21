@@ -28,7 +28,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
         Commit, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit,
-        ReleaseFile, Repository
+        ReleaseEnvironment, ReleaseFile, Repository
     )
 
     try:
@@ -55,7 +55,8 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
 
     model_list = (
         OrganizationMember, CommitFileChange, Commit, CommitAuthor,
-        Environment, Repository, Release, ReleaseCommit, ReleaseFile
+        Environment, Repository, Release, ReleaseCommit,
+        ReleaseEnvironment, ReleaseFile
     )
 
     has_more = delete_objects(
@@ -127,7 +128,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
         GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
         GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
-        ReleaseEnvironment, ReleaseProject, SavedSearchUserDefault, SavedSearch,
+        ReleaseProject, SavedSearchUserDefault, SavedSearch,
         TagKey, TagValue, UserReport, EnvironmentProject
     )
 
@@ -158,7 +159,7 @@ def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
         GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
         GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
         ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, ReleaseEnvironment, EnvironmentProject
+        UserReport, EnvironmentProject
     )
     for model in model_list:
         has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
