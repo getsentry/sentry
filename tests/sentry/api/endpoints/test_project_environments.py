@@ -12,11 +12,13 @@ class ProjectEnvironmentsTest(APITestCase):
 
         Environment.objects.create(
             project_id=project.id,
+            organization_id=project.organization_id,
             name='production',
         )
 
         Environment.objects.create(
             project_id=project.id,
+            organization_id=project.organization_id,
             name='staging',
         )
 

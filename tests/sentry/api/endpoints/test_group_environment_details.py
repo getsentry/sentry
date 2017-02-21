@@ -9,7 +9,11 @@ class GroupEnvironmentDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        Environment.objects.create(project_id=group.project_id, name='')
+        Environment.objects.create(
+            project_id=group.project_id,
+            organization_id=group.project.organization_id,
+            name=''
+        )
 
         url = '/api/0/issues/{}/environments/none/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -26,6 +30,7 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         Environment.objects.create(
             project_id=group.project_id,
+            organization_id=group.project.organization_id,
             name='production',
         )
 
@@ -44,6 +49,7 @@ class GroupEnvironmentDetailsTest(APITestCase):
         group = self.create_group(project=project)
         Environment.objects.create(
             project_id=group.project_id,
+            organization_id=group.project.organization_id,
             name='production',
         )
 
@@ -73,7 +79,11 @@ class GroupEnvironmentDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        Environment.objects.create(project_id=group.project_id, name='')
+        Environment.objects.create(
+            project_id=group.project_id,
+            organization_id=group.project.organization_id,
+            name=''
+        )
 
         url = '/api/0/issues/{}/environments/doesnotexist/'.format(group.id)
         response = self.client.get(url, format='json')
