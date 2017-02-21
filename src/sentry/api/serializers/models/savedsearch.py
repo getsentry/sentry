@@ -32,4 +32,5 @@ class SavedSearchSerializer(Serializer):
             'isDefault': obj.is_default,
             'isUserDefault': attrs['isUserDefault'],
             'dateCreated': obj.date_added,
+            'isPrivate': bool(obj.owner),
         }
