@@ -8,8 +8,8 @@ from sentry.models import (
     Environment, EnvironmentProject, Event, EventMapping, EventTag,
     Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
     GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
-    Release, TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor,
-    ReleaseCommit, Repository
+    Release, ReleaseCommit, ReleaseEnvironment, Repository,
+    TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor
 )
 from sentry.tasks.deletion import (
     delete_group, delete_organization, delete_project, delete_tag_key,
@@ -55,12 +55,19 @@ class DeleteOrganizationTest(TestCase):
             project_id=4,
             name='foo'
         )
+        release_env = ReleaseEnvironment.objects.create(
+            organization_id=org.id,
+            project_id=4,
+            release_id=release.id,
+            environment_id=env.id
+        )
 
         with self.tasks():
             delete_organization(object_id=org.id)
 
         assert not Organization.objects.filter(id=org.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
+        assert not ReleaseEnvironment.objects.filter(id=release_env.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()
         assert not ReleaseCommit.objects.filter(organization_id=org.id).exists()
         assert not Release.objects.filter(organization_id=org.id).exists()
