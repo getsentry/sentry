@@ -118,7 +118,7 @@ def build_session():
 
 def safe_urlopen(url, method=None, params=None, data=None, json=None,
                  headers=None, allow_redirects=False, timeout=30,
-                 verify_ssl=True, user_agent=None):
+                 verify_ssl=True, user_agent=None, session=None):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
@@ -126,7 +126,8 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     if user_agent is not None:
         warnings.warn('user_agent is no longer used with safe_urlopen')
 
-    session = build_session()
+    if session is None:
+        session = build_session()
 
     kwargs = {}
 
