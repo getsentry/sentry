@@ -13,6 +13,8 @@ Version 8.14 (Unreleased)
 - Added basic encryption facilities (``sentry.utils.encryption``).
 - Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
 - Aded bulk "Resolve in Next Release" to stream actions.
+- Various visual improvements to notifications, including the addition of
+  transactions.
 
 API Changes
 ~~~~~~~~~~~
