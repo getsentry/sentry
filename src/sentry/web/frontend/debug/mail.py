@@ -232,6 +232,7 @@ def alert(request):
 
     event = Event(
         id=1,
+        event_id='44f1419e73884cd2b45c79918f4b6dc4',
         project=project,
         group=group,
         message=group.message,
