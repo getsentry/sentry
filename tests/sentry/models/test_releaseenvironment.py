@@ -19,6 +19,7 @@ class GetOrCreateTest(TestCase):
         release.add_project(project)
         env = Environment.objects.create(
             project_id=project.id,
+            organization_id=project.organization_id,
             name='prod',
         )
         relenv = ReleaseEnvironment.get_or_create(
