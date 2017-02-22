@@ -49,7 +49,7 @@ def init_plugin(plugin):
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
 
-    if hasattr(plugin, 'get_task'):
+    if (hasattr(plugin, 'get_task') and plugin.is_enabled()):
         settings.CELERYBEAT_SCHEDULE.update(plugin.get_task())
 
 

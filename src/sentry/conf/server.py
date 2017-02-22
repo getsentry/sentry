@@ -450,7 +450,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer',
     'sentry.tasks.reports',
     'sentry.tasks.store',
-    'sentry.tasks.itunesconnect',
+    'sentry_plugins.itunesconnect.tasks.itunesconnect',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
