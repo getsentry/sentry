@@ -69,8 +69,8 @@ const CommitAuthorStats = React.createClass({
       return <LoadingError/>;
 
     let {commitList} = this.state;
-    if (!commitList.length)
-      return <this.emptyState/>;
+    // if (!commitList.length)
+    //   return <this.emptyState/>;
 
     let commitAuthors = {};
 
@@ -89,20 +89,22 @@ const CommitAuthorStats = React.createClass({
     let authors = Object.keys(commitAuthors);
     return (
       <div className="col-sm-3">
-        Commits by Author
+        <b>Commits by Author</b>
+        <ul className="crumbs">
         {authors.map(author => {
           if (!author) {
             return null;
           }
-          return (<div className="avatar-grid">
+          return (<li className="row">
                     <span className="avatar-grid-item tip"
                          title={commitAuthors[author].author.name + ' ' + commitAuthors[author].author.email}>
                       <Avatar user={commitAuthors[author].author}/>
                     </span>
                     <span  className="col-sm-2">{commitAuthors[author].commit} commits</span>
-                  </div>);
+                  </li>);
           }
         )}
+        </ul>
       </div>
     );
   }

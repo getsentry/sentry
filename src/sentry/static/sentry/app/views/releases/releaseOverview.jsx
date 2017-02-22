@@ -2,7 +2,8 @@ import React from 'react';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-
+import GroupList from '../../components/groupList';
+// import IssueList from '../../components/issueList';
 import FileChange from '../../components/fileChange';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ApiMixin from '../../mixins/apiMixin';
@@ -62,8 +63,8 @@ const ReleaseOverview = React.createClass({
 
     let {fileList} = this.state;
 
-    if (!fileList.length)
-      return <this.emptyState/>;
+    // if (!fileList.length)
+    //   return <this.emptyState/>;
 
     let fileInfo = {};
 
@@ -79,29 +80,39 @@ const ReleaseOverview = React.createClass({
         fileInfo[fileList[i].filename].types.add(fileList[i].type);
       }
     }
-
     let fileCount = Object.keys(fileInfo).length;
 
     return (
-      <div className="panel panel-default">
-        <b>{fileCount} Files Changed</b>
-        <ul className="crumbs">
-          {Object.keys(fileInfo).map(file => {
-            return (
-              <FileChange
-                key={file}
-                filename={file}
-                authors={fileInfo[file].authors}
-                types={fileInfo[file].types}
-                />
-            );
-          })}
-        </ul>
+      <div>
+        <div className="row panel panel-default">
+        <div className="col-sm-9">
+          <b>{fileCount} Files Changed</b>
+          <ul className="crumbs">
+            {Object.keys(fileInfo).map(file => {
+              return (
+                <FileChange
+                  key={fileInfo[file].id}
+                  filename={file}
+                  authors={fileInfo[file].authors}
+                  types={fileInfo[file].types}
+                  />
+              );
+            })}
+          </ul>
+        </div>
         <CommitAuthorStats
           orgId={orgId}
           projectId={projectId}
           version={version}
         />
+        </div>
+        <div className="row">
+          <GroupList
+            orgId={orgId}
+            projectId={projectId}
+            query={'first-release:"' + version + '"'}
+            canSelectGroups={false} bulkActions={false} />
+        </div>
       </div>
     );
   }
