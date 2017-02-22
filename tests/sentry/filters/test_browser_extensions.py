@@ -51,6 +51,10 @@ class BrowserExtensionsFilterTest(TestCase):
         data = self.get_mock_data(exc_source='https://ff.kis.v2.scr.kaspersky-labs.com/14E4A3DB-9B72-1047-8296-E970532BF7B7/main.js')
         assert self.apply_filter(data)
 
+    def test_filters_dragon_web_extension(self):
+        data = self.get_mock_data(exc_value='plugin.setSuspendState is not a function')
+        assert self.apply_filter(data)
+
     def test_filters_chrome_extensions(self):
         data = self.get_mock_data(exc_source='chrome://my-extension/or/something')
         assert self.apply_filter(data)

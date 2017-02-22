@@ -30,7 +30,10 @@ EXTENSION_EXC_VALUES = re.compile('|'.join((re.escape(x) for x in (
     'conduitPage',
     # Google Search app (iOS)
     # See: https://github.com/getsentry/raven-js/issues/756
-    'null is not an object (evaluating \'elt.parentNode\')'
+    'null is not an object (evaluating \'elt.parentNode\')',
+    # Dragon Web Extension from Nuance Communications
+    # See: https://forum.sentry.io/t/error-in-raven-js-plugin-setsuspendstate/481/
+    'plugin.setSuspendState is not a function',
 ))), re.I)
 
 EXTENSION_EXC_SOURCES = re.compile('|'.join((
