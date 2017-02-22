@@ -13,9 +13,10 @@ import click
 
 @click.command()
 @click.option('--dev', default=False, is_flag=True, help='Use settings more conducive to local development.')
+@click.option('--verbose', default=False, is_flag=True, help='Print which files have been written.')
 @click.argument('directory', required=False)
 @click.pass_context
-def init(ctx, dev, directory):
+def init(ctx, dev, verbose, directory):
     "Initialize new configuration directory."
     from sentry.runner.settings import discover_configs, generate_settings
     if directory is not None:
@@ -43,8 +44,14 @@ def init(ctx, dev, directory):
     with click.open_file(yaml, 'w') as fp:
         fp.write(yaml_contents)
 
+    if verbose:
+        print(yaml)
+
     if os.path.isfile(py):
         click.confirm("File already exists at '%s', overwrite?" % click.format_filename(py), abort=True)
 
     with click.open_file(py, 'w') as fp:
         fp.write(py_contents)
+
+    if verbose:
+        print(py)
