@@ -49,7 +49,7 @@ EXTENSION_EXC_SOURCES = re.compile('|'.join((
     r'webappstoolbarba\.texthelp\.com\/',
     r'metrics\.itunes\.apple\.com\.edgesuite\.net\/',
     # Kaspersky Protection browser extension
-    r'kaspersky-labs\.com'
+    r'https://.*kaspersky-labs\.com'
 )), re.I)
 
 
