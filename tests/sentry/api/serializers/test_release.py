@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import datetime
+
 from django.utils import timezone
 from uuid import uuid4
 
@@ -30,12 +32,20 @@ class ReleaseSerializerTest(TestCase):
             release=release,
             project=project2
         ).update(new_groups=1)
-        TagValue.objects.create(
+        tag1 = TagValue.objects.create(
             project=project,
             key='sentry:release',
             value=release.version,
             first_seen=timezone.now(),
             last_seen=timezone.now(),
+            times_seen=5,
+        )
+        tag2 = TagValue.objects.create(
+            project=project2,
+            key='sentry:release',
+            value=release.version,
+            first_seen=timezone.now() - datetime.timedelta(days=2),
+            last_seen=timezone.now() - datetime.timedelta(days=1),
             times_seen=5,
         )
         commit_author = CommitAuthor.objects.create(
@@ -63,14 +73,18 @@ class ReleaseSerializerTest(TestCase):
         assert result['shortVersion'] == release.version
         # should be sum of all projects
         assert result['newGroups'] == 2
-        assert result['firstEvent']
-        assert result['lastEvent']
+        # should be tags from all projects
+        assert result['firstEvent'] == tag2.first_seen
+        assert result['lastEvent'] == tag1.last_seen
         assert result['commitCount'] == 1
         assert result['authors'] == [{'name': 'stebe', 'email': 'stebe@sentry.io'}]
 
         result = serialize(release, user, project=project)
         # should be groups from one project
         assert result['newGroups'] == 1
+        # should be tags from one project
+        assert result['firstEvent'] == tag1.first_seen
+        assert result['lastEvent'] == tag1.last_seen
 
         # Make sure a sha1 value gets truncated
         release.version = '0' * 40
