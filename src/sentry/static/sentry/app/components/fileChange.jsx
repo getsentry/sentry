@@ -4,10 +4,7 @@ import Avatar from '../components/Avatar';
 import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
 
-// import LoadingError from '../components/loadingError';
-// import LoadingIndicator from '../components/loadingIndicator';
-
-// import {t} from '../locale';
+import {t} from '../locale';
 
 const FileChange = React.createClass({
   propTypes: {
@@ -48,13 +45,13 @@ const FileChange = React.createClass({
         <div className="col-sm-3">
         {types.map(type => {
           if (type ===  'A') {
-            return (<span key={type}>Added </span>);
+            return (<span key={type}>{t('Added')} </span>);
           }
           else if (type === 'D') {
-            return (<span key={type}>Deleted </span>);
+            return (<span key={type}>{t('Deleted')} </span>);
           }
           else if (type === 'M') {
-            return (<span key={type}>Modified </span>);
+            return (<span key={type}>{t('Modified')} </span>);
           }
         })}
         </div>

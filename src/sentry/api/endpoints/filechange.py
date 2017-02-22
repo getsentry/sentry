@@ -14,10 +14,10 @@ class CommitFileChangeEndpoint(ProjectEndpoint):
 
     def get(self, request, project, version):
         """
-        List a Release's Commits
+        List a Release's CommitFileChange objects
         ````````````````````````
 
-        Retrieve a list of commits for a given release.
+        Retrieve a list of commitfilechanges for a given release.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
