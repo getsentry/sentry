@@ -14,14 +14,37 @@ import six
 import socket
 import requests
 import warnings
+import time
+import logging
 
 from sentry import options
+from django.core.exceptions import SuspiciousOperation
+from collections import namedtuple
 from django.conf import settings
 from requests.adapters import HTTPAdapter
-from requests.exceptions import SSLError
+from requests.exceptions import SSLError, RequestException, Timeout
 from six.moves.urllib.parse import urlparse
 
+from sentry.models import EventError
 from sentry.exceptions import RestrictedIPAddress
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
+from sentry.utils.strings import truncatechars
+
+
+logger = logging.getLogger(__name__)
+
+# TODO(dcramer): we want to change these to be constants so they are easier
+# to translate/link again
+# the maximum number of remote resources (i.e. sourc eifles) that should be
+# fetched
+MAX_URL_LENGTH = 150
+
+# UrlResult.body **must** be bytes
+UrlResult = namedtuple('UrlResult',
+    ['url', 'headers', 'body', 'status', 'encoding']
+)
+
 
 # In case SSL is unavailable (light builds) we can't import this here.
 try:
@@ -38,6 +61,21 @@ DISALLOWED_IPS = {
     ipaddress.ip_network(six.text_type(i), strict=False)
     for i in settings.SENTRY_DISALLOWED_IPS
 }
+
+
+class BadSource(Exception):
+    error_type = EventError.UNKNOWN_ERROR
+
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
+        data.setdefault('type', self.error_type)
+        super(BadSource, self).__init__(data['type'])
+        self.data = data
+
+
+class CannotFetchSource(BadSource):
+    error_type = EventError.JS_GENERIC_FETCH_ERROR
 
 
 def get_server_hostname():
@@ -118,7 +156,7 @@ def build_session():
 
 def safe_urlopen(url, method=None, params=None, data=None, json=None,
                  headers=None, allow_redirects=False, timeout=30,
-                 verify_ssl=True, user_agent=None):
+                 verify_ssl=True, user_agent=None, session=None):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
@@ -126,7 +164,8 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     if user_agent is not None:
         warnings.warn('user_agent is no longer used with safe_urlopen')
 
-    session = build_session()
+    if session is None:
+        session = build_session()
 
     kwargs = {}
 
@@ -175,3 +214,147 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
 
 def safe_urlread(response):
     return response.content
+
+
+def expose_url(url):
+    if url is None:
+        return u'<unknown>'
+    if url[:5] == 'data:':
+        return u'<data url>'
+    url = truncatechars(url, MAX_URL_LENGTH)
+    if isinstance(url, six.binary_type):
+        url = url.decode('utf-8', 'replace')
+    return url
+
+
+def stream_download_binary(url, headers=None):
+    """
+    Pull down a URL, returning a UrlResult object.
+
+    Attempts to fetch from the cache.
+    """
+    # lock down domains that are problematic
+    domain = urlparse(url).netloc
+    domain_key = 'source:blacklist:v2:%s' % (
+        md5_text(domain).hexdigest(),
+    )
+    domain_result = cache.get(domain_key)
+    if domain_result:
+        domain_result['url'] = url
+        raise CannotFetchSource(domain_result)
+
+    logger.debug('Fetching %r from the internet', url)
+
+    http_session = build_session()
+    response = None
+    try:
+        try:
+            start = time.time()
+            response = http_session.get(
+                url,
+                allow_redirects=True,
+                verify=False,
+                headers=headers,
+                timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
+                stream=True,
+            )
+
+            try:
+                cl = int(response.headers['content-length'])
+            except (LookupError, ValueError):
+                cl = 0
+            if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                raise OverflowError()
+
+            contents = []
+            cl = 0
+
+            # Only need to even attempt to read the response body if we
+            # got a 200 OK
+            if response.status_code == 200:
+                for chunk in response.iter_content(16 * 1024):
+                    if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
+                        raise Timeout()
+                    contents.append(chunk)
+                    cl += len(chunk)
+                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                        raise OverflowError()
+
+        except Exception as exc:
+            logger.debug('Unable to fetch %r', url, exc_info=True)
+            if isinstance(exc, RestrictedIPAddress):
+                error = {
+                    'type': EventError.RESTRICTED_IP,
+                    'url': expose_url(url),
+                }
+            elif isinstance(exc, SuspiciousOperation):
+                error = {
+                    'type': EventError.SECURITY_VIOLATION,
+                    'url': expose_url(url),
+                }
+            elif isinstance(exc, Timeout):
+                error = {
+                    'type': EventError.JS_FETCH_TIMEOUT,
+                    'url': expose_url(url),
+                    'timeout': settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+                }
+            elif isinstance(exc, OverflowError):
+                error = {
+                    'type': EventError.JS_TOO_LARGE,
+                    'url': expose_url(url),
+                    # We want size in megabytes to format nicely
+                    'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
+                }
+            elif isinstance(exc, (RequestException, ZeroReturnError)):
+                error = {
+                    'type': EventError.JS_GENERIC_FETCH_ERROR,
+                    'value': six.text_type(type(exc)),
+                    'url': expose_url(url),
+                }
+            else:
+                logger.exception(six.text_type(exc))
+                error = {
+                    'type': EventError.UNKNOWN_ERROR,
+                    'url': expose_url(url),
+                }
+
+            # TODO(dcramer): we want to be less aggressive on disabling domains
+            cache.set(domain_key, error or '', 300)
+            logger.warning('source.disabled', extra=error)
+            raise CannotFetchSource(error)
+
+        body = b''.join(contents)
+        headers = {k.lower(): v for k, v in response.headers.items()}
+        encoding = response.encoding
+
+        result = (headers, body, response.status_code, encoding)
+    finally:
+        if response is not None:
+            response.close()
+
+    if result[2] != 200:
+        logger.debug('HTTP %s when fetching %r', result[2], url,
+                     exc_info=True)
+        error = {
+            'type': EventError.JS_INVALID_HTTP_CODE,
+            'value': result[2],
+            'url': expose_url(url),
+        }
+        raise CannotFetchSource(error)
+
+    # Make sure the file we're getting back is six.binary_type. The only
+    # reason it'd not be binary would be from old cached blobs, so
+    # for compatibility with current cached files, let's coerce back to
+    # binary and say utf8 encoding.
+    if not isinstance(result[1], six.binary_type):
+        try:
+            result = (result[0], result[1].encode('utf8'), None)
+        except UnicodeEncodeError:
+            error = {
+                'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                'value': 'utf8',
+                'url': expose_url(url),
+            }
+            raise CannotFetchSource(error)
+
+    return UrlResult(url, result[0], result[1], response.status_code, result[3])

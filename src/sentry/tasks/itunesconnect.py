@@ -1,11 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import tempfile
-import time
 
-from django.conf import settings
-
-from requests.exceptions import Timeout
 from sentry import http
 from sentry.tasks.base import instrumented_task
 from sentry.models import (
@@ -72,53 +68,12 @@ def download_dsym(project_id, url, **kwargs):
     p = get_project_from_id(project_id)
     import pprint
     pprint.pprint(p)
-    http_session = http.build_session()
-    response = None
+    result = http.stream_download_binary(url)
+
+    temp = tempfile.TemporaryFile()
     try:
-        try:
-            start = time.time()
-            response = http_session.get(
-                url,
-                allow_redirects=True,
-                verify=False,
-                timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
-                stream=True,
-            )
-
-            try:
-                cl = int(response.headers['content-length'])
-            except (LookupError, ValueError):
-                cl = 0
-            if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
-                raise OverflowError()
-
-            contents = []
-            cl = 0
-
-            # Only need to even attempt to read the response body if we
-            # got a 200 OK
-            if response.status_code == 200:
-                for chunk in response.iter_content(16 * 1024):
-                    if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
-                        raise Timeout()
-                    contents.append(chunk)
-                    cl += len(chunk)
-                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
-                        raise OverflowError()
-
-        except Exception as exc:
-            import pprint
-            pprint.pprint(exc)
-
-        body = b''.join(contents)
-        temp = tempfile.TemporaryFile()
-        try:
-            temp.write(body)
-            temp.seek(0)
-            create_files_from_macho_zip(temp, project=p)
-        finally:
-            temp.close()
-
-    except Exception as exc:
-        import pprint
-        pprint.pprint(exc)
+        temp.write(result.body)
+        temp.seek(0)
+        create_files_from_macho_zip(temp, project=p)
+    finally:
+        temp.close()
