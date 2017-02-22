@@ -49,8 +49,17 @@ def init_plugin(plugin):
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
 
-    if (hasattr(plugin, 'get_task') and plugin.is_enabled()):
-        settings.CELERYBEAT_SCHEDULE.update(plugin.get_task())
+    if (hasattr(plugin, 'get_celerybeat_schedule') and plugin.is_enabled()):
+        settings.CELERYBEAT_SCHEDULE.update(plugin.get_celerybeat_schedule())
+
+    if (hasattr(plugin, 'get_celery_imports') and plugin.is_enabled()):
+        settings.CELERY_IMPORTS.append(plugin.get_celery_imports())
+
+    if (hasattr(plugin, 'get_celery_queues') and plugin.is_enabled()):
+        from kombu import Queue
+        for queue in plugin.get_celery_queues():
+            # queue[0] == name, queue[1] == routing_key
+            settings.CELERY_QUEUES.append(Queue(queue[0], routing_key=queue[1]))
 
 
 def initialize_receivers():
