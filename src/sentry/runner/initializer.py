@@ -11,6 +11,8 @@ import click
 import os
 import six
 
+from django.conf import settings
+
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -46,6 +48,9 @@ def init_plugin(plugin):
         from sentry.interfaces.contexts import contexttype
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
+
+    if hasattr(plugin, 'get_task'):
+        settings.CELERYBEAT_SCHEDULE.update(plugin.get_task())
 
 
 def initialize_receivers():
