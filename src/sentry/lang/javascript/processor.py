@@ -317,6 +317,21 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             z_body = zlib.compress(result.body)
             cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
+    # Make sure the file we're getting back is six.binary_type. The only
+    # reason it'd not be binary would be from old cached blobs, so
+    # for compatibility with current cached files, let's coerce back to
+    # binary and say utf8 encoding.
+    if not isinstance(result.body, six.binary_type):
+        try:
+            result = http.UrlResult(result.url, result.headers, result.body.encode('utf8'), result.status, result.encoding)
+        except UnicodeEncodeError:
+            error = {
+                'type': EventError.FETCH_INVALID_ENCODING,
+                'value': 'utf8',
+                'url': http.expose_url(url),
+            }
+            raise http.CannotFetch(error)
+
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
     # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases
     if url.endswith('.js'):
