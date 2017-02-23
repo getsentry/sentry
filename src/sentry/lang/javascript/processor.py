@@ -315,7 +315,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         with metrics.timer('sourcemaps.fetch'):
             result = http.fetch_file(url, headers)
             z_body = zlib.compress(result.body)
-            cache.set(cache_key, (url, headers, z_body, result.status, result.encoding), 60)
+            cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
     # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases

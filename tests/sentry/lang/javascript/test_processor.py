@@ -13,7 +13,7 @@ from requests.exceptions import RequestException
 from sentry import http
 from sentry.lang.javascript.processor import (
     discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
-    trim_line, UrlResult, fetch_release_file, CannotFetch,
+    trim_line, fetch_release_file,
     UnparseableSourcemap,
 )
 from sentry.lang.javascript.errormapping import (
@@ -58,8 +58,9 @@ class FetchReleaseFileTest(TestCase):
 
         result = fetch_release_file('file.min.js', release)
 
-        assert type(result[1]) is six.binary_type
-        assert result == (
+        assert type(result.body) is six.binary_type
+        assert result == http.UrlResult(
+            'file.min.js',
             {'content-type': 'application/json; charset=utf-8'},
             binary_body,
             200,
@@ -133,7 +134,8 @@ class FetchFileTest(TestCase):
     @responses.activate
     @patch('sentry.lang.javascript.processor.fetch_release_file')
     def test_non_url_with_release(self, mock_fetch_release_file):
-        mock_fetch_release_file.return_value = (
+        mock_fetch_release_file.return_value = http.UrlResult(
+            '/example.js',
             {'content-type': 'application/json'},
             'foo',
             200,
@@ -176,7 +178,7 @@ class FetchFileTest(TestCase):
     @responses.activate
     def test_truncated(self):
         url = truncatechars('http://example.com', 3)
-        with pytest.raises(CannotFetch) as exc:
+        with pytest.raises(http.CannotFetch) as exc:
             fetch_file(url)
 
         assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
@@ -186,38 +188,38 @@ class FetchFileTest(TestCase):
 class DiscoverSourcemapTest(TestCase):
     # discover_sourcemap(result)
     def test_simple(self):
-        result = UrlResult('http://example.com', {}, '', None)
+        result = http.UrlResult('http://example.com', {}, '', 200, None)
         assert discover_sourcemap(result) is None
 
-        result = UrlResult('http://example.com', {
+        result = http.UrlResult('http://example.com', {
             'x-sourcemap': 'http://example.com/source.map.js'
-        }, '', None)
+        }, '', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {
+        result = http.UrlResult('http://example.com', {
             'sourcemap': 'http://example.com/source.map.js'
-        }, '', None)
+        }, '', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', None)
+        result = http.UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', None)
+        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js', None)
+        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js', None)
+        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
-        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js', None)
+        result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source2.map.js'
 
-        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', None)
+        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/app.map.js'
 
-        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/', None)
+        result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=/*lol*/', 200, None)
         with self.assertRaises(AssertionError):
             discover_sourcemap(result)
 
@@ -280,7 +282,7 @@ class FetchSourcemapTest(TestCase):
         responses.add(responses.GET, 'http://example.com', body='{}',
                       content_type='application/json; charset=NOPE')
 
-        with pytest.raises(CannotFetch) as exc:
+        with pytest.raises(http.CannotFetch) as exc:
             fetch_sourcemap('http://example.com')
 
         assert exc.value.data['type'] == EventError.JS_INVALID_SOURCE_ENCODING
