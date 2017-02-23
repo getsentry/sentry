@@ -9,6 +9,7 @@ import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
 
+
 const ReleaseOverview = React.createClass({
   mixins: [ApiMixin],
 
@@ -43,16 +44,6 @@ const ReleaseOverview = React.createClass({
     });
   },
 
-  emptyState() {
-    return(
-      <div className="box empty-stream m-y-0">
-        <span className="icon icon-exclamation" />
-        <p>There are no commits associated with this release.</p>
-        {/* Todo: Should we link to repo settings from here?  */}
-      </div>
-    );
-  },
-
   render() {
     let {orgId, projectId, version} = this.props.params;
 
@@ -64,25 +55,24 @@ const ReleaseOverview = React.createClass({
 
     let {fileList} = this.state;
 
-    // if (!fileList.length)
-    //   return <this.emptyState/>;
-
-    let fileInfo = {};
-
-    for (let i = 0; i < fileList.length; i++) {
-      if (!fileInfo[fileList[i].filename]) {
-        fileInfo[fileList[i].filename] = {
-          authors: new Set([fileList[i].author]),
-          types: new Set([fileList[i].type])
+    // convert list of individual file changes (can be
+    // multiple changes to a single file) into a per-file
+    // summary
+    let fileInfo = fileList.reduce(function (summary, fileChange) {
+      let {author, type, filename} = fileChange;
+      if (!summary.hasOwnProperty(filename)) {
+        summary[filename] = {
+          authors: {}, types: new Set()
         };
       }
-      else {
-        fileInfo[fileList[i].filename].authors.add(fileList[i].author);
-        fileInfo[fileList[i].filename].types.add(fileList[i].type);
-      }
-    }
-    let fileCount = Object.keys(fileInfo).length;
 
+      summary[filename].authors[author.email] = author;
+      summary[filename].types.add(type);
+
+      return summary;
+    }, {});
+
+    let fileCount = Object.keys(fileInfo).length;
     return (
       <div>
         <div className="row">
@@ -95,7 +85,7 @@ const ReleaseOverview = React.createClass({
                 limit: 5,
               }}
               statsPeriod="0"
-              pagination={true}
+              pagination={false}
               renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues')}</div>}
               ref="issueList"
               showActions={false}
@@ -105,7 +95,7 @@ const ReleaseOverview = React.createClass({
             <b>{t('Issues Resolved in this Release')}</b>
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
-              pagination={true}
+              pagination={false}
               renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues')}</div>}
               ref="issueList"
               showActions={false}
@@ -121,7 +111,7 @@ const ReleaseOverview = React.createClass({
                 <FileChange
                   key={fileInfo[file].id}
                   filename={file}
-                  authors={fileInfo[file].authors}
+                  authors={Object.values(fileInfo[file].authors)}
                   types={fileInfo[file].types}
                   />
               );
