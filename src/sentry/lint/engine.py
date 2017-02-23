@@ -74,7 +74,8 @@ def js_lint(file_list=None):
     eslint_path = os.path.join(project_root, 'node_modules', '.bin', 'eslint')
 
     if not os.path.exists(eslint_path):
-        print('!! Skipping JavaScript linting because eslint is not installed.')
+        from click import echo
+        echo('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
     if file_list is None:
