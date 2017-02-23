@@ -442,6 +442,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.dsymcache',
+    'sentry.tasks.reprocessing',
     'sentry.tasks.email',
     'sentry.tasks.merge',
     'sentry.tasks.options',
@@ -460,7 +461,12 @@ CELERY_QUEUES = [
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
+    Queue('events.reprocessing.preprocess_event',
+          routing_key='events.reprocessing.preprocess_event'),
     Queue('events.process_event', routing_key='events.process_event'),
+    Queue('events.reprocessing.process_event',
+          routing_key='events.reprocessing.process_event'),
+    Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
@@ -540,6 +546,13 @@ CELERYBEAT_SCHEDULE = {
     'clear-expired-snoozes': {
         'task': 'sentry.tasks.clear_expired_snoozes',
         'schedule': timedelta(minutes=5),
+        'options': {
+            'expires': 300,
+        },
+    },
+    'clear-expired-raw-events': {
+        'task': 'sentry.tasks.clear_expired_raw_events',
+        'schedule': timedelta(minutes=15),
         'options': {
             'expires': 300,
         },
@@ -1075,6 +1088,9 @@ SENTRY_WATCHERS = (
 
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
+
+# The maximum age of raw events before they are deleted
+SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
 STATUS_PAGE_ID = None

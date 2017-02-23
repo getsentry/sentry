@@ -19,6 +19,7 @@ from sentry.models import (
 )
 from sentry.utils import auth
 from sentry.web.helpers import render_to_response
+from sentry.api.serializers import serialize
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger('sentry.audit.ui')
@@ -460,6 +461,7 @@ class ProjectView(TeamView):
     def get_context_data(self, request, organization, team, project, **kwargs):
         context = super(ProjectView, self).get_context_data(request, organization, team)
         context['project'] = project
+        context['processing_issues'] = serialize(project).get('processingIssues', 0)
         return context
 
     def has_permission(self, request, organization, team, project, *args, **kwargs):
