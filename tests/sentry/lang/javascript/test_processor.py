@@ -10,8 +10,9 @@ from libsourcemap import Token
 from mock import patch
 from requests.exceptions import RequestException
 
+from sentry import http
 from sentry.lang.javascript.processor import (
-    BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
+    discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
     trim_line, UrlResult, fetch_release_file, CannotFetch,
     UnparseableSourcemap,
 )
@@ -113,20 +114,20 @@ class FetchFileTest(TestCase):
     def test_connection_failure(self):
         responses.add(responses.GET, 'http://example.com', body=RequestException())
 
-        with pytest.raises(BadSource):
+        with pytest.raises(http.BadSource):
             fetch_file('http://example.com')
 
         assert len(responses.calls) == 1
 
         # ensure we use the cached domain-wide failure for the second call
-        with pytest.raises(BadSource):
+        with pytest.raises(http.BadSource):
             fetch_file('http://example.com/foo/bar')
 
         assert len(responses.calls) == 1
 
     @responses.activate
     def test_non_url_without_release(self):
-        with pytest.raises(BadSource):
+        with pytest.raises(http.BadSource):
             fetch_file('/example.js')
 
     @responses.activate
