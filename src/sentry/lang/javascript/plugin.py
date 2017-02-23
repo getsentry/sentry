@@ -26,7 +26,8 @@ def generate_modules(data):
             if platform != 'javascript' or frame.get('module'):
                 continue
             abs_path = frame.get('abs_path')
-            if abs_path and abs_path.startswith(('http:', 'https:', 'webpack:')):
+            if abs_path and abs_path.startswith(('http:', 'https:',
+                    'webpack:', 'app:')):
                 frame['module'] = generate_module(abs_path)
 
 
