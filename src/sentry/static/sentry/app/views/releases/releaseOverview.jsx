@@ -2,11 +2,12 @@ import React from 'react';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
-import GroupList from '../../components/groupList';
-// import IssueList from '../../components/issueList';
+import IssueList from '../../components/issueList';
 import FileChange from '../../components/fileChange';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ApiMixin from '../../mixins/apiMixin';
+
+import {t} from '../../locale';
 
 const ReleaseOverview = React.createClass({
   mixins: [ApiMixin],
@@ -84,6 +85,33 @@ const ReleaseOverview = React.createClass({
 
     return (
       <div>
+        <div className="row">
+          <div className="com-sm-6">
+            <b>{t('New Issues in this Release')}</b>
+            <IssueList
+              endpoint={`/projects/${orgId}/${projectId}/issues/`}
+              query={{
+                query: 'first-release:"' + version + '"',
+                limit: 5,
+              }}
+              statsPeriod="0"
+              pagination={true}
+              renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues')}</div>}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: orgId}} />
+          </div>
+          <div className="com-sm-6">
+            <b>{t('Issues Resolved in this Release')}</b>
+            <IssueList
+              endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
+              pagination={true}
+              renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues')}</div>}
+              ref="issueList"
+              showActions={false}
+              params={{orgId: orgId}} />
+            </div>
+        </div>
         <div className="row panel panel-default">
         <div className="col-sm-9">
           <b>{fileCount} Files Changed</b>
@@ -105,13 +133,6 @@ const ReleaseOverview = React.createClass({
           projectId={projectId}
           version={version}
         />
-        </div>
-        <div className="row">
-          <GroupList
-            orgId={orgId}
-            projectId={projectId}
-            query={'first-release:"' + version + '"'}
-            canSelectGroups={false} bulkActions={false} />
         </div>
       </div>
     );

@@ -81,6 +81,7 @@ from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.release_commits import ReleaseCommitsEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
@@ -298,6 +299,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$',
         CommitFileChangeEndpoint.as_view(),
         name='sentry-api-0-release-commitfilechange'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$',
+        IssuesResolvedInReleaseEndpoint.as_view(),
+        name='sentry-api-0-release-resolved'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',
         ReleaseFilesEndpoint.as_view(),
         name='sentry-api-0-release-files'),
