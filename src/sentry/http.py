@@ -227,14 +227,14 @@ def expose_url(url):
     return url
 
 
-def fetch_file(url, headers=None, cache_enabled=True):
+def fetch_file(url, headers=None, domain_lock_enabled=True):
     """
     Pull down a URL, returning a UrlResult object.
 
     Attempts to fetch from the cache.
     """
     # lock down domains that are problematic
-    if cache_enabled:
+    if domain_lock_enabled:
         domain = urlparse(url).netloc
         domain_key = 'source:blacklist:v2:%s' % (
             md5_text(domain).hexdigest(),
@@ -320,7 +320,7 @@ def fetch_file(url, headers=None, cache_enabled=True):
                 }
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
-            if cache_enabled:
+            if domain_lock_enabled:
                 cache.set(domain_key, error or '', 300)
             logger.warning('source.disabled', extra=error)
             raise CannotFetch(error)
@@ -338,7 +338,7 @@ def fetch_file(url, headers=None, cache_enabled=True):
         logger.debug('HTTP %s when fetching %r', result[2], url,
                      exc_info=True)
         error = {
-            'type': EventError.JS_INVALID_HTTP_CODE,
+            'type': EventError.FETCH_INVALID_HTTP_CODE,
             'value': result[2],
             'url': expose_url(url),
         }
@@ -350,13 +350,13 @@ def fetch_file(url, headers=None, cache_enabled=True):
     # binary and say utf8 encoding.
     if not isinstance(result[1], six.binary_type):
         try:
-            result = (result[0], result[1].encode('utf8'), None)
+            result = (result[0], result[1].encode('utf8'), result[2], result[3])
         except UnicodeEncodeError:
             error = {
-                'type': EventError.JS_INVALID_SOURCE_ENCODING,
+                'type': EventError.FETCH_INVALID_ENCODING,
                 'value': 'utf8',
                 'url': expose_url(url),
             }
             raise CannotFetch(error)
 
-    return UrlResult(url, result[0], result[1], response.status_code, result[3])
+    return UrlResult(url, result[0], result[1], result[2], result[3])

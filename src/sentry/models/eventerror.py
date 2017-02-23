@@ -27,13 +27,15 @@ class EventError(object):
 
     JS_GENERIC_FETCH_ERROR = 'js_generic_fetch_error'  # deprecated in favor of FETCH_GENERIC_ERROR
     FETCH_GENERIC_ERROR = 'fetch_generic_error'
-    JS_INVALID_HTTP_CODE = 'js_invalid_http_code'
+    JS_INVALID_HTTP_CODE = 'js_invalid_http_code'  # deprecated in favor of FETCH_INVALID_HTTP_CODE
+    FETCH_INVALID_HTTP_CODE = 'fetch_invalid_http_code'
     JS_INVALID_CONTENT = 'js_invalid_content'
     JS_NO_COLUMN = 'js_no_column'
     JS_MISSING_SOURCE = 'js_no_source'
     JS_INVALID_SOURCEMAP = 'js_invalid_source'
     JS_TOO_MANY_REMOTE_SOURCES = 'js_too_many_sources'
     JS_INVALID_SOURCE_ENCODING = 'js_invalid_source_encoding'
+    FETCH_INVALID_ENCODING = 'fetch_invalid_source_encoding'
     JS_INVALID_SOURCEMAP_LOCATION = 'js_invalid_sourcemap_location'
     JS_TOO_LARGE = 'js_too_large'  # deprecated in favor of FETCH_TOO_LARGE
     FETCH_TOO_LARGE = 'fetch_too_large'
@@ -60,12 +62,14 @@ class EventError(object):
         JS_GENERIC_FETCH_ERROR: u'Unable to fetch resource: {url}',  # deprecated in favor of FETCH_GENERIC_ERROR
         FETCH_GENERIC_ERROR: u'Unable to fetch resource: {url}',
         JS_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',
+        FETCH_INVALID_HTTP_CODE: u'HTTP returned {value} response on {url}',  # deprecated in favor of FETCH_INVALID_HTTP_CODE
         JS_INVALID_CONTENT: u'Source file was not JavaScript: {url}',
         JS_NO_COLUMN: u'Cannot expand sourcemap due to no column information for {url}',
         JS_MISSING_SOURCE: u'Source code was not found for {url}',
         JS_INVALID_SOURCEMAP: u'Sourcemap was invalid or not parseable: {url}',
         JS_TOO_MANY_REMOTE_SOURCES: u'The maximum number of remote source requests was made',
         JS_INVALID_SOURCE_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
+        FETCH_INVALID_ENCODING: u'Source file was not \'{value}\' encoding: {url}',
         JS_INVALID_SOURCEMAP_LOCATION: u'Invalid location in sourcemap: ({column}, {row})',
         JS_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',  # deprecated in favor of FETCH_TOO_LARGE
         FETCH_TOO_LARGE: u'Remote file too large: ({max_size:g}MB, {url})',
