@@ -74,8 +74,8 @@ class ReleaseSerializerTest(TestCase):
         # should be sum of all projects
         assert result['newGroups'] == 2
         # should be tags from all projects
-        assert result['firstEvent'] == tag2.first_seen
-        assert result['lastEvent'] == tag1.last_seen
+        assert result['firstEvent'] == TagValue.objects.get(id=tag2.id).first_seen
+        assert result['lastEvent'] == TagValue.objects.get(id=tag1.id).last_seen
         assert result['commitCount'] == 1
         assert result['authors'] == [{'name': 'stebe', 'email': 'stebe@sentry.io'}]
 
@@ -83,8 +83,8 @@ class ReleaseSerializerTest(TestCase):
         # should be groups from one project
         assert result['newGroups'] == 1
         # should be tags from one project
-        assert result['firstEvent'] == tag1.first_seen
-        assert result['lastEvent'] == tag1.last_seen
+        assert result['firstEvent'] == TagValue.objects.get(id=tag1.id).first_seen
+        assert result['lastEvent'] == TagValue.objects.get(id=tag1.id).last_seen
 
         # Make sure a sha1 value gets truncated
         release.version = '0' * 40
