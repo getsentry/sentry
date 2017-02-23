@@ -116,24 +116,34 @@ class ReleaseSerializer(Serializer):
         return result
 
     def get_attrs(self, item_list, user, *args, **kwargs):
-        tags = {
-            tk.value: tk
-            for tk in TagValue.objects.filter(
-                project_id__in=ReleaseProject.objects.filter(
-                    release__in=item_list
-                ).values_list('project_id', flat=True),
-                key='sentry:release',
-                value__in=[o.version for o in item_list],
-            )
-        }
+        project = kwargs.get('project')
+        if project:
+            project_ids = [project.id]
+        else:
+            project_ids = ReleaseProject.objects.filter(
+                release__in=item_list
+            ).values_list('project_id', flat=True)
+
+        tags = {}
+        tks = TagValue.objects.filter(
+            project_id__in=project_ids,
+            key='sentry:release',
+            value__in=[o.version for o in item_list],
+        )
+        for tk in tks:
+            val = tags.get(tk.value)
+            tags[tk.value] = {
+                'first_seen': min(tk.first_seen, val['first_seen']) if val else tk.first_seen,
+                'last_seen': max(tk.last_seen, val['last_seen']) if val else tk.last_seen
+            }
         owners = {
             d['id']: d
             for d in serialize(set(i.owner for i in item_list if i.owner_id), user)
         }
 
-        if kwargs.get('project'):
+        if project:
             group_counts_by_release = dict(ReleaseProject.objects.filter(
-                project=kwargs.get('project'),
+                project=project,
                 release__in=item_list
             ).values_list('release_id', 'new_groups'))
         else:
@@ -179,8 +189,8 @@ class ReleaseSerializer(Serializer):
         }
         if attrs['tag']:
             d.update({
-                'lastEvent': attrs['tag'].last_seen,
-                'firstEvent': attrs['tag'].first_seen,
+                'lastEvent': attrs['tag']['last_seen'],
+                'firstEvent': attrs['tag']['first_seen'],
             })
         else:
             d.update({

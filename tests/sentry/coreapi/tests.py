@@ -4,8 +4,10 @@ from __future__ import absolute_import
 
 import six
 import mock
+import pytest
 
 from datetime import datetime
+from django.core.exceptions import SuspiciousOperation
 from uuid import UUID
 
 from sentry.coreapi import (
@@ -30,18 +32,21 @@ class AuthFromRequestTest(BaseAPITest):
     def test_valid(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value, biz=baz'}
+        request.GET = {}
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
     def test_valid_missing_space(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,biz=baz'}
+        request.GET = {}
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
     def test_valid_ignore_case(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'SeNtRy sentry_key=value, biz=baz'}
+        request.GET = {}
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
@@ -69,13 +74,22 @@ class AuthFromRequestTest(BaseAPITest):
     def test_invalid_header_missing_pair(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry foo'}
+        request.GET = {}
         with self.assertRaises(APIUnauthorized):
             self.helper.auth_from_request(request)
 
     def test_invalid_malformed_value(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,,biz=baz'}
+        request.GET = {}
         with self.assertRaises(APIUnauthorized):
+            self.helper.auth_from_request(request)
+
+    def test_multiple_auth_suspicious(self):
+        request = mock.Mock()
+        request.GET = {'sentry_version': '1', 'foo': 'bar'}
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value, biz=baz'}
+        with pytest.raises(SuspiciousOperation):
             self.helper.auth_from_request(request)
 
 

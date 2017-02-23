@@ -52,6 +52,8 @@ CLEAN_MODULE_RE = re.compile(r"""^
 (?:[-\.][a-f0-9]{7,}$)  # Ending in a commitish
 """, re.X | re.I)
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
+NODE_MODULES_RE = re.compile(r'\bnode_modules/')
+
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
@@ -603,10 +605,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # We want to explicitly generate a webpack module name
                     new_frame['module'] = generate_module(filename)
 
+                if abs_path.startswith('app:'):
+                    if NODE_MODULES_RE.search(filename):
+                        in_app = False
+                    else:
+                        in_app = True
+
                 new_frame['abs_path'] = abs_path
                 new_frame['filename'] = filename
                 if not frame.get('module') and abs_path.startswith(
-                        ('http:', 'https:', 'webpack:')):
+                        ('http:', 'https:', 'webpack:', 'app:')):
                     new_frame['module'] = generate_module(abs_path)
 
         elif sourcemap_url:
