@@ -365,7 +365,9 @@ const Stream = React.createClass({
     // Only resume polling if we're on the first page of results
     let links = parseLinkHeader(this.state.pageLinks);
     if (links && !links.previous.results && this.state.realtimeActive) {
-      this._poller.setEndpoint(links.previous.href);
+      // XXX: Remove cursor param from this URL...
+      const endpoint = links.previous.href.replace(/\&cursor=\d+\:\d+\:\d+/, '');
+      this._poller.setEndpoint(endpoint);
       this._poller.enable();
     }
   },
@@ -395,7 +397,7 @@ const Stream = React.createClass({
   },
 
   onRealtimePoll(data, links) {
-    this._streamManager.unshift(data);
+    this._streamManager.replace(data);
     if (!utils.valueIsEqual(this.state.pageLinks, links, true)) {
       this.setState({
         pageLinks: links,
