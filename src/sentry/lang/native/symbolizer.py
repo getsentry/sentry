@@ -18,8 +18,13 @@ from sentry.models import DSymSymbol, EventError
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 
+FATAL_ERRORS = (
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+)
 USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM,
     EventError.NATIVE_MISSING_SYMBOL,
 )
@@ -28,10 +33,10 @@ APP_BUNDLE_PATHS = (
     '/private/var/containers/Bundle/Application/',
 )
 _sim_platform_re = re.compile(r'/\w+?Simulator\.platform/')
-_known_app_bundled_frameworks_re = re.compile(r'''(?x)
+_support_framework = re.compile(r'''(?x)
     /Frameworks/(
             libswift([a-zA-Z0-9]+)\.dylib$
-        |   (KSCrash|SentrySwift)\.framework/
+        |   (KSCrash|SentrySwift|Sentry)\.framework/
     )
 ''')
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
@@ -68,6 +73,11 @@ class SymbolicationFailed(Exception):
     def is_user_fixable(self):
         """These are errors that a user can fix themselves."""
         return self.type in USER_FIXABLE_ERRORS
+
+    @property
+    def is_fatal(self):
+        """If this is true then a processing issues has to be reported."""
+        return self.type in FATAL_ERRORS
 
     @property
     def is_sdk_failure(self):
@@ -226,27 +236,52 @@ class Symbolizer(object):
             return obj_name
         return img['name']
 
-    def _is_app_bundled_frame(self, frame, img):
+    def _is_frame_from_app_bundle(self, frame, img):
         fn = self._get_frame_package(frame, img)
         if not (fn.startswith(APP_BUNDLE_PATHS) or
                 (SIM_PATH in fn and SIM_APP_PATH in fn)):
             return False
         return True
 
+    def _is_support_framework(self, frame, img):
+        """True if the frame is from a framework that is known and app
+        bundled.  Those are frameworks which are specifically not frameworks
+        that are ever in_app.
+        """
+        fn = self._get_frame_package(frame, img)
+        return _support_framework.search(fn) is not None
+
     def _is_app_bundled_framework(self, frame, img):
         fn = self._get_frame_package(frame, img)
-        return _known_app_bundled_frameworks_re.search(fn) is not None
+        return fn.startswith(APP_BUNDLE_PATHS) and '/Frameworks/' in fn
 
     def _is_app_frame(self, frame, img):
-        if not self._is_app_bundled_frame(frame, img):
+        """Given a frame derives the value of `in_app` by discarding the
+        original value of the frame.
+        """
+        if not self._is_frame_from_app_bundle(frame, img):
             return False
         return not self._is_app_bundled_framework(frame, img)
 
-    def _is_optional_app_bundled_framework(self, frame, img):
-        if not self._is_app_bundled_framework(frame, img):
+    def _is_optional_dsym(self, frame, img):
+        """Checks if this is a dsym that is optional."""
+        # Frames that are not in the app are not considered optional.  In
+        # theory we should never reach this anyways.
+        if not self._is_frame_from_app_bundle(frame, img):
             return False
-        symbol_name = frame.get('symbol_name')
-        return symbol_name and symbol_name not in KNOWN_GARBAGE_SYMBOLS
+
+        # If we're dealing with an app bundled framework that is also
+        # considered optional.
+        if self._is_app_bundled_framework(frame, img):
+            return True
+
+        # Frameworks that are known to sentry and bundled helpers are always
+        # optional for now.  In theory this should always be False here
+        # because we should catch it with the last branch already.
+        if self._is_support_framework(frame, img):
+            return True
+
+        return False
 
     def _is_simulator_frame(self, frame, img):
         fn = self._get_frame_package(frame, img)
@@ -260,7 +295,7 @@ class Symbolizer(object):
         # If we have an image but we can't find the image in the symsynd
         # symbolizer it means we are dealing with a missing dsym here.
         if parse_addr(img['image_addr']) not in self.symsynd_symbolizer.images:
-            if self._is_optional_app_bundled_framework(frame, img):
+            if self._is_optional_dsym(frame, img):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
@@ -359,7 +394,7 @@ class Symbolizer(object):
         # If we are dealing with a frame that is not bundled with the app
         # we look at system symbols.  If that fails, we go to looking for
         # app symbols explicitly.
-        if not self._is_app_bundled_frame(frame, img):
+        if not self._is_frame_from_app_bundle(frame, img):
             return self.symbolize_system_frame(frame, img, sdk_info,
                                                symbolize_inlined)
 

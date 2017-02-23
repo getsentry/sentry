@@ -19,10 +19,11 @@ import StreamTagActions from '../actions/streamTagActions';
 import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
+import TimeSince from '../components/timeSince';
 import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
-import {t, tct} from '../locale';
+import {t, tn, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -73,6 +74,7 @@ const Stream = React.createClass({
       tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false,
+      processingIssues: null,
       ...this.getQueryState()
     };
   },
@@ -86,6 +88,7 @@ const Stream = React.createClass({
     });
 
     this.fetchSavedSearches();
+    this.fetchProcessingIssues();
     this.fetchTags();
     if (!this.state.loading) {
       this.fetchData();
@@ -190,6 +193,25 @@ const Stream = React.createClass({
     });
   },
 
+  fetchProcessingIssues() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+      success: (data) => {
+        if (data.hasIssues
+          || data.resolveableIssues > 0
+          || data.issuesProcessing > 0) {
+          this.setState({
+            processingIssues: data,
+          });
+        }
+      },
+      error: (error) => {
+        logAjaxError(error);
+        // this is okay. it's just a ui hint
+      }
+    });
+  },
+
   fetchTags() {
     StreamTagStore.reset();
     StreamTagActions.loadTags();
@@ -209,6 +231,10 @@ const Stream = React.createClass({
         StreamTagActions.loadTagsError();
       }
     });
+  },
+
+  showingProcessingIssues() {
+    return this.state.query && this.state.query.trim() == 'is:unprocessed';
   },
 
   onSavedSearchCreate(data) {
@@ -483,6 +509,65 @@ const Stream = React.createClass({
     browserHistory.pushState(null, path, queryParams);
   },
 
+  renderProcessingIssuesHint() {
+    let pi = this.state.processingIssues;
+    if (!pi || this.showingProcessingIssues()) {
+      return null;
+    }
+
+    let {orgId, projectId} = this.props.params;
+    let link = `/${orgId}/${projectId}/settings/processing-issues/`;
+    let showLink = false;
+    let label = null;
+    let className = {
+      'processing-issues': true
+    };
+    let issues = null;
+    let lastEvent = null;
+
+    if (pi.numIssues > 0) {
+      label = t('Unprocessed Events: ');
+      issues = tn('there is %d issue blocking event processing',
+                  'there are %d issues blocking event processing',
+                  pi.numIssues);
+      lastEvent = (
+        <span className="last-seen">({tct('last event from [ago]', {
+          ago: <TimeSince date={pi.lastSeen}/>
+        })})
+        </span>
+      );
+      className.failing = true;
+      showLink = true;
+    } else if (pi.issuesProcessing > 0) {
+      className.processing = true;
+      label = tn('Reprocessing %d event …',
+        'Reprocessing %d events …',
+        pi.issuesProcessing);
+    } else if (pi.resolveableIssues > 0) {
+      className.pending = true;
+      label = tn('%d event pending reprocessing.',
+        '%d events pending reprocessing.',
+        pi.resolveableIssues);
+      showLink = true;
+    } else {
+      /* we should not go here but what do we know */
+      return null;
+    }
+
+    return (
+      <div className={classNames(className)}>
+        <strong>{label}</strong>
+        {issues}
+        {' '}
+        {lastEvent}
+        {' '}
+        {showLink &&
+          <Link to={link}>{t('show details')}</Link>
+        }
+      </div>
+    );
+  },
+
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
     let groupNodes = ids.map((id) => {
@@ -614,6 +699,7 @@ const Stream = React.createClass({
                 </div>
               </div>
             </Sticky>
+            {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}
             <Pagination pageLinks={this.state.pageLinks}/>
           </div>
