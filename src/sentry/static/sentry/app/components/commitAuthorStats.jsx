@@ -50,16 +50,6 @@ const CommitAuthorStats = React.createClass({
     });
   },
 
-  emptyState() {
-    return(
-      <div className="box empty-stream m-y-0">
-        <span className="icon icon-exclamation" />
-        <p>There are no commits associated with this release.</p>
-        {/* Todo: Should we link to repo settings from here?  */}
-      </div>
-    );
-  },
-
   render() {
 
     if (this.state.loading)
@@ -69,8 +59,6 @@ const CommitAuthorStats = React.createClass({
       return <LoadingError/>;
 
     let {commitList} = this.state;
-    // if (!commitList.length)
-    //   return <this.emptyState/>;
 
     let commitAuthors = {};
 
