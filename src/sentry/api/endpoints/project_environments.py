@@ -10,7 +10,8 @@ from sentry.models import Environment
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         queryset = Environment.objects.filter(
-            project_id=project.id,
+            projects=project,
+            organization_id=project.organization_id,
         ).order_by('name')
 
         return Response(serialize(list(queryset), request.user))
