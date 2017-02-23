@@ -48,6 +48,8 @@ EXTENSION_EXC_SOURCES = re.compile('|'.join((
     # Other
     r'webappstoolbarba\.texthelp\.com\/',
     r'metrics\.itunes\.apple\.com\.edgesuite\.net\/',
+    # Kaspersky Protection browser extension
+    r'kaspersky-labs\.com',
 )), re.I)
 
 
@@ -83,7 +85,7 @@ class BrowserExtensionsFilter(Filter):
 
         exc_source = self.get_exception_source(data)
         if exc_source:
-            if EXTENSION_EXC_SOURCES.match(exc_source):
+            if EXTENSION_EXC_SOURCES.search(exc_source):
                 return True
 
         return False

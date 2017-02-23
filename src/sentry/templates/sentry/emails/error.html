@@ -43,7 +43,7 @@
                       {% if metadata.type %}
                         <a href="{% absolute_uri link %}">{{ metadata.type|truncatechars:40 }}</a>
                         {% if transaction %}
-                          <em class="event-subtitle">{{ transaction }}</em>
+                          <span class="event-subtitle">{{ transaction }}</span>
                         {% endif %}
                         <br />
                         {% if metadata.value %}
@@ -52,7 +52,7 @@
                       {% else %}
                         <a href="{% absolute_uri link %}">{{ metadata.value|truncatechars:40 }}</a><br />
                         {% if transaction %}
-                          <em class="event-subtitle">{{ transaction }}</em>
+                          <span class="event-subtitle">{{ transaction }}</span>
                         {% endif %}
                       {% endif %}
                     </h3>
@@ -62,7 +62,7 @@
                     <h3>
                       <a href="{% absolute_uri link %}">{{ metadata.directive|truncatechars:40 }}</a><br />
                       {% if metadata.uri %}
-                        <em class="event-subtitle">{{ metadata.uri }}</em>
+                        <span class="event-subtitle">{{ metadata.uri }}</span>
                       {% endif %}
                     </h3>
                   </div>
@@ -71,7 +71,7 @@
                     <h3>
                       <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a><br />
                       {% if transaction %}
-                        <em class="event-subtitle">{{ transaction }}</em>
+                        <span class="event-subtitle">{{ transaction }}</span>
                       {% endif %}
                     </h3>
                   </div>
