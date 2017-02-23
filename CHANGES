@@ -34,6 +34,7 @@ Schema Changes
 - Added ``EnvironmentProject`` model.
 - Added ``Project.flags`` column.
 - Added not null constraint to ``Environment.organization_id`` column.
+- Removed not null constraint on ``Environment.project_id`` and ``ReleaseEnvironment.project_id`` columns
 
 Version 8.13
 ------------
