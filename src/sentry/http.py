@@ -74,8 +74,8 @@ class BadSource(Exception):
         self.data = data
 
 
-class CannotFetchSource(BadSource):
-    error_type = EventError.JS_GENERIC_FETCH_ERROR
+class CannotFetch(BadSource):
+    error_type = EventError.FETCH_GENERIC_ERROR
 
 
 def get_server_hostname():
@@ -227,7 +227,7 @@ def expose_url(url):
     return url
 
 
-def stream_download_binary(url, headers=None, cache_enabled=True):
+def fetch_file(url, headers=None, cache_enabled=True):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -242,7 +242,7 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
         domain_result = cache.get(domain_key)
         if domain_result:
             domain_result['url'] = url
-            raise CannotFetchSource(domain_result)
+            raise CannotFetch(domain_result)
 
     logger.debug('Fetching %r from the internet', url)
 
@@ -256,7 +256,7 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
                 allow_redirects=True,
                 verify=False,
                 headers=headers,
-                timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
+                timeout=settings.SENTRY_FETCH_SOCKET_TIMEOUT,
                 stream=True,
             )
 
@@ -264,7 +264,7 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
                 cl = int(response.headers['content-length'])
             except (LookupError, ValueError):
                 cl = 0
-            if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+            if cl > settings.SENTRY_FETCH_MAX_SIZE:
                 raise OverflowError()
 
             contents = []
@@ -274,11 +274,11 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
             # got a 200 OK
             if response.status_code == 200:
                 for chunk in response.iter_content(16 * 1024):
-                    if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
+                    if time.time() - start > settings.SENTRY_FETCH_TIMEOUT:
                         raise Timeout()
                     contents.append(chunk)
                     cl += len(chunk)
-                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
+                    if cl > settings.SENTRY_FETCH_MAX_SIZE:
                         raise OverflowError()
 
         except Exception as exc:
@@ -295,20 +295,20 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
                 }
             elif isinstance(exc, Timeout):
                 error = {
-                    'type': EventError.JS_FETCH_TIMEOUT,
+                    'type': EventError.FETCH_TIMEOUT,
                     'url': expose_url(url),
-                    'timeout': settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+                    'timeout': settings.SENTRY_FETCH_TIMEOUT,
                 }
             elif isinstance(exc, OverflowError):
                 error = {
-                    'type': EventError.JS_TOO_LARGE,
+                    'type': EventError.FETCH_TOO_LARGE,
                     'url': expose_url(url),
                     # We want size in megabytes to format nicely
-                    'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
+                    'max_size': float(settings.SENTRY_FETCH_MAX_SIZE) / 1024 / 1024,
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
-                    'type': EventError.JS_GENERIC_FETCH_ERROR,
+                    'type': EventError.FETCH_GENERIC_ERROR,
                     'value': six.text_type(type(exc)),
                     'url': expose_url(url),
                 }
@@ -323,7 +323,7 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
             if cache_enabled:
                 cache.set(domain_key, error or '', 300)
             logger.warning('source.disabled', extra=error)
-            raise CannotFetchSource(error)
+            raise CannotFetch(error)
 
         body = b''.join(contents)
         headers = {k.lower(): v for k, v in response.headers.items()}
@@ -342,7 +342,7 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
             'value': result[2],
             'url': expose_url(url),
         }
-        raise CannotFetchSource(error)
+        raise CannotFetch(error)
 
     # Make sure the file we're getting back is six.binary_type. The only
     # reason it'd not be binary would be from old cached blobs, so
@@ -357,6 +357,6 @@ def stream_download_binary(url, headers=None, cache_enabled=True):
                 'value': 'utf8',
                 'url': expose_url(url),
             }
-            raise CannotFetchSource(error)
+            raise CannotFetch(error)
 
     return UrlResult(url, result[0], result[1], response.status_code, result[3])
