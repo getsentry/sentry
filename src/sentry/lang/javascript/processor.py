@@ -264,7 +264,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     # If our url has been truncated, it'd be impossible to fetch
     # so we check for this early and bail
     if url[-3:] == '...':
-        raise http.CannotFetchSource({
+        raise http.CannotFetch({
             'type': EventError.JS_MISSING_SOURCE,
             'url': http.expose_url(url),
         })
@@ -284,7 +284,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 'type': EventError.JS_MISSING_SOURCE,
                 'url': http.expose_url(url),
             }
-            raise http.CannotFetchSource(error)
+            raise http.CannotFetch(error)
 
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
@@ -311,7 +311,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
-            result = http.stream_download_binary(url, headers)
+            result = http.fetch_file(url, headers)
             z_body = zlib.compress(result.body)
             cache.set(cache_key, (url, headers, z_body, result.status, result.encoding), 60)
 
@@ -328,7 +328,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 'type': EventError.JS_INVALID_CONTENT,
                 'url': url,
             }
-            raise http.CannotFetchSource(error)
+            raise http.CannotFetch(error)
 
     return result
 
@@ -366,7 +366,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
                 'value': 'utf8',
                 'url': http.expose_url(url),
             }
-            raise http.CannotFetchSource(error)
+            raise http.CannotFetch(error)
 
     try:
         return view_from_json(body)

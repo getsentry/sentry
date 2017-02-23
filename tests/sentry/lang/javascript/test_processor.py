@@ -12,7 +12,7 @@ from requests.exceptions import RequestException
 
 from sentry.lang.javascript.processor import (
     BadSource, discover_sourcemap, fetch_sourcemap, fetch_file, generate_module,
-    trim_line, UrlResult, fetch_release_file, CannotFetchSource,
+    trim_line, UrlResult, fetch_release_file, CannotFetch,
     UnparseableSourcemap,
 )
 from sentry.lang.javascript.errormapping import (
@@ -175,7 +175,7 @@ class FetchFileTest(TestCase):
     @responses.activate
     def test_truncated(self):
         url = truncatechars('http://example.com', 3)
-        with pytest.raises(CannotFetchSource) as exc:
+        with pytest.raises(CannotFetch) as exc:
             fetch_file(url)
 
         assert exc.value.data['type'] == EventError.JS_MISSING_SOURCE
@@ -277,7 +277,7 @@ class FetchSourcemapTest(TestCase):
         responses.add(responses.GET, 'http://example.com', body='{}',
                       content_type='application/json; charset=NOPE')
 
-        with pytest.raises(CannotFetchSource) as exc:
+        with pytest.raises(CannotFetch) as exc:
             fetch_sourcemap('http://example.com')
 
         assert exc.value.data['type'] == EventError.JS_INVALID_SOURCE_ENCODING
