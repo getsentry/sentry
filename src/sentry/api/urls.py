@@ -17,6 +17,7 @@ from .endpoints.group_hashes import GroupHashesEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
+from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
@@ -392,6 +393,9 @@ urlpatterns = patterns(
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/(?:user-feedback|user-reports)/$',
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
+    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/similar/$',
+        GroupSimilarIssuesEndpoint.as_view(),
+        name='sentry-api-0-group-similar-issues'),
     # Load plugin group urls
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugins?/',
         include('sentry.plugins.base.group_api_urls')),

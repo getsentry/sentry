@@ -32,7 +32,7 @@ class EnvironmentProject(Model):
 class Environment(Model):
     __core__ = False
 
-    organization_id = BoundedPositiveIntegerField(null=True)
+    organization_id = BoundedPositiveIntegerField()
     projects = models.ManyToManyField('sentry.Project', through=EnvironmentProject)
     project_id = BoundedPositiveIntegerField()
     name = models.CharField(max_length=64)

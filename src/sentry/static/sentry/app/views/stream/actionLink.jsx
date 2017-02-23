@@ -99,7 +99,7 @@ const ActionLink = React.createClass({
     let confirmationQuestion = resolveLabel(this.props.confirmationQuestion);
 
     return (
-      <a title={this.props.tooltip || this.props.buttonTitle}
+      <a title={this.props.tooltip !== null ? this.props.tooltip : this.props.buttonTitle}
          className={className}
          disabled={this.props.disabled}
          onClick={this.handleClick}

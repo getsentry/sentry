@@ -49,7 +49,7 @@ build: locale
 
 clean:
 	@echo "--> Cleaning static cache"
-	rm -f dist/* static/dist/*
+	rm -rf dist/* static/dist/*
 	@echo "--> Cleaning integration docs cache"
 	rm -rf src/sentry/integration-docs
 	@echo "--> Cleaning pyc files"

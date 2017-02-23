@@ -13,9 +13,8 @@ from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupHash, GroupAssignee, GroupSeen, GroupSubscription,
-    GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
-    User, UserReport,
+    Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
+    GroupTagValue, Release, User, UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
@@ -267,26 +266,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-
-        result = serializer.object
-        acting_user = request.user if request.user.is_authenticated() else None
-
-        if result.get('assignedTo') and not group.project.member_set.filter(user=result['assignedTo']).exists():
-            return Response({'detail': 'Cannot assign to non-team member'}, status=400)
-
-        if 'assignedTo' in result:
-            if result['assignedTo']:
-                GroupAssignee.objects.assign(group, result['assignedTo'],
-                                             acting_user)
-
-                if 'isSubscribed' not in result or result['assignedTo'] != request.user:
-                    GroupSubscription.objects.subscribe(
-                        group=group,
-                        user=result['assignedTo'],
-                        reason=GroupSubscriptionReason.assigned,
-                    )
-            else:
-                GroupAssignee.objects.deassign(group, acting_user)
 
         response = client.put(
             path='/projects/{}/{}/issues/'.format(

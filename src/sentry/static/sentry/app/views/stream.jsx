@@ -660,6 +660,7 @@ const Stream = React.createClass({
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
     let access = this.getAccess();
+    let projectFeatures = this.getProjectFeatures();
 
     return (
       <StickyContainer>
@@ -687,6 +688,7 @@ const Stream = React.createClass({
                   <StreamActions
                     orgId={params.orgId}
                     projectId={params.projectId}
+                    hasReleases={projectFeatures.has('releases')}
                     query={this.state.query}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}

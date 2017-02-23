@@ -10,9 +10,18 @@ Version 8.14 (Unreleased)
 - [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
 - Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
 - Release functionality is now detected at a project level to enable various features.
-- Added OrganizationReleasesEndpoint
-- Added context type app for cocoa events
 - Added basic encryption facilities (``sentry.utils.encryption``).
+- Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
+- Aded bulk "Resolve in Next Release" to stream actions.
+- Various visual improvements to notifications, including the addition of
+  transactions.
+
+API Changes
+~~~~~~~~~~~
+
+- Added OrganizationReleasesEndpoint.
+- Added context type ``app`` for cocoa events.
+- Added ``assignedTo`` param to ``/projects/{org}/{project}/issues/``.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -23,6 +32,7 @@ Schema Changes
 - Added ``Environment.organization_id`` column.
 - Added ``EnvironmentProject`` model.
 - Added ``Project.flags`` column.
+- Added not null constraint to ``Environment.organization_id`` column.
 
 Version 8.13
 ------------
