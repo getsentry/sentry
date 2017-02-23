@@ -15,7 +15,7 @@ from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('sentry.similarity')
 
 
 def scale_to_total(value):
