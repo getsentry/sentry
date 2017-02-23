@@ -217,6 +217,7 @@ const ProjectFiltersSettingsForm = React.createClass({
       }
     }
     return {
+      hasChanged: false,
       formData: formData,
       errors: {},
     };
@@ -227,6 +228,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     formData[name] = value;
     this.setState({
       formData: formData,
+      hasChanged: true,
     });
   },
 
@@ -248,6 +250,7 @@ const ProjectFiltersSettingsForm = React.createClass({
           this.setState({
             state: FormState.READY,
             errors: {},
+            hasChanged: false
           });
         },
         error: (error) => {
@@ -267,26 +270,28 @@ const ProjectFiltersSettingsForm = React.createClass({
     let isSaving = this.state.state === FormState.SAVING;
     let errors = this.state.errors;
     return (
-      <form onSubmit={this.onSubmit} className="form-stacked">
+      <form onSubmit={this.onSubmit} className="form-stacked p-b-1">
         {this.state.state === FormState.ERROR &&
           <div className="alert alert-error alert-block">
             {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
           </div>
         }
         <fieldset>
+          <div className="pull-right">
+
+              <button type="submit" className="btn btn-sm btn-primary"
+                      disabled={isSaving || !this.state.hasChanged}>{t('Save Changes')}</button>
+            
+          </div>
+          <h5>{t('Filter errors from these IP addresses:')}</h5>
           <TextareaField
             key="ip"
             name="ip"
-            label={t('Filtered IP Addresses')}
             help={t('Separate multiple entries with a newline.')}
             placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
             value={this.state.formData['filters:blacklisted_ips']}
             error={errors['filters:blacklisted_ips']}
             onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')} />
-        </fieldset>
-        <fieldset className="form-actions">
-          <button type="submit" className="btn btn-primary"
-                  disabled={isSaving}>{t('Save Changes')}</button>
         </fieldset>
       </form>
     );
@@ -467,13 +472,18 @@ const ProjectFilters = React.createClass({
 
     return (
       <div>
-        <div className="inbound-filters-stats">
-          <div className="bar-chart">
-            <StackedBarChart
-              points={this.state.stats}
-              height={50}
-              barClasses={['filtered']}
-              className="sparkline" />
+        <div className="panel panel-default">
+          <div className="panel-body p-b-0">
+            <div className="inbound-filters-stats">
+              <h6>{t('Errors Filtered in the last 7 days')}</h6>
+              <div className="bar-chart">
+                <StackedBarChart
+                  points={this.state.stats}
+                  height={50}
+                  barClasses={['filtered']}
+                  className="sparkline" />
+              </div>
+            </div>
           </div>
         </div>
         {this.state.filterList.map(filter => {
@@ -489,16 +499,11 @@ const ProjectFilters = React.createClass({
             : <FilterRow {...props}/>;
         })}
 
-        <div className="box">
-          <div className="box-header">
-            <h3>{t('Settings')}</h3>
-          </div>
-          <div className="box-content with-padding">
-            <ProjectFiltersSettingsForm
-              orgId={orgId}
-              projectId={projectId}
-              initialData={this.state.projectOptions} />
-          </div>
+        <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+          <ProjectFiltersSettingsForm
+            orgId={orgId}
+            projectId={projectId}
+            initialData={this.state.projectOptions} />
         </div>
       </div>
     );
