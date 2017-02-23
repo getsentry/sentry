@@ -17,9 +17,11 @@ from sentry.utils.dates import to_datetime
 
 class GroupEnvironmentDetailsEndpoint(GroupEndpoint):
     def get(self, request, group, environment):
+        project = group.project
         try:
             environment = Environment.objects.get(
-                project_id=group.project_id,
+                projects=project,
+                organization_id=project.organization_id,
                 # XXX(dcramer): we have no great way to pass the empty env
                 name='' if environment == 'none' else environment,
             )

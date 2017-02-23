@@ -10,17 +10,19 @@ class ProjectEnvironmentsTest(APITestCase):
     def test_simple(self):
         project = self.create_project()
 
-        Environment.objects.create(
+        env1 = Environment.objects.create(
             project_id=project.id,
             organization_id=project.organization_id,
             name='production',
         )
+        env1.add_project(project)
 
-        Environment.objects.create(
+        env2 = Environment.objects.create(
             project_id=project.id,
             organization_id=project.organization_id,
             name='staging',
         )
+        env2.add_project(project)
 
         self.login_as(user=self.user)
 
