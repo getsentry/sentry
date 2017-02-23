@@ -234,11 +234,9 @@ def expose_url(url):
     return url
 
 
-def fetch_file(url, headers=None, domain_lock_enabled=True):
+def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
     """
     Pull down a URL, returning a UrlResult object.
-
-    Attempts to fetch from the cache.
     """
     # lock down domains that are problematic
     if domain_lock_enabled:
@@ -283,7 +281,11 @@ def fetch_file(url, headers=None, domain_lock_enabled=True):
                 for chunk in response.iter_content(16 * 1024):
                     if time.time() - start > settings.SENTRY_FETCH_TIMEOUT:
                         raise Timeout()
-                    contents.append(chunk)
+                    # we write to a file instead of writing a string
+                    if outfile is not None:
+                        outfile.write(chunk)
+                    else:
+                        contents.append(chunk)
                     cl += len(chunk)
                     if cl > settings.SENTRY_FETCH_MAX_SIZE:
                         raise OverflowError()
@@ -332,7 +334,10 @@ def fetch_file(url, headers=None, domain_lock_enabled=True):
             logger.warning('source.disabled', extra=error)
             raise CannotFetch(error)
 
-        body = b''.join(contents)
+        if outfile is not None:
+            body = None
+        else:
+            body = b''.join(contents)
         headers = {k.lower(): v for k, v in response.headers.items()}
         encoding = response.encoding
 
@@ -350,20 +355,5 @@ def fetch_file(url, headers=None, domain_lock_enabled=True):
             'url': expose_url(url),
         }
         raise CannotFetch(error)
-
-    # Make sure the file we're getting back is six.binary_type. The only
-    # reason it'd not be binary would be from old cached blobs, so
-    # for compatibility with current cached files, let's coerce back to
-    # binary and say utf8 encoding.
-    if not isinstance(result[1], six.binary_type):
-        try:
-            result = (result[0], result[1].encode('utf8'), result[2], result[3])
-        except UnicodeEncodeError:
-            error = {
-                'type': EventError.FETCH_INVALID_ENCODING,
-                'value': 'utf8',
-                'url': expose_url(url),
-            }
-            raise CannotFetch(error)
 
     return UrlResult(url, result[0], result[1], result[2], result[3])
