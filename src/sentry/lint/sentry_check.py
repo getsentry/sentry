@@ -154,16 +154,17 @@ class SentryVisitor(ast.NodeVisitor):
                     ),
                 )
         if node.id == 'print':
+            self.check_print(node)
+
+    def visit_Print(self, node):
+        self.check_print(node)
+
+    def check_print(self, node):
+        if not self.filename.startswith('tests/'):
             self.errors.append(B314(
                 lineno=node.lineno,
                 col=node.col_offset
             ))
-
-    def visit_Print(self, node):
-        self.errors.append(B314(
-            lineno=node.lineno,
-            col=node.col_offset
-        ))
 
     def compose_call_path(self, node):
         if isinstance(node, ast.Attribute):
