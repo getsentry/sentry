@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.contrib.auth.forms import (
@@ -155,6 +156,28 @@ class TeamAdmin(admin.ModelAdmin):
         obj.transfer_to(obj.organization)
 
 admin.site.register(Team, TeamAdmin)
+
+
+class UserChangeForm(UserChangeForm):
+    username = forms.RegexField(
+        label=_("Username"), max_length=128, regex=r"^[\w.@+-]+$",
+        help_text=_("Required. 128 characters or fewer. Letters, digits and "
+                    "@/./+/-/_ only."),
+        error_messages={
+            'invalid': _("This value may contain only letters, numbers and "
+                         "@/./+/-/_ characters.")},
+    )
+
+
+class UserCreationForm(UserCreationForm):
+    username = forms.RegexField(
+        label=_("Username"), max_length=128, regex=r"^[\w.@+-]+$",
+        help_text=_("Required. 128 characters or fewer. Letters, digits and "
+                    "@/./+/-/_ only."),
+        error_messages={
+            'invalid': _("This value may contain only letters, numbers and "
+                         "@/./+/-/_ characters.")}
+    )
 
 
 class UserAdmin(admin.ModelAdmin):
