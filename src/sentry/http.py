@@ -227,21 +227,22 @@ def expose_url(url):
     return url
 
 
-def stream_download_binary(url, headers=None):
+def stream_download_binary(url, headers=None, cache_enabled=True):
     """
     Pull down a URL, returning a UrlResult object.
 
     Attempts to fetch from the cache.
     """
     # lock down domains that are problematic
-    domain = urlparse(url).netloc
-    domain_key = 'source:blacklist:v2:%s' % (
-        md5_text(domain).hexdigest(),
-    )
-    domain_result = cache.get(domain_key)
-    if domain_result:
-        domain_result['url'] = url
-        raise CannotFetchSource(domain_result)
+    if cache_enabled:
+        domain = urlparse(url).netloc
+        domain_key = 'source:blacklist:v2:%s' % (
+            md5_text(domain).hexdigest(),
+        )
+        domain_result = cache.get(domain_key)
+        if domain_result:
+            domain_result['url'] = url
+            raise CannotFetchSource(domain_result)
 
     logger.debug('Fetching %r from the internet', url)
 
@@ -319,7 +320,8 @@ def stream_download_binary(url, headers=None):
                 }
 
             # TODO(dcramer): we want to be less aggressive on disabling domains
-            cache.set(domain_key, error or '', 300)
+            if cache_enabled:
+                cache.set(domain_key, error or '', 300)
             logger.warning('source.disabled', extra=error)
             raise CannotFetchSource(error)
 
