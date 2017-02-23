@@ -1,10 +1,11 @@
 
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 import sys
 
 from django.core.management.base import BaseCommand, make_option
 from django.utils import timezone
+from click import echo
 
 from sentry.models import LostPasswordHash
 from sentry.utils.auth import find_users
@@ -32,7 +33,7 @@ class Command(BaseCommand):
                 password_hash.date_added = timezone.now()
                 password_hash.set_hash()
                 password_hash.save()
-            print('{} ({}) - {}'.format(
+            echo('{} ({}) - {}'.format(
                 user.username,
                 user.email,
                 password_hash.get_absolute_url(),
