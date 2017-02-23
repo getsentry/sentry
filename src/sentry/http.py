@@ -146,17 +146,38 @@ class BlacklistAdapter(HTTPAdapter):
         return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
 
-def build_session():
-    session = requests.Session()
-    session.headers.update({'User-Agent': USER_AGENT})
-    session.mount('https://', BlacklistAdapter())
-    session.mount('http://', BlacklistAdapter())
-    return session
+class SafeSession(requests.Session):
+
+    def __init__(self):
+        requests.Session.__init__(self)
+        self.headers.update({'User-Agent': USER_AGENT})
+        self.mount('https://', BlacklistAdapter())
+        self.mount('http://', BlacklistAdapter())
+
+    def request(self, *args, **kwargs):
+        kwargs.setdefault('timeout', 30)
+        try:
+            response = requests.Session.request(self, *args, **kwargs)
+        # Our version of requests does not transform ZeroReturnError into an
+        # appropriately generically catchable exception
+        except ZeroReturnError as exc:
+            import sys
+            exc_tb = sys.exc_info()[2]
+            six.reraise(SSLError, exc, exc_tb)
+            del exc_tb
+        # requests' attempts to use chardet internally when no encoding is found
+        # and we want to avoid that slow behavior
+        if not response.encoding:
+            response.encoding = 'utf-8'
+        return response
+
+
+build_session = SafeSession
 
 
 def safe_urlopen(url, method=None, params=None, data=None, json=None,
                  headers=None, allow_redirects=False, timeout=30,
-                 verify_ssl=True, user_agent=None, session=None):
+                 verify_ssl=True, user_agent=None):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
@@ -164,8 +185,7 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     if user_agent is not None:
         warnings.warn('user_agent is no longer used with safe_urlopen')
 
-    if session is None:
-        session = build_session()
+    session = SafeSession()
 
     kwargs = {}
 
@@ -187,27 +207,14 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
     if method is None:
         method = 'POST' if (data or json) else 'GET'
 
-    try:
-        response = session.request(
-            method=method,
-            url=url,
-            allow_redirects=allow_redirects,
-            timeout=timeout,
-            verify=verify_ssl,
-            **kwargs
-        )
-    # Our version of requests does not transform ZeroReturnError into an
-    # appropriately generically catchable exception
-    except ZeroReturnError as exc:
-        import sys
-        exc_tb = sys.exc_info()[2]
-        six.reraise(SSLError, exc, exc_tb)
-        del exc_tb
-
-    # requests' attempts to use chardet internally when no encoding is found
-    # and we want to avoid that slow behavior
-    if not response.encoding:
-        response.encoding = 'utf-8'
+    response = session.request(
+        method=method,
+        url=url,
+        allow_redirects=allow_redirects,
+        timeout=timeout,
+        verify=verify_ssl,
+        **kwargs
+    )
 
     return response
 
