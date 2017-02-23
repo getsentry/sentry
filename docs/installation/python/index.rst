@@ -21,7 +21,7 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 If you're building from source you'll also need:
 
-* Node.js 0.12 or newer.
+* Node.js 4.0 or newer.
 
 Setting up an Environment
 -------------------------

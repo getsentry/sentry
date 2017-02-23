@@ -262,11 +262,16 @@ def main(num_events=1, extra_events=False):
                 defaults={
                     'organization': org,
                     'first_event': timezone.now(),
+                    'flags': Project.flags.has_releases,
                 }
             )
             if not project.first_event:
                 project.update(
                     first_event=project.date_added,
+                )
+            if not project.flags.has_releases:
+                project.update(
+                    flags=F('flags').bitor(Project.flags.has_releases),
                 )
 
             with transaction.atomic():
@@ -443,8 +448,8 @@ def main(num_events=1, extra_events=False):
                 defaults={
                     'author': CommitAuthor.objects.get_or_create(
                         organization_id=org.id,
-                        name=user.name,
                         email=user.email,
+                        defaults={'name': user.name}
                     )[0],
                     'message': 'Ooops!\nFixes {}'.format(event5.group.qualified_short_id),
                 },

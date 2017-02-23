@@ -636,6 +636,11 @@ LOGGING = {
         'sentry': {
             'level': 'INFO',
         },
+        # This only needs to go to Sentry for now.
+        'sentry.similarity': {
+            'handlers': ['internal'],
+            'propagate': False,
+        },
         'sentry.errors': {
             'handlers': ['console'],
             'propagate': False,

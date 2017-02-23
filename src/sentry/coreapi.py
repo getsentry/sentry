@@ -18,6 +18,7 @@ import zlib
 
 from collections import MutableMapping
 from datetime import datetime, timedelta
+from django.core.exceptions import SuspiciousOperation
 from django.utils.crypto import constant_time_compare
 from gzip import GzipFile
 from six import BytesIO
@@ -186,16 +187,21 @@ class ClientApiHelper(object):
         self.log = ClientLogHelper(self.context)
 
     def auth_from_request(self, request):
+        result = {
+            k: request.GET[k]
+            for k in six.iterkeys(request.GET)
+            if k[:7] == 'sentry_'
+        }
+
         if request.META.get('HTTP_X_SENTRY_AUTH', '')[:7].lower() == 'sentry ':
+            if result:
+                raise SuspiciousOperation('Multiple authentication payloads were detected.')
             result = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
         elif request.META.get('HTTP_AUTHORIZATION', '')[:7].lower() == 'sentry ':
+            if result:
+                raise SuspiciousOperation('Multiple authentication payloads were detected.')
             result = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
-        else:
-            result = {
-                k: request.GET[k]
-                for k in six.iterkeys(request.GET)
-                if k[:7] == 'sentry_'
-            }
+
         if not result:
             raise APIUnauthorized('Unable to find authentication information')
 

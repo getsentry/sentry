@@ -258,12 +258,16 @@ class Event(Model):
     @property
     def culprit(self):
         warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.get_tag('transaction') or self.group.culprit
+        return self.transaction or self.group.culprit
 
     @property
     def checksum(self):
         warnings.warn('Event.checksum is no longer used', DeprecationWarning)
         return ''
+
+    @property
+    def transaction(self):
+        return self.get_tag('transaction')
 
     def get_email_subject(self):
         template = self.project.get_option('mail:subject_template')
