@@ -60,38 +60,37 @@ const CommitAuthorStats = React.createClass({
 
     let {commitList} = this.state;
 
-    let commitAuthors = {};
-
-    for (let i = 0; i < commitList.length; i++) {
-      if (!commitAuthors[commitList[i].author.email]) {
-        commitAuthors[commitList[i].author.email] = {
-          commit: 1,
-          author: commitList[i].author
+    let commitAuthors = commitList.reduce((_commitAuthors, commit) => {
+      let {author} = commit;
+      if (!_commitAuthors.hasOwnProperty(author.email)) {
+        _commitAuthors[author.email] = {
+          commitCount: 1,
+          author: author
         };
       }
       else {
-        commitAuthors[commitList[i].author.email].commit += 1;
+        _commitAuthors[author.email].commitCount += 1;
       }
-    }
+      return _commitAuthors;
+    }, {});
 
-    let authors = Object.keys(commitAuthors);
+    let authorEmails = Object.keys(commitAuthors);
     return (
       <div className="col-sm-3">
         <b>Commits by Author</b>
         <ul className="crumbs">
-        {authors.map(author => {
-          if (!author) {
-            return null;
-          }
-          return (<li className="row">
-                    <span className="avatar-grid-item tip"
-                         title={commitAuthors[author].author.name + ' ' + commitAuthors[author].author.email}>
-                      <Avatar user={commitAuthors[author].author}/>
-                    </span>
-                    <span  className="col-sm-2">{commitAuthors[author].commit} commits</span>
-                  </li>);
-          }
-        )}
+        {authorEmails.map(authorEmail => {
+          let {author, commitCount} = commitAuthors[authorEmail];
+          return (
+            <li className="row">
+              <span className="avatar-grid-item tip"
+                   title={author.name + ' ' + author.email}>
+                <Avatar user={author}/>
+              </span>
+              <span className="col-sm-2">{commitCount} commits</span>
+            </li>
+          );
+        })}
         </ul>
       </div>
     );
