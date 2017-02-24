@@ -281,7 +281,7 @@ const ProjectFiltersSettingsForm = React.createClass({
 
               <button type="submit" className="btn btn-sm btn-primary"
                       disabled={isSaving || !this.state.hasChanged}>{t('Save Changes')}</button>
-            
+
           </div>
           <h5>{t('Filter errors from these IP addresses:')}</h5>
           <TextareaField
@@ -473,16 +473,22 @@ const ProjectFilters = React.createClass({
     return (
       <div>
         <div className="panel panel-default">
-          <div className="panel-body p-b-0">
-            <div className="inbound-filters-stats">
-              <h6>{t('Errors Filtered in the last 7 days')}</h6>
+          <div className="panel-heading">
+            <h6>{t('Errors filtered in the last 7 days (by hour)')}</h6>
+          </div>
+          <div className="panel-body p-a-0">
+            <div className="inbound-filters-stats p-a-1">
               <div className="bar-chart">
                 <StackedBarChart
                   points={this.state.stats}
                   height={50}
                   barClasses={['filtered']}
-                  className="sparkline" />
+                  className="sparkline m-b-0" />
               </div>
+            </div>
+            <div className="blankslate p-y-2">
+              <h5>{t('Nothing filtered in the last 7 days.')}</h5>
+              <p className="m-b-0">{t('Issues filtered as a result of your settings below will be shown here.')}</p>
             </div>
           </div>
         </div>
