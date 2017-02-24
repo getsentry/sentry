@@ -9,7 +9,6 @@ import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
-import {sortArray} from '../utils';
 
 const ApiTokenRow = React.createClass({
   propTypes: {
@@ -183,10 +182,12 @@ const ApiTokens = React.createClass({
             <table className="table">
               <tbody>
               {myTokens.map((token) => {
-                return <ApiTokenRow
-                  key={token.token}
-                  token={token}
-                  onRemove={this.onRemoveToken.bind(this, token)} />;
+                return (
+                  <ApiTokenRow
+                    key={token.token}
+                    token={token}
+                    onRemove={this.onRemoveToken.bind(this, token)} />
+                );
               })}
               </tbody>
             </table>
@@ -198,10 +199,12 @@ const ApiTokens = React.createClass({
             <table className="table">
               <tbody>
               {appTokens.map((token) => {
-                return <ApiTokenRow
-                  key={token.token}
-                  token={token}
-                  onRemove={this.onRemoveToken.bind(this, token)} />;
+                return (
+                  <ApiTokenRow
+                    key={token.token}
+                    token={token}
+                    onRemove={this.onRemoveToken.bind(this, token)} />
+                );
               })}
               </tbody>
             </table>
@@ -235,7 +238,7 @@ const ApiTokens = React.createClass({
           ))}
 
           <div className="form-actions" style={{textAlign: 'right'}}>
-            <Link to="/api/new-token/" className="btn btn-primary">{t('Create New Token')}</Link>
+            <Link to="/api/new-token/" className="btn btn-primary ref-create-token">{t('Create New Token')}</Link>
           </div>
         </div>
       </DocumentTitle>
