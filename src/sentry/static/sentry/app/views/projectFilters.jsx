@@ -317,6 +317,7 @@ const ProjectFilters = React.createClass({
       rawStatsData: null,
       processedStats: false,
       projectOptions: {},
+      blankStats: false,
     };
   },
 
@@ -397,14 +398,20 @@ const ProjectFilters = React.createClass({
   },
 
   processStatsData() {
+    let blank = true;
     let points = this.state.rawStatsData.map(point => {
+      let [x, y] = point;
+      if (y > 0) {
+        blank = false;
+      }
       return {
-        x: point[0],
-        y: [point[1]],
+        x: x,
+        y: [y],
       };
     });
     this.setState({
       stats: points,
+      blankStats: blank,
     });
   },
 
@@ -477,6 +484,7 @@ const ProjectFilters = React.createClass({
             <h6>{t('Errors filtered in the last 7 days (by hour)')}</h6>
           </div>
           <div className="panel-body p-a-0">
+          {!this.state.blankStats ?
             <div className="inbound-filters-stats p-a-1">
               <div className="bar-chart">
                 <StackedBarChart
@@ -485,11 +493,12 @@ const ProjectFilters = React.createClass({
                   barClasses={['filtered']}
                   className="sparkline m-b-0" />
               </div>
-            </div>
+            </div> :
             <div className="blankslate p-y-2">
               <h5>{t('Nothing filtered in the last 7 days.')}</h5>
               <p className="m-b-0">{t('Issues filtered as a result of your settings below will be shown here.')}</p>
             </div>
+          }
           </div>
         </div>
         {this.state.filterList.map(filter => {
