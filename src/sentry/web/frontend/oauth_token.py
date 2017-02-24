@@ -93,5 +93,8 @@ class OAuthTokenView(View):
             'scope': ' '.join(k for k, v in token.scopes.iteritems() if v),  # NOQA
             'user': {
                 'id': six.text_type(token.user.id),
-            }
+                # we might need these to become scope based
+                'name': token.user.name,
+                'email': token.user.email,
+            },
         }), content_type='application/json')
