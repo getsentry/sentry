@@ -4,10 +4,12 @@ import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
+import DateTime from '../components/dateTime';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
+import {sortArray} from '../utils';
 
 const ApiTokenRow = React.createClass({
   propTypes: {
@@ -52,11 +54,46 @@ const ApiTokenRow = React.createClass({
     if (this.state.loading)
       btnClassName += ' disabled';
 
+    if (token.application) {
+      return (
+        <tr>
+          <td>
+            <h5 style={{marginBottom: 5}}>{token.application.name}</h5>
+            {token.homepageUrl &&
+              <div style={{marginBottom: 5}}>
+                <small><a href={token.homepageUrl}>{token.homepageUrl}</a></small>
+              </div>
+            }
+            <div style={{marginBottom: 5}}>
+              <small>Created <DateTime value={token.dateCreated} /></small>
+            </div>
+            <div>
+              <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+            </div>
+          </td>
+          <td style={{width: 32}}>
+            <a onClick={this.onRemove.bind(this, token)}
+               className={btnClassName}
+               disabled={this.state.loading}>
+              <span className="icon icon-trash" />
+            </a>
+          </td>
+        </tr>
+      );
+    }
+
     return (
       <tr>
         <td>
-          <small><AutoSelectText>{token.token}</AutoSelectText></small>
-          <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+          <div style={{marginBottom: 5}}>
+            <small><AutoSelectText>{token.token}</AutoSelectText></small>
+          </div>
+          <div style={{marginBottom: 5}}>
+            <small>Created <DateTime value={token.dateCreated} /></small>
+          </div>
+          <div>
+            <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+          </div>
         </td>
         <td style={{width: 32}}>
           <a onClick={this.onRemove.bind(this, token)}
@@ -128,14 +165,50 @@ const ApiTokens = React.createClass({
       );
     }
 
-    return this.state.tokenList.map((token) => {
-      return (
-        <ApiTokenRow
-          key={token.token}
-          token={token}
-          onRemove={this.onRemoveToken.bind(this, token)} />
-      );
+    let appTokens = [];
+    let myTokens = [];
+    this.state.tokenList.forEach((token) => {
+      if (token.application) {
+        appTokens.push(token);
+      } else {
+        myTokens.push(token);
+      }
     });
+
+    return (
+      <div>
+        {myTokens.length !== 0 &&
+          <div>
+            <h4>My Tokens</h4>
+            <table className="table">
+              <tbody>
+              {myTokens.map((token) => {
+                return <ApiTokenRow
+                  key={token.token}
+                  token={token}
+                  onRemove={this.onRemoveToken.bind(this, token)} />;
+              })}
+              </tbody>
+            </table>
+          </div>
+        }
+        {appTokens.length !== 0 &&
+          <div>
+            <h4>Applications</h4>
+            <table className="table">
+              <tbody>
+              {appTokens.map((token) => {
+                return <ApiTokenRow
+                  key={token.token}
+                  token={token}
+                  onRemove={this.onRemoveToken.bind(this, token)} />;
+              })}
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    );
   },
 
   getTitle() {
@@ -153,17 +226,13 @@ const ApiTokens = React.createClass({
 
           <p><small>psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that under <strong>[Project] &raquo; Settings &raquo; Client Keys</strong>.</small></p>
 
-          <table className="table">
-            <tbody>
-              {(this.state.loading ?
-                <tr><td colSpan="2"><LoadingIndicator /></td></tr>
-              : (this.state.error ?
-                <tr><td colSpan="2"><LoadingError onRetry={this.fetchData} /></td></tr>
-              :
-                this.renderResults()
-              ))}
-            </tbody>
-          </table>
+          {(this.state.loading ?
+            <LoadingIndicator />
+          : (this.state.error ?
+            <LoadingError onRetry={this.fetchData} />
+          :
+            this.renderResults()
+          ))}
 
           <div className="form-actions" style={{textAlign: 'right'}}>
             <Link to="/api/new-token/" className="btn btn-primary">{t('Create New Token')}</Link>

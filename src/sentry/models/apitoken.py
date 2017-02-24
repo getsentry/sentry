@@ -5,7 +5,7 @@ import six
 from bitfield import BitField
 from datetime import timedelta
 from django.conf import settings
-from django.db import models
+from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from uuid import uuid4
 
@@ -41,6 +41,7 @@ class ApiToken(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_apitoken'
+        unique_together = (('application', 'user'),)
 
     __repr__ = sane_repr('key_id', 'user_id', 'token')
 
@@ -53,11 +54,20 @@ class ApiToken(Model):
 
     @classmethod
     def from_grant(cls, grant):
-        return cls.objects.create(
-            application=grant.application,
-            user=grant.user,
-            scopes=grant.scopes,
-        )
+        try:
+            with transaction.atomic():
+                return cls.objects.create(
+                    application=grant.application,
+                    user=grant.user,
+                    scopes=grant.scopes,
+                )
+        except IntegrityError:
+            instance = cls.objects.get(
+                application=grant.application,
+                user=grant.user,
+            )
+            instance.update(scopes=grant.scopes)
+            return instance
 
     def is_expired(self):
         if not self.expires_at:
