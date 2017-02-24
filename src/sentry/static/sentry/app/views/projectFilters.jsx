@@ -378,7 +378,7 @@ const ProjectFilters = React.createClass({
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
-      success: (data, _, jqXHR) => {
+      success: (data, textStatus, jqXHR) => {
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
