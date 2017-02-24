@@ -4,29 +4,35 @@ import six
 
 from django.http import HttpResponse
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import View
 
 from sentry.models import (
     ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
 )
 from sentry.utils import json
-from sentry.web.frontend.base import BaseView
 
 
-class OAuthTokenView(BaseView):
+class OAuthTokenView(View):
+    @csrf_exempt
+    @never_cache
+    def dispatch(self, request, *args, **kwargs):
+        return super(OAuthTokenView, self).dispatch(request, *args, **kwargs)
+
     def error(self, name, status=400):
         return HttpResponse(json.dumps({
             'error': name,
-        }), status=status)
+        }), content_type='application/json', status=status)
 
-    @csrf_exempt
+    @never_cache
     def post(self, request):
-        grant_type = request.GET.get('grant_type')
+        grant_type = request.POST.get('grant_type')
 
         if grant_type == 'authorization_code':
-            client_id = request.GET.get('client_id')
-            redirect_uri = request.GET.get('redirect_uri')
-            code = request.GET.get('code')
+            client_id = request.POST.get('client_id')
+            redirect_uri = request.POST.get('redirect_uri')
+            code = request.POST.get('code')
 
             if not client_id:
                 return self.error('invalid_client')
@@ -88,4 +94,4 @@ class OAuthTokenView(BaseView):
             'user': {
                 'id': six.text_type(token.user.id),
             }
-        }))
+        }), content_type='application/json')

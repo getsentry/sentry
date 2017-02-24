@@ -45,11 +45,12 @@ class OAuthTokenCodeTest(TestCase):
     def test_invalid_grant_type(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=foo'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'foo',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'client_id': self.application.client_id,
+            'code': self.grant.code,
+        })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'unsupported_grant_type'}
@@ -57,10 +58,11 @@ class OAuthTokenCodeTest(TestCase):
     def test_missing_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=authorization_code&redirect_uri={}&code=abc'.format(
-            self.path,
-            'https://example.com',
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'code': self.grant.code,
+        })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -68,10 +70,12 @@ class OAuthTokenCodeTest(TestCase):
     def test_invalid_client_id(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=authorization_code&redirect_uri={}&client_id=abc&code=abc'.format(
-            self.path,
-            'https://example.com',
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'code': self.grant.code,
+            'client_id': 'def',
+        })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_client'}
@@ -79,11 +83,11 @@ class OAuthTokenCodeTest(TestCase):
     def test_missing_code(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=authorization_code&redirect_uri={}&client_id={}'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'client_id': self.application.client_id,
+        })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
@@ -91,23 +95,25 @@ class OAuthTokenCodeTest(TestCase):
     def test_invalid_code(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=authorization_code&redirect_uri={}&client_id={}&code=abc'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'code': 'abc',
+            'client_id': self.application.client_id,
+        })
+
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
 
     def test_valid_params(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=authorization_code&redirect_uri={}&code={}&client_id={}'.format(
-            self.path,
-            self.application.get_default_redirect_uri(),
-            self.grant.code,
-            self.application.client_id,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'code': self.grant.code,
+            'client_id': self.application.client_id,
+        })
 
         assert resp.status_code == 200
         data = json.loads(resp.content)

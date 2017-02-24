@@ -3,19 +3,13 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_auth %}
+{% load sentry_avatars %}
 
 {% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
   <div class="sso-link">
-    <span class="avatar">
-      {% letter_avatar_svg existing_user.get_display_name existing_user.get_label %}
-      {% if existing_user.get_avatar_type == 'upload' %}
-        <img src="{% profile_photo_url existing_user.id size 36 %}">
-      {% elif existing_user.get_avatar_type == 'gravatar' %}
-        <img src="{% gravatar_url existing_user.email size 36 default 'blank' %}">
-      {% endif %}
-    </span>
+    {% avatar user %}
     <span class="icon-arrow-right"></span>
     <span class="icon-arrow-left"></span>
     <span class="avatar">
@@ -26,12 +20,11 @@
   <form class="form-stacked" action="" method="post" autocomplete="off">
     {% csrf_token %}
 
-    <div class="align-center">
+    <div>
       <p>{{ app.name }} is requesting access to your Sentry account:</p>
       <ul>
-        <li>Your email address and basic account details.</li>
         {% for permission in permissions %}
-          <li>{{ perrmision }}</li>
+          <li>{{ permission }}</li>
         {% endfor %}
       </ul>
     </div>

@@ -63,7 +63,7 @@ class ApiApplication(Model):
 
     @property
     def is_active(self):
-        return self.status == ApiApplicationStatus.ACTIVE
+        return self.status == ApiApplicationStatus.active
 
     def is_allowed_response_type(self, value):
         return value in ('code', 'token')

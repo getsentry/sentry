@@ -5,6 +5,7 @@ import six
 from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import (
@@ -14,6 +15,10 @@ from sentry.web.frontend.base import BaseView
 
 
 class OAuthAuthorizeView(BaseView):
+    @never_cache
+    def dispatch(self, request, *args, **kwargs):
+        return super(OAuthAuthorizeView, self).dispatch(request, *args, **kwargs)
+
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == 'token':
             return self.redirect('{}#{}'.format(
@@ -111,6 +116,8 @@ class OAuthAuthorizeView(BaseView):
             raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
 
         context = {
+            'app': application,
+            'user': request.user,
             'application': application,
             'scopes': scopes,
             'permissions': permissions,

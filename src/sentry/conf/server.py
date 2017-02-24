@@ -1025,7 +1025,7 @@ SENTRY_SCOPE_SETS = (
         ('project:read', 'Read access to projects.'),
     ),
     (
-        ('project:releases', 'read, write, and admin access to project releases.'),
+        ('project:releases', 'Read, write, and admin access to project releases.'),
     ),
     (
         ('event:delete', 'Read, write, and admin access to events.'),
