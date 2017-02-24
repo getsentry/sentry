@@ -301,8 +301,12 @@ const ProjectProcessingIssues = React.createClass({
             }
             <div className="col-md-9" style={{marginBottom: 20}}>
               <h5 style={{marginBottom: 10}}>Reprocessing active</h5>
-              {t(`When you save the changes all Processing
-                  Issues will be deleted and future Events can be reprocessed.`)}
+              {t(`If reprocessing is enabled, Events with fixable issues will be
+                held back until you resolve them. Processing issues will then
+                show up in the list above with hints how to fix them.
+                If reprocessing is disabled Events with unresolved issues will also
+                show up in the stream.
+                `)}
             </div>
             <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
               <Switch size="lg"
