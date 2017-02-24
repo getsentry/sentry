@@ -92,3 +92,12 @@ def generate_secret_key():
     "Generate a new cryptographically secure secret key value."
     from sentry.runner.settings import generate_secret_key
     click.echo(generate_secret_key())
+
+
+@config.command()
+def discover():
+    "Print paths to config files."
+    from sentry.runner.settings import discover_configs
+    _, py, yaml = discover_configs()
+    click.echo(py)
+    click.echo(yaml)
