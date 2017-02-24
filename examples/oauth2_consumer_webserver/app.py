@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import os
 import six
 
@@ -43,7 +44,12 @@ sentry = oauth.remote_app(
 def index():
     access_token = session.get('access_token')
     if access_token is None:
-        return redirect(url_for('login'))
+        return (
+            '<h1>Who are you?</h1>'
+            '<p><a href="{}">Login with Sentry</a></p>'
+        ).format(
+            url_for('login'),
+        )
 
     from urllib2 import Request, urlopen, URLError
     headers = {'Authorization': 'Bearer {}'.format(access_token)}
@@ -58,7 +64,13 @@ def index():
             return redirect(url_for('login'))
         return '{}\n{}'.format(six.text_type(e), e.read())
 
-    return res.read()
+    return (
+        '<h1>Hi, {}!</h1>'
+        '<pre>{}</pre>'
+    ).format(
+        json.loads(session['user'])['email'],
+        json.dumps(json.loads(res.read()), indent=2),
+    )
 
 
 @app.route('/login')
@@ -72,6 +84,7 @@ def login():
 def authorized(resp):
     access_token = resp['access_token']
     session['access_token'] = access_token
+    session['user'] = json.dumps(resp['user'])
     return redirect(url_for('index'))
 
 
