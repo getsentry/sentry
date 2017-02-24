@@ -196,7 +196,7 @@ const Sidebar = React.createClass({
           hidePanel={()=>this.hidePanel()} />
         <li>
           <a title="Support" href={!config.isOnPremise ? `/organizations/${org.slug}/support/` : 'https://forum.sentry.io/'}>
-            <span className="icon icon-support">?</span>
+            <span className="icon icon-support" />
           </a>
         </li>
       </ul>
