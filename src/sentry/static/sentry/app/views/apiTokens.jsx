@@ -194,7 +194,7 @@ const ApiTokens = React.createClass({
         }
         {appTokens.length !== 0 &&
           <div>
-            <h4>Applications</h4>
+            <h4>Approved Applications</h4>
             <table className="table">
               <tbody>
               {appTokens.map((token) => {
