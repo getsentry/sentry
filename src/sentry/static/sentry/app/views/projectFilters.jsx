@@ -227,7 +227,7 @@ const ProjectFiltersSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: {...formData},
       hasChanged: true,
     });
   },
@@ -335,19 +335,16 @@ const ProjectFilters = React.createClass({
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/filters/`, {
       success: (data, textStatus, jqXHR) => {
+        this.setState({filterList: data});
+      },
+      error: () => {
+        this.setState({error: true});
+      },
+      complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
           loading: expected > 0,
-          filterList: data
-        });
-      },
-      error: () => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          error: true,
-          expected: expected,
-          loading: expected > 0
         });
       }
     });
@@ -360,38 +357,32 @@ const ProjectFilters = React.createClass({
         stat: 'blacklisted',
       },
       success: (data) => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          expected: expected,
-          loading: expected > 0,
-          rawStatsData: data,
-        });
+        this.setState({rawStatsData: data});
       },
       error: () => {
+        this.setState({error: true});
+      },
+      complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
           loading: expected > 0,
-          error: true,
         });
       }
     });
 
     this.api.request(`/projects/${orgId}/${projectId}/`, {
       success: (data, textStatus, jqXHR) => {
+        this.setState({projectOptions: data.options});
+      },
+      error: () => {
+        this.setState({error: true});
+      },
+      complete: () => {
         let expected = this.state.expected - 1;
         this.setState({
           expected: expected,
           loading: expected > 0,
-          projectOptions: data.options,
-        });
-      },
-      error: () => {
-        let expected = this.state.expected - 1;
-        this.setState({
-          expected: expected,
-          error: true,
-          loading: expected > 0
         });
       }
     });
