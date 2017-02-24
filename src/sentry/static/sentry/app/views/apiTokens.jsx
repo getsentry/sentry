@@ -158,11 +158,15 @@ const ApiTokens = React.createClass({
   renderResults() {
     if (this.state.tokenList.length === 0) {
       return (
-        <tr colSpan="2">
-          <td className="blankslate well">
-            {t('You haven\'t created any authentication tokens yet.')}
-          </td>
-        </tr>
+        <table className="table">
+          <tbody>
+            <tr colSpan="2">
+              <td className="blankslate well">
+                {t('You haven\'t created any authentication tokens yet.')}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       );
     }
 
