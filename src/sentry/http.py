@@ -22,7 +22,7 @@ from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
 from django.conf import settings
 from requests.adapters import HTTPAdapter
-from requests.exceptions import SSLError, RequestException, Timeout
+from requests.exceptions import SSLError, RequestException, Timeout, ReadTimeout
 from six.moves.urllib.parse import urlparse
 
 from sentry.models import EventError
@@ -302,7 +302,7 @@ def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
                     'type': EventError.SECURITY_VIOLATION,
                     'url': expose_url(url),
                 }
-            elif isinstance(exc, Timeout):
+            elif isinstance(exc, (Timeout, ReadTimeout)):
                 error = {
                     'type': EventError.FETCH_TIMEOUT,
                     'url': expose_url(url),
