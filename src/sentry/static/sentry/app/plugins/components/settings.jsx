@@ -148,6 +148,7 @@ class PluginSettings extends PluginComponentBase {
         }
         {this.state.fieldList.map(f => {
           return this.renderField({
+            key: f.name,
             config: f,
             formData: this.state.formData,
             formErrors: this.state.errors,

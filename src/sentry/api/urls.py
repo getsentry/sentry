@@ -17,6 +17,7 @@ from .endpoints.group_hashes import GroupHashesEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint
+from .endpoints.group_similar_issues import GroupSimilarIssuesEndpoint
 from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
@@ -41,6 +42,8 @@ from .endpoints.organization_member_team_details import OrganizationMemberTeamDe
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
 from .endpoints.organization_projects import OrganizationProjectsEndpoint
+from .endpoints.organization_releases import OrganizationReleasesEndpoint
+from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
@@ -74,8 +77,10 @@ from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
+from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint
+from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.release_commits import ReleaseCommitsEndpoint
-from .endpoints.release_details import ReleaseDetailsEndpoint
+from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.release_files import ReleaseFilesEndpoint
 from .endpoints.release_file_details import ReleaseFileDetailsEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, GlobalDSymFilesEndpoint, \
@@ -196,6 +201,12 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/repos/(?P<repo_id>[^\/]+)/commits/$',
         OrganizationRepositoryCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-repository-commits'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/$',
+        OrganizationReleasesEndpoint.as_view(),
+        name='sentry-api-0-organization-releases'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
+        OrganizationReleaseDetailsEndpoint.as_view(),
+        name='sentry-api-0-organization-release-details'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'),
@@ -278,8 +289,8 @@ urlpatterns = patterns(
         ProjectReleasesEndpoint.as_view(),
         name='sentry-api-0-project-releases'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
-        ReleaseDetailsEndpoint.as_view(),
-        name='sentry-api-0-release-details'),
+        ProjectReleaseDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-release-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
         ReleaseCommitsEndpoint.as_view(),
         name='sentry-api-0-release-commits'),
@@ -325,6 +336,12 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
         name='sentry-api-0-project-user-reports'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/$',
+        ProjectProcessingIssuesEndpoint.as_view(),
+        name='sentry-api-0-project-processing-issues'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$',
+        ProjectReprocessingEndpoint.as_view(),
+        name='sentry-api-0-project-reprocessing'),
 
     # Load plugin project urls
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$',
@@ -376,6 +393,9 @@ urlpatterns = patterns(
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/(?:user-feedback|user-reports)/$',
         GroupUserReportsEndpoint.as_view(),
         name='sentry-api-0-group-user-reports'),
+    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/similar/$',
+        GroupSimilarIssuesEndpoint.as_view(),
+        name='sentry-api-0-group-similar-issues'),
     # Load plugin group urls
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/plugins?/',
         include('sentry.plugins.base.group_api_urls')),

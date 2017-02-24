@@ -312,8 +312,6 @@ const Frame = React.createClass({
           </span>
           <span className="symbol">
             <code>{data.function || '<unknown>'}</code>
-            {data.instructionOffset &&
-              <span className="offset">{' + ' + data.instructionOffset}</span>}
             {data.filename &&
               <span className="filename">{data.filename}
                 {data.lineNo ? ':' + data.lineNo : ''}</span>}

@@ -40,7 +40,7 @@ class ShortIdLookupEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            group = Group.objects.by_qualified_short_id(organization, short_id)
+            group = Group.objects.by_qualified_short_id(organization.id, short_id)
         except Group.DoesNotExist:
             raise ResourceDoesNotExist()
 

@@ -30,7 +30,7 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
     GroupRelease, GroupResolution, GroupStatus, Project, Release,
-    ReleaseEnvironment, ReleaseProject, TagKey, UserReport
+    ReleaseEnvironment, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -462,7 +462,13 @@ class EventManager(object):
             # dont allow a conflicting 'release' tag
             if 'release' in tags:
                 del tags['release']
-            tags['sentry:release'] = release
+            release = Release.get_or_create(
+                project=project,
+                version=release,
+                date_added=date,
+            )
+
+            tags['sentry:release'] = release.version
 
         event_user = self._get_event_user(project, data)
         if event_user:
@@ -567,12 +573,6 @@ class EventManager(object):
         })
 
         if release:
-            release = Release.get_or_create(
-                project=project,
-                version=release,
-                date_added=date,
-            )
-
             group_kwargs['first_release'] = release
 
         group, is_new, is_regression, is_sample = self._save_aggregate(
@@ -691,9 +691,8 @@ class EventManager(object):
             ), timestamp=event.datetime)
 
         if is_new and release:
-            buffer.incr(ReleaseProject, {'new_groups': 1}, {
-                'release_id': release.id,
-                'project_id': project.id
+            buffer.incr(Release, {'new_groups': 1}, {
+                'id': release.id,
             })
 
         safe_execute(Group.objects.add_tags, group, tags,

@@ -7,6 +7,7 @@ import sys
 import json
 import logging
 
+from click import echo
 import sentry
 
 BASE_URL = 'https://docs.sentry.io/hosted/_platforms/{}'
@@ -75,7 +76,7 @@ def get_integration_id(platform_id, integration_id):
 
 
 def sync_docs():
-    print('syncing documentation (platform index)')
+    echo('syncing documentation (platform index)')
     body = urlopen(BASE_URL.format('_index.json')).read().decode('utf-8')
     data = json.loads(body)
     platform_list = []
@@ -107,7 +108,7 @@ def sync_docs():
 
 
 def sync_integration_docs(platform_id, integration_id, path):
-    print('  syncing documentation for %s.%s integration' % (
+    echo('  syncing documentation for %s.%s integration' % (
         platform_id, integration_id
     ))
 

@@ -1333,6 +1333,7 @@ div.traceback > ul {
       display: flex;
       align-items: baseline;
       width: 100%;
+      padding-left: 15px;
 
       > span {
         display: block;
@@ -1585,6 +1586,9 @@ div.traceback > ul {
           width: auto;
         }
       }
+      .title.as-table {
+        padding-left: 15px;
+      }
       .in-at-line, .lineno, .btn-toggle, .address {
         display: none;
       }
@@ -1814,11 +1818,27 @@ div.commands {
   position: relative;
   .clearfix;
 
+  &.hint {
+    border-top: 1px solid @purple-lightest !important;
+    background: lighten(@purple-lightest, 15%);
+    margin-top: -1px !important;
+    padding-top: 15px !important;
+    font-size: 14px;
+    position: relative;
+  }
+
   .icon-alert {
     position: absolute;
     top: 17px;
     font-size: 16px;
     color: @red;
+  }
+
+  .icon-question.event {
+    position: absolute;
+    top: 17px;
+    font-size: 16px;
+    color: black;
   }
 
   .box-content {

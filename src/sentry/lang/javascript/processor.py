@@ -62,6 +62,7 @@ VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 # fetched
 MAX_RESOURCE_FETCHES = 100
 MAX_URL_LENGTH = 150
+NODE_MODULES_RE = re.compile(r'\bnode_modules/')
 
 # TODO(dcramer): we want to change these to be constants so they are easier
 # to translate/link again
@@ -625,7 +626,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             ])
         return frames
 
-    def preprocess_related_data(self):
+    def preprocess_step(self, processing_task):
         frames = self.get_valid_frames()
         if not frames:
             logger.debug('Event %r has no frames with enough context to '
@@ -640,11 +641,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.populate_source_cache(frames)
         return True
 
-    def process_frame(self, frame):
-        if not settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT or \
-           self.get_effective_platform(frame) != 'javascript':
-            return
+    def handles_frame(self, frame, stacktrace_info):
+        platform = frame.get('platform') or self.data.get('platform')
+        return (
+            settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and
+            platform == 'javascript'
+        )
 
+    def process_frame(self, processable_frame, processing_task):
+        frame = processable_frame.frame
         last_token = None
         token = None
 
@@ -695,8 +700,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 token = None
                 all_errors.append({
                     'type': EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    'column': frame['colno'],
-                    'row': frame['lineno'],
+                    'column': frame.get('colno'),
+                    'row': frame.get('lineno'),
                     'source': frame['abs_path'],
                     'sourcemap': sourcemap_label,
                 })
@@ -760,10 +765,16 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     # We want to explicitly generate a webpack module name
                     new_frame['module'] = generate_module(filename)
 
+                if abs_path.startswith('app:'):
+                    if NODE_MODULES_RE.search(filename):
+                        in_app = False
+                    else:
+                        in_app = True
+
                 new_frame['abs_path'] = abs_path
                 new_frame['filename'] = filename
                 if not frame.get('module') and abs_path.startswith(
-                        ('http:', 'https:', 'webpack:')):
+                        ('http:', 'https:', 'webpack:', 'app:')):
                     new_frame['module'] = generate_module(abs_path)
 
         elif sourcemap_url:

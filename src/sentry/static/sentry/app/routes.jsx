@@ -48,6 +48,7 @@ import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectDebugSymbols from './views/projectDebugSymbols';
+import ProjectProcessingIssues from './views/projectProcessingIssues';
 import ProjectSettings from './views/projectSettings';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
@@ -160,6 +161,7 @@ function routes() {
             <Route path="filters/" component={errorHandler(ProjectFilters)} />
             <Route path="saved-searches/" component={errorHandler(ProjectSavedSearches)} />
             <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
+            <Route path="processing-issues/" component={errorHandler(ProjectProcessingIssues)} />
             <Route path="user-feedback/" component={errorHandler(ProjectUserReportSettings)} />
             <Route path="csp/" component={errorHandler(ProjectCspSettings)} />
             <Route path="install/" component={errorHandler(ProjectDocsContext)}>

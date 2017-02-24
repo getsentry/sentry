@@ -2,20 +2,29 @@ from __future__ import absolute_import
 
 import re
 import six
+import bisect
 
 from symsynd.driver import Driver, SymbolicationError, normalize_dsym_path
 from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
+from symsynd.utils import parse_addr
+
+from django.core.cache import cache
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
 from sentry.models import DSymSymbol, EventError
-from sentry.constants import MAX_SYM
+from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 
+FATAL_ERRORS = (
+    EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_BAD_DSYM,
+)
 USER_FIXABLE_ERRORS = (
     EventError.NATIVE_MISSING_DSYM,
+    EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM,
     EventError.NATIVE_BAD_DSYM,
     EventError.NATIVE_MISSING_SYMBOL,
 )
@@ -24,10 +33,10 @@ APP_BUNDLE_PATHS = (
     '/private/var/containers/Bundle/Application/',
 )
 _sim_platform_re = re.compile(r'/\w+?Simulator\.platform/')
-_known_app_bundled_frameworks_re = re.compile(r'''(?x)
+_support_framework = re.compile(r'''(?x)
     /Frameworks/(
             libswift([a-zA-Z0-9]+)\.dylib$
-        |   (KSCrash|SentrySwift)\.framework/
+        |   (KSCrash|SentrySwift|Sentry)\.framework/
     )
 ''')
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
@@ -36,7 +45,7 @@ SIM_APP_PATH = '/Containers/Bundle/Application/'
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
     '<redacted>',
-    '<unknown>',
+    NATIVE_UNKNOWN_STRING,
 ])
 
 
@@ -66,9 +75,14 @@ class SymbolicationFailed(Exception):
         return self.type in USER_FIXABLE_ERRORS
 
     @property
+    def is_fatal(self):
+        """If this is true then a processing issues has to be reported."""
+        return self.type in FATAL_ERRORS
+
+    @property
     def is_sdk_failure(self):
         """An error that most likely happened because of a bad SDK."""
-        return self.type == 'unknown-image'
+        return self.type == EventError.NATIVE_UNKNOWN_IMAGE
 
     def __str__(self):
         rv = []
@@ -89,21 +103,22 @@ def trim_frame(frame):
     return frame
 
 
-def find_system_symbol(img, instruction_addr, sdk_info=None):
+def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
     """Finds a system symbol."""
+    img_cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
+    cpu_name = img_cpu_name or cpu_name
     return DSymSymbol.objects.lookup_symbol(
         instruction_addr=instruction_addr,
         image_addr=img['image_addr'],
         image_vmaddr=img['image_vmaddr'],
         uuid=img['uuid'],
-        cpu_name=get_cpu_name(img['cpu_type'],
-                              img['cpu_subtype']),
+        cpu_name=cpu_name,
         object_path=img['name'],
         sdk_info=sdk_info
     )
 
 
-def make_symbolizer(project, binary_images, referenced_images=None):
+def make_symbolizer(project, image_lookup, referenced_images=None):
     """Creates a symbolizer for the given project and binary images.  If a
     list of referenced images is referenced (UUIDs) then only images
     needed by those frames are loaded.
@@ -112,7 +127,7 @@ def make_symbolizer(project, binary_images, referenced_images=None):
 
     to_load = referenced_images
     if to_load is None:
-        to_load = [x['uuid'] for x in binary_images]
+        to_load = image_lookup.get_uuids()
 
     dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
 
@@ -120,21 +135,58 @@ def make_symbolizer(project, binary_images, referenced_images=None):
     # symbolizer to avoid the expensive FS operations that will otherwise
     # happen.
     user_images = []
-    for img in binary_images:
+    for img in image_lookup.iter_images():
         if img['uuid'] in loaded:
             user_images.append(img)
 
     return ReportSymbolizer(driver, dsym_paths, user_images)
 
 
+class ImageLookup(object):
+
+    def __init__(self, images):
+        self._image_addresses = []
+        self.images = {}
+        for img in images:
+            img_addr = parse_addr(img['image_addr'])
+            self._image_addresses.append(img_addr)
+            self.images[img_addr] = img
+        self._image_addresses.sort()
+
+    def iter_images(self):
+        return six.itervalues(self.images)
+
+    def get_uuids(self):
+        return list(self.iter_uuids())
+
+    def iter_uuids(self):
+        for img in self.iter_images():
+            yield img['uuid']
+
+    def find_image(self, addr):
+        """Given an instruction address this locates the image this address
+        is contained in.
+        """
+        idx = bisect.bisect_left(self._image_addresses, parse_addr(addr))
+        if idx > 0:
+            return self.images[self._image_addresses[idx - 1]]
+
+
 class Symbolizer(object):
+    """This symbolizer dispatches to both symsynd and the system symbols
+    we have in the database and reports errors slightly differently.
+    """
 
     def __init__(self, project, binary_images, referenced_images=None,
-                 is_debug_build=None):
+                 cpu_name=None):
+        if isinstance(binary_images, ImageLookup):
+            self.image_lookup = binary_images
+        else:
+            self.image_lookup = ImageLookup(binary_images)
         self.symsynd_symbolizer = make_symbolizer(
-            project, binary_images, referenced_images=referenced_images)
-        self.images = dict((img['image_addr'], img) for img in binary_images)
-        self.is_debug_build = is_debug_build
+            project, self.image_lookup,
+            referenced_images=referenced_images)
+        self.cpu_name = cpu_name
 
     def resolve_missing_vmaddrs(self):
         """When called this changes the vmaddr on all contained images from
@@ -145,13 +197,15 @@ class Symbolizer(object):
         changed_any = False
 
         loaded_images = self.symsynd_symbolizer.images
-        for image_addr, image in six.iteritems(self.images):
+        for image_addr, image in six.iteritems(self.image_lookup.images):
             if image.get('image_vmaddr') or not image.get('image_addr'):
                 continue
-            image_info = loaded_images.get(image['image_addr'])
+            image_info = loaded_images.get(image_addr)
             if not image_info:
                 continue
             dsym_path = normalize_dsym_path(image_info['dsym_path'])
+            # Here we use the CPU name from the image as it might be
+            # slightly different (armv7 vs armv7f for instance)
             cpu_name = image_info['cpu_name']
             image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name)
             if image_vmaddr:
@@ -173,6 +227,7 @@ class Symbolizer(object):
                ('/' not in rv['object_name'] and '/' in img['name']):
                 rv['object_name'] = img['name']
             rv['uuid'] = img['uuid']
+
         return rv
 
     def _get_frame_package(self, frame, img):
@@ -181,39 +236,66 @@ class Symbolizer(object):
             return obj_name
         return img['name']
 
-    def _is_app_bundled_frame(self, frame, img):
+    def _is_frame_from_app_bundle(self, frame, img):
         fn = self._get_frame_package(frame, img)
         if not (fn.startswith(APP_BUNDLE_PATHS) or
                 (SIM_PATH in fn and SIM_APP_PATH in fn)):
             return False
         return True
 
+    def _is_support_framework(self, frame, img):
+        """True if the frame is from a framework that is known and app
+        bundled.  Those are frameworks which are specifically not frameworks
+        that are ever in_app.
+        """
+        fn = self._get_frame_package(frame, img)
+        return _support_framework.search(fn) is not None
+
     def _is_app_bundled_framework(self, frame, img):
         fn = self._get_frame_package(frame, img)
-        return _known_app_bundled_frameworks_re.search(fn) is not None
+        return fn.startswith(APP_BUNDLE_PATHS) and '/Frameworks/' in fn
 
     def _is_app_frame(self, frame, img):
-        if not self._is_app_bundled_frame(frame, img):
+        """Given a frame derives the value of `in_app` by discarding the
+        original value of the frame.
+        """
+        if not self._is_frame_from_app_bundle(frame, img):
             return False
         return not self._is_app_bundled_framework(frame, img)
 
-    def _is_optional_app_bundled_framework(self, frame, img):
-        if not self._is_app_bundled_framework(frame, img):
+    def _is_optional_dsym(self, frame, img):
+        """Checks if this is a dsym that is optional."""
+        # Frames that are not in the app are not considered optional.  In
+        # theory we should never reach this anyways.
+        if not self._is_frame_from_app_bundle(frame, img):
             return False
-        symbol_name = frame.get('symbol_name')
-        return symbol_name and symbol_name not in KNOWN_GARBAGE_SYMBOLS
+
+        # If we're dealing with an app bundled framework that is also
+        # considered optional.
+        if self._is_app_bundled_framework(frame, img):
+            return True
+
+        # Frameworks that are known to sentry and bundled helpers are always
+        # optional for now.  In theory this should always be False here
+        # because we should catch it with the last branch already.
+        if self._is_support_framework(frame, img):
+            return True
+
+        return False
 
     def _is_simulator_frame(self, frame, img):
         fn = self._get_frame_package(frame, img)
         return _sim_platform_re.search(fn) is not None
 
     def is_in_app(self, frame):
-        img = self.images.get(frame['object_addr'])
+        img = self.image_lookup.find_image(frame['instruction_addr'])
         return img is not None and self._is_app_frame(frame, img)
 
-    def symbolize_app_frame(self, frame, img):
-        if frame['object_addr'] not in self.symsynd_symbolizer.images:
-            if self._is_optional_app_bundled_framework(frame, img):
+    def symbolize_app_frame(self, frame, img, symbolize_inlined=False):
+        # If we have an image but we can't find the image in the symsynd
+        # symbolizer it means we are dealing with a missing dsym here.
+        if parse_addr(img['image_addr']) not in self.symsynd_symbolizer.images:
+            if self._is_optional_dsym(frame, img):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
@@ -223,8 +305,9 @@ class Symbolizer(object):
             )
 
         try:
-            new_frame = self.symsynd_symbolizer.symbolize_frame(
-                frame, silent=False, demangle=False)
+            rv = self.symsynd_symbolizer.symbolize_frame(
+                frame, silent=False, demangle=False,
+                symbolize_inlined=symbolize_inlined)
         except SymbolicationError as e:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
@@ -232,17 +315,43 @@ class Symbolizer(object):
                 image=img
             )
 
-        if new_frame is None:
+        if not rv:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_MISSING_SYMBOL,
                 image=img
             )
 
-        return self._process_frame(new_frame, img)
+        if symbolize_inlined:
+            return [self._process_frame(nf, img) for nf in rv]
+        return self._process_frame(rv, img)
 
-    def symbolize_system_frame(self, frame, img, sdk_info):
+    def symbolize_system_frame(self, frame, img, sdk_info,
+                               symbolize_inlined=False):
         """Symbolizes a frame with system symbols only."""
-        symbol = find_system_symbol(img, frame['instruction_addr'], sdk_info)
+        # This is most likely a good enough cache match even though we are
+        # ignoring the image here since we cache by instruction address.
+        #
+        # In some cases old clients might not send an sdk_info with it
+        # in which case the caching won't work.
+        if sdk_info is not None:
+            cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
+                frame['instruction_addr'],
+                get_cpu_name(img['cpu_type'], img['cpu_subtype']),
+                sdk_info['sdk_name'],
+                sdk_info['dsym_type'],
+                sdk_info['version_major'],
+                sdk_info['version_minor'],
+                sdk_info['version_patchlevel'],
+            )
+            symbol = cache.get(cache_key)
+        else:
+            cache_key = None
+            symbol = None
+
+        if symbol is None:
+            symbol = find_system_symbol(
+                img, frame['instruction_addr'], sdk_info, self.cpu_name)
+
         if symbol is None:
             # Simulator frames cannot be symbolicated
             if self._is_simulator_frame(frame, img):
@@ -253,14 +362,30 @@ class Symbolizer(object):
                 type=type,
                 image=img
             )
+        elif cache_key is not None:
+            cache.set(cache_key, symbol, 3600)
 
-        rv = dict(frame, symbol_name=symbol, filename=None,
-                  line=0, column=0, uuid=img['uuid'],
-                  object_name=img['name'])
-        return self._process_frame(rv, img)
+        rv = self._process_frame(dict(frame,
+            symbol_name=symbol, filename=None, line=0, column=0,
+            object_name=img['name']), img)
 
-    def symbolize_frame(self, frame, sdk_info=None):
-        img = self.images.get(frame['object_addr'])
+        # We actually do not support inline symbolication for system
+        # frames, so we just only ever return a single frame here.  Maybe
+        # we can improve this in the future.
+        if symbolize_inlined:
+            return [rv]
+        return rv
+
+    def symbolize_frame(self, frame, sdk_info=None, symbolize_inlined=False):
+        # If we do not have a CPU name we fail.  We currently only support
+        # a single cpu architecture.
+        if self.cpu_name is None:
+            raise SymbolicationFailed(
+                type=EventError.NATIVE_INTERNAL_FAILURE,
+                message='Found multiple architectures.'
+            )
+
+        img = self.image_lookup.find_image(frame['instruction_addr'])
         if img is None:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_UNKNOWN_IMAGE
@@ -269,12 +394,14 @@ class Symbolizer(object):
         # If we are dealing with a frame that is not bundled with the app
         # we look at system symbols.  If that fails, we go to looking for
         # app symbols explicitly.
-        if not self._is_app_bundled_frame(frame, img):
-            return self.symbolize_system_frame(frame, img, sdk_info)
+        if not self._is_frame_from_app_bundle(frame, img):
+            return self.symbolize_system_frame(frame, img, sdk_info,
+                                               symbolize_inlined)
 
-        return self.symbolize_app_frame(frame, img)
+        return self.symbolize_app_frame(frame, img, symbolize_inlined)
 
     def symbolize_backtrace(self, backtrace, sdk_info=None):
+        # TODO: kill me.  This makes bad results
         rv = []
         errors = []
         idx = -1
