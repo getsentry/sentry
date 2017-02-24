@@ -4,7 +4,7 @@ import json
 import os
 import six
 
-from flask import Flask, redirect, url_for, session
+from flask import Flask, redirect, url_for, request, session
 from flask_oauth import OAuth
 
 
@@ -82,6 +82,15 @@ def login():
 @app.route(REDIRECT_URI)
 @sentry.authorized_handler
 def authorized(resp):
+    if 'error' in request.args:
+        return (
+            '<h1>Error</h1>'
+            '<p>{}</p>'
+            '<p><a href="{}">Try again</a></p>'
+        ).format(
+            request.args['error'],
+            url_for('login'),
+        )
     access_token = resp['access_token']
     session['access_token'] = access_token
     session['user'] = json.dumps(resp['user'])
