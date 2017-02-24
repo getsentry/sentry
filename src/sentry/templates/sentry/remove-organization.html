@@ -2,12 +2,13 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block org_settings_nav %}active{% endblock %}
 
 {% block main %}
   <div class="page-header">
-    <h2>Remove Organization</h2>
+    <h2>{% trans "Remove Organization" %}</h2>
   </div>
 
   <form class="form-stacked" action="" method="post">
@@ -33,7 +34,7 @@
 
     <fieldset class="form-actions">
       <button type="submit" class="btn btn-danger">{% trans "Remove Organization" %}</button>
-      <a href="{% url 'sentry-organization-settings' organization.slug %}" class="btn btn-default">{% trans "Cancel" %}</a>
+      <a href="{% absolute_uri '/organizations/{}/settings/' organization.slug %}" class="btn btn-default">{% trans "Cancel" %}</a>
     </fieldset>
   </form>
 {% endblock %}
