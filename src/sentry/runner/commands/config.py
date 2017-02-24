@@ -95,10 +95,9 @@ def generate_secret_key():
 
 
 @config.command()
-@configuration
 def discover():
     "Print paths to config files."
     from sentry.runner.settings import discover_configs
-    directory, py, yaml = discover_configs()
-    print(py)
-    print(yaml)
+    _, py, yaml = discover_configs()
+    click.echo(py)
+    click.echo(yaml)
