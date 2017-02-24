@@ -5,7 +5,7 @@ import TimeSince from '../components/timeSince';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import IndicatorStore from '../stores/indicatorStore';
-import {FormState, BooleanField} from '../components/forms';
+import {FormState} from '../components/forms';
 import Switch from '../components/switch';
 import {t, tn} from '../locale';
 
@@ -286,7 +286,6 @@ const ProjectProcessingIssues = React.createClass({
       return this.renderLoading();
     }
     let isSaving = this.state.formState === FormState.SAVING;
-    let errors = this.state.errors;
     return (
       <div className="box">
         <div className="box-header">
@@ -311,7 +310,7 @@ const ProjectProcessingIssues = React.createClass({
             <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
               <Switch size="lg"
                 isActive={this.state.formData['sentry:reprocessing_active']}
-                isLoading={this.state.formState === FormState.SAVING}
+                isLoading={isSaving}
                 toggle={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
             </div>
           </div>
