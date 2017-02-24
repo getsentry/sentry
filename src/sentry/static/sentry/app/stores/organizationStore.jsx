@@ -1,4 +1,3 @@
-import jQuery from 'jquery';
 import Reflux from 'reflux';
 
 const OrganizationStore = Reflux.createStore({
@@ -15,15 +14,15 @@ const OrganizationStore = Reflux.createStore({
   },
 
   add(item) {
-    let existing = this.get(item.slug);
-    if (existing) {
-      this.items.forEach((existing, idx) => {
-        if (existing.id === item.id) {
-          item = {...existing, ...item};
-          this.items[idx] = item;
-        }
-      });
-    } else {
+    let match = false;
+    this.items.forEach((existing, idx) => {
+      if (existing.id === item.id) {
+        item = {...existing, ...item};
+        this.items[idx] = item;
+        match = true;
+      }
+    });
+    if (!match) {
       this.items.push(item);
     }
     this.trigger([item]);
