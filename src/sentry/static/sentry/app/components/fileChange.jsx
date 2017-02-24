@@ -1,5 +1,5 @@
 import React from 'react';
-import Avatar from '../components/Avatar';
+import Avatar from '../components/avatar';
 
 import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
@@ -9,7 +9,7 @@ import {t} from '../locale';
 const FileChange = React.createClass({
   propTypes: {
     filename: React.PropTypes.string.isRequired,
-    authors: React.PropTypes.object.isRequired,
+    authors: React.PropTypes.array.isRequired,
     types: React.PropTypes.object.isRequired,
   },
 
