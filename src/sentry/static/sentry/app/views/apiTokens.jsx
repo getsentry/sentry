@@ -37,10 +37,12 @@ const ApiTokenRow = React.createClass({
         method: 'DELETE',
         data: {token: token.token},
         success: (data) => {
+          IndicatorStore.remove(loadingIndicator);
           this.props.onRemove();
         },
-        complete: () => {
+        error: () => {
           IndicatorStore.remove(loadingIndicator);
+          IndicatorStore.add(t('Unable to remove token. Please try again.'), 'error');
         }
       });
     });

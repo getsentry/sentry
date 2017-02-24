@@ -1,6 +1,5 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {History} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
@@ -11,7 +10,11 @@ import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
 const ApiApplicationDetails = React.createClass({
-  mixins: [ApiMixin, History],
+  contextTypes: {
+    router: React.PropTypes.object.isRequired
+  },
+
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -93,22 +96,21 @@ const ApiApplicationDetails = React.createClass({
           redirectUris: formData.redirectUris.split('\n').filter(v => v),
         },
         success: (data) => {
+          IndicatorStore.remove(loadingIndicator);
           this.setState({
             state: FormState.READY,
             formData: {...this.getFormData(data)},
             errors: {},
           });
-          this.history.pushState(null, '/api/applications/');
+          this.context.router.push('/api/applications/');
         },
         error: (error) => {
+          IndicatorStore.remove(loadingIndicator);
           this.setState({
             state: FormState.ERROR,
             errors: error.responseJSON,
           });
         },
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
       });
     });
   },

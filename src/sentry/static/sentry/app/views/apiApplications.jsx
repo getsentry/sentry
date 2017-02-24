@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {Link, History} from 'react-router';
+import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -34,10 +34,14 @@ const ApiApplicationRow = React.createClass({
       this.api.request(`/api-applications/${app.id}/`, {
         method: 'DELETE',
         success: (data) => {
+          IndicatorStore.remove(loadingIndicator);
           this.props.onRemove();
         },
-        complete: () => {
+        error: () => {
           IndicatorStore.remove(loadingIndicator);
+          IndicatorStore.add(t('Unable to remove application. Please try again.'), 'error', {
+            duration: 3000
+          });
         }
       });
     });
@@ -71,7 +75,11 @@ const ApiApplicationRow = React.createClass({
 });
 
 const ApiApplications = React.createClass({
-  mixins: [ApiMixin, History],
+  contextTypes: {
+    router: React.PropTypes.object.isRequired
+  },
+
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -117,11 +125,11 @@ const ApiApplications = React.createClass({
       method: 'POST',
       success: (app) => {
         IndicatorStore.remove(loadingIndicator);
-        this.history.pushState(null, `/api/applications/${app.id}/`);
+        this.context.router.push(`/api/applications/${app.id}/`);
       },
       error: (error) => {
         IndicatorStore.remove(loadingIndicator);
-        IndicatorStore.add(t('Unable to disable plugin. Please try again.'), 'error');
+        IndicatorStore.add(t('Unable to remove application. Please try again.'), 'error');
       }
     });
   },
