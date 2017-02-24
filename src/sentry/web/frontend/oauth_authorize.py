@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 import six
 
-from django.http import HttpResponseRedirect
 from django.conf import settings
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -34,7 +33,7 @@ class OAuthAuthorizeView(BaseView):
             if value is not None:
                 query.append((key, value))
         parts[4] = urlencode(query)
-        return HttpResponseRedirect(urlunparse(parts))
+        return self.redirect(urlunparse(parts))
 
     def error(self, response_type, redirect_uri, name, state=None):
         return self.redirect_response(response_type, redirect_uri, {
@@ -187,10 +186,12 @@ class OAuthAuthorizeView(BaseView):
                     'state': payload['st'],
                 })
 
-        elif op == 'decline':
+        elif op == 'deny':
             return self.error(
                 response_type=response_type,
                 redirect_uri=redirect_uri,
                 name='access_denied',
                 state=payload['st'],
             )
+        else:
+            raise NotImplementedError

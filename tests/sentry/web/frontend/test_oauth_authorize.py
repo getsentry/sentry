@@ -106,7 +106,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             grant.code,
         )
 
-    def test_minimal_params_decline_flow(self):
+    def test_minimal_params_deny_flow(self):
         self.login_as(self.user)
 
         resp = self.client.get('{}?response_type=code&client_id={}'.format(
@@ -119,7 +119,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         assert resp.context['application'] == self.application
 
         resp = self.client.post(self.path, {
-            'op': 'decline',
+            'op': 'deny',
         })
 
         assert resp.status_code == 302
@@ -251,7 +251,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert fragment['expires_in']
         assert fragment['token_type'] == ['bearer']
 
-    def test_minimal_params_code_decline_flow(self):
+    def test_minimal_params_code_deny_flow(self):
         self.login_as(self.user)
 
         resp = self.client.get('{}?response_type=token&client_id={}'.format(
@@ -264,7 +264,7 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert resp.context['application'] == self.application
 
         resp = self.client.post(self.path, {
-            'op': 'decline',
+            'op': 'deny',
         })
 
         assert resp.status_code == 302
