@@ -3,6 +3,7 @@ import DocumentTitle from 'react-document-title';
 
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
+import ConfigStore from '../stores/configStore';
 import {FormState, TextField, TextareaField} from '../components/forms';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
@@ -133,11 +134,13 @@ const ApiApplicationDetails = React.createClass({
     let isSaving = this.state.state === FormState.SAVING;
     let errors = this.state.errors;
 
+    let urlPrefix = ConfigStore.get('urlPrefix');
+
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
-          <h3>Application Details</h3>
           <form onSubmit={this.onSubmit} className="form-stacked">
+            <h4>Application Details</h4>
             {this.state.state === FormState.ERROR &&
               <div className="alert alert-error alert-block">
                 {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
@@ -153,26 +156,6 @@ const ApiApplicationDetails = React.createClass({
                 required={true}
                 error={errors.name}
                 onChange={this.onFieldChange.bind(this, 'name')} />
-              <div className="control-group">
-                <label htmlFor="api-key">Client ID</label>
-                <div className="form-control disabled">
-                  <AutoSelectText>{app.clientID}</AutoSelectText>
-                </div>
-              </div>
-              <div className="control-group">
-                <label htmlFor="api-key">Client Secret</label>
-                <div className="form-control disabled">
-                  {app.clientSecret ?
-                    <AutoSelectText>{app.clientSecret}</AutoSelectText>
-                  :
-                    <em>hidden</em>
-                  }
-                </div>
-                <p className="help-block">
-                  Your secret is only available briefly after application creation. Make sure to save this value!
-                </p>
-              </div>
-
               <TextField
                 key="homepageUrl"
                 name="homepageUrl"
@@ -203,7 +186,45 @@ const ApiApplicationDetails = React.createClass({
                 required={false}
                 error={errors.termsUrl}
                 onChange={this.onFieldChange.bind(this, 'termsUrl')} />
+            </fieldset>
+            <fieldset>
+              <legend>Credentials</legend>
+              <div className="control-group">
+                <label htmlFor="api-key">Client ID</label>
+                <div className="form-control disabled">
+                  <AutoSelectText>{app.clientID}</AutoSelectText>
+                </div>
+              </div>
+              <div className="control-group">
+                <label htmlFor="api-key">Client Secret</label>
+                <div className="form-control disabled">
+                  {app.clientSecret ?
+                    <AutoSelectText>{app.clientSecret}</AutoSelectText>
+                  :
+                    <em>hidden</em>
+                  }
+                </div>
+                <p className="help-block">
+                  Your secret is only available briefly after application creation. Make sure to save this value!
+                </p>
+              </div>
 
+              <div className="control-group">
+                <label htmlFor="api-key">Authorization URL</label>
+                <div className="form-control disabled">
+                  <AutoSelectText>{`${urlPrefix}/oauth/authorize/`}</AutoSelectText>
+                </div>
+              </div>
+
+              <div className="control-group">
+                <label htmlFor="api-key">Token URL</label>
+                <div className="form-control disabled">
+                  <AutoSelectText>{`${urlPrefix}/oauth/token/`}</AutoSelectText>
+                </div>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Security</legend>
               <TextareaField
                 key="redirectUris"
                 name="redirectUris"
