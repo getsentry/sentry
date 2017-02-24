@@ -2,7 +2,7 @@ import React from 'react';
 
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
-import Avatar from '../components/Avatar';
+import Avatar from '../components/avatar';
 
 import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
