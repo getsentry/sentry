@@ -246,9 +246,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         submitted are modified.
 
         :pparam string issue_id: the ID of the group to retrieve.
-        :param string status: the new status for the groups.  Valid values
-                              are ``"resolved"``, ``"unresolved"`` and
-                              ``"ignored"``.
+        :param string status: the new status for the issue.  Valid values
+                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              ``"unresolved"``, and ``"ignored"``.
         :param string assignedTo: the username of the user that should be
                                assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
