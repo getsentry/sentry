@@ -290,7 +290,7 @@ class FeatureSet(object):
         items = []
         for label, feature in self.features.items():
             for characteristics in feature.extract(event):
-                if characteristics:  # TODO: ???
+                if characteristics:
                     items.append((
                         self.aliases[label],
                         characteristics,

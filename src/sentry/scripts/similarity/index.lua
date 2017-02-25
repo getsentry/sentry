@@ -11,7 +11,7 @@ groups that contain many different characteristic sets.
 
 This is modeled as two data structures:
 
-- A bucket frequency sorted set, which maintains a count of what buckets
+- A bucket frequency hash, which maintains a count of what buckets
     have been recorded -- and how often -- in a ``(band, key)`` pair. This
     data can be used to identify what buckets a key is a member of, and also
     used to identify the degree of bucket similarity when comparing with data
@@ -159,7 +159,7 @@ local function takes_configuration(command)
 end
 
 
--- 
+-- Key Generation
 
 local function get_bucket_frequency_key(scope, index, time, band, item)
     return string.format(
