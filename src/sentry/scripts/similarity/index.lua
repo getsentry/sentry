@@ -286,7 +286,7 @@ local commands = {
                         )
                         table.insert(
                             results,
-                            tonumber(redis.call('ZINCRBY', bucket_frequency_key, 1, bucket))
+                            tonumber(redis.call('HINCRBY', bucket_frequency_key, bucket, 1))
                         )
                         redis.call('EXPIREAT', bucket_frequency_key, expiration)
                     end
@@ -320,17 +320,14 @@ local commands = {
                                 time_series,
                                 function (time)
                                     return redis.call(
-                                        'ZRANGE',
+                                        'HGETALL',
                                         get_bucket_frequency_key(
                                             configuration.scope,
                                             index,
                                             time,
                                             band,
                                             key
-                                        ),
-                                        0,
-                                        -1,
-                                        'WITHSCORES'
+                                        )
                                     )
                                 end
                             ),
@@ -493,11 +490,8 @@ local commands = {
                         )
 
                         local response = redis.call(
-                            'ZRANGE',
-                            source_bucket_frequency_key,
-                            0,
-                            -1,
-                            'WITHSCORES'
+                            'HGETALL',
+                            source_bucket_frequency_key
                         )
                         for i = 1, #response, 2 do
                             local bucket, count = unpack(table.slice(response, i, i + 1))
@@ -518,10 +512,10 @@ local commands = {
 
                             -- Merge the counter values into the destination frequencies.
                             redis.call(
-                                'ZINCRBY',
+                                'HINCRBY',
                                 destination_bucket_frequency_key,
-                                count,
-                                bucket
+                                bucket,
+                                count
                             )
                         end
 
@@ -583,11 +577,8 @@ local commands = {
                         )
 
                         local response = redis.call(
-                            'ZRANGE',
-                            source_bucket_frequency_key,
-                            0,
-                            -1,
-                            'WITHSCORES'
+                            'HGETALL',
+                            source_bucket_frequency_key
                         )
 
                         for i = 1, #response, 2 do
