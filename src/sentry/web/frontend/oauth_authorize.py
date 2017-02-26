@@ -115,7 +115,6 @@ class OAuthAuthorizeView(BaseView):
             raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
 
         context = {
-            'app': application,
             'user': request.user,
             'application': application,
             'scopes': scopes,
