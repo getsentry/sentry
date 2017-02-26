@@ -4,6 +4,7 @@ import six
 
 from django.conf import settings
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -50,7 +51,7 @@ class OAuthAuthorizeView(BaseView):
 
         if not client_id:
             return self.respond('sentry/oauth-error.html', {
-                'error': 'Missing or invalid ``client_id`` parameter.',
+                'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
             })
 
         try:
@@ -60,14 +61,14 @@ class OAuthAuthorizeView(BaseView):
             )
         except ApiApplication.DoesNotExist:
             return self.respond('sentry/oauth-error.html', {
-                'error': 'Missing or invalid ``client_id`` parameter.',
+                'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
             })
 
         if not redirect_uri:
             redirect_uri = application.get_default_redirect_uri()
         elif not application.is_valid_redirect_uri(redirect_uri):
             return self.respond('sentry/oauth-error.html', {
-                'error': 'Missing or invalid ``redirect_uri`` parameter.',
+                'error': mark_safe('Missing or invalid <em>redirect_uri</em> parameter.'),
             })
 
         if not application.is_allowed_response_type(response_type):
@@ -142,7 +143,7 @@ class OAuthAuthorizeView(BaseView):
             )
         except ApiApplication.DoesNotExist:
             return self.respond('sentry/oauth-error.html', {
-                'error': 'Missing or invalid ``client_id`` parameter.',
+                'error': mark_safe('Missing or invalid <em>client_id</em> parameter.'),
             })
 
         response_type = payload['rt']
