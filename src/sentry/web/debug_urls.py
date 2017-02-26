@@ -42,6 +42,7 @@ from sentry.web.frontend.debug.debug_unassigned_email import (
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeView,
+    DebugOAuthAuthorizeErrorView,
 )
 
 
@@ -101,6 +102,8 @@ urlpatterns = patterns(
         debug_auth_views.DebugAuthConfirmLink.as_view()),
     url(r'^debug/oauth/authorize/$',
         DebugOAuthAuthorizeView.as_view()),
+    url(r'^debug/oauth/authorize/error/$',
+        DebugOAuthAuthorizeErrorView.as_view()),
     url(r'^debug/icons/$',
         TemplateView.as_view(template_name='sentry/debug/icons.html')),
 )
