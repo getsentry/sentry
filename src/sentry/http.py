@@ -236,7 +236,7 @@ def expose_url(url):
 
 def fetch_file(url, domain_lock_enabled=True, outfile=None,
                headers=None, allow_redirects=True, verify_ssl=False,
-               timeout=settings.SENTRY_FETCH_SOCKET_TIMEOUT, **kwargs):
+               timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT, **kwargs):
     """
     Pull down a URL, returning a UrlResult object.
     """
@@ -273,7 +273,7 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
                 cl = int(response.headers['content-length'])
             except (LookupError, ValueError):
                 cl = 0
-            if cl > settings.SENTRY_FETCH_MAX_SIZE:
+            if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
                 raise OverflowError()
 
             return_body = False
@@ -287,11 +287,11 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
             # got a 200 OK
             if response.status_code == 200:
                 for chunk in response.iter_content(16 * 1024):
-                    if time.time() - start > settings.SENTRY_FETCH_TIMEOUT:
+                    if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
                         raise Timeout()
                     outfile.write(chunk)
                     cl += len(chunk)
-                    if cl > settings.SENTRY_FETCH_MAX_SIZE:
+                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
                         raise OverflowError()
 
         except Exception as exc:
@@ -310,14 +310,14 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
                 error = {
                     'type': EventError.FETCH_TIMEOUT,
                     'url': expose_url(url),
-                    'timeout': settings.SENTRY_FETCH_TIMEOUT,
+                    'timeout': settings.SENTRY_SOURCE_FETCH_TIMEOUT,
                 }
             elif isinstance(exc, OverflowError):
                 error = {
                     'type': EventError.FETCH_TOO_LARGE,
                     'url': expose_url(url),
                     # We want size in megabytes to format nicely
-                    'max_size': float(settings.SENTRY_FETCH_MAX_SIZE) / 1024 / 1024,
+                    'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
                 }
             elif isinstance(exc, (RequestException, ZeroReturnError)):
                 error = {
