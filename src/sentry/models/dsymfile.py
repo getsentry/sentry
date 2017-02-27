@@ -14,8 +14,10 @@ import hashlib
 import six
 import tempfile
 
+from jsonfield import JSONField
 from itertools import chain
 from django.db import models, router, transaction, connection, IntegrityError
+from django.utils import timezone
 
 from symsynd.macho.arch import get_macho_uuids
 
@@ -27,6 +29,57 @@ from sentry.utils.db import is_sqlite
 from sentry.utils.native import parse_addr
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
+
+
+class VersionDSymFile(Model):
+    __core__ = False
+
+    objects = BaseManager()
+    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile', null=True)
+    app = FlexibleForeignKey('sentry.DSymApp')
+    version = models.CharField(max_length=32)
+    build = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_versiondsymfile'
+        unique_together = (('dsym_file', 'version', 'build'),)
+
+
+class DSymAppManager(BaseManager):
+
+    def create_or_update(self, app, project):
+        app_id = app['id']
+        exsisting_app = DSymApp.objects.filter(app_id=app_id, project=project)
+        if exsisting_app:
+            now = timezone.now()
+            exsisting_app.update(
+                data=app,
+                last_synced=now,
+            )
+            return exsisting_app
+
+        return BaseManager.create(self,
+            app_id=app_id,
+            data=app,
+            project=project
+        )
+
+
+class DSymApp(Model):
+    __core__ = False
+
+    objects = DSymAppManager()
+    project = FlexibleForeignKey('sentry.Project')
+    app_id = models.CharField(max_length=40, unique=True)
+    data = JSONField()
+    last_synced = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_dsymapp'
 
 
 class DSymSDKManager(BaseManager):

@@ -260,6 +260,13 @@
     background: #fff;
     .transition(all .4s ease-in-out);
 
+    &.hoverable {
+      cursor: pointer;
+      &:hover {
+        background-color: @white-dark;
+      }
+    }
+
     .short-id {
       font-weight: bold;
     }

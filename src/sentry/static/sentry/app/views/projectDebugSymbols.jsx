@@ -5,6 +5,8 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import DateTime from '../components/dateTime';
 import FileSize from '../components/fileSize';
+import TimeSince from '../components/TimeSince';
+import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../locale';
 
 const ProjectDebugSymbols = React.createClass({
@@ -14,7 +16,14 @@ const ProjectDebugSymbols = React.createClass({
     return {
       loading: true,
       error: false,
+      showModal: false,
       debugSymbols: [],
+      unreferencedDebugSymbols: [],
+      apps: [],
+      activeVersion: null,
+      activeBuilds: null,
+      activeBuild: null,
+      activeDsyms: null,
     };
   },
 
@@ -29,7 +38,9 @@ const ProjectDebugSymbols = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          debugSymbols: data,
+          debugSymbols: data.debugSymbols,
+          unreferencedDebugSymbols: data.unreferencedDebugSymbols,
+          apps: data.apps,
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
@@ -42,17 +53,39 @@ const ProjectDebugSymbols = React.createClass({
     });
   },
 
+  setActive(version, builds) {
+    this.setState({
+      activeVersion: version,
+      activeBuilds: builds,
+    });
+  },
+
+  openModal(build, dsyms) {
+    this.setState({
+      showModal: true,
+      activeBuild: build,
+      activeDsyms: dsyms,
+    });
+  },
+
+  closeModal() {
+    this.setState({
+      showModal: false,
+    });
+  },
+
   renderDebugTable() {
     let body;
 
-    if (this.state.loading)
+    if (this.state.loading) {
       body = this.renderLoading();
-    else if (this.state.error)
+    } else if (this.state.error) {
       body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.debugSymbols.length > 0)
+    } else if (this.state.debugSymbols.length > 0) {
       body = this.renderResults();
-    else
+    } else {
       body = this.renderEmpty();
+    }
 
     return body;
   },
@@ -74,32 +107,196 @@ const ProjectDebugSymbols = React.createClass({
     );
   },
 
+  mapObject(object, callback) {
+    return Object.keys(object).map(function (key) {
+      return callback(object[key], key);
+    });
+  },
+
   renderResults() {
+    let groupedDsyms = [];
+    this.state.debugSymbols.map((dsym, idx) => {
+      if (groupedDsyms[dsym.appID] === undefined) {
+        groupedDsyms[dsym.appID] = [];
+      }
+      if (groupedDsyms[dsym.appID][dsym.version] === undefined) {
+        groupedDsyms[dsym.appID][dsym.version] = [];
+      }
+      if (groupedDsyms[dsym.appID][dsym.version][dsym.build] === undefined) {
+        groupedDsyms[dsym.appID][dsym.version][dsym.build] = [];
+      }
+      groupedDsyms[dsym.appID][dsym.version][dsym.build].push(dsym);
+    });
+
+    let indexedApps = [];
+    if (this.state.apps) {
+      this.state.apps.map((app, idx) => {
+        indexedApps[app.id] = app;
+      });
+    }
+
+    const apps = indexedApps.map((app) => {
+      return (
+        <div key={app.id}>
+          <div className="box-header clearfix">
+            <div className="row">
+              <h3 style={{paddingLeft: 12}}>
+                <img src={app.iconUrl} width="28" height="28" style={{marginRight: 8}} />
+                {app.name}
+              </h3>
+            </div>
+          </div>
+            {this.mapObject(groupedDsyms[app.id], (builds, version) => {
+              let symbolsInVersion = 0;
+              let lastSeen = null;
+              this.mapObject(groupedDsyms[app.id][version], (dsyms, build) => {
+                symbolsInVersion += Object.keys(dsyms).length;
+                if (lastSeen === null ||
+                    (lastSeen && new Date(dsyms[0].dateAdded).getTime() > new Date(lastSeen).getTime())) {
+                  lastSeen = dsyms[0].dateAdded;
+                }
+              });
+              let row = (
+                <li className="group hoverable" onClick={() => this.setActive(version, builds)}>
+                  <div className="row">
+                    <div className="col-xs-8 event-details">
+                      <h3 className="truncate">{version}</h3>
+                      <div className="event-message">{t('Builds')}: {Object.keys(builds).length}</div>
+                      <div className="event-extra">
+                        <ul>
+                          <li>
+                            <span className="icon icon-clock"></span>
+                            <TimeSince date={lastSeen} />
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="col-xs-4 event-count align-right">
+                      {t('Debug Symbol Files')}: {symbolsInVersion}
+                    </div>
+                  </div>
+                </li>
+              );
+
+              let buildRows = '';
+              if (this.state.activeVersion &&
+                  this.state.activeBuilds &&
+                  this.state.activeVersion == version) {
+                buildRows = this.renderBuilds(version, this.state.activeBuilds);
+              }
+              return (
+                <div className="box-content" key={version}>
+                  <div className="tab-pane active">
+                    <ul className="group-list group-list-small">
+                      {row}
+                      {buildRows}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      );
+    });
+
     return (
-      <table className="table">
-        <thead>
-          <tr>
-            <th>{t('UUID')}</th>
-            <th>{t('Object Name')}</th>
-            <th>{t('Type')}</th>
-            <th>{t('Upload Date')}</th>
-            <th>{t('Size')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {this.state.debugSymbols.map((item, idx) => {
-            return (
-              <tr key={idx}>
-                <td>{item.uuid}</td>
-                <td>{item.objectName}</td>
-                <td>{item.cpuName} ({item.symbolType})</td>
-                <td><DateTime date={item.dateCreated}/></td>
-                <td><FileSize bytes={item.size}/></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="box dashboard-widget">
+        <div className="box-content">
+          <div className="tab-pane active">
+            {apps}
+          </div>
+        </div>
+      </div>
+    );
+  },
+
+  renderBuilds(version, builds) {
+    let buildRows = [];
+    let dateAdded = null;
+    this.mapObject(builds, (dsyms, build) => {
+      if (dateAdded === null ||
+          (dateAdded && new Date(dsyms[0].dateAdded).getTime() > new Date(dateAdded).getTime())) {
+        dateAdded = dsyms[0].dateAdded;
+      }
+    });
+    this.mapObject(builds, (dsyms, build) => {
+      buildRows.push(
+        <li className="group hoverable" key={build} onClick={() => this.openModal(build, dsyms)}>
+          <div className="row">
+            <div className="col-xs-8 event-details">
+              <div className="event-message">
+                {build}
+              </div>
+              <div className="event-extra">
+                <ul>
+                  <li>
+                    <span className="icon icon-clock"></span>
+                    <TimeSince date={dateAdded} />
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="col-xs-4 event-details">
+              <div className="event-message">
+                <span className="align-right pull-right" style={{paddingRight: 16}}>{t('Debug Symbol Files')}: {dsyms.length}</span>
+              </div>
+            </div>
+          </div>
+        </li>
+      );
+    });
+    return buildRows;
+  },
+
+  renderDsyms(dsyms, raw) {
+    if (dsyms === null) {
+      return null;
+    }
+    return dsyms.map((dsymFile, key) => {
+      let dsym = raw ? dsymFile : dsymFile.dsym;
+      if (dsym === undefined || dsym === null) {
+        return null;
+      }
+      return (
+        <tr key={key}>
+          <td><code className="small">{dsym.uuid}</code></td>
+          <td>{dsym.objectName}</td>
+          <td>{dsym.cpuName} ({dsym.symbolType})</td>
+          <td><DateTime date={dsym.dateCreated}/></td>
+          <td><FileSize bytes={dsym.size}/></td>
+        </tr>
+      );
+    });
+  },
+
+  renderUnreferencedDebugSymbols() {
+    if (this.state.loading) {
+      return null;
+    }
+    return (
+      <div>
+        <h3>{t('Unreferenced Debug Symbols')}</h3>
+        <p>{t(`
+          Here you can find uploaded debug information (for instance debug
+          symbol files).  This is used to convert addresses from crash dumps
+          into function names and locations.  For JavaScript debug support
+          look at releases instead.
+        `)}</p>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>{t('UUID')}</th>
+              <th>{t('Object Name')}</th>
+              <th>{t('Type')}</th>
+              <th>{t('Upload Date')}</th>
+              <th>{t('Size')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.renderDsyms(this.state.unreferencedDebugSymbols, true)}
+          </tbody>
+        </table>
+      </div>
     );
   },
 
@@ -108,12 +305,34 @@ const ProjectDebugSymbols = React.createClass({
       <div>
         <h1>{t('Debug Symbols')}</h1>
         <p>{t(`
-          Here you can find uploaded debug information (for instance debug
-          symbol files).  This is used to convert addresses from crash dumps
-          into function names and locations.  For JavaScript debug support
-          look at releases instead.
+          This list represents all Debug Symbols which are not assigned to an
+          app version.
         `)}</p>
         {this.renderDebugTable()}
+        {this.renderUnreferencedDebugSymbols()}
+        <Modal show={this.state.showModal} onHide={this.closeModal}
+               animation={false} backdrop="static" enforceFocus={false}
+               bsSize="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>{this.state.activeVersion} ({this.state.activeBuild})</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('UUID')}</th>
+                  <th>{t('Object Name')}</th>
+                  <th>{t('Type')}</th>
+                  <th>{t('Upload Date')}</th>
+                  <th>{t('Size')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {this.renderDsyms(this.state.activeDsyms)}
+              </tbody>
+            </table>
+          </Modal.Body>
+        </Modal>
       </div>
     );
   }
