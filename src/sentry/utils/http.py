@@ -227,7 +227,7 @@ def is_valid_ip(ip_address, project):
         try:
             if '/' in addr and ipaddress.ip_address(six.text_type(ip_address)) in ipaddress.ip_network(six.text_type(addr), strict=False):
                 return False
-        except ipaddress.AddressValueError:
+        except ValueError:
             # Ignore invalid values here
             pass
 
