@@ -50,10 +50,14 @@ def init_plugin(plugin):
             contexttype(cls)
 
     if (hasattr(plugin, 'get_cron_schedule') and plugin.is_enabled()):
-        settings.CELERYBEAT_SCHEDULE.update(plugin.get_cron_schedule())
+        schedules = plugin.get_cron_schedule()
+        if schedules:
+            settings.CELERYBEAT_SCHEDULE.update(schedules)
 
     if (hasattr(plugin, 'get_worker_imports') and plugin.is_enabled()):
-        settings.CELERY_IMPORTS += (plugin.get_worker_imports(),)
+        imports = plugin.get_worker_imports()
+        if imports:
+            settings.CELERY_IMPORTS += ((imports),)
 
     if (hasattr(plugin, 'get_worker_queues') and plugin.is_enabled()):
         from kombu import Queue
