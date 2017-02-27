@@ -303,7 +303,7 @@ const ProjectFilters = React.createClass({
 
   getInitialState() {
     let until = Math.floor(new Date().getTime() / 1000);
-    let since = until - 3600 * 24 * 7;
+    let since = until - 3600 * 24 * 30;
 
     return {
       expected: 3,
@@ -353,7 +353,7 @@ const ProjectFilters = React.createClass({
       query: {
         since: this.state.querySince,
         until: this.state.queryUntil,
-        resolution: '1h',
+        resolution: '1d',
         stat: 'blacklisted',
       },
       success: (data) => {
@@ -472,7 +472,7 @@ const ProjectFilters = React.createClass({
       <div>
         <div className="panel panel-default">
           <div className="panel-heading">
-            <h6>{t('Errors filtered in the last 7 days (by hour)')}</h6>
+            <h6>{t('Errors filtered in the last 30 days (by day)')}</h6>
           </div>
           <div className="panel-body p-a-0">
           {!this.state.blankStats ?
@@ -486,7 +486,7 @@ const ProjectFilters = React.createClass({
               </div>
             </div> :
             <div className="blankslate p-y-2">
-              <h5>{t('Nothing filtered in the last 7 days.')}</h5>
+              <h5>{t('Nothing filtered in the last 30 days.')}</h5>
               <p className="m-b-0">{t('Issues filtered as a result of your settings below will be shown here.')}</p>
             </div>
           }
