@@ -272,7 +272,14 @@ def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
             if cl > settings.SENTRY_FETCH_MAX_SIZE:
                 raise OverflowError()
 
-            contents = []
+            try:
+                from cStringIO import StringIO
+            except ImportError:
+                from StringIO import StringIO
+
+            if outfile is None:
+                outfile = StringIO()
+
             cl = 0
 
             # Only need to even attempt to read the response body if we
@@ -281,11 +288,7 @@ def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
                 for chunk in response.iter_content(16 * 1024):
                     if time.time() - start > settings.SENTRY_FETCH_TIMEOUT:
                         raise Timeout()
-                    # we write to a file instead of writing a string
-                    if outfile is not None:
-                        outfile.write(chunk)
-                    else:
-                        contents.append(chunk)
+                    outfile.write(chunk)
                     cl += len(chunk)
                     if cl > settings.SENTRY_FETCH_MAX_SIZE:
                         raise OverflowError()
@@ -331,15 +334,17 @@ def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
             # TODO(dcramer): we want to be less aggressive on disabling domains
             if domain_lock_enabled:
                 cache.set(domain_key, error or '', 300)
-            logger.warning('source.disabled', extra=error)
+                logger.warning('source.disabled', extra=error)
             raise CannotFetch(error)
 
-        if outfile is not None:
-            body = None
-        else:
-            body = b''.join(contents)
         headers = {k.lower(): v for k, v in response.headers.items()}
         encoding = response.encoding
+
+        if isinstance(outfile, file):
+            body = None
+        else:
+            body = outfile.getvalue()
+            outfile.close()  # we only want to close StringIO
 
         result = (headers, body, response.status_code, encoding)
     finally:
