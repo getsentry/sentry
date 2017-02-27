@@ -17,7 +17,6 @@ import warnings
 import time
 import logging
 
-from six import StringIO
 from sentry import options
 from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
@@ -279,7 +278,7 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
 
             return_body = False
             if outfile is None:
-                outfile = StringIO()
+                outfile = six.BytesIO()
                 return_body = True
 
             cl = 0
