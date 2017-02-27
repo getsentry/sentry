@@ -278,16 +278,6 @@ class FetchSourcemapTest(TestCase):
             fetch_sourcemap('data:application/json;base64,xxx')
 
     @responses.activate
-    def test_simple_non_utf8(self):
-        responses.add(responses.GET, 'http://example.com', body='{}',
-                      content_type='application/json; charset=NOPE')
-
-        with pytest.raises(http.CannotFetch) as exc:
-            fetch_sourcemap('http://example.com')
-
-        assert exc.value.data['type'] == EventError.JS_INVALID_SOURCE_ENCODING
-
-    @responses.activate
     def test_garbage_json(self):
         responses.add(responses.GET, 'http://example.com', body='xxxx',
                       content_type='application/json')

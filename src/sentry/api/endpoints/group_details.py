@@ -11,7 +11,6 @@ from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
-from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
     GroupTagValue, Release, User, UserReport,
@@ -48,6 +47,17 @@ def delete_aggregate_scenario(runner):
             method='DELETE',
             path='/issues/%s/' % group.id,
         )
+
+
+STATUS_CHOICES = {
+    'resolved': GroupStatus.RESOLVED,
+    'unresolved': GroupStatus.UNRESOLVED,
+    'ignored': GroupStatus.IGNORED,
+    'resolvedInNextRelease': GroupStatus.UNRESOLVED,
+
+    # TODO(dcramer): remove in 9.0
+    'muted': GroupStatus.IGNORED,
+}
 
 
 class GroupSerializer(serializers.Serializer):
