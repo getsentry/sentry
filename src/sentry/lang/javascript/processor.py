@@ -313,7 +313,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
-            result = http.fetch_file(url, headers)
+            result = http.fetch_file(url, headers=headers)
             z_body = zlib.compress(result.body)
             cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 

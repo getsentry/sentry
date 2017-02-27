@@ -969,12 +969,15 @@ SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
 SENTRY_FETCH_TIMEOUT = 5
+SENTRY_SOURCE_FETCH_TIMEOUT = SENTRY_FETCH_TIMEOUT
 
 # Timeout (in seconds) for socket operations when fetching remote source files
 SENTRY_FETCH_SOCKET_TIMEOUT = 2
+SENTRY_SOURCE_FETCH_TIMEOUT = SENTRY_FETCH_SOCKET_TIMEOUT
 
 # Maximum content length for source files before we abort fetching
 SENTRY_FETCH_MAX_SIZE = 40 * 1024 * 1024
+SENTRY_SOURCE_FETCH_MAX_SIZE = SENTRY_FETCH_MAX_SIZE
 
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
