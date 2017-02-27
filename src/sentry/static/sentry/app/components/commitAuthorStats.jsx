@@ -76,8 +76,8 @@ const CommitAuthorStats = React.createClass({
 
     let authorEmails = Object.keys(commitAuthors);
     return (
-      <div className="col-sm-3">
-        <b>Commits by Author</b>
+      <div>
+        <h6 className="nav-header m-b-1">Commits by Author</h6>
         <ul className="crumbs">
         {authorEmails.map(authorEmail => {
           let {author, commitCount} = commitAuthors[authorEmail];
