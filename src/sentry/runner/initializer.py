@@ -57,7 +57,7 @@ def init_plugin(plugin):
     if (hasattr(plugin, 'get_worker_imports') and plugin.is_enabled()):
         imports = plugin.get_worker_imports()
         if imports:
-            settings.CELERY_IMPORTS += (imports,)
+            settings.CELERY_IMPORTS += tuple(imports)
 
     if (hasattr(plugin, 'get_worker_queues') and plugin.is_enabled()):
         from kombu import Queue
