@@ -75,10 +75,10 @@ const ReleaseOverview = React.createClass({
     let fileCount = Object.keys(fileInfo).length;
     return (
       <div>
-        <div className="row">
+        <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
             <h5>{fileCount} Files Changed</h5>
-            <ul className="list-group">
+            <ul className="list-group list-group-striped m-b-2">
               {Object.keys(fileInfo).map(file => {
                 return (
                   <FileChange
@@ -95,10 +95,12 @@ const ReleaseOverview = React.createClass({
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
               pagination={false}
-              renderEmpty={() => <div className="box empty" key="none">{t('No issues')}</div>}
+              renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No issues')}</div>}
               ref="issueList"
               showActions={false}
-              params={{orgId: orgId}} />
+              params={{orgId: orgId}}
+              className="m-b-2"
+              />
 
             <h5>{t('New Issues in this Release')}</h5>
             <IssueList
@@ -109,10 +111,12 @@ const ReleaseOverview = React.createClass({
               }}
               statsPeriod="0"
               pagination={false}
-              renderEmpty={() => <div className="box empty" key="none">{t('No issues')}</div>}
+              renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No issues')}</div>}
               ref="issueList"
               showActions={false}
-              params={{orgId: orgId}} />
+              params={{orgId: orgId}}
+              className="m-b-2"
+              />
           </div>
           <div className="col-sm-4">
             <CommitAuthorStats

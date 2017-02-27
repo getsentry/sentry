@@ -29,7 +29,7 @@ const FileChange = React.createClass({
     authors = Array.from(authors);
     types = Array.from(types);
     return (
-      <li className="list-group-item">
+      <li className="list-group-item list-group-item-sm ">
         <div className="row">
           <div className="col-sm-9">{filename}</div>
           <div className="col-sm-3 avatar-grid">
