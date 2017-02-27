@@ -32,3 +32,4 @@ example/db.sqlite
 /wheelhouse
 /test_cli/
 Gemfile.lock
+.idea/

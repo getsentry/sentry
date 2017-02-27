@@ -52,7 +52,14 @@ Version 8.13
 - Fixed bug where workflow notification subject may not include a custom email prefix.
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
+- Moved organization settings to React.
 - Added support for managing newsletter subscriptions with Sentry.io
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ReleaseProject.new_groups`` column.
+- Moved organization settings to React.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -66,6 +73,7 @@ API Changes
 - Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
 - Provide commit and author information associated with a given release
 - Provide repository information for commits
+- Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 
 Version 8.12
 ------------

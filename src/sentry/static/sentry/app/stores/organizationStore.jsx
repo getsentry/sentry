@@ -13,6 +13,21 @@ const OrganizationStore = Reflux.createStore({
     return this.items;
   },
 
+  add(item) {
+    let match = false;
+    this.items.forEach((existing, idx) => {
+      if (existing.id === item.id) {
+        item = {...existing, ...item};
+        this.items[idx] = item;
+        match = true;
+      }
+    });
+    if (!match) {
+      this.items.push(item);
+    }
+    this.trigger([item]);
+  },
+
   load(items) {
     this.items = items;
     this.trigger(items);

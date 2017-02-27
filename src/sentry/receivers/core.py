@@ -1,7 +1,8 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 import logging
 
+from click import echo
 from django.conf import settings
 from django.db import connections, transaction
 from django.db.utils import OperationalError, ProgrammingError
@@ -107,7 +108,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     project.update_option('sentry:origins', ['*'])
 
     if verbosity > 0:
-        print('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
+        echo('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
 
     return project
 

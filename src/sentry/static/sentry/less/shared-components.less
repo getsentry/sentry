@@ -696,6 +696,24 @@ table.integrations {
   }
 }
 
+.hint-enter {
+  opacity: 0.01;
+}
+
+.hint-enter.hint-enter-active {
+  opacity: 1;
+  transition: opacity 500ms ease-in;
+}
+
+.hint-leave {
+  opacity: 1;
+}
+
+.hint-leave.hint-leave-active {
+  opacity: 0.01;
+  transition: opacity 300ms ease-in;
+}
+
 .toast {
   .loading.mini();
   padding: 20px 30px;
@@ -2504,6 +2522,10 @@ ul.faces {
 
 .nav-stacked li  {
   margin-bottom: 6px;
+
+  &.badged {
+    white-space: nowrap;
+  }
 
   > a {
     font-size: 16px;
