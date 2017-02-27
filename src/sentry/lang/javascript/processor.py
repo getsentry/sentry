@@ -2,7 +2,6 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['JavaScriptStacktraceProcessor']
 
-import codecs
 import logging
 import re
 import base64
@@ -350,16 +349,6 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     return result
 
 
-def is_utf8(encoding):
-    if encoding is None:
-        return True
-    try:
-        return codecs.lookup(encoding).name == 'utf-8'
-    except LookupError:
-        # Encoding is entirely unknown, so definitely not utf-8
-        return False
-
-
 def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
     if is_data_uri(url):
         try:
@@ -375,16 +364,6 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         result = fetch_file(url, project=project, release=release,
                             allow_scraping=allow_scraping)
         body = result.body
-
-        # This is just a quick sanity check, but doesn't guarantee
-        if not is_utf8(result.encoding):
-            error = {
-                'type': EventError.JS_INVALID_SOURCE_ENCODING,
-                'value': 'utf8',
-                'url': http.expose_url(url),
-            }
-            raise http.CannotFetch(error)
-
     try:
         return view_from_json(body)
     except Exception as exc:

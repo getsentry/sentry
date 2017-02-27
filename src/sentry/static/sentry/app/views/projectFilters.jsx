@@ -5,7 +5,9 @@ import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import StackedBarChart from '../components/stackedBarChart';
 import Switch from '../components/switch';
+import {FormState, TextareaField} from '../components/forms';
 import {t} from '../locale';
 import marked from '../utils/marked';
 
@@ -198,37 +200,209 @@ const LegacyBrowserFilterRow = React.createClass({
   }
 });
 
+const ProjectFiltersSettingsForm = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    initialData: React.PropTypes.object.isRequired
+  },
+
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    let formData = {};
+    for (let key of Object.keys(this.props.initialData)) {
+      if (key.lastIndexOf('filters:') === 0) {
+        formData[key] = this.props.initialData[key];
+      }
+    }
+    return {
+      hasChanged: false,
+      formData: formData,
+      errors: {},
+    };
+  },
+
+  onFieldChange(name, value) {
+    let formData = this.state.formData;
+    formData[name] = value;
+    this.setState({
+      formData: {...formData},
+      hasChanged: true,
+    });
+  },
+
+  onSubmit(e) {
+    e.preventDefault();
+
+    if (this.state.state === FormState.SAVING) {
+      return;
+    }
+    this.setState({
+      state: FormState.SAVING,
+    }, () => {
+      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+      let {orgId, projectId} = this.props;
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        method: 'PUT',
+        data: {options: this.state.formData},
+        success: (data) => {
+          this.setState({
+            state: FormState.READY,
+            errors: {},
+            hasChanged: false
+          });
+        },
+        error: (error) => {
+          this.setState({
+            state: FormState.ERROR,
+            errors: error.responseJSON,
+          });
+        },
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
+      });
+    });
+  },
+
+  render() {
+    let isSaving = this.state.state === FormState.SAVING;
+    let errors = this.state.errors;
+    return (
+      <form onSubmit={this.onSubmit} className="form-stacked p-b-1">
+        {this.state.state === FormState.ERROR &&
+          <div className="alert alert-error alert-block">
+            {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
+          </div>
+        }
+        <fieldset>
+          <div className="pull-right">
+
+              <button type="submit" className="btn btn-sm btn-primary"
+                      disabled={isSaving || !this.state.hasChanged}>{t('Save Changes')}</button>
+
+          </div>
+          <h5>{t('Filter errors from these IP addresses:')}</h5>
+          <TextareaField
+            key="ip"
+            name="ip"
+            help={t('Separate multiple entries with a newline.')}
+            placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
+            value={this.state.formData['filters:blacklisted_ips']}
+            error={errors['filters:blacklisted_ips']}
+            onChange={this.onFieldChange.bind(this, 'filters:blacklisted_ips')} />
+        </fieldset>
+      </form>
+    );
+  }
+});
+
 const ProjectFilters = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
+    let until = Math.floor(new Date().getTime() / 1000);
+    let since = until - 3600 * 24 * 7;
+
     return {
+      expected: 3,
       loading: true,
       error: false,
+      statsError: false,
       filterList: [],
+      querySince: since,
+      queryUntil: until,
+      stats: null,
+      rawStatsData: null,
+      processedStats: false,
+      projectOptions: {},
+      blankStats: false,
     };
   },
 
-  componentDidMount() {
+  componentWillMount() {
     this.fetchData();
+  },
+
+  componentDidUpdate(prevProps) {
+    if (!this.state.loading && !this.state.stats) {
+      this.processStatsData();
+    }
   },
 
   fetchData() {
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/filters/`, {
       success: (data, textStatus, jqXHR) => {
-        this.setState({
-          error: false,
-          loading: false,
-          filterList: data
-        });
+        this.setState({filterList: data});
       },
       error: () => {
+        this.setState({error: true});
+      },
+      complete: () => {
+        let expected = this.state.expected - 1;
         this.setState({
-          error: true,
-          loading: false
+          expected: expected,
+          loading: expected > 0,
         });
       }
+    });
+
+    this.api.request(`/projects/${orgId}/${projectId}/stats/`, {
+      query: {
+        since: this.state.querySince,
+        until: this.state.queryUntil,
+        resolution: '1h',
+        stat: 'blacklisted',
+      },
+      success: (data) => {
+        this.setState({rawStatsData: data});
+      },
+      error: () => {
+        this.setState({error: true});
+      },
+      complete: () => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          loading: expected > 0,
+        });
+      }
+    });
+
+    this.api.request(`/projects/${orgId}/${projectId}/`, {
+      success: (data, textStatus, jqXHR) => {
+        this.setState({projectOptions: data.options});
+      },
+      error: () => {
+        this.setState({error: true});
+      },
+      complete: () => {
+        let expected = this.state.expected - 1;
+        this.setState({
+          expected: expected,
+          loading: expected > 0,
+        });
+      }
+    });
+  },
+
+  processStatsData() {
+    let blank = true; // Keep track if the entire graph is blank or not.
+    let points = this.state.rawStatsData.map(point => {
+      let [x, y] = point;
+      if (y > 0) {
+        blank = false;
+      }
+      return {
+        x: x,
+        y: [y],
+      };
+    });
+    this.setState({
+      stats: points,
+      blankStats: blank,
     });
   },
 
@@ -273,7 +447,7 @@ const ProjectFilters = React.createClass({
   renderBody() {
     let body;
 
-    if (this.state.loading)
+    if (this.state.loading || !this.state.stats)
       body = this.renderLoading();
     else if (this.state.error)
       body = <LoadingError onRetry={this.fetchData} />;
@@ -296,6 +470,28 @@ const ProjectFilters = React.createClass({
 
     return (
       <div>
+        <div className="panel panel-default">
+          <div className="panel-heading">
+            <h6>{t('Errors filtered in the last 7 days (by hour)')}</h6>
+          </div>
+          <div className="panel-body p-a-0">
+          {!this.state.blankStats ?
+            <div className="inbound-filters-stats p-a-1">
+              <div className="bar-chart">
+                <StackedBarChart
+                  points={this.state.stats}
+                  height={50}
+                  barClasses={['filtered']}
+                  className="sparkline m-b-0" />
+              </div>
+            </div> :
+            <div className="blankslate p-y-2">
+              <h5>{t('Nothing filtered in the last 7 days.')}</h5>
+              <p className="m-b-0">{t('Issues filtered as a result of your settings below will be shown here.')}</p>
+            </div>
+          }
+          </div>
+        </div>
         {this.state.filterList.map(filter => {
           let props = {
             key: filter.id,
@@ -308,6 +504,13 @@ const ProjectFilters = React.createClass({
             ? <LegacyBrowserFilterRow {...props}/>
             : <FilterRow {...props}/>;
         })}
+
+        <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+          <ProjectFiltersSettingsForm
+            orgId={orgId}
+            projectId={projectId}
+            initialData={this.state.projectOptions} />
+        </div>
       </div>
     );
   },
