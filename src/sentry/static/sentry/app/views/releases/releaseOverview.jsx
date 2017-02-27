@@ -78,7 +78,7 @@ const ReleaseOverview = React.createClass({
         <div className="row">
           <div className="col-sm-8">
             <h5>{fileCount} Files Changed</h5>
-            <ul className="crumbs">
+            <ul className="list-group">
               {Object.keys(fileInfo).map(file => {
                 return (
                   <FileChange
