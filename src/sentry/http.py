@@ -234,7 +234,9 @@ def expose_url(url):
     return url
 
 
-def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
+def fetch_file(url, domain_lock_enabled=True, outfile=None,
+               headers=None, allow_redirects=True, verify_ssl=False,
+               timeout=settings.SENTRY_FETCH_SOCKET_TIMEOUT, **kwargs):
     """
     Pull down a URL, returning a UrlResult object.
     """
@@ -253,16 +255,18 @@ def fetch_file(url, headers=None, domain_lock_enabled=True, outfile=None):
 
     http_session = build_session()
     response = None
+
     try:
         try:
             start = time.time()
             response = http_session.get(
                 url,
-                allow_redirects=True,
-                verify=False,
+                allow_redirects=allow_redirects,
+                verify=verify_ssl,
                 headers=headers,
-                timeout=settings.SENTRY_FETCH_SOCKET_TIMEOUT,
+                timeout=timeout,
                 stream=True,
+                **kwargs
             )
 
             try:
