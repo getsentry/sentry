@@ -17,6 +17,7 @@ import warnings
 import time
 import logging
 
+from six import StringIO
 from sentry import options
 from django.core.exceptions import SuspiciousOperation
 from collections import namedtuple
@@ -276,13 +277,10 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
             if cl > settings.SENTRY_FETCH_MAX_SIZE:
                 raise OverflowError()
 
-            try:
-                from cStringIO import StringIO
-            except ImportError:
-                from StringIO import StringIO
-
+            return_body = False
             if outfile is None:
                 outfile = StringIO()
+                return_body = True
 
             cl = 0
 
@@ -344,9 +342,8 @@ def fetch_file(url, domain_lock_enabled=True, outfile=None,
         headers = {k.lower(): v for k, v in response.headers.items()}
         encoding = response.encoding
 
-        if isinstance(outfile, file):
-            body = None
-        else:
+        body = None
+        if return_body:
             body = outfile.getvalue()
             outfile.close()  # we only want to close StringIO
 
