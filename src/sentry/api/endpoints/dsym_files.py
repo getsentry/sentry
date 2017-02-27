@@ -1,12 +1,11 @@
 from __future__ import absolute_import
 
-from rest_framework.negotiation import DefaultContentNegotiation
-from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.permissions import SystemPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -22,19 +21,6 @@ def upload_from_request(request, project=None):
     fileobj = request.FILES['file']
     files = create_files_from_macho_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
-
-
-class ConditionalContentNegotiation(DefaultContentNegotiation):
-    """
-    Overrides the parsers on POST to support file uploads.
-    """
-    def select_parser(self, request, parsers):
-        if request.method == 'POST':
-            parsers = [FormParser(), MultiPartParser()]
-
-        return super(ConditionalContentNegotiation, self).select_parser(
-            request, parsers
-        )
 
 
 class DSymFilesEndpoint(ProjectEndpoint):
