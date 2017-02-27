@@ -389,7 +389,7 @@ const ProjectFilters = React.createClass({
   },
 
   processStatsData() {
-    let blank = true;
+    let blank = true; // Keep track if the entire graph is blank or not.
     let points = this.state.rawStatsData.map(point => {
       let [x, y] = point;
       if (y > 0) {
