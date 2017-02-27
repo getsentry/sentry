@@ -5,13 +5,14 @@ sentry.management.commands.diff
 :copyright: (c) 2015 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 from django.core.management.base import BaseCommand, CommandError
 
 import six
 import sys
 
+from click import echo
 from optparse import make_option
 
 
@@ -45,10 +46,10 @@ def print_unified_diff(left, right):
         return
 
     if left[0] != right[0]:
-        print('! Grouping behavior differs: %r vs %r' % (left[0], right[0]))
+        echo('! Grouping behavior differs: %r vs %r' % (left[0], right[0]))
         return
 
-    print('> Same grouping behavior: %r' % left[0])
+    echo('> Same grouping behavior: %r' % left[0])
 
     # These should only be fingerprints at this point
 
@@ -58,11 +59,11 @@ def print_unified_diff(left, right):
     left_fingerprint = [k[0] for k in left]
     right_fingerprint = [k[0] for k in right]
     if left_fingerprint != right_fingerprint:
-        print('!! Different fingerprint algorithms: %r vs %r' % (left_fingerprint, right_fingerprint))
+        echo('!! Different fingerprint algorithms: %r vs %r' % (left_fingerprint, right_fingerprint))
         return
 
     bits = left_fingerprint
-    print('> Same fingerprint algorithm: %r' % bits)
+    echo('> Same fingerprint algorithm: %r' % bits)
 
     left = [k[1] for k in left]
     right = [k[1] for k in right]
@@ -70,7 +71,7 @@ def print_unified_diff(left, right):
         bit = bits[idx]
         for ((a_key, a_hashes), (b_key, b_hashes)) in zip(a, b):
             if a_key != b_key:
-                print('>> Different interfaces for %r: %r vs %r' % (bit, a_key, b_key))
+                echo('>> Different interfaces for %r: %r vs %r' % (bit, a_key, b_key))
                 continue
             for idx, (a_hash, b_hash) in enumerate(zip(a_hashes, b_hashes)):
                 a_hash = [six.text_type(h) + '\n' for h in a_hash]

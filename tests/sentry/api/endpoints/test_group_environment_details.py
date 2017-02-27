@@ -9,11 +9,12 @@ class GroupEnvironmentDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        Environment.objects.create(
+        env = Environment.objects.create(
             project_id=group.project_id,
             organization_id=group.project.organization_id,
             name=''
         )
+        env.add_project(group.project)
 
         url = '/api/0/issues/{}/environments/none/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -28,11 +29,12 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         group = self.create_group()
 
-        Environment.objects.create(
+        env = Environment.objects.create(
             project_id=group.project_id,
             organization_id=group.project.organization_id,
             name='production',
         )
+        env.add_project(group.project)
 
         url = '/api/0/issues/{}/environments/production/'.format(group.id)
         response = self.client.get(url, format='json')
@@ -47,11 +49,12 @@ class GroupEnvironmentDetailsTest(APITestCase):
 
         project = self.create_project()
         group = self.create_group(project=project)
-        Environment.objects.create(
+        env = Environment.objects.create(
             project_id=group.project_id,
             organization_id=group.project.organization_id,
             name='production',
         )
+        env.add_project(project)
 
         release = Release.objects.create(
             organization_id=project.organization_id,
@@ -79,11 +82,12 @@ class GroupEnvironmentDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
-        Environment.objects.create(
+        env = Environment.objects.create(
             project_id=group.project_id,
             organization_id=group.project.organization_id,
             name=''
         )
+        env.add_project(group.project)
 
         url = '/api/0/issues/{}/environments/doesnotexist/'.format(group.id)
         response = self.client.get(url, format='json')

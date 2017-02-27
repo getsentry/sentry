@@ -153,6 +153,18 @@ class SentryVisitor(ast.NodeVisitor):
                         col=node.col_offset,
                     ),
                 )
+        if node.id == 'print':
+            self.check_print(node)
+
+    def visit_Print(self, node):
+        self.check_print(node)
+
+    def check_print(self, node):
+        if not self.filename.startswith('tests/'):
+            self.errors.append(B314(
+                lineno=node.lineno,
+                col=node.col_offset
+            ))
 
     def compose_call_path(self, node):
         if isinstance(node, ast.Attribute):
@@ -352,5 +364,11 @@ B313 = partial(
     message="B313: ``__unicode__`` should not be defined on classes. Define "
             "just ``__str__`` returning a unicode text string, and use the "
             "sentry.utils.compat.implements_to_string class decorator.",
+    type=SentryCheck,
+)
+
+B314 = partial(
+    error,
+    message="B314: print functions or statements are not allowed.",
     type=SentryCheck,
 )

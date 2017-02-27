@@ -19,6 +19,7 @@ from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING
 from sentry.stacktraces import StacktraceProcessor
+from sentry.reprocessing import report_processing_issue
 from sentry.constants import NATIVE_UNKNOWN_STRING
 
 
@@ -452,7 +453,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
         new_frames = []
         raw_frame = dict(frame)
-
         if processable_frame.cache_value is None:
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
@@ -469,6 +469,34 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 if not symbolicated_frames:
                     return None, [raw_frame], []
             except SymbolicationFailed as e:
+                reprocessing_active = False
+                if self.project:
+                    reprocessing_active = bool(
+                        self.project.get_option('sentry:reprocessing_active', False)
+                    )
+                # User fixable but fatal errors are reported as processing
+                # issues but only if the feature is activated.
+                if reprocessing_active and e.is_user_fixable and e.is_fatal:
+                    report_processing_issue(self.data,
+                        scope='native',
+                        object='dsym:%s' % e.image_uuid,
+                        type=e.type,
+                        data={
+                            'image_path': e.image_path,
+                            'image_uuid': e.image_uuid,
+                            'image_arch': e.image_arch,
+                            'message': e.message,
+                        }
+                    )
+
+                # This in many ways currently does not really do anything.
+                # The reason is that once a processing issue is reported
+                # the event will only be stored as a raw event and no
+                # group will be generated.  As a result it also means that
+                # we will not have any user facing event or error showing
+                # up at all.  We want to keep this here though in case we
+                # do not want to report some processing issues (eg:
+                # optional dsyms)
                 errors = []
                 if e.is_user_fixable or e.is_sdk_failure:
                     errors.append({
@@ -511,7 +539,6 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 new_frame['colno'] = sfrm['column']
             new_frame['package'] = sfrm['object_name'] \
                 or new_frame.get('package')
-
             new_frame['in_app'] = in_app
             new_frames.append(new_frame)
 

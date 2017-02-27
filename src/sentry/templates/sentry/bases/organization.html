@@ -78,7 +78,7 @@
         <li><a href="{% absolute_uri '/organizations/{}/repos/' organization.slug %}">{% trans "Repositories" %}</li></a>
       {% endfeature %}
       <li class="{% block org_settings_nav %}{% endblock %}">
-        <a href="{% url 'sentry-organization-settings' organization.slug %}">
+        <a href="{% absolute_uri '/organizations/{}/settings/' organization.slug %}">
           {% trans "Settings" %}
         </a>
       </li>

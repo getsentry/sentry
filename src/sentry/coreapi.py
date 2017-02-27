@@ -35,7 +35,8 @@ from sentry.interfaces.base import get_interface, InterfaceValidationError
 from sentry.interfaces.csp import Csp
 from sentry.event_manager import EventManager
 from sentry.models import EventError, ProjectKey, TagKey, TagValue
-from sentry.tasks.store import preprocess_event
+from sentry.tasks.store import preprocess_event, \
+    preprocess_event_from_reprocessing
 from sentry.utils import json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.csp import is_valid_csp_report
@@ -747,13 +748,16 @@ class ClientApiHelper(object):
         if not got_ip and set_if_missing:
             data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
 
-    def insert_data_to_database(self, data):
+    def insert_data_to_database(self, data, from_reprocessing=False):
         # we might be passed LazyData
         if isinstance(data, LazyData):
             data = dict(data.items())
         cache_key = 'e:{1}:{0}'.format(data['project'], data['event_id'])
         default_cache.set(cache_key, data, timeout=3600)
-        preprocess_event.delay(cache_key=cache_key, start_time=time())
+        task = from_reprocessing and \
+            preprocess_event_from_reprocessing or preprocess_event
+        task.delay(cache_key=cache_key, start_time=time(),
+            event_id=data['event_id'])
 
 
 class CspApiHelper(ClientApiHelper):
