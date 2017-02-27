@@ -38,9 +38,9 @@
 # set the patterns to watch and warn about if they need security review
 @S_SECURITY_FILE_PATTERN ||= /Dangerfile|(auth|login|permission|email|twofactor|sudo).*\.py/
 # content changes within the diff
-@S_SECURITY_CONTENT_PATTERN ||= /auth|password|permission|token|secret|security|scope|api_key|apikey|sudo/
+@S_SECURITY_CONTENT_PATTERN ||= /auth|password|secret|security/
 # dont ever match against changes in these files
-@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests|yarn\.lock/
+@S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests|yarn\.lock|\.html|\.jsx/
 
 @S_BACKPORTED_FILES ||= [
     "src/sentry/auth/password_validation.py",
