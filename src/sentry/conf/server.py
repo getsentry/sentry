@@ -432,7 +432,7 @@ CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_CREATE_MISSING_QUEUES = True
 CELERY_REDIRECT_STDOUTS = False
 CELERYD_HIJACK_ROOT_LOGGER = False
-CELERY_IMPORTS = [
+CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
@@ -451,7 +451,7 @@ CELERY_IMPORTS = [
     'sentry.tasks.process_buffer',
     'sentry.tasks.reports',
     'sentry.tasks.store',
-]
+)
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),

@@ -49,17 +49,22 @@ def init_plugin(plugin):
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
 
-    if (hasattr(plugin, 'get_celerybeat_schedule') and plugin.is_enabled()):
-        settings.CELERYBEAT_SCHEDULE.update(plugin.get_celerybeat_schedule())
+    if (hasattr(plugin, 'get_cron_schedule') and plugin.is_enabled()):
+        settings.CELERYBEAT_SCHEDULE.update(plugin.get_cron_schedule())
 
-    if (hasattr(plugin, 'get_celery_imports') and plugin.is_enabled()):
-        settings.CELERY_IMPORTS.append(plugin.get_celery_imports())
+    if (hasattr(plugin, 'get_worker_imports') and plugin.is_enabled()):
+        settings.CELERY_IMPORTS += (plugin.get_worker_imports(),)
 
-    if (hasattr(plugin, 'get_celery_queues') and plugin.is_enabled()):
+    if (hasattr(plugin, 'get_worker_queues') and plugin.is_enabled()):
         from kombu import Queue
-        for queue in plugin.get_celery_queues():
-            # queue[0] == name, queue[1] == routing_key
-            settings.CELERY_QUEUES.append(Queue(queue[0], routing_key=queue[1]))
+        for queue in plugin.get_worker_queues():
+            try:
+                name, routing_key = queue
+            except ValueError:
+                name = routing_key = queue
+            q = Queue(name, routing_key=routing_key)
+            q.durable = False
+            settings.CELERY_QUEUES.append(q)
 
 
 def initialize_receivers():
