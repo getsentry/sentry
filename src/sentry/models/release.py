@@ -94,8 +94,11 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_or_create(cls, project, version, date_added):
+    def get_or_create(cls, project, version, date_added=None):
         from sentry.models import Project
+
+        if date_added is None:
+            date_added = timezone.now()
 
         cache_key = cls.get_cache_key(project.organization_id, version)
 
