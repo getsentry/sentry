@@ -8,10 +8,9 @@ from sentry.api.base import DocSection
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.permissions import SystemPermission
-from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
-    find_missing_dsym_files
+    find_missing_dsym_files, VersionDSymFile, DSymApp
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
@@ -56,17 +55,24 @@ class DSymFilesEndpoint(ProjectEndpoint):
                                      dsym files of.
         :auth: required
         """
-        file_list = ProjectDSymFile.objects.filter(
-            project=project
-        ).select_related('file').order_by('name')
 
-        return self.paginate(
-            request=request,
-            queryset=file_list,
-            order_by='-file__timestamp',
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+        apps = DSymApp.objects.filter(
+            project=project
         )
+        dsym_files = VersionDSymFile.objects.filter(
+            app=apps
+        ).select_related('projectdsymfile').order_by('-build', 'version')
+
+        file_list = ProjectDSymFile.objects.filter(
+            project=project,
+            dsymfile__isnull=True,
+        ).select_related('file')[:100]
+
+        return Response({
+            'apps': serialize(list(apps)),
+            'debugSymbols': serialize(list(dsym_files)),
+            'unreferencedDebugSymbols': serialize(list(file_list)),
+        })
 
     def post(self, request, project):
         """
