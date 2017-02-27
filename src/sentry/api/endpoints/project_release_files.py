@@ -3,12 +3,11 @@ from __future__ import absolute_import
 import re
 from django.db import IntegrityError, transaction
 from six import BytesIO
-from rest_framework.negotiation import DefaultContentNegotiation
-from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -49,19 +48,6 @@ def list_files_scenario(runner):
             runner.org.slug, runner.default_project.slug,
             runner.default_release.version)
     )
-
-
-class ConditionalContentNegotiation(DefaultContentNegotiation):
-    """
-    Overrides the parsers on POST to support file uploads.
-    """
-    def select_parser(self, request, parsers):
-        if request.method == 'POST':
-            parsers = [FormParser(), MultiPartParser()]
-
-        return super(ConditionalContentNegotiation, self).select_parser(
-            request, parsers
-        )
 
 
 class ProjectReleaseFilesEndpoint(ProjectEndpoint):

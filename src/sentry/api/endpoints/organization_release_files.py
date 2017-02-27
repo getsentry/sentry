@@ -2,12 +2,11 @@ from __future__ import absolute_import
 
 import re
 from django.db import IntegrityError, transaction
-from rest_framework.negotiation import DefaultContentNegotiation
-from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -15,19 +14,6 @@ from sentry.models import File, Release, ReleaseFile
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
-
-
-class ConditionalContentNegotiation(DefaultContentNegotiation):
-    """
-    Overrides the parsers on POST to support file uploads.
-    """
-    def select_parser(self, request, parsers):
-        if request.method == 'POST':
-            parsers = [FormParser(), MultiPartParser()]
-
-        return super(ConditionalContentNegotiation, self).select_parser(
-            request, parsers
-        )
 
 
 class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
