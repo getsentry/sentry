@@ -15,6 +15,7 @@ Version 8.14 (Unreleased)
 - Aded bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
+- Plugins can now add tasks that run in sentry as celery workers.
 
 API Changes
 ~~~~~~~~~~~
