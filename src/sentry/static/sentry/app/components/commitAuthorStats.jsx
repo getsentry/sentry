@@ -76,18 +76,21 @@ const CommitAuthorStats = React.createClass({
 
     let authorEmails = Object.keys(commitAuthors);
     return (
-      <div>
+      <div style={{marginTop: 5}}>
         <h6 className="nav-header m-b-1">Commits by Author</h6>
-        <ul className="crumbs">
+        <ul className="list-group">
         {authorEmails.map(authorEmail => {
           let {author, commitCount} = commitAuthors[authorEmail];
           return (
-            <li className="row">
-              <span className="avatar-grid-item tip"
-                   title={author.name + ' ' + author.email}>
-                <Avatar user={author}/>
-              </span>
-              <span className="col-sm-2">{commitCount} commits</span>
+            <li className="list-group-item list-group-item-sm ">
+              <div className="row">
+                <div className="col-sm-8">
+                  <div className="tip" title={author.name + ' ' + author.email}>
+                    <Avatar user={author} size={32} />
+                  </div>
+                </div>
+                <div className="col-sm-4 align-right">{commitCount} commits</div>
+              </div>
             </li>
           );
         })}
