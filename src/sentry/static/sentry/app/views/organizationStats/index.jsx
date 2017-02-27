@@ -167,6 +167,7 @@ const OrganizationStats = React.createClass({
         y: [
           dAccepted,
           dRejected,
+          dBlacklisted
         ]
       });
       oReceived += dReceived;
@@ -206,7 +207,8 @@ const OrganizationStats = React.createClass({
         id: projectId,
         received: pReceived,
         rejected: pRejected,
-        accepted: Math.max(0, pReceived - pRejected - pBlacklisted),
+        blacklisted: pBlacklisted,
+        accepted: Math.max(0, pReceived - pRejected - pBlacklisted)
       });
     });
     this.setState({
@@ -217,11 +219,14 @@ const OrganizationStats = React.createClass({
 
   renderTooltip(point, pointIdx, chart) {
     let timeLabel = chart.getTimeLabel(point);
-    let [accepted, rejected] = point.y;
+    let [accepted, rejected, blacklisted] = point.y;
 
     let value = `${intcomma(accepted)} accepted`;
     if (rejected) {
       value += `<br>${intcomma(rejected)} rate limited`;
+    }
+    if (blacklisted) {
+      value += `<br>${intcomma(blacklisted)} filtered`;
     }
 
     return (
@@ -240,9 +245,10 @@ const OrganizationStats = React.createClass({
           <div className="col-md-9">
             <p>{t(`The chart below reflects events the system has received
             across your entire organization. Events are broken down into
-            two categories: Accepted and Rate Limited. Rate
+            three categories: Accepted, Rate Limited, and Filtered. Rate
             Limited events are entries that the system threw away due to quotas
-            being hit.`)}</p>
+            being hit, and Filtered events are events that were blocked
+            due to your inbound data filter rules.`)}</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
@@ -261,7 +267,7 @@ const OrganizationStats = React.createClass({
                 <StackedBarChart
                   points={this.state.orgStats}
                   height={150}
-                  barClasses={['accepted', 'rate-limited']}
+                  barClasses={['accepted', 'rate-limited', 'black-listed']}
                   className="sparkline"
                   tooltip={this.renderTooltip} />
               </div>

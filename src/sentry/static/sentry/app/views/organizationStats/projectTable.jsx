@@ -46,6 +46,7 @@ const ProjectTable = React.createClass({
             <th>{t('Project')}</th>
             <th className="align-right">{t('Accepted')}</th>
             <th className="align-right">{t('Dropped')}<br/>{t('(Rate Limit)')}</th>
+            <th className="align-right">{t('Dropped')}<br/>{t('(Filters)')}</th>
             <th className="align-right">{t('Total')}</th>
           </tr>
         </thead>
@@ -65,6 +66,10 @@ const ProjectTable = React.createClass({
                 <td className="align-right">
                   <Count value={item.rejected} /><br/>
                   <small>{getPercent(item.rejected, orgTotal.rejected)}</small>
+                </td>
+                <td className="align-right">
+                  <Count value={item.blacklisted} /><br/>
+                  <small>{getPercent(item.blacklisted, orgTotal.blacklisted)}</small>
                 </td>
                 <td className="align-right">
                   <Count value={item.received} /><br/>
