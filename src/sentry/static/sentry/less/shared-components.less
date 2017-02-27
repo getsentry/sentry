@@ -943,6 +943,25 @@ table.integrations {
   }
 }
 
+.inbound-filters-stats {
+
+  .bar-chart figure a {
+    height: 50px;
+
+    span {
+      &.filtered {
+        background: @gray-lightest;
+      }
+    }
+
+    &:hover span {
+      &.filtered {
+        background: @gray-light;
+      }
+    }
+  }
+}
+
 /**
 * Auth providers
 * ============================================================================
@@ -3253,6 +3272,10 @@ ul.radio-inputs {
 .blankslate {
   text-align: center;
   padding: 50px 0;
+
+  h5 {
+    margin-bottom: 10px;
+  }
 }
 
 /**

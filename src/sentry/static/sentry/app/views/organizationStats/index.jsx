@@ -208,7 +208,7 @@ const OrganizationStats = React.createClass({
         received: pReceived,
         rejected: pRejected,
         blacklisted: pBlacklisted,
-        accepted: pReceived - pRejected - pBlacklisted
+        accepted: Math.max(0, pReceived - pRejected - pBlacklisted)
       });
     });
     this.setState({
@@ -248,7 +248,7 @@ const OrganizationStats = React.createClass({
             three categories: Accepted, Rate Limited, and Filtered. Rate
             Limited events are entries that the system threw away due to quotas
             being hit, and Filtered events are events that were blocked
-            due to your data filters and blocklists.`)}</p>
+            due to your inbound data filter rules.`)}</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">

@@ -22,6 +22,7 @@ API Changes
 - Added OrganizationReleasesEndpoint.
 - Added context type ``app`` for cocoa events.
 - Added ``assignedTo`` param to ``/projects/{org}/{project}/issues/``.
+- Split out filtered stats onto Inbound Data Filters page
 
 Schema Changes
 ~~~~~~~~~~~~~~
