@@ -17,7 +17,7 @@ from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.app import digests
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus, UserOption
+    ProjectStatus, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
@@ -83,6 +83,8 @@ class ProjectAdminSerializer(serializers.Serializer):
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50)
     digestsMinDelay = serializers.IntegerField(min_value=60, max_value=3600)
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
+    subjectPrefix = serializers.CharField(max_length=200)
+    subjectTemplate = serializers.CharField(max_length=200)
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
@@ -142,6 +144,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
             'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
             'sentry:default_environment': project.get_option('sentry:default_environment'),
+            'sentry:reprocessing_show_hint': bool(project.get_option('sentry:reprocessing_show_hint', True)),
+            'sentry:reprocessing_active': bool(project.get_option('sentry:reprocessing_active', False)),
+            'filters:blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
             'feedback:branding': project.get_option('feedback:branding', '1') == '1',
         }
         data['plugins'] = serialize([
@@ -159,6 +164,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'digestsMaxDelay': project.get_option(
                 'digests:mail:maximum_delay', digests.maximum_delay,
             ),
+            'subjectPrefix': project.get_option('mail:subject_prefix'),
+            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
         })
 
         include = set(filter(bool, request.GET.get('include', '').split(',')))
@@ -239,6 +246,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('digests:mail:minimum_delay', result['digestsMinDelay'])
         if result.get('digestsMaxDelay'):
             project.update_option('digests:mail:maximum_delay', result['digestsMaxDelay'])
+        if result.get('subjectPrefix'):
+            project.update_option('mail:subject_prefix', result['subjectPrefix'])
+        if result.get('subjectTemplate'):
+            project.update_option('mail:subject_template', result['subjectTemplate'])
 
         if result.get('isSubscribed'):
             UserOption.objects.set_value(request.user, project, 'mail:alert', 1)
@@ -276,6 +287,16 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     clean_newline_inputs(options['sentry:csp_ignored_sources']))
             if 'feedback:branding' in options:
                 project.update_option('feedback:branding', '1' if options['feedback:branding'] else '0')
+            if 'sentry:reprocessing_active' in options:
+                project.update_option('sentry:reprocessing_active',
+                    bool(options['sentry:reprocessing_active']))
+            if 'sentry:reprocessing_show_hint' in options:
+                project.update_option('sentry:reprocessing_show_hint',
+                    bool(options['sentry:reprocessing_show_hint']))
+            if 'filters:blacklisted_ips' in options:
+                project.update_option(
+                    'sentry:blacklisted_ips',
+                    clean_newline_inputs(options['filters:blacklisted_ips']))
 
             self.create_audit_entry(
                 request=request,
@@ -297,6 +318,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'digestsMaxDelay': project.get_option(
                 'digests:mail:maximum_delay', digests.maximum_delay,
             ),
+            'subjectPrefix': project.get_option('mail:subject_prefix'),
+            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
         })
 
         return Response(data)

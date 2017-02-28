@@ -18,6 +18,7 @@ import sys
 import tempfile
 
 import sentry
+from sentry.utils.types import type_from_value
 
 from datetime import timedelta
 from six.moves.urllib.parse import urlparse
@@ -25,6 +26,38 @@ from six.moves.urllib.parse import urlparse
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
+
+
+def env(key, default='', type=None):
+    "Extract an environment variable for use in configuration"
+
+    # First check an internal cache, so we can `pop` multiple times
+    # without actually losing the value.
+    try:
+        rv = env._cache[key]
+    except KeyError:
+        if 'SENTRY_RUNNING_UWSGI' in os.environ:
+            # We do this so when the process forks off into uwsgi
+            # we want to actually be popping off values. This is so that
+            # at runtime, the variables aren't actually available.
+            fn = os.environ.pop
+        else:
+            fn = os.environ.__getitem__
+
+        try:
+            rv = fn(key)
+            env._cache[key] = rv
+        except KeyError:
+            rv = default
+
+    if type is None:
+        type = type_from_value(default)
+
+    return type(rv)
+
+
+env._cache = {}
+
 
 DEBUG = False
 TEMPLATE_DEBUG = True
@@ -409,6 +442,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.dsymcache',
+    'sentry.tasks.reprocessing',
     'sentry.tasks.email',
     'sentry.tasks.merge',
     'sentry.tasks.options',
@@ -427,7 +461,12 @@ CELERY_QUEUES = [
     Queue('digests.scheduling', routing_key='digests.scheduling'),
     Queue('email', routing_key='email'),
     Queue('events.preprocess_event', routing_key='events.preprocess_event'),
+    Queue('events.reprocessing.preprocess_event',
+          routing_key='events.reprocessing.preprocess_event'),
     Queue('events.process_event', routing_key='events.process_event'),
+    Queue('events.reprocessing.process_event',
+          routing_key='events.reprocessing.process_event'),
+    Queue('events.reprocess_events', routing_key='events.reprocess_events'),
     Queue('events.save_event', routing_key='events.save_event'),
     Queue('merge', routing_key='merge'),
     Queue('options', routing_key='options'),
@@ -511,6 +550,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
+    'clear-expired-raw-events': {
+        'task': 'sentry.tasks.clear_expired_raw_events',
+        'schedule': timedelta(minutes=15),
+        'options': {
+            'expires': 300,
+        },
+    },
     # Disabled for the time being:
     # 'clear-old-cached-dsyms': {
     #     'task': 'sentry.tasks.clear_old_cached_dsyms',
@@ -589,6 +635,11 @@ LOGGING = {
         },
         'sentry': {
             'level': 'INFO',
+        },
+        # This only needs to go to Sentry for now.
+        'sentry.similarity': {
+            'handlers': ['internal'],
+            'propagate': False,
         },
         'sentry.errors': {
             'handlers': ['console'],
@@ -871,6 +922,9 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
+SENTRY_NEWSLETTER_OPTIONS = {}
+
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
@@ -1012,6 +1066,15 @@ SENTRY_DEFAULT_OPTIONS = {}
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
 
+# Encryption schemes available to Sentry. You should *never* remove from this
+# list until the key is no longer used in the database. The first listed
+# implementation is considered the default and will be used to encrypt all
+# values (as well as re-encrypt data when it's re-saved).
+SENTRY_ENCRYPTION_SCHEMES = (
+    # identifier: implementation
+    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
+)
+
 # Delay (in ms) to induce on API responses
 SENTRY_API_RESPONSE_DELAY = 0
 
@@ -1025,6 +1088,9 @@ SENTRY_WATCHERS = (
 
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
+
+# The maximum age of raw events before they are deleted
+SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
 STATUS_PAGE_ID = None

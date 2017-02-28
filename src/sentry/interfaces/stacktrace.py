@@ -242,7 +242,7 @@ def handle_nan(value):
 
 class Frame(Interface):
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, raw=False):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
         symbol = data.get('symbol')
@@ -264,25 +264,27 @@ class Frame(Interface):
             if v is not None and not isinstance(v, six.string_types):
                 raise InterfaceValidationError("Invalid value for '%s'" % name)
 
-        # absolute path takes priority over filename
-        # (in the end both will get set)
-        if not abs_path:
-            abs_path = filename
-            filename = None
+        # Some of this processing should only be done for non raw frames
+        if not raw:
+            # absolute path takes priority over filename
+            # (in the end both will get set)
+            if not abs_path:
+                abs_path = filename
+                filename = None
 
-        if not filename and abs_path:
-            if is_url(abs_path):
-                urlparts = urlparse(abs_path)
-                if urlparts.path:
-                    filename = urlparts.path
+            if not filename and abs_path:
+                if is_url(abs_path):
+                    urlparts = urlparse(abs_path)
+                    if urlparts.path:
+                        filename = urlparts.path
+                    else:
+                        filename = abs_path
                 else:
                     filename = abs_path
-            else:
-                filename = abs_path
 
-        if not (filename or function or module or package):
-            raise InterfaceValidationError("No 'filename' or 'function' or "
-                                           "'module' or 'package'")
+            if not (filename or function or module or package):
+                raise InterfaceValidationError("No 'filename' or 'function' or "
+                                               "'module' or 'package'")
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
@@ -319,11 +321,6 @@ class Frame(Interface):
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
-        instruction_offset = data.get('instruction_offset')
-        if instruction_offset is not None and \
-           not isinstance(instruction_offset, six.integer_types):
-            raise InterfaceValidationError("Invalid value for 'instruction_offset'")
-
         kwargs = {
             'abs_path': trim(abs_path, 2048),
             'filename': trim(filename, 256),
@@ -335,7 +332,6 @@ class Frame(Interface):
             'symbol': trim(symbol, 256),
             'symbol_addr': to_hex_addr(data.get('symbol_addr')),
             'instruction_addr': to_hex_addr(data.get('instruction_addr')),
-            'instruction_offset': instruction_offset,
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -421,7 +417,6 @@ class Frame(Interface):
             'package': self.package,
             'platform': self.platform,
             'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
-            'instructionOffset': self.instruction_offset,
             'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
             'symbol': self.symbol,
@@ -512,7 +507,9 @@ class Frame(Interface):
         if not fileloc:
             return ''
         elif platform == 'javascript':
-            return '{}({})'.format(self.function or '?', fileloc)
+            # function and fileloc might be unicode here, so let it coerce
+            # to a unicode string if needed.
+            return '%s(%s)' % (self.function or '?', fileloc)
         return '%s in %s' % (
             fileloc,
             self.function or '?',
@@ -624,31 +621,36 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True):
+    def to_python(cls, data, has_system_frames=None, slim_frames=True,
+                  raw=False):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
         if not isinstance(data['frames'], list):
             raise InterfaceValidationError("Invalid value for 'frames'")
 
-        if has_system_frames is None:
-            has_system_frames = cls.data_has_system_frames(data)
-
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {})
+            Frame.to_python(f or {}, raw=raw)
             for f in data['frames']
         ]
 
-        for frame in frame_list:
-            if not has_system_frames:
-                frame.in_app = False
-            elif frame.in_app is None:
-                frame.in_app = False
+        if not raw:
+            if has_system_frames is None:
+                has_system_frames = cls.data_has_system_frames(data)
+            for frame in frame_list:
+                if not has_system_frames:
+                    frame.in_app = False
+                elif frame.in_app is None:
+                    frame.in_app = False
 
         kwargs = {
             'frames': frame_list,
         }
+
+        kwargs['registers'] = None
+        if data.get('registers') and isinstance(data['registers'], dict):
+            kwargs['registers'] = data.get('registers')
 
         if data.get('frames_omitted'):
             if len(data['frames_omitted']) != 2:
@@ -696,6 +698,7 @@ class Stacktrace(Interface):
         return {
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
+            'registers': self.registers,
             'hasSystemFrames': self.has_system_frames,
         }
 
@@ -703,6 +706,7 @@ class Stacktrace(Interface):
         return {
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
+            'registers': self.registers,
             'has_system_frames': self.has_system_frames,
         }
 

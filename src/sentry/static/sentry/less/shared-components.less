@@ -696,6 +696,24 @@ table.integrations {
   }
 }
 
+.hint-enter {
+  opacity: 0.01;
+}
+
+.hint-enter.hint-enter-active {
+  opacity: 1;
+  transition: opacity 500ms ease-in;
+}
+
+.hint-leave {
+  opacity: 1;
+}
+
+.hint-leave.hint-leave-active {
+  opacity: 0.01;
+  transition: opacity 300ms ease-in;
+}
+
 .toast {
   .loading.mini();
   padding: 20px 30px;
@@ -855,6 +873,24 @@ table.integrations {
 }
 
 /**
+* Avatar Grid
+* ============================================================================
+*/
+
+.avatar-grid {
+  display: flex;
+  flex-wrap: wrap;
+
+  .avatar-grid-item {
+    margin: 0 4px 4px 0;
+
+    .avatar {
+      .square(24px);
+    }
+  }
+}
+
+/**
 * Filter Grid
 * ============================================================================
 */
@@ -904,6 +940,25 @@ table.integrations {
     height: 16px;
     border-left: 1px solid #f1f2f3;
     margin: 0 5px;
+  }
+}
+
+.inbound-filters-stats {
+
+  .bar-chart figure a {
+    height: 50px;
+
+    span {
+      &.filtered {
+        background: @gray-lightest;
+      }
+    }
+
+    &:hover span {
+      &.filtered {
+        background: @gray-light;
+      }
+    }
   }
 }
 
@@ -2487,6 +2542,10 @@ ul.faces {
 .nav-stacked li  {
   margin-bottom: 6px;
 
+  &.badged {
+    white-space: nowrap;
+  }
+
   > a {
     font-size: 16px;
     line-height: 1.5;
@@ -2646,54 +2705,7 @@ ul.faces {
 }
 
 /**
- * List-group
- * ============================================================================
- */
-
- .list-group {
-   font-size: 14px;
-   border-radius: 3px;
-   border: 1px solid @trim;
-   margin-bottom: 15px;
-
-   .list-group-item {
-     color: @gray-dark;
-     padding: 5px 15px;
-     border: 0;
-     border-top: 1px solid lighten(@trim, 5);
-     border-radius: 0;
-     margin: 0;
-     background: none;
-
-     &.list-group-header {
-       border-top: 0;
-
-       .pull-right {
-         color: @gray;
-         position: relative;
-         top: 1px;
-         right: -2px;
-
-         &:hover {
-           color: @gray-dark;
-         }
-       }
-     }
-
-     &.active {
-       background: @blue;
-       color: #fff;
-       font-weight: 600;
-       box-shadow: inset 0 0 0 1px darken(@blue, 15);
-       border: 0 !important;
-       margin-left: -1px;
-       margin-right: -1px;
-     }
-   }
- }
-
-/**
-* Project nav
+* Badge
 * ============================================================================
 */
 
@@ -2754,6 +2766,20 @@ ul.faces {
   vertical-align: baseline;
   border-radius: .25em;
   margin-left: 4px;
+}
+
+/**
+* Repository label
+* ============================================================================
+*/
+
+.repo-label {
+  .label;
+  display: inline-block;
+  vertical-align: text-bottom;
+  padding: 4px 8px 6px;
+  line-height: 1;
+  background: @40;
 }
 
 /**
@@ -3246,6 +3272,10 @@ ul.radio-inputs {
 .blankslate {
   text-align: center;
   padding: 50px 0;
+
+  h5 {
+    margin-bottom: 10px;
+  }
 }
 
 /**

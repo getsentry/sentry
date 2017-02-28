@@ -29,9 +29,8 @@ class ReleaseFilesListTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -54,9 +53,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -88,9 +86,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -111,9 +108,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -136,9 +132,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -162,9 +157,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
@@ -198,9 +192,8 @@ class ReleaseFileCreateTest(APITestCase):
         )
         release.add_project(project)
 
-        url = reverse('sentry-api-0-release-files', kwargs={
+        url = reverse('sentry-api-0-organization-release-files', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 

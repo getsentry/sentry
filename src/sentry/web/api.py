@@ -159,6 +159,8 @@ class APIView(BaseView):
                 'Content-Type, Authentication'
             response['Access-Control-Allow-Methods'] = \
                 ', '.join(self._allowed_methods())
+            response['Access-Control-Expose-Headers'] = \
+                'X-Sentry-Error, Retry-After'
 
         return response
 
@@ -369,6 +371,7 @@ class StoreView(APIView):
                 ip=remote_addr,
                 project=project,
                 sender=type(self),
+                reason_code=rate_limit.reason_code if rate_limit else None,
             )
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)

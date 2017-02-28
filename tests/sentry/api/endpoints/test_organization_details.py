@@ -2,11 +2,14 @@ from __future__ import absolute_import
 
 import six
 
+from base64 import b64encode
 from django.core.urlresolvers import reverse
 from django.core import mail
 from mock import patch
 
-from sentry.models import Organization, OrganizationOption, OrganizationStatus
+from sentry.models import (
+    Organization, OrganizationAvatar, OrganizationOption, OrganizationStatus
+)
 from sentry.signals import project_created
 from sentry.testutils import APITestCase
 
@@ -50,6 +53,18 @@ class OrganizationUpdateTest(APITestCase):
         assert org.name == 'hello world'
         assert org.slug == 'foobar'
 
+    def test_dupe_slug(self):
+        org = self.create_organization(owner=self.user)
+        org2 = self.create_organization(owner=self.user, slug='baz')
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'slug': org2.slug,
+        })
+        assert response.status_code == 400, response.content
+
     def test_setting_rate_limit(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
@@ -63,6 +78,102 @@ class OrganizationUpdateTest(APITestCase):
         result = OrganizationOption.objects.get_value(
             org, 'sentry:project-rate-limit')
         assert result == 80
+
+    def test_upload_avatar(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'avatarType': 'upload',
+            'avatar': b64encode(self.load_fixture('avatar.jpg')),
+        }, format='json')
+
+        avatar = OrganizationAvatar.objects.get(
+            organization=org,
+        )
+        assert response.status_code == 200, response.content
+        assert avatar.get_avatar_type_display() == 'upload'
+        assert avatar.file
+
+    def test_various_options(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'openMembership': False,
+            'isEarlyAdopter': True,
+            'allowSharedIssues': False,
+            'enhancedPrivacy': True,
+            'dataScrubber': True,
+            'dataScrubberDefaults': True,
+            'sensitiveFields': ['password'],
+            'safeFields': ['email'],
+            'scrubIPAddresses': True,
+            'defaultRole': 'owner',
+        })
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+
+        assert org.flags.early_adopter
+        assert not org.flags.allow_joinleave
+        assert org.flags.disable_shared_issues
+        assert org.flags.enhanced_privacy
+        assert org.flags.enhanced_privacy
+        assert org.default_role == 'owner'
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(
+                organization=org,
+            )
+        }
+
+        assert options.get('sentry:require_scrub_defaults')
+        assert options.get('sentry:require_scrub_data')
+        assert options.get('sentry:require_scrub_ip_address')
+        assert options.get('sentry:sensitive_fields') == ['password']
+        assert options.get('sentry:safe_fields') == ['email']
+
+    def test_safe_fields_as_string_regression(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'safeFields': 'email',
+        })
+        assert response.status_code == 400, (response.status_code, response.content)
+        org = Organization.objects.get(id=org.id)
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(
+                organization=org,
+            )
+        }
+
+        assert not options.get('sentry:safe_fields')
+
+    def test_manager_cannot_set_default_role(self):
+        org = self.create_organization(owner=self.user)
+        user = self.create_user('baz@example.com')
+        self.create_member(organization=org, user=user, role='manager')
+        self.login_as(user=user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'defaultRole': 'owner',
+        })
+        assert response.status_code == 200, response.content
+        org = Organization.objects.get(id=org.id)
+
+        assert org.default_role == 'member'
 
 
 class OrganizationDeleteTest(APITestCase):

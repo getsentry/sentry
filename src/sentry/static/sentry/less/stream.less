@@ -32,7 +32,9 @@
 
 .show-sidebar .sticky {
   .stream-actions {
-    margin-right: 25%;
+    border-right: 1px solid @trim;
+    margin-right: 0;
+    padding-right: 10px;
   }
 }
 
@@ -193,6 +195,50 @@
 * ============================================================================
 */
 
+.stream-content .processing-issues {
+  padding-left: 0;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 5px 10px;
+  text-align: center;
+
+  &.failing {
+    border: 1px solid @orange;
+    background: lighten(@orange-light, 23%);
+    color: @orange-dark;
+    a {
+      color: @orange-dark;
+    }
+  }
+
+  &.pending {
+    border: 1px solid @purple-light;
+    background: lighten(@purple-lightest, 15%);
+    color: @purple-dark;
+    a {
+      color: @purple-dark;
+    }
+  }
+
+  &.processing {
+    border: 1px solid @green;
+    background: lighten(@green-light, 33%);
+    color: @green-dark;
+    a {
+      color: @green-dark;
+    }
+  }
+
+  a {
+    font-weight: bold;
+    text-decoration: underline;
+  }
+
+  .last-seen {
+    font-style: italic;
+  }
+}
+
 .group-list {
   background: #fff;
   border: 1px solid @trim;
@@ -252,6 +298,17 @@
     &.isIgnored {
       .icon-soundoff {
         display: inline-block;
+      }
+    }
+
+    &.isUnprocessed {
+      background: lighten(@purple-light, 30%);
+
+      strong.unprocessed-hint {
+        background: @purple-light;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 2px;
       }
     }
 

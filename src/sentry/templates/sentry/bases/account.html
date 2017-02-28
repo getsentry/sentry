@@ -41,6 +41,9 @@
           <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-identities' %}">{% trans "Identities" %}</a></li>
         {% endif %}
         <li{% if page == 'security' %} class="active"{% endif %}><a href="{% url 'sentry-account-security' %}">{% trans "Security" %}</a></li>
+        {% if has_newsletters %}
+          <li{% if page == 'subscriptions' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-subscriptions' %}">{% trans "Subscriptions" %}</a></li>
+        {% endif %}
       </ul>
     {% endblock %}
 

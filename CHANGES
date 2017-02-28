@@ -1,7 +1,51 @@
-Version 8.13 (Unreleased)
+Version 8.14 (Unreleased)
 -------------------------
-- Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 
+- Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
+- Add IE10 legacy browser filter
+- Added data migration to merge legacy releases
+- Added support for symbolizing inlined frames and added heuristics for fixing up native stacktraces.
+- Removed instruction_offset as a frame attribute from stacktraces
+- [BREAKING] Quotas must now instantiate RateLimited and NotRateLimited return values.
+- [BREAKING] Redis quota implementations now return BasicRedisQuota instead of tuples.
+- Commits using the ``Fixes SHORTID`` annotation will now be tracked appropriately.
+- Release functionality is now detected at a project level to enable various features.
+- Added basic encryption facilities (``sentry.utils.encryption``).
+- Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
+- Aded bulk "Resolve in Next Release" to stream actions.
+- Various visual improvements to notifications, including the addition of
+  transactions.
+- Plugins can now add tasks that run in sentry as celery workers.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
+- Disallow duplicating primary emails for users moving forward.
+
+API Changes
+~~~~~~~~~~~
+
+- Added OrganizationReleasesEndpoint.
+- Added context type ``app`` for cocoa events.
+- Added ``assignedTo`` param to ``/projects/{org}/{project}/issues/``.
+- Split out filtered stats onto Inbound Data Filters page
+- Added OrganizationReleasesEndpoint
+- Added OrganizationReleaseFileEndpoint
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added unique index on ``Release(organization_id, version)``
+- Removed unique index on ``Release(project_id, version)``
+- Added ``GroupCommitResolution`` model.
+- Added ``Environment.organization_id`` column.
+- Added ``EnvironmentProject`` model.
+- Added ``Project.flags`` column.
+- Added not null constraint to ``Environment.organization_id`` column.
+- Removed not null constraint on ``Environment.project_id`` and ``ReleaseEnvironment.project_id`` columns
+
+Version 8.13
+------------
+
+- Added individual filters for legacy browsers to improve customization of error filtering based on browser versions
 - Support for setting a custom security header for javascript fetching.
 - start using ReleaseProject and Release.organization instead of Release.project
 - Project quotas are no longer available, and must now be configured via the organizational rate limits.
@@ -11,14 +55,32 @@ Version 8.13 (Unreleased)
 - Add memory and storage information for apple devices
 - The legacy API keys feature is now disabled by default.
 - Show Images Loaded section for cocoa events with version number.
-- Simplified management of secondary email addresses.
-- Fixed an issue where changing primary email address would remove the pre-existing verified email.
-- Disallow duplicating primary emails for users moving forward
+- Added registers to stacktrace for cocoa exceptions.
 - Fixed bug where workflow notification subject may not include a custom email prefix.
+- Added configurable subject templates for individual alert emails (`mail:subject_template` option).
+- Added data migration to populate ReleaseProject.new_groups
+- Moved organization settings to React.
+- Added support for managing newsletter subscriptions with Sentry.io
 
 Schema Changes
 ~~~~~~~~~~~~~~
+
 - Added ``ReleaseProject.new_groups`` column.
+- Moved organization settings to React.
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ReleaseProject.new_groups`` column.
+- Added ``OrganizationAvatar`` model.
+
+API Changes
+~~~~~~~~~~~
+
+- Added avatar and avatarType to ``/organizations/{org}/`` endpoint.
+- Provide commit and author information associated with a given release
+- Provide repository information for commits
+- Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 
 Version 8.12
 ------------

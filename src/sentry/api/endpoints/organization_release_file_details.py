@@ -5,72 +5,19 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
-from sentry.utils.apidocs import scenario, attach_scenarios
 from django.http import CompatibleStreamingHttpResponse
-
-
-@scenario('RetrieveReleaseFile')
-def retrieve_file_scenario(runner):
-    rf = runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path='/demo/readme.txt',
-        contents='Hello World!'
-    )
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/releases/%s/files/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version, rf.id)
-    )
-
-
-@scenario('UpdateReleaseFile')
-def update_file_scenario(runner):
-    rf = runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path='/demo/hello.txt',
-        contents='Good bye World!'
-    )
-    runner.request(
-        method='PUT',
-        path='/projects/%s/%s/releases/%s/files/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version, rf.id),
-        data={
-            'name': '/demo/goodbye.txt'
-        }
-    )
-
-
-@scenario('DeleteReleaseFile')
-def delete_file_scenario(runner):
-    rf = runner.utils.create_release_file(
-        project=runner.default_project,
-        release=runner.default_release,
-        path='/demo/badfile.txt',
-        contents='Whatever!'
-    )
-    runner.request(
-        method='DELETE',
-        path='/projects/%s/%s/releases/%s/files/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version, rf.id)
-    )
 
 
 class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
 
 
-class ReleaseFileDetailsEndpoint(ProjectEndpoint):
+class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission,)
 
     def download(self, releasefile):
         file = releasefile.file
@@ -83,11 +30,10 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         response['Content-Disposition'] = 'attachment; filename="%s"' % posixpath.basename(" ".join(releasefile.name.split()))
         return response
 
-    @attach_scenarios([retrieve_file_scenario])
-    def get(self, request, project, version, file_id):
+    def get(self, request, organization, version, file_id):
         """
-        Retrieve a File
-        ```````````````
+        Retrieve an Organization Release's File
+        ```````````````````````````````````````
 
         Return details on an individual file within a release.  This does
         not actually return the contents of the file, just the associated
@@ -95,16 +41,14 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
-                                     file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
         :auth: required
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization.id,
+                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
@@ -126,19 +70,16 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
             return Response(status=403)
         return Response(serialize(releasefile, request.user))
 
-    @attach_scenarios([update_file_scenario])
-    def put(self, request, project, version, file_id):
+    def put(self, request, organization, version, file_id):
         """
-        Update a File
-        `````````````
+        Update an Organization Release's File
+        `````````````````````````````````````
 
         Update metadata of an existing file.  Currently only the name of
         the file can be changed.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to update the
-                                     file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
         :param string name: the new name of the file.
@@ -146,8 +87,8 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization.id,
+                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
@@ -174,11 +115,10 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(releasefile, request.user))
 
-    @attach_scenarios([delete_file_scenario])
-    def delete(self, request, project, version, file_id):
+    def delete(self, request, organization, version, file_id):
         """
-        Delete a File
-        `````````````
+        Delete an Organization Release's File
+        `````````````````````````````````````
 
         Permanently remove a file from a release.
 
@@ -186,16 +126,14 @@ class ReleaseFileDetailsEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to delete the
-                                     file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.
         :auth: required
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization.id,
+                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:

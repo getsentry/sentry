@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from sentry import roles
 from sentry.app import quotas
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth import access
@@ -9,6 +10,7 @@ from sentry.models import (
     ApiKey,
     Organization,
     OrganizationAccessRequest,
+    OrganizationAvatar,
     OrganizationOnboardingTask,
     OrganizationOption,
     Team,
@@ -18,13 +20,39 @@ from sentry.models import (
 
 @register(Organization)
 class OrganizationSerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        avatars = {
+            a.organization_id: a
+            for a in OrganizationAvatar.objects.filter(
+                organization__in=item_list
+            )
+        }
+        data = {}
+        for item in item_list:
+            data[item] = {
+                'avatar': avatars.get(item.id),
+            }
+        return data
+
     def serialize(self, obj, attrs, user):
+        if attrs.get('avatar'):
+            avatar = {
+                'avatarType': attrs['avatar'].get_avatar_type_display(),
+                'avatarUuid': attrs['avatar'].ident if attrs['avatar'].file else None
+            }
+        else:
+            avatar = {
+                'avatarType': 'letter_avatar',
+                'avatarUuid': None,
+            }
+
         return {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
             'name': obj.name,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
+            'avatar': avatar,
         }
 
 
@@ -94,6 +122,22 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 default=100,
             )),
         }
+        context.update({
+            'isDefault': obj.is_default,
+            'defaultRole': obj.default_role,
+            'availableRoles': [{
+                'id': r.id,
+                'name': r.name,
+            } for r in roles.get_all()],
+            'openMembership': bool(obj.flags.allow_joinleave),
+            'allowSharedIssues': not obj.flags.disable_shared_issues,
+            'enhancedPrivacy': bool(obj.flags.enhanced_privacy),
+            'dataScrubber': bool(obj.get_option('sentry:require_scrub_data', False)),
+            'dataScrubberDefaults': bool(obj.get_option('sentry:require_scrub_defaults', False)),
+            'sensitiveFields': obj.get_option('sentry:sensitive_fields', None) or [],
+            'safeFields': obj.get_option('sentry:safe_fields', None) or [],
+            'scrubIPAddresses': bool(obj.get_option('sentry:require_scrub_ip_address', False)),
+        })
         context['teams'] = serialize(
             team_list, user, TeamWithProjectsSerializer())
         if env.request:

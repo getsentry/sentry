@@ -11,15 +11,17 @@ from sentry.api.serializers.models.environment import (
 from sentry.api.serializers.models.grouprelease import (
     GroupReleaseWithStatsSerializer
 )
-from sentry.models import Environment, GroupRelease, ReleaseEnvironment
+from sentry.models import Environment, GroupRelease, ReleaseEnvironment, ReleaseProject
 from sentry.utils.dates import to_datetime
 
 
 class GroupEnvironmentDetailsEndpoint(GroupEndpoint):
     def get(self, request, group, environment):
+        project = group.project
         try:
             environment = Environment.objects.get(
-                project_id=group.project_id,
+                projects=project,
+                organization_id=project.organization_id,
                 # XXX(dcramer): we have no great way to pass the empty env
                 name='' if environment == 'none' else environment,
             )
@@ -38,11 +40,14 @@ class GroupEnvironmentDetailsEndpoint(GroupEndpoint):
 
         # the current release is the 'latest seen' release within the
         # environment even if it hasnt affected this issue
+
         current_release = GroupRelease.objects.filter(
             group_id=group.id,
             environment=environment.name,
             release_id=ReleaseEnvironment.objects.filter(
-                project_id=group.project_id,
+                release_id__in=ReleaseProject.objects.filter(
+                    project_id=group.project_id
+                ).values_list('release_id', flat=True),
                 organization_id=group.project.organization_id,
                 environment_id=environment.id,
             ).order_by('-first_seen').values_list('release_id', flat=True).first(),

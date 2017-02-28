@@ -7,7 +7,7 @@ import mock
 from datetime import timedelta
 from django.utils import timezone
 from sentry.buffer.base import Buffer
-from sentry.models import Group, Project
+from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
 from sentry.testutils import TestCase
 
 
@@ -52,3 +52,24 @@ class BufferTest(TestCase):
         group_ = Group.objects.get(id=group.id)
         assert group_.times_seen == group.times_seen + 1
         assert group_.last_seen.replace(microsecond=0) == the_date
+
+    def test_increments_when_null(self):
+        org = Organization.objects.create(slug='test-org')
+        team = Team.objects.create(organization=org, slug='test-team')
+        project = Project.objects.create(
+            organization=org,
+            slug='test-project',
+            team=team
+        )
+        release = Release.objects.create(organization=org, version='abcdefg')
+        release_project = ReleaseProject.objects.create(
+            project=project,
+            release=release
+        )
+        assert release_project.new_groups == 0
+
+        columns = {'new_groups': 1}
+        filters = {'id': release_project.id}
+        self.buf.process(ReleaseProject, columns, filters)
+        release_project_ = ReleaseProject.objects.get(id=release_project.id)
+        assert release_project_.new_groups == 1

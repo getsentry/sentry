@@ -11,11 +11,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
-from sentry.constants import STATUS_CHOICES
 from sentry.models import (
-    Activity, Group, GroupHash, GroupAssignee, GroupSeen, GroupSubscription,
-    GroupSubscriptionReason, GroupStatus, GroupTagKey, GroupTagValue, Release,
-    User, UserReport,
+    Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
+    GroupTagValue, Release, User, UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
@@ -49,6 +47,17 @@ def delete_aggregate_scenario(runner):
             method='DELETE',
             path='/issues/%s/' % group.id,
         )
+
+
+STATUS_CHOICES = {
+    'resolved': GroupStatus.RESOLVED,
+    'unresolved': GroupStatus.UNRESOLVED,
+    'ignored': GroupStatus.IGNORED,
+    'resolvedInNextRelease': GroupStatus.UNRESOLVED,
+
+    # TODO(dcramer): remove in 9.0
+    'muted': GroupStatus.IGNORED,
+}
 
 
 class GroupSerializer(serializers.Serializer):
@@ -247,9 +256,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
         submitted are modified.
 
         :pparam string issue_id: the ID of the group to retrieve.
-        :param string status: the new status for the groups.  Valid values
-                              are ``"resolved"``, ``"unresolved"`` and
-                              ``"ignored"``.
+        :param string status: the new status for the issue.  Valid values
+                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              ``"unresolved"``, and ``"ignored"``.
         :param string assignedTo: the username of the user that should be
                                assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
@@ -267,26 +276,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         serializer = GroupSerializer(data=request.DATA, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-
-        result = serializer.object
-        acting_user = request.user if request.user.is_authenticated() else None
-
-        if result.get('assignedTo') and not group.project.member_set.filter(user=result['assignedTo']).exists():
-            return Response({'detail': 'Cannot assign to non-team member'}, status=400)
-
-        if 'assignedTo' in result:
-            if result['assignedTo']:
-                GroupAssignee.objects.assign(group, result['assignedTo'],
-                                             acting_user)
-
-                if 'isSubscribed' not in result or result['assignedTo'] != request.user:
-                    GroupSubscription.objects.subscribe(
-                        group=group,
-                        user=result['assignedTo'],
-                        reason=GroupSubscriptionReason.assigned,
-                    )
-            else:
-                GroupAssignee.objects.deassign(group, acting_user)
 
         response = client.put(
             path='/projects/{}/{}/issues/'.format(

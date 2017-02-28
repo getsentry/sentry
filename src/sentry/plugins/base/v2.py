@@ -365,6 +365,24 @@ class IPlugin2(local, PluginConfigMixin):
         """
         return []
 
+    def get_stacktrace_processors(self, data, stacktrace_infos,
+                                  platforms, **kwargs):
+        """
+        This works similarly to `get_event_preprocessors` but returns a
+        function that is invoked for all encountered stacktraces in an
+        event.
+
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        :::
+
+            def get_stacktrace_processors(self, data, stacktrace_infos,
+                                          platforms, **kwargs):
+                if 'cocoa' in platforms:
+                    return [CocoaProcessor(data, stacktrace_infos)]
+        """
+
     def get_feature_hooks(self, **kwargs):
         """
         Return a list of callables to check for feature status.
@@ -396,6 +414,18 @@ class IPlugin2(local, PluginConfigMixin):
         >>>     return MyReleaseHook
         """
         return []
+
+    def get_custom_contexts(self):
+        """Return a list of of context types.
+
+        from sentry.interfaces.contexts import ContextType
+
+        class MyContextType(ContextType):
+            type = 'my_type'
+
+        def get_custom_contexts(self):
+            return [MyContextType]
+        """
 
     def configure(self, project, request):
         """Configures the plugin."""

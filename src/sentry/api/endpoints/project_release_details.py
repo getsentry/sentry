@@ -62,15 +62,15 @@ class ReleaseSerializer(serializers.Serializer):
     commits = ListField(child=CommitSerializer(), required=False)
 
 
-class ReleaseDetailsEndpoint(ProjectEndpoint):
+class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.RELEASES
     permission_classes = (ProjectReleasePermission,)
 
     @attach_scenarios([retrieve_release_scenario])
     def get(self, request, project, version):
         """
-        Retrieve a Release
-        ``````````````````
+        Retrieve a Project's Release
+        ````````````````````````````
 
         Return details on an individual release.
 
@@ -90,13 +90,13 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        return Response(serialize(release, request.user))
+        return Response(serialize(release, request.user, project=project))
 
     @attach_scenarios([update_release_scenario])
     def put(self, request, project, version):
         """
-        Update a Release
-        ````````````````
+        Update a Project's Release
+        ``````````````````````````
 
         Update a release.  This can change some metadata associated with
         the release (the ref, url, and dates).
@@ -170,8 +170,8 @@ class ReleaseDetailsEndpoint(ProjectEndpoint):
     # @attach_scenarios([delete_release_scenario])
     def delete(self, request, project, version):
         """
-        Delete a Release
-        ````````````````
+        Delete a Project's Release
+        ``````````````````````````
 
         Permanently remove a release and all of its files.
 

@@ -4,7 +4,7 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, File, Release, ReleaseCommit, ReleaseFile
+    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
 )
 from sentry.testutils import APITestCase
 
@@ -24,7 +24,12 @@ class ReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        ReleaseProject.objects.filter(
+            project=project,
+            release=release
+        ).update(new_groups=5)
+
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -33,6 +38,7 @@ class ReleaseDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
+        assert response.data['newGroups'] == 5
 
 
 class UpdateReleaseDetailsTest(APITestCase):
@@ -50,7 +56,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -77,7 +83,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -112,7 +118,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         release.add_project(project)
         release.add_project(project2)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -157,7 +163,7 @@ class ReleaseDeleteTest(APITestCase):
             name='http://example.com/application.js'
         )
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,
@@ -182,7 +188,7 @@ class ReleaseDeleteTest(APITestCase):
         release.add_project(project2)
         self.create_group(first_release=release)
 
-        url = reverse('sentry-api-0-release-details', kwargs={
+        url = reverse('sentry-api-0-project-release-details', kwargs={
             'organization_slug': project.organization.slug,
             'project_slug': project.slug,
             'version': release.version,

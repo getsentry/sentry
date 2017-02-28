@@ -51,7 +51,6 @@ from sentry.web.frontend.organization_member_settings import \
     OrganizationMemberSettingsView
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
-from sentry.web.frontend.organization_settings import OrganizationSettingsView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
 from sentry.web.frontend.project_keys import ProjectKeysView
 from sentry.web.frontend.project_plugin_configure import \
@@ -277,6 +276,8 @@ urlpatterns += patterns(
         name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities,
         name='sentry-account-settings-identities'),
+    url(r'^account/settings/subscriptions/$', accounts.manage_subscriptions,
+        name='sentry-account-settings-subscriptions'),
     url(r'^account/settings/identities/(?P<identity_id>[^\/]+)/disconnect/$',
         accounts.disconnect_identity,
         name='sentry-account-disconnect-identity'),
@@ -362,8 +363,6 @@ urlpatterns += patterns(
         name='sentry-organization-member-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$', react_page_view,
         name='sentry-organization-stats'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/settings/$', OrganizationSettingsView.as_view(),
-        name='sentry-organization-settings'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', CreateTeamView.as_view(),
@@ -376,6 +375,9 @@ urlpatterns += patterns(
         name='sentry-restore-organization'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', AcceptOrganizationInviteView.as_view(),
         name='sentry-accept-invite'),
+
+    # need to catch settings and force it to react
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/settings/', react_page_view),
 
     # Settings - Projects
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$',

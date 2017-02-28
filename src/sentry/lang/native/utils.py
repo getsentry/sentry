@@ -1,6 +1,11 @@
 from __future__ import absolute_import
 
+import six
 import logging
+
+from symsynd.macho.arch import get_cpu_name
+
+from sentry.interfaces.contexts import DeviceContextType
 
 
 logger = logging.getLogger(__name__)
@@ -39,35 +44,28 @@ def find_apple_crash_report_referenced_images(binary_images, threads):
     return list(to_load)
 
 
-def find_stacktrace_referenced_images(debug_images, stacktraces):
-    image_map = {}
-    for image in debug_images:
-        image_map[image['image_addr']] = image['uuid']
-
-    to_load = set()
-    for stacktrace in stacktraces:
-        for frame in stacktrace['frames']:
-            if 'image_addr' in frame:
-                img_uuid = image_map.get(frame['image_addr'])
-                if img_uuid is not None:
-                    to_load.add(img_uuid)
-
-    return list(to_load)
-
-
 def find_all_stacktraces(data):
     """Given a data dictionary from an event this returns all
-    relevant stacktraces in a list.
+    relevant stacktraces in a list.  If a frame contains a raw_stacktrace
+    property it's preferred over the processed one.
     """
     rv = []
+
+    def _probe_for_stacktrace(container):
+        raw = container.get('raw_stacktrace')
+        if raw is not None:
+            rv.append((raw, container))
+        else:
+            processed = container.get('stacktrace')
+            if processed is not None:
+                rv.append((processed, container))
 
     exc_container = data.get('sentry.interfaces.Exception')
     if exc_container:
         for exc in exc_container['values']:
-            stacktrace = exc.get('stacktrace')
-            if stacktrace:
-                rv.append((stacktrace, exc))
+            _probe_for_stacktrace(exc)
 
+    # The legacy stacktrace interface does not support raw stacktraces
     stacktrace = data.get('sentry.interfaces.Stacktrace')
     if stacktrace:
         rv.append((stacktrace, None))
@@ -75,9 +73,7 @@ def find_all_stacktraces(data):
     threads = data.get('threads')
     if threads:
         for thread in threads['values']:
-            stacktrace = thread.get('stacktrace')
-            if stacktrace:
-                rv.append((stacktrace, thread))
+            _probe_for_stacktrace(thread)
 
     return rv
 
@@ -133,3 +129,26 @@ def get_sdk_from_apple_system_info(info):
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
     }
+
+
+def cpu_name_from_data(data):
+    """Returns the CPU name from the given data if it exists."""
+    device = DeviceContextType.primary_value_for_data(data)
+    if device:
+        arch = device.get('arch')
+        if isinstance(arch, six.string_types):
+            return arch
+
+    # TODO: kill this here.  we want to not support that going forward
+    unique_cpu_name = None
+    images = (data.get('debug_meta') or {}).get('images') or []
+    for img in images:
+        cpu_name = get_cpu_name(img['cpu_type'],
+                                img['cpu_subtype'])
+        if unique_cpu_name is None:
+            unique_cpu_name = cpu_name
+        elif unique_cpu_name != cpu_name:
+            unique_cpu_name = None
+            break
+
+    return unique_cpu_name

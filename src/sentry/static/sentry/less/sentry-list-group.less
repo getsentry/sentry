@@ -1,0 +1,71 @@
+//
+// Sentry List Group
+// Extends Bootstrap's list-group
+//
+// Variables for this component can be found in variables.less
+//
+
+.list-group {
+  .list-group-item {
+    padding: 10px 20px;
+
+    // When pairing title / description / meta use <h*>, <p>, and <p>
+    h1, h2 {
+      font-size: 18px;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+
+    h3, h4, h5 {
+      margin: 1px 0;
+      font-size: 15px;
+      line-height: 1.25;
+    }
+
+    h6 {
+      margin: 0 0 5px;
+    }
+
+    p {
+      font-size: 13px;
+      color: @80;
+      line-height: 1.3;
+      margin-bottom: 5px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    .list-group-avatar {
+      padding-left: 60px;
+      position: relative;
+
+      .avatar {
+        .square(36px);
+        position: absolute;
+        left: 15px;
+        border-radius: 3px;
+      }
+    }
+
+    .list-group-actions {
+      > .btn-group, > .btn {
+        margin-left: 5px;
+      }
+      > .btn-group .btn,
+      .btn-group .btn+.btn,
+      .btn-group .btn+.btn-group,
+      .btn-group .btn-group+.btn,
+      .btn-group .btn-group+.btn-group {
+        margin-left: -1px;
+      }
+    }
+  }
+
+  &.list-group-lg {
+    .list-group-item {
+      padding: 15px 20px;
+    }
+  }
+}

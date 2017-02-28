@@ -35,7 +35,7 @@ To extract and process symbols do this:
     running.
 6.  run `extract-all.py`::
 
-    $ python extract-all.py --sdk iOS "~/Library/Developers/Xcode/iOS DeviceSupport/X.Y.Z (XXXXX)"
+    $ python extract-all.py --sdk iOS "~/Library/Developer/Xcode/iOS DeviceSupport/X.Y.Z (XXXXX)"
 
 This will create a zipfile named ``X.Y.Z (XXXXX).zip`` in your current
 folder with extracted and preprocessed files.  If you are extracting for

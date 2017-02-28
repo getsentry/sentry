@@ -11,6 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
+from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
@@ -19,8 +20,8 @@ from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
-    Activity, EventMapping, Group, GroupBookmark, GroupHash, GroupResolution,
-    GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
+    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
     GroupSubscriptionReason, Release, TagKey
 )
 from sentry.models.group import looks_like_short_id
@@ -81,7 +82,7 @@ class ValidationError(Exception):
     pass
 
 
-class GroupSerializer(serializers.Serializer):
+class GroupValidator(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
@@ -91,9 +92,16 @@ class GroupSerializer(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
+    assignedTo = UserField()
 
     # TODO(dcramer): remove in 9.0
     snoozeDuration = serializers.IntegerField()
+
+    def validate_assignedTo(self, attrs, source):
+        value = attrs[source]
+        if value and not self.context['project'].member_set.filter(user=value).exists():
+            raise serializers.ValidationError('Cannot assign to non-team member')
+        return attrs
 
 
 class ProjectGroupIndexEndpoint(ProjectEndpoint):
@@ -165,7 +173,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         Return a list of issues (groups) bound to a project.  All parameters are
         supplied as query string parameters.
 
-        A default query of ``is:resolved`` is applied. To return results
+        A default query of ``is:unresolved`` is applied. To return results
         with other statuses send an new query value (i.e. ``?query=`` for all
         results).
 
@@ -183,7 +191,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                     Set to `1` to enable.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
-                                   ``"is:resolved"`` is assumed.)
+                                   ``"is:unresolved"`` is assumed.)
         :pparam string organization_slug: the slug of the organization the
                                           issues belong to.
         :pparam string project_slug: the slug of the project the issues
@@ -222,7 +230,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     looks_like_short_id(query):
                 try:
                     matching_group = Group.objects.by_qualified_short_id(
-                        project.organization, query)
+                        project.organization_id, query)
                 except Group.DoesNotExist:
                     matching_group = None
 
@@ -300,11 +308,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``"unresolved"`` and
-                              ``"ignored"``.
+                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              ``"unresolved"``, and ``"ignored"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
+        :param string assignedTo: the username of the user that should be
+                                  assigned to this issue.
         :param boolean hasSeen: in case this API call is invoked with a user
                                 context this allows changing of the flag
                                 that indicates if the user has seen the
@@ -324,7 +334,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         else:
             group_list = None
 
-        serializer = GroupSerializer(data=request.DATA, partial=True)
+        serializer = GroupValidator(
+            data=request.DATA,
+            partial=True,
+            context={'project': project},
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
@@ -361,7 +375,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     organization_id=project.organization_id
                 ).order_by('-date_added')[0]
             except IndexError:
-                return Response('{"detail": "No release data present in the system to indicate form a basis for \'Next Release\'"}', status=400)
+                return Response('{"detail": "No release data present in the system to form a basis for \'Next Release\'"}', status=400)
 
             now = timezone.now()
 
@@ -522,6 +536,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                 reason=GroupSubscriptionReason.status_change,
                             )
                         activity.send_notification()
+
+        if 'assignedTo' in result:
+            if result['assignedTo']:
+                for group in group_list:
+                    GroupAssignee.objects.assign(group, result['assignedTo'],
+                                                 acting_user)
+
+                    if 'isSubscribed' not in result or result['assignedTo'] != request.user:
+                        GroupSubscription.objects.subscribe(
+                            group=group,
+                            user=result['assignedTo'],
+                            reason=GroupSubscriptionReason.assigned,
+                        )
+                result['assignedTo'] = serialize(result['assignedTo'])
+            else:
+                for group in group_list:
+                    GroupAssignee.objects.deassign(group, acting_user)
 
         if result.get('hasSeen') and project.member_set.filter(user=acting_user).exists():
             for group in group_list:

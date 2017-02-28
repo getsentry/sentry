@@ -21,6 +21,10 @@ class ProjectReleaseListTest(APITestCase):
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
         )
         release1.add_project(project1)
+        ReleaseProject.objects.filter(
+            project=project1,
+            release=release1
+        ).update(new_groups=5)
 
         release2 = Release.objects.create(
             organization_id=project1.organization_id,
@@ -39,7 +43,7 @@ class ProjectReleaseListTest(APITestCase):
 
         release4 = Release.objects.create(
             organization_id=project2.organization_id,
-            version='1',
+            version='4',
         )
         release4.add_project(project2)
 
@@ -54,6 +58,7 @@ class ProjectReleaseListTest(APITestCase):
         assert response.data[0]['version'] == release3.version
         assert response.data[1]['version'] == release2.version
         assert response.data[2]['version'] == release1.version
+        assert response.data[2]['newGroups'] == 5
 
     def test_query_filter(self):
         self.login_as(user=self.user)
@@ -148,7 +153,8 @@ class ProjectReleaseCreateTest(APITestCase):
             'version': '1.2.1',
         })
 
-        assert response.status_code == 208, response.content
+        # since project2 was added, should be 201
+        assert response.status_code == 201, response.content
         assert Release.objects.filter(
             version='1.2.1',
             organization_id=project.organization_id
