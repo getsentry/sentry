@@ -5,7 +5,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import DateTime from '../components/dateTime';
 import FileSize from '../components/fileSize';
-import TimeSince from '../components/TimeSince';
+import TimeSince from '../components/timeSince';
 import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../locale';
 
@@ -20,6 +20,7 @@ const ProjectDebugSymbols = React.createClass({
       debugSymbols: [],
       unreferencedDebugSymbols: [],
       apps: [],
+      activeAppID: null,
       activeVersion: null,
       activeBuilds: null,
       activeBuild: null,
@@ -53,8 +54,9 @@ const ProjectDebugSymbols = React.createClass({
     });
   },
 
-  setActive(version, builds) {
+  setActive(appID, version, builds) {
     this.setState({
+      activeAppID: appID,
       activeVersion: version,
       activeBuilds: builds,
     });
@@ -135,79 +137,76 @@ const ProjectDebugSymbols = React.createClass({
       });
     }
 
-    const apps = indexedApps.map((app) => {
+    return indexedApps.map((app) => {
       return (
-        <div key={app.id}>
-          <div className="box-header clearfix">
-            <div className="row">
-              <h3 style={{paddingLeft: 12}}>
-                <img src={app.iconUrl} width="28" height="28" style={{marginRight: 8}} />
-                {app.name}
-              </h3>
-            </div>
-          </div>
-            {this.mapObject(groupedDsyms[app.id], (builds, version) => {
-              let symbolsInVersion = 0;
-              let lastSeen = null;
-              this.mapObject(groupedDsyms[app.id][version], (dsyms, build) => {
-                symbolsInVersion += Object.keys(dsyms).length;
-                if (lastSeen === null ||
-                    (lastSeen && new Date(dsyms[0].dateAdded).getTime() > new Date(lastSeen).getTime())) {
-                  lastSeen = dsyms[0].dateAdded;
-                }
-              });
-              let row = (
-                <li className="group hoverable" onClick={() => this.setActive(version, builds)}>
+        <div className="box dashboard-widget" key={app.id}>
+          <div className="box-content">
+            <div className="tab-pane active">
+              <div>
+                <div className="box-header clearfix">
                   <div className="row">
-                    <div className="col-xs-8 event-details">
-                      <h3 className="truncate">{version}</h3>
-                      <div className="event-message">{t('Builds')}: {Object.keys(builds).length}</div>
-                      <div className="event-extra">
-                        <ul>
-                          <li>
-                            <span className="icon icon-clock"></span>
-                            <TimeSince date={lastSeen} />
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="col-xs-4 event-count align-right">
-                      {t('Debug Symbol Files')}: {symbolsInVersion}
-                    </div>
-                  </div>
-                </li>
-              );
-
-              let buildRows = '';
-              if (this.state.activeVersion &&
-                  this.state.activeBuilds &&
-                  this.state.activeVersion == version) {
-                buildRows = this.renderBuilds(version, this.state.activeBuilds);
-              }
-              return (
-                <div className="box-content" key={version}>
-                  <div className="tab-pane active">
-                    <ul className="group-list group-list-small">
-                      {row}
-                      {buildRows}
-                    </ul>
+                    <h3 style={{paddingLeft: 12}}>
+                      <img src={app.iconUrl} width="28" height="28" style={{marginRight: 8}} />
+                      {app.name}
+                    </h3>
                   </div>
                 </div>
-              );
-            })}
+                  {this.mapObject(groupedDsyms[app.id], (builds, version) => {
+                    let symbolsInVersion = 0;
+                    let lastSeen = null;
+                    this.mapObject(groupedDsyms[app.id][version], (dsyms, build) => {
+                      symbolsInVersion += Object.keys(dsyms).length;
+                      if (lastSeen === null ||
+                          (lastSeen && new Date(dsyms[0].dateAdded).getTime() > new Date(lastSeen).getTime())) {
+                        lastSeen = dsyms[0].dateAdded;
+                      }
+                    });
+                    let row = (
+                      <li className="group hoverable" onClick={() => this.setActive(app.id, version, builds)}>
+                        <div className="row">
+                          <div className="col-xs-8 event-details">
+                            <h3 className="truncate">{version}</h3>
+                            <div className="event-message">{t('Builds')}: {Object.keys(builds).length}</div>
+                            <div className="event-extra">
+                              <ul>
+                                <li>
+                                  <span className="icon icon-clock"></span>
+                                  <TimeSince date={lastSeen} />
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+                          <div className="col-xs-4 event-count align-right">
+                            {t('Debug Symbol Files')}: {symbolsInVersion}
+                          </div>
+                        </div>
+                      </li>
+                    );
+
+                    let buildRows = '';
+                    if (this.state.activeVersion &&
+                        this.state.activeBuilds &&
+                        this.state.activeVersion == version &&
+                        this.state.activeAppID == app.id) {
+                      buildRows = this.renderBuilds(version, this.state.activeBuilds);
+                    }
+                    return (
+                      <div className="box-content" key={version}>
+                        <div className="tab-pane active">
+                          <ul className="group-list group-list-small">
+                            {row}
+                            {buildRows}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
         </div>
       );
     });
-
-    return (
-      <div className="box dashboard-widget">
-        <div className="box-content">
-          <div className="tab-pane active">
-            {apps}
-          </div>
-        </div>
-      </div>
-    );
   },
 
   renderBuilds(version, builds) {
