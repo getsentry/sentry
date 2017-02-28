@@ -95,7 +95,7 @@ const ReleaseOverview = React.createClass({
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
               pagination={false}
-              renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No issues')}</div>}
+              renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No issues resolved')}</div>}
               ref="issueList"
               showActions={false}
               params={{orgId: orgId}}
@@ -111,7 +111,7 @@ const ReleaseOverview = React.createClass({
               }}
               statsPeriod="0"
               pagination={false}
-              renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No issues')}</div>}
+              renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No new issues')}</div>}
               ref="issueList"
               showActions={false}
               params={{orgId: orgId}}
