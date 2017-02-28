@@ -700,6 +700,20 @@ const Stream = React.createClass({
               </div>
             </Sticky>
             {this.renderProcessingIssuesHint()}
+            <div className="processing-issues alert alert-error">
+              <a className="btn btn-default btn-sm pull-right">Show Details</a>
+              <span className="icon icon-alert" />
+              <strong>There is 1 issue blocking event processing</strong> (last event a few seconds ago)
+            </div>
+            <div className="processing-issues alert alert-warning">
+              <a className="btn btn-default btn-sm pull-right">Show Details</a>
+              <span className="icon icon-processing" />
+              <strong>There is 1 issue blocking event processing</strong> (last event a few seconds ago)
+            </div>
+            <div className="processing-issues alert alert-info">
+              <span className="icon icon-processing play" />
+              <strong>There is 1 issue currently processing</strong>
+            </div>
             {this.renderStreamBody()}
             <Pagination pageLinks={this.state.pageLinks}/>
           </div>
