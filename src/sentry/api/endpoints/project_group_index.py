@@ -375,7 +375,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     organization_id=project.organization_id
                 ).order_by('-date_added')[0]
             except IndexError:
-                return Response('{"detail": "No release data present in the system to indicate form a basis for \'Next Release\'"}', status=400)
+                return Response('{"detail": "No release data present in the system to form a basis for \'Next Release\'"}', status=400)
 
             now = timezone.now()
 

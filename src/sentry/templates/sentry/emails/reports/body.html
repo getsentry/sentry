@@ -408,7 +408,7 @@
                         {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
                     {% endwith %}
                     </div>
-                    <small>{% if change >= 0 %}more{% else %}less{% endif %} than {{ label }}</small>
+                    <small>{% if change >= 0 %}more{% else %}fewer{% endif %} than {{ label }}</small>
                   {% else %}
                     <small class="empty">There is not enough data to compare to {{ label }}.</small>
                   {% endif %}

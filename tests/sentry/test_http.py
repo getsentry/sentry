@@ -4,6 +4,7 @@ import ipaddress
 import platform
 import responses
 import pytest
+import tempfile
 
 from django.core.exceptions import SuspiciousOperation
 from mock import patch
@@ -53,3 +54,19 @@ class HttpTest(TestCase):
         with pytest.raises(SuspiciousOperation):
             # '0177.0000.0000.0001' is an octal for '127.0.0.1'
             http.safe_urlopen('http://0177.0000.0000.0001')
+
+    @responses.activate
+    def test_fetch_file(self):
+        responses.add(responses.GET, 'http://example.com', body='foo bar',
+                      content_type='application/json')
+
+        temp = tempfile.TemporaryFile()
+        result = http.fetch_file(
+            url='http://example.com',
+            domain_lock_enabled=False,
+            outfile=temp
+        )
+        temp.seek(0)
+        assert result.body is None
+        assert temp.read() == 'foo bar'
+        temp.close()

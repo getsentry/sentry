@@ -36,7 +36,7 @@ class Environment(Model):
 
     organization_id = BoundedPositiveIntegerField()
     projects = models.ManyToManyField('sentry.Project', through=EnvironmentProject)
-    project_id = BoundedPositiveIntegerField()
+    project_id = BoundedPositiveIntegerField(null=True)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
 
