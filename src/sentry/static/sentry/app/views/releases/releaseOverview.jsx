@@ -152,15 +152,15 @@ const ReleaseOverview = React.createClass({
             {projects.map((project) => {
               return (
                 <li key={project.id}>
-                  <Link to={`/${orgId}/${project.slug}/`}>
-                    <h6>
-                      {project.isBookmarked && <span className="bookmark icon-star-solid" />}
-                      {project.name}
-                    </h6>
-                  </Link>
-                  <div className="sparkline">
+                  <div className="sparkline pull-right" style={{width: 96}}>
                     <ReleaseProjectStatSparkline orgId={orgId} projectId={project.slug} />
                   </div>
+                  <Link to={`/${orgId}/${project.slug}/`}>
+                    <h6 className="m-b-0">
+                      {project.name}
+                    </h6>
+                    <p className="m-b-0">12 events</p>
+                  </Link>
                 </li>
               );
             })}
