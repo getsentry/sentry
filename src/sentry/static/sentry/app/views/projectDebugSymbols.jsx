@@ -145,9 +145,9 @@ const ProjectDebugSymbols = React.createClass({
               <div>
                 <div className="box-header clearfix">
                   <div className="row">
-                    <h3 style={{paddingLeft: 12}}>
+                    <h3 className="debug-symbols">
                       <img src={app.iconUrl} width="28" height="28" style={{marginRight: 8}} />
-                      {app.name}
+                      {app.name} <small>({app.bundleID})</small>
                     </h3>
                   </div>
                 </div>
@@ -251,7 +251,17 @@ const ProjectDebugSymbols = React.createClass({
     if (dsyms === null) {
       return null;
     }
-    return dsyms.map((dsymFile, key) => {
+
+    let moreSymbolsHidden = null;
+    if (raw && dsyms.length >= 100) {
+      moreSymbolsHidden = (
+        <tr className="text-center" key="empty-row">
+          <td colSpan="5">{t('There are more symbols than are shown here.')}</td>
+        </tr>
+      );
+    }
+
+    const rows = dsyms.map((dsymFile, key) => {
       let dsym = raw ? dsymFile : dsymFile.dsym;
       if (dsym === undefined || dsym === null) {
         return null;
@@ -266,6 +276,9 @@ const ProjectDebugSymbols = React.createClass({
         </tr>
       );
     });
+
+    rows.push(moreSymbolsHidden);
+    return rows;
   },
 
   renderUnreferencedDebugSymbols() {
