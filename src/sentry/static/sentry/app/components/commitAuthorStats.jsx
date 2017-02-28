@@ -9,21 +9,16 @@ import ApiMixin from '../mixins/apiMixin';
 
 const CommitBar = React.createClass({
   propTypes: {
-    whole: React.PropTypes.number.isRequired,
-    part: React.PropTypes.number.isRequired
+    totalCommits: React.PropTypes.number.isRequired,
+    authorCommits: React.PropTypes.number.isRequired
   },
 
   render() {
-    let barStyle = {
-      height: 6,
-      borderRadius: 2,
-      backgroundColor: '#57BE8C'
-    };
-
-    barStyle.width = (this.props.part / this.props.whole * 100) + '%';
+    let barStyle = {};
+    barStyle.width = (this.props.authorCommits / this.props.totalCommits * 100) + '%';
 
     return (
-      <div className="CommitBar" style={barStyle}/>
+      <div className="commit-bar" style={barStyle}/>
     );
   }
 });
@@ -112,7 +107,7 @@ const CommitAuthorStats = React.createClass({
                         <Avatar user={author} size={32} />
                       </div>
                       <div className="col-xs-10">
-                        <CommitBar whole={commitList.length} part={commitCount}/>
+                        <CommitBar totalCommits={commitList.length} authorCommits={commitCount}/>
                       </div>
                     </div>
                   </div>
