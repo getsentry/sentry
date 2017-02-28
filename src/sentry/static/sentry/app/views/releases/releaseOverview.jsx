@@ -1,10 +1,12 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IssueList from '../../components/issueList';
 import FileChange from '../../components/fileChange';
 import CommitAuthorStats from '../../components/commitAuthorStats';
+import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
 import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
@@ -17,6 +19,7 @@ const ReleaseOverview = React.createClass({
     return {
       loading: true,
       error: false,
+      projects: [],
     };
   },
 
@@ -42,6 +45,26 @@ const ReleaseOverview = React.createClass({
         });
       }
     });
+    this.getReleaseProjects();
+  },
+
+  getReleaseProjects() {
+    let {orgId, version} = this.props.params;
+    let path = `/organizations/${orgId}/releases/${version}/`;
+    this.api.request(path, {
+      method: 'GET',
+      success: (data, _, jqXHR) => {
+        this.setState({
+          projects: data.projects,
+          error: false,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      }
+    });
   },
 
   render() {
@@ -53,7 +76,7 @@ const ReleaseOverview = React.createClass({
     if (this.state.error)
       return <LoadingError/>;
 
-    let {fileList} = this.state;
+    let {fileList, projects} = this.state;
 
     // convert list of individual file changes (can be
     // multiple changes to a single file) into a per-file
@@ -124,6 +147,24 @@ const ReleaseOverview = React.createClass({
               projectId={projectId}
               version={version}
             />
+            <h6 className="nav-header m-b-1">Other Projects Affected</h6>
+            <ul className="nav nav-stacked">
+            {projects.map((project) => {
+              return (
+                <li key={project.id}>
+                  <Link to={`/${orgId}/${project.slug}/`}>
+                    <h6>
+                      {project.isBookmarked && <span className="bookmark icon-star-solid" />}
+                      {project.name}
+                    </h6>
+                  </Link>
+                  <div className="sparkline">
+                    <ReleaseProjectStatSparkline orgId={orgId} projectId={project.slug} />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
     </div>

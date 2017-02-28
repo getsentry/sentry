@@ -158,6 +158,10 @@ class ReleaseSerializer(Serializer):
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
 
+        release_projects = defaultdict(list)
+        project_releases = ReleaseProject.objects.filter(release__in=item_list).select_related('project')
+        for pr in project_releases:
+            release_projects[pr.release_id].append(pr.project)
         result = {}
         for item in item_list:
             result[item] = {
@@ -166,6 +170,7 @@ class ReleaseSerializer(Serializer):
                 'new_groups': group_counts_by_release.get(item.id) or 0,
                 'commit_count': 0,
                 'authors': [],
+                'projects': serialize(release_projects.get(item.id, []), user)
             }
             if release_metadata_attrs:
                 result[item].update(release_metadata_attrs[item])
@@ -186,6 +191,7 @@ class ReleaseSerializer(Serializer):
             'owner': attrs['owner'],
             'commitCount': attrs.get('commit_count', 0),
             'authors': attrs.get('authors', []),
+            'projects': attrs.get('projects', [])
         }
         if attrs['tag']:
             d.update({
