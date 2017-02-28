@@ -67,6 +67,10 @@ const ReleaseOverview = React.createClass({
     });
   },
 
+  renderEmpty() {
+    return <div className="box empty">{t('No other projects affected.')}</div>;
+  },
+
   render() {
     let {orgId, projectId, version} = this.props.params;
 
@@ -149,21 +153,26 @@ const ReleaseOverview = React.createClass({
             />
             <h6 className="nav-header m-b-1">Other Projects Affected</h6>
             <ul className="nav nav-stacked">
-            {projects.map((project) => {
-              return (
-                <li key={project.id}>
-                  <div className="sparkline pull-right" style={{width: 96}}>
-                    <ReleaseProjectStatSparkline orgId={orgId} projectId={project.slug} />
-                  </div>
-                  <Link to={`/${orgId}/${project.slug}/`}>
-                    <h6 className="m-b-0">
-                      {project.name}
-                    </h6>
-                    <p className="m-b-0">12 events</p>
-                  </Link>
-                </li>
-              );
-            })}
+            { projects.length === 1 ? this.renderEmpty() :
+              projects.map((project) => {
+                if (project.slug === projectId) {
+                  return null;
+                }
+                return (
+                  <li key={project.id}>
+                    <div className="sparkline pull-right" style={{width: 96}}>
+                      <ReleaseProjectStatSparkline orgId={orgId} projectId={project.slug} />
+                    </div>
+                    <Link to={`/${orgId}/${project.slug}/`}>
+                      <h6 className="m-b-0">
+                        {project.name}
+                      </h6>
+                      <p className="m-b-0">12 events</p>
+                    </Link>
+                  </li>
+                );
+              })
+            }
           </ul>
         </div>
       </div>
