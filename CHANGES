@@ -15,6 +15,7 @@ Version 8.14 (Unreleased)
 - Aded bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
+- Plugins can now add tasks that run in sentry as celery workers.
 
 API Changes
 ~~~~~~~~~~~
@@ -22,6 +23,9 @@ API Changes
 - Added OrganizationReleasesEndpoint.
 - Added context type ``app`` for cocoa events.
 - Added ``assignedTo`` param to ``/projects/{org}/{project}/issues/``.
+- Split out filtered stats onto Inbound Data Filters page
+- Added OrganizationReleasesEndpoint
+- Added OrganizationReleaseFileEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -33,6 +37,7 @@ Schema Changes
 - Added ``EnvironmentProject`` model.
 - Added ``Project.flags`` column.
 - Added not null constraint to ``Environment.organization_id`` column.
+- Removed not null constraint on ``Environment.project_id`` and ``ReleaseEnvironment.project_id`` columns
 
 Version 8.13
 ------------
