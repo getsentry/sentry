@@ -355,3 +355,14 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter(exclude_fields=['foobar'])
         proc.apply(data)
         assert data['extra'] == {'foobar': '123-45-6789'}
+
+    def test_empty_field(self):
+        data = {
+            'extra': {
+                'foobar': 'xxx',
+            },
+        }
+
+        proc = SensitiveDataFilter(fields=[''])
+        proc.apply(data)
+        assert data['extra'] == {'foobar': 'xxx'}
