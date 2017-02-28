@@ -7,6 +7,27 @@ import Avatar from '../components/avatar';
 import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
 
+const CommitBar = React.createClass({
+  propTypes: {
+    whole: React.PropTypes.number.isRequired,
+    part: React.PropTypes.number.isRequired
+  },
+
+  render() {
+    let barStyle = {
+      height: 6,
+      borderRadius: 2,
+      backgroundColor: '#57BE8C'
+    };
+
+    barStyle.width = (this.props.part / this.props.whole * 100) + '%';
+
+    return (
+      <div className="CommitBar" style={barStyle}/>
+    );
+  }
+});
+
 const CommitAuthorStats = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
@@ -86,10 +107,19 @@ const CommitAuthorStats = React.createClass({
               <div className="row">
                 <div className="col-sm-8">
                   <div className="tip" title={author.name + ' ' + author.email}>
-                    <Avatar user={author} size={32} />
+                    <div className="row row-flex row-center-vertically">
+                      <div className="col-xs-2">
+                        <Avatar user={author} size={32} />
+                      </div>
+                      <div className="col-xs-10">
+                        <CommitBar whole={commitList.length} part={commitCount}/>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="col-sm-4 align-right">{commitCount} commits</div>
+                <div className="col-sm-4 align-right">
+                  <small>{commitCount} commits</small>
+                </div>
               </div>
             </li>
           );
