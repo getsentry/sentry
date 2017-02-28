@@ -175,6 +175,48 @@ class OrganizationUpdateTest(APITestCase):
 
         assert org.default_role == 'member'
 
+    def test_empty_safe_fields(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'safeFields': [''],
+        })
+        assert response.status_code == 400, (response.status_code, response.content)
+        org = Organization.objects.get(id=org.id)
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(
+                organization=org,
+            )
+        }
+
+        assert not options.get('sentry:safe_fields')
+
+    def test_empty_sensitive_fields(self):
+        org = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'sensitiveFields': [''],
+        })
+        assert response.status_code == 400, (response.status_code, response.content)
+        org = Organization.objects.get(id=org.id)
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(
+                organization=org,
+            )
+        }
+
+        assert not options.get('sentry:sensitive_fields')
+
 
 class OrganizationDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.organization_details.uuid4')
