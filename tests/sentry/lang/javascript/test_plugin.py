@@ -642,7 +642,7 @@ class JavascriptIntegrationTest(TestCase):
         assert resp.status_code, 200
 
         event = Event.objects.get()
-        assert event.data['errors'] == [{'url': u'http://example.com/file1.js', 'type': 'js_invalid_http_code', 'value': 404}]
+        assert event.data['errors'] == [{'url': u'http://example.com/file1.js', 'type': 'fetch_invalid_http_code', 'value': 404}]
 
         exception = event.interfaces['sentry.interfaces.Exception']
         frame_list = exception.values[0].stacktrace.frames
