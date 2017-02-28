@@ -511,24 +511,33 @@ const Stream = React.createClass({
 
   renderProcessingIssuesHint() {
     let pi = this.state.processingIssues;
+    pi = {
+      hasIssues: true,
+      numIssues: 0,
+      lastSeen: new Date(),
+      resolveableIssues: 42,
+      hasMoreResolveableIssues: false,
+      issuesProcessing: 23,
+    };
     if (!pi || this.showingProcessingIssues()) {
       return null;
     }
 
     let {orgId, projectId} = this.props.params;
     let link = `/${orgId}/${projectId}/settings/processing-issues/`;
-    let showLink = false;
-    let label = null;
+    let showButton = false;
     let className = {
-      'processing-issues': true
+      'processing-issues': true,
+      'alert': true
     };
     let issues = null;
     let lastEvent = null;
+    let icon = null;
 
     if (pi.numIssues > 0) {
-      label = t('Unprocessed Events: ');
-      issues = tn('there is %d issue blocking event processing',
-                  'there are %d issues blocking event processing',
+      icon = <span className="icon icon-alert" />;
+      issues = tn('There is %d issue blocking event processing',
+                  'There are %d issues blocking event processing',
                   pi.numIssues);
       lastEvent = (
         <span className="last-seen">({tct('last event from [ago]', {
@@ -536,19 +545,21 @@ const Stream = React.createClass({
         })})
         </span>
       );
-      className.failing = true;
-      showLink = true;
+      className['alert-error'] = true;
+      showButton = true;
     } else if (pi.issuesProcessing > 0) {
-      className.processing = true;
-      label = tn('Reprocessing %d event …',
+      icon = <span className="icon icon-processing play" />;
+      className['alert-info'] = true;
+      issues = tn('Reprocessing %d event …',
         'Reprocessing %d events …',
         pi.issuesProcessing);
     } else if (pi.resolveableIssues > 0) {
-      className.pending = true;
-      label = tn('%d event pending reprocessing.',
-        '%d events pending reprocessing.',
+      icon = <span className="icon icon-processing" />;
+      className['alert-warning'] = true;
+      issues = tn('There is %d event pending reprocessing.',
+        'There are %d events pending reprocessing.',
         pi.resolveableIssues);
-      showLink = true;
+      showButton = true;
     } else {
       /* we should not go here but what do we know */
       return null;
@@ -556,14 +567,16 @@ const Stream = React.createClass({
 
     return (
       <div className={classNames(className)}>
-        <strong>{label}</strong>
-        {issues}
+        {showButton &&
+          <Link to={link} className="btn btn-default btn-sm pull-right">{
+            t('Show details')}</Link>
+        }
+        {icon}
+        {' '}
+        <strong>{issues}</strong>
         {' '}
         {lastEvent}
         {' '}
-        {showLink &&
-          <Link to={link}>{t('show details')}</Link>
-        }
       </div>
     );
   },
