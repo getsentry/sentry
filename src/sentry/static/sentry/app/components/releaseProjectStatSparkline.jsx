@@ -6,7 +6,7 @@ import {Sparklines, SparklinesLine} from 'react-sparklines';
 
 import ApiMixin from '../mixins/apiMixin';
 
-const releaseProjectStatSparkline = React.createClass({
+const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string,
     projectId: React.PropTypes.string,
@@ -60,4 +60,4 @@ const releaseProjectStatSparkline = React.createClass({
   }
 });
 
-export default releaseProjectStatSparkline;
+export default ReleaseProjectStatSparkline;
