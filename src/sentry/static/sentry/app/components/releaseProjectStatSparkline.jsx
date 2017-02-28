@@ -51,9 +51,11 @@ const releaseProjectStatSparkline = React.createClass({
     if (this.state.error)
       return <LoadingError/>;
     return (
-      <Sparklines data={values} width={100} height={32}>
-        <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
-      </Sparklines>
+      <div className="sparkline">
+        <Sparklines data={values} width={100} height={32}>
+          <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
+        </Sparklines>
+      </div>
     );
   }
 });
