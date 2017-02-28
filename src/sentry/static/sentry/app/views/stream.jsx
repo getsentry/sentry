@@ -511,14 +511,6 @@ const Stream = React.createClass({
 
   renderProcessingIssuesHint() {
     let pi = this.state.processingIssues;
-    pi = {
-      hasIssues: true,
-      numIssues: 0,
-      lastSeen: new Date(),
-      resolveableIssues: 42,
-      hasMoreResolveableIssues: false,
-      issuesProcessing: 23,
-    };
     if (!pi || this.showingProcessingIssues()) {
       return null;
     }
