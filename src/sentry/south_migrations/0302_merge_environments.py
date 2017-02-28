@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import IntegrityError, models, transaction
 
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 class Migration(DataMigration):
 
@@ -14,7 +15,7 @@ class Migration(DataMigration):
                                            .annotate(ecount=models.Count('id'))\
                                            .filter(ecount__gt=1)
 
-        for env in dupe_envs:
+        for env in RangeQuerySetWrapperWithProgressBar(dupe_envs):
             name = env['name']
             organization_id = env['organization_id']
 
@@ -60,7 +61,7 @@ class Migration(DataMigration):
             recount=models.Count('id')
         ).filter(recount__gt=1)
 
-        for renv in dupe_release_envs:
+        for renv in RangeQuerySetWrapperWithProgressBar(dupe_release_envs):
             release_id = renv['release_id']
             organization_id = renv['organization_id']
             environment_id = renv['environment_id']
