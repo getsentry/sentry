@@ -85,7 +85,7 @@ const ReleaseOverview = React.createClass({
     // convert list of individual file changes (can be
     // multiple changes to a single file) into a per-file
     // summary
-    let fileInfo = fileList.reduce(function (summary, fileChange) {
+    let fileChangeSummary = fileList.reduce(function (summary, fileChange) {
       let {author, type, filename} = fileChange;
       if (!summary.hasOwnProperty(filename)) {
         summary[filename] = {
@@ -99,20 +99,20 @@ const ReleaseOverview = React.createClass({
       return summary;
     }, {});
 
-    let fileCount = Object.keys(fileInfo).length;
+    let fileCount = Object.keys(fileChangeSummary).length;
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
             <h5>{fileCount} Files Changed</h5>
             <ul className="list-group list-group-striped m-b-2">
-              {Object.keys(fileInfo).map(file => {
+              {Object.keys(fileChangeSummary).map(filename => {
                 return (
                   <FileChange
-                    key={fileInfo[file].id}
-                    filename={file}
-                    authors={Object.values(fileInfo[file].authors)}
-                    types={fileInfo[file].types}
+                    key={fileChangeSummary[filename].id}
+                    filename={filename}
+                    authors={Object.values(fileChangeSummary[filename].authors)}
+                    types={fileChangeSummary[filename].types}
                     />
                 );
               })}

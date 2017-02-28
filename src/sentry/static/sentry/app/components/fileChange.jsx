@@ -26,7 +26,6 @@ const FileChange = React.createClass({
 
   render() {
     let {filename, authors, types} = this.props;
-    authors = Array.from(authors);
     types = Array.from(types);
     return (
       <li className="list-group-item list-group-item-sm ">
