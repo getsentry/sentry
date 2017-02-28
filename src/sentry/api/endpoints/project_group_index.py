@@ -308,8 +308,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the issues
                                      belong to.
         :param string status: the new status for the issues.  Valid values
-                              are ``"resolved"``, ``"unresolved"`` and
-                              ``"ignored"``.
+                              are ``"resolved"``, ``resolvedInNextRelease``,
+                              ``"unresolved"``, and ``"ignored"``.
         :param int ignoreDuration: the number of minutes to ignore this issue.
         :param boolean isPublic: sets the issue to public or private.
         :param boolean merge: allows to merge or unmerge different issues.
@@ -375,7 +375,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     organization_id=project.organization_id
                 ).order_by('-date_added')[0]
             except IndexError:
-                return Response('{"detail": "No release data present in the system to indicate form a basis for \'Next Release\'"}', status=400)
+                return Response('{"detail": "No release data present in the system to form a basis for \'Next Release\'"}', status=400)
 
             now = timezone.now()
 

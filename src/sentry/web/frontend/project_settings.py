@@ -13,7 +13,7 @@ from uuid import uuid1
 from sentry import options
 from sentry.models import AuditLogEntryEvent, Project, Team
 from sentry.web.forms.fields import (
-    CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
+    CustomTypedChoiceField, RangeField, OriginsField,
 )
 from sentry.web.frontend.base import ProjectView
 
@@ -90,8 +90,6 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
         required=False,
     )
-    blacklisted_ips = IPNetworksField(label=_('Filtered IP Addresses'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
 
     # Options that are overridden by Organization level settings
     org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
@@ -252,7 +250,6 @@ class ProjectSettingsView(ProjectView):
                 'safe_fields': '\n'.join(project.get_option('sentry:safe_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
-                'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
                 'default_environment': project.get_option('sentry:default_environment'),
                 'mail_subject_prefix': project.get_option(
                     'mail:subject_prefix', options.get('mail.subject-prefix')),
@@ -275,7 +272,6 @@ class ProjectSettingsView(ProjectView):
                 'safe_fields',
                 'scrub_ip_address',
                 'scrape_javascript',
-                'blacklisted_ips',
                 'default_environment',
                 'mail_subject_prefix',
             ):

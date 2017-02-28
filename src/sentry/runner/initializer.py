@@ -11,6 +11,8 @@ import click
 import os
 import six
 
+from django.conf import settings
+
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -46,6 +48,27 @@ def init_plugin(plugin):
         from sentry.interfaces.contexts import contexttype
         for cls in plugin.get_custom_contexts() or ():
             contexttype(cls)
+
+    if (hasattr(plugin, 'get_cron_schedule') and plugin.is_enabled()):
+        schedules = plugin.get_cron_schedule()
+        if schedules:
+            settings.CELERYBEAT_SCHEDULE.update(schedules)
+
+    if (hasattr(plugin, 'get_worker_imports') and plugin.is_enabled()):
+        imports = plugin.get_worker_imports()
+        if imports:
+            settings.CELERY_IMPORTS += tuple(imports)
+
+    if (hasattr(plugin, 'get_worker_queues') and plugin.is_enabled()):
+        from kombu import Queue
+        for queue in plugin.get_worker_queues():
+            try:
+                name, routing_key = queue
+            except ValueError:
+                name = routing_key = queue
+            q = Queue(name, routing_key=routing_key)
+            q.durable = False
+            settings.CELERY_QUEUES.append(q)
 
 
 def initialize_receivers():
