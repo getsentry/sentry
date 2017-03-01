@@ -206,7 +206,7 @@ end
 local function scale_to_total(values)
     local result = {}
     local total = 0
-    for key, value in pairs(valuess) do
+    for key, value in pairs(values) do
         total = total + value
     end
     for key, value in pairs(values) do
