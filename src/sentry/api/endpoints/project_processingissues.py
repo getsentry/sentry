@@ -39,7 +39,7 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         if request.GET.get('detailed') == '1':
             q = ProcessingIssue.objects.with_num_events().filter(
                 project=project
-            ).order_by('type')
+            ).order_by('type', 'datetime')
             data['issues'] = [serialize(x, request.user) for x in q]
 
         return Response(serialize(data, request.user))
