@@ -333,7 +333,7 @@ local commands = {
                             ),
                             function (result, response)
                                 for i = 1, #response, 2 do
-                                    local local bucket, count = response[i], response[i + 1]
+                                    local bucket, count = response[i], response[i + 1]
                                     result[bucket] = (result[bucket] or 0) + count
                                 end
                                 return result
