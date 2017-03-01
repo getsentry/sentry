@@ -110,6 +110,9 @@ const ProjectDebugSymbols = React.createClass({
   },
 
   mapObject(object, callback) {
+    if (object === undefined) {
+      return [];
+    }
     return Object.keys(object).map(function (key) {
       return callback(object[key], key);
     });
