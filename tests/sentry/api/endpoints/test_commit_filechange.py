@@ -56,7 +56,6 @@ class CommitFileChangeTest(APITestCase):
         )
         url = reverse('sentry-api-0-release-commitfilechange', kwargs={
             'organization_slug': project.organization.slug,
-            'project_slug': project.slug,
             'version': release.version,
         })
 
