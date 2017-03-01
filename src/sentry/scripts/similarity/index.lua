@@ -333,7 +333,7 @@ local commands = {
                             ),
                             function (result, response)
                                 for i = 1, #response, 2 do
-                                    local bucket, count = unpack(table.slice(response, i, i + 1))
+                                    local local bucket, count = response[i], response[i + 1]
                                     result[bucket] = (result[bucket] or 0) + count
                                 end
                                 return result
@@ -349,9 +349,9 @@ local commands = {
                 for band, buckets in ipairs(frequencies) do
                     for bucket, count in pairs(buckets) do
                         for _, time in ipairs(time_series) do
-                            -- Fetch all other items that have been
-                            -- added to the same bucket in this bad
-                            -- during this time period.
+                            -- Fetch all other items that have been added to
+                            -- the same bucket in this band during this time
+                            -- period.
                             local members = redis.call(
                                 'SMEMBERS',
                                 get_bucket_membership_key(
@@ -494,7 +494,7 @@ local commands = {
                             source_bucket_frequency_key
                         )
                         for i = 1, #response, 2 do
-                            local bucket, count = unpack(table.slice(response, i, i + 1))
+                            local bucket, count = response[i], response[i + 1]
 
                             -- Remove the source from the bucket membership
                             -- set, and add the destination to the membership
@@ -582,7 +582,7 @@ local commands = {
                         )
 
                         for i = 1, #response, 2 do
-                            local bucket, count = unpack(table.slice(response, i, i + 1))
+                            local bucket = response[i]
                             redis.call(
                                 'SREM',
                                 get_bucket_membership_key(
