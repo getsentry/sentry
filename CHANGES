@@ -17,6 +17,7 @@ Version 8.14 (Unreleased)
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.
 - Added the ability to verify TLS connections when fetching artifacts.
+- Added data migration to merge environments across an organization
 
 API Changes
 ~~~~~~~~~~~
