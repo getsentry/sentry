@@ -203,14 +203,14 @@ local function get_manhattan_distance(target, other)
     return total
 end
 
-local function scale_to_total(value)
+local function scale_to_total(values)
     local result = {}
     local total = 0
-    for k, v in pairs(value) do
-        total = total + v
+    for key, value in pairs(valuess) do
+        total = total + value
     end
-    for k, v in pairs(value) do
-        result[k] = v / total
+    for key, value in pairs(values) do
+        result[key] = value / total
     end
     return result
 end
