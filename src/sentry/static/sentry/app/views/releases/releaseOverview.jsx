@@ -24,9 +24,9 @@ const ReleaseOverview = React.createClass({
   },
 
   componentDidMount() {
-    let {orgId, projectId, version} = this.props.params;
+    let {orgId, version} = this.props.params;
 
-    let path = `/projects/${orgId}/${projectId}/releases/${version}/commitfiles/`;
+    let path = `/organizations/${orgId}/releases/${version}/commitfiles/`;
     this.api.request(path, {
       method: 'GET',
       data: this.props.location.query,
