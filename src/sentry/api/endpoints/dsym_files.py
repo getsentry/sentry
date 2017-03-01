@@ -51,7 +51,7 @@ class DSymFilesEndpoint(ProjectEndpoint):
 
         file_list = ProjectDSymFile.objects.filter(
             project=project,
-            dsymfile__isnull=True,
+            versiondsymfile__isnull=True,
         ).select_related('file')[:100]
 
         return Response({
