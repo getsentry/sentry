@@ -191,14 +191,14 @@ class DjangoSearchBackend(SearchBackend):
         if times_seen is not None:
             queryset = queryset.filter(times_seen=times_seen)
 
-        if times_seen_lower or times_seen_upper:
+        if times_seen_lower is not None or times_seen_upper is not None:
             params = {}
-            if times_seen_lower:
+            if times_seen_lower is not None:
                 if times_seen_lower_inclusive:
                     params['times_seen__gte'] = times_seen_lower
                 else:
                     params['times_seen__gt'] = times_seen_lower
-            if times_seen_upper:
+            if times_seen_upper is not None:
                 if times_seen_upper_inclusive:
                     params['times_seen__lte'] = times_seen_upper
                 else:
