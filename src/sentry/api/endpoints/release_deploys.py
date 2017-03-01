@@ -13,8 +13,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
-from sentry.models import Deploy, DeployResource, Environment, Release
+from sentry.models import Deploy, Environment, Release
 
 
 class DeploySerializer(serializers.Serializer):
@@ -23,7 +22,6 @@ class DeploySerializer(serializers.Serializer):
     url = serializers.URLField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateFinished = serializers.DateTimeField(required=False)
-    resources = ListField(required=False)
 
 
 class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
@@ -46,16 +44,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        allowed_projects = set(
-            self.get_allowed_projects(
-                request,
-                organization
-            ).values_list('id', flat=True)
-        )
-
-        # make sure user has access to at least one project
-        # in release
-        if not [p for p in release.projects.values_list('id', flat=True) if p in allowed_projects]:
+        if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
         queryset = Deploy.objects.filter(
@@ -90,70 +79,44 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        allowed_projects = set(
-            self.get_allowed_projects(
-                request,
-                organization
-            ).values_list('id', flat=True)
-        )
-
-        allowed_projects_in_release = {
-            p for p in release.projects.values_list('id', flat=True) if p in allowed_projects
-        }
-
-        # make sure user has access to at least one project
-        # in release
-        if not allowed_projects_in_release:
+        if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
         serializer = DeploySerializer(data=request.DATA)
 
         if serializer.is_valid():
             result = serializer.object
-            # TODO(jess) umm should environment be unique across org?
-            # also should we be creating environments if they don't exist?
-            env_ids = Environment.objects.filter(
-                project_id__in=allowed_projects_in_release,
-                name=result['environment']
-            ).values_list('id', flat=True)
-
-            if not env_ids:
+            try:
+                env = Environment.objects.get(
+                    organization_id=organization.id,
+                    name=result['environment']
+                )
+            except Environment.DoesNotExist:
+                # TODO(jess) should we be creating
+                # environments if they don't exist?
                 raise ResourceDoesNotExist
 
-            created = False
-            for env_id in env_ids:
-                try:
-                    with transaction.atomic():
-                        deploy, created = Deploy.objects.create(
-                            organization_id=organization.id,
-                            release=release,
-                            environment_id=env_id,
-                            date_finished=result.get('dateFinished', datetime.datetime.utcnow()),
-                            date_started=result.get('dateStarted'),
-                            name=result.get('name'),
-                            url=result.get('url'),
-                        ), True
-                except IntegrityError:
-                    deploy = Deploy.objects.get(
+            try:
+                with transaction.atomic():
+                    deploy, created = Deploy.objects.create(
                         organization_id=organization.id,
                         release=release,
-                        environment_id=env_id,
-                    )
-                else:
-                    for resource in result.get('resources', []):
-                        try:
-                            with transaction.atomic():
-                                deploy.resources.create(
-                                    organization_id=organization.id,
-                                    name=resource
-                                )
-                        except IntegrityError:
-                            deploy.add(
-                                DeployResource.objects.get(
-                                    organization_id=organization.id,
-                                    name=resource
-                                )
-                            )
+                        environment_id=env.id,
+                        date_finished=result.get('dateFinished', datetime.datetime.utcnow()),
+                        date_started=result.get('dateStarted'),
+                        name=result.get('name'),
+                        url=result.get('url'),
+                    ), True
+            except IntegrityError:
+                deploy, created = Deploy.objects.get(
+                    organization_id=organization.id,
+                    release=release,
+                    environment_id=env.id,
+                ), False
+                deploy.update(
+                    date_finished=result.get('dateFinished', datetime.datetime.utcnow()),
+                    date_started=result.get('dateStarted'),
+                )
 
             # This is the closest status code that makes sense, and we want
             # a unique 2xx response code so people can understand when

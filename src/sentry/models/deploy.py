@@ -13,28 +13,12 @@ from sentry.db.models import (
 )
 
 
-class DeployResource(Model):
-    __core__ = False
-
-    organization_id = BoundedPositiveIntegerField(db_index=True)
-    name = models.CharField(max_length=64)
-
-    class Meta:
-        app_label = 'sentry'
-        db_table = 'sentry_deployresource'
-        unique_together = (('organization_id', 'name'),)
-
-
 class Deploy(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     release = FlexibleForeignKey('sentry.Release')
     environment_id = BoundedPositiveIntegerField(db_index=True)
-    resources = models.ManyToManyField(
-        'sentry.DeployResource',
-        related_name='deploys'
-    )
     date_finished = models.DateTimeField(default=timezone.now)
     date_started = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=64, null=True, blank=True)

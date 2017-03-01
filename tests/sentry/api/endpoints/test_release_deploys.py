@@ -16,25 +16,17 @@ class ReleaseDeploysListTest(APITestCase):
             version='1',
         )
         release.add_project(project)
-        deploy = Deploy.objects.create(
+        Deploy.objects.create(
             environment_id=Environment.objects.create(
-                project_id=project.id,
+                organization_id=project.organization_id,
                 name='production'
             ).id,
             organization_id=project.organization_id,
             release=release,
         )
-        deploy.resources.create(
-            organization_id=project.organization_id,
-            name='foo'
-        )
-        deploy.resources.create(
-            organization_id=project.organization_id,
-            name='bar'
-        )
         Deploy.objects.create(
             environment_id=Environment.objects.create(
-                project_id=project.id,
+                organization_id=project.organization_id,
                 name='staging'
             ).id,
             organization_id=project.organization_id,
@@ -53,7 +45,6 @@ class ReleaseDeploysListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[0]['environment'] == 'staging'
         assert response.data[1]['environment'] == 'production'
-        assert response.data[1]['resources'] == ['foo', 'bar']
 
 
 class ReleaseDeploysCreateTest(APITestCase):
@@ -68,7 +59,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         release.add_project(project)
 
         Environment.objects.create(
-            project_id=project.id,
+            organization_id=project.organization_id,
             name='production',
         )
 
@@ -82,8 +73,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         response = self.client.post(url, data={
             'name': 'foo',
             'environment': 'production',
-            'url': 'https://www.example.com',
-            'resources': ['server-one', 'server-two']
+            'url': 'https://www.example.com'
         })
         assert response.status_code == 201, response.content
         # TODO(jess): figure out why this was causing issues
@@ -92,6 +82,5 @@ class ReleaseDeploysCreateTest(APITestCase):
             'name': 'foo',
             'url': 'https://www.example.com',
             'environment': 'production',
-            'dateStarted': None,
-            'resources': ['server-one', 'server-two']
+            'dateStarted': None
         }
