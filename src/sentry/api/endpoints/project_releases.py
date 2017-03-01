@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import string
 
 from django.db import IntegrityError, transaction
 
@@ -43,19 +42,14 @@ def list_releases_scenario(runner):
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.RegexField(r'[a-zA-Z0-9\-_\.]', max_length=64, required=True)
+    version = serializers.RegexField(r'^[a-zA-Z0-9\-_\. \(\)]+\Z',
+                                     max_length=64, required=True)
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False)
-
-    def validate_version(self, attrs, source):
-        value = attrs[source]
-        if not set(value).isdisjoint(set(string.whitespace)):
-            raise serializers.ValidationError('Enter a valid value')
-        return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
