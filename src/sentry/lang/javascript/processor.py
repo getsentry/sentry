@@ -302,9 +302,9 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
     if result is None:
         headers = {}
-        verify_tls = False
+        verify_ssl = False
         if project and is_valid_origin(url, project=project):
-            verify_tls = bool(project.get_option('sentry:verify_tls'))
+            verify_ssl = bool(project.get_option('sentry:verify_ssl', False))
             token = project.get_option('sentry:token')
             if token:
                 token_header = project.get_option(
@@ -314,7 +314,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 headers[token_header] = token
 
         with metrics.timer('sourcemaps.fetch'):
-            result = http.fetch_file(url, headers=headers, verify_ssl=verify_tls)
+            result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
             cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
