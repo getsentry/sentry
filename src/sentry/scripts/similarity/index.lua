@@ -374,8 +374,12 @@ local commands = {
             return table.imap(
                 indices,
                 function (index)
+                    -- First, identify the which buckets that the key we are
+                    -- querying is present in.
                     local item_frequencies = fetch_bucket_frequencies(index, item_key)
 
+                    -- Then, find all iterms that also exist within those
+                    -- buckets and fetch their frequencies.
                     local candidates = fetch_candidates(index, item_frequencies)
                     local candidate_frequencies = {}
                     for candidate_key, _ in pairs(candidates) do
@@ -385,23 +389,33 @@ local commands = {
                         )
                     end
 
+                    -- Then, calculate the similarity for each candidate based
+                    -- on their frequencies.
                     local results = {}
                     for key, value in pairs(candidate_frequencies) do
                         table.insert(
                             results,
                             {
                                 key,
-                                table.ireduce(
-                                    table.imap(
+                                table.ireduce(  -- sum, then avg
+                                    table.imap(  -- calculate similarity
                                         table.izip(
                                             item_frequencies,
                                             value
                                         ),
                                         function (v)
+                                            -- We calculate the "similarity"
+                                            -- between two items by comparing
+                                            -- how often their contents exist
+                                            -- in the same buckets for a band.
                                             local dist = get_manhattan_distance(
                                                 scale_to_total(v[1]),
                                                 scale_to_total(v[2])
                                             )
+                                            -- Since this is a measure of
+                                            -- similarity (and not distance) we
+                                            -- normalize the result to [0, 1]
+                                            -- scale.
                                             return 1 - (dist / 2)
                                         end
                                     ),
@@ -414,6 +428,7 @@ local commands = {
                         )
                     end
 
+                    -- Sort the results in descending order (most similar first.)
                     table.sort(
                         results,
                         function (left, right)
@@ -426,7 +441,10 @@ local commands = {
                         function (item)
                             return {
                                 item[1],
-                                string.format('%f', item[2]),
+                                string.format(
+                                    '%f',  -- converting floats to strings avoids truncation
+                                    item[2]
+                                ),
                             }
                         end
                     )
