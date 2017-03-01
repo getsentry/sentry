@@ -75,6 +75,7 @@ class DjangoSearchBackend(SearchBackend):
                         date_to=None, date_to_inclusive=True,
                         active_at_from=None, active_at_from_inclusive=True,
                         active_at_to=None, active_at_to_inclusive=True,
+                        times_seen=None,
                         times_seen_lower=None, times_seen_lower_inclusive=True,
                         times_seen_upper=None, times_seen_upper_inclusive=True,
                         cursor=None, limit=None):
@@ -186,6 +187,9 @@ class DjangoSearchBackend(SearchBackend):
                 else:
                     params['active_at__lt'] = active_at_to
             queryset = queryset.filter(**params)
+
+        if times_seen is not None:
+            queryset = queryset.filter(times_seen=times_seen)
 
         if times_seen_lower or times_seen_upper:
             params = {}

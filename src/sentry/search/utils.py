@@ -192,9 +192,10 @@ def get_numeric_field_value(field, raw_value, type=int):
                 field,
                 type(raw_value[len(modifier):]),
             )
-
-    raise ValueError  # TODO(tkaemming): support exact queries, lol
-
+    else:
+        return {
+            field: type(raw_value),
+        }
 
 reserved_tag_names = frozenset([
     'query',

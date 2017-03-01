@@ -12,6 +12,10 @@ from sentry.search.utils import parse_query, get_numeric_field_value
 
 
 def test_get_numeric_field_value():
+    assert get_numeric_field_value('foo', '10') == {
+        'foo': 10,
+    }
+
     assert get_numeric_field_value('foo', '>10') == {
         'foo_lower': 10,
         'foo_lower_inclusive': False,
