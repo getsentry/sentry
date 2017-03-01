@@ -164,6 +164,38 @@ def get_date_params(value, from_field, to_field):
         })
     return result
 
+
+numeric_modifiers = [
+    ('>=', lambda field, value: {
+        '{}_lower'.format(field): value,
+        '{}_lower_inclusive'.format(field): True,
+    }),
+    ('<=', lambda field, value: {
+        '{}_upper'.format(field): value,
+        '{}_upper_inclusive'.format(field): True,
+    }),
+    ('>', lambda field, value: {
+        '{}_lower'.format(field): value,
+        '{}_lower_inclusive'.format(field): False,
+    }),
+    ('<', lambda field, value: {
+        '{}_upper'.format(field): value,
+        '{}_upper_inclusive'.format(field): False,
+    }),
+]
+
+
+def get_numeric_field_value(field, raw_value, type=int):
+    for modifier, function in numeric_modifiers:
+        if raw_value.startswith(modifier):
+            return function(
+                field,
+                type(raw_value[len(modifier):]),
+            )
+
+    raise ValueError  # TODO(tkaemming): support exact queries, lol
+
+
 reserved_tag_names = frozenset([
     'query',
     'is',
@@ -190,7 +222,9 @@ reserved_tag_names = frozenset([
     'app',
     'os.name',
     'url',
-    'event.timestamp'])
+    'event.timestamp'
+    'timesSeen',
+])
 
 
 def tokenize_query(query):
@@ -312,6 +346,8 @@ def parse_query(project, query, user):
                     project, key.split('.', 1)[1], value)
             elif key == 'event.timestamp':
                 results.update(get_date_params(value, 'date_from', 'date_to'))
+            elif key == 'timesSeen':
+                results.update(get_numeric_field_value('times_seen', value))
             else:
                 results['tags'][key] = value
 
