@@ -259,12 +259,12 @@ const OrganizationSettingsForm = React.createClass({
           <BooleanField
             key="scrubIPAddresses"
             name="scrubIPAddresses"
-            label={t('Require Using Default Scrubbers')}
-            value={formData.requireDataScrubber}
-            help={t('Require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.')}
+            label={t('Prevent Storing of IP Addresses')}
+            value={formData.scrubIPAddresses}
+            help={t('Preventing IP addresses from being stored for new events on all projects.')}
             required={false}
-            error={errors.requireDataScrubberDefaults}
-            onChange={this.onFieldChange.bind(this, 'requireDataScrubberDefaults')} />
+            error={errors.scrubIPAddresses}
+            onChange={this.onFieldChange.bind(this, 'scrubIPAddresses')} />
         </fieldset>
         <fieldset className="form-actions">
           <button type="submit" className="btn btn-primary"

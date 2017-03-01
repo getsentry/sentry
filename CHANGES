@@ -20,6 +20,8 @@ Version 8.14 (Unreleased)
 - Simplified management of secondary email addresses.
 - Fixed an issue where changing primary email address would remove the pre-existing verified email.
 - Disallow duplicating primary emails for users moving forward.
+- Added data migration to merge environments across an organization
+- Added ``timesSeen`` keyword to issue search.
 
 API Changes
 ~~~~~~~~~~~
