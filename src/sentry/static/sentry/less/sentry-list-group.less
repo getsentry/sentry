@@ -18,6 +18,22 @@
 
     &.list-group-item-sm {
       padding: 5px 10px;
+
+      &.list-group-avatar {
+        padding-left: 38px;
+        position: relative;
+
+        div[class^="col-"] {
+          position: static;
+        }
+
+        .avatar {
+          .square(20px);
+          position: absolute;
+          left: 10px;
+          top: 7px;
+        }
+      }
     }
 
     // When pairing title / description / meta use <h*>, <p>, and <p>
