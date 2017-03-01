@@ -53,11 +53,10 @@ mocks_loaded = BetterSignal(providing_args=["project"])
 user_feedback_received = BetterSignal(providing_args=["project"])
 api_called = BetterSignal(providing_args=["organization"])
 issue_assigned = BetterSignal(providing_args=["organization", "project", "group"])
-# issue_resolved_in_release = BetterSignal(providing_args=[])
-# advanced_search
-# save_search_created
-# inbound_filter_toggled
-# rule_created
-# sso_enabled
-# data_scrubber_enabled
-# two_fa_enabled
+issue_resolved_in_release = BetterSignal(providing_args=["organization", "project"])
+advanced_search = BetterSignal(providing_args=["project"])
+save_search_created = BetterSignal()
+inbound_filter_toggled = BetterSignal(providing_args=["project"])
+# sso_enabled = BetterSignal(providing_args=["organization"])
+# data_scrubber_enabled = BetterSignal(providing_args=["organization"])
+# two_fa_enabled = BetterSignal(providing_args=["organization"])
