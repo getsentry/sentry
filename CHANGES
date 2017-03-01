@@ -16,6 +16,7 @@ Version 8.14 (Unreleased)
 - Various visual improvements to notifications, including the addition of
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.
+- Added the ability to verify TLS connections when fetching artifacts.
 - Simplified management of secondary email addresses.
 - Fixed an issue where changing primary email address would remove the pre-existing verified email.
 - Disallow duplicating primary emails for users moving forward.
