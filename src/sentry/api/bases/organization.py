@@ -8,7 +8,7 @@ from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationMemberTeam, OrganizationStatus, Project, Team
+    Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
 )
 from sentry.models.apikey import ROOT_KEY
 from sentry.utils import auth
@@ -111,3 +111,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                 team__organization_id=organization.id,
             ).values_list('team_id', flat=True)
         return Project.objects.filter(team_id__in=allowed_teams)
+
+    def has_release_permission(self, request, organization, release):
+        return ReleaseProject.objects.filter(
+            release=release,
+            project__in=self.get_allowed_projects(request, organization),
+        ).exists()

@@ -58,7 +58,38 @@ class ReleaseDetailsTest(APITestCase):
             'version': release2.version,
         })
         response = self.client.get(url)
-        assert response.status_code == 404
+        assert response.status_code == 403
+
+    def test_multiple_projects(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project = self.create_project(team=team1, organization=org)
+        project2 = self.create_project(team=team2, organization=org)
+
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+        release.add_project(project)
+        release.add_project(project2)
+
+        self.create_member(teams=[team1, team2], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': release.version,
+        })
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
 
 
 class UpdateReleaseDetailsTest(APITestCase):
@@ -107,7 +138,7 @@ class UpdateReleaseDetailsTest(APITestCase):
             'version': release2.version,
         })
         response = self.client.put(url, {'ref': 'master'})
-        assert response.status_code == 404
+        assert response.status_code == 403
 
     def test_commits(self):
         user = self.create_user(is_staff=False, is_superuser=False)
