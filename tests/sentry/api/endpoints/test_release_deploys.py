@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import datetime
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import Deploy, Environment, Release
@@ -23,6 +25,7 @@ class ReleaseDeploysListTest(APITestCase):
             ).id,
             organization_id=project.organization_id,
             release=release,
+            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1)
         )
         Deploy.objects.create(
             environment_id=Environment.objects.create(
