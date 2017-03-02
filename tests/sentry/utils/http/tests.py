@@ -249,6 +249,9 @@ class IsValidIPTestCase(TestCase):
         assert not self.is_valid_ip('127.0.0.1', ['127.0.0.0/8'])
         assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
 
+    def test_garbage_input(self):
+        assert self.is_valid_ip('127.0.0.1', ['lol/bar'])
+
 
 class OriginFromRequestTestCase(TestCase):
     def test_nothing(self):

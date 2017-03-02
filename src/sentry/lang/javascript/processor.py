@@ -2,19 +2,14 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['JavaScriptStacktraceProcessor']
 
-import codecs
 import logging
 import re
 import base64
 import six
-import time
 import zlib
 
 from django.conf import settings
-from django.core.exceptions import SuspiciousOperation
-from collections import namedtuple
 from os.path import splitext
-from requests.exceptions import RequestException, Timeout
 from requests.utils import get_encoding_from_headers
 from six.moves.urllib.parse import urlparse, urljoin, urlsplit
 from libsourcemap import from_json as view_from_json
@@ -27,14 +22,12 @@ except ImportError:
         pass
 
 from sentry import http
-from sentry.exceptions import RestrictedIPAddress
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
-from sentry.utils.strings import truncatechars
 from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
 
@@ -58,48 +51,16 @@ CLEAN_MODULE_RE = re.compile(r"""^
 (?:[-\.][a-f0-9]{7,}$)  # Ending in a commitish
 """, re.X | re.I)
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
+NODE_MODULES_RE = re.compile(r'\bnode_modules/')
+
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
-MAX_URL_LENGTH = 150
-NODE_MODULES_RE = re.compile(r'\bnode_modules/')
-
-# TODO(dcramer): we want to change these to be constants so they are easier
-# to translate/link again
-
-# UrlResult.body **must** be bytes
-UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body', 'encoding'])
 
 logger = logging.getLogger(__name__)
 
 
-def expose_url(url):
-    if url is None:
-        return u'<unknown>'
-    if url[:5] == 'data:':
-        return u'<data url>'
-    url = truncatechars(url, MAX_URL_LENGTH)
-    if isinstance(url, six.binary_type):
-        url = url.decode('utf-8', 'replace')
-    return url
-
-
-class BadSource(Exception):
-    error_type = EventError.UNKNOWN_ERROR
-
-    def __init__(self, data=None):
-        if data is None:
-            data = {}
-        data.setdefault('type', self.error_type)
-        super(BadSource, self).__init__(data['type'])
-        self.data = data
-
-
-class CannotFetchSource(BadSource):
-    error_type = EventError.JS_GENERIC_FETCH_ERROR
-
-
-class UnparseableSourcemap(BadSource):
+class UnparseableSourcemap(http.BadSource):
     error_type = EventError.JS_INVALID_SOURCEMAP
 
 
@@ -276,7 +237,7 @@ def fetch_release_file(filename, release):
         else:
             headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
             encoding = get_encoding_from_headers(headers)
-            result = (headers, body, 200, encoding)
+            result = http.UrlResult(filename, headers, body, 200, encoding)
             cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
 
     elif result == -1:
@@ -290,7 +251,7 @@ def fetch_release_file(filename, release):
             encoding = result[3]
         except IndexError:
             encoding = None
-        result = (result[0], zlib.decompress(result[1]), result[2], encoding)
+        result = http.UrlResult(filename, result[0], zlib.decompress(result[1]), result[2], encoding)
 
     return result
 
@@ -304,9 +265,9 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     # If our url has been truncated, it'd be impossible to fetch
     # so we check for this early and bail
     if url[-3:] == '...':
-        raise CannotFetchSource({
+        raise http.CannotFetch({
             'type': EventError.JS_MISSING_SOURCE,
-            'url': expose_url(url),
+            'url': http.expose_url(url),
         })
     if release:
         with metrics.timer('sourcemaps.release_file'):
@@ -314,7 +275,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     else:
         result = None
 
-    cache_key = 'source:cache:v3:%s' % (
+    cache_key = 'source:cache:v4:%s' % (
         md5_text(url).hexdigest(),
     )
 
@@ -322,9 +283,9 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         if not allow_scraping or not url.startswith(('http:', 'https:')):
             error = {
                 'type': EventError.JS_MISSING_SOURCE,
-                'url': expose_url(url),
+                'url': http.expose_url(url),
             }
-            raise CannotFetchSource(error)
+            raise http.CannotFetch(error)
 
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
@@ -332,26 +293,18 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             # Previous caches would be a 3-tuple instead of a 4-tuple,
             # so this is being maintained for backwards compatibility
             try:
-                encoding = result[3]
+                encoding = result[4]
             except IndexError:
                 encoding = None
             # We got a cache hit, but the body is compressed, so we
             # need to decompress it before handing it off
-            result = (result[0], zlib.decompress(result[1]), result[2], encoding)
+            result = http.UrlResult(result[0], result[1], zlib.decompress(result[2]), result[3], encoding)
 
     if result is None:
-        # lock down domains that are problematic
-        domain = urlparse(url).netloc
-        domain_key = 'source:blacklist:v2:%s' % (
-            md5_text(domain).hexdigest(),
-        )
-        domain_result = cache.get(domain_key)
-        if domain_result:
-            domain_result['url'] = url
-            raise CannotFetchSource(domain_result)
-
         headers = {}
+        verify_ssl = False
         if project and is_valid_origin(url, project=project):
+            verify_ssl = bool(project.get_option('sentry:verify_ssl', False))
             token = project.get_option('sentry:token')
             if token:
                 token_header = project.get_option(
@@ -360,107 +313,25 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
                 )
                 headers[token_header] = token
 
-        logger.debug('Fetching %r from the internet', url)
-
         with metrics.timer('sourcemaps.fetch'):
-            http_session = http.build_session()
-            response = None
-            try:
-                try:
-                    start = time.time()
-                    response = http_session.get(
-                        url,
-                        allow_redirects=True,
-                        verify=False,
-                        headers=headers,
-                        timeout=settings.SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT,
-                        stream=True,
-                    )
+            result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
+            z_body = zlib.compress(result.body)
+            cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
-                    try:
-                        cl = int(response.headers['content-length'])
-                    except (LookupError, ValueError):
-                        cl = 0
-                    if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
-                        raise OverflowError()
-
-                    contents = []
-                    cl = 0
-
-                    # Only need to even attempt to read the response body if we
-                    # got a 200 OK
-                    if response.status_code == 200:
-                        for chunk in response.iter_content(16 * 1024):
-                            if time.time() - start > settings.SENTRY_SOURCE_FETCH_TIMEOUT:
-                                raise Timeout()
-                            contents.append(chunk)
-                            cl += len(chunk)
-                            if cl > settings.SENTRY_SOURCE_FETCH_MAX_SIZE:
-                                raise OverflowError()
-
-                except Exception as exc:
-                    logger.debug('Unable to fetch %r', url, exc_info=True)
-                    if isinstance(exc, RestrictedIPAddress):
-                        error = {
-                            'type': EventError.RESTRICTED_IP,
-                            'url': expose_url(url),
-                        }
-                    elif isinstance(exc, SuspiciousOperation):
-                        error = {
-                            'type': EventError.SECURITY_VIOLATION,
-                            'url': expose_url(url),
-                        }
-                    elif isinstance(exc, Timeout):
-                        error = {
-                            'type': EventError.JS_FETCH_TIMEOUT,
-                            'url': expose_url(url),
-                            'timeout': settings.SENTRY_SOURCE_FETCH_TIMEOUT,
-                        }
-                    elif isinstance(exc, OverflowError):
-                        error = {
-                            'type': EventError.JS_TOO_LARGE,
-                            'url': expose_url(url),
-                            # We want size in megabytes to format nicely
-                            'max_size': float(settings.SENTRY_SOURCE_FETCH_MAX_SIZE) / 1024 / 1024,
-                        }
-                    elif isinstance(exc, (RequestException, ZeroReturnError)):
-                        error = {
-                            'type': EventError.JS_GENERIC_FETCH_ERROR,
-                            'value': six.text_type(type(exc)),
-                            'url': expose_url(url),
-                        }
-                    else:
-                        logger.exception(six.text_type(exc))
-                        error = {
-                            'type': EventError.UNKNOWN_ERROR,
-                            'url': expose_url(url),
-                        }
-
-                    # TODO(dcramer): we want to be less aggressive on disabling domains
-                    cache.set(domain_key, error or '', 300)
-                    logger.warning('source.disabled', extra=error)
-                    raise CannotFetchSource(error)
-
-                body = b''.join(contents)
-                z_body = zlib.compress(body)
-                headers = {k.lower(): v for k, v in response.headers.items()}
-                encoding = response.encoding
-
-                cache.set(cache_key, (headers, z_body, response.status_code, encoding), 60)
-                result = (headers, body, response.status_code, encoding)
-            finally:
-                if response is not None:
-                    response.close()
-
-    if result[2] != 200:
-        logger.debug('HTTP %s when fetching %r', result[2], url,
-                     exc_info=True)
-        error = {
-            'type': EventError.JS_INVALID_HTTP_CODE,
-            'value': result[2],
-            'url': expose_url(url),
-        }
-        raise CannotFetchSource(error)
+    # Make sure the file we're getting back is six.binary_type. The only
+    # reason it'd not be binary would be from old cached blobs, so
+    # for compatibility with current cached files, let's coerce back to
+    # binary and say utf8 encoding.
+    if not isinstance(result.body, six.binary_type):
+        try:
+            result = http.UrlResult(result.url, result.headers, result.body.encode('utf8'), result.status, result.encoding)
+        except UnicodeEncodeError:
+            error = {
+                'type': EventError.FETCH_INVALID_ENCODING,
+                'value': 'utf8',
+                'url': http.expose_url(url),
+            }
+            raise http.CannotFetch(error)
 
     # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
     # NOTE: possible to have JS files that don't actually end w/ ".js", but this should catch 99% of cases
@@ -468,41 +339,16 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
         # This cannot parse as valid JS/JSON.
         # NOTE: not relying on Content-Type header because apps often don't set this correctly
-        body_start = result[1][:20].lstrip()  # Discard leading whitespace (often found before doctype)
+        body_start = result.body[:20].lstrip()  # Discard leading whitespace (often found before doctype)
 
         if body_start[:1] == u'<':
             error = {
                 'type': EventError.JS_INVALID_CONTENT,
                 'url': url,
             }
-            raise CannotFetchSource(error)
+            raise http.CannotFetch(error)
 
-    # Make sure the file we're getting back is six.binary_type. The only
-    # reason it'd not be binary would be from old cached blobs, so
-    # for compatibility with current cached files, let's coerce back to
-    # binary and say utf8 encoding.
-    if not isinstance(result[1], six.binary_type):
-        try:
-            result = (result[0], result[1].encode('utf8'), None)
-        except UnicodeEncodeError:
-            error = {
-                'type': EventError.JS_INVALID_SOURCE_ENCODING,
-                'value': 'utf8',
-                'url': expose_url(url),
-            }
-            raise CannotFetchSource(error)
-
-    return UrlResult(url, result[0], result[1], result[3])
-
-
-def is_utf8(encoding):
-    if encoding is None:
-        return True
-    try:
-        return codecs.lookup(encoding).name == 'utf-8'
-    except LookupError:
-        # Encoding is entirely unknown, so definitely not utf-8
-        return False
+    return result
 
 
 def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
@@ -520,23 +366,13 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
         result = fetch_file(url, project=project, release=release,
                             allow_scraping=allow_scraping)
         body = result.body
-
-        # This is just a quick sanity check, but doesn't guarantee
-        if not is_utf8(result.encoding):
-            error = {
-                'type': EventError.JS_INVALID_SOURCE_ENCODING,
-                'value': 'utf8',
-                'url': expose_url(url),
-            }
-            raise CannotFetchSource(error)
-
     try:
         return view_from_json(body)
     except Exception as exc:
         # This is in debug because the product shows an error already.
         logger.debug(six.text_type(exc), exc_info=True)
         raise UnparseableSourcemap({
-            'url': expose_url(url),
+            'url': http.expose_url(url),
         })
 
 
@@ -678,7 +514,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if sourcemap_view and frame.get('colno') is None:
             all_errors.append({
                 'type': EventError.JS_NO_COLUMN,
-                'url': expose_url(frame['abs_path']),
+                'url': http.expose_url(frame['abs_path']),
             })
         elif sourcemap_view:
             last_token = token
@@ -688,7 +524,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             else:
                 sourcemap_label = sourcemap_url
 
-            sourcemap_label = expose_url(sourcemap_label)
+            sourcemap_label = http.expose_url(sourcemap_label)
 
             try:
                 # Errors are 1-indexed in the frames, so we need to -1 to get
@@ -726,7 +562,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 else:
                     all_errors.append({
                         'type': EventError.JS_MISSING_SOURCE,
-                        'url': expose_url(abs_path),
+                        'url': http.expose_url(abs_path),
                     })
 
             if token is not None:
@@ -779,7 +615,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         elif sourcemap_url:
             new_frame['data'] = dict(new_frame.get('data') or {},
-                                     sourcemap=expose_url(sourcemap_url))
+                                     sourcemap=http.expose_url(sourcemap_url))
 
         # TODO: theoretically a minified source could point to
         # another mapped, minified source
@@ -840,7 +676,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             result = fetch_file(filename, project=self.project,
                                 release=self.release,
                                 allow_scraping=self.allow_scraping)
-        except BadSource as exc:
+        except http.BadSource as exc:
             cache.add_error(filename, exc.data)
             return
 
@@ -865,7 +701,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 release=self.release,
                 allow_scraping=self.allow_scraping,
             )
-        except BadSource as exc:
+        except http.BadSource as exc:
             cache.add_error(filename, exc.data)
             return
 

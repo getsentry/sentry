@@ -1,5 +1,8 @@
-Version 8.14 (Unreleased)
+Version 8.15 (Unreleased)
 -------------------------
+
+Version 8.14
+------------
 
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 - Add IE10 legacy browser filter
@@ -15,6 +18,10 @@ Version 8.14 (Unreleased)
 - Aded bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
+- Plugins can now add tasks that run in sentry as celery workers.
+- Added the ability to verify TLS connections when fetching artifacts.
+- Added data migration to merge environments across an organization
+- Added ``timesSeen`` keyword to issue search.
 
 API Changes
 ~~~~~~~~~~~
@@ -22,6 +29,9 @@ API Changes
 - Added OrganizationReleasesEndpoint.
 - Added context type ``app`` for cocoa events.
 - Added ``assignedTo`` param to ``/projects/{org}/{project}/issues/``.
+- Split out filtered stats onto Inbound Data Filters page
+- Added OrganizationReleasesEndpoint
+- Added OrganizationReleaseFileEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -33,6 +43,7 @@ Schema Changes
 - Added ``EnvironmentProject`` model.
 - Added ``Project.flags`` column.
 - Added not null constraint to ``Environment.organization_id`` column.
+- Removed not null constraint on ``Environment.project_id`` and ``ReleaseEnvironment.project_id`` columns
 
 Version 8.13
 ------------
@@ -51,7 +62,14 @@ Version 8.13
 - Fixed bug where workflow notification subject may not include a custom email prefix.
 - Added configurable subject templates for individual alert emails (`mail:subject_template` option).
 - Added data migration to populate ReleaseProject.new_groups
+- Moved organization settings to React.
 - Added support for managing newsletter subscriptions with Sentry.io
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``ReleaseProject.new_groups`` column.
+- Moved organization settings to React.
 
 Schema Changes
 ~~~~~~~~~~~~~~
