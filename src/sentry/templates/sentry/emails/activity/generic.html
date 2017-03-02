@@ -10,6 +10,14 @@
   {{ block.super }}
 {% endblock %}
 
+{% block preheader %}
+  {% if group %}
+    {% include "sentry/emails/_group.html" %}
+  {% else %}
+    {{ block.super }}
+  {% endif %}
+{% endblock %}
+
 {% block main %}
 
   {% block activity %}
