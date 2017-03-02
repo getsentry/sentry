@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -65,11 +66,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects__in=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         return Response(serialize(release, request.user))
 
@@ -100,11 +103,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization,
-                projects__in=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         serializer = ReleaseSerializer(data=request.DATA, partial=True)
 
@@ -161,11 +166,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects__in=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         # we don't want to remove the first_release metadata on the Group, and
         # while people might want to kill a release (maybe to remove files),

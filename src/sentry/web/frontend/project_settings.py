@@ -44,6 +44,11 @@ class EditProjectForm(forms.ModelForm):
         }),
         required=False,
     )
+    verify_ssl = forms.BooleanField(
+        label=_('Verify TLS/SSL'),
+        help_text=_('Outbound requests will verify TLS (sometimes known as SSL) connections.'),
+        required=False,
+    )
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
         min_value=0, max_value=168, step_value=1,
         help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
@@ -243,6 +248,7 @@ class ProjectSettingsView(ProjectView):
                 'origins': '\n'.join(project.get_option('sentry:origins', ['*'])),
                 'token': security_token,
                 'token_header': project.get_option('sentry:token_header'),
+                'verify_ssl': bool(project.get_option('sentry:verify_ssl', False)),
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
@@ -265,6 +271,7 @@ class ProjectSettingsView(ProjectView):
                 'origins',
                 'token',
                 'token_header',
+                'verify_ssl',
                 'resolve_age',
                 'scrub_data',
                 'scrub_defaults',

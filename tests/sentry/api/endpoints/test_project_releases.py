@@ -113,6 +113,29 @@ class ProjectReleaseCreateTest(APITestCase):
         assert release.organization == project.organization
         assert release.projects.first() == project
 
+    def test_ios_release(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project(name='foo')
+
+        url = reverse('sentry-api-0-project-releases', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1 (123)',
+        })
+
+        assert response.status_code == 201, response.content
+        assert response.data['version']
+
+        release = Release.objects.get(
+            version=response.data['version'],
+        )
+        assert not release.owner
+        assert release.organization == project.organization
+        assert release.projects.first() == project
+
     def test_duplicate(self):
         self.login_as(user=self.user)
 

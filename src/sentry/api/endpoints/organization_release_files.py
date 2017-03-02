@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import re
 from django.db import IntegrityError, transaction
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -35,11 +36,13 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         file_list = ReleaseFile.objects.filter(
             release=release,
@@ -82,11 +85,13 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         if 'file' not in request.FILES:
             return Response({'detail': 'Missing uploaded file'}, status=400)
