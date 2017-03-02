@@ -9,6 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles
 from sentry.models import AuditLogEntryEvent, Organization
+from sentry.signals import data_scrubber_enabled
 from sentry.web.frontend.base import OrganizationView
 
 
@@ -139,12 +140,14 @@ class OrganizationSettingsView(OrganizationView):
             organization.flags.early_adopter = form.cleaned_data['early_adopter']
             organization.save()
 
-            for opt in (
-                    'require_scrub_data',
-                    'require_scrub_defaults',
-                    'sensitive_fields',
-                    'safe_fields',
-                    'require_scrub_ip_address'):
+            data_scrubbing_options = (
+                'require_scrub_data',
+                'require_scrub_defaults',
+                'sensitive_fields',
+                'safe_fields',
+                'require_scrub_ip_address')
+
+            for opt in data_scrubbing_options:
                 value = form.cleaned_data.get(opt)
                 if value is None:
                     organization.delete_option('sentry:%s' % (opt,))
@@ -161,6 +164,9 @@ class OrganizationSettingsView(OrganizationView):
 
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your organization were saved.'))
+
+            if any([scrubbing_field in form.cleaned_data for scrubbing_field in data_scrubbing_options]):
+                data_scrubber_enabled.send(organization=organization, sender=request.user)
 
             return HttpResponseRedirect(reverse('sentry-organization-settings', args=[organization.slug]))
 

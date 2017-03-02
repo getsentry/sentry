@@ -431,7 +431,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     if not is_bulk:
                         activity.send_notification()
 
-                    issue_resolved_in_release.send(project.organization, project, sender=acting_user)
+                    issue_resolved_in_release.send(project=project, sender=acting_user)
 
             queryset.update(
                 status=GroupStatus.RESOLVED,
