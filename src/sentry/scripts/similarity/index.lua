@@ -26,7 +26,7 @@ This is modeled as two data structures:
 -- Try and enable script effects replication if we're using Redis 3.2 or
 -- greater. This is wrapped in `pcall` so that we can continue to support older
 -- Redis versions while using this feature if it's available.
-if not pcall(function () redis.replicate_commands() end) then
+if not pcall(redis.replicate_commands) then
     redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
 end
 
