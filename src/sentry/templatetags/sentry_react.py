@@ -97,12 +97,15 @@ def get_react_config(context):
 
     if user:
         user = extract_lazy_object(user)
-
+    org = user.get_orgs()[0]  # TODO MAX awful hack
     enabled_features = []
     if features.has('organizations:create', actor=user):
         enabled_features.append('organizations:create')
     if features.has('auth:register', actor=user):
         enabled_features.append('auth:register')
+
+    if features.has('organizations:similarity-view', actor=user, organization=org):
+        enabled_features.append('organizations:similarity-view')
 
     version_info = _get_version_info()
 

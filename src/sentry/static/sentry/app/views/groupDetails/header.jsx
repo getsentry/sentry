@@ -10,6 +10,7 @@ import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
 import GroupTitle from '../../components/group/title';
 import ProjectState from '../../mixins/projectState';
+import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
@@ -111,6 +112,8 @@ const GroupHeader = React.createClass({
 
     let message = this.getMessage();
 
+    let hasSimView = ConfigStore.getConfig().features.has('organizations:similarity-view');
+
     return (
       <div className={className}>
         <div className="row">
@@ -205,9 +208,10 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Related Events')}
           </ListLink>
+          {hasSimView &&
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/similar/`}>
-            {t('Similar Issues')} <span className="badge animated">{'?'}</span>
-          </ListLink>
+            {t('Similar Issues')} <span className="badge">{'?'}</span>
+          </ListLink>}
         </ul>
       </div>
     );
