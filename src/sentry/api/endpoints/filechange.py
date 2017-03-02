@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.core.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -15,10 +15,10 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
 
     def get(self, request, organization, version):
         """
-        List a Release's CommitFileChange objects
+        Retrieve Files Changed in a Release's Commits
         ````````````````````````
 
-        Retrieve a list of commitfilechanges for a given release.
+        Retrieve a list of files that were changed in a given release's commits.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.

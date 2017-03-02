@@ -4,10 +4,11 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    Group, GroupCommitResolution, Project,
+    Group, GroupCommitResolution,
     Release, ReleaseCommit,
 )
 
@@ -29,9 +30,11 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
         :pparam string version: the version identifier of the release.
         :auth: required
         """
+        try:
+            release = Release.objects.get(version=version, organization=project.organization)
+        except Release.DoesNotExist:
+            raise ResourceDoesNotExist
 
-        release = Release.objects.get(version=version, organization=project.organization)
-        project = Project.objects.get(slug=project.slug, organization=project.organization)
         commits = ReleaseCommit.objects.filter(
             release=release,
         ).select_related('commit')
