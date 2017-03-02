@@ -37,4 +37,3 @@ const ConfigStore = Reflux.createStore({
 });
 
 export default ConfigStore;
-
