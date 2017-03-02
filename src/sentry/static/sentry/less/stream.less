@@ -199,43 +199,29 @@
   padding-left: 0;
   font-size: 14px;
   font-weight: 400;
-  padding: 5px 10px;
-  text-align: center;
+  padding: 10px 20px 8px;
 
-  &.failing {
-    border: 1px solid @orange;
-    background: lighten(@orange-light, 23%);
-    color: @orange-dark;
-    a {
-      color: @orange-dark;
+  // TODO(ckj) make this a component-level option
+  &.alert-error {
+    .icon-alert{
+      opacity: 1;
+      color: #F2261E;
+      margin-top: 1px;
+
+      &:before {
+        content: "\E906";
+      }
     }
   }
 
-  &.pending {
-    border: 1px solid @purple-light;
-    background: lighten(@purple-lightest, 15%);
-    color: @purple-dark;
-    a {
-      color: @purple-dark;
+  &.alert-info {
+    .icon {
+      display: inline-block;
     }
   }
 
-  &.processing {
-    border: 1px solid @green;
-    background: lighten(@green-light, 33%);
-    color: @green-dark;
-    a {
-      color: @green-dark;
-    }
-  }
-
-  a {
-    font-weight: bold;
-    text-decoration: underline;
-  }
-
-  .last-seen {
-    font-style: italic;
+  .pull-right {
+    margin-top: -5px;
   }
 }
 

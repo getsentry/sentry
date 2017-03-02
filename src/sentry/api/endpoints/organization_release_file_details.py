@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import posixpath
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry.api.base import DocSection
@@ -48,11 +49,13 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         try:
             releasefile = ReleaseFile.objects.get(
@@ -88,11 +91,13 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         try:
             releasefile = ReleaseFile.objects.get(
@@ -133,11 +138,13 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 organization_id=organization.id,
-                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            raise PermissionDenied
 
         try:
             releasefile = ReleaseFile.objects.get(

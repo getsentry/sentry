@@ -185,10 +185,11 @@ class Organization(Model):
         from sentry.models import (
             ApiKey, AuditLogEntry, Commit, OrganizationMember,
             OrganizationMemberTeam, Project, Release, ReleaseCommit,
-            ReleaseEnvironment, ReleaseFile, Repository, Team
+            ReleaseEnvironment, ReleaseFile, Repository, Team,
+            Environment,
         )
 
-        for from_member in OrganizationMember.objects.filter(organization=from_org):
+        for from_member in OrganizationMember.objects.filter(organization=from_org, user__isnull=False):
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org,
@@ -253,7 +254,7 @@ class Organization(Model):
                 organization=from_org,
             ).update(organization=to_org)
 
-        for model in (Commit, ReleaseCommit, ReleaseEnvironment, Repository):
+        for model in (Commit, ReleaseCommit, ReleaseEnvironment, Repository, Environment):
             model.objects.filter(
                 organization_id=from_org.id,
             ).update(organization_id=to_org.id)
