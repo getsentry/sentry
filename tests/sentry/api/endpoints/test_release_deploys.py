@@ -76,11 +76,6 @@ class ReleaseDeploysCreateTest(APITestCase):
             'url': 'https://www.example.com'
         })
         assert response.status_code == 201, response.content
-        # TODO(jess): figure out why this was causing issues
-        response.data.pop('dateFinished')
-        assert response.data == {
-            'name': 'foo',
-            'url': 'https://www.example.com',
-            'environment': 'production',
-            'dateStarted': None
-        }
+        assert response.data['name'] == 'foo'
+        assert response.data['url'] == 'https://www.example.com'
+        assert response.data['environment'] == 'production'

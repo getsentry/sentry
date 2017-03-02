@@ -50,14 +50,12 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         queryset = Deploy.objects.filter(
             organization_id=organization.id,
             release=release
-        ).extra(select={
-            'sort': 'COALESCE(date_finished, date_started)',
-        })
+        )
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='-sort',
+            order_by='-date_finished',
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(x, request.user),
         )
