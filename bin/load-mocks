@@ -23,8 +23,16 @@ from sentry.models import (
     CommitAuthor, CommitFileChange,
 )
 from sentry.signals import mocks_loaded
+from sentry.similarity import features
 from sentry.utils.hashlib import md5_text
-from sentry.utils.samples import create_sample_event
+from sentry.utils.samples import create_sample_event as _create_sample_event
+
+
+def create_sample_event(*args, **kwargs):
+    event = _create_sample_event(*args, **kwargs)
+    features.record(event)
+    return event
+
 
 PLATFORMS = itertools.cycle([
     'ruby',
