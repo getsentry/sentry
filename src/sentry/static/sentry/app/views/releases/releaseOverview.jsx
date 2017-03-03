@@ -30,7 +30,7 @@ const ReleaseOverview = React.createClass({
   mixins: [ApiMixin],
 
   statics: {
-    MAX_WHEN_COLLAPSED: 10
+    MAX_WHEN_COLLAPSED: 2
   },
 
   getInitialState() {
@@ -131,7 +131,7 @@ const ReleaseOverview = React.createClass({
     let files = Object.keys(fileChangeSummary);
     files.sort();
     if (this.state.collapsed && fileCount > MAX) {
-      files = files.slice(-MAX);
+      files = files.slice(0, MAX);
     }
     let numCollapsed = fileCount - files.length;
 
