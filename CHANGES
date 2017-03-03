@@ -15,7 +15,7 @@ Version 8.14
 - Release functionality is now detected at a project level to enable various features.
 - Added basic encryption facilities (``sentry.utils.encryption``).
 - Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
-- Aded bulk "Resolve in Next Release" to stream actions.
+- Added bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.
