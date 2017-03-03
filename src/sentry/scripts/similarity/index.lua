@@ -226,6 +226,36 @@ local function scale_to_total(values)
     return result
 end
 
+local function collect_index_key_pairs(arguments, validator)
+    if validator == nil then
+        validator = function (entry) end
+    end
+
+    local entries = table.ireduce(
+        arguments,
+        function (state, token)
+            if state.active == nil then
+                state.active = {
+                    index = token,
+                    key = nil,
+                }
+            else
+                state.active.key = token
+                validator(state.active)
+                table.insert(
+                    state.completed,
+                    state.active
+                )
+                state.active = nil
+            end
+            return state
+        end,
+        {active = nil, completed = {}}
+    )
+    assert(entries.active == nil, 'unexpected end of input')
+    return entries.completed
+end
+
 
 -- Command Parsing
 
@@ -466,28 +496,12 @@ local commands = {
     MERGE = takes_configuration(
         function (configuration, arguments)
             local destination_key = arguments[1]
-            local entries = table.ireduce(
+            local sources = collect_index_key_pairs(
                 table.slice(arguments, 2),
-                function (state, token)
-                    if state.active == nil then
-                        state.active = {
-                            index = token,
-                            key = nil,
-                        }
-                    else
-                        assert(token ~= destination_key, 'cannot merge destination into itself')
-                        state.active.key = token
-                        table.insert(
-                            state.completed,
-                            state.active
-                        )
-                        state.active = nil
-                    end
-                    return state
-                end,
-                {active = nil, completed = {}}
+                function (entry)
+                    assert(entry.key ~= destination_key, 'cannot merge destination into itself')
+                end
             )
-            assert(entries.active == nil, 'unexpected end of input')
 
             local time_series = get_active_indices(
                 configuration.interval,
@@ -495,7 +509,7 @@ local commands = {
                 configuration.timestamp
             )
 
-            for _, source in ipairs(entries.completed) do
+            for _, source in ipairs(sources) do
                 for band = 1, configuration.bands do
                     for _, time in ipairs(time_series) do
                         local source_bucket_frequency_key = get_bucket_frequency_key(
@@ -566,27 +580,7 @@ local commands = {
     ),
     DELETE = takes_configuration(
         function (configuration, arguments)
-            local entries = table.ireduce(
-                arguments,
-                function (state, token)
-                    if state.active == nil then
-                        state.active = {
-                            index = token,
-                            key = nil,
-                        }
-                    else
-                        state.active.key = token
-                        table.insert(
-                            state.completed,
-                            state.active
-                        )
-                        state.active = nil
-                    end
-                    return state
-                end,
-                {active = nil, completed = {}}
-            )
-            assert(entries.active == nil, 'unexpected end of input')
+            local sources = collect_index_key_pairs(arguments)
 
             local time_series = get_active_indices(
                 configuration.interval,
@@ -594,7 +588,7 @@ local commands = {
                 configuration.timestamp
             )
 
-            for _, source in ipairs(entries.completed) do
+            for _, source in ipairs(sources) do
                 for band = 1, configuration.bands do
                     for _, time in ipairs(time_series) do
                         local source_bucket_frequency_key = get_bucket_frequency_key(
@@ -631,7 +625,7 @@ local commands = {
                 end
             end
         end
-    )
+    ),
 }
 
 
