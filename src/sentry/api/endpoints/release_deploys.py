@@ -39,7 +39,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 version=version,
-                organization=organization
+                organization=organization,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -49,7 +49,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = Deploy.objects.filter(
             organization_id=organization.id,
-            release=release
+            release=release,
         )
 
         return self.paginate(
@@ -80,7 +80,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         try:
             release = Release.objects.get(
                 version=version,
-                organization=organization
+                organization=organization,
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
@@ -95,12 +95,12 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             try:
                 env = Environment.objects.get(
                     organization_id=organization.id,
-                    name=result['environment']
+                    name=result['environment'],
                 )
             except Environment.DoesNotExist:
                 env = Environment.objects.create(
                     organization_id=organization.id,
-                    name=result['environment']
+                    name=result['environment'],
                 )
 
             try:

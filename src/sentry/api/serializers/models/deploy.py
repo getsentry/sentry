@@ -10,14 +10,14 @@ class DeploySerializer(Serializer):
         environments = {
             e.id: e
             for e in Environment.objects.filter(
-                id__in=[d.environment_id for d in item_list]
+                id__in=[d.environment_id for d in item_list],
             )
         }
 
         result = {}
         for item in item_list:
             result[item] = {
-                'environment': environments.get(item.environment_id)
+                'environment': environments.get(item.environment_id),
             }
 
         return result

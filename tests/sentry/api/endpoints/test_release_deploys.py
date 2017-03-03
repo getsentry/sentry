@@ -21,16 +21,16 @@ class ReleaseDeploysListTest(APITestCase):
         Deploy.objects.create(
             environment_id=Environment.objects.create(
                 organization_id=project.organization_id,
-                name='production'
+                name='production',
             ).id,
             organization_id=project.organization_id,
             release=release,
-            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1)
+            date_finished=datetime.datetime.utcnow() - datetime.timedelta(days=1),
         )
         Deploy.objects.create(
             environment_id=Environment.objects.create(
                 organization_id=project.organization_id,
-                name='staging'
+                name='staging',
             ).id,
             organization_id=project.organization_id,
             release=release,
@@ -76,7 +76,7 @@ class ReleaseDeploysCreateTest(APITestCase):
         response = self.client.post(url, data={
             'name': 'foo',
             'environment': 'production',
-            'url': 'https://www.example.com'
+            'url': 'https://www.example.com',
         })
         assert response.status_code == 201, response.content
         assert response.data['name'] == 'foo'
