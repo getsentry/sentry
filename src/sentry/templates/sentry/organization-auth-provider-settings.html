@@ -5,26 +5,23 @@
 
 {% block org_auth_settings_nav %}active{% endblock %}
 
-{% block inner %}
-  <div class="page-header">
-    <h2>{{ provider_name }} Authentication</h2>
-  </div>
+{% block main %}
+  <h3>{{ provider_name }} Authentication</h3>
 
-  <div class="row">
-    <div class="span9">
+  <div class="box">
+    <div class="box-content with-padding">
       <form method="POST">
         {% csrf_token %}
 
-        <h3>Login URL</h3>
+        <h4>Login URL</h4>
 
         <p>While Sentry will try to be clever about directing members to the appropriate login form, you're safest just to hit up your organization-specific login when visiting the app:</p>
 
-        <pre class="clippy" data-text="{{ login_url }}"><a href="{{ login_url }}">{{ login_url }}</a></pre>
+        <pre><a href="{{ login_url }}">{{ login_url }}</a></pre>
 
         {% if pending_links_count %}
           <hr>
-
-          <h3>Unlinked Members</h3>
+          <h4>Unlinked Members</h4>
 
           <button class="btn btn-primary pull-right" name="op"
                   value="reinvite" style="margin-left: 20px">Send Reminders</button>
@@ -35,7 +32,6 @@
 
         {% if content %}
           <hr>
-
           {{ content }}
         {% endif %}
 
@@ -45,11 +41,14 @@
 
         {{ form|as_crispy_errors }}
 
-        <button class="btn btn-primary pull-right" name="op"
-                value="settings" style="margin-left: 20px">Save Settings</button>
-
         {% for field in form %}
           {{ field|as_crispy_field }}
+          {% if forloop.last %}
+            <fieldset class="form-actions">
+              <button class="btn btn-primary pull-right" name="op"
+                value="settings" style="margin-left: 20px">Save Settings</button>
+            </fieldset>
+          {% endif %}
         {% endfor %}
 
         <hr>

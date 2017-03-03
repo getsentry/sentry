@@ -1,30 +1,43 @@
-{% extends "sentry/bases/team.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{% trans "Remove Team" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
   <div class="page-header">
-    <div class="pull-right">
-      <a href="{% url 'sentry-organization-home' organization.slug %}">Back to Organization Home</a>
-    </div>
     <h2>
       {% trans "Remove Team" %}
       <small>{{ team.name }}</small>
     </h2>
   </div>
   <form action="" method="post">
-    <p>{% trans "Are you sure you wish to remove this team? This change is permanent and cannot be undone!" %}</p>
     {% csrf_token %}
+
+    <p><strong>{% trans "Removing this team is permanent and cannot be undone!" %}</strong></p>
+
+    {% if project_list %}
+      <p>{% trans "This will also remove all associated projects and events:" %}</p>
+
+      <ul>
+        {% for project in project_list %}
+          <li>{{ project.name }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
     {{ form|as_crispy_errors }}
+
     {% for field in form %}
       {{ field|as_crispy_field }}
     {% endfor %}
+
     <fieldset class="form-actions">
-      <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button>
-      <a href="{% url 'sentry-manage-team' organization.slug team.slug %}" class="btn">{% trans "Cancel" %}</a>
+      <button type="submit" class="btn btn-danger"
+              onclick="return confirm('Are you sure you want to remove this team?')">{% trans "Remove Team" %}</button>
+      <a href="{% absolute_uri '/organizations/{}/teams/{}/settings/' team.organization.slug team.slug %}" class="btn btn-default">{% trans "Cancel" %}</a>
     </fieldset>
   </form>
 {% endblock %}

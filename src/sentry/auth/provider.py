@@ -18,6 +18,9 @@ class Provider(object):
         self.logger = logging.getLogger('sentry.auth.%s' % (key,))
 
     def get_configure_view(self):
+        """
+        Return the view which handles configuration (post-setup).
+        """
         return ConfigureView.as_view()
 
     def get_auth_pipeline(self):
@@ -59,6 +62,17 @@ class Provider(object):
         The ``email`` and ``id`` keys are required, ``name`` is optional.
         """
         raise NotImplementedError
+
+    def update_identity(self, new_data, current_data):
+        """
+        When re-authenticating with a provider, the identity data may need to
+        be mutated based on the previous state. An example of this is Google,
+        which will not return a `refresh_token` unless the user explicitly
+        goes through an approval process.
+
+        Return the new state which should be used for an identity.
+        """
+        return new_data
 
     def refresh_identity(self, auth_identity):
         """

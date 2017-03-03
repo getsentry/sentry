@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.interfaces.exception import (
-    SingleException, Exception, trim_exceptions
+    SingleException, Exception, slim_exception_data
 )
 from sentry.testutils import TestCase
 
@@ -64,7 +64,6 @@ class ExceptionTest(TestCase):
 
     def test_to_string(self):
         result = self.interface.to_string(self.event)
-        print result
         assert result == """ValueError: hello world
   File "foo/baz.py", line 1
 
@@ -76,11 +75,6 @@ ValueError: hello world
 
         all_values = sum([v.get_hash() for v in inst.values], [])
         assert inst.get_hash() == all_values
-
-    def test_to_html_render_call(self):
-        # stupid test to ensure that we dont straight up error
-        result = self.interface.to_html(self.event)
-        assert result
 
     def test_context_with_mixed_frames(self):
         inst = Exception.to_python(dict(values=[{
@@ -103,13 +97,32 @@ ValueError: hello world
             }]},
         }]))
 
-        event = self.create_event(data={
+        self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
-        context = inst.get_context(event)
-        assert context['system_frames'] == 1
-        assert context['exceptions'][0]['stacktrace']['system_frames'] == 0
-        assert context['exceptions'][1]['stacktrace']['system_frames'] == 1
+        context = inst.get_api_context()
+        assert context['hasSystemFrames']
+
+    def test_context_with_symbols(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'function': 'myfunc',
+                'symbol': 'Class.myfunc',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+        }]))
+
+        self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_api_context()
+        assert context['values'][0]['stacktrace']['frames'][
+            0]['symbol'] == 'Class.myfunc'
 
     def test_context_with_only_system_frames(self):
         inst = Exception.to_python(dict(values=[{
@@ -132,13 +145,11 @@ ValueError: hello world
             }]},
         }]))
 
-        event = self.create_event(data={
+        self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
-        context = inst.get_context(event)
-        assert context['system_frames'] == 0
-        assert context['exceptions'][0]['stacktrace']['system_frames'] == 0
-        assert context['exceptions'][1]['stacktrace']['system_frames'] == 0
+        context = inst.get_api_context()
+        assert not context['hasSystemFrames']
 
     def test_context_with_only_app_frames(self):
         inst = Exception.to_python(dict(values=[{
@@ -161,13 +172,37 @@ ValueError: hello world
             }]},
         }]))
 
-        event = self.create_event(data={
+        self.create_event(data={
             'sentry.interfaces.Exception': inst.to_json(),
         })
-        context = inst.get_context(event)
-        assert context['system_frames'] == 0
-        assert context['exceptions'][0]['stacktrace']['system_frames'] == 0
-        assert context['exceptions'][1]['stacktrace']['system_frames'] == 0
+        context = inst.get_api_context()
+        assert not context['hasSystemFrames']
+
+    def test_context_with_raw_stacks(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foobar',
+            'raw_stacktrace': {'frames': [{
+                'filename': None,
+                'lineno': 1,
+                'function': '<redacted>',
+                'in_app': True,
+            }]},
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.c',
+                'lineno': 1,
+                'function': 'main',
+                'in_app': True,
+            }]},
+        }]))
+
+        self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_api_context()
+        assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'
+        assert context['values'][0]['rawStacktrace']['frames'][0]['function'] == '<redacted>'
 
 
 class SingleExceptionTest(TestCase):
@@ -184,7 +219,10 @@ class SingleExceptionTest(TestCase):
             'type': self.interface.type,
             'value': self.interface.value,
             'module': self.interface.module,
+            'thread_id': None,
+            'mechanism': None,
             'stacktrace': None,
+            'raw_stacktrace': None,
         }
 
     def test_get_hash(self):
@@ -217,25 +255,75 @@ class SingleExceptionTest(TestCase):
             value='ValueError',
         ))
 
+    def test_throws_away_empty_stacktrace(self):
+        result = SingleException.to_python(dict(
+            type='ValueError',
+            value='foo',
+            stacktrace={'frames': []},
+        ))
+        assert not result.stacktrace
 
-class TrimExceptionsTest(TestCase):
+    def test_coerces_object_value_to_string(self):
+        result = SingleException.to_python(dict(
+            type='ValueError',
+            value={'unauthorized': True},
+        ))
+        assert result.value == '{"unauthorized":true}'
+
+    def test_handles_type_in_value(self):
+        result = SingleException.to_python(dict(
+            value='ValueError: unauthorized',
+        ))
+        assert result.type == 'ValueError'
+        assert result.value == 'unauthorized'
+
+        result = SingleException.to_python(dict(
+            value='ValueError:unauthorized',
+        ))
+        assert result.type == 'ValueError'
+        assert result.value == 'unauthorized'
+
+
+class SlimExceptionDataTest(TestCase):
     def test_under_max(self):
-        value = {'values': [{'value': 'foo'}]}
-        trim_exceptions(value)
-        assert len(value['values']) == 1
-        assert value.get('exc_omitted') is None
+        interface = Exception.to_python({'values': [
+            {'value': 'foo',
+             'stacktrace': {'frames': [{'filename': 'foo'}]},
+            }
+        ]})
+        slim_exception_data(interface)
+        assert len(interface.values[0].stacktrace.frames) == 1
 
     def test_over_max(self):
         values = []
-        for n in xrange(5):
-            values.append({'value': 'frame %d' % n})
-        value = {'values': values}
-        trim_exceptions(value, max_values=4)
+        for x in range(5):
+            exc = {'value': 'exc %d' % x, 'stacktrace': {'frames': []}}
+            values.append(exc)
+            for y in range(5):
+                exc['stacktrace']['frames'].append({
+                    'filename': 'exc %d frame %d' % (x, y),
+                    'vars': {'foo': 'bar'},
+                    'context_line': 'b',
+                    'pre_context': ['a'],
+                    'post_context': ['c'],
+                })
 
-        assert len(value['values']) == 4
+        interface = Exception.to_python({'values': values})
 
-        for value, num in zip(values[:2], xrange(2)):
-            assert value['value'] == 'frame %d' % num
+        # slim to 10 frames to make tests easier
+        slim_exception_data(interface, 10)
 
-        for value, num in zip(values[2:], xrange(3, 5)):
-            assert value['value'] == 'frame %d' % num
+        assert len(interface.values) == 5
+        for e_num, value in enumerate(interface.values):
+            assert value.value == 'exc %d' % e_num
+            assert len(value.stacktrace.frames) == 5
+            for f_num, frame in enumerate(value.stacktrace.frames):
+                assert frame.filename == 'exc %d frame %d' % (e_num, f_num)
+                if e_num in (0, 4):
+                    assert frame.vars is not None
+                    assert frame.pre_context is not None
+                    assert frame.post_context is not None
+                else:
+                    assert frame.vars is None
+                    assert frame.pre_context is None
+                    assert frame.post_context is None

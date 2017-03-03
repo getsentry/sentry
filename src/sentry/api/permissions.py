@@ -2,7 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework import permissions
 
-from sentry.models import OrganizationMemberType, ProjectKey
+from sentry.models.apikey import ROOT_KEY
+from sentry.auth.utils import is_privileged_request
 
 
 class NoPermission(permissions.BasePermission):
@@ -21,6 +22,7 @@ class ScopedPermission(permissions.BasePermission):
     - APIKeys specify their scope, and work as expected.
     """
     scope_map = {
+        'HEAD': (),
         'GET': (),
         'POST': (),
         'PUT': (),
@@ -28,34 +30,27 @@ class ScopedPermission(permissions.BasePermission):
         'DELETE': (),
     }
 
-    # this is the general mapping of VERB => OrganizationMemberType, it however
-    # does not enforce organization-level (i.e. has_global-access) vs project
-    # level so that should be done per subclass
-    access_map = {
-        'GET': None,
-        'POST': OrganizationMemberType.ADMIN,
-        'PUT': OrganizationMemberType.ADMIN,
-        'DELETE': OrganizationMemberType.OWNER,
-    }
-
     def has_permission(self, request, view):
         # session-based auth has all scopes for a logged in user
         if not request.auth:
             return request.user.is_authenticated()
 
-        allowed_scopes = set(self.scope_map[request.method])
+        allowed_scopes = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
     def has_object_permission(self, request, view, obj):
         return False
 
-    def is_project_key(self, request):
-        return isinstance(request.auth, ProjectKey)
-
 
 class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_superuser:
+        if request.is_superuser():
             return True
         return False
+
+
+class SystemPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.auth is ROOT_KEY and \
+            is_privileged_request(request)

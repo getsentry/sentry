@@ -1,0 +1,12 @@
+<html>
+<body>
+  <h2>Error Embed Debug</h2>
+
+  <script>
+  window.sentryConfig = {
+    eventId: 'abcdfg',
+    dsn: '{{ dsn }}'
+  };
+  </script>
+  <script src="{% url 'sentry-error-page-embed' %}"></script>
+</script>

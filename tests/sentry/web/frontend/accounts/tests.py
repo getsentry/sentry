@@ -3,41 +3,18 @@
 from __future__ import absolute_import
 
 import mock
+import pytest
+import responses
+import six
 
 from django.core.urlresolvers import reverse
 from exam import fixture
 from social_auth.models import UserSocialAuth
 
-from sentry.models import UserOption, LostPasswordHash, User
+from sentry.models import (
+    UserEmail, LostPasswordHash, User, UserOption
+)
 from sentry.testutils import TestCase
-
-
-class RegisterTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-register')
-
-    def test_redirects_if_registration_disabled(self):
-        with self.feature('auth:register', False):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 302
-
-    def test_renders_correct_template(self):
-        with self.feature('auth:register'):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 200
-            self.assertTemplateUsed('sentry/register.html')
-
-    def test_with_required_params(self):
-        with self.feature('auth:register'):
-            resp = self.client.post(self.path, {
-                'username': 'test-a-really-long-email-address@example.com',
-                'password': 'foobar',
-            })
-            assert resp.status_code == 302
-            user = User.objects.get(username='test-a-really-long-email-address@example.com')
-            assert user.email == 'test-a-really-long-email-address@example.com'
-            assert user.check_password('foobar')
 
 
 class AppearanceSettingsTest(TestCase):
@@ -62,6 +39,7 @@ class AppearanceSettingsTest(TestCase):
         resp = self.client.post(self.path, {
             'language': 'en',
             'stacktrace_order': '2',
+            'clock_24_hours': True
         })
         assert resp.status_code == 302
 
@@ -69,6 +47,7 @@ class AppearanceSettingsTest(TestCase):
 
         assert options.get('language') == 'en'
         assert options.get('stacktrace_order') == '2'
+        assert options.get('clock_24_hours') is True
 
 
 class SettingsTest(TestCase):
@@ -78,11 +57,10 @@ class SettingsTest(TestCase):
 
     def params(self, without=()):
         params = {
-            'username': 'foobar',
-            'email': 'foo@example.com',
-            'first_name': 'Foo bar',
+            'email': 'admin@localhost',
+            'name': 'Foo bar',
         }
-        return dict((k, v) for k, v in params.iteritems() if k not in without)
+        return dict((k, v) for k, v in six.iteritems(params) if k not in without)
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -104,14 +82,14 @@ class SettingsTest(TestCase):
         assert 'form' in resp.context
         assert 'email' in resp.context['form'].errors
 
-    def test_requires_first_name(self):
+    def test_requires_name(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, self.params(without=['first_name']))
+        resp = self.client.post(self.path, self.params(without=['name']))
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/settings.html')
         assert 'form' in resp.context
-        assert 'first_name' in resp.context['form'].errors
+        assert 'name' in resp.context['form'].errors
 
     def test_minimum_valid_params(self):
         self.login_as(self.user)
@@ -121,54 +99,87 @@ class SettingsTest(TestCase):
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
-        assert user.first_name == params['first_name']
-        assert user.email == params['email']
+        assert user.name == params['name']
 
-    def test_can_change_password(self):
+    def test_can_change_password_with_password(self):
+        old_nonce = self.user.session_nonce
         self.login_as(self.user)
 
         params = self.params()
+        params['password'] = 'admin'
         params['new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('foobar')
+        assert user.session_nonce != old_nonce
 
-
-class NotificationSettingsTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-account-settings-notifications')
-
-    def params(self, without=()):
-        params = {
-            'alert_email': 'foo@example.com',
-        }
-        return dict((k, v) for k, v in params.iteritems() if k not in without)
-
-    def test_requires_authentication(self):
-        self.assertRequiresAuthentication(self.path)
-
-    def test_renders_with_required_context(self):
-        self.login_as(self.user)
-
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/notifications.html')
-        assert 'form' in resp.context
-
-    def test_valid_params(self):
+    def test_cannot_change_password_with_invalid_password(self):
         self.login_as(self.user)
 
         params = self.params()
+        params['new_password'] = 'foobar'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert resp.context['form'].errors
+        user = User.objects.get(id=self.user.id)
+        assert not user.check_password('foobar')
+
+    def test_cannot_change_password_with_managed_user(self):
+        user = self.create_user('foo@example.com', is_managed=True)
+
+        self.login_as(user)
+
+        params = self.params()
+        params['email'] = user.email
+        params['password'] = 'admin'
+        params['new_password'] = 'foobar'
 
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert not user.check_password('foobar')
 
-        options = UserOption.objects.get_all_values(user=self.user, project=None)
+    def test_can_change_email_with_password(self):
+        self.login_as(self.user)
 
-        assert options.get('alert_email') == 'foo@example.com'
+        params = self.params()
+        params['password'] = 'admin'
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'bizbaz@example.com'
+
+    def test_can_change_email_without_set_password(self):
+        self.login_as(self.user)
+
+        self.user.update(password='')
+
+        params = self.params()
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'bizbaz@example.com'
+
+    def test_cannot_change_email_with_invalid_password(self):
+        self.login_as(self.user)
+
+        params = self.params()
+        params['email'] = 'bizbaz@example.com'
+
+        resp = self.client.post(self.path, params)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/account/settings.html')
+        assert resp.context['form'].errors
+        user = User.objects.get(id=self.user.id)
+        assert user.email == 'admin@localhost'
 
 
 class ListIdentitiesTest(TestCase):
@@ -210,6 +221,17 @@ class RecoverPasswordTest(TestCase):
         assert 'form' in resp.context
         assert 'user' in resp.context['form'].errors
 
+    def test_managed_account_is_invalid(self):
+        user = self.create_user('foo@example.com', is_managed=True)
+
+        resp = self.client.post(self.path, {
+            'user': user.email,
+        })
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')
+        assert 'form' in resp.context
+        assert 'user' in resp.context['form'].errors
+
     @mock.patch('sentry.models.LostPasswordHash.send_recover_mail')
     def test_valid_username(self, send_recover_mail):
         resp = self.client.post(self.path, {
@@ -241,6 +263,7 @@ class RecoverPasswordConfirmTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/account/recover/failure.html')
 
     def test_change_password(self):
+        old_nonce = self.user.session_nonce
         resp = self.client.post(self.path, {
             'password': 'bar',
             'confirm_password': 'bar'
@@ -248,3 +271,90 @@ class RecoverPasswordConfirmTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('bar')
+        assert user.session_nonce != old_nonce
+
+
+class ConfirmEmailSendTest(TestCase):
+    @mock.patch('sentry.models.User.send_confirm_emails')
+    def test_valid(self, send_confirm_email):
+        self.login_as(self.user)
+        resp = self.client.post(reverse('sentry-account-confirm-email-send'))
+        self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
+        send_confirm_email.assert_called_once_with()
+
+    def test_get_request_not_valid(self):
+        self.login_as(self.user)
+        resp = self.client.get(reverse('sentry-account-confirm-email-send'))
+        assert resp.status_code == 405
+
+    @mock.patch('sentry.models.User.send_confirm_email_singular')
+    def test_send_single_email(self, send_confirm_email):
+        user = self.create_user('foo@example.com')
+        email = UserEmail.objects.create(user=user, email='bar@example.com')
+        email.save()
+        self.login_as(user)
+        self.client.post(reverse('sentry-account-confirm-email-send'),
+                        data={'primary-email': '', 'email': 'foo@example.com'},
+                        follow=True)
+        send_confirm_email.assert_called_once_with(UserEmail.get_primary_email(user))
+
+
+class ConfirmEmailTest(TestCase):
+
+    def test_invalid(self):
+        self.user.save()
+        resp = self.client.get(reverse('sentry-account-confirm-email',
+                                       args=[self.user.id, '5b1f2f266efa03b721cc9ea0d4742c5e']))
+        assert resp.status_code == 302
+        email = UserEmail.objects.get(email=self.user.email)
+        assert not email.is_verified
+
+    def test_valid(self):
+        self.user.save()
+        self.login_as(self.user)
+        self.client.post(reverse('sentry-account-confirm-email-send'))
+        email = self.user.emails.first()
+        resp = self.client.get(reverse('sentry-account-confirm-email',
+                                       args=[self.user.id, email.validation_hash]))
+        self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
+        email = self.user.emails.first()
+        assert email.is_verified
+
+
+class DisconnectIdentityTest(TestCase):
+    @responses.activate
+    def test_simple(self):
+        self.login_as(self.user)
+
+        auth = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='github',
+            extra_data={'access_token': 'abcdef'},
+        )
+
+        with self.settings(GITHUB_APP_ID='app_id', GITHUB_API_SECRET='secret'):
+            resp = self.client.post(reverse('sentry-account-disconnect-identity', args=[
+                auth.id,
+            ]))
+
+        assert resp['Location'] == 'http://testserver{}'.format(
+            reverse('sentry-account-settings-identities'),
+        )
+
+        assert not UserSocialAuth.objects.filter(id=auth.id).exists()
+
+    @responses.activate
+    def test_invalid_backend(self):
+        self.login_as(self.user)
+
+        auth = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='invalid',
+            extra_data={'access_token': 'abcdef'},
+        )
+
+        with pytest.raises(Exception):
+            # this should just error hard
+            self.client.post(reverse('sentry-account-disconnect-identity', args=[
+                auth.id,
+            ]))

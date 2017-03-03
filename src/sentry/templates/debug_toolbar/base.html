@@ -1,0 +1,68 @@
+{% load i18n %}{% load sentry_assets %}
+<link rel="stylesheet" href="{% asset_url 'debug_toolbar' 'css/print.css' %}" type="text/css" media="print" />
+<link rel="stylesheet" href="{% asset_url 'sentry' 'styles/debug-toolbar.css' %}" type="text/css" />
+{% if toolbar.config.JQUERY_URL %}
+<!-- Prevent our copy of jQuery from registering as an AMD module on sites that use RequireJS. -->
+<script src="{% asset_url 'debug_toolbar' 'js/jquery_pre.js' %}"></script>
+<script src="{{ toolbar.config.JQUERY_URL }}"></script>
+<script src="{% asset_url 'debug_toolbar' 'js/jquery_post.js' %}"></script>
+{% else %}
+<script src="{% asset_url 'debug_toolbar' 'js/jquery_existing.js' %}"></script>
+{% endif %}
+<script src="{% asset_url 'debug_toolbar' 'js/toolbar.js' %}"></script>
+<script>
+djdt.jQuery(function(){
+    var body = djdt.jQuery(document.body);
+    var height = djdt.jQuery('#djDebugToolbar').height();
+    body.css({paddingTop: body.outerHeight() - body.height() + height});
+});
+</script>
+<div id="djDebug" dir="ltr"
+     data-store-id="{{ toolbar.store_id }}" data-render-panel-url="{% url 'djdt:render_panel' %}"
+     {{ toolbar.config.ROOT_TAG_EXTRA_ATTRS|safe }}>
+    <div class="container">
+    <div id="djDebugToolbar">
+        <ul id="djDebugPanelList">
+            {% for panel in toolbar.panels %}
+                <li class="djDebugPanelButton">
+                    {% if panel.has_content and panel.enabled %}
+                        <a href="#" title="{{ panel.title }}" class="{{ panel.panel_id }}">
+                    {% else %}
+                        <div class="djdt-contentless{% if not panel.enabled %} djdt-disabled{% endif %}">
+                    {% endif %}
+                    {{ panel.nav_title }}
+                    {% if panel.enabled %}
+                    {% with panel.nav_subtitle as subtitle %}
+                        {% if subtitle %}<br /><small>{{ subtitle }}</small>{% endif %}
+                    {% endwith %}
+                    {% endif %}
+                    {% if panel.has_content and panel.enabled %}
+                        </a>
+                    {% else %}
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% for panel in toolbar.panels %}
+        {% if panel.has_content and panel.enabled %}
+            <div id="{{ panel.panel_id }}" class="djdt-panelContent">
+                <div class="djDebugPanelTitle">
+                    <a href="" class="djDebugClose"></a>
+                    <h3>{{ panel.title|safe }}</h3>
+                </div>
+                <div class="djDebugPanelContent">
+                    {% if toolbar.store_id %}
+                    <img src="{% asset_url 'debug_toolbar' 'img/ajax-loader.gif' %}" alt="loading" class="djdt-loader" />
+                    <div class="djdt-scroll"></div>
+                    {% else %}
+                    <div class="djdt-scroll">{{ panel.content }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+    <div id="djDebugWindow" class="djdt-panelContent"></div>
+    </div>
+</div>

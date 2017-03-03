@@ -11,24 +11,26 @@ class OrganizationAuthSettingsPermissionTest(PermissionTestCase):
         super(OrganizationAuthSettingsPermissionTest, self).setUp()
         self.path = reverse('sentry-organization-auth-settings', args=[self.organization.slug])
 
-    def test_teamless_owner_cannot_load(self):
+    def test_teamless_admin_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_teamless_owner_cannot_access(self.path)
+            self.assert_teamless_admin_cannot_access(self.path)
 
-    def test_org_admin_cannot_load(self):
+    def test_team_admin_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_org_admin_cannot_access(self.path)
+            self.assert_team_admin_cannot_access(self.path)
 
-    def test_org_owner_can_load(self):
+    def test_manager_cannot_load(self):
         with self.feature('organizations:sso'):
-            self.assert_org_owner_can_access(self.path)
+            self.assert_role_cannot_access(self.path, 'manager')
+
+    def test_owner_can_load(self):
+        with self.feature('organizations:sso'):
+            self.assert_owner_can_access(self.path)
 
 
 class OrganizationAuthSettingsTest(AuthProviderTestCase):
     def test_renders_with_context(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
@@ -46,8 +48,6 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
     def test_can_start_auth_flow(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
@@ -57,12 +57,50 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             resp = self.client.post(path, {'provider': 'dummy'})
 
         assert resp.status_code == 200
-        assert resp.content == self.provider.TEMPLATE
+        assert resp.content.decode('utf-8') == self.provider.TEMPLATE
+
+    def test_basic_flow(self):
+        user = self.create_user('bar@example.com')
+        organization = self.create_organization(name='foo', owner=user)
+
+        base_path = reverse('sentry-organization-auth-settings', args=[organization.slug])
+
+        self.login_as(user)
+
+        with self.feature('organizations:sso'):
+            resp = self.client.post(base_path, {'provider': 'dummy'})
+
+            assert resp.status_code == 200
+            assert self.provider.TEMPLATE in resp.content.decode('utf-8')
+
+            path = reverse('sentry-auth-sso')
+
+            resp = self.client.post(path, {'email': user.email})
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver{}'.format(base_path)
+
+        auth_provider = AuthProvider.objects.get(
+            organization=organization,
+            provider='dummy',
+        )
+
+        auth_identity = AuthIdentity.objects.get(
+            auth_provider=auth_provider,
+        )
+
+        assert user == auth_identity.user
+
+        member = OrganizationMember.objects.get(
+            organization=organization,
+            user=user,
+        )
+
+        assert getattr(member.flags, 'sso:linked')
+        assert not getattr(member.flags, 'sso:invalid')
 
     def test_disable_provider(self):
         organization = self.create_organization(name='foo', owner=self.user)
-        team = self.create_team(organization=organization)
-        project = self.create_project(team=team)
 
         auth_provider = AuthProvider.objects.create(
             organization=organization,
@@ -84,7 +122,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         path = reverse('sentry-organization-auth-settings', args=[organization.slug])
 
-        self.login_as(self.user)
+        self.login_as(self.user, organization_id=organization.id)
 
         with self.feature('organizations:sso'):
             resp = self.client.post(path, {'op': 'disable'})

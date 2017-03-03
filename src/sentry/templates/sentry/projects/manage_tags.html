@@ -4,62 +4,49 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{% trans "Manage Tags" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Tags" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
-  <div class="page-header">
-    <h2>{% trans "Manage Tags" %}</h2>
-  </div>
+{% block main %}
+  <h2>{% trans "Tags" %}</h2>
+
   {% if tag_list %}
-    <p>{% blocktrans %}Each event in Sentry may be annotated with various tags (key and value pairs). For more information on how send additional tags, see your client's documentation.{% endblocktrans %}</p>
+    <p>{% blocktrans with link='https://docs.sentry.io/hosted/learn/context/' %}Each event in Sentry may be annotated with various tags (key and value pairs). Learn how to <a href="{{ link }}">add custom tags</a>.{% endblocktrans %}</p>
+
     <form action="" method="post">
       {% csrf_token %}
       {{ form|as_crispy_errors }}
 
-      <table class="table table-striped tag-list">
-        <thead>
-          <tr>
-            <th>&nbsp;</th>
-            <th style="width:80px;text-align:center">
-              Show in<br />
-              <abbr class="tip" title="{% blocktrans %}Filters allow you to do limited searching on the stream view based on a tag's value. They are selectable via the sidebar on the stream.{% endblocktrans %}">
-                Filters
-              </abbr>
-            </th>
-            <th style="width:80px;text-align:center">
-              Show in<br />
-              <abbr class="tip" title="{% blocktrans %}Annotations display the total number of unique values that have been seen for an event. They are rendered on the stream with each individual event.{% endblocktrans %}">
-                Annotations
-              </abbr>
-            <th style="width:20px">&nbsp;</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for tag in tag_list %}
-          <tr data-tagkey="{{ tag.key }}">
-            <td>
-              <h4>{{ tag.get_label }}</h4>
-              <small>{{ tag.values_seen|small_count }} unique value(s)</small>
-            </td>
-            <td style="text-align:center">
-              <input type="checkbox" name="filters" value="{{ tag.key }}"
-                     {% if tag.key in enabled_filters %} checked="checked"{% endif %} />
-            </td>
-            <td style="text-align:center">
-                <input type="checkbox" name="annotations" value="{{ tag.key }}"
-                     {% if tag.key in enabled_annotations %} checked="checked"{% endif %} />
-            </td>
-            <td>
-              <a href="javascript:void(0)"
-                 onclick="removeTagKey({{ tag.key|to_json }})"><span class="icon icon-remove"></span></a>
-            </td>
-          </tr>
-        {% endfor %}
-      </table>
-
-      <fieldset class="form-actions">
-        <button type="submit" name="op" value="save" class="btn btn-primary">{% trans "Save Changes" %}</button>
-      </fieldset>
+      <div class="panel panel-default">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tags</th>
+              <th style="width:20px">&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tag in tag_list %}
+              <tr data-tagkey="{{ tag.key }}">
+                <td>
+                  <h5 style="margin-bottom: 10px;">{{ tag.get_label }} <small>({{ tag.key }})</small></h5>
+                  <small>{{ tag.values_seen|small_count }} unique value(s)</small>
+                </td>
+                <td>
+                {% comment %}
+                  Make sure this onclick is wrapped in single quotes
+                  and not double quotes becuase the value is being
+                  JSON encoded and can't put double quotes within
+                  double quotes.
+                {% endcomment %}
+                  <a class="btn btn-sm btn-default" href="javascript:void(0)"
+                     onclick='removeTagKey({{ tag.key|to_json }})'><span class="icon icon-trash"></span></a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <button type="submit" name="op" value="save" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </form>
   {% else %}
     <p>{% trans "We have not yet recorded any tags for this project." %}</p>
@@ -84,4 +71,3 @@
   };
   </script>
 {% endblock %}
-

@@ -4,6 +4,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, Project
+from sentry.signals import project_created
 from sentry.utils.samples import create_sample_event
 
 
@@ -11,22 +12,20 @@ BLANK_CHOICE = [("", "")]
 
 
 class AddProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Name'), max_length=200,
+    name = forms.CharField(label=_('Name'), max_length=64,
         widget=forms.TextInput(attrs={
-            'placeholder': _('e.g. Backend, Frontend, iOS, Android'),
+            'placeholder': _('i.e. API, Frontend, My Application Name'),
         }),
-    )
-    platform = forms.ChoiceField(
-        choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
-        widget=forms.Select(attrs={
-            'data-placeholder': _('Select a platform'),
-        }),
-        help_text='Your platform choice helps us setup some defaults for this project.',
+        help_text=_('Using the repository name generally works well.'),
     )
 
     class Meta:
-        fields = ('name', 'platform')
+        fields = ('name',)
         model = Project
+
+    def __init__(self, organization, *args, **kwargs):
+        forms.ModelForm.__init__(self, *args, **kwargs)
+        self.organization = organization
 
     def save(self, actor, team, ip_address):
         project = super(AddProjectForm, self).save(commit=False)
@@ -43,6 +42,8 @@ class AddProjectForm(forms.ModelForm):
             data=project.get_audit_log_data(),
         )
 
-        create_sample_event(project)
+        project_created.send(project=project, user=actor, sender=self)
+
+        create_sample_event(project, platform='javascript')
 
         return project

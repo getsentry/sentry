@@ -5,11 +5,21 @@ import json
 from django.http import HttpResponse
 from functools import wraps
 
+from sentry.models import ApiKey, ApiToken
+
+
+def is_considered_sudo(request):
+    return request.is_sudo() or \
+        isinstance(request.auth, ApiKey) or \
+        isinstance(request.auth, ApiToken)
+
 
 def sudo_required(func):
     @wraps(func)
     def wrapped(self, request, *args, **kwargs):
-        if not request.is_sudo():
+        # If we are already authenticated through an API key we do not
+        # care about the sudo flag.
+        if not is_considered_sudo(request):
             # TODO(dcramer): support some kind of auth flow to allow this
             # externally
             data = {

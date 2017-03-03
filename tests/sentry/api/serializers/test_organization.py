@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import serialize
 from sentry.testutils import TestCase
 
@@ -12,4 +14,4 @@ class OrganizationSerializerTest(TestCase):
         organization = self.create_organization(owner=user)
 
         result = serialize(organization, user)
-        assert result['id'] == str(organization.id)
+        assert result['id'] == six.text_type(organization.id)

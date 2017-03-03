@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 from exam import fixture
-from mock import Mock, patch
 
-from sentry.models import Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.testutils import APITestCase
 
 
@@ -30,9 +31,9 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
-        assert response.data[0]['id'] == str(team2.id)
+        assert response.data[0]['id'] == six.text_type(team2.id)
         assert not response.data[0]['isMember']
-        assert response.data[1]['id'] == str(team1.id)
+        assert response.data[1]['id'] == six.text_type(team1.id)
         assert response.data[1]['isMember']
 
 
@@ -41,19 +42,17 @@ class OrganizationTeamsCreateTest(APITestCase):
     def path(self):
         return reverse('sentry-api-0-organization-teams', args=[self.organization.slug])
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=False))
     def test_missing_permission(self):
-        self.login_as(user=self.user)
+        user = self.create_user()
+        self.login_as(user=user)
         resp = self.client.post(self.path)
         assert resp.status_code == 403
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
     def test_missing_params(self):
         self.login_as(user=self.user)
         resp = self.client.post(self.path)
         assert resp.status_code == 400
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
     def test_valid_params(self):
         self.login_as(user=self.user)
 
@@ -67,7 +66,17 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert team.slug == 'foobar'
         assert team.organization == self.organization
 
-    @patch('sentry.api.endpoints.organization_teams.can_create_teams', Mock(return_value=True))
+        member = OrganizationMember.objects.get(
+            user=self.user,
+            organization=self.organization,
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member,
+            team=team,
+            is_active=True,
+        ).exists()
+
     def test_without_slug(self):
         self.login_as(user=self.user)
 
@@ -77,3 +86,20 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert resp.status_code == 201, resp.content
         team = Team.objects.get(id=resp.data['id'])
         assert team.slug == 'hello-world'
+
+    def test_duplicate(self):
+        self.login_as(user=self.user)
+
+        resp = self.client.post(self.path, data={
+            'name': 'hello world',
+            'slug': 'foobar',
+        })
+
+        assert resp.status_code == 201, resp.content
+
+        resp = self.client.post(self.path, data={
+            'name': 'hello world',
+            'slug': 'foobar',
+        })
+
+        assert resp.status_code == 409, resp.content

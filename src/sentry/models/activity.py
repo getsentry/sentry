@@ -7,6 +7,8 @@ sentry.models.activity
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.db import models
 from django.db.models import F
@@ -16,6 +18,7 @@ from sentry.db.models import (
     Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
     sane_repr
 )
+from sentry.tasks import activity
 
 
 class Activity(Model):
@@ -23,7 +26,7 @@ class Activity(Model):
 
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
-    SET_MUTED = 3
+    SET_IGNORED = 3
     SET_PUBLIC = 4
     SET_PRIVATE = 5
     SET_REGRESSION = 6
@@ -32,12 +35,20 @@ class Activity(Model):
     FIRST_SEEN = 9
     RELEASE = 10
     ASSIGNED = 11
+    UNASSIGNED = 12
+    SET_RESOLVED_IN_RELEASE = 13
+    MERGE = 14
+    SET_RESOLVED_BY_AGE = 15
+    SET_RESOLVED_IN_COMMIT = 16
 
     TYPE = (
         # (TYPE, verb-slug)
         (SET_RESOLVED, 'set_resolved'),
+        (SET_RESOLVED_BY_AGE, 'set_resolved_by_age'),
+        (SET_RESOLVED_IN_RELEASE, 'set_resolved_in_release'),
+        (SET_RESOLVED_IN_COMMIT, 'set_resolved_in_commit'),
         (SET_UNRESOLVED, 'set_unresolved'),
-        (SET_MUTED, 'set_muted'),
+        (SET_IGNORED, 'set_ignored'),
         (SET_PUBLIC, 'set_public'),
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
@@ -46,11 +57,12 @@ class Activity(Model):
         (FIRST_SEEN, 'first_seen'),
         (RELEASE, 'release'),
         (ASSIGNED, 'assigned'),
+        (UNASSIGNED, 'unassigned'),
+        (MERGE, 'merge'),
     )
 
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group', null=True)
-    event = FlexibleForeignKey('sentry.Event', null=True)
     # index on (type, ident)
     type = BoundedPositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
@@ -66,6 +78,16 @@ class Activity(Model):
     __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id',
                          'type', 'ident')
 
+    def __init__(self, *args, **kwargs):
+        super(Activity, self).__init__(*args, **kwargs)
+        from sentry.models import Release
+
+        # XXX(dcramer): fix for bad data
+        if self.type == self.RELEASE and isinstance(self.data['version'], Release):
+            self.data['version'] = self.data['version'].version
+        if self.type == self.ASSIGNED:
+            self.data['assignee'] = six.text_type(self.data['assignee'])
+
     def save(self, *args, **kwargs):
         created = bool(not self.id)
 
@@ -78,79 +100,12 @@ class Activity(Model):
         if self.type == Activity.NOTE:
             self.group.update(num_comments=F('num_comments') + 1)
 
-            if self.event:
-                self.event.update(num_comments=F('num_comments') + 1)
+    def delete(self, *args, **kwargs):
+        super(Activity, self).delete(*args, **kwargs)
 
-    def get_recipients(self):
-        from sentry.models import UserOption
-
-        if self.type == Activity.ASSIGNED:
-            # dont email the user if they took the action
-            send_to = [self.data['assignee']]
-
-        else:
-            member_set = self.project.member_set.values_list('user', flat=True)
-
-            if not member_set:
-                return []
-
-            disabled = set(UserOption.objects.filter(
-                user__in=member_set,
-                key='subscribe_notes',
-                value=u'0',
-            ).values_list('user', flat=True))
-
-            send_to = [u for u in member_set if u not in disabled]
-
-        # never include the actor
-        send_to = [u for u in send_to if u != self.user_id]
-
-        return send_to
+        # HACK: support Group.num_comments
+        if self.type == Activity.NOTE:
+            self.group.update(num_comments=F('num_comments') - 1)
 
     def send_notification(self):
-        from sentry.utils.email import MessageBuilder, group_id_to_email
-
-        if not self.group_id:
-            return
-
-        if self.type not in (Activity.NOTE, Activity.ASSIGNED):
-            return
-
-        send_to = self.get_recipients()
-
-        if not send_to:
-            return
-
-        author = self.user.first_name or self.user.username
-
-        subject_prefix = self.project.get_option(
-            'subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
-        if subject_prefix:
-            subject_prefix = subject_prefix.rstrip() + ' '
-
-        subject = '%s%s' % (subject_prefix, self.group.get_email_subject())
-
-        context = {
-            'data': self.data,
-            'author': author,
-            'group': self.group,
-            'link': self.group.get_absolute_url(),
-        }
-
-        headers = {
-            'X-Sentry-Reply-To': group_id_to_email(self.group.id),
-        }
-
-        template_name = self.get_type_display()
-
-        msg = MessageBuilder(
-            subject=subject,
-            context=context,
-            template='sentry/emails/activity/{}.txt'.format(template_name),
-            html_template='sentry/emails/activity/{}.html'.format(template_name),
-            headers=headers,
-            reference=self,
-            reply_reference=self.group,
-        )
-        msg.add_users(send_to, project=self.project)
-        msg.send_async()
+        activity.send_activity_notifications.delay(self.id)

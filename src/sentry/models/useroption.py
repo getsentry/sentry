@@ -17,6 +17,12 @@ from sentry.db.models.fields import UnicodePickledObjectField
 from sentry.db.models.manager import BaseManager
 
 
+class UserOptionValue(object):
+    # 'workflow:notifications'
+    all_conversations = '0'
+    participating_only = '1'
+
+
 class UserOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(UserOptionManager, self).__init__(*args, **kwargs)
@@ -101,7 +107,13 @@ class UserOption(Model):
 
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
+
+    Keeping user feature state
+    key: "feature:assignment"
+    value: { updated: datetime, state: bool }
     """
+    __core__ = True
+
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=64)

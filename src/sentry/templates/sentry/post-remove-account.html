@@ -1,0 +1,16 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Remove Account" %}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    <div class="page-header">
+      <h2>{% trans "Scheduled for Removal" %}</h2>
+    </div>
+
+    <p>{% trans "Your account has been deactivated and scheduled for removal." %}</p>
+    <p>{% trans "Thanks for using Sentry! We hope to see you again soon!" %}</p>
+  </section>
+{% endblock %}

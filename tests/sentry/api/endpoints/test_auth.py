@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import base64
 
 from django.core.urlresolvers import reverse

@@ -22,7 +22,7 @@
     </div>
 
     <section class="body">
-        {% block inner %}
+        {% block main %}
 
             {% with event|get_rendered_interfaces:request as interface_list %}
 
@@ -33,14 +33,19 @@
                     <h4>Event at {{ event.datetime }} {{ event.datetime.tzinfo }}</h4>
                 </div>
 
-                {% include "sentry/partial/event_nav.html" %}
-
                 <div class="alert alert-block alert-info">
                     <p>{% trans "You are viewing a publicly available version of this event's data. Some information may not be available." %}</p>
                 </div>
 
                 {% if event.has_two_part_message %}
-                    <pre id="full-message">{{ event.message }}</pre>
+                    <div class="box">
+                      <div class="box-header">
+                          <h3>{% trans "Full message" %}</h3>
+                      </div>
+                      <div class="box-content with-padding">
+                        <pre id="full-message">{{ event.message }}</pre>
+                      </div>
+                    </div>
                 {% endif %}
 
                 {% include "sentry/partial/_event_details.html" %}

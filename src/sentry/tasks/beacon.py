@@ -12,14 +12,18 @@ import json
 import logging
 import sentry
 
+from datetime import timedelta
 from django.conf import settings
+from django.utils import timezone
 from hashlib import sha1
 from uuid import uuid4
 
+from sentry.app import tsdb
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
+from sentry.debug.utils.packages import get_all_package_versions
 
-BEACON_URL = 'https://www.getsentry.com/remote/beacon/'
+BEACON_URL = 'https://sentry.io/remote/beacon/'
 
 logger = logging.getLogger('beacon')
 
@@ -32,7 +36,7 @@ def send_beacon():
     See the documentation for more details.
     """
     from sentry import options
-    from sentry.models import Organization, Project, Team, User
+    from sentry.models import Broadcast, Organization, Project, Team, User
 
     if not settings.SENTRY_BEACON:
         logger.info('Not sending beacon (disabled)')
@@ -41,29 +45,32 @@ def send_beacon():
     install_id = options.get('sentry:install-id')
     if not install_id:
         logger.info('Generated installation ID: %s', install_id)
-        install_id = sha1(uuid4().hex).hexdigest()
+        install_id = sha1(uuid4().bytes).hexdigest()
         options.set('sentry:install-id', install_id)
 
-    internal_project_ids = filter(bool, [
-        settings.SENTRY_PROJECT, settings.SENTRY_FRONTEND_PROJECT,
-    ])
-    platform_list = list(set(Project.objects.exclude(
-        id__in=internal_project_ids,
-    ).values_list('platform', flat=True)))
+    end = timezone.now()
+    events_24h = tsdb.get_sums(
+        model=tsdb.models.internal,
+        keys=['events.total'],
+        start=end - timedelta(hours=24),
+        end=end,
+    )['events.total']
 
     payload = {
         'install_id': install_id,
         'version': sentry.get_version(),
-        'admin_email': settings.SENTRY_ADMIN_EMAIL,
+        'docker': sentry.is_docker(),
+        'admin_email': options.get('system.admin-email'),
         'data': {
             # TODO(dcramer): we'd also like to get an idea about the throughput
             # of the system (i.e. events in 24h)
-            'platforms': platform_list,
             'users': User.objects.count(),
             'projects': Project.objects.count(),
             'teams': Team.objects.count(),
             'organizations': Organization.objects.count(),
-        }
+            'events.24h': events_24h,
+        },
+        'packages': get_all_package_versions(),
     }
 
     # TODO(dcramer): relay the response 'notices' as admin broadcasts
@@ -75,5 +82,27 @@ def send_beacon():
         return
 
     data = json.loads(response)
+
     if 'version' in data:
         options.set('sentry:latest_version', data['version']['stable'])
+
+    if 'notices' in data:
+        upstream_ids = set()
+        for notice in data['notices']:
+            upstream_ids.add(notice['id'])
+            Broadcast.objects.create_or_update(
+                upstream_id=notice['id'],
+                defaults={
+                    'title': notice['title'],
+                    'link': notice.get('link'),
+                    'message': notice['message'],
+                }
+            )
+
+        Broadcast.objects.filter(
+            upstream_id__isnull=False,
+        ).exclude(
+            upstream_id__in=upstream_ids,
+        ).update(
+            is_active=False,
+        )

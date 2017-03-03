@@ -7,31 +7,22 @@
 
 {% block title %}{% trans "Organization Settings" %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %}with-left-sidebar{% endblock %}
+{% block wrapperclass %}show-rightbar organization-home{% endblock %}
 
-{% block page_header_block %}
-    <section id="page-header" class="toolbar">
-      <div class="pull-right">
-        {% block actions %}
-        {% if ACCESS.org_write %}
-          <a href="{% url 'sentry-create-organization-member' organization.slug %}"
-             class="btn btn-primary" style="margin-top: -4px">{% trans "Invite Member" %}</a>
-        {% else %}
-          <a class="btn btn-small btn-primary disabled tip"
-             title="You do not have the required permissions for adding members.">{% trans "New Member" %}</a>
-        {% endif %}
-        {% endblock %}
-      </div>
-      <h3>{{ organization.name }} <small>Dashboard</small></h3>
-    </section>
-{% endblock %}
+{% block heading %}<a href="/">Organization Overview</a>{% endblock %}
 
 {% block sidebar %}
-  <ul class="nav nav-list">
+  <h6 class="nav-header">Organization</h6>
+  <ul class="nav nav-stacked">
     <!-- <li class="nav-header"><h6>{{ organization.name }}</h6></li> -->
-    <li class="{% block org_teams_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-home' organization.slug %}">
-        {% trans "Teams" %}
+    <li>
+      <a href="{% absolute_uri '/{}/' organization.slug %}">
+        {% trans "Dashboard" %}
+      </a>
+    </li>
+    <li>
+      <a href="{% absolute_uri '/organizations/{}/teams/' organization.slug %}">
+        {% trans "Projects & Teams" %}
       </a>
     </li>
     {% if ACCESS.org_read %}
@@ -41,13 +32,15 @@
       </a>
     </li>
     {% endif %}
-    {% if ACCESS.org_write %}
-    <li class="{% block org_auditlog_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-audit-log' organization.slug %}">
-        {% trans "Audit Log" %}
-      </a>
-    </li>
-    {% endif %}
+  </ul>
+  <h6 class="nav-header with-divider">{% trans "Issues" %}</h6>
+  <ul class="nav nav-stacked">
+    <li><a href="{% absolute_uri '/organizations/{}/issues/assigned/' organization.slug %}">{% trans "Assigned to Me" %}</li></a>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/bookmarks/' organization.slug %}">{% trans "Bookmarks" %}</li></a>
+    <li><a href="{% absolute_uri '/organizations/{}/issues/history/' organization.slug %}">{% trans "History" %}</li></a>
+  </ul>
+  <h6 class="nav-header with-divider">Manage</h6>
+  <ul class="nav nav-stacked">
     {% if ACCESS.org_read %}
     <li class="{% block org_members_nav %}{% endblock %}">
       {% with pending_requests=organization|count_pending_access_requests %}
@@ -60,7 +53,7 @@
       {% endwith %}
     </li>
     {% endif %}
-    {% if ACCESS.org_delete %}
+    {% if ACCESS.org_write %}
       {% feature organizations:sso organization %}
       <li class="{% block org_auth_settings_nav %}{% endblock %}">
         <a href="{% url 'sentry-organization-auth-settings' organization.slug %}">
@@ -69,28 +62,29 @@
       </li>
       {% endfeature %}
     {% endif %}
-    {% if ACCESS.org_write %}
-    <li class="{% block org_apikeys_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
-        {% trans "API Keys" %}
-      </a>
-    </li>
+    {% if ACCESS.org_delete %}
+      {% feature organizations:api-keys organization %}
+        <li class="{% block org_apikeys_nav %}{% endblock %}">
+          <a href="{% url 'sentry-organization-api-keys' organization.slug %}">
+            {% trans "API Keys" %}
+          </a>
+        </li>
+      {% endfeature %}
     {% endif %}
     {% if ACCESS.org_write %}
-    <li class="{% block org_settings_nav %}{% endblock %}">
-      <a href="{% url 'sentry-organization-settings' organization.slug %}">
-        {% trans "Settings" %}
-      </a>
-    </li>
+      <li><a href="{% absolute_uri '/organizations/{}/audit-log/' organization.slug %}">{% trans "Audit Log" %}</a></li>
+      <li><a href="{% absolute_uri '/organizations/{}/rate-limits/' organization.slug %}">{% trans "Rate Limits" %}</li></a>
+      {% feature organizations:repos organization %}
+        <li><a href="{% absolute_uri '/organizations/{}/repos/' organization.slug %}">{% trans "Repositories" %}</li></a>
+      {% endfeature %}
+      <li class="{% block org_settings_nav %}{% endblock %}">
+        <a href="{% absolute_uri '/organizations/{}/settings/' organization.slug %}">
+          {% trans "Settings" %}
+        </a>
+      </li>
     {% endif %}
   </ul>
   {% block org_sidebar_nav_extra %}
-    {% comment %}This block is used by getsentry.com{% endcomment %}
+    {% comment %}This block is used by sentry.io{% endcomment %}
   {% endblock %}
-{% endblock %}
-
-{% block main %}
-  <section class="body">
-    {% block inner %}{% endblock %}
-  </section>
 {% endblock %}

@@ -1,0 +1,23 @@
+{% load i18n %}
+
+<div class="box">
+  <div class="box-header">
+    <h3>{% trans "Teams" %}</h3>
+  </div>
+  <div class="box-content with-padding">
+    <fieldset class="team-choices row">
+      {% for team in all_teams %}
+        <div class="control-group col-md-4">
+          <div class="controls">
+            <label class="checkbox">
+              <input type="checkbox" name="teams" value="{{ team.id }}"
+                     class="checkboxinput"{% if team.id in form.teams.value %} checked="checked"{% endif %}>
+                {{ team.name }}
+                <span class="team-slug">{{ team.slug }}</span>
+              </label>
+          </div>
+        </div>
+      {% endfor %}
+    </fieldset>
+  </div>
+</div>

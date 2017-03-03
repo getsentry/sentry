@@ -2,9 +2,22 @@ from __future__ import absolute_import
 
 __all__ = ['timing', 'incr']
 
-from django_statsd.clients import statsd
+import logging
+
+from contextlib import contextmanager
 from django.conf import settings
 from random import random
+from time import time
+
+
+def get_default_backend():
+    from sentry.utils.imports import import_string
+
+    cls = import_string(settings.SENTRY_METRICS_BACKEND)
+
+    return cls(**settings.SENTRY_METRICS_OPTIONS)
+
+backend = get_default_backend()
 
 
 def _get_key(key):
@@ -14,27 +27,69 @@ def _get_key(key):
     return key
 
 
-def incr(key, amount=1):
-    from sentry import tsdb
-
+def _should_sample():
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
 
-    statsd.incr(_get_key(key), amount,
-                rate=sample_rate)
-
-    if sample_rate >= 1 or random() >= 1 - sample_rate:
-        if sample_rate < 1:
-            amount = int(amount * (1.0 / sample_rate))
-        tsdb.incr(tsdb.models.internal, key, count=amount)
+    return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def timing(key, value):
+def _sampled_value(value):
+    sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+    if sample_rate < 1:
+        value = int(value * (1.0 / sample_rate))
+    return value
+
+
+def _incr_internal(key, instance=None, tags=None, amount=1):
+    from sentry import tsdb
+
+    if _should_sample():
+        amount = _sampled_value(amount)
+        if instance:
+            full_key = '{}.{}'.format(key, instance)
+        else:
+            full_key = key
+
+        try:
+            tsdb.incr(tsdb.models.internal, full_key, count=amount)
+        except Exception:
+            logger = logging.getLogger('sentry.errors')
+            logger.exception('Unable to incr internal metric')
+
+
+def incr(key, amount=1, instance=None, tags=None):
+    sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+    _incr_internal(key, instance, tags, amount)
+    try:
+        backend.incr(key, instance, tags, amount, sample_rate)
+    except Exception:
+        logger = logging.getLogger('sentry.errors')
+        logger.exception('Unable to record backend metric')
+
+
+def timing(key, value, instance=None, tags=None):
     # TODO(dcramer): implement timing for tsdb
-    return statsd.timing(_get_key(key), value,
-                         rate=settings.SENTRY_METRICS_SAMPLE_RATE)
+    # TODO(dcramer): implement sampling for timing
+    sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
+    try:
+        backend.timing(key, value, instance, tags, sample_rate)
+    except Exception:
+        logger = logging.getLogger('sentry.errors')
+        logger.exception('Unable to record backend metric')
 
 
-def timer(key):
-    # TODO(dcramer): implement timing for tsdb
-    return statsd.timer(_get_key(key),
-                        rate=settings.SENTRY_METRICS_SAMPLE_RATE)
+@contextmanager
+def timer(key, instance=None, tags=None):
+    if tags is None:
+        tags = {}
+
+    start = time()
+    try:
+        yield tags
+    except Exception:
+        tags['result'] = 'failure'
+        raise
+    else:
+        tags['result'] = 'success'
+    finally:
+        timing(key, time() - start, instance, tags)

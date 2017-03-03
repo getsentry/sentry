@@ -1,0 +1,169 @@
+{% extends "sentry/bases/admin.html" %}
+
+{% block admin-nav-queue %} class="active"{% endblock %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Queue" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <ul class="nav nav-tabs pull-right" id="duration">
+    <li class="active"><a href="#">1h</a></li>
+    <li><a href="#">1d</a></li>
+    <li><a href="#">1w</a></li>
+  </ul>
+
+  <h3 class="no-border">Queue Overview</h3>
+
+  <div class="box">
+    <div class="box-header"><h3>Global Throughput</h3></div>
+    <div class="box-content with-padding">
+      <div class="chart-loader" style="height:200px" data-metric="jobs.all.started" data-label="Jobs started"></div>
+    </div>
+  </div>
+
+  <h3 class="no-border">Tasks</h3>
+
+  <div class="row">
+    {% for task_name in task_list %}
+      <div class="col-md-6">
+        <div class="box box-mini">
+          <div class="box-header">{{ task_name }}</div>
+          <div class="box-content with-padding">
+            <div class="chart-loader" style="height:100px"
+               data-metric="jobs.started.{{ task_name }}"
+               data-label="Jobs started"></div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <script>
+  $(function(){
+    var selectedDuration = $("#duration .active a").text();
+    $('#duration a').click(function(e){
+      e.preventDefault();
+      var $el = $(this);
+      $el.parents('ul').find('li').removeClass('active');
+      $el.parent().addClass('active');
+      selectedDuration = $el.text();
+      redrawCharts();
+    });
+
+    var redrawCharts = function(){
+      $('.chart-loader').each(function(){
+        var chart = this;
+        var $chart = $(chart);
+        var chartType = $chart.data('chart');
+        var metric = $chart.data('metric');
+        var endpoint = '{{ URL_PREFIX }}/api/0/internal/stats/';
+        var since = new Date().getTime() / 1000;
+        var resolution;
+
+        switch(selectedDuration) {
+          case '1h':
+            since -= 3600;
+            resolution = '10s';
+            break;
+          case '1d':
+            since -= 3600 * 24;
+            resolution = '1h';
+            break;
+          case '1w':
+            since -= 3600 * 24 * 7;
+            resolution = '1h';
+            break;
+          default:
+            throw new Error('Invalid duration: ' + selectedDuration);
+        }
+
+        $chart.html(
+          '<div class="loading">' +
+            '<div className="loading-mask"></div>' +
+            '<div className="loading-indicator"></div>' +
+            '<div className="loading-message">Loading</div>' +
+          '</div>'
+        );
+
+        $.ajax({
+          url: endpoint,
+          type: 'get',
+          dataType: 'json',
+          data: {
+            since: since,
+            resolution: resolution,
+            key: metric
+          },
+          success: function(data){
+            renderChart(chart, {
+              label: $chart.data('label'),
+              points: processData(data)
+            });
+          },
+          error: function(data) {
+            $chart.html('<div class="error">There was an error loading statistics.</div>');
+          }
+        });
+      });
+    };
+
+    redrawCharts();
+
+    var processData = function(points) {
+      var result = [];
+      for (var i = 0; i < points.length; i++) {
+        var point = points[i];
+        var ts = point[0] * 1000;
+        result.push([ts, point[1]]);
+      }
+      return result;
+    };
+
+    var renderChart = function(parent, data) {
+      var points = [
+        {
+          data: data.points,
+          label: data.label,
+          // color: 'rgba(86, 175, 232, 1)',
+          shadowSize: 0,
+          stack: true,
+          lines: {
+            lineWidth: 2,
+            show: true,
+            fill: true
+          }
+        }
+      ];
+
+      ReactDOM.render(React.createFactory(Sentry.FlotChart)({
+        className: "chart",
+        plotData: points
+      }), parent);
+    }
+  });
+  </script>
+
+  <style>
+  .task-list {
+    margin-left: 0;
+    padding-left: 0;
+  }
+  .task-list li {
+    width: 49%;
+    display: inline-block;
+    border-bottom: 1px solid #ddd;
+    margin: 0 0 5px;
+    padding: 0 0 5px;
+  }
+  .task-list li strong {
+    display: block;
+  }
+  .task-list .flot-y-axis,
+  .task-list .flot-x-axis,
+  .task-list .legend {
+    display: none !important;
+  }
+  </style>
+{% endblock %}

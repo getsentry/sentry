@@ -5,19 +5,22 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import User
+from sentry.models import OrganizationMember
 
 
 class ProjectMemberIndexEndpoint(ProjectEndpoint):
     def get(self, request, project):
-        member_list = sorted(set(User.objects.filter(
-            sentry_orgmember_set__organization=project.organization,
-            is_active=True,
-        ).filter(
-            Q(sentry_orgmember_set__teams=project.team) |
-            Q(sentry_orgmember_set__has_global_access=True)
-        ).distinct()[:1000]), key=lambda x: x.email)
+        queryset = OrganizationMember.objects.filter(
+            Q(user__is_active=True) | Q(user__isnull=True),
+            organization=project.organization,
+            teams=project.team,
+        ).select_related('user')
 
-        member_list = serialize(member_list, request.user)
+        member_list = sorted(
+            queryset,
+            key=lambda x: x.user.get_display_name() if x.user_id else x.email
+        )
 
-        return Response(member_list)
+        context = serialize(member_list, request.user)
+
+        return Response(context)

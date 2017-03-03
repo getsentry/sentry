@@ -8,42 +8,43 @@ sentry.cache.redis
 
 from __future__ import absolute_import
 
-from django.conf import settings
-from nydus.db import create_cluster
-from threading import local
-
 from sentry.utils import json
+from sentry.utils.redis import get_cluster_from_options
+
+from .base import BaseCache
 
 
-class RedisCache(local):
+class ValueTooLarge(Exception):
+    pass
+
+
+class RedisCache(BaseCache):
     key_expire = 60 * 60  # 1 hour
+    max_size = 50 * 1024 * 1024  # 50MB
 
     def __init__(self, **options):
-        if not options:
-            # inherit default options from REDIS_OPTIONS
-            options = settings.SENTRY_REDIS_OPTIONS
+        self.cluster, options = get_cluster_from_options('SENTRY_CACHE_OPTIONS', options)
+        self.client = self.cluster.get_routing_client()
 
-        options.setdefault('hosts', {
-            0: {},
-        })
-        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
-        self.conn = create_cluster({
-            'engine': 'nydus.db.backends.redis.Redis',
-            'router': options['router'],
-            'hosts': options['hosts'],
-        })
+        super(RedisCache, self).__init__(**options)
 
-    def set(self, key, value, timeout):
-        with self.conn.map() as conn:
-            conn.set(key, json.dumps(value))
-            if timeout:
-                conn.expire(key, timeout)
+    def set(self, key, value, timeout, version=None):
+        key = self.make_key(key, version=version)
+        v = json.dumps(value)
+        if len(v) > self.max_size:
+            raise ValueTooLarge('Cache key too large: %r %r' % (key, len(v)))
+        if timeout:
+            self.client.setex(key, int(timeout), v)
+        else:
+            self.client.set(key, v)
 
-    def delete(self, key):
-        self.conn.delete(key)
+    def delete(self, key, version=None):
+        key = self.make_key(key, version=version)
+        self.client.delete(key)
 
-    def get(self, key):
-        result = self.conn.get(key)
+    def get(self, key, version=None):
+        key = self.make_key(key, version=version)
+        result = self.client.get(key)
         if result is not None:
             result = json.loads(result)
         return result

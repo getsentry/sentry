@@ -1,258 +1,351 @@
 {% load i18n %}
+{% load sentry_api %}
+{% load sentry_avatars %}
+{% load sentry_dsn %}
+{% load sentry_assets %}
 {% load sentry_features %}
 {% load sentry_helpers %}
-{% load sentry_permissions %}
+{% load sentry_react %}
+
+{% load sentry_status %}
 {% get_sentry_version %}
+
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8">
-        <meta name="robots" content="NONE,NOARCHIVE">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <meta name="robots" content="NONE,NOARCHIVE">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <link href="{% url 'sentry-media' "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
+  <link href="{% absolute_asset_url "sentry" "images/favicon.ico" %}" rel="shortcut icon" type="image/png"/>
 
-        {% block css %}
-            <link href="{% url 'sentry-media' "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
-        {% endblock %}
+  <link rel="icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon.png" %}">
+  <link rel="apple-touch-icon" sizes="76x76" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-76x76.png" %}">
+  <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
+  <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
 
-        <title>{% block title %}Sentry{% endblock %}</title>
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
 
-        <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
-        <![endif]-->
-        {% block scripts %}
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-jquery.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-backbone.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-bootstrap.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/vendor-misc.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/app.min.js" %}"></script>
-            <script src="{% url 'sentry-media' "sentry" "dist/app-legacy.min.js" %}"></script>
-            <script type="text/javascript">
-            {% if request.LANGUAGE_CODE %}
-                moment.lang('{{ request.LANGUAGE_CODE }}');
-            {% endif %}
-            app.config.clippyPath = '{% url 'sentry-media' "sentry" "clippy.swf" %}';
-            app.config.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
-            app.config.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
-            app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
-            {% if project %}
-                app.config.projectId = {{ project.slug|to_json|safe }};
-                app.config.teamId = {{ project.team.slug|to_json|safe }};
-                app.config.organizationId = {{ project.organization.slug|to_json|safe }};
-            {% elif team %}
-                app.config.projectId = null;
-                app.config.teamId = {{ team.slug|to_json|safe }};
-                app.config.organizationId = {{ team.organization.slug|to_json|safe }};
-            {% elif organization %}
-                app.config.projectId = null;
-                app.config.teamId = null;
-                app.config.organizationId = {{ organization.slug|to_json|safe }};
-            {% else %}
-                app.config.projectId = null;
-                app.config.teamId = null;
-                app.config.organizationId = null;
-            {% endif %}
-            </script>
-        {% endblock %}
+  {% block css %}
+  <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
+  {% endblock %}
 
-        {% block meta %}
-        {% endblock %}
-    </head>
+  <title>{% block title %}Sentry{% endblock %}</title>
 
-    <body class="{% block wrapperclass %}{% endblock %}">
-        <div class="outer-wrapper">
-        {% block body %}
-        {% block header %}
-            <header id="header">
-                <div class="navbar navbar-inverse">
-                    <div class="navbar-inner">
-                        <div class="container">
-                            {% if organization %}
-                                <a id="logo" href="{% url 'sentry-organization-home' organization.slug %}">Sentry</a>
-                            {% else %}
-                                <a id="logo" href="{% url 'sentry' %}">Sentry</a>
-                            {% endif %}
-                            {% if team %}
-                            <div id="team-banner">
-                                {% if TEAM_LIST %}
-                                    <a class="dropdown-toggle" data-toggle="dropdown">
-                                        {% if team %}
-                                            {{ team.name }}
-                                            {% if project %}
-                                                <small>{{ project.name }}</small>
-                                            {% endif %}
-                                            <span class="caret"></span>
-                                        {% endif %}
-                                    </a>
-                                    <nav class="dropdown-menu">
-                                        <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
-                                        {% for t, p_list in TEAM_LIST %}
-                                            <h6><a href="{% url 'sentry-team-dashboard' organization.slug t.slug %}">{{ t.name }}</a></h6>
-                                            <ul class="project-list">
-                                                {% for p in p_list %}
-                                                    <li{% if p.id == project.id %} class="active"{% endif %}>
-                                                        <a href="{% url 'sentry-stream' organization.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a>
-                                                    </li>
-                                                {% endfor %}
-                                            </ul>
-                                        {% endfor %}
-                                    </nav>
-                                {% else %}
-                                    <a>
-                                        {{ team.name }}
-                                        {% if project %}
-                                            <small>{{ project.name }}</small>
-                                        {% endif %}
-                                    </a>
-                                {% endif %}
-                            </div>
-                            {% else %}
-                                <h1>{% block heading %}{% endblock %}</h1>
-                            {% endif %}
-                            <ul class="nav pull-right">
-                                {% block account_nav %}
-                                    {% if request.user.is_authenticated %}
-                                        <li><a href="{% url 'sentry-help' %}">{% trans "Docs" %}</a></li>
-                                        {% with organization_list=request.user|list_organizations %}
-                                        {% if organization_list %}
-                                            <li class="dropdown org-dropdown">
-                                              <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                                {% if organization %}
-                                                  {{ organization.name }}
-                                                {% else %}
-                                                  {% trans "Organizations" %}
-                                                {% endif %}
-                                                <span class="caret"></span>
-                                              </a>
-                                              <ul class="dropdown-menu">
-                                                {% feature organizations:create %}
-                                                  <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
-                                                {% endfeature %}
-                                                {% for o in organization_list %}
-                                                    <li{% if o == organization %} class="active"{% endif %}>
-                                                        <a href="{% url 'sentry-organization-home' o.slug %}">{{ o.name }}</a>
-                                                    </li>
-                                                {% endfor %}
-                                              </ul>
-                                            </li>
-                                        {% else %}
-                                            {% feature organizations:create %}
-                                            <li class="dropdown org-dropdown">
-                                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
-                                                    {% if organization %}
-                                                        {{ organization.name }}
-                                                    {% else %}
-                                                        {% trans "Organizations" %}
-                                                    {% endif %}
-                                                    <span class="caret"></span>
-                                                </a>
-                                                <ul class="dropdown-menu">
-                                                    <li><h6><a href="{% url 'sentry-create-organization' %}" class="new pull-right"><span class="icon-plus"></span></a>{% trans "Organizations" %}</h6></li>
-                                                </ul>
-                                            </li>
-                                            {% endfeature %}
-                                        {% endif %}
-                                        {% endwith %}
-                                        <li class="dropdown">
-                                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> <span class="caret"></span></a>
-                                            <ul class="dropdown-menu">
-                                                <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-                                                {% if request.user.is_staff %}
-                                                    <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
-                                                {% endif %}
-                                                <li class="divider">
-                                                <li><a href="{% url 'sentry-logout' %}">{% trans "Logout" %}</a></li>
-                                            </ul>
-                                        </li>
-                                    {% else %}
-                                        <li><a href="{% url 'sentry-login' %}">{% trans "Login" %}</a></li>
-                                    {% endif %}
-                                {% endblock %}
-                            </ul>
-                         </div>
-                    </div>
-                </div>
-            </header>
-        {% endblock %}
-        {% block page_header_block %}
-            <section id="page-header" class="toolbar">
-                <div class="container">
-                    {% block page_header %}
-                        {% if team %}
-                            <div class="dashboard-btn">
-                                <a href="{% url 'sentry-team-dashboard' organization.slug team.slug %}" title="{% trans "Dashboard" %}">
-                                    <i aria-hidden="true" class="icon-list"></i>
-                                </a>
-                            </div>
-                        {% endif %}
-                    {% endblock %}
-                </div>
-            </section>
-        {% endblock %}
-        <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
-            <div class="container">
-                {% block above_content %}{% endblock %}
+  <script>
+  window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+  </script>
 
-                {% block alerts %}
-                    {% include "sentry/partial/alerts.html" %}
-                {% endblock %}
 
-                <div class="content">
-                    {% block content_before %}
-                    {% endblock %}
+  {% block scripts %}
+  <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
+  {% locale_js_include %}
+  <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
-                    {% block content %}
-                        <div class="main">
-                            {% block main %}
-                            {% endblock %}
-                        </div>
+  <script>
+    for (var n in window.exports.default) {
+      window[n] = window.exports.default[n];
+    }
+    window.$ = window.jQuery;
 
-                        <div class="sidebar">
-                            {% block sidebar %}
-                            {% endblock %}
-                        </div>
-                    {% endblock %}
+    window.moment.locale({{ request.LANGUAGE_CODE|to_json|safe }});
 
-                    {% block content_after %}
-                    {% endblock %}
-                </div>
-            </div>
-        </section>
-        <footer>
-            <div class="container">
-                {% block footer %}
-                    <div class="contribute">Sentry is <a href="http://en.wikipedia.org/wiki/Open-source_software">Open Source Software</a>
-                        <a href="https://github.com/getsentry/sentry" class="btn btn-default btn-small">{% trans "Contribute" %}</a> <a href="https://www.transifex.com/projects/p/sentry/" class="btn btn-default btn-small">{% trans "Translate" %}</a></div>
-                    <div class="version">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
-                    <div class="credits">Handcrafted by the <a href="https://www.getsentry.com">Sentry team</a> and its <a href="https://github.com/getsentry/sentry/contributors">many contributors</a></div>
-                {% endblock %}
-            </div>
-        </footer>
-        {% endblock %}
+    // if the ads.js file loads below it will mark this variable as false
+    window.adblockSuspected = true;
 
-        <script type="text/javascript">
+    Sentry.ConfigStore.loadInitialData({% get_react_config %});
+  </script>
+  <script src="{% asset_url 'sentry' 'js/ads.js' %}"></script>
+
+  {% include "sentry/includes/ravenjs.html" %}
+  {% endblock %}
+
+  {% block meta %}
+  {% endblock %}
+</head>
+
+<body class="{% block wrapperclass %}{% endblock %}">
+  {% block body %}
+  <div class="app">
+    {% if request.is_superuser %}
+        {% show_system_status %}
+    {% endif %}
+
+    {% block global_sidebar %}
+      {% if request.user.is_authenticated %}
+        <div id="blk_sidebar"></div>
+        <script>
         $(function(){
-            $('.clippy').clippy({
-                clippy_path: app.config.clippyPath,
-                keep_text: true
-            });
-            $('input[data-toggle="datepicker"]').datepicker();
-            $('.tip').tooltip({
-                html: true,
-                container: 'body'
-            });
-            $('.trigger-popover').popover({
-                html: true,
-                container: 'body'
-            });
-            $('.nav-tabs .active a').tab('show')
-            $('.project-selector').on('change', function(e){
-                var $el = $(e.target).get(0);
-                var $opt = $($el.options[$el.selectedIndex]);
-                window.location.href = $opt.attr('data-url');
-                return false;
-            });
+          var SidebarWrapper = React.createClass({
+            propTypes: {
+              organization: React.PropTypes.any.isRequired
+            },
+            getChildContext: function () {
+              return {
+                organization: this.props.organization,
+              }
+            },
+            render: function () {
+              return React.createElement(Sentry.OrganizationsLoader, {},
+                React.createElement(Sentry.Sidebar));
+            }
+          });
+          SidebarWrapper.childContextTypes = {
+            organization: React.PropTypes.any
+          };
+          ReactDOM.render(React.createFactory(SidebarWrapper)({
+            organization: {% serialize_detailed_org organization %},
+          }), document.getElementById('blk_sidebar'));
         });
         </script>
-    </body>
+      {% endif %}
+    {% endblock %}
+
+    {% block alerts %}
+    {% include "sentry/partial/alerts.html" %}
+    {% endblock %}
+
+    {% block header %}
+    {% comment %}
+    <header>
+      <div class="container">
+        {% if request.user.is_authenticated %}
+        {% block account_nav %}
+        <div class="pull-right">
+          <div class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown">
+              <span class="avatar">
+                {% avatar request.user %}
+              </span>
+              <i class="icon-arrow-down"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-right">
+              <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
+              <li><a href="{% url 'sentry-api' %}">{% trans "API" %}</a></li>
+              {% if request.is_superuser %}
+                <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
+              {% endif %}
+              <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
+            </ul>
+          </div>
+        </div>
+        {% endblock %}
+        {% endif %}
+
+        {% block logo %}
+        <a href="/" class="logo"><span class="icon-sentry-logo"></span></a>
+        {% endblock %}
+
+        <ul class="global-nav pull-right">
+          {% block global_nav %}
+          <li><a href="https://docs.sentry.io">{% trans "Docs" %}</a></li>
+          {% endblock %}
+        </ul>
+
+        {% if not SINGLE_ORGANIZATION and request.user.is_authenticated and organization %}
+        {% block org_selector %}
+        <div class="org-selector pull-right">
+          <div class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown">
+              {{ organization.name }}
+              <i class="icon-arrow-down"></i>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-right">
+              {% for org in request.user|list_organizations %}
+                <li><a href="{% url 'sentry-organization-home' org.slug %}">{{ org.name }}</a></li>
+              {% endfor %}
+              {% feature organizations:create %}
+                <li class="divider"></li>
+                <li><a href="{% url 'sentry-create-organization' %}">New Organization</a></li>
+              {% endfeature %}
+            </ul>
+          </div>
+        </div>
+        {% endblock %}
+        {% endif %}
+      </div>
+    </header>
+    {% endcomment %}
+    {% endblock %}
+
+    {% if organization and ACCESS.org_read %}
+    {% block sub-header %}
+    <div class="sub-header flex flex-container flex-vertically-centered">
+      <div>
+        <div id="blk_projectselect"></div>
+        {% block header_nav %}{% endblock %}
+        <script>
+        $(function(){
+          ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
+            organization: {% serialize_detailed_org organization %},
+            projectId: {% if project %}'{{ project.slug }}'{% else %}null{% endif %},
+          }), document.getElementById('blk_projectselect'));
+        });
+        </script>
+      </div>
+      <div class="align-right project-actions">
+        {% block header_action %}{% endblock %}
+      </div>
+    </div>
+    {% endblock %}
+    {% endif %}
+
+    <div class="container">
+      {% block above_content %}{% endblock %}
+      <div class="content">
+        {% block content_before %}
+        {% endblock %}
+        {% block content %}
+        <div class="row" id="blk_content">
+          <div class="col-md-2">
+            {% block sidebar %}
+            {% endblock %}
+          </div>
+          <div class="col-md-10" id="blk_main">
+            {% block main %}
+            {% endblock %}
+          </div>
+        </div>
+        {% endblock %}
+
+        {% block content_after %}
+        {% endblock %}
+      </div>
+    </div>
+    <footer>
+      <div class="container">
+        {% block footer %}
+        <div class="pull-right">
+          {% block support_link %}{% endblock %}
+          <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
+          <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
+          <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
+          {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
+        </div>
+        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
+        <a href="/" class="icon-sentry-logo"></a>
+        {% endblock %}
+      </div>
+    </footer>
+  </div>
+
+  {% block selectize %}
+  <script>
+  $(function() {
+    $('select').select2({placeholder: '--'});
+  });
+  </script>
+  {% endblock %}
+  <script>
+  $('.auto-select').click(function() {
+    if (document.selection) {
+      var range = document.body.createTextRange();
+      range.moveToElementText(this.firstChild);
+      range.select();
+    } else if (window.getSelection) {
+      var range = document.createRange();
+      range.selectNode(this.firstChild);
+      window.getSelection().addRange(range);
+    }
+  });
+  </script>
+  <script type="text/javascript">
+  $(function() {
+    // This is duplicated from <ProjectSelector>
+    $('.project-dropdown').on('shown.bs.dropdown', function(event){
+      $(event.target).find('input[type=text]').focus();
+    });
+  });
+  $(function() {
+    var slideShow = function() {
+
+      var slideWidth = $(".slide").width();
+      var numSlides = 0;
+      var currentSlide;
+
+      // Find all slides
+
+      $(".slide").each(function(i) {
+        numSlides++;
+
+        var slide = i + 1;
+        var isActive;
+
+        if ($(this).hasClass("active")) {
+          isActive = true;
+          currentSlide = slide;
+        }
+
+        $(this).addClass("slide-" + slide );
+
+        // Build dot nav
+
+        $(".dot-nav").append('<li class="'+ (isActive ? "active" : "") + '"><a href="#" class="show-slide" data-show-slide="'+ slide +'"></a></li>')
+      });
+
+      // Input handlers
+
+      $(".show-slide").click(function() {
+        showSlide($(this).attr("data-show-slide"));
+      });
+
+      $(".close").click(function() {
+        $(".welcome-modal").fadeOut();
+      });
+
+      $(".slide-show-next").click(function() {
+        if (currentSlide + 1 <= numSlides) {
+          showSlide(currentSlide + 1);
+        } else {
+          showSlide(1);
+        }
+      });
+
+      $(".slide-show-prev").click(function() {
+        if (currentSlide - 1 != 0) {
+          showSlide(currentSlide - 1);
+        } else {
+          showSlide(numSlides);
+        }
+      });
+
+      this.showSlide = function(location) {
+        currentSlide = location;
+
+        // Clear active items
+        $(".slide").removeClass("active");
+        $(".dot-nav li").removeClass("active");
+
+        // Set new active items
+
+        $(".dot-nav li a[data-show-slide="+ location +"]").parent("li").addClass("active");
+        $(".slide-" + location).addClass("active");
+
+        // Use margin to show slide
+
+        $(".welcome-slides").css("margin-left", -(slideWidth * location) + slideWidth);
+
+        // Animate shit
+
+        $(".slide-" + location + " [data-animate]").addClass("animated");
+      }
+
+      showSlide(1);
+    }
+
+    // $( "body" ).keypress(function( event ) {
+    //   if ( event.which == 96 ) {
+    //      event.preventDefault();
+    //      $(".welcome-modal").fadeIn();
+    //   }
+    // });
+
+    slideShow();
+  });
+  </script>
+  {% endblock %}
+
+  {% block scripts_bottom %}{% endblock %}
+</body>
 </html>

@@ -1,0 +1,29 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+import os
+import sys
+
+# This is to avoid needing to have the `sentry` package explicitly installed.
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
+
+from sentry.lint.engine import check_files
+
+offset = 1
+js = True
+py = True
+
+# Allow passing a flag for --js or --python only
+if len(sys.argv) > 1:
+    if sys.argv[1] == '--js':
+        offset = 2
+        py = False
+    elif sys.argv[1] == '--python':
+        offset = 2
+        js = False
+
+file_list = sys.argv[offset:]
+if not file_list:
+    file_list = None
+
+sys.exit(check_files(file_list, js=js, py=py))

@@ -44,6 +44,10 @@ class TagValue(Model):
 
     __repr__ = sane_repr('project_id', 'key', 'value')
 
+    @classmethod
+    def is_valid_value(cls, value):
+        return '\n' not in value
+
     def get_label(self):
         # HACK(dcramer): quick and dirty way to hack in better display states
         if self.key == 'sentry:user':
@@ -52,6 +56,8 @@ class TagValue(Model):
             return '%s in %s' % (self.data['function'], self.data['filename'])
         elif self.key == 'sentry:filename':
             return self.data['filename']
+        elif self.key == 'sentry:release' and len(self.value) == 40:
+            return self.value[:12]
         return self.value
 
     def get_absolute_url(self):

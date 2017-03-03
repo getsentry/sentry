@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+from __future__ import absolute_import
+
+import os
+import sys
+
+from glob import glob
+
+from sentry.lint.engine import check_files
+
+text_type = type(u'')
+
+
+# git usurbs your bin path for hooks and will always run system python
+if 'VIRTUAL_ENV' in os.environ:
+    site_packages = glob(
+        '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
+    sys.path.insert(0, site_packages)
+
+
+def main():
+    from flake8.hooks import run
+
+    gitcmd = "git diff-index --cached --name-only HEAD"
+
+    _, files_modified, _ = run(gitcmd)
+
+    files_modified = [
+        text_type(f)
+        for f in files_modified
+        if os.path.exists(f)
+    ]
+
+    return check_files(files_modified)
+
+
+if __name__ == '__main__':
+    sys.exit(main())

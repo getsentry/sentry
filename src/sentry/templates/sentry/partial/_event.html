@@ -2,7 +2,7 @@
 {% load sentry_plugins %}
 
 <li class="event">
-    <div class="details">
+    <div class="event-details event-cell">
         <h3>
             <a href="{% url 'sentry-group-event' event.organization.slug event.project.slug event.group_id event.pk %}">
                 {{ event.message_short }}
@@ -17,4 +17,3 @@
         <a href="{% url 'sentry-group-event' event.organization.slug event.project.slug event.group_id event.pk %}" class="row_link"></a>
     </div>
 </li>
-

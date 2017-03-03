@@ -23,8 +23,8 @@ def init_registry():
         cls = import_string(rule)
         registry.add(cls)
     for plugin in plugins.all(version=2):
-        for cls in (safe_execute(plugin.get_rules) or ()):
-            register.add(cls)
+        for cls in (safe_execute(plugin.get_rules, _with_transaction=False) or ()):
+            registry.add(cls)
 
     return registry
 

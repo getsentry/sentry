@@ -1,5 +1,4 @@
 {
-    "culprit": "views.js in updateMember",
     "sentry.interfaces.Exception": {
         "values": [
             {
@@ -7,7 +6,7 @@
                     "frames": [
                         {
                             "function": "member",
-                            "abs_path": "https://app.getsentry.com/_static/sentry/scripts/views.js",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
                             "pre_context": [
                                 "        removeMember: function(member){",
                                 "            this.collection.remove(member);",
@@ -15,7 +14,6 @@
                                 "",
                                 "        renderMemberInContainer: function(member){"
                             ],
-                            "errors": ["This is an example error"],
                             "vars": {},
                             "module": null,
                             "filename": "../../sentry/scripts/views.js",
@@ -30,8 +28,8 @@
                             "in_app": true,
                             "data": {
                                 "orig_filename": "/_static/sentry/scripts/global.min.js",
-                                "orig_abs_path": "https://app.getsentry.com/_static/sentry/scripts/global.min.js",
-                                "sourcemap": "https://app.getsentry.com/_static/sentry/scripts/global.min.map.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
                                 "orig_lineno": 1,
                                 "orig_function": "app.OrderedElementsView.Backbone.View.extend.updateMember",
                                 "orig_colno": 14930
@@ -41,7 +39,7 @@
                         },
                         {
                             "function": "merge",
-                            "abs_path": "https://app.getsentry.com/_static/sentry/scripts/views.js",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
                             "pre_context": [
                                 "            var existing = this.collection.get(member.id);",
                                 "            if (existing.get('version') > member.get('version'))",
@@ -63,8 +61,8 @@
                             "in_app": true,
                             "data": {
                                 "orig_filename": "/_static/sentry/scripts/global.min.js",
-                                "orig_abs_path": "https://app.getsentry.com/_static/sentry/scripts/global.min.js",
-                                "sourcemap": "https://app.getsentry.com/_static/sentry/scripts/global.min.map.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
                                 "orig_lineno": 1,
                                 "orig_function": "app.OrderedElementsView.Backbone.View.extend.addMember",
                                 "orig_colno": 14663
@@ -74,7 +72,7 @@
                         },
                         {
                             "function": "poll",
-                            "abs_path": "https://app.getsentry.com/_static/sentry/scripts/views.js",
+                            "abs_path": "https://sentry.io/_static/sentry/scripts/views.js",
                             "pre_context": [
                                 "",
                                 "        poll: function(){",
@@ -96,8 +94,8 @@
                             "in_app": true,
                             "data": {
                                 "orig_filename": "/_static/sentry/scripts/global.min.js",
-                                "orig_abs_path": "https://app.getsentry.com/_static/sentry/scripts/global.min.js",
-                                "sourcemap": "https://app.getsentry.com/_static/sentry/scripts/global.min.map.js",
+                                "orig_abs_path": "https://sentry.io/_static/sentry/scripts/global.min.js",
+                                "sourcemap": "https://sentry.io/_static/sentry/scripts/global.min.map.js",
                                 "orig_lineno": 1,
                                 "orig_function": "app.GroupListView.app.OrderedElementsView.extend.tick",
                                 "orig_colno": 16467
@@ -126,7 +124,7 @@
                                 "    }"
                             ],
                             "colno": 24,
-                            "in_app": true,
+                            "in_app": false,
                             "data": {
                                 "orig_filename": "/dist/1.0/raven.min.js",
                                 "orig_abs_path": "https://d3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js",
@@ -143,6 +141,69 @@
                 "type": "TypeError",
                 "value": "Object [object Object] has no method 'updateFrom'",
                 "module": null
+            }
+        ]
+    },
+    "sentry.interfaces.Breadcrumbs": {
+        "values": [
+            {
+                "type": "navigation",
+                "timestamp": 1463071692.0,
+                "category": "react-router",
+                "data": {
+                    "from": "/login/",
+                    "to": "/dashboard/"
+                }
+            },
+            {
+                "timestamp": 1463072692.0,
+                "message": "This is an info log message",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463073692.0,
+                "message": "This is a warning log message",
+                "level": "warning",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463074692.0,
+                "message": "This is an error log message",
+                "level": "error",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463075692.0,
+                "message": "This is a critical log message",
+                "level": "critical",
+                "category": "console"
+            },
+            {
+                "timestamp": 1463076692.0,
+                "message": "This is a debug log message",
+                "level": "debug",
+                "category": "console",
+                "data": {
+                    "foo": "bar",
+                    "baz": "blah"
+                }
+            },
+            {
+                "type": "http",
+                "category": "ajax",
+                "timestamp": 1463077692.0,
+                "data": {
+                    "reason": "OK",
+                    "status_code": 200,
+                    "url": "Http://example.com/",
+                    "method": "POST"
+                }
+            },
+            {
+                "type": "ui",
+                "timestamp": 1463078692.0,
+                "message": "div > form[name=\"post\"] > button.btn.btn-small[name=\"submit\"]",
+                "category": "ui.click"
             }
         ]
     }

@@ -1,5 +1,4 @@
 {
-    "culprit": "raven.scripts.runner in main",
     "sentry.interfaces.Stacktrace": {
         "frames": [
             {
@@ -23,7 +22,15 @@
                             0.5341796875,
                             0.62939453125
                         ],
-                        "'user'": "'dcramer'"
+                        "'user'": "'dcramer'",
+                        "'go_deeper'": [
+                            [
+                                {
+                                    "'foo'": "'bar'",
+                                    "'bar'": ["'baz'"]
+                                }
+                            ]
+                        ]
                     },
                     "'v'": {
                         "'message'": "u'This is a test message generated using ``raven test``'",
@@ -90,7 +97,15 @@
                             0.5341796875,
                             0.62939453125
                         ],
-                        "'user'": "'dcramer'"
+                        "'user'": "'dcramer'",
+                        "'go_deeper'": [
+                            [
+                                {
+                                    "'foo'": "'bar'",
+                                    "'bar'": ["'baz'"]
+                                }
+                            ]
+                        ]
                     },
                     "'stack'": true,
                     "'tags'": null,
@@ -136,7 +151,15 @@
                                 0.5341796875,
                                 0.62939453125
                             ],
-                            "'user'": "'dcramer'"
+                            "'user'": "'dcramer'",
+                            "'go_deeper'": [
+                                [
+                                    {
+                                        "'foo'": "'bar'",
+                                        "'bar'": ["'baz'"]
+                                    }
+                                ]
+                            ]
                         },
                         "'stack'": true,
                         "'data'": null,
@@ -207,12 +230,12 @@
                 "vars": {
                     "'root'": "<logging.Logger object at 0x107ba5b10>",
                     "'parser'": "<optparse.OptionParser instance at 0x107ba3368>",
-                    "'dsn'": "'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@app.getsentry.com/1'",
+                    "'dsn'": "'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1'",
                     "'opts'": "<Values at 0x107ba3b00: {'data': None, 'tags': None}>",
                     "'client'": "<raven.base.Client object at 0x107bb8210>",
                     "'args'": [
                         "'test'",
-                        "'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@app.getsentry.com/1'"
+                        "'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1'"
                     ]
                 },
                 "module": "raven.scripts.runner",
@@ -225,5 +248,21 @@
                 "lineno": 112
             }
         ]
+    },
+    "sentry.interfaces.Template":{
+        "abs_path": "/srv/example/templates/debug_toolbar/base.html",
+        "pre_context": [
+            "{% endif %}\n",
+            "<script src=\"{% static 'debug_toolbar/js/toolbar.js' %}\"></script>\n",
+            "<div id=\"djDebug\" hidden=\"hidden\" dir=\"ltr\"\n"
+        ],
+        "post_context": [
+            "     {{ toolbar.config.ROOT_TAG_EXTRA_ATTRS|safe }}>\n",
+            "\t<div hidden=\"hidden\" id=\"djDebugToolbar\">\n",
+            "\t\t<ul id=\"djDebugPanelList\">\n"
+        ],
+        "filename": "debug_toolbar/base.html",
+        "lineno": 14,
+        "context_line": "     data-store-id=\"{{ toolbar.store_id }}\" data-render-panel-url=\"{% url 'djdt:render_panel' %}\"\n"
     }
 }

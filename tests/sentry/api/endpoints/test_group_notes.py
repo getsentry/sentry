@@ -1,4 +1,7 @@
-from django.core.urlresolvers import reverse
+from __future__ import absolute_import
+
+import six
+
 from sentry.models import Activity
 from sentry.testutils import APITestCase
 
@@ -17,13 +20,11 @@ class GroupNoteTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-group-notes', kwargs={
-            'group_id': self.group.id,
-        })
+        url = '/api/0/issues/{}/comments/'.format(group.id)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(activity.id)
+        assert response.data[0]['id'] == six.text_type(activity.id)
 
 
 class GroupNoteCreateTest(APITestCase):
@@ -32,9 +33,7 @@ class GroupNoteCreateTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        url = reverse('sentry-api-0-group-notes', kwargs={
-            'group_id': self.group.id,
-        })
+        url = '/api/0/issues/{}/comments/'.format(group.id)
 
         response = self.client.post(url, format='json')
         assert response.status_code == 400

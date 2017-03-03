@@ -20,14 +20,19 @@ class JSONTest(TestCase):
         self.assertEquals(json.dumps(res), '"2011-01-01T01:01:01.000000Z"')
 
     def test_set(self):
-        res = set(['foo', 'bar'])
-        self.assertEquals(json.dumps(res), '["foo","bar"]')
+        res = set(['foo'])
+        self.assertEquals(json.dumps(res), '["foo"]')
 
     def test_frozenset(self):
-        res = frozenset(['foo', 'bar'])
-        self.assertEquals(json.dumps(res), '["foo","bar"]')
+        res = frozenset(['foo'])
+        self.assertEquals(json.dumps(res), '["foo"]')
 
     def test_escape(self):
-        res = '<script>alert(1);</script>'
-        assert json.dumps(res) == '"<script>alert(1);</script>"'
-        assert json.dumps(res, escape=True) == '"<script>alert(1);<\/script>"'
+        res = "<script>alert('&');</script>"
+        assert json.dumps(res) == '"<script>alert(\'&\');</script>"'
+        assert json.dumps(res, escape=True) == '"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
+        assert json.dumps_htmlsafe(res) == '"\\u003cscript\\u003ealert(\\u0027\u0026\\u0027);\\u003c/script\\u003e"'
+
+    def test_inf(self):
+        res = float('inf')
+        self.assertEquals(json.dumps(res), 'null')

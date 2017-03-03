@@ -1,0 +1,339 @@
+/**
+* Auth Styles
+* ============================================================================
+*/
+
+.auth {
+  h3 {
+    font-size: 24px;
+    margin: 10px 0 30px;
+  }
+
+  .form-actions {
+    margin-top: 20px;
+  }
+}
+
+section.org-login {
+  h3 {
+    margin: 0 0 20px;
+  }
+  .org-avatar {
+    .square(56px);
+    border-radius: 3px;
+    margin-bottom: 20px;
+  }
+}
+
+.provider-logo {
+  display: inline-block;
+  .square(16px);
+  vertical-align: text-top;
+  margin-right: 4px;
+  border-radius: 2px;
+  position: relative;
+  top: 1px;
+
+  &.google {
+    background: url(../images/auth-providers/google.png);
+    background-size: cover;
+  }
+
+  &.github {
+    background: url(../images/auth-providers/github.jpg);
+    background-size: cover;
+  }
+
+  &.onelogin {
+    background: url(../images/auth-providers/onelogin.png);
+    background-size: cover;
+  }
+
+  &.okta {
+    background: url(../images/auth-providers/okta.png);
+    background-size: cover;
+  }
+}
+
+// Toggle SSO
+
+.sso-toggle-container {
+  margin-top: 2px;
+  font-size: 15px;
+
+  .go-back {
+    display: none;
+    position: relative;
+  }
+
+  a {
+    color: lighten(@gray, 30);
+
+    &:hover {
+      color: lighten(@gray, 10);
+    }
+  }
+
+  .icon-arrow-left {
+    position: absolute;
+    background: 0;
+    font-size: 18px;
+    left: -20px;
+  }
+}
+
+.show-sso {
+
+  .sso-link {
+    display: none;
+  }
+
+  .go-back {
+    display: block;
+  }
+
+  #standard {
+    display: none;
+  }
+
+  #sso {
+    display: block;
+  }
+}
+
+.sso-link {
+  text-align: center;
+  margin-bottom: 20px;
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+.primary-email {
+  position: relative;
+
+  &.not-verified {
+    padding-right: 168px;
+  }
+
+  .verification-label {
+    position: absolute;
+    top: -3px;
+    left: 110px;
+  }
+
+  .verified-status {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding-top: 28px;
+  }
+
+}
+
+.account-settings-overview {
+  position: relative;
+  padding-right: 140px;
+
+  .avatar-edit-link {
+    .icon-settings {
+      opacity: 0;
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      color: #fff;
+      background: rgba(0,0,0, .4);
+      .square(20px);
+      border-radius: 3px;
+      text-align: center;
+      line-height: 20px;
+      font-size: 12px;
+      .transition(.1s opacity linear);
+    }
+
+    &:hover {
+      .icon-settings {
+        opacity: 1;
+      }
+    }
+  }
+
+  .avatar-preview {
+    position: absolute;
+    top: 0;
+    right: 0;
+
+    .avatar {
+      .square(118px);
+      border-radius: 3px;
+    }
+  }
+}
+
+// 2FA
+
+.method-list {
+  .box {
+    padding: 20px 20px 0;
+    position: relative;
+    z-index: 1;
+
+    h4 {
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: @gray-dark;
+    }
+
+    .pull-right {
+      margin-top: -4px;
+    }
+
+    .icon-trash {
+      margin-left: -2px;
+    }
+
+    &.enrolled {
+      h4:after {
+        display: inline-block;
+        content: "";
+        .square(14px);
+        border-radius: 14px;
+        margin-left: 10px;
+        background: @green;
+      }
+    }
+  }
+}
+
+div.u2f-box {
+  position: relative;
+  background: @white-dark;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 20px;
+
+  div.device-animation-frame {
+    margin: 0 auto;
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0,0,0, .08);
+    border: 1px solid darken(@trim, 5);
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  div.loading-dots {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    margin-left: -25px;
+    margin-top: -9px;
+    opacity: 0;
+    .transition(all ease-in .4s);
+
+    .dot {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      background: @blue;
+      border-radius: 50%;
+      margin-right: 4px;
+
+      //Animate
+      animation-name: blink;
+      animation-duration: 1.6s;
+      animation-iteration-count: infinite;
+      animation-fill-mode: both;
+
+      &:nth-child(2) {
+        animation-delay: .4s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: .8s;
+      }
+
+      &:last-child {
+        margin-right: 0;
+      }
+    }
+  }
+
+  div.device-animation {
+    background: url(../images/auth/u2f-small.gif);
+    background-size: 100px 100px;
+    width: 100px;
+    height: 100px;
+    .transition(opacity .3s);
+  }
+
+  div.device-failed {
+    display: none;
+    position: absolute;
+    top: 35%;
+    left: 50%;
+    width: 100px;
+    text-align: center;
+    margin-left: -50px;
+    &:after {
+      content: ":-(";
+    }
+    font-size: 46px;
+    font-weight: bold;
+    color: @red;
+  }
+
+  div.inner {
+    margin: 0 auto;
+    padding-top: 20px;
+    max-width: 360px;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  div.failure-message {
+    p {
+      margin: 0 0 10px 0;
+    }
+  }
+
+  &.tapped {
+    .loading-dots {
+      opacity: 1;
+      top: 50%;
+      display: block;
+    }
+    .device-animation {
+      -webkit-filter: blur(4px);
+      filter: blur(4px);
+    }
+  }
+
+  &.device-failure {
+    .device-animation {
+      visibility: hidden;
+    }
+    .device-failed {
+      display: block;
+    }
+  }
+}
+
+@keyframes blink {
+    0% {
+      opacity: .1;
+    }
+    30% {
+      opacity: 1;
+    }
+    100% {
+      opacity: .1;
+    }
+}

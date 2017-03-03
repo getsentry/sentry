@@ -1,11 +1,14 @@
 from __future__ import absolute_import
 
-from django.contrib.auth import login, logout
+from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
-from sentry.api import client
 from sentry.api.authentication import QuietBasicAuthentication
-from sentry.api.base import DocSection, Endpoint
+from sentry.models import Authenticator
+from sentry.api.base import Endpoint
+from sentry.api.serializers import serialize
+from sentry.utils import auth
 
 
 class AuthIndexEndpoint(Endpoint):
@@ -21,33 +24,62 @@ class AuthIndexEndpoint(Endpoint):
 
     permission_classes = ()
 
-    doc_section = DocSection.ACCOUNTS
+    # XXX: it's not quite clear if this should be documented or not at
+    # this time.
+    # doc_section = DocSection.ACCOUNTS
+
+    def get(self, request):
+        if not request.user.is_authenticated():
+            return Response(status=400)
+
+        data = serialize(request.user, request.user)
+        data['isSuperuser'] = request.is_superuser()
+        return Response(data)
 
     def post(self, request):
         """
-        Authenticate a user
+        Authenticate a User
+        ```````````````````
 
-        Authenticate a user using the provided credentials.
+        This endpoint authenticates a user using the provided credentials
+        through a regular HTTP basic auth system.  The response contains
+        cookies that need to be sent with further requests that require
+        authentication.
 
-            curl -X {method} -u PUBLIC_KEY:SECRET_KEY {path}
+        This is primarily used internally in Sentry.
 
+        Common example::
+
+            curl -X ###METHOD### -u username:password ###URL###
         """
         if not request.user.is_authenticated():
             return Response(status=400)
 
-        # Must use the real request object that Django knows about
-        login(request._request, request.user)
+        # If 2fa login is enabled then we cannot sign in with username and
+        # password through this api endpoint.
+        if Authenticator.objects.user_has_2fa(request.user):
+            return Response({
+                '2fa_required': True,
+                'message': 'Cannot sign-in with basic auth when 2fa is enabled.'
+            }, status=403)
 
-        return client.get('/users/me/', request.user, request.auth)
+        try:
+            # Must use the real request object that Django knows about
+            auth.login(request._request, request.user)
+        except auth.AuthUserPasswordExpired:
+            return Response({
+                'message': 'Cannot sign-in with basic auth because password has expired.',
+            }, status=403)
+
+        return self.get(request)
 
     def delete(self, request, *args, **kwargs):
         """
-        Logout the authenticated user
+        Logout the Authenticated User
+        `````````````````````````````
 
         Deauthenticate the currently active session.
-
-            {method} {path}
-
         """
         logout(request._request)
+        request.user = AnonymousUser()
         return Response(status=204)

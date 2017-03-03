@@ -1,24 +1,22 @@
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 import logging
 
+from click import echo
 from django.conf import settings
-from django.contrib.auth.signals import user_logged_in
-from django.db import connections
-from django.db.utils import OperationalError
+from django.db import connections, transaction
+from django.db.utils import OperationalError, ProgrammingError
 from django.db.models.signals import post_syncdb, post_save
 from functools import wraps
 from pkg_resources import parse_version as Version
 
 from sentry import buffer, options
 from sentry.models import (
-    Organization, OrganizationMemberType, Project, User, Team, ProjectKey,
-    UserOption, TagKey, TagValue, GroupTagValue, GroupTagKey, Activity,
-    Alert
+    Organization, OrganizationMember, Project, User,
+    Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey
 )
-from sentry.signals import buffer_incr_complete, regression_signal
+from sentry.signals import buffer_incr_complete
 from sentry.utils import db
-from sentry.utils.safe import safe_execute
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -31,8 +29,9 @@ def handle_db_failure(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            return func(*args, **kwargs)
-        except OperationalError:
+            with transaction.atomic():
+                return func(*args, **kwargs)
+        except (ProgrammingError, OperationalError):
             logging.exception('Failed processing signal %s', func.__name__)
             return
     return wrapped
@@ -47,16 +46,14 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
         name='Internal',
         slug='internal',
         verbosity=verbosity,
-        platform='django',
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
-        project = create_default_project(
+        create_default_project(
             id=settings.SENTRY_FRONTEND_PROJECT,
             name='Frontend',
             slug='frontend',
             verbosity=verbosity,
-            platform='javascript'
         )
 
 
@@ -67,20 +64,21 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     try:
         user = User.objects.filter(is_superuser=True)[0]
     except IndexError:
-        user, _ = User.objects.get_or_create(
-            username='sentry',
-            defaults={
-                'email': 'sentry@localhost',
-            }
-        )
+        user = None
 
     org, _ = Organization.objects.get_or_create(
         slug='sentry',
         defaults={
-            'owner': user,
             'name': 'Sentry',
         }
     )
+
+    if user:
+        OrganizationMember.objects.get_or_create(
+            user=user,
+            organization=org,
+            role='owner',
+        )
 
     team, _ = Team.objects.get_or_create(
         organization=org,
@@ -110,7 +108,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     project.update_option('sentry:origins', ['*'])
 
     if verbosity > 0:
-        print('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
+        echo('Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id))
 
     return project
 
@@ -142,32 +140,6 @@ def create_keys_for_project(instance, created, **kwargs):
         )
 
 
-def create_org_member_for_owner(instance, created, **kwargs):
-    if not created:
-        return
-
-    if not instance.owner:
-        return
-
-    instance.member_set.get_or_create(
-        user=instance.owner,
-        type=OrganizationMemberType.OWNER,
-        has_global_access=True,
-    )
-
-
-# Set user language if set
-def set_language_on_logon(request, user, **kwargs):
-    language = UserOption.objects.get_value(
-        user=user,
-        project=None,
-        key='language',
-        default=None,
-    )
-    if language and hasattr(request, 'session'):
-        request.session['django_language'] = language
-
-
 @buffer_incr_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
     if not created:
@@ -187,14 +159,14 @@ def record_project_tag_count(filters, created, **kwargs):
 
 
 @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
-def record_group_tag_count(filters, created, **kwargs):
+def record_group_tag_count(filters, created, extra, **kwargs):
     if not created:
         return
 
     # TODO(dcramer): remove in 7.6.x
     project_id = filters.get('project_id')
     if not project_id:
-        project_id = filters['project'].id
+        project_id = extra['project']
 
     group_id = filters.get('group_id')
     if not group_id:
@@ -209,25 +181,6 @@ def record_group_tag_count(filters, created, **kwargs):
     })
 
 
-@regression_signal.connect(weak=False)
-def create_regression_activity(instance, **kwargs):
-    if instance.times_seen == 1:
-        # this event is new
-        return
-    Activity.objects.create(
-        project=instance.project,
-        group=instance,
-        type=Activity.SET_REGRESSION,
-    )
-
-
-def on_alert_creation(instance, **kwargs):
-    from sentry.plugins import plugins
-
-    for plugin in plugins.for_project(instance.project):
-        safe_execute(plugin.on_alert, alert=instance)
-
-
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
 post_syncdb.connect(
@@ -239,22 +192,5 @@ post_save.connect(
     handle_db_failure(create_keys_for_project),
     sender=Project,
     dispatch_uid="create_keys_for_project",
-    weak=False,
-)
-post_save.connect(
-    handle_db_failure(create_org_member_for_owner),
-    sender=Organization,
-    dispatch_uid="create_org_member_for_owner",
-    weak=False,
-)
-user_logged_in.connect(
-    set_language_on_logon,
-    dispatch_uid="set_language_on_logon",
-    weak=False
-)
-post_save.connect(
-    on_alert_creation,
-    sender=Alert,
-    dispatch_uid="on_alert_creation",
     weak=False,
 )

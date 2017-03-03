@@ -6,10 +6,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMemberType, Team, TeamStatus
-)
-from sentry.tasks.deletion import delete_team
+from sentry.api import client
 from sentry.web.frontend.base import TeamView
 
 
@@ -18,7 +15,7 @@ class RemoveTeamForm(forms.Form):
 
 
 class RemoveTeamView(TeamView):
-    required_access = OrganizationMemberType.OWNER
+    required_scope = 'team:delete'
     sudo_required = True
 
     def get_form(self, request):
@@ -30,21 +27,8 @@ class RemoveTeamView(TeamView):
         form = self.get_form(request)
 
         if form.is_valid():
-            updated = Team.objects.filter(
-                id=team.id,
-                status=TeamStatus.VISIBLE,
-            ).update(status=TeamStatus.PENDING_DELETION)
-            if updated:
-                delete_team.delay(object_id=team.id, countdown=60 * 5)
-
-                AuditLogEntry.objects.create(
-                    organization=organization,
-                    actor=request.user,
-                    ip_address=request.META['REMOTE_ADDR'],
-                    target_object=team.id,
-                    event=AuditLogEntryEvent.TEAM_REMOVE,
-                    data=team.get_audit_log_data(),
-                )
+            client.delete('/teams/{}/{}/'.format(organization.slug, team.slug),
+                          request=request, is_sudo=True)
 
             messages.add_message(
                 request, messages.SUCCESS,
@@ -54,6 +38,7 @@ class RemoveTeamView(TeamView):
 
         context = {
             'form': form,
+            'project_list': team.project_set.all(),
         }
 
         return self.respond('sentry/teams/remove.html', context)

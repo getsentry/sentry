@@ -4,27 +4,34 @@ from django import forms
 from django.db import transaction, IntegrityError
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    OrganizationMember,
 )
+from sentry.signals import member_invited
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class InviteOrganizationMemberForm(forms.ModelForm):
+class InviteOrganizationMemberForm(BaseOrganizationMemberForm):
+    # override this to ensure the field is required
+    email = forms.EmailField()
+
     class Meta:
-        fields = ('email',)
+        fields = ('email', 'role')
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
+        om.token = om.generate_token()
 
         try:
-            existing = OrganizationMember.objects.get(
+            existing = OrganizationMember.objects.filter(
                 organization=organization,
                 user__email__iexact=om.email,
-            )
-        except OrganizationMember.DoesNotExist:
+                user__is_active=True,
+            )[0]
+        except IndexError:
             pass
         else:
             return existing, False
@@ -40,6 +47,8 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             ), False
         transaction.savepoint_commit(sid, using='default')
 
+        self.save_team_assignments(om)
+
         AuditLogEntry.objects.create(
             organization=organization,
             actor=actor,
@@ -48,7 +57,7 @@ class InviteOrganizationMemberForm(forms.ModelForm):
             event=AuditLogEntryEvent.MEMBER_INVITE,
             data=om.get_audit_log_data(),
         )
-
+        member_invited.send(member=om, user=actor, sender=InviteOrganizationMemberForm)
         om.send_invite_email()
 
         return om, True

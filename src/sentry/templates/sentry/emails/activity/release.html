@@ -1,0 +1,34 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_helpers %}
+
+{% block action %}
+    <a href="{{ release_link }}" class="btn">View Release</a>
+{% endblock %}
+
+{% block activity %}
+    <h2>
+        Version {{ release.short_version }}
+    </h2>
+    <p><a href="{{ release_link }}" class="highlight">{{ release.short_version }}</a> was released for <a href="{{ project_link }}">{{ project.name }}</a> on {{ release.date_added }}</p>
+    <h3>Commits</h3>
+    {% if commit_list %}
+        <ul class="commit-list">
+            {% for commit in commit_list %}
+                <li>
+                    {% if commit.message %}
+                        <strong>{{ commit.title }}</strong><br />
+                        <small>
+                            &mdash; {% if commit.author %}by {{ commit.author.name }}{% endif %}
+                            in {{ commit.short_id }}
+                        </small>
+                    {% else %}
+                        <small>{{ commit.short_id }}</small>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>It looks like there's no commit data wired up yet :(</p>
+    {% endif %}
+{% endblock %}

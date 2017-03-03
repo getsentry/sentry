@@ -4,7 +4,7 @@
 
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
     <div class="page-header">
         <h3>{{ title }}</h3>
     </div>
@@ -19,7 +19,7 @@
                 {% endfor %}
             </ul>
         {% else %}
-            {% url 'sentry-configure-project-plugin' project_id=project.id slug=plugin.slug as link %}
+            {% url 'sentry-configure-project-plugin' organization_slug=project.organization.slug project_slug=project.slug slug=plugin.slug as link %}
             <p>{% blocktrans %}You still need to <a href="{{ link }}">configure this plugin</a> before you can use it.{% endblocktrans %}</p>
         {% endif %}
     </div>

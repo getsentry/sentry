@@ -1,0 +1,94 @@
+/**
+ * Sentry Color Palette
+ * ============================================================================
+ */
+
+@blue:                #4674ca;
+@blue-light:          lighten(@blue, 10%);
+@blue-dark:           darken(@blue, 10%);
+
+@green:               #57be8c;
+@green-light:         lighten(@green, 10%);
+@green-dark:          darken(@green, 10%);
+
+@yellow:              #ECD744;
+@yellow-light:        lighten(@yellow, 10%);
+@yellow-dark:         darken(@yellow-light, 10%);
+
+@yellow-orange:       #f9a66d;
+@yellow-orange-light: lighten(@yellow-orange, 10%);
+@yellow-orange-dark:  darken(@yellow-orange, 10%);
+
+@orange:              #ec5e44;
+@orange-light:        lighten(@orange, 10%);
+@orange-dark:         darken(@orange, 10%);
+
+@red:                 #e03e2f;
+@red-light:           lighten(@red, 10%);
+@red-dark:            darken(@red, 10%);
+
+@pink:                #F868BC;
+@pink-light:          lighten(@pink, 10%);
+@pink-dark:           darken(@pink, 10%);
+
+@purple:              #6C5FC7;
+@purple-light:        lighten(@purple, 10%);
+@purple-lightest:     lighten(@purple-light, 10);
+@purple-dark:         darken(@purple, 10%);
+
+@gray:                @70;
+@gray-light:          desaturate(@50, 5%);
+@gray-lighter:        @40;
+@gray-lightest:       @20;
+@gray-dark:           @80;
+@gray-darker:         @90;
+@gray-darkest:        @100;
+
+@white:               #FFFFFF;
+@white-dark:          #FBFBFC;
+@white-darker:        #F7F8F9;
+@white-darkest:       darken(@white-darker, 6);
+
+/**
+ * Shortcuts
+ * ============================================================================
+ */
+
+@link-color:                  @blue;
+@link-color-hover:            @blue-dark;
+@header-bg-color:             #342c3e;
+@trim:                        @gray-lightest;
+@trim-dark:                   darken(@gray-lightest, 4);
+
+
+// Alerts (TODO): Derive these from palette
+
+@alert-warning-bg-color:      #FFFDF7;
+@alert-warning-border-color:  #E1D697;
+
+@alert-danger-bg-color:       #FDF6F5;
+@alert-danger-border-color:   #E7C0BC;
+
+@alert-info-bg-color:         #F5FAFE;
+@alert-info-border-color:     #B5D6ED;
+
+@alert-success-bg-color:      #F8FCF7;
+@alert-success-border-color:  #BBD6B3;
+
+
+
+/**
+ * Playing around
+ * ============================================================================
+ */
+
+@100: desaturate(#16111B, 8%);
+@90: lighten(@100, 10%);
+@80: lighten(@100, 20%);
+@70: lighten(@100, 30%);
+@60: lighten(@100, 40%);
+@50: lighten(@100, 50%);
+@40: lighten(@100, 60%);
+@30: lighten(@100, 70%);
+@20: lighten(@100, 80%);
+@10: lighten(@100, 90%);

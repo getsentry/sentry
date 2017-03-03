@@ -1,28 +1,33 @@
 from __future__ import absolute_import
 
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.utils.safestring import mark_safe
 
 from sentry import constants
-from sentry.models import OrganizationMemberType
-from sentry.plugins import plugins, IssueTrackingPlugin
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.plugins import plugins, IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.signals import plugin_enabled
 from sentry.web.frontend.base import ProjectView
-from sentry.web.helpers import plugin_config
 
 
 class ProjectIssueTrackingView(ProjectView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'project:write'
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=1):
-            if not isinstance(plugin, IssueTrackingPlugin):
+            if not (isinstance(plugin, IssueTrackingPlugin)
+                    or isinstance(plugin, IssueTrackingPlugin2)):
                 continue
             yield plugin
 
     def _handle_enable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
-        plugin.set_option('enabled', True, project)
+        plugin.enable(project)
+
+        plugin_enabled.send(plugin=plugin, project=project, user=request.user, sender=self)
+
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
@@ -30,7 +35,7 @@ class ProjectIssueTrackingView(ProjectView):
 
     def _handle_disable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
-        plugin.set_option('enabled', False, project)
+        plugin.disable(project)
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_DISABLED.format(name=plugin.get_title()),
@@ -48,29 +53,34 @@ class ProjectIssueTrackingView(ProjectView):
 
         enabled_plugins = []
         other_plugins = []
+        issue_v2_plugins = []
         for plugin in self._iter_plugins():
             if plugin.is_enabled(project):
+                if isinstance(plugin, IssueTrackingPlugin2):
+                    issue_v2_plugins.append(plugin)
+                    continue
                 content = plugin.get_issue_doc_html()
 
                 form = plugin.project_conf_form
                 if form is not None:
-                    action, view = plugin_config(plugin, project, request)
-                    if action == 'redirect':
-                        messages.add_message(
-                            request, messages.SUCCESS,
-                            constants.OK_PLUGIN_SAVED.format(name=plugin.get_title()),
-                        )
-                        return HttpResponseRedirect(request.path)
+                    view = plugin.configure(request=request, project=project)
+                    if isinstance(view, HttpResponse):
+                        return view
                 elif content:
                     enabled_plugins.append((plugin, mark_safe(content)))
                 enabled_plugins.append((plugin, mark_safe(content + view)))
-            else:
+            elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
         context = {
             'page': 'issue-tracking',
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
+            'issue_v2_plugins': serialize(
+                issue_v2_plugins, request.user, PluginSerializer(
+                    project=project
+                )
+            ),
         }
 
         return self.respond('sentry/project-issue-tracking.html', context)

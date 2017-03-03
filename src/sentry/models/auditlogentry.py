@@ -27,6 +27,8 @@ class AuditLogEntryEvent(object):
 
     ORG_ADD = 10
     ORG_EDIT = 11
+    ORG_REMOVE = 12
+    ORG_RESTORE = 13
 
     TEAM_ADD = 20
     TEAM_EDIT = 21
@@ -55,6 +57,10 @@ class AuditLogEntryEvent(object):
     APIKEY_EDIT = 71
     APIKEY_REMOVE = 72
 
+    RULE_ADD = 80
+    RULE_EDIT = 81
+    RULE_REMOVE = 82
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -69,6 +75,7 @@ class AuditLogEntry(Model):
     target_object = BoundedPositiveIntegerField(null=True)
     target_user = FlexibleForeignKey('sentry.User', null=True, blank=True,
                                     related_name='audit_targets')
+    # TODO(dcramer): we want to compile this mapping into JSX for the UI
     event = BoundedPositiveIntegerField(choices=(
         # We emulate github a bit with event naming
         (AuditLogEntryEvent.MEMBER_INVITE, 'member.invite'),
@@ -91,6 +98,8 @@ class AuditLogEntry(Model):
 
         (AuditLogEntryEvent.ORG_ADD, 'org.create'),
         (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
+        (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
+        (AuditLogEntryEvent.ORG_RESTORE, 'org.restore'),
 
         (AuditLogEntryEvent.TAGKEY_REMOVE, 'tagkey.remove'),
 
@@ -108,6 +117,10 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.APIKEY_ADD, 'api-key.create'),
         (AuditLogEntryEvent.APIKEY_EDIT, 'api-key.edit'),
         (AuditLogEntryEvent.APIKEY_REMOVE, 'api-key.remove'),
+
+        (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
+        (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
+        (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -169,6 +182,10 @@ class AuditLogEntry(Model):
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
             return 'edited the organization'
+        elif self.event == AuditLogEntryEvent.ORG_REMOVE:
+            return 'removed the organization'
+        elif self.event == AuditLogEntryEvent.ORG_RESTORE:
+            return 'restored the organization'
 
         elif self.event == AuditLogEntryEvent.TEAM_ADD:
             return 'created team %s' % (self.data['slug'],)
@@ -208,10 +225,17 @@ class AuditLogEntry(Model):
             return 'linked their account to a new identity'
 
         elif self.event == AuditLogEntryEvent.APIKEY_ADD:
-            return 'added api key %s (%s)' % (self.data['label'], self.data['key'])
+            return 'added api key %s' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.APIKEY_EDIT:
-            return 'edited api key %s (%s)' % (self.data['label'], self.data['key'])
+            return 'edited api key %s' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
-            return 'removed api key %s (%s)' % (self.data['label'], self.data['key'])
+            return 'removed api key %s' % (self.data['label'],)
+
+        elif self.event == AuditLogEntryEvent.RULE_ADD:
+            return 'added rule "%s"' % (self.data['label'],)
+        elif self.event == AuditLogEntryEvent.RULE_EDIT:
+            return 'edited rule "%s"' % (self.data['label'],)
+        elif self.event == AuditLogEntryEvent.RULE_REMOVE:
+            return 'removed rule "%s"' % (self.data['label'],)
 
         return ''

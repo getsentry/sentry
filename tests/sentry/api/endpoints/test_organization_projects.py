@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
@@ -18,4 +20,4 @@ class OrganizationProjectsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(project.id)
+        assert response.data[0]['id'] == six.text_type(project.id)

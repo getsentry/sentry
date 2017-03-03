@@ -9,10 +9,9 @@ from __future__ import absolute_import
 
 __all__ = ('Template',)
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
-from sentry.web.helpers import render_to_string
 
 
 class Template(Interface):
@@ -43,9 +42,12 @@ class Template(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data.get('filename')
-        assert data.get('context_line')
-        assert data.get('lineno')
+        if not data.get('filename'):
+            raise InterfaceValidationError("Missing 'filename'")
+        if not data.get('context_line'):
+            raise InterfaceValidationError("Missing 'context_line'")
+        if not data.get('lineno'):
+            raise InterfaceValidationError("Missing 'lineno'")
 
         kwargs = {
             'abs_path': trim(data.get('abs_path', None), 256),
@@ -83,26 +85,6 @@ class Template(Interface):
 
         return '\n'.join(result)
 
-    def to_html(self, event, is_public=False, **kwargs):
-        context = get_context(
-            lineno=self.lineno,
-            context_line=self.context_line,
-            pre_context=self.pre_context,
-            post_context=self.post_context,
-            filename=self.filename,
-        )
-
-        return render_to_string('sentry/partial/interfaces/template.html', {
-            'event': event,
-            'abs_path': self.abs_path,
-            'filename': self.filename,
-            'lineno': int(self.lineno),
-            'start_lineno': context[0][0],
-            'context': context,
-            'template': self.get_traceback(event, context),
-            'is_public': is_public,
-        })
-
     def get_traceback(self, event, context):
         result = [
             event.message, '',
@@ -111,3 +93,16 @@ class Template(Interface):
         result.extend([n[1].strip('\n') for n in context])
 
         return '\n'.join(result)
+
+    def get_api_context(self, is_public=False):
+        return {
+            'lineNo': self.lineno,
+            'filename': self.filename,
+            'context': get_context(
+                lineno=self.lineno,
+                context_line=self.context_line,
+                pre_context=self.pre_context,
+                post_context=self.post_context,
+                filename=self.filename,
+            ),
+        }

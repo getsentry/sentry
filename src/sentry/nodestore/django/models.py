@@ -16,7 +16,11 @@ from sentry.db.models import (
 
 
 class Node(BaseModel):
+    __core__ = False
+
     id = models.CharField(max_length=40, primary_key=True)
+    # TODO(dcramer): this being pickle and not JSON has the ability to cause
+    # hard errors as it accepts other serialization than native JSON
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 

@@ -3,41 +3,115 @@
 {% load sentry_helpers %}
 {% load i18n %}
 
-{% block header %}
-    <a href="{{ link }}" class="btn">View on Sentry</a>
-    <h1>Sentry</h1>
+{% block preheader %}
+  New alert from {{ project_label }}.
 {% endblock %}
 
-{% block inner %}
-    <h2>
-        {% url 'sentry-stream' group.project.organization.slug group.project.slug as project_link %}
-        {% if group.times_seen == 1 %}
-            New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.team.name }} {{ group.project.name }}</a>
-        {% else %}
-            Regression on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.team.name }} {{ group.project.name }}</a>
-        {% endif %}
+{% block header %}
+    <a href="{{ link }}" class="btn">View on Sentry</a>
+    {{ block.super }}
+{% endblock %}
+
+{% block main %}
+    <h2 style="margin-bottom: 15px">
+        New alert from <a href="{% absolute_uri '/{}/{}/' group.project.organization.slug group.project.slug %}">{{ project_label }}</a>
     </h2>
 
-    <pre class="message">{{ event.message }}</pre>
+    {% if enhanced_privacy %}
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+        <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e" }}</div>
+      </div>
 
-    <h3>Tags</h3>
+      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+    {% else %}
+      <table class="event-list">
+        <tr>
+            <th colspan="2">Issue</th>
+        </tr>
+        <tr>
+          <td class="error-level">
+              <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
+          </td>
+          <td class="event-detail">
+            <div class="issue">
+              {% with type=event.get_event_type metadata=event.get_event_metadata transaction=event.transaction %}
+                {% if type == "error" %}
+                  <div class="event-type error">
+                    <h3>
+                      {% if metadata.type %}
+                        <a href="{% absolute_uri link %}">{{ metadata.type|truncatechars:40 }}</a>
+                        {% if transaction %}
+                          <span class="event-subtitle">{{ transaction }}</span>
+                        {% endif %}
+                        <br />
+                        {% if metadata.value %}
+                          <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+                        {% endif %}
+                      {% else %}
+                        <a href="{% absolute_uri link %}">{{ metadata.value|truncatechars:40 }}</a><br />
+                        {% if transaction %}
+                          <span class="event-subtitle">{{ transaction }}</span>
+                        {% endif %}
+                      {% endif %}
+                    </h3>
+                  </div>
+                {% elif type == "csp" %}
+                  <div class="event-type csp">
+                    <h3>
+                      <a href="{% absolute_uri link %}">{{ metadata.directive|truncatechars:40 }}</a><br />
+                      {% if metadata.uri %}
+                        <span class="event-subtitle">{{ metadata.uri }}</span>
+                      {% endif %}
+                    </h3>
+                  </div>
+                {% else %}
+                  <div class="event-type default">
+                    <h3>
+                      <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a><br />
+                      {% if transaction %}
+                        <span class="event-subtitle">{{ transaction }}</span>
+                      {% endif %}
+                    </h3>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </td>
+        </tr>
+      </table>
 
-    <ul class="tag-list">
-    {% for tag_key, tag_value in tags %}
-        <li>
-            <strong>{{ tag_key }}</strong>
-            <em>=</em>
-            <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
-        </li>
-    {% endfor %}
-    </ul>
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+        <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e" }}</div>
+      </div>
 
-    {% for label, html, _ in interfaces %}
-    <div class="interface">
-        <h3 class="title">{{ label }}</h3>
-		{{ html }}
-    </div>
-    {% endfor %}
+      {% for label, html, _ in interfaces %}
+      <div class="interface">
+          <h3 class="title">{{ label }}</h3>
+          {{ html }}
+      </div>
+      {% endfor %}
+
+      {% if tags %}
+        <h3>Tags</h3>
+
+        <ul class="tag-list">
+        {% for tag_key, tag_value in tags %}
+          <li>
+              <strong>{{ tag_key }}</strong>
+              <em>=</em>
+              <span>
+              {% with query=tag_key|add:":\""|add:tag_value|add:"\""|urlencode %}
+                <a href="{% absolute_uri project_link %}?query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+              {% endwith %}
+              </span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
 
     {% if rules %}
         <p class="via">
@@ -48,17 +122,16 @@
         </p>
     {% endif %}
 
-
     {# support for gmail actions #}
     <div itemscope itemtype="http://schema.org/EmailMessage">
-      <meta itemprop="description" content="View Event Details in Sentry"/>
+      <meta itemprop="description" content="View Issue Details in Sentry"/>
       <div itemprop="action" itemscope itemtype="http://schema.org/ViewAction">
         <link itemprop="url" href="{{ link }}"/>
         <meta itemprop="name" content="View in Sentry"/>
       </div>
       <div itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
         <meta itemprop="name" content="GetSentry"/>
-        <link itemprop="url" href="https://www.getsentry.com/"/>
+        <link itemprop="url" href="https://sentry.io/"/>
       </div>
     </div>
 {% endblock %}

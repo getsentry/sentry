@@ -4,20 +4,15 @@ import psycopg2 as Database
 
 # Some of these imports are unused, but they are inherited from other engines
 # and should be available as part of the backend ``base.py`` namespace.
-from django.db.backends.postgresql_psycopg2.base import (  # NOQA
-    DatabaseWrapper, DatabaseFeatures, DatabaseOperations, DatabaseClient,
-    DatabaseCreation, DatabaseIntrospection
-)
+from django.db.backends.postgresql_psycopg2.base import DatabaseWrapper
 
 from .decorators import (
     capture_transaction_exceptions, auto_reconnect_cursor,
     auto_reconnect_connection, less_shitty_error_messages
 )
+from .operations import DatabaseOperations
 
-
-__all__ = ('DatabaseWrapper', 'DatabaseFeatures', 'DatabaseOperations',
-           'DatabaseOperations', 'DatabaseClient', 'DatabaseCreation',
-           'DatabaseIntrospection')
+__all__ = ('DatabaseWrapper',)
 
 
 class CursorWrapper(object):
@@ -32,6 +27,9 @@ class CursorWrapper(object):
 
     def __getattr__(self, attr):
         return getattr(self.cursor, attr)
+
+    def __iter__(self):
+        return iter(self.cursor)
 
     @capture_transaction_exceptions
     @auto_reconnect_cursor
@@ -49,6 +47,10 @@ class CursorWrapper(object):
 
 
 class DatabaseWrapper(DatabaseWrapper):
+    def __init__(self, *args, **kwargs):
+        super(DatabaseWrapper, self).__init__(*args, **kwargs)
+        self.ops = DatabaseOperations(self)
+
     @auto_reconnect_connection
     def _set_isolation_level(self, level):
         return super(DatabaseWrapper, self)._set_isolation_level(level)
@@ -71,10 +73,3 @@ class DatabaseWrapper(DatabaseWrapper):
                     # like pgbouncer idle timeout.
                     pass
             self.connection = None
-
-
-class DatabaseFeatures(DatabaseFeatures):
-    can_return_id_from_insert = True
-
-    def __init__(self, connection):
-        self.connection = connection

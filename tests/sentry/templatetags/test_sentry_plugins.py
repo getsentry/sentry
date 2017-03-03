@@ -11,7 +11,7 @@ class SamplePlugin(Plugin2):
     def get_actions(self, request, group):
         return [('Example Action', 'http://example.com?id=%s' % (group.id,))]
 
-    def get_annotations(self, request, group):
+    def get_annotations(self, group):
         return [
             {'label': 'Example Tag', 'url': 'http://example.com?id=%s' % (group.id,)},
             {'label': 'Example Two'},

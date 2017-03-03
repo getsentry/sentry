@@ -1,0 +1,84 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Notification Settings" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  {% if request.user.has_unverified_emails %}
+    <div class="alert alert-warning alert-block">
+      {% trans "You have unverified emails. " %}
+      <form action="{% url 'sentry-account-confirm-email-send' %}" method="post" class="email-alert-button">
+        {% csrf_token %}
+        <button type="submit" class="btn-link">{% trans "Resend Verification Emails." %}</button>
+      </form>
+    </div>
+  {% endif %}
+
+  <legend class="m-t-0">Emails</legend>
+
+  <form action="" method="post" class="">
+    {% csrf_token %}
+    <button type="submit" class="hidden"></button>
+    {{ email_form|as_crispy_errors }}
+
+    <div class='primary-email {% if not primary_email.is_verified %}not-verified{% endif %}'>
+      <div class='email-input'>
+        {% if not primary_email.is_verified %}
+        <div class="verification-label">
+          <span class="label verification label-warning">Unverified</span>
+        </div>
+        {% else %}
+        <div class="verification-label">
+          <span class="label verification label-success">Verified</span>
+        </div>
+        {% endif %}
+        {{ email_form.primary_email|as_crispy_field }}
+      </div>
+    </div>
+    <br>
+    <label for='id_alternative_emails' class='control-label'>Alternative Emails</label>
+    {% if alt_emails %}
+    <table class="table table-bordered m-b-0">
+      <tbody>
+      {% for email in alt_emails %}
+        <tr>
+          <td>
+            {{ email.email }}
+            {% if not email.is_verified %}
+            <span class="label verification label-warning">Unverified</span>
+            {% else %}
+            <span class="label verification label-success">Verified</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center">
+            <form action="" method="post">
+              {% csrf_token %}
+              <input type='hidden' name='email' value='{{ email.email }}'>
+              <button type='submit' name='remove' class='btn btn-danger btn-sm remove'><span class="icon-trash"></span></button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class='help-block'>To use an email for <a href="{% url "sentry-account-settings-notifications" %}">notifications</a> it must be verified</p>
+    {% endif %}
+
+    {% if not alt_emails %}
+      <div>No alternative emails in your account</div>
+    {% endif %}
+    <br>
+    {{ email_form.alt_email|as_crispy_field }}
+
+    {% if email_form.password %}
+      {{ email_form.password|as_crispy_field }}
+    {% endif %}
+
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+    </fieldset>
+  </form>
+{% endblock %}

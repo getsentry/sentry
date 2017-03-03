@@ -10,80 +10,52 @@ from __future__ import absolute_import, print_function
 import logging
 
 from django.conf import settings
-from django.core.urlresolvers import reverse, resolve
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
-from django.utils.safestring import mark_safe
 
-from sentry import options
+from sentry.api.serializers.base import serialize
+from sentry.auth import access
 from sentry.constants import EVENTS_PER_PAGE
-from sentry.models import Project, Team, ProjectOption
+from sentry.models import Team
+from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 
 logger = logging.getLogger('sentry')
 
 
-def group_is_public(group, user):
-    """
-    Return ``True`` if the this group if the user viewing it should see a restricted view.
-
-    This check should be used in combination with project membership checks, as we're only
-    verifying if the user should have a restricted view of something they already have access
-    to.
-    """
-    # if the group isn't public, this check doesn't matter
-    if not group.is_public:
-        return False
-    # anonymous users always are viewing as if it were public
-    if not user.is_authenticated():
-        return True
-    # superusers can always view events
-    if user.is_superuser:
-        return False
-    # project owners can view events
-    if group.project in Project.objects.get_for_user(team=group.project.team, user=user):
-        return False
-    return True
-
-
-_LOGIN_URL = None
-
-
-def get_login_url(reset=False):
-    global _LOGIN_URL
-
-    if _LOGIN_URL is None or reset:
-        # if LOGIN_URL resolves force login_required to it instead of our own
-        # XXX: this must be done as late as possible to avoid idempotent requirements
-        try:
-            resolve(settings.LOGIN_URL)
-        except Exception:
-            _LOGIN_URL = settings.SENTRY_LOGIN_URL
-        else:
-            _LOGIN_URL = settings.LOGIN_URL
-
-        if _LOGIN_URL is None:
-            _LOGIN_URL = reverse('sentry-login')
-    return _LOGIN_URL
-
-
 def get_default_context(request, existing_context=None, team=None):
+    from sentry import options
     from sentry.plugins import plugins
 
     context = {
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
-        'URL_PREFIX': settings.SENTRY_URL_PREFIX,
+        'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
+        'URL_PREFIX': options.get('system.url-prefix'),
+        'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,
-        'ALLOWED_HOSTS': settings.ALLOWED_HOSTS,
-        'SENTRY_RAVEN_JS_URL': settings.SENTRY_RAVEN_JS_URL,
+        'ALLOWED_HOSTS': list(settings.ALLOWED_HOSTS),
+        'ONPREMISE': settings.SENTRY_ONPREMISE,
     }
 
-    if request:
-        if existing_context and not team and 'team' in existing_context:
+    if existing_context:
+        if team is None and 'team' in existing_context:
             team = existing_context['team']
 
-        if team:
-            context['organization'] = team.organization
+        if 'project' in existing_context:
+            project = existing_context['project']
+        else:
+            project = None
+    else:
+        project = None
 
+    if team:
+        organization = team.organization
+    elif project:
+        organization = project.organization
+    else:
+        organization = None
+
+    if request:
         context.update({
             'request': request,
         })
@@ -94,6 +66,29 @@ def get_default_context(request, existing_context=None, team=None):
                 user=request.user,
                 with_projects=True,
             )
+
+        user = request.user
+    else:
+        user = AnonymousUser()
+
+    if organization:
+        context['selectedOrganization'] = serialize(organization, user)
+    if team:
+        context['selectedTeam'] = serialize(team, user)
+    if project:
+        context['selectedProject'] = serialize(project, user)
+
+    if not existing_context or 'ACCESS' not in existing_context:
+        if request:
+            context['ACCESS'] = access.from_request(
+                request=request,
+                organization=organization,
+            ).to_django_context()
+        else:
+            context['ACCESS'] = access.from_user(
+                user=user,
+                organization=organization,
+            ).to_django_context()
 
     return context
 
@@ -122,86 +117,9 @@ def render_to_string(template, context=None, request=None):
     return loader.render_to_string(template, context)
 
 
-def render_to_response(template, context=None, request=None, status=200):
+def render_to_response(template, context=None, request=None, status=200,
+                       content_type='text/html'):
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
-
+    response['Content-Type'] = content_type
     return response
-
-
-def plugin_config(plugin, project, request):
-    """
-    Configure the plugin site wide.
-
-    Returns a tuple composed of a redirection boolean and the content to
-    be displayed.
-    """
-    NOTSET = object()
-
-    plugin_key = plugin.get_conf_key()
-    if project:
-        form_class = plugin.project_conf_form
-        template = plugin.project_conf_template
-    else:
-        form_class = plugin.site_conf_form
-        template = plugin.site_conf_template
-
-    test_results = None
-
-    initials = plugin.get_form_initial(project)
-    for field in form_class.base_fields:
-        key = '%s:%s' % (plugin_key, field)
-        if project:
-            value = ProjectOption.objects.get_value(project, key, NOTSET)
-        else:
-            value = options.get(key)
-        if value is not NOTSET:
-            initials[field] = value
-
-    form = form_class(
-        request.POST if request.POST.get('plugin') == plugin.slug else None,
-        initial=initials,
-        prefix=plugin_key
-    )
-    if form.is_valid():
-        if 'action_test' in request.POST and plugin.is_testable():
-            try:
-                test_results = plugin.test_configuration(project)
-            except Exception as exc:
-                if hasattr(exc, 'read') and callable(exc.read):
-                    test_results = '%s\n%s' % (exc, exc.read())
-                else:
-                    logging.exception('Plugin(%s) raised an error during test', plugin_key)
-                    test_results = 'There was an internal error with the Plugin'
-            if not test_results:
-                test_results = 'No errors returned'
-        else:
-            for field, value in form.cleaned_data.iteritems():
-                key = '%s:%s' % (plugin_key, field)
-                if project:
-                    ProjectOption.objects.set_value(project, key, value)
-                else:
-                    options.set(key, value)
-
-            return ('redirect', None)
-
-    # TODO(mattrobenolt): Reliably determine if a plugin is configured
-    # if hasattr(plugin, 'is_configured'):
-    #     is_configured = plugin.is_configured(project)
-    # else:
-    #     is_configured = True
-    is_configured = True
-
-    from django.template.loader import render_to_string
-    return ('display', mark_safe(render_to_string(template, {
-        'form': form,
-        'request': request,
-        'plugin': plugin,
-        'plugin_description': plugin.get_description() or '',
-        'plugin_test_results': test_results,
-        'plugin_is_configured': is_configured,
-    }, context_instance=RequestContext(request))))
-
-
-def get_raven_js_url():
-    return settings.SENTRY_RAVEN_JS_URL

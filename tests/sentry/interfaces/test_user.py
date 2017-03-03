@@ -28,27 +28,27 @@ class UserTest(TestCase):
 
     def test_serialize_behavior(self):
         assert self.interface.to_json() == {
-            'id': 1,
+            'id': '1',
             'email': 'lol@example.com',
             'data': {'favorite_color': 'brown'}
         }
 
-    @mock.patch('sentry.interfaces.user.render_to_string')
-    def test_to_html(self, render_to_string):
-        self.interface.to_html(self.event)
-        render_to_string.assert_called_once_with('sentry/partial/interfaces/user.html', {
-            'is_public': False,
-            'event': self.event,
-            'user_ip_address': None,
-            'user_id': 1,
-            'user_username': None,
-            'user_email': 'lol@example.com',
-            'user_data': {'favorite_color': 'brown'},
-        })
+    def test_invalid_ip_address(self):
+        with self.assertRaises(Exception):
+            User.to_python(dict(
+                ip_address='abc',
+            ))
 
-    def test_to_html_public(self):
-        result = self.interface.to_html(self.event, is_public=True)
-        assert result == ''
+    def test_invalid_email_address(self):
+        with self.assertRaises(Exception):
+            User.to_python(dict(
+                email=1,
+            ))
+
+        with self.assertRaises(Exception):
+            User.to_python(dict(
+                email='foo',
+            ))
 
     def test_serialize_unserialize_behavior(self):
         result = type(self.interface).to_python(self.interface.to_json())

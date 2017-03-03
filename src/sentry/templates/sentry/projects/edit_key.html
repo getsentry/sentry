@@ -6,7 +6,7 @@
 
 {% block title %}{% trans "Edit API Key" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
     <div class="page-header">
         <h2>{% trans "Edit API Key" %}</h2>
     </div>
@@ -15,60 +15,62 @@
 
         {{ form|as_crispy_errors }}
 
-        <fieldset>
-            <legend>Details</legend>
-            {{ form.label|as_crispy_field }}
-            <div class="control-group">
-                <label>{% trans "Created" %}</label>
-                <div class="controls">
-                    {{ key.date_added|timesince }}
-                </div>
+        <div class="box">
+            <div class="box-header">
+              <h3>Details</h3>
             </div>
-        </fieldset>
+            <div class="box-content with-padding">
+              {{ form.label|as_crispy_field }}
+              <div class="form-group">
+                  <label>{% trans "Created" %}</label>
+                  <div class="controls">
+                      {{ key.date_added|timesince }}
+                  </div>
+              </div>
+            </div>
+        </div>
 
-        <fieldset>
-            <legend>Credentials</legend>
-            <p>{% blocktrans %}Your credentials are bound to public and secret key (though both should be considered semi-secret). Different clients will require different credentials, so make sure you check the documentation before plugging things in.{% endblocktrans %}</p>
-            <div class="control-group">
-                <label>{% trans "DSN" %}</label>
-                <div class="controls">
-                    <code class="clippy">{{ key.dsn_private }}</code>
-                </div>
+        <div class="box dsn-credentials">
+            <div class="box-header">
+              <h3>Credentials</h3>
             </div>
-            <div class="control-group">
-                <label>{% trans "DSN (Public)" %}</label>
-                <div class="help-text">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with insecure clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
-                <div class="controls">
-                    <code class="clippy">{{ key.dsn_public }}</code>
-                </div>
+            <div class="box-content with-padding">
+              <p>{% blocktrans %}Your credentials are bound to public and secret key (though both should be considered semi-secret). Different clients will require different credentials, so make sure you check the documentation before plugging things in.{% endblocktrans %}</p>
+              <div class="form-group">
+                  <label>{% trans "DSN" %}</label>
+                  <div class="controls">
+                      <div class="form-control disabled auto-select">{{ key.dsn_private }}</div>
+                  </div>
+              </div>
+              <div class="form-group">
+                  <label>{% trans "DSN (Public)" %}</label>
+                  <div class="controls">
+                      <div class="form-control disabled auto-select">{{ key.dsn_public }}</div>
+                  </div>
+                  <div class="help-block">{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Use your public DSN with browser-based clients such as <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</div>
+              </div>
+              <div class="form-group">
+                  <label>{% trans "Public Key" %}</label>
+                  <div class="controls">
+                      <div class="form-control disabled auto-select">{{ key.public_key }}</div>
+                  </div>
+              </div>
+              <div class="form-group">
+                  <label>{% trans "Secret Key" %}</label>
+                  <div class="controls">
+                      <div class="form-control disabled auto-select">{{ key.secret_key }}</div>
+                  </div>
+              </div>
+              <div class="form-group">
+                  <label>{% trans "Project ID" %}</label>
+                  <div class="controls">
+                      <div class="form-control disabled auto-select">{{ key.project_id }}</div>
+                  </div>
+              </div>
             </div>
-            <div class="control-group">
-                <label>{% trans "Public Key" %}</label>
-                <div class="controls">
-                    <code class="clippy">{{ key.public_key }}</code>
-                </div>
-            </div>
-            <div class="control-group">
-                <label>{% trans "Secret Key" %}</label>
-                <div class="controls">
-                    <code class="clippy">{{ key.secret_key }}</code>
-                </div>
-            </div>
-            <div class="control-group">
-                <label>{% trans "Project ID" %}</label>
-                <div class="controls">
-                    <code class="clippy">{{ key.project_id }}</code>
-                </div>
-            </div>
-        </fieldset>
+        </div>
 
-        <fieldset>
-            <legend>Permissions</legend>
-            <p>Permissions are fairly wide reaching
-            {{ form.roles|as_crispy_field }}
-        </fieldset>
-
-        <div class="form-actions">
+        <div class="actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </div>
     </form>

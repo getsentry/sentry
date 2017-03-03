@@ -5,47 +5,39 @@ sentry.templatetags.sentry_helpers
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-# XXX: Import django-paging's template tags so we don't have to worry about
-#      INSTALLED_APPS
 from __future__ import absolute_import
 
+import functools
 import os.path
-import pytz
-
 from collections import namedtuple
 from datetime import timedelta
-from paging.helpers import paginate as paginate_func
-from pkg_resources import parse_version as Version
-from urllib import quote
 
+import pytz
+import six
 from django import template
 from django.conf import settings
-from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-
-import six
-from six.moves import range
+from pkg_resources import parse_version as Version
+from templatetag_sugar.parser import Constant, Name, Variable
+from templatetag_sugar.register import tag
 
 from sentry import options
-from sentry.constants import EVENTS_PER_PAGE
+from sentry.api.serializers import serialize as serialize_func
 from sentry.models import Organization
-from sentry.web.helpers import group_is_public
-from sentry.utils import to_unicode
-from sentry.utils.avatar import get_gravatar_url
-from sentry.utils.http import absolute_uri
+from sentry.utils import json
 from sentry.utils.javascript import to_json
-from sentry.utils.safe import safe_execute
-from sentry.utils.strings import truncatechars
-from templatetag_sugar.register import tag
-from templatetag_sugar.parser import Name, Variable, Constant, Optional
+from sentry.utils.strings import soft_break as _soft_break
+from sentry.utils.strings import soft_hyphenate, to_unicode, truncatechars
+from six.moves import range
+from six.moves.urllib.parse import quote
 
-SentryVersion = namedtuple('SentryVersion', ['current', 'latest',
-                                             'update_available'])
+SentryVersion = namedtuple('SentryVersion', [
+    'current', 'latest', 'update_available', 'build',
+])
 
 
 register = template.Library()
@@ -55,7 +47,34 @@ truncatechars.is_safe = True
 
 register.filter(to_json)
 
-register.simple_tag(absolute_uri)
+
+@register.filter
+def multiply(x, y):
+    def coerce(value):
+        if isinstance(value, (six.integer_types, float)):
+            return value
+        try:
+            return int(value)
+        except ValueError:
+            return float(value)
+    return coerce(x) * coerce(y)
+
+
+@register.simple_tag
+def absolute_uri(path='', *args):
+    from sentry.utils.http import absolute_uri
+    return absolute_uri(path.format(*args))
+
+
+@register.simple_tag
+def system_origin():
+    from sentry.utils.http import absolute_uri, origin_from_url
+    return origin_from_url(absolute_uri())
+
+
+@register.simple_tag
+def security_contact():
+    return options.get('system.security-email') or options.get('system.admin-email')
 
 
 @register.filter
@@ -89,6 +108,11 @@ def subtract(value, amount):
 
 
 @register.filter
+def absolute_value(value):
+    return abs(int(value) if isinstance(value, six.integer_types) else float(value))
+
+
+@register.filter
 def has_charts(group):
     from sentry.utils.db import has_charts
     if hasattr(group, '_state'):
@@ -104,7 +128,7 @@ def as_sorted(value):
 
 
 @register.filter
-def small_count(v):
+def small_count(v, precision=1):
     if not v:
         return 0
     z = [
@@ -116,25 +140,31 @@ def small_count(v):
     for x, y in z:
         o, p = divmod(v, x)
         if o:
-            if len(str(o)) > 2 or not p:
+            if len(six.text_type(o)) > 2 or not p:
                 return '%d%s' % (o, y)
-            return '%.1f%s' % (v / float(x), y)
+            return ('%.{}f%s'.format(precision)) % (v / float(x), y)
     return v
 
 
 @register.filter
 def num_digits(value):
-    return len(str(value))
+    return len(six.text_type(value))
 
 
 @register.filter
 def to_str(data):
-    return str(data)
+    return six.text_type(data)
 
 
 @register.filter
 def is_none(value):
     return value is None
+
+
+@register.simple_tag(takes_context=True)
+def serialize(context, value):
+    value = serialize_func(value, context['request'].user)
+    return json.dumps_htmlsafe(value)
 
 
 @register.simple_tag(takes_context=True)
@@ -144,9 +174,10 @@ def get_sentry_version(context):
 
     latest = options.get('sentry:latest_version') or current
     update_available = Version(latest) > Version(current)
+    build = sentry.__build__ or current
 
     context['sentry_version'] = SentryVersion(
-        current, latest, update_available
+        current, latest, update_available, build
     )
     return ''
 
@@ -194,88 +225,6 @@ def duration(value):
     return ''.join(output)
 
 
-# XXX: this is taken from django-paging so that we may render
-#      a custom template, and not worry about INSTALLED_APPS
-@tag(register, [Variable('queryset_or_list'),
-                Constant('from'), Variable('request'),
-                Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')])])
-def paginate(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
-    """{% paginate queryset_or_list from request as foo[ per_page 25] %}"""
-    result = paginate_func(request, queryset_or_list, per_page, endless=True)
-
-    context_instance = RequestContext(request)
-    paging = mark_safe(render_to_string('sentry/partial/_pager.html', result, context_instance))
-
-    result = dict(objects=result['paginator'].get('objects', []), paging=paging)
-
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@tag(register, [Variable('queryset_or_list'),
-                Constant('from'), Variable('request'),
-                Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')])])
-def paginator(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
-    """{% paginator queryset_or_list from request as foo[ per_page 25] %}"""
-    result = paginate_func(request, queryset_or_list, per_page, endless=True)
-
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@tag(register, [Constant('from'), Variable('request'),
-                Optional([Constant('without'), Name('withoutvar')]),
-                Optional([Constant('as'), Name('asvar')])])
-def querystring(context, request, withoutvar, asvar=None):
-    params = request.GET.copy()
-
-    if withoutvar in params:
-        del params[withoutvar]
-
-    result = params.urlencode()
-    if asvar:
-        context[asvar] = result
-        return ''
-    return result
-
-
-@register.inclusion_tag('sentry/partial/_form.html')
-def render_form(form):
-    return {'form': form}
-
-
-@register.filter
-def as_bookmarks(group_list, user):
-    group_list = list(group_list)
-    if user.is_authenticated() and group_list:
-        project = group_list[0].project
-        bookmarks = set(project.bookmark_set.filter(
-            user=user,
-            group__in=group_list,
-        ).values_list('group_id', flat=True))
-    else:
-        bookmarks = set()
-
-    for g in group_list:
-        yield g, g.pk in bookmarks
-
-
-@register.filter
-def is_bookmarked(group, user):
-    if user.is_authenticated():
-        return group.bookmark_set.filter(
-            user=user,
-            group=group,
-        ).exists()
-    return False
-
-
 @register.filter
 def date(dt, arg=None):
     from django.template.defaultfilters import date
@@ -304,16 +253,6 @@ def get_project_dsn(context, user, project, asvar):
     return ''
 
 
-# Adapted from http://en.gravatar.com/site/implement/images/django/
-# The "mm" default is for the grey, "mystery man" icon. See:
-#   http://en.gravatar.com/site/implement/images/
-@tag(register, [Variable('email'),
-                Optional([Constant('size'), Variable('size')]),
-                Optional([Constant('default'), Variable('default')])])
-def gravatar_url(context, email, size=None, default='mm'):
-    return get_gravatar_url(email, size, default)
-
-
 @register.filter
 def trim_schema(value):
     return value.split('//', 1)[-1]
@@ -337,26 +276,21 @@ def with_metadata(group_list, request):
     for g in group_list:
         yield g, {
             'is_bookmarked': g.pk in bookmarks,
-            'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
+            'historical_data': ','.join(six.text_type(x[1]) for x in historical_data.get(g.id, [])),
         }
 
 
-@register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
-def render_tag_widget(group, tag):
-    cutoff = timezone.now() - timedelta(days=7)
-
-    return {
-        'title': tag['label'],
-        'tag_name': tag['key'],
-        'group': group,
-    }
-
-
 @register.simple_tag
-def percent(value, total):
+def percent(value, total, format=None):
     if not (value and total):
-        return 0
-    return int(int(value) / float(total) * 100)
+        result = 0
+    else:
+        result = int(value) / float(total) * 100
+
+    if format is None:
+        return int(result)
+    else:
+        return ('%%%s' % format) % result
 
 
 @register.filter
@@ -369,65 +303,12 @@ def split(value, delim=''):
     return value.split(delim)
 
 
-@register.filter
-def get_rendered_interfaces(event, request):
-    interface_list = []
-    is_public = group_is_public(event.group, request.user)
-    for interface in event.interfaces.itervalues():
-        html = safe_execute(interface.to_html, event, is_public=is_public)
-        if not html:
-            continue
-        interface_list.append((interface, mark_safe(html)))
-    return sorted(interface_list, key=lambda x: x[0].get_display_score(), reverse=True)
-
-
 @register.inclusion_tag('sentry/partial/github_button.html')
 def github_button(user, repo):
     return {
         'user': user,
         'repo': repo,
     }
-
-
-@register.inclusion_tag('sentry/partial/data_values.html')
-def render_values(value, threshold=5, collapse_to=3):
-    if isinstance(value, (list, tuple)):
-        value = list(enumerate(value))
-        is_list, is_dict = bool(value), True
-    else:
-        is_list, is_dict = False, isinstance(value, dict)
-        if is_dict:
-            value = sorted(value.iteritems())
-
-    context = {
-        'is_dict': is_dict,
-        'is_list': is_list,
-        'threshold': threshold,
-        'collapse_to': collapse_to,
-    }
-
-    if is_dict:
-        value_len = len(value)
-        over_threshold = value_len > threshold
-        if over_threshold:
-            context.update({
-                'over_threshold': over_threshold,
-                'hidden_values': value_len - collapse_to,
-                'value_before_expand': value[:collapse_to],
-                'value_after_expand': value[collapse_to:],
-            })
-        else:
-            context.update({
-                'over_threshold': over_threshold,
-                'hidden_values': 0,
-                'value_before_expand': value,
-                'value_after_expand': [],
-            })
-
-    else:
-        context['value'] = value
-
-    return context
 
 
 @register.filter
@@ -442,7 +323,7 @@ def basename(value):
 
 @register.filter
 def user_display_name(user):
-    return user.first_name or user.username
+    return user.name or user.username
 
 
 @register.simple_tag(takes_context=True)
@@ -469,3 +350,25 @@ def count_pending_access_requests(organization):
     return OrganizationAccessRequest.objects.filter(
         team__organization=organization,
     ).count()
+
+
+@register.filter
+def format_userinfo(user):
+    parts = user.username.split('@')
+    if len(parts) == 1:
+        username = user.username
+    else:
+        username = parts[0].lower()
+    return mark_safe('<span title="%s">%s</span>' % (
+        escape(user.username),
+        escape(username),
+    ))
+
+
+@register.filter
+def soft_break(value, length):
+    return _soft_break(
+        value,
+        length,
+        functools.partial(soft_hyphenate, length=max(length // 10, 10)),
+    )

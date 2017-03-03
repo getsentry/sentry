@@ -6,50 +6,40 @@
 
 {% block title %}{% trans "Manage Integrations" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
-    <div class="page-header">
-        <h2>{% trans "Manage Integrations" %}</h2>
-    </div>
+{% block main %}
+    <h2>{% trans "Integrations" %}</h2>
+
     <form method="POST">
         {% csrf_token %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>{% trans "Integration" %}</th>
-                    <th style="width:100px;text-align:center;">{% trans "Version" %}</th>
-                    <th style="width:100px;text-align:center;">{% trans "Enabled" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for plugin, is_enabled in project|get_plugins_with_status %}
-                    <tr>
-                        <td>
-                            {% if plugin.has_project_conf %}
-                                <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug plugin.slug %}">{{ plugin.get_title }}</a>
-                            {% else %}
-                                {{ plugin.get_title }}
-                            {% endif %}
-                            <br />
-                            <small>{% if plugin.author %}
-                                By {% if plugin.author_url %}<a href="{{ plugin.author_url }}">{{ plugin.author }}</a>{% else %}{{ plugin.author }}{% endif %}
-                            {% endif %}</small>
-                        </td>
-                        <td style="text-align:center;">
-                            {% if plugin.version %}{{ plugin.version }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}
-                        </td>
-                        <td style="text-align:center;">
-                            {% if plugin.can_disable and plugin.can_enable_for_projects %}
-                                <input type="checkbox" name="plugin" value="{{ plugin.slug }}"{% if is_enabled %} checked="checked"{% endif %}/>
-                            {% else %}
-                                <em>{% trans "n/a" %}</em>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <fieldset class="form-actions">
+        <div class="panel panel-default">
+          <table class="table integrations simple">
+              <thead>
+                  <th colspan="2">Integration</th>
+                  <th class="align-right">Enabled</th>
+              </thead>
+              <tbody>
+                  {% for plugin, is_enabled in project|get_plugins_with_status %}
+                      <tr class="{{ plugin.get_title|slugify }}">
+                          <td colspan="2">
+                              <div class="integration-icon"></div>
+                              <h5>{{ plugin.get_title }} {% if plugin.version %}<span>v{{ plugin.version }}</span>{% else %}<span><em>{% trans "n/a" %}</em></span>{% endif %}</h5>
+                              <p>
+                              {% if plugin.author %}
+                                  {% if plugin.author_url %}<a href="{{ plugin.author_url }}">{{ plugin.author }}</a>{% else %}{{ plugin.author }}{% endif %}
+                              {% endif %}
+                              {% if plugin.has_project_conf %} &middot; <a href="{% url 'sentry-configure-project-plugin' project.organization.slug project.slug plugin.slug %}">Configure plugin</a>{% endif %}
+                              </p>
+                          </td>
+                          <td class="align-right">
+                              <input type="checkbox" name="plugin" value="{{ plugin.slug }}"{% if is_enabled %} checked="checked"{% endif %}/>
+                          </td>
+                      </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+        </div>
+        <div class="form-actions" style="border: 0">
             <input type="submit" class="btn btn-primary pull-right" value="Save Changes">
-        </fieldset>
+        </div>
     </form>
 {% endblock %}

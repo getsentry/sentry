@@ -1,12 +1,8 @@
 {% load i18n %}
+{% load sentry_avatars %}
 {% load sentry_helpers %}
-<table>
+<table class="reset">
   <tr>
-    {% if user_email %}
-      <td style="width:84px;padding-top:10px;vertical-align:top">
-        <img src="{% gravatar_url user_email size 64 %}">
-      </td>
-    {% endif %}
     <td>
       <table>
         <colgroup>
@@ -48,5 +44,12 @@
         </tbody>
       </table>
     </td>
+    {% if user_email %}
+      <td style="padding-top:5px; width:64px; vertical-align:top; text-align: right;">
+        <span class="avatar-container" style="width: inherit;">
+          {% email_avatar user.get_display_name user.get_label size 64 %}
+        </span>
+      </td>
+    {% endif %}
   </tr>
 </table>

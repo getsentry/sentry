@@ -1,34 +1,43 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
-{% load sentry_helpers %}
-
-{% block wrapperclass %}windowed-small org-login{% endblock %}
+{% load sentry_avatars %}
 
 {% block title %}{% trans "Confirm Identity" %} | {{ block.super }}{% endblock %}
 
-{% block account_nav %}{% endblock%}
+{% block auth_main %}
+  <form class="form-stacked" action="" method="post">
+    {% csrf_token %}
 
-{% block main %}
-  <section class="body org-login" style="padding: 40px">
-    <form class="form-stacked" action="" method="post">
-      {% csrf_token %}
-
-      <img src="{% gravatar_url user.email size 36 %}" class="merge-avatar avatar">
+    <div class="sso-link">
+      <span class="avatar">
+        {% avatar existing_user %}
+      </span>
       <span class="icon-arrow-right"></span>
       <span class="icon-arrow-left"></span>
-      <img src="{% gravatar_url identity.email size 36 %}" class="merge-avatar avatar">
+      <span class="avatar">
+        {% letter_avatar_svg identity_display_name identity_identifier %}
+        <img src="{% gravatar_url identity.email size 36 default 'blank' %}">
+      </span>
+    </div>
 
-      <p>You're already logged in with an existing account. Would you look to add this identity? If not, we'll go ahead and create a new account for you.</p>
+    <div class="align-center">
 
-      <p class="align-center">
-        <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
-        <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
-      </p>
-    </form>
-  </section>
-{% endblock %}
+      {% if existing_user.email == identity.email %}
+        <p>We're going to associate your new identity with your existing account which means all of your existing settings will stay intact.</p>
 
-{% block footer %}
+        <p>
+          <button class="btn btn-primary" name="op" value="confirm" type="submit">Continue</button>
+        </p>
+      {% else %}
+        <p>Would you like to associate this identity with your existing account? If not, we'll go ahead and create a new account for you.</p>
+
+        <p>
+          <button class="btn btn-default" name="op" value="newuser" type="submit">No thanks</button>
+          <button class="btn btn-primary" name="op" value="confirm" type="submit">Merge accounts</button>
+        </p>
+      {% endif %}
+    </div>
+  </form>
 {% endblock %}

@@ -1,26 +1,26 @@
 from __future__ import absolute_import
 
-from django import forms
 from django.db import transaction, IntegrityError
 
 from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
+    AuditLogEntry,
+    AuditLogEntryEvent,
+    OrganizationMember,
 )
 from sentry.web.forms.fields import UserField
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class AddOrganizationMemberForm(forms.ModelForm):
+class AddOrganizationMemberForm(BaseOrganizationMemberForm):
     user = UserField()
 
     class Meta:
-        fields = ('user',)
+        fields = ('user', 'role')
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
         om = super(AddOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
-        om.type = OrganizationMemberType.MEMBER
 
         with transaction.atomic():
             try:
@@ -30,6 +30,8 @@ class AddOrganizationMemberForm(forms.ModelForm):
                     user=om.user,
                     organization=organization,
                 ), False
+
+        self.save_team_assignments(om)
 
         AuditLogEntry.objects.create(
             organization=organization,

@@ -59,7 +59,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Sentry'
-copyright = u'2010-2014, the Sentry Team'
+copyright = u'2010-2015, the Sentry Team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -199,7 +199,7 @@ htmlhelp_basename = 'Sentrydoc'
 latex_documents = [
     (
         'index', 'Sentry.tex', u'Sentry Documentation',
-        u'David Cramer', 'manual'
+        u'Functional Software Inc.', 'manual'
     ),
 ]
 
@@ -233,5 +233,13 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'sentry', u'Sentry Documentation',
-     [u'David Cramer'], 1)
+     [u'Functional Software Inc.'], 1)
 ]
+
+if os.environ.get('SENTRY_FEDERATED_DOCS') != '1':
+    sys.path.insert(0, os.path.abspath('_sentryext'))
+    try:
+        import sentryext
+        sentryext.activate()
+    except ImportError:
+        print 'ERROR: could not import sentryext.  You need to check out the _sentryext submodule.'

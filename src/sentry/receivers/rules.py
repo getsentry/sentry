@@ -13,6 +13,7 @@ def create_default_rules(instance, created=True, RuleModel=Rule, **kwargs):
         project=instance,
         label='Send a notification for new events',
         data={
+            'match': 'all',
             'conditions': [
                 {'id': 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition'},
             ],
@@ -20,19 +21,6 @@ def create_default_rules(instance, created=True, RuleModel=Rule, **kwargs):
                 {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
             ],
         },
-    )
-
-    RuleModel.objects.create(
-        project=instance,
-        label='Send a notification for regressions',
-        data={
-            'conditions': [
-                {'id': 'sentry.rules.conditions.regression_event.RegressionEventCondition'},
-            ],
-            'actions': [
-                {'id': 'sentry.rules.actions.notify_event.NotifyEventAction'},
-            ],
-        }
     )
 
 

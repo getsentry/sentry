@@ -15,13 +15,13 @@ from django.forms.util import flatatt
 from django.forms import (
     Field, CharField, IntegerField, Textarea, TypedChoiceField, ValidationError
 )
-from django.utils.encoding import force_unicode
+from django.utils.encoding import force_text
 from django.utils.html import format_html
-from sentry.utils.http import parse_uri_match
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import User
+from sentry.utils.http import parse_uri_match
 
 
 class CustomTypedChoiceField(TypedChoiceField):
@@ -55,7 +55,7 @@ class RadioFieldRenderer(RadioFieldRenderer):
     flexible.
     """
     def render(self):
-        return mark_safe(u'\n<div class="inputs-list">%s</div>\n' % u'\n'.join([force_unicode(w) for w in self]))
+        return mark_safe(u'\n<div class="inputs-list">%s</div>\n' % u'\n'.join([force_text(w) for w in self]))
 
 
 class UserField(CharField):
@@ -74,7 +74,10 @@ class UserField(CharField):
         if not value:
             return None
         try:
-            return User.objects.get(username=value)
+            return User.objects.get(
+                username=value,
+                is_active=True,
+            )
         except User.DoesNotExist:
             raise ValidationError(_('Invalid username'))
 
@@ -90,7 +93,7 @@ class RangeField(IntegerField):
         attrs = super(RangeField, self).widget_attrs(widget)
         attrs.setdefault('min', self.min_value)
         attrs.setdefault('max', self.max_value)
-        attrs.setdefault('step', self.step_value)
+        attrs.setdefault('step', self.step_value or 1)
         return attrs
 
 
@@ -130,7 +133,7 @@ class OriginsField(CharField):
     def clean(self, value):
         if not value:
             return []
-        values = filter(bool, (v.strip() for v in value.split('\n')))
+        values = [v for v in (v.strip() for v in value.split('\n')) if v]
         for value in values:
             if not self.is_valid_origin(value):
                 raise ValidationError('%r is not an acceptable value' % value)

@@ -4,21 +4,24 @@ from __future__ import absolute_import
 
 import mock
 
-from django.conf import settings
 from exam import fixture
+from django.http import HttpRequest
 
+from sentry import options
 from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import (
-    is_same_domain, is_valid_origin, get_origins, absolute_uri)
+    is_same_domain, is_valid_origin, get_origins, absolute_uri, is_valid_ip,
+    origin_from_request,
+)
 
 
 class AbsoluteUriTest(TestCase):
     def test_without_path(self):
-        assert absolute_uri() == settings.SENTRY_URL_PREFIX
+        assert absolute_uri() == options.get('system.url-prefix')
 
     def test_with_path(self):
-        assert absolute_uri('/foo/bar') == '%s/foo/bar' % (settings.SENTRY_URL_PREFIX,)
+        assert absolute_uri('/foo/bar') == '%s/foo/bar' % (options.get('system.url-prefix'),)
 
 
 class SameDomainTestCase(TestCase):
@@ -42,10 +45,16 @@ class SameDomainTestCase(TestCase):
 
 
 class GetOriginsTestCase(TestCase):
+    def test_project_default(self):
+        project = Project.objects.get()
+
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
+            result = get_origins(project)
+            self.assertEquals(result, frozenset(['*']))
 
     def test_project(self):
         project = Project.objects.get()
-        project.update_option('sentry:origins', ['http://foo.example'])
+        project.update_option('sentry:origins', [u'http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
@@ -53,7 +62,7 @@ class GetOriginsTestCase(TestCase):
 
     def test_project_and_setting(self):
         project = Project.objects.get()
-        project.update_option('sentry:origins', ['http://foo.example'])
+        project.update_option('sentry:origins', [u'http://foo.example'])
 
         with self.settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
             result = get_origins(project)
@@ -183,3 +192,87 @@ class IsValidOriginTestCase(TestCase):
 
         result = self.isValidOrigin('sp://custom-thing.bizbaz/foo/bar', ['sp://*.foobar'])
         assert result is False
+
+    def test_unicode(self):
+        result = self.isValidOrigin(u'http://l\xf8calhost', [u'*.l\xf8calhost'])
+        assert result is True
+
+    def test_punycode(self):
+        result = self.isValidOrigin('http://xn--lcalhost-54a', [u'*.l\xf8calhost'])
+        assert result is True
+        result = self.isValidOrigin('http://xn--lcalhost-54a', [u'*.xn--lcalhost-54a'])
+        assert result is True
+        result = self.isValidOrigin(u'http://l\xf8calhost', [u'*.xn--lcalhost-54a'])
+        assert result is True
+        result = self.isValidOrigin('http://l\xc3\xb8calhost', [u'*.xn--lcalhost-54a'])
+        assert result is True
+        result = self.isValidOrigin('http://xn--lcalhost-54a', [u'l\xf8calhost'])
+        assert result is True
+        result = self.isValidOrigin('http://xn--lcalhost-54a:80', [u'l\xf8calhost:80'])
+        assert result is True
+
+    def test_unparseable_uri(self):
+        result = self.isValidOrigin('http://example.com', ['.'])
+        assert result is False
+
+    def test_wildcard_hostname_with_port(self):
+        result = self.isValidOrigin('http://example.com:1234', ['*:1234'])
+        assert result is True
+
+    def test_without_hostname(self):
+        result = self.isValidOrigin('foo://', ['foo://*'])
+        assert result is True
+        result = self.isValidOrigin('foo://', ['foo://'])
+        assert result is True
+        result = self.isValidOrigin('foo://', ['example.com'])
+        assert result is False
+        result = self.isValidOrigin('foo://a', ['foo://'])
+        assert result is False
+        result = self.isValidOrigin('foo://a', ['foo://*'])
+        assert result is True
+
+
+class IsValidIPTestCase(TestCase):
+    def is_valid_ip(self, ip, inputs):
+        self.project.update_option('sentry:blacklisted_ips', inputs)
+        return is_valid_ip(ip, self.project)
+
+    def test_not_in_blacklist(self):
+        assert self.is_valid_ip('127.0.0.1', [])
+        assert self.is_valid_ip('127.0.0.1', ['0.0.0.0', '192.168.1.1', '10.0.0.0/8'])
+
+    def test_match_blacklist(self):
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.1'])
+        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.1', '192.168.1.1'])
+
+    def test_match_blacklist_range(self):
+        assert not self.is_valid_ip('127.0.0.1', ['127.0.0.0/8'])
+        assert not self.is_valid_ip('127.0.0.1', ['0.0.0.0', '127.0.0.0/8', '192.168.1.0/8'])
+
+    def test_garbage_input(self):
+        assert self.is_valid_ip('127.0.0.1', ['lol/bar'])
+
+
+class OriginFromRequestTestCase(TestCase):
+    def test_nothing(self):
+        request = HttpRequest()
+        assert origin_from_request(request) is None
+
+    def test_origin(self):
+        request = HttpRequest()
+        request.META['HTTP_ORIGIN'] = 'http://example.com'
+        request.META['HTTP_REFERER'] = 'nope'
+        assert origin_from_request(request) == 'http://example.com'
+
+    def test_referer(self):
+        request = HttpRequest()
+        request.META['HTTP_REFERER'] = 'http://example.com/foo/bar'
+        assert origin_from_request(request) == 'http://example.com'
+
+    def test_null_origin(self):
+        request = HttpRequest()
+        request.META['HTTP_ORIGIN'] = 'null'
+        assert origin_from_request(request) is None
+
+        request.META['HTTP_REFERER'] = 'http://example.com'
+        assert origin_from_request(request) == 'http://example.com'

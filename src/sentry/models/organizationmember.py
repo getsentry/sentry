@@ -7,17 +7,19 @@ sentry.models.organizationmember
 """
 from __future__ import absolute_import, print_function
 
-import logging
+import six
 
 from bitfield import BitField
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db import models, transaction
-from django.db.models import F
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.encoding import force_bytes
 from hashlib import md5
+from structlog import get_logger
+from uuid import uuid4
 
+from sentry import roles
 from sentry.db.models import (
     BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
     FlexibleForeignKey, Model, sane_repr
@@ -25,15 +27,9 @@ from sentry.db.models import (
 from sentry.utils.http import absolute_uri
 
 
-# TODO(dcramer): pull in enum library
-class OrganizationMemberType(object):
-    OWNER = 0
-    ADMIN = 25
-    MEMBER = 50
-    BOT = 100
-
-
 class OrganizationMemberTeam(BaseModel):
+    __core__ = True
+
     id = BoundedAutoField(primary_key=True)
     team = FlexibleForeignKey('sentry.Team')
     organizationmember = FlexibleForeignKey('sentry.OrganizationMember')
@@ -65,27 +61,30 @@ class OrganizationMember(Model):
     and could be thought of as team owners (though their access level may not)
     be set to ownership.
     """
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization', related_name="member_set")
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                              related_name="sentry_orgmember_set")
     email = models.EmailField(null=True, blank=True)
-
-    type = BoundedPositiveIntegerField(choices=(
-        (OrganizationMemberType.BOT, _('Bot')),
-        (OrganizationMemberType.MEMBER, _('Member')),
-        (OrganizationMemberType.ADMIN, _('Admin')),
-        (OrganizationMemberType.OWNER, _('Owner')),
-    ), default=OrganizationMemberType.MEMBER)
+    role = models.CharField(
+        choices=roles.get_choices(),
+        max_length=32,
+        default=roles.get_default().id,
+    )
     flags = BitField(flags=(
         ('sso:linked', 'sso:linked'),
         ('sso:invalid', 'sso:invalid'),
     ), default=0)
+    token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     has_global_access = models.BooleanField(default=True)
-    counter = BoundedPositiveIntegerField(null=True, blank=True)
     teams = models.ManyToManyField('sentry.Team', blank=True,
                                    through='sentry.OrganizationMemberTeam')
+
+    # Deprecated -- no longer used
+    type = BoundedPositiveIntegerField(default=50, blank=True)
 
     class Meta:
         app_label = 'sentry'
@@ -95,70 +94,36 @@ class OrganizationMember(Model):
             ('organization', 'email'),
         )
 
-    __repr__ = sane_repr('organization_id', 'user_id', 'type')
+    __repr__ = sane_repr('organization_id', 'user_id', 'role',)
 
     @transaction.atomic
     def save(self, *args, **kwargs):
         assert self.user_id or self.email, \
             'Must set user or email'
         super(OrganizationMember, self).save(*args, **kwargs)
-        if not self.counter:
-            self._set_counter()
-
-    @transaction.atomic
-    def delete(self, *args, **kwargs):
-        super(OrganizationMember, self).delete(*args, **kwargs)
-        if self.counter:
-            self._unshift_counter()
-
-    def _unshift_counter(self):
-        assert self.counter
-        OrganizationMember.objects.filter(
-            organization=self.organization,
-            counter__gt=self.counter,
-        ).update(
-            counter=F('counter') - 1,
-        )
-
-    def _set_counter(self):
-        assert self.id and not self.counter
-        # XXX(dcramer): this isnt atomic, but unfortunately MySQL doesnt support
-        # the subquery pattern we'd need
-        self.update(
-            counter=OrganizationMember.objects.filter(
-                organization=self.organization,
-            ).count(),
-        )
 
     @property
     def is_pending(self):
         return self.user_id is None
 
     @property
-    def token(self):
+    def legacy_token(self):
         checksum = md5()
-        for x in (str(self.organization_id), self.get_email(), settings.SECRET_KEY):
-            checksum.update(x)
+        checksum.update(six.text_type(self.organization_id).encode('utf-8'))
+        checksum.update(self.get_email().encode('utf-8'))
+        checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 
-    def get_scopes(self):
-        scopes = []
-        if self.type <= OrganizationMemberType.MEMBER:
-            scopes.extend([
-                'event:read', 'event:write', 'event:delete',
-                'org:read', 'project:read', 'team:read',
-                'member:read',
-            ])
-        if self.type <= OrganizationMemberType.ADMIN:
-            scopes.extend(['project:write', 'team:write'])
-        if self.type <= OrganizationMemberType.OWNER:
-            scopes.extend(['project:delete', 'team:delete'])
-        if self.has_global_access:
-            if self.type <= OrganizationMemberType.ADMIN:
-                scopes.extend(['org:write', 'member:write'])
-            if self.type <= OrganizationMemberType.OWNER:
-                scopes.extend(['org:delete', 'member:delete'])
-        return scopes
+    def generate_token(self):
+        return uuid4().hex + uuid4().hex
+
+    def get_invite_link(self):
+        if not self.is_pending:
+            return None
+        return absolute_uri(reverse('sentry-accept-invite', kwargs={
+            'member_id': self.id,
+            'token': self.token or self.legacy_token,
+        }))
 
     def send_invite_email(self):
         from sentry.utils.email import MessageBuilder
@@ -166,22 +131,21 @@ class OrganizationMember(Model):
         context = {
             'email': self.email,
             'organization': self.organization,
-            'url': absolute_uri(reverse('sentry-accept-invite', kwargs={
-                'member_id': self.id,
-                'token': self.token,
-            })),
+            'url': self.get_invite_link(),
         }
 
         msg = MessageBuilder(
-            subject='Invite to join organization: %s' % (self.organization.name,),
-            template='sentry/emails/member_invite.txt',
+            subject='Join %s in using Sentry' % self.organization.name,
+            template='sentry/emails/member-invite.txt',
+            html_template='sentry/emails/member-invite.html',
+            type='organization.invite',
             context=context,
         )
 
         try:
-            msg.send([self.get_email()])
+            msg.send_async([self.get_email()])
         except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
+            logger = get_logger(name='sentry.mail')
             logger.exception(e)
 
     def send_sso_link_email(self):
@@ -190,7 +154,7 @@ class OrganizationMember(Model):
         context = {
             'email': self.email,
             'organization_name': self.organization.name,
-            'url': absolute_uri(reverse('sentry-auth-link-identity', kwargs={
+            'url': absolute_uri(reverse('sentry-auth-organization', kwargs={
                 'organization_slug': self.organization.slug,
             })),
         }
@@ -199,48 +163,58 @@ class OrganizationMember(Model):
             subject='Action Required for %s' % (self.organization.name,),
             template='sentry/emails/auth-link-identity.txt',
             html_template='sentry/emails/auth-link-identity.html',
+            type='organization.auth_link',
             context=context,
         )
-
-        try:
-            msg.send([self.get_email()])
-        except Exception as e:
-            logger = logging.getLogger('sentry.mail.errors')
-            logger.exception(e)
+        msg.send_async([self.get_email()])
 
     def get_display_name(self):
         if self.user_id:
             return self.user.get_display_name()
         return self.email
 
+    def get_label(self):
+        if self.user_id:
+            return self.user.get_label()
+        return self.email or self.id
+
     def get_email(self):
         if self.user_id:
             return self.user.email
         return self.email
 
+    def get_avatar_type(self):
+        if self.user_id:
+            return self.user.get_avatar_type()
+        return 'letter_avatar'
+
     def get_audit_log_data(self):
+        from sentry.models import Team
         return {
             'email': self.email,
             'user': self.user_id,
-            'teams': [t.id for t in self.get_teams()],
+            'teams': list(Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember=self,
+                    is_active=True,
+                ).values_list('team', flat=True)
+            )),
             'has_global_access': self.has_global_access,
+            'role': self.role,
         }
 
     def get_teams(self):
         from sentry.models import Team
 
-        if self.has_global_access:
-            return Team.objects.filter(
-                organization=self.organization,
-            ).exclude(
-                id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember=self,
-                    is_active=False,
-                ).values('team')
-            )
+        if roles.get(self.role).is_global:
+            return self.organization.team_set.all()
+
         return Team.objects.filter(
             id__in=OrganizationMemberTeam.objects.filter(
                 organizationmember=self,
                 is_active=True,
             ).values('team')
         )
+
+    def get_scopes(self):
+        return roles.get(self.role).scopes

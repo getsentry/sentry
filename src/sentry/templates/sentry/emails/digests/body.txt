@@ -1,0 +1,11 @@
+{% load sentry_helpers %}Notifications for {{ project.name }}
+{{ start|date:"N j, Y, P e" }} to {{ end|date:"N j, Y, P e" }}
+
+{% for rule, groups in digest.iteritems %}{{ rule.label }}
+
+{% for group, records in groups.iteritems %}* {{ group.message_short }} ({{ group.event_count }} event{{ group.event_count|pluralize }}, {{ group.user_count }} user{{ group.user_count|pluralize }})
+  {% url 'sentry-group' group.organization.slug group.project.slug group.id as group_link %}{% absolute_uri group_link %}
+
+{% endfor %}{% endfor %}
+
+Unsubscribe: {{ unsubscribe_link }}

@@ -1,0 +1,30 @@
+//
+// Sentry Grid
+// Extends Bootstrap 3's grids to allow for:
+// - Flexbox-based layouts
+// - Gutter-less layouts
+// - Center columns vertically
+
+.row {
+  &.row-flex {
+    display: flex;
+    flex-wrap: wrap;
+
+    &:before,
+    &:after {
+      display: initial;
+    }
+  }
+
+  &.row-no-gutters {
+    [class*='col-'] {
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
+
+  &.row-center-vertically {
+    display: flex;
+    align-items: center;
+  }
+}

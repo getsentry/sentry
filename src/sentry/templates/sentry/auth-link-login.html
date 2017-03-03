@@ -1,0 +1,34 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_assets %}
+
+{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <div class="align-center p-b-1">
+    <img src="{% asset_url "sentry" "images/default-organization-logo.png" %}" class="org-avatar">
+
+    <h3>{{ organization.name }}</h3>
+  </div>
+
+  <form class="form-stacked" action="" method="post" autocomplete="off">
+    {% csrf_token %}
+
+    <div class="align-center">
+      <p>Login with your existing Sentry account to continue.</p>
+      <p><small>Don't have an account? <a href="{% url 'sentry-auth-organization' organization.slug %}">Skip this step</a>.</small></p>
+    </div>
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+      {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 9px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+    </fieldset>
+  </form>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "sentry/bases/twofactor_settings.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block twofactor_body %}
+  {% if auth.remove_button %}
+    {% if auth.is_enrolled %}
+      <p><strong>Method is enabled</strong></p>
+    {% else %}
+      <p><em>Method is currently not enabled</em></p>
+    {% endif %}
+  {% endif %}
+
+  {% block twofactor_info %}
+  <p>
+    {{ auth.description }}
+  </p>
+    {% if auth.is_enrolled %}
+    <dl>
+      <dt>Last used:
+      <dd>{% if auth.authenticator.last_used_at %}{{ auth.authenticator.last_used_at|date:"N j, Y, P e" }}{% else %}{% trans "never" %}{% endif %}</dd>
+      <dt>Created at:
+      <dd>{% if auth.authenticator.created_at %}{{ auth.authenticator.created_at|date:"N j, Y, P e" }}{% else %}{% trans "never" %}{% endif %}</dd>
+    </dl>
+    {% endif %}
+  {% endblock %}
+
+  <fieldset class="form-actions">
+    <form action="" method="post" id="twofactor-form" style="display: inline">
+      {% csrf_token %}
+      {% block twofactor_buttons %}
+        {% if not auth.is_enrolled %}
+          <button type="submit" name="enroll" class="btn btn-primary">{{ auth.enroll_button }}</button>
+        {% elif auth.remove_button %}
+          <button type="submit" name="remove"
+            class="btn btn-danger">{{ auth.remove_button }}</button>
+        {% endif %}
+      {% endblock %}
+    </form>
+    <a href="{% url 'sentry-account-settings-2fa' %}" class="btn btn-default">{% trans "Back" %}</a>
+  </fieldset>
+{% endblock %}

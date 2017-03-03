@@ -2,45 +2,72 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{% trans "Confirm Password" %} | {{ block.super }}{% endblock %}
 
-{% block wrapperclass %}windowed-small{% endblock %}
+{% block wrapperclass %}{{block.super }} windowed-small{% endblock %}
 
-{% block header %}
-    <header id="header">
-        <div class="navbar navbar-inverse">
-            <div class="navbar-inner">
-                <div class="container">
-                    <a id="logo" href="{% url 'sentry' %}">Sentry</a>
-                    <h2>Sentry</h2>
-                </div>
-            </div>
+{% block global_sidebar %}{% endblock %}
+{% block header %}{% endblock %}
+
+{% block scripts %}
+
+  {{ block.super }}
+
+  <script type="text/javascript">
+    $(function() {
+      setTimeout(function(){
+          $("#id_password").focus();
+      }, 0);
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+    <div class="pattern-bg"></div>
+    <div class="box box-modal">
+        <div class="box-header">
+          <a href="/">
+            <span class="icon-sentry-logo-full"></span>
+            <span class="back-to">{% trans "Back to organization" %}</span>
+          </a>
         </div>
-    </header>
-{% endblock %}
-{% block footer %}
-    {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
-{% endblock %}
+        <div class="box-content with-padding">
+            <h4 class="m-b-1 p-b-1 b-b-1">
+              {% blocktrans %}Help us keep your account safe by confirming your password.{% endblocktrans %}
+            </h4>
+            <form action="" method="post" autocomplete="off">
+                {% csrf_token %}
 
-{% block main %}
-    <section class="body">
-        <form class="form-inline" action="" method="post" autocomplete="off">
-            {% csrf_token %}
+                {% if form.password.errors %}
+                    <div class="help-block error">{% trans "Your password was not valid." %}</div>
+                {% endif %}
 
-            {% if form.password.errors %}
-                <div class="help-block error">{% trans "Your password was not valid." %}</div>
-            {% endif %}
-
-            <div class="control-group">
-                <label class="control-label" for="id_password">
-                    Password: <a href="{% url 'sentry-account-recover' %}">(Recover Password)</a>
-                </label>
-                <div class="controls">
-                    <input type="password" name="password" placeholder="password" style="width: 225px;" id="id_password"> <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                <div class="form-group">
+                    <label class="control-label" for="id_password">
+                        Password:
+                    </label>
+                    <input type="password" name="password" placeholder="Password" id="id_password" class="form-control">
+                    <p class="help-block">
+                        <a href="{% url 'sentry-account-recover' %}">Forgot your password?</a>
+                    </p>
                 </div>
-            </div>
 
-        </form>
-    </section>
+                {% if u2f_challenge %}
+                    <div id="u2f-challenge"></div>
+                    <script>
+                      ReactDOM.render(React.createElement(Sentry.U2fSign, {
+                        challengeData: {{ u2f_challenge|to_json|safe }},
+                        displayMode: 'sudo'
+                      }), document.getElementById('u2f-challenge'));
+                    </script>
+                {% endif %}
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}

@@ -9,13 +9,10 @@ from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 
-from .organizationmember import OrganizationMember
-
-
-_organizationemmber_type_field = OrganizationMember._meta.get_field('type')
-
 
 class AuthProvider(Model):
+    __core__ = True
+
     organization = FlexibleForeignKey('sentry.Organization', unique=True)
     provider = models.CharField(max_length=128)
     config = JSONField()
@@ -24,10 +21,7 @@ class AuthProvider(Model):
     sync_time = BoundedPositiveIntegerField(null=True)
     last_sync = models.DateTimeField(null=True)
 
-    default_role = BoundedPositiveIntegerField(
-        choices=_organizationemmber_type_field.choices,
-        default=_organizationemmber_type_field.default
-    )
+    default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
     # TODO(dcramer): ManyToMany has the same issue as ForeignKey and we need
     # to either write our own which works w/ BigAuto or switch this to use
@@ -44,6 +38,9 @@ class AuthProvider(Model):
 
     __repr__ = sane_repr('organization_id', 'provider')
 
+    def __unicode__(self):
+        return self.provider
+
     def get_provider(self):
         from sentry.auth import manager
 
@@ -53,5 +50,4 @@ class AuthProvider(Model):
         return {
             'provider': self.provider,
             'config': self.config,
-            'default_Role': self.default_role,
         }

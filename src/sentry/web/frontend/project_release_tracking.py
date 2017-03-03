@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-import hashlib
+from hashlib import sha256
+
 import hmac
 
 from django.contrib import messages
@@ -10,8 +11,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid1
 
-from sentry import constants, features
-from sentry.models import OrganizationMemberType, ProjectOption
+from sentry import constants
+from sentry.models import ProjectOption
 from sentry.plugins import plugins, ReleaseTrackingPlugin
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import ProjectView
@@ -23,7 +24,7 @@ ERR_NO_FEATURE = _('The release tracking feature is not enabled for this project
 
 
 class ProjectReleaseTrackingView(ProjectView):
-    required_access = OrganizationMemberType.ADMIN
+    required_scope = 'project:write'
 
     def _iter_plugins(self):
         for plugin in plugins.all(version=2):
@@ -33,7 +34,7 @@ class ProjectReleaseTrackingView(ProjectView):
 
     def _handle_enable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
-        plugin.set_option('enabled', True, project)
+        plugin.enable(project)
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_ENABLED.format(name=plugin.get_title()),
@@ -41,7 +42,7 @@ class ProjectReleaseTrackingView(ProjectView):
 
     def _handle_disable_plugin(self, request, project):
         plugin = plugins.get(request.POST['plugin'])
-        plugin.set_option('enabled', False, project)
+        plugin.disable(project)
         messages.add_message(
             request, messages.SUCCESS,
             constants.OK_PLUGIN_DISABLED.format(name=plugin.get_title()),
@@ -54,21 +55,12 @@ class ProjectReleaseTrackingView(ProjectView):
 
     def _get_signature(self, project_id, plugin_id, token):
         return hmac.new(
-            key=str(token),
-            msg='{}-{}'.format(plugin_id, project_id),
-            digestmod=hashlib.sha256
+            key=token.encode('utf-8'),
+            msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
+            digestmod=sha256,
         ).hexdigest()
 
     def handle(self, request, organization, team, project):
-        if not features.has('projects:release-tracking', project, actor=request.user):
-            messages.add_message(
-                request, messages.ERROR,
-                ERR_NO_FEATURE,
-            )
-            redirect = reverse('sentry-manage-project',
-                               args=[organization.slug, project.slug])
-            return HttpResponseRedirect(redirect)
-
         token = None
 
         if request.method == 'POST':
@@ -101,7 +93,7 @@ class ProjectReleaseTrackingView(ProjectView):
                 }))
                 content = plugin.get_release_doc_html(hook_url=hook_url)
                 enabled_plugins.append((plugin, mark_safe(content)))
-            else:
+            elif plugin.can_configure_for_project(project):
                 other_plugins.append(plugin)
 
         context = {
@@ -109,6 +101,11 @@ class ProjectReleaseTrackingView(ProjectView):
             'token': token,
             'enabled_plugins': enabled_plugins,
             'other_plugins': other_plugins,
+            'webhook_url': absolute_uri(reverse('sentry-release-hook', kwargs={
+                'plugin_id': 'builtin',
+                'project_id': project.id,
+                'signature': self._get_signature(project.id, 'builtin', token),
+            }))
         }
 
         return self.respond('sentry/project-release-tracking.html', context)

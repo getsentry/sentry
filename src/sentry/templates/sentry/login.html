@@ -1,75 +1,78 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_auth %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block wrapperclass %}windowed-small{% endblock %}
-
-{% block footer %}{% endblock %}
-
-{% block account_nav %}
+{% block auth_main %}
+  <ul class="nav nav-tabs auth-toggle border-bottom">
+    <li{% if op == "login" %} class="active"{% endif %}>
+      <a href="#login" data-toggle="tab">{% trans "Login" %}</a>
+    </li>
     {% if CAN_REGISTER %}
-        <li><a href="{% url 'sentry-register' %}">{% trans "New Account" %}</a></li>
+      <li{% if op == "register" %} class="active"{% endif %}>
+        <a href="#register" data-toggle="tab">{% trans "Register" %}</a>
+      </li>
     {% endif %}
-{% endblock%}
+    <li{% if op == "sso" %} class="active"{% endif %}>
+      <a href="#sso" data-toggle="tab">{% trans "Single Sign-On" %}</a>
+    </li>
+  </ul>
 
-{% block main %}
-    <section class="body">
-        <div class="sso-toggle-container">
-            <a href="#" class="sso-link sso-toggle">Looking for single sign-on?</a>
-            <a href="#" class="go-back sso-toggle"><span class="icon-arrow-left"></span> Back to login</a>
+  <div class="tab-content">
+    <div class="tab-pane{% if op == "login" %} active{% endif %}" id="login">
+      <form class="form-stacked" action="" method="post" autocomplete="off">
+        {% csrf_token %}
+
+        <input type="hidden" name="op" value="login" />
+
+        {{ login_form|as_crispy_errors }}
+
+        {% for field in login_form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 7px" href="{% url 'sentry-account-recover' %}">{% trans "Lost your password?" %}</a>
+        </fieldset>
+      </form>
+    </div>
+    <div class="tab-pane{% if op == "register" %} active{% endif %}" id="register">
+      <form class="form-stacked" action="" method="post" autocomplete="off">
+        {% csrf_token %}
+
+        <input type="hidden" name="op" value="register" />
+
+        {{ register_form|as_crispy_errors }}
+
+        {% for field in register_form %}
+          {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+          <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+        </fieldset>
+      </form>
+    </div>
+    <div class="tab-pane{% if op == "sso" %} active{% endif %}" id="sso">
+      <form class="form-stacked" method="post">
+        {% csrf_token %}
+
+        <input type="hidden" name="op" value="sso" />
+
+        <div class="control-group">
+          <div class="controls">
+            <label style="display: block">SSO URL</label>
+            <span style="padding: 7px 0; font-size: 15px">{{ server_hostname }}/</span> <input style="width: 240px; margin: 0 0 4px; padding: 5px 8px; display: inline" type="text" class="form-control" name="organization" placeholder="acme">
+            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
+          </div>
         </div>
-
-        <div class="tab-content">
-            <div class="tab-pane active" id="standard">
-                <form class="form-stacked" action="" method="post" autocomplete="off">
-                    {{ form|as_crispy_errors }}
-
-                    <fieldset>
-                        <legend style="border: 0">{% trans "Login to Sentry" %}</legend>
-                    </fieldset>
-                    {% csrf_token %}
-
-                    {% for field in form %}
-                        {{ field|as_crispy_field }}
-                    {% endfor %}
-
-                    <fieldset class="form-actions">
-                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a class="pull-right" style="margin-top: 6px" href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
-                    </fieldset>
-                </form>
-            </div>
-            <div class="tab-pane" id="sso">
-                <fieldset>
-                    <legend style="border: 0; margin: 0 0 10px;">Single sign-on</legend>
-                </fieldset>
-                <form class="form-stacked" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="op" value="sso" />
-                    <div class="control-group">
-                        <div class="controls">
-                            <span style="padding: 7px 0; font-size: 15px">app.getsentry.com/</span> <input style="width: 190px; margin: 0 0 4px; padding: 6px;" type="text" name="organization" placeholder="acme">
-                            <p class="help-block">Enter your organization's ID and we'll get things started.</p>
-                        </div>
-                    </div>
-                    <div class="form-actions" style="margin-top: 25px">
-                        <button class="btn btn-primary">Log in</button>
-                    </div>
-                </form>
-            </div>
+        <div class="form-actions" style="margin-top: 25px">
+          <button class="btn btn-primary">Sign in</button>
         </div>
-    </section>
-    <style type="text/css">
-    input[type="text"], input[type="password"] {
-        width: 92%;
-    }
-    </style>
-    <script>
-    $('.sso-toggle').click(function (e) {
-      e.preventDefault();
-      $(".body").toggleClass('show-sso');
-    })
-    </script>
+      </form>
+    </div>
+  </div>
 {% endblock %}

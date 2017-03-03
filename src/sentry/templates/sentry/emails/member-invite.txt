@@ -1,0 +1,9 @@
+Welcome to Sentry
+
+Your teammates over at {{ organization.name }} have already been using Sentry without you, but the good news is that you've been invited to join them.
+
+Join your team by visiting the following url:
+
+    {{ url }}
+
+If you'd like to learn more about Sentry before diving head-first, check out our website, https://sentry.io/

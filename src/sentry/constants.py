@@ -12,10 +12,12 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os.path
-from collections import OrderedDict
+import six
 
+from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from operator import attrgetter
 
 
 def get_all_languages():
@@ -37,8 +39,6 @@ SORT_OPTIONS = OrderedDict((
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
     ('freq', _('Frequency')),
-    ('tottime', _('Total Time Spent')),
-    ('avgtime', _('Average Time Spent')),
 ))
 
 SEARCH_SORT_OPTIONS = OrderedDict((
@@ -50,90 +50,15 @@ SEARCH_SORT_OPTIONS = OrderedDict((
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
-STATUS_MUTED = 2
+STATUS_IGNORED = 2
 
 STATUS_CHOICES = {
     'resolved': STATUS_RESOLVED,
     'unresolved': STATUS_UNRESOLVED,
-    'muted': STATUS_MUTED,
-}
+    'ignored': STATUS_IGNORED,
 
-
-MEMBER_OWNER = 0
-MEMBER_ADMIN = 25
-MEMBER_USER = 50
-MEMBER_SYSTEM = 100
-
-MEMBER_TYPES = (
-    (MEMBER_OWNER, _('Owner')),
-    (MEMBER_ADMIN, _('Admin')),
-    (MEMBER_USER, _('User')),
-    (MEMBER_SYSTEM, _('System Agent')),
-)
-
-# A list of values which represent an unset or empty password on
-# a User instance.
-EMPTY_PASSWORD_VALUES = ('!', '', '$')
-
-PLATFORM_LIST = (
-    'csharp',
-    'connect',
-    'django',
-    'express',
-    'flask',
-    'go',
-    'ios',
-    'java',
-    'java_log4j',
-    'java_log4j2',
-    'java_logback',
-    'java_logging',
-    'javascript',
-    'node.js',
-    'php',
-    'pyramid',
-    'python',
-    'r',
-    'ruby',
-    'rails3',
-    'rails4',
-    'sidekiq',
-    'sinatra',
-    'tornado',
-)
-
-PLATFORM_ROOTS = {
-    'rails3': 'ruby',
-    'rails4': 'ruby',
-    'sinatra': 'ruby',
-    'sidekiq': 'ruby',
-    'django': 'python',
-    'flask': 'python',
-    'pyramid': 'python',
-    'tornado': 'python',
-    'express': 'node.js',
-    'connect': 'node.js',
-    'java_log4j': 'java',
-    'java_log4j2': 'java',
-    'java_logback': 'java',
-    'java_logging': 'java',
-}
-
-PLATFORM_TITLES = {
-    'rails3': 'Rails 3 (Ruby)',
-    'rails4': 'Rails 4 (Ruby)',
-    'php': 'PHP',
-    'ios': 'iOS',
-    'express': 'Express (Node.js)',
-    'connect': 'Connect (Node.js)',
-    'django': 'Django (Python)',
-    'flask': 'Flask (Python)',
-    'pyramid': 'Pyramid (Python)',
-    'csharp': 'C#',
-    'java_log4j': 'Log4j (Java)',
-    'java_log4j2': 'Log4j 2.x (Java)',
-    'java_logback': 'Logback (Java)',
-    'java_logging': 'java.util.logging',
+    # TODO(dcramer): remove in 9.0
+    'muted': STATUS_IGNORED,
 }
 
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A
@@ -144,16 +69,21 @@ MINUTE_NORMALIZATION = 15
 MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
+MAX_EMAIL_FIELD_LENGTH = 75
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_ORGANIZATION_SLUGS = (
+RESERVED_ORGANIZATION_SLUGS = frozenset((
     'admin', 'manage', 'login', 'account', 'register', 'api',
     'accept', 'organizations', 'teams', 'projects', 'help',
-    'docs', 'logout', '404', '500', '_static',
-)
-
-RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
+    'docs', 'logout', '404', '500', '_static', 'out', 'debug',
+    'remote', 'get-cli', 'blog', 'welcome', 'features',
+    'customers', 'integrations', 'signup', 'pricing',
+    'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide',
+    'privacy', 'security', 'terms', 'from', 'sponsorship', 'for',
+    'at', 'platforms', 'branding', 'vs', 'answers', '_admin',
+    'support',
+))
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
@@ -164,6 +94,8 @@ LOG_LEVELS = {
 }
 DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = ''
+LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
+
 
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
@@ -181,14 +113,14 @@ LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_
 
 # TODO(dcramer): We eventually want to make this user-editable
 TAG_LABELS = {
-    'exc_type': _('Exception Type'),
-    'sentry:user': _('User'),
-    'sentry:filename': _('File'),
-    'sentry:function': _('Function'),
-    'sentry:release': _('Release'),
-    'os': _('OS'),
-    'url': _('URL'),
-    'server_name': _('Server'),
+    'exc_type': 'Exception Type',
+    'sentry:user': 'User',
+    'sentry:filename': 'File',
+    'sentry:function': 'Function',
+    'sentry:release': 'Release',
+    'os': 'OS',
+    'url': 'URL',
+    'server_name': 'Server',
 }
 
 # TODO(dcramer): once this is more flushed out we want this to be extendable
@@ -200,6 +132,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
     'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+    'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
     'sentry.rules.conditions.event_attribute.EventAttributeCondition',
     'sentry.rules.conditions.level.LevelCondition',
 )
@@ -209,21 +142,25 @@ HTTP_METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CON
 
 CLIENT_RESERVED_ATTRS = (
     'project',
+    'errors',
     'event_id',
     'message',
     'checksum',
     'culprit',
+    'fingerprint',
     'level',
     'time_spent',
     'logger',
     'server_name',
     'site',
+    'received',
     'timestamp',
     'extra',
     'modules',
     'tags',
     'platform',
     'release',
+    'environment',
 )
 
 DEFAULT_SCRUBBED_FIELDS = (
@@ -234,10 +171,66 @@ DEFAULT_SCRUBBED_FIELDS = (
     'api_key',
     'apikey',
     'access_token',
+    'auth',
+    'credentials',
 )
+
+VALID_PLATFORMS = set([
+    'as3',
+    'c',
+    'cfml',
+    'cocoa',
+    'csharp',
+    'go',
+    'java',
+    'javascript',
+    'node',
+    'objc',
+    'other',
+    'perl',
+    'php',
+    'python',
+    'ruby',
+    'elixir',
+    'haskell',
+    'groovy',
+])
 
 OK_PLUGIN_ENABLED = _("The {name} integration has been enabled.")
 
 OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 
 OK_PLUGIN_SAVED = _('Configuration for the {name} integration has been saved.')
+
+WARN_SESSION_EXPIRED = 'Your session has expired.'  # TODO: translate this
+
+# Key to use when ordering a list of events manually
+EVENT_ORDERING_KEY = attrgetter('datetime', 'id')
+
+FILTER_MASK = '[Filtered]'
+
+# Maximum length of a symbol
+MAX_SYM = 256
+
+# Known dsym mimetypes
+KNOWN_DSYM_TYPES = {
+    'application/x-mach-binary': 'macho'
+}
+
+NATIVE_UNKNOWN_STRING = '<unknown>'
+
+
+class ObjectStatus(object):
+    VISIBLE = 0
+    HIDDEN = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.VISIBLE, 'visible'),
+            (cls.HIDDEN, 'hidden'),
+            (cls.PENDING_DELETION, 'pending_deletion'),
+            (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
+        )

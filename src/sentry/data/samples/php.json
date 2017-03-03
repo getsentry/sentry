@@ -1,0 +1,111 @@
+{
+  "sentry.interfaces.Exception": {
+    "exc_omitted": null,
+    "values": [
+      {
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "null",
+              "abs_path": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "pre_context": [
+                "        default:",
+                "            exit('Usage: raven test <dsn>');",
+                "    }",
+                "}",
+                ""
+              ],
+              "post_context": [
+                ""
+              ],
+              "filename": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "module": "raven",
+              "context_line": "main();",
+              "lineno": 88
+            },
+            {
+              "function": "main",
+              "abs_path": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "pre_context": [
+                "",
+                "    $cmd = $argv[1];",
+                "",
+                "    switch ($cmd) {",
+                "        case 'test':"
+              ],
+              "post_context": [
+                "            break;",
+                "        default:",
+                "            exit('Usage: raven test <dsn>');",
+                "    }",
+                "}"
+              ],
+              "filename": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "module": "raven",
+              "context_line": "            cmd_test(@$argv[2]);",
+              "lineno": 81
+            },
+            {
+              "function": "cmd_test",
+              "abs_path": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "pre_context": [
+                "    }",
+                "    echo \"\\n\";",
+                "",
+                "    echo \"Sending a test event:\\n\";",
+                ""
+              ],
+              "vars": {
+                "dsn": "https:\/\/e9ebbd88548a441288393c457ec90441:399aaee02d454e2ca91351f29bdc3a07@sentry.io\/3235"
+              },
+              "module": "raven",
+              "filename": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "post_context": [
+                "    $event_id = $client->captureException($ex);",
+                "",
+                "    echo \"-> event ID: $event_id\\n\";",
+                "",
+                "    $last_error = $client->getLastError();"
+              ],
+              "context_line": "    $ex = raven_cli_test(\"command name\", array(\"foo\" => \"bar\"));",
+              "lineno": 59
+            },
+            {
+              "function": "raven_cli_test",
+              "abs_path": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "pre_context": [
+                "",
+                "function raven_cli_test($command, $args)",
+                "{",
+                "    \/\/ Do something silly",
+                "    try {"
+              ],
+              "vars": {
+                "args": {
+                  "foo": "bar"
+                },
+                "command": "command name"
+              },
+              "module": "raven",
+              "filename": "\/Users\/example\/Development\/raven-php\/bin\/raven",
+              "post_context": [
+                "    } catch (Exception $ex) {",
+                "        return $ex;",
+                "    }",
+                "}",
+                ""
+              ],
+              "context_line": "        throw new Exception('This is a test exception sent from the Raven CLI.');",
+              "lineno": 16
+            }
+          ],
+          "frames_omitted": null
+        },
+        "type": "Exception",
+        "module": "\/Users\/example\/Development\/raven-php\/bin\/raven:16",
+        "value": "This is a test exception sent from the Raven CLI."
+      }
+    ]
+  },
+  "version": "6"
+}

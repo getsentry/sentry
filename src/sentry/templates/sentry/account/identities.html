@@ -2,18 +2,19 @@
 
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load sentry_auth %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Identities" %} | {{ block.super }}{% endblock %}
 
-{% block inner %}
+{% block main %}
     <fieldset>
         <legend>{% trans "Current Identities" %}</legend>
     </fieldset>
     {% if not identity_list %}
-        <p>{% trans "There are no identities associated with this account." %}</p>
+        <div class="well">{% trans "There are no identities associated with this account." %}</div>
     {% else %}
-        <table class="table table-striped">
+        <table class="table simple-table">
             <thead>
                 <tr>
                     <th>{% trans "Identity" %}</th>
@@ -23,23 +24,17 @@
             <tbody>
                 {% for identity in identity_list %}
                     <tr>
-                        <td>{{ identity.provider|title }}</td>
+                        <td>{{ identity.provider|auth_provider_label }}</td>
                         <td style="text-align: center;">
-                            <a href="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}">Disconnect</a>
+                            <form method="post"
+                                  action="{% url 'sentry-account-disconnect-identity' identity.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-default btn-sm">Disconnect</button>
+                            </form>
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-    {% endif %}
-    {% if AUTH_PROVIDERS %}
-        <fieldset>
-            <legend>Associate a New Account</legend>
-        </fieldset>
-        <ul class="auth-options">
-            {% for engine in AUTH_PROVIDERS %}
-                <li><a href="{% url 'socialauth_associate_begin' engine %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}" class="auth-{{ engine }}">Identify with {{ engine|title }}</a></li>
-            {% endfor %}
-        </ul>
     {% endif %}
 {% endblock %}

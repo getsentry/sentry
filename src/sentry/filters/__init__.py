@@ -1,15 +1,26 @@
-"""
-sentry.filters
-~~~~~~~~~~~~~~
+from __future__ import absolute_import, print_function
 
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-from __future__ import absolute_import
+__all__ = [
+    'Filter', 'FilterManager', 'FilterNotRegistered', 'all', 'exists', 'get',
+    'register', 'unregister'
+]
 
-from sentry.filters.base import *  # NOQA
-from sentry.filters.builtins import *  # NOQA
-from sentry.filters.widgets import *  # NOQA
+from .base import Filter  # NOQA
+from .manager import FilterManager  # NOQA
 
-# Backwards compatibility
-SentryFilter = Filter
+from .localhost import LocalhostFilter
+from .browser_extensions import BrowserExtensionsFilter
+from .legacy_browsers import LegacyBrowsersFilter
+from .web_crawlers import WebCrawlersFilter
+
+default_manager = FilterManager()
+default_manager.register(LocalhostFilter)
+default_manager.register(BrowserExtensionsFilter)
+default_manager.register(LegacyBrowsersFilter)
+default_manager.register(WebCrawlersFilter)
+
+all = default_manager.all
+exists = default_manager.exists
+get = default_manager.get
+register = default_manager.register
+unregister = default_manager.unregister

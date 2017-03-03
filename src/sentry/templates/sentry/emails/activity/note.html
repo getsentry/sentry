@@ -1,16 +1,35 @@
-{% extends "sentry/emails/base.html" %}
+{% extends "sentry/emails/activity/generic.html" %}
 
-{% block header %}
-  <a href="{{ link }}" class="btn">View on Sentry</a>
-  <h1>Sentry</h1>
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_assets %}
+
+{% block action %}
+  <a href="{{ activity_link }}" class="btn">View on Sentry</a>
 {% endblock %}
 
-{% block inner %}
-  {% include "sentry/emails/group_header.html" %}
+{% block activity %}
 
-  <h2>New Note by <span class="highlight">{{ author }}</span></h2>
+  <h3>New comment by {{ author.get_display_name }}</h3>
 
-  <blockquote>
-  {{ data.text|urlize|linebreaks }}
-  </blockquote>
+  <table class="note">
+    <tr>
+      <td class="avatar-column">
+        {% if author.get_avatar_type == 'upload' %}
+          <img class="avatar" src="{% profile_photo_url author.id size 48 %}">
+        {% elif author.get_avatar_type == 'letter_avatar' %}
+          {% email_avatar author.get_display_name author.get_label size 48 try_gravatar False %}
+        {% else %}
+          {% email_avatar author.get_display_name author.get_label size 48 %}
+        {% endif %}
+      </td>
+      <td class="notch-column">
+        <img width="7" height="48" src="{% absolute_asset_url 'sentry' 'images/email/avatar-notch.png' %}">
+      </td>
+      <td>
+        <div class="note-body">{{ data.text|urlize|linebreaks }}</div>
+      </td>
+    </tr>
+  </table>
+
 {% endblock %}

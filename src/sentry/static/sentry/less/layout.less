@@ -1,0 +1,468 @@
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: @font-family-base;
+  font-size: 16px;
+  line-height: 24px;
+  color: @gray-darker;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  padding-left: @sidebar-width;
+  padding-top: 30px;
+
+  // Fake sidebar rendering until actual sidebar is loaded
+
+  background-image: linear-gradient(@header-bg-color, @header-bg-color);
+  background-size: @sidebar-width;
+  background-repeat: repeat-y;
+
+}
+
+/**
+* body.auth
+* ============================================================================
+*/
+
+body.narrow {
+  zoom: 1;
+  padding: 30px 0 0;
+
+  background: #fff;
+
+  h3, h4 {
+    line-height: 1.2;
+  }
+
+  .app > .container {
+    padding-top: 10px;
+    max-width: 860px;
+
+    .box-header {
+      padding: 15px 30px 10px;
+
+      a {
+        font-size: 20px;
+
+        &:hover {
+          color: @gray-dark;
+        }
+      }
+
+      .back-to, .pull-right a {
+        font-size: 16px;
+      }
+
+      .back-to {
+        border-left: 1px solid @trim;
+        padding: 2px 10px;
+        display: inline-block;
+        margin-left: 7px;
+        position: relative;
+        top: -3px;
+      }
+    }
+
+    .with-padding {
+      padding: 20px 30px 0;
+      .form-actions {
+        margin: 20px 0 0;
+        padding: 20px 0;
+
+        a.pull-right {
+          font-size: 15px;
+          color: @50;
+
+          &:hover {
+            color: @80;
+          }
+        }
+      }
+    }
+  }
+
+  footer {
+    display: none;
+  }
+}
+
+body.auth {
+  .app > .container {
+    padding-top: 30px;
+    max-width: 540px;
+  }
+}
+
+/**
+* Container / Content
+* ============================================================================
+*/
+
+.app {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.container {
+  position: relative;
+  padding-left: 30px;
+  padding-right: 30px;
+  width: 100% !important;
+}
+
+/**
+* Project level subheader
+* ============================================================================
+*/
+
+.sub-header {
+  color: @gray-dark;
+  border-bottom: 1px solid darken(@trim, 5);
+  position: relative;
+  margin: -30px 0 20px; // Offset body padding-top
+  line-height: 1;
+  font-size: 16px;
+  min-height: 62px;
+  box-shadow: 0 2px 0 rgba(0,0,0, .03);
+
+  .btn {
+    padding: 6px 12px;
+  }
+
+  .container {
+    .clearfix;
+  }
+
+  .org-name {
+    float: left;
+    font-weight: bold;
+    color: @gray-darker;
+
+    a {
+      color: @gray-darker;
+
+      &:hover {
+        color: @gray-darkest;
+      }
+    }
+  }
+
+  .project-select {
+    position: relative;
+
+    h3 {
+      font-size: 20px;
+      margin: 0;
+
+      a {
+        color: @gray-dark;
+
+        &:hover {
+          color: @gray-darkest;
+        }
+      }
+    }
+
+    .project-selected {
+      background-color: lighten(@blue-light, 30);
+    }
+  }
+
+  .logo-logged-in {
+    position: relative;
+    padding-left: 38px;
+    .icon-sentry-logo {
+      position: absolute;
+      left: 0;
+    }
+  }
+
+  h1 {
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .nav-tabs {
+    position: relative;
+    z-index: 2;
+    margin-bottom: 0;
+
+    li {
+      position: relative;
+      z-index: 2;
+
+      a {
+        padding-bottom: 13px;
+      }
+    }
+  }
+
+  .project-select + .nav-tabs, #blk_projectselect + .nav-tabs {
+    margin-top: 10px;
+  }
+
+  .align-right {
+    .nav-tabs{
+      margin-top: 4px; // balance active border-bottom
+
+      > li {
+        margin: 0 0 0 20px;
+        float: none;
+        display: inline-block;
+
+        > a {
+          padding: 18px 0px;
+        }
+      }
+    }
+  }
+}
+
+
+/**
+* Content sidebar
+* ============================================================================
+*/
+
+.content .sidebar {
+  float: right;
+}
+
+
+/**
+* Footer
+* ============================================================================
+*/
+
+footer {
+  line-height: 30px;
+  text-align: center;
+  color: @gray;
+  border-top: 1px solid @trim;
+  margin-top: 20px;
+  padding: 28px 0;
+
+  .pull-right {
+    a {
+      margin-left: 20px;
+    }
+  }
+
+  a {
+    color: @gray;
+    &:hover {
+      color: @gray-dark;
+    }
+  }
+
+  .icon-sentry-logo {
+    color: @gray;
+    font-size: 28px;
+    width: 32px;
+    margin: 0 auto;
+    display: block;
+  }
+}
+
+
+/**
+* Project action menu
+* ============================================================================
+*/
+
+.project-actions {
+  .btn-sm {
+    font-size: 13px;
+    margin-left: 7px;
+    line-height: 21px;
+    padding: 4px 9px;
+  }
+
+  .icon {
+    font-size: 14px;
+    padding-right: 5px;
+    color: @40;
+    position: relative;
+
+    &.icon-star-solid {
+      top: 0;
+      margin: 0;
+    }
+
+    &.icon-signal  {
+      font-size: 18px;
+      top: 1px;
+    }
+
+    &.icon-settings  {
+      top: 2px;
+      font-size: 15px;
+    }
+
+    &.active {
+      color: @yellow-orange;
+    }
+  }
+}
+
+
+/**
+* Windowed
+* ============================================================================
+*/
+
+.windowed-small {
+  .app > .container {
+    padding-top: 60px !important;
+    max-width: 600px !important;
+    margin: 0 auto;
+
+    .box-header h3 {
+      max-width: 100%;
+      font-size: 16px;
+    }
+  }
+
+  footer {
+    display: none;
+  }
+}
+
+/**
+* Pattern background / backdrop
+* ============================================================================
+*/
+
+.pattern-bg {
+  background: #f2f1f3 url(../images/sentry-pattern.png);
+  background-size: 340px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  opacity: .4;
+}
+
+/**
+* Print
+* ============================================================================
+*/
+
+@media print {
+    body {
+        color: @gray-darkest;
+    }
+    header {
+        display: none;
+    }
+    .org-sidebar, .toolbar {
+      display: none;
+    }
+    .content {
+      padding: 0 !important;
+    }
+    #CModal, footer { display: none; }
+}
+
+/**
+* Responsive Desktop
+* ============================================================================
+*/
+
+@media(max-width:1200px) {
+  .container {
+    width: 100% !important;
+  }
+}
+
+/**
+* Responsive small screens
+* ============================================================================
+*/
+
+
+@media(max-width:767px) {
+  body {
+    zoom: .85;
+    padding-top: 0;
+
+    // Hide fake sidebar on mobile
+    background: none;
+
+    // Account for there being no footer on mobile
+    padding-bottom: 20px;
+  }
+
+  .app {
+    overflow-x: hidden;
+  }
+
+  .messages-container {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .container {
+    padding: 0 14px;
+  }
+
+  .sub-header .align-right {
+    display: none;
+  }
+
+  .narrow .app > .container, .narrow.windowed-small .app > .container {
+    padding-top: 30px !important;
+  }
+
+  .nav-tabs {
+    > li {
+      text-transform: capitalize;
+      margin-right: 11px;
+
+      &:last-child {
+        margin: 0;
+      }
+
+      a {
+        font-size: 14px;
+        margin-right: 0;
+
+        .badge {
+          padding: 0;
+          min-width: 15px;
+          height: 15px;
+          line-height: 17px;
+        }
+      }
+    }
+  }
+
+  body.auth {
+    .brand-flag {
+      left: 0;
+      right: 0;
+      top: 0;
+      font-size: 20px;
+      background: @header-bg-color;
+      padding-left: 30px;
+    }
+
+    .app > .container {
+      padding: 62px 10px 0 10px !important;
+      .box-content.with-padding {
+        padding: 20px 20px 10px;
+      }
+    }
+  }
+
+  .app > footer {
+    display: none;
+  }
+}

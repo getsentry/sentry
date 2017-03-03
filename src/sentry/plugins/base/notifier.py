@@ -25,7 +25,7 @@ class Notifier(object):
         """
 
     def should_notify(self, group, event):
-        if group.is_muted():
+        if group.is_ignored():
             return False
 
         project = group.project
@@ -33,10 +33,13 @@ class Notifier(object):
         rate_limited = ratelimits.is_limited(
             project=project,
             key=self.get_conf_key(),
-            limit=15,
+            limit=10,
         )
 
         if rate_limited:
-            self.logger.info('Notification for project %s dropped due to rate limiting', project.id)
+            self.logger.info('notification.rate_limited', extra={'project_id': project.id})
 
         return not rate_limited
+
+    def notify_about_activity(self, activity):
+        pass

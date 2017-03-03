@@ -1,0 +1,24 @@
+{% extends "sentry/layout.html" %}
+
+{% load sentry_api %}
+
+{% block body %}
+  <div id="blk_router">
+    <div class="loading triangle">
+      <div class="loading-mask"></div>
+      <div class="loading-indicator"></div>
+      <div class="loading-message">
+        <p>Please wait while we load an obnoxious amount of JavaScript.</p>
+        <p><small>You may need to disable adblocking extensions to load Sentry.</small></p>
+      </div>
+    </div>
+  </div>
+  <script>
+  $(function(){
+    ReactDOM.render(
+      React.createElement(Router.Router, {history: Router.browserHistory}, Sentry.routes()),
+      document.getElementById('blk_router')
+    );
+  });
+  </script>
+{% endblock %}

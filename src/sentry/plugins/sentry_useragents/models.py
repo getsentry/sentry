@@ -7,11 +7,9 @@ sentry.plugins.sentry_useragents.models
 """
 from __future__ import absolute_import
 
-import sentry
-
-from django.utils.translation import ugettext_lazy as _
 from ua_parser.user_agent_parser import Parse
 
+import sentry
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
 
@@ -23,20 +21,33 @@ class UserAgentPlugin(TagPlugin):
     project_default_enabled = True
 
     def get_tag_values(self, event):
+        contexts = event.interfaces.get('contexts')
+        # disable tagging if contexts are present
+        if contexts:
+            return []
+
         http = event.interfaces.get('sentry.interfaces.Http')
         if not http:
             return []
         if not http.headers:
             return []
-        if 'User-Agent' not in http.headers:
-            return []
-        ua = Parse(http.headers['User-Agent'])
-        if not ua:
-            return []
-        result = self.get_tag_from_ua(ua)
-        if not result:
-            return []
-        return [result]
+
+        headers = http.headers
+        # XXX: transitional support for workers
+        if isinstance(headers, dict):
+            headers = headers.items()
+
+        output = []
+        for key, value in headers:
+            if key != 'User-Agent':
+                continue
+            ua = Parse(value)
+            if not ua:
+                continue
+            result = self.get_tag_from_ua(ua)
+            if result:
+                output.append(result)
+        return output
 
 
 class BrowserPlugin(UserAgentPlugin):
@@ -45,9 +56,8 @@ class BrowserPlugin(UserAgentPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'browsers'
-    title = _('Auto Tag: Browsers')
+    title = 'Auto Tag: Browsers'
     tag = 'browser'
-    tag_label = _('Browser Name')
 
     def get_tag_from_ua(self, ua):
         ua = ua['user_agent']
@@ -74,9 +84,8 @@ class OsPlugin(UserAgentPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'os'
-    title = _('Auto Tag: Operating Systems')
+    title = 'Auto Tag: Operating Systems'
     tag = 'os'
-    tag_label = _('Operating System')
 
     def get_tag_from_ua(self, ua):
         ua = ua['os']
@@ -104,9 +113,8 @@ class DevicePlugin(UserAgentPlugin):
     from ``sentry.interfaces.Http``.
     """
     slug = 'device'
-    title = _('Auto Tag: Device')
+    title = 'Auto Tag: Device'
     tag = 'device'
-    tag_label = _('Device')
 
     def get_tag_from_ua(self, ua):
         return ua['device']['family']

@@ -10,21 +10,21 @@ from __future__ import absolute_import, print_function
 
 import logging
 
-from django.core.mail import get_connection
-
+from sentry.auth import access
 from sentry.tasks.base import instrumented_task
+from sentry.utils.email import send_messages
 
 logger = logging.getLogger(__name__)
 
 
 def _get_user_from_email(group, email):
-    from sentry.models import Project, User
-    # TODO(dcramer): we should encode the userid in emails so we can avoid this
+    from sentry.models import User
 
+    # TODO(dcramer): we should encode the userid in emails so we can avoid this
     for user in User.objects.filter(email__iexact=email):
         # Make sure that the user actually has access to this project
-        if group.project not in Project.objects.get_for_user(
-                team=group.team, user=user):
+        context = access.from_user(user=user, organization=group.organization)
+        if not context.has_team(group.project.team):
             logger.warning('User %r does not have access to group %r', user, group)
             continue
 
@@ -33,7 +33,8 @@ def _get_user_from_email(group, email):
 
 @instrumented_task(
     name='sentry.tasks.email.process_inbound_email',
-    queue='email')
+    queue='email',
+    default_retry_delay=60 * 5, max_retries=None)
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """
@@ -51,20 +52,21 @@ def process_inbound_email(mailfrom, group_id, payload):
         logger.warning('Inbound email from unknown address: %s', mailfrom)
         return
 
-    event = group.get_latest_event() or Event()
+    event = group.get_latest_event()
 
-    Event.objects.bind_nodes([event], 'data')
-    event.group = group
-    event.project = group.project
+    if event:
+        Event.objects.bind_nodes([event], 'data')
+        event.group = group
+        event.project = group.project
 
     form = NewNoteForm({'text': payload})
     if form.is_valid():
-        form.save(event, user)
+        form.save(group, user, event=event)
 
 
 @instrumented_task(
     name='sentry.tasks.email.send_email',
-    queue='email')
+    queue='email',
+    default_retry_delay=60 * 5, max_retries=None)
 def send_email(message):
-    connection = get_connection()
-    connection.send_messages([message])
+    send_messages([message])

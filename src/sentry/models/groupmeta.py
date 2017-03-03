@@ -92,7 +92,7 @@ class GroupMetaManager(BaseManager):
         self.create_or_update(
             group=instance,
             key=key,
-            defaults={
+            values={
                 'value': value,
             },
         )

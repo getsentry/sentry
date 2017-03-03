@@ -1,16 +1,12 @@
-{% extends "sentry/bases/modal.html" %}
+{% extends "sentry/bases/auth.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
 
-{% block main %}
-    <section class="body">
-        <div class="page-header">
-            <h2>{% trans "Recover Account" %}</h2>
-        </div>
-        {% url 'sentry-recover-account' as link %}
-        <p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
-    </section>
+{% block auth_main %}
+	<h2>{% trans "Recover Account" %}</h2>
+	{% url 'sentry-recover-account' as link %}
+	<p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
 {% endblock %}

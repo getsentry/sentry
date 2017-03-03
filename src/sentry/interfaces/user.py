@@ -9,18 +9,25 @@ from __future__ import absolute_import
 
 __all__ = ('User',)
 
-from sentry.interfaces.base import Interface
+import six
+
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
-from ipaddr import IPAddress
+from sentry.utils.validators import validate_ip
+from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
 
-def validate_ip(value, required=True):
+def validate_email(value, required=True):
     if not required and not value:
         return
 
-    # will raise a ValueError
-    IPAddress(value)
+    if not isinstance(value, six.string_types):
+        raise ValueError('object of type %r is not an email address' % type(value).__name__)
+
+    # safe to assume an email address at least has a @ in it.
+    if '@' not in value:
+        raise ValueError('malformed email address')
     return value
 
 
@@ -49,17 +56,37 @@ class User(Interface):
         if not isinstance(extra_data, dict):
             extra_data = {}
 
+        ident = trim(data.pop('id', None), 128)
+        if ident:
+            ident = six.text_type(ident)
+        try:
+            email = trim(validate_email(data.pop('email', None), False), MAX_EMAIL_FIELD_LENGTH)
+        except ValueError:
+            raise InterfaceValidationError("Invalid value for 'email'")
+        username = trim(data.pop('username', None), 128)
+        if username:
+            username = six.text_type(username)
+
+        try:
+            ip_address = validate_ip(data.pop('ip_address', None), False)
+        except ValueError:
+            raise InterfaceValidationError("Invalid value for 'ip_address'")
+
+        # TODO(dcramer): patch in fix to deal w/ old data but not allow new
+        # if not (ident or email or username or ip_address):
+        #     raise ValueError('No identifying value')
+
         kwargs = {
-            'id': trim(data.pop('id', None), 128),
-            'email': trim(data.pop('email', None), 128),
-            'username': trim(data.pop('username', None), 128),
-            'ip_address': validate_ip(data.pop('ip_address', None), False),
+            'id': ident,
+            'email': email,
+            'username': username,
+            'ip_address': ip_address,
         }
 
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         return {
             'id': self.id,
             'email': self.email,
@@ -74,26 +101,19 @@ class User(Interface):
     def get_hash(self):
         return []
 
-    def get_context(self):
-        return {
-            'user_ip_address': self.ip_address,
-            'user_id': self.id,
-            'user_username': self.username,
-            'user_email': self.email,
-            'user_data': self.data,
-        }
+    def get_display_name(self):
+        return self.email or self.username
 
-    def to_html(self, event, is_public=False, **kwargs):
-        if is_public:
-            return ''
-
-        context = self.get_context()
-        context.update({
-            'is_public': is_public,
-            'event': event,
-        })
-        return render_to_string('sentry/partial/interfaces/user.html', context)
+    def get_label(self):
+        return self.email or self.username or self.id or self.ip_address
 
     def to_email_html(self, event, **kwargs):
-        context = self.get_context()
+        context = {
+            'user_id': self.id,
+            'user_email': self.email,
+            'user_username': self.username,
+            'user_ip_address': self.ip_address,
+            'user_data': self.data,
+            'user': self,
+        }
         return render_to_string('sentry/partial/interfaces/user_email.html', context)

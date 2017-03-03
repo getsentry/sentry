@@ -39,10 +39,12 @@ from __future__ import absolute_import
 
 import logging
 import re
+import six
 
 from collections import namedtuple
-from django.utils.html import escape
 from django.utils.safestring import mark_safe
+
+from sentry.utils.html import escape
 
 
 CallbackFuture = namedtuple('CallbackFuture', ['callback', 'kwargs'])
@@ -55,26 +57,28 @@ class RuleDescriptor(type):
         return new_cls
 
 
+@six.add_metaclass(RuleDescriptor)
 class RuleBase(object):
     label = None
     form_cls = None
 
     logger = logging.getLogger('sentry.rules')
 
-    __metaclass__ = RuleDescriptor
-
     def __init__(self, project, data=None, rule=None):
         self.project = project
         self.data = data or {}
+        self.had_data = data is not None
         self.rule = rule
 
     def get_option(self, key):
         return self.data.get(key)
 
     def get_form_instance(self):
-        return self.form_cls(
-            self.data,
-        )
+        if self.had_data:
+            data = self.data
+        else:
+            data = None
+        return self.form_cls(data)
 
     def render_label(self):
         return self.label.format(**self.data)
@@ -87,7 +91,7 @@ class RuleBase(object):
 
         def replace_field(match):
             field = match.group(1)
-            return unicode(form[field])
+            return six.text_type(form[field])
 
         return mark_safe(re.sub(r'{([^}]+)}', replace_field, escape(self.label)))
 
@@ -107,10 +111,7 @@ class RuleBase(object):
 
 
 class EventState(object):
-    def __init__(self, is_new, is_regression, is_sample, rule_is_active,
-                 rule_last_active):
+    def __init__(self, is_new, is_regression, is_sample):
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_sample = is_sample,
-        self.rule_is_active = rule_is_active
-        self.rule_last_active = rule_last_active

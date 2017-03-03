@@ -10,38 +10,81 @@ from __future__ import absolute_import
 
 __all__ = ('Http',)
 
-from Cookie import SmartCookie
+import re
+import six
+
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from pipes import quote
-from urllib import urlencode
-from urlparse import parse_qsl, urlsplit, urlunsplit
+from six.moves.urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from sentry.constants import HTTP_METHODS
-from sentry.interfaces.base import Interface
-from sentry.utils.safe import trim, trim_dict, safe_execute
+from sentry.interfaces.base import Interface, InterfaceValidationError
+from sentry.utils import json
+from sentry.utils.safe import trim, trim_dict, trim_pairs
 from sentry.web.helpers import render_to_string
+
+# Instead of relying on a list of hardcoded methods, just loosly match
+# against a pattern.
+http_method_re = re.compile(r'^[A-Z\-_]{3,32}$')
+
+
+def to_bytes(value):
+    if isinstance(value, six.text_type):
+        return value.encode('utf-8')
+    return six.binary_type(value)
 
 
 def format_headers(value):
-    return dict(
-        (k.title(), v)
-        for k, v in value.iteritems()
-    )
+    if not value:
+        return ()
+
+    if isinstance(value, dict):
+        value = value.items()
+
+    result = []
+    cookie_header = None
+    for k, v in value:
+        # If a header value is a list of header,
+        # we want to normalize this into a comma separated list
+        # This is how most other libraries handle this.
+        # See: urllib3._collections:HTTPHeaderDict.itermerged
+        if isinstance(v, list):
+            v = ', '.join(v)
+
+        if k.lower() == 'cookie':
+            cookie_header = v
+        else:
+            if not isinstance(v, six.string_types):
+                v = six.text_type(v)
+            result.append((k.title(), v))
+    return result, cookie_header
 
 
 def format_cookies(value):
-    return dict(
-        (k.encode('utf8').strip(), v)
-        for k, v in value.iteritems()
-    )
+    if not value:
+        return ()
+
+    if isinstance(value, six.string_types):
+        value = parse_qsl(value, keep_blank_values=True)
+
+    if isinstance(value, dict):
+        value = value.items()
+
+    return [
+        list(map(fix_broken_encoding, (k.strip(), v)))
+        for k, v in value
+    ]
 
 
-def format_body(value):
-    return dict(
-        (k.encode('utf8'), v.encode('utf8'))
-        for k, v in value.iteritems()
-    )
+def fix_broken_encoding(value):
+    """
+    Strips broken characters that can't be represented at all
+    in utf8. This prevents our parsers from breaking elsewhere.
+    """
+    if isinstance(value, six.text_type):
+        value = value.encode('utf8', errors='replace')
+    if isinstance(value, six.binary_type):
+        value = value.decode('utf8', errors='replace')
+    return value
 
 
 class Http(Interface):
@@ -60,14 +103,12 @@ class Http(Interface):
     >>>  {
     >>>     "url": "http://absolute.uri/foo",
     >>>     "method": "POST",
-    >>>     "data": {
-    >>>         "foo": "bar"
-    >>>     },
+    >>>     "data": "foo=bar",
     >>>     "query_string": "hello=world",
     >>>     "cookies": "foo=bar",
-    >>>     "headers": {
-    >>>         "Content-Type": "text/html"
-    >>>     },
+    >>>     "headers": [
+    >>>         ["Content-Type", "text/html"]
+    >>>     ],
     >>>     "env": {
     >>>         "REMOTE_ADDR": "192.168.0.1"
     >>>     }
@@ -83,13 +124,17 @@ class Http(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data.get('url')
+        if not data.get('url'):
+            raise InterfaceValidationError("No value for 'url'")
 
         kwargs = {}
 
         if data.get('method'):
             method = data['method'].upper()
-            assert method in HTTP_METHODS
+            # Optimize for the common path here, where it's a GET/POST, falling
+            # back to a regular expresion test
+            if method not in ('GET', 'POST') and not http_method_re.match(method):
+                raise InterfaceValidationError("Invalid value for 'method'")
             kwargs['method'] = method
         else:
             kwargs['method'] = None
@@ -100,13 +145,14 @@ class Http(Interface):
         if query_string:
             # if querystring was a dict, convert it to a string
             if isinstance(query_string, dict):
-                query_string = urlencode(query_string.items())
+                query_string = urlencode([(to_bytes(k), to_bytes(v))
+                                          for k, v in query_string.items()])
             else:
                 query_string = query_string
                 if query_string[0] == '?':
                     # remove '?' prefix
                     query_string = query_string[1:]
-            kwargs['query_string'] = trim(query_string, 1024)
+            kwargs['query_string'] = trim(query_string, 4096)
         else:
             kwargs['query_string'] = ''
 
@@ -117,46 +163,25 @@ class Http(Interface):
         # strip them out
         headers = data.get('headers')
         if headers:
-            headers = format_headers(headers)
-            if 'Cookie' in headers:
-                if not cookies:
-                    cookies = headers.pop('Cookie')
-                else:
-                    del headers['Cookie']
-            headers = trim_dict(headers)
+            headers, cookie_header = format_headers(headers)
+            if not cookies and cookie_header:
+                cookies = cookie_header
         else:
-            headers = {}
+            headers = ()
 
         body = data.get('data')
-        # TODO(dcramer): a list as a body is not even close to valid
-        if isinstance(body, (list, tuple)):
-            body = trim_dict(dict(enumerate(body)))
-        elif isinstance(body, dict):
-            body = trim_dict(dict(
-                (k, v or '')
-                for k, v in body.iteritems()
-            ))
-        elif body:
+        if isinstance(body, dict):
+            body = json.dumps(body)
+
+        if body:
             body = trim(body, settings.SENTRY_MAX_HTTP_BODY_SIZE)
-            if headers.get('Content-Type') == cls.FORM_TYPE and '=' in body:
-                body = dict(parse_qsl(body, True))
 
-        # if cookies were a string, convert to a dict
-        # parse_qsl will parse both acceptable formats:
-        #  a=b&c=d
-        # and
-        #  a=b;c=d
-        if isinstance(cookies, basestring):
-            cookies = dict(parse_qsl(cookies, keep_blank_values=True))
-        elif not cookies:
-            cookies = {}
-
-        kwargs['cookies'] = format_cookies(trim_dict(cookies))
+        kwargs['cookies'] = trim_pairs(format_cookies(cookies))
         kwargs['env'] = trim_dict(data.get('env') or {})
-        kwargs['headers'] = headers
-        kwargs['data'] = body
+        kwargs['headers'] = trim_pairs(headers)
+        kwargs['data'] = fix_broken_encoding(body)
         kwargs['url'] = urlunsplit((scheme, netloc, path, '', ''))
-        kwargs['fragment'] = trim(fragment, 256)
+        kwargs['fragment'] = trim(fragment, 1024)
 
         return cls(**kwargs)
 
@@ -179,58 +204,39 @@ class Http(Interface):
             'short_url': self.url,
             'method': self.method,
             'query_string': self.query_string,
-        })
-
-    def to_html(self, event, is_public=False, **kwargs):
-        context = {
-            'is_public': is_public,
-            'event': event,
-            'url': self.full_url,
-            'short_url': self.url,
-            'method': self.method,
-            'query_string': self.query_string,
             'fragment': self.fragment,
-            'headers': self.headers,
-            'curl': safe_execute(self.to_curl),
-        }
-        if not is_public:
-            # It's kind of silly we store this twice
-            context.update({
-                'cookies': self.cookies,
-                'env': self.env,
-                'data': self.data,
-            })
-
-        return render_to_string('sentry/partial/interfaces/http.html', context)
-
-    def to_curl(self):
-        method = self.method.upper() if self.method else 'GET'
-        if self.cookies:
-            try:
-                cookies = SmartCookie(self.cookies)
-            except Exception:
-                pass
-            else:
-                # The Cookie header is already yanked out of the headers dict
-                # inside `to_python` so we can just safely re-set it.
-                self.headers['Cookie'] = ';'.join(c.output(attrs=[], header='') for c in cookies.values()).strip()
-        bits = []
-        if method != 'GET':
-            bits.append('-X' + method)
-            data = self.data
-            if isinstance(data, dict):
-                data = urlencode(format_body(data))
-            if isinstance(data, basestring):
-                bits.append('--data ' + quote(data))
-        bits.append(quote(self.full_url))
-        for header in self.headers.iteritems():
-            bits.append('-H ' + quote('%s: %s' % header))
-        if 'gzip' in self.headers.get('Accept-Encoding', ''):
-            bits.append('--compressed')
-        return 'curl ' + ' '.join(bits)
+        })
 
     def get_alias(self):
         return 'request'
 
     def get_title(self):
         return _('Request')
+
+    def get_api_context(self, is_public=False):
+        if is_public:
+            return {}
+
+        data = self.data
+        if isinstance(data, dict):
+            data = json.dumps(data)
+
+        cookies = self.cookies or ()
+        if isinstance(cookies, dict):
+            cookies = sorted(self.cookies.items())
+
+        headers = self.headers or ()
+        if isinstance(headers, dict):
+            headers = sorted(self.headers.items())
+
+        data = {
+            'method': self.method,
+            'url': self.url,
+            'query': self.query_string,
+            'fragment': self.fragment,
+            'data': data,
+            'headers': headers,
+            'cookies': cookies,
+            'env': self.env or None,
+        }
+        return data

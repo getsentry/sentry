@@ -10,7 +10,7 @@ from __future__ import absolute_import
 import re
 import six
 
-from sentry.constants import DEFAULT_SCRUBBED_FIELDS
+from sentry.constants import DEFAULT_SCRUBBED_FIELDS, FILTER_MASK
 
 
 def varmap(func, var, context=None, name=None):
@@ -30,7 +30,11 @@ def varmap(func, var, context=None, name=None):
     if isinstance(var, dict):
         ret = dict((k, varmap(func, v, context, k)) for k, v in six.iteritems(var))
     elif isinstance(var, (list, tuple)):
-        ret = [varmap(func, f, context, name) for f in var]
+        # treat it like a mapping
+        if all(isinstance(v, (list, tuple)) and len(v) == 2 for v in var):
+            ret = [[k, varmap(func, v, context, k)] for k, v in var]
+        else:
+            ret = [varmap(func, f, context, name) for f in var]
     else:
         ret = func(name, var)
     context.remove(objid)
@@ -42,14 +46,25 @@ class SensitiveDataFilter(object):
     Asterisk out things that look like passwords, credit card numbers,
     and API keys in frames, http, and basic extra data.
     """
-    MASK = '*' * 8
-    VALUES_RE = re.compile(r'\b(?:\d[ -]*?){13,16}\b')
+    VALUES_RE = re.compile(r'|'.join([
+        # http://www.richardsramblings.com/regex/credit-card-numbers/
+        r'\b(?:3[47]\d|(?:4\d|5[1-5]|65)\d{2}|6011)\d{12}\b',
+        # various private/public keys
+        r'-----BEGIN[A-Z ]+(PRIVATE|PUBLIC) KEY-----.+-----END[A-Z ]+(PRIVATE|PUBLIC) KEY-----',
+        # social security numbers (US)
+        r'^\b(?!(000|666|9))\d{3}-(?!00)\d{2}-(?!0000)\d{4}\b',
+    ]), re.DOTALL)
+    URL_PASSWORD_RE = re.compile(r'\b((?:[a-z0-9]+:)?//[a-zA-Z0-9%_.-]+:)([a-zA-Z0-9%_.-]+)@')
 
-    def __init__(self, fields=None):
+    def __init__(self, fields=None, include_defaults=True, exclude_fields=()):
         if fields:
-            self.fields = DEFAULT_SCRUBBED_FIELDS + tuple(fields)
+            fields = tuple(fields)
         else:
-            self.fields = DEFAULT_SCRUBBED_FIELDS
+            fields = ()
+        if include_defaults:
+            fields += DEFAULT_SCRUBBED_FIELDS
+        self.exclude_fields = set(exclude_fields)
+        self.fields = set(filter(None, fields))
 
     def apply(self, data):
         # TODO(dcramer): move this into each interface
@@ -61,28 +76,56 @@ class SensitiveDataFilter(object):
                 if exc.get('stacktrace'):
                     self.filter_stacktrace(exc['stacktrace'])
 
+        if 'sentry.interfaces.Breadcrumbs' in data:
+            for crumb in data['sentry.interfaces.Breadcrumbs'].get('values') or ():
+                self.filter_crumb(crumb)
+
         if 'sentry.interfaces.Http' in data:
             self.filter_http(data['sentry.interfaces.Http'])
 
+        if 'sentry.interfaces.User' in data:
+            self.filter_user(data['sentry.interfaces.User'])
+
         if 'extra' in data:
             data['extra'] = varmap(self.sanitize, data['extra'])
+
+        if 'contexts' in data:
+            for key, value in six.iteritems(data['contexts']):
+                data['contexts'][key] = varmap(self.sanitize, value)
 
     def sanitize(self, key, value):
         if value is None:
             return
 
-        if isinstance(value, six.string_types) and self.VALUES_RE.search(value):
-            return self.MASK
+        if isinstance(key, six.string_types):
+            key = key.lower()
+        else:
+            key = ''
 
-        if not isinstance(key, basestring):
+        if key and key in self.exclude_fields:
             return value
 
-        key = key.lower()
+        if isinstance(value, six.string_types):
+            if self.VALUES_RE.search(value):
+                return FILTER_MASK
+
+            # Check if the value is a url-like object
+            # that contains a password
+            # e.g. postgres://foo:password@example.com/db
+            if '//' in value and '@' in value:
+                value = self.URL_PASSWORD_RE.sub(r'\1' + FILTER_MASK + '@', value)
+
+        original_value = value
+        if isinstance(value, six.string_types):
+            value = value.lower()
+        else:
+            value = ''
+
         for field in self.fields:
-            if field in key:
+            if field in key or field in value:
                 # store mask as a fixed length for security
-                return self.MASK
-        return value
+                return FILTER_MASK
+        return original_value
 
     def filter_stacktrace(self, data):
         if 'frames' not in data:
@@ -110,3 +153,14 @@ class SensitiveDataFilter(object):
                 data[n] = '&'.join('='.join(k) for k in querybits)
             else:
                 data[n] = varmap(self.sanitize, data[n])
+
+    def filter_user(self, data):
+        if 'data' not in data:
+            return
+        data['data'] = varmap(self.sanitize, data['data'])
+
+    def filter_crumb(self, data):
+        for key in 'data', 'message':
+            val = data.get(key)
+            if val:
+                data[key] = varmap(self.sanitize, val)

@@ -1,9 +1,11 @@
+from __future__ import absolute_import
+
+import six
+
 from django.core.urlresolvers import reverse
 from mock import patch
 
-from sentry.models import (
-    OrganizationMemberType, Team, TeamStatus
-)
+from sentry.models import Team, TeamStatus
 from sentry.testutils import APITestCase
 
 
@@ -17,7 +19,7 @@ class TeamDetailsTest(APITestCase):
         })
         response = self.client.get(url)
         assert response.status_code == 200
-        assert response.data['id'] == str(team.id)
+        assert response.data['id'] == six.text_type(team.id)
 
 
 class TeamUpdateTest(APITestCase):
@@ -39,18 +41,25 @@ class TeamUpdateTest(APITestCase):
 
 
 class TeamDeleteTest(APITestCase):
+    @patch('sentry.api.endpoints.team_details.uuid4')
     @patch('sentry.api.endpoints.team_details.delete_team')
-    def test_as_owner(self, delete_team):
+    def test_can_remove_as_team_admin(self, delete_team, mock_uuid4):
+        class uuid(object):
+            hex = 'abc123'
+
+        mock_uuid4.return_value = uuid
+
         org = self.create_organization()
         team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
 
         user = self.create_user(email='foo@example.com', is_superuser=False)
 
-        org.member_set.create(
+        self.create_member(
+            organization=org,
             user=user,
-            has_global_access=True,
-            type=OrganizationMemberType.OWNER,
+            role='admin',
+            teams=[team],
         )
 
         self.login_as(user)
@@ -69,12 +78,15 @@ class TeamDeleteTest(APITestCase):
 
         assert team.status == TeamStatus.PENDING_DELETION
 
-        delete_team.delay.assert_called_once_with(
-            object_id=team.id,
-            countdown=60 * 5,
+        delete_team.apply_async.assert_called_once_with(
+            kwargs={
+                'object_id': team.id,
+                'transaction_id': 'abc123',
+            },
+            countdown=3600,
         )
 
-    def test_as_admin(self):
+    def test_cannot_remove_as_member(self):
         org = self.create_organization(owner=self.user)
         team = self.create_team(organization=org)
         project = self.create_project(team=team)  # NOQA
@@ -84,8 +96,8 @@ class TeamDeleteTest(APITestCase):
         team.organization.member_set.create_or_update(
             organization=org,
             user=user,
-            defaults={
-                'type': OrganizationMemberType.ADMIN,
+            values={
+                'role': 'member',
             }
         )
 

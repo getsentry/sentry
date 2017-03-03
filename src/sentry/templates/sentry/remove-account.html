@@ -1,0 +1,52 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Close Account" %}{% endblock %}
+
+{% block main %}
+  <h3>Close Account</h3>
+
+  <form class="form-stacked" action="" method="post" onsubmit="return confirm('Are you REALLY sure you want to go through with this?')">
+    {% csrf_token %}
+
+    <p>{% trans "This will permanently remove all associated data for your user." %}</p>
+
+    <p><strong>{% trans "Closing your account is permanent and cannot be undone!" %}</strong></p>
+
+    {% if organization_results %}
+      <p>{% trans "If you continue, the following organizations will be removed:" %}</p>
+
+      <div class="control-group">
+        <ul class="inputs-list">
+          {% for result in organization_results %}
+            <li>
+              <label class="checkbox">
+                <input type="checkbox" value="{{ result.organization.slug }}"
+                  name="oID"
+                  {% if result.single_owner %} checked="checked" disabled="disabled"{% endif %}/>
+                {{ result.organization.name }} ({{ result.organization.slug }})
+              </label>
+            </li>
+          {% endfor %}
+        </ul>
+        <div class="help-block">
+          Ownership will remain with other members if an organization is not deleted.<br />
+          Disabled boxes mean that there is no other owner within the organization so no one else can take ownership.
+        </div>
+      </div>
+    {% endif %}
+
+    {{ form|as_crispy_errors }}
+
+    {% for field in form %}
+        {{ field|as_crispy_field }}
+    {% endfor %}
+
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-danger">{% trans "Close Account" %}</button>
+      <a href="{% url 'sentry-account-settings' %}" class="btn btn-default">{% trans "Cancel" %}</a>
+    </fieldset>
+{% endblock %}

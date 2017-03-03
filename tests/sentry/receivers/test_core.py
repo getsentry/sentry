@@ -43,8 +43,6 @@ class CreateDefaultProjectsTest(TestCase):
 
         create_default_projects(created_models=[Project])
 
-        user = User.objects.get(username='sentry')
-
         project = Project.objects.get(id=settings.SENTRY_PROJECT)
         assert project.public is False
         assert project.name == 'Internal'

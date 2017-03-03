@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 from exam import fixture
 
+from sentry.interfaces.base import InterfaceValidationError
 from sentry.interfaces.http import Http
 from sentry.testutils import TestCase
 
@@ -29,8 +30,8 @@ class HttpTest(TestCase):
         assert result.fragment == ''
         assert result.query_string == ''
         assert result.data is None
-        assert result.cookies == {}
-        assert result.headers == {}
+        assert result.cookies == []
+        assert result.headers == []
         assert result.env == {}
         assert result.full_url == result.url
 
@@ -48,8 +49,8 @@ class HttpTest(TestCase):
         assert result.method == 'GET'
         assert result.query_string == 'foo=bar'
         assert result.fragment == 'foobar'
-        assert result.cookies == {'foo': 'bar'}
-        assert result.headers == {'X-Foo-Bar': 'baz'}
+        assert result.cookies == [('foo', 'bar')]
+        assert result.headers == [('X-Foo-Bar', 'baz')]
         assert result.env == {'bing': 'bong'}
         assert result.data == 'hello world'
 
@@ -60,19 +61,19 @@ class HttpTest(TestCase):
         ))
         assert result.query_string == 'foo=bar'
 
+    def test_query_string_as_dict_unicode(self):
+        result = Http.to_python(dict(
+            url='http://example.com',
+            query_string={'foo': u'\N{SNOWMAN}'},
+        ))
+        assert result.query_string == 'foo=%E2%98%83'
+
     def test_data_as_dict(self):
         result = Http.to_python(dict(
             url='http://example.com',
             data={'foo': 'bar'},
         ))
-        assert result.data == {'foo': 'bar'}
-
-    def test_data_as_list(self):
-        result = Http.to_python(dict(
-            url='http://example.com',
-            data=['foo', 'bar'],
-        ))
-        assert result.data == {0: 'foo', 1: 'bar'}
+        assert result.data == '{"foo":"bar"}'
 
     def test_form_encoded_data(self):
         result = Http.to_python(dict(
@@ -80,32 +81,32 @@ class HttpTest(TestCase):
             headers={'Content-Type': 'application/x-www-form-urlencoded'},
             data='foo=bar',
         ))
-        assert result.data == {'foo': 'bar'}
+        assert result.data == 'foo=bar'
 
     def test_cookies_as_string(self):
         result = Http.to_python(dict(
             url='http://example.com',
             cookies='a=b;c=d',
         ))
-        assert result.cookies == {'a': 'b', 'c': 'd'}
+        assert result.cookies == [('a', 'b'), ('c', 'd')]
         result = Http.to_python(dict(
             url='http://example.com',
             cookies='a=b&c=d',
         ))
-        assert result.cookies == {'a': 'b', 'c': 'd'}
+        assert result.cookies == [('a', 'b'), ('c', 'd')]
 
     def test_cookies_in_header(self):
         result = Http.to_python(dict(
             url='http://example.com',
             headers={'Cookie': 'a=b;c=d'},
         ))
-        assert result.cookies == {'a': 'b', 'c': 'd'}
+        assert result.cookies == [('a', 'b'), ('c', 'd')]
         result = Http.to_python(dict(
             url='http://example.com',
             headers={'Cookie': 'a=b;c=d'},
             cookies={'foo': 'bar'},
         ))
-        assert result.cookies == {'foo': 'bar'}
+        assert result.cookies == [('foo', 'bar')]
 
     def test_query_string_and_fragment_as_params(self):
         result = Http.to_python(dict(
@@ -123,31 +124,53 @@ class HttpTest(TestCase):
         assert result.url == 'http://example.com'
         assert result.full_url == 'http://example.com?foo=bar#fragment'
 
-    def test_to_curl_get(self):
+    def test_header_value_list(self):
         result = Http.to_python(dict(
-            method='GET',
             url='http://example.com',
-            query_string='foo=bar',
-            headers={'x-foo-bar': 'baz', 'accept-encoding': 'deflate, gzip'},
-            cookies={'foo': 'bar'},
+            headers={'Foo': ['1', '2']},
         ))
-        assert result.to_curl() == "curl 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"
+        assert result.headers == [('Foo', '1, 2')]
 
-    def test_to_curl_post(self):
+    def test_header_value_str(self):
         result = Http.to_python(dict(
-            method='POST',
             url='http://example.com',
-            query_string='foo=bar',
-            headers={'x-foo-bar': 'baz', 'accept-encoding': 'deflate, gzip'},
-            cookies={'foo': 'bar'},
-            data='foo=bar&a=b',
+            headers={'Foo': 1}
         ))
-        assert result.to_curl() == "curl -XPOST --data 'foo=bar&a=b' 'http://example.com?foo=bar' -H 'X-Foo-Bar: baz' -H 'Cookie: foo=bar' -H 'Accept-Encoding: deflate, gzip' --compressed"
+        assert result.headers == [('Foo', '1')]
 
-    def test_to_curl_post_with_unicode(self):
+    def test_method(self):
+        with self.assertRaises(InterfaceValidationError):
+            Http.to_python(dict(
+                url='http://example.com',
+                method='1234',
+            ))
+
+        with self.assertRaises(InterfaceValidationError):
+            Http.to_python(dict(
+                url='http://example.com',
+                method='A' * 33,
+            ))
+
+        with self.assertRaises(InterfaceValidationError):
+            Http.to_python(dict(
+                url='http://example.com',
+                method='A',
+            ))
+
         result = Http.to_python(dict(
-            method='POST',
             url='http://example.com',
-            data={u'föo': u'bär'},
+            method='TEST',
         ))
-        assert result.to_curl() == "curl -XPOST --data f%C3%B6o=b%C3%A4r http://example.com"
+        assert result.method == 'TEST'
+
+        result = Http.to_python(dict(
+            url='http://example.com',
+            method='FOO-BAR',
+        ))
+        assert result.method == 'FOO-BAR'
+
+        result = Http.to_python(dict(
+            url='http://example.com',
+            method='FOO_BAR',
+        ))
+        assert result.method == 'FOO_BAR'

@@ -4,88 +4,19 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block inner %}
-    <style>
-    .rule-form input[type=text] {
-        width: auto;
-    }
-    </style>
+{% block selectize %}{% endblock %}
 
-    <div class="page-header">
-        <h2>
-            {% if rule.id %}
-                {% trans "Edit Rule" %}
-            {% else %}
-                {% trans "New Rule" %}
-            {% endif %}
-            <small>Applying to Events</small>
-        </h2>
-    </div>
-    <div id="new-rule-form">
-        <form method="POST" action="" class="rule-form">
-            {% csrf_token %}
-
-            {% if not form_is_valid %}
-                <div class="alert-block alert alert-error">
-                    <p>{% trans "There were errors with your submission. Please ensure all options are filled out correctly." %}</p>
-                </div>
-            {% endif %}
-
-            {{ form|as_crispy_errors }}
-
-            <fieldset>
-                <div class="controls{% if form_errors.label %} error{% endif %}">
-                    <label>{% trans "Label:" %}</label> <input type="text" name="label" placeholder="{% trans "e.g. My Rule Name" %}">
-                </div>
-            </fieldset>
-
-            <fieldset style="margin: 20px 0">
-                <div><legend>Conditions</legend></div>
-                <p>When <select name="action_match" style="width:100px" class="select2-small">
-                    <option value="all">all of</option>
-                    <option value="any">any of</option>
-                    <option value="none">none of</option>
-                </select> these conditions are met:</p>
-                <table class="condition-list table table-striped">
-                    <colgroup>
-                        <col>
-                        <col style="width:50px">
-                    </colgroup>
-                    <tbody></tbody>
-                </table>
-                <div class="controls row-fluid">
-                    <select id="condition-select" class="span6" placeholder="add a condition"></select>
-                </div>
-            </fieldset>
-
-            <fieldset style="margin: 20px 0">
-                <div><legend>Actions</legend></div>
-                <p>Take these actions every time this rules matches:</p>
-                <table class="action-list table table-striped">
-                    <colgroup>
-                        <col>
-                        <col style="width:50px">
-                    </colgroup>
-                    <tbody></tbody>
-                </table>
-                <div class="controls row-fluid">
-                    <select id="action-select" class="span6" placeholder="add an action"></select>
-                </div>
-            </fieldset>
-
-            <div class="actions" style="margin-top: 20px">
-                <button type="submit" class="btn btn-primary">{% trans "Save Rule" %}</button>
-            </div>
-        </form>
-    </div>
-
-    <script>
-    new app.NewProjectRulePage({
-        el: '#new-rule-form',
-        actions: {{ action_list|safe }},
-        conditions: {{ condition_list|safe }},
-        form_data: {{ form_data|to_json|safe }},
-        form_errors: {{ form_errors|to_json|safe }}
-    });
-    </script>
+{% block main %}
+  <div id="blk_rule_editor"></div>
+  <script>
+  $(function(){
+    ReactDOM.render(React.createFactory(Sentry.RuleEditor)({
+      rule: {% serialize rule %},
+      actions: {{ action_list|safe }},
+      conditions: {{ condition_list|safe }},
+      project: {% serialize project %},
+      organization: {% serialize organization %}
+    }), document.getElementById('blk_rule_editor'));
+  });
+  </script>
 {% endblock %}

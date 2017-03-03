@@ -1,0 +1,66 @@
+img {
+	max-width: 100%;
+}
+
+.image {
+	border: 1px solid #e1e4e5;
+	padding: 15px;
+	border-radius: 2px;
+}
+
+.truncate {
+	max-width: 100%;
+	display: block;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.break-word {
+  /* These are technically the same, but we have to use both */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  -ms-word-break: break-all;
+  word-break: break-word;
+}
+
+.bordered-column {
+	border-right: 1px solid @trim;
+	margin: -20px -1px 0 -10px;
+	padding: 20px 20px 0;
+
+	&+.bordered-column {
+		border: 0;
+		border-left: 1px solid @trim;
+		margin: -20px 0 0 0;
+		padding: 20px 0 0 20px;
+	}
+}
+
+.no-border {
+	border: 0 !important;
+}
+
+table .bar-cell {
+    position: relative;
+}
+
+table .bar-cell span.bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    height: 3px;
+    background: @blue;
+}
+
+/* translation debug */
+span.translation-wrapper {
+    background: #FF953D;
+    border: 3px solid #FF4D3D;
+    border-radius: 3px;
+}
+
+.horizontal-scroll {
+	overflow-x: auto;
+}

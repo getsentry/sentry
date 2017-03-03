@@ -1,36 +1,82 @@
 sudo: false
 language: python
-services:
-  - elasticsearch
-  - memcached
-  - riak
-  - mysql
-  - postgresql
-  - redis-server
-  - cassandra
-python:
-  - "2.7"
+rvm:
+  - 2.2
 cache:
+  yarn: true
   directories:
     - node_modules
-    - .pip_download_cache
-    - "$HOME/virtualenv/python2.7.9"
+    - $HOME/.cache/pip/wheels
+branches:
+  only:
+  - master
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
 env:
-  matrix:
-    - DB=sqlite
-    - DB=mysql
-    - DB=postgres
   global:
-    - PIP_DOWNLOAD_CACHE=".pip_download_cache"
+    - NODE_ENV=production
+    - PIP_DISABLE_PIP_VERSION_CHECK=on
+    - SENTRY_LIGHT_BUILD=1
+    - SENTRY_SKIP_BACKEND_VALIDATION=1
+    - TRAVIS_NODE_VERSION=4
+    - CXX=g++-4.8
 install:
-  - time make develop dev-postgres dev-mysql
+  - nvm install $TRAVIS_NODE_VERSION
+  - make travis-install-$TEST_SUITE
 before_script:
-  - mysql -e 'create database sentry;'
-  - psql -c 'create database sentry;' -U postgres
-  - "echo \"create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};\" | cqlsh --cqlversion=3.0.3"
-  - echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
+  - pip freeze
 script:
-  - make lint
-  - make test-js
-  - py.test tests
-  - make test-cli
+  - make travis-lint-$TEST_SUITE
+  - make travis-test-$TEST_SUITE
+after_success:
+  - codecov -e TEST_SUITE
+after_failure:
+  - dmesg | tail -n 100
+# each attribute in the matrix will override the global attribute
+matrix:
+  fast_finish: true
+  include:
+    - language: ruby
+      rvm: 2.2
+      env: TEST_SUITE=danger
+    # only the sqlite suite runs cassandra/riak tests
+    - python: 2.7
+      env: TEST_SUITE=sqlite DB=sqlite
+      services:
+        - memcached
+        - riak
+        - redis-server
+        - cassandra
+      before_script:
+        - make travis-setup-cassandra
+        - pip freeze
+    - python: 2.7
+      env: TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=mysql DB=mysql
+      services:
+        - memcached
+        - mysql
+        - redis-server
+    - python: 2.7
+      env: TEST_SUITE=acceptance
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=js
+    - python: 2.7
+      env: TEST_SUITE=cli
+      services:
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=dist

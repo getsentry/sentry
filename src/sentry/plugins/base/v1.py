@@ -10,14 +10,20 @@ from __future__ import absolute_import, print_function
 __all__ = ('Plugin',)
 
 import logging
+import six
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from threading import local
 
 from sentry.auth import access
+from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
+from sentry.plugins.base.configuration import (
+    default_plugin_config, default_plugin_options,
+)
+from sentry.utils.hashlib import md5_text
 
 
 class PluginMount(type):
@@ -29,12 +35,12 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not new_cls.slug:
             new_cls.slug = new_cls.title.replace(' ', '-').lower()
-        if not hasattr(new_cls, 'logger'):
+        if not hasattr(new_cls, 'logger') or new_cls.logger in [getattr(b, 'logger', None) for b in bases]:
             new_cls.logger = logging.getLogger('sentry.plugins.%s' % (new_cls.slug,))
         return new_cls
 
 
-class IPlugin(local, PluggableViewMixin):
+class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -79,6 +85,9 @@ class IPlugin(local, PluggableViewMixin):
 
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
+
+    def get_plugin_type(self):
+        return 'default'
 
     def is_enabled(self, project=None):
         """
@@ -142,6 +151,14 @@ class IPlugin(local, PluggableViewMixin):
         from sentry.plugins.helpers import unset_option
         return unset_option(self._get_option_key(key), project, user)
 
+    def enable(self, project=None, user=None):
+        """Enable the plugin."""
+        self.set_option('enabled', True, project, user)
+
+    def disable(self, project=None, user=None):
+        """Disable the plugin."""
+        self.set_option('enabled', False, project, user)
+
     def get_url(self, group):
         """
         Returns the absolute URL to this plugins group action handler.
@@ -158,6 +175,47 @@ class IPlugin(local, PluggableViewMixin):
             return self.get_conf_title().lower().replace(' ', '_')
         return self.conf_key
 
+    def get_conf_form(self, project=None):
+        """
+        Returns the Form required to configure the plugin.
+
+        >>> plugin.get_conf_form(project)
+        """
+        if project is not None:
+            return self.project_conf_form
+        return self.site_conf_form
+
+    def get_conf_template(self, project=None):
+        """
+        Returns the template required to render the configuration page.
+
+        >>> plugin.get_conf_template(project)
+        """
+        if project is not None:
+            return self.project_conf_template
+        return self.site_conf_template
+
+    def get_conf_options(self, project=None):
+        """
+        Returns a dict of all of the configured options for a project.
+
+        >>> plugin.get_conf_options(project)
+        """
+        return default_plugin_options(self, project)
+
+    def get_conf_version(self, project):
+        """
+        Returns a version string that represents the current configuration state.
+
+        If any option changes or new options added, the version will change.
+
+        >>> plugin.get_conf_version(project)
+        """
+        options = self.get_conf_options(project)
+        return md5_text(
+            '&'.join(sorted('%s=%s' % o for o in six.iteritems(options)))
+        ).hexdigest()[:3]
+
     def get_conf_title(self):
         """
         Returns a string representing the title to be shown on the configuration page.
@@ -172,8 +230,29 @@ class IPlugin(local, PluggableViewMixin):
 
     def can_enable_for_projects(self):
         """
-        Returns a boolean describing whether this plugin can be enabled on a per project basis
+        Returns a boolean describing whether this plugin can be enabled for
+        projects.
         """
+        return True
+
+    def can_configure_for_project(self, project):
+        """
+        Returns a boolean describing whether this plugin can be enabled on
+        a per project basis
+        """
+        from sentry import features
+
+        if not self.enabled:
+            return False
+        if not self.can_enable_for_projects():
+            return False
+
+        if not features.has('projects:plugins', project, self, actor=None):
+            return False
+
+        if not self.can_disable:
+            return True
+
         return True
 
     def get_form_initial(self, project=None):
@@ -204,7 +283,7 @@ class IPlugin(local, PluggableViewMixin):
 
         >>> def get_resource_links(self):
         >>>     return [
-        >>>         ('Documentation', 'http://sentry.readthedocs.org'),
+        >>>         ('Documentation', 'https://docs.sentry.io'),
         >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
         >>>         ('Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
@@ -233,7 +312,7 @@ class IPlugin(local, PluggableViewMixin):
         event = group.get_latest_event() or Event()
         event.group = group
 
-        request.access = access.from_user(request.user, group.organization)
+        request.access = access.from_request(request, group.organization)
 
         return response.respond(request, {
             'plugin': self,
@@ -329,42 +408,12 @@ class IPlugin(local, PluggableViewMixin):
     # Server side signals which do not have request context
 
     def has_perm(self, user, perm, *objects, **kwargs):
-        """
-        Given a user, a permission name, and an optional list of objects
-        within context, returns an override value for a permission.
-
-        :param user: either an instance of ``AnonymousUser`` or ``User``.
-        :param perm: a string, such as "edit_project"
-        :param objects: an optional list of objects
-
-        If your plugin does not modify this permission, simply return ``None``.
-
-        For example, has perm might be called like so:
-
-        >>> has_perm(user, 'add_project')
-
-        It also might be called with more context:
-
-        >>> has_perm(user, 'edit_project', project)
-
-        Or with even more context:
-
-        >>> has_perm(user, 'configure_project_plugin', project, plugin)
-        """
-        return None
+        # DEPRECATED: No longer used.
+        pass
 
     def missing_perm_response(self, request, perm, *args, **objects):
-        """
-        Given a user, a permission name, and an optional mapping of objects
-        within a context, returns a custom response.
-
-        :param user: either an instance of ``AnonymousUser`` or ``User``.
-        :param perm: a string, such as "edit_project"
-        :param objects: an optional mapping of objects
-
-        If your plugin does not need to override this response, simply return
-        ``None``.
-        """
+        # DEPRECATED: No longer used.
+        pass
 
     def is_regression(self, group, event, **kwargs):
         """
@@ -423,7 +472,25 @@ class IPlugin(local, PluggableViewMixin):
         """
         return hasattr(self, 'test_configuration')
 
+    def configure(self, request, project=None):
+        """Configures the plugin."""
+        return default_plugin_config(self, project, request)
 
+    def get_url_module(self):
+        """Allows a plugin to return the import path to a URL module."""
+
+    def view_configure(self, request, project, **kwargs):
+        if request.method == 'GET':
+            return Response(self.get_configure_plugin_fields(
+                request=request,  # DEPRECATED: this param should not be used
+                project=project,
+                **kwargs
+            ))
+        self.configure(project, request.DATA)
+        return Response({'message': 'Successfully updated configuration.'})
+
+
+@six.add_metaclass(PluginMount)
 class Plugin(IPlugin):
     """
     A plugin should be treated as if it were a singleton. The owner does not
@@ -431,4 +498,3 @@ class Plugin(IPlugin):
     it will happen, or happen more than once.
     """
     __version__ = 1
-    __metaclass__ = PluginMount

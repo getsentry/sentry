@@ -14,22 +14,18 @@ SORT_CLAUSES = {
     'date': 'EXTRACT(EPOCH FROM sentry_groupedmessage.last_seen)::int',
     'new': 'EXTRACT(EPOCH FROM sentry_groupedmessage.first_seen)::int',
     'freq': 'sentry_groupedmessage.times_seen',
-    'tottime': 'sentry_groupedmessage.time_spent_total',
-    'avgtime': '(sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count)::int',
 }
 
 SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
 SQLITE_SORT_CLAUSES.update({
     'date': "cast((julianday(sentry_groupedmessage.last_seen) - 2440587.5) * 86400.0 as INTEGER)",
     'new': "cast((julianday(sentry_groupedmessage.first_seen) - 2440587.5) * 86400.0 as INTEGER)",
-    'avgtime': 'CAST((sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count) as INTEGER)',
 })
 
 MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
 MYSQL_SORT_CLAUSES.update({
     'date': 'UNIX_TIMESTAMP(sentry_groupedmessage.last_seen)',
     'new': 'UNIX_TIMESTAMP(sentry_groupedmessage.first_seen)',
-    'avgtime': 'CAST((sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count) as INTEGER)',
 })
 
 ORACLE_SORT_CLAUSES = SORT_CLAUSES.copy()

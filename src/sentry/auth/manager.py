@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ProviderManager']
 
+import six
+
 from .exceptions import ProviderNotRegistered
 
 
@@ -12,7 +14,7 @@ class ProviderManager(object):
         self.__values = {}
 
     def __iter__(self):
-        return self.__values.iteritems()
+        return six.iteritems(self.__values)
 
     def get(self, key, **kwargs):
         try:
@@ -28,6 +30,11 @@ class ProviderManager(object):
         self.__values[key] = cls
 
     def unregister(self, key, cls):
-        if self.__values[key] != cls:
-            raise ProviderNotRegistered(key)
+        try:
+            if self.__values[key] != cls:
+                # dont allow unregistering of arbitrary provider
+                raise ProviderNotRegistered(key)
+        except KeyError:
+            # we gracefully handle a missing provider
+            return
         del self.__values[key]

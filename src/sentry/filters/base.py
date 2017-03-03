@@ -1,84 +1,44 @@
-"""
-sentry.filters.base
-~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
-# Widget api is pretty ugly
 from __future__ import absolute_import
 
-__all__ = ('Filter',)
+__all__ = ['Filter']
 
-import hashlib
+from sentry.models import ProjectOption
+from rest_framework import serializers
 
-from django.utils.datastructures import SortedDict
 
-from sentry.models import TagValue
-from sentry.utils.cache import cache
-from .widgets import ChoiceWidget
+class FilterSerializer(serializers.Serializer):
+    active = serializers.BooleanField()
 
 
 class Filter(object):
-    label = ''
-    column = ''
-    widget = ChoiceWidget
-    # This must be a string
-    default = ''
-    show_label = True
-    max_choices = 50
+    id = None
+    description = None
+    name = None
+    default = False
+    serializer_cls = FilterSerializer
 
-    def __init__(self, request, project, label=None, column=None):
-        self.request = request
+    def __init__(self, project):
         self.project = project
-        if label is not None:
-            self.label = label
-        if column is not None:
-            self.column = column
 
-    def is_set(self):
-        return bool(self.get_value())
+    def is_enabled(self):
+        return ProjectOption.objects.get_value(
+            project=self.project,
+            key='filters:{}'.format(self.id),
+            default='1' if self.default else '0',
+        ) == '1'
 
-    def get_label(self):
-        return self.label
+    def enable(self, value=None):
+        if value is None:
+            value = {'active': True}
 
-    def get_column(self):
-        return self.column
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:{}'.format(self.id),
+            value='1' if value.get('active', False) else '0',
+        )
 
-    def get_value(self):
-        return self.request.GET.get(self.get_query_param(), self.default) or ''
+    def disable(self):
+        return self.enable(False)
 
-    def get_query_param(self):
-        return getattr(self, 'query_param', self.get_column())
-
-    def get_widget(self):
-        return self.widget(self, self.request)
-
-    def get_query_string(self):
-        column = self.get_column()
-        query_dict = self.request.GET.copy()
-        if 'p' in query_dict:
-            del query_dict['p']
-        if column in query_dict:
-            del query_dict[column]
-        return '?' + query_dict.urlencode()
-
-    def get_choices(self):
-        key = 'filters:%s:%s' % (self.project.id, hashlib.md5(self.column.encode('utf8')).hexdigest())
-        result = cache.get(key)
-        if result is None:
-            result = list(TagValue.objects.filter(
-                project=self.project,
-                key=self.column,
-            ).values_list('value', flat=True).order_by('value')[:self.max_choices])
-            cache.set(key, result, 60)
-        return SortedDict((l, l) for l in result)
-
-    def process(self, data):
-        """``self.request`` is not available within this method"""
-        return data
-
-    def render(self):
-        widget = self.get_widget()
-        return widget.render(self.get_value())
+    def test(self):
+        return False

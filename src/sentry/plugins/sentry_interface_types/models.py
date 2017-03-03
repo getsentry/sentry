@@ -7,9 +7,9 @@ sentry.plugins.sentry_interface_types.models
 """
 from __future__ import absolute_import
 
-import sentry
+import six
 
-from django.utils.translation import ugettext_lazy as _
+import sentry
 
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
@@ -22,7 +22,7 @@ class InterfaceTypePlugin(TagPlugin):
     """
     descrption = __doc__
     slug = 'interface_types'
-    title = _('Auto Tag: Interface Types')
+    title = 'Auto Tag: Interface Types'
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
@@ -30,6 +30,6 @@ class InterfaceTypePlugin(TagPlugin):
     project_default_enabled = False
 
     def get_tag_values(self, event):
-        return [i.rsplit('.', 1)[-1] for i in event.interfaces.iterkeys()]
+        return [i.rsplit('.', 1)[-1] for i in six.iterkeys(event.interfaces)]
 
 register(InterfaceTypePlugin)

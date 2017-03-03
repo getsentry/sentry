@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
+from django.core.exceptions import SuspiciousOperation
+
 
 class InvalidData(Exception):
     pass
 
 
 class InvalidInterface(InvalidData):
-    pass
-
-
-class InvalidTimestamp(InvalidData):
     pass
 
 
@@ -26,4 +24,28 @@ class InvalidOrigin(InvalidRequest):
 
 
 class CacheNotPopulated(Exception):
+    pass
+
+
+class InvalidConfiguration(Exception):
+    pass
+
+
+class DeleteAborted(Exception):
+    pass
+
+
+class RestrictedIPAddress(SuspiciousOperation):
+    pass
+
+
+class PluginError(Exception):
+    pass
+
+
+class PluginIdentityRequired(PluginError):
+    pass
+
+
+class InvalidIdentity(Exception):
     pass

@@ -2,10 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import (
-    AuditLogEntry, AuditLogEntryEvent, OrganizationMember,
-    OrganizationMemberType
-)
+from sentry.models import AuditLogEntry, AuditLogEntryEvent, OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -24,6 +21,7 @@ class AcceptInviteTest(TestCase):
     def test_invalid_token(self):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[om.id, 2]))
@@ -32,6 +30,7 @@ class AcceptInviteTest(TestCase):
     def test_renders_unauthenticated_template(self):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[om.id, om.token]))
@@ -44,6 +43,7 @@ class AcceptInviteTest(TestCase):
 
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[om.id, om.token]))
@@ -56,7 +56,8 @@ class AcceptInviteTest(TestCase):
 
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
-            type=OrganizationMemberType.MEMBER,
+            role='member',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))
@@ -79,7 +80,8 @@ class AcceptInviteTest(TestCase):
     def test_cannot_accept_while_unauthenticated(self):
         om = OrganizationMember.objects.create(
             email='newuser@example.com',
-            type=OrganizationMemberType.MEMBER,
+            role='member',
+            token='abc',
             organization=self.organization,
         )
         resp = self.client.post(reverse('sentry-accept-invite', args=[om.id, om.token]))

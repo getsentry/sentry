@@ -10,11 +10,17 @@ from __future__ import absolute_import, print_function
 __all__ = ('Plugin2',)
 
 import logging
+import six
 
 from django.http import HttpResponseRedirect
 from threading import local
 
+from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.base.response import Response
+from sentry.plugins.base.configuration import (
+    default_plugin_config, default_plugin_options,
+)
+from sentry.utils.hashlib import md5_text
 
 
 class PluginMount(type):
@@ -31,7 +37,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin2(local):
+class IPlugin2(local, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -74,6 +80,9 @@ class IPlugin2(local):
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
 
+    def get_plugin_type(self):
+        return 'default'
+
     def is_enabled(self, project=None):
         """
         Returns a boolean representing if this plugin is enabled.
@@ -84,9 +93,8 @@ class IPlugin2(local):
         """
         if not self.enabled:
             return False
+
         if not self.can_disable:
-            return True
-        if not self.can_enable_for_projects():
             return True
 
         if project:
@@ -136,6 +144,14 @@ class IPlugin2(local):
         from sentry.plugins.helpers import unset_option
         return unset_option(self._get_option_key(key), project, user)
 
+    def enable(self, project=None, user=None):
+        """Enable the plugin."""
+        self.set_option('enabled', True, project, user)
+
+    def disable(self, project=None, user=None):
+        """Disable the plugin."""
+        self.set_option('enabled', False, project, user)
+
     def get_conf_key(self):
         """
         Returns a string representing the configuration keyspace prefix for this plugin.
@@ -144,19 +160,74 @@ class IPlugin2(local):
             self.conf_key = self.get_conf_title().lower().replace(' ', '_')
         return self.conf_key
 
+    def get_conf_form(self, project=None):
+        """
+        Returns the Form required to configure the plugin.
+
+        >>> plugin.get_conf_form(project)
+        """
+        if project is not None:
+            return self.project_conf_form
+        return self.site_conf_form
+
+    def get_conf_template(self, project=None):
+        """
+        Returns the template required to render the configuration page.
+
+        >>> plugin.get_conf_template(project)
+        """
+        if project is not None:
+            return self.project_conf_template
+        return self.site_conf_template
+
+    def get_conf_options(self, project=None):
+        """
+        Returns a dict of all of the configured options for a project.
+
+        >>> plugin.get_conf_options(project)
+        """
+        return default_plugin_options(self, project)
+
+    def get_conf_version(self, project):
+        """
+        Returns a version string that represents the current configuration state.
+
+        If any option changes or new options added, the version will change.
+
+        >>> plugin.get_conf_version(project)
+        """
+        options = self.get_conf_options(project)
+        return md5_text(
+            '&'.join(sorted('%s=%s' % o for o in six.iteritems(options)))
+        ).hexdigest()[:3]
+
     def get_conf_title(self):
         """
         Returns a string representing the title to be shown on the configuration page.
         """
         return self.conf_title or self.get_title()
 
+    def get_form_initial(self, project=None):
+        return {}
+
     def has_project_conf(self):
         return self.project_conf_form is not None
 
-    def can_enable_for_projects(self):
+    def can_configure_for_project(self, project):
         """
-        Returns a boolean describing whether this plugin can be enabled on a per project basis
+        Checks if the plugin can be configured for a specific project.
         """
+        from sentry import features
+
+        if not self.enabled:
+            return False
+
+        if not features.has('projects:plugins', project, self, actor=None):
+            return False
+
+        if not self.can_disable:
+            return True
+
         return True
 
     # Response methods
@@ -206,7 +277,7 @@ class IPlugin2(local):
 
         >>> def get_resource_links(self):
         >>>     return [
-        >>>         ('Documentation', 'http://sentry.readthedocs.org'),
+        >>>         ('Documentation', 'https://docs.sentry.io'),
         >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
         >>>         ('Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
@@ -237,7 +308,7 @@ class IPlugin2(local):
         """
         return []
 
-    def get_annotations(self, request, group, **kwargs):
+    def get_annotations(self, group, **kwargs):
         """
         Return a list of annotations to append to this aggregate.
 
@@ -246,7 +317,7 @@ class IPlugin2(local):
         The properties of each tag must match the constructor for
         :class:`sentry.plugins.Annotation`
 
-        >>> def get_annotations(self, request, group, **kwargs):
+        >>> def get_annotations(self, group, **kwargs):
         >>>     task_id = GroupMeta.objects.get_value(group, 'myplugin:tid')
         >>>     if not task_id:
         >>>         return []
@@ -278,7 +349,7 @@ class IPlugin2(local):
         """
         return []
 
-    def get_event_preprocessors(self, **kwargs):
+    def get_event_preprocessors(self, data, **kwargs):
         """
         Return a list of preprocessors to apply to the given event.
 
@@ -286,10 +357,31 @@ class IPlugin2(local):
         input and returns modified data as output. If no changes to the data are
         made it is safe to return ``None``.
 
-        >>> def get_event_preprocessors(self, **kwargs):
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        >>> def get_event_preprocessors(self, data, **kwargs):
         >>>     return [lambda x: x]
         """
         return []
+
+    def get_stacktrace_processors(self, data, stacktrace_infos,
+                                  platforms, **kwargs):
+        """
+        This works similarly to `get_event_preprocessors` but returns a
+        function that is invoked for all encountered stacktraces in an
+        event.
+
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        :::
+
+            def get_stacktrace_processors(self, data, stacktrace_infos,
+                                          platforms, **kwargs):
+                if 'cocoa' in platforms:
+                    return [CocoaProcessor(data, stacktrace_infos)]
+        """
 
     def get_feature_hooks(self, **kwargs):
         """
@@ -323,7 +415,27 @@ class IPlugin2(local):
         """
         return []
 
+    def get_custom_contexts(self):
+        """Return a list of of context types.
 
+        from sentry.interfaces.contexts import ContextType
+
+        class MyContextType(ContextType):
+            type = 'my_type'
+
+        def get_custom_contexts(self):
+            return [MyContextType]
+        """
+
+    def configure(self, project, request):
+        """Configures the plugin."""
+        return default_plugin_config(self, project, request)
+
+    def get_url_module(self):
+        """Allows a plugin to return the import path to a URL module."""
+
+
+@six.add_metaclass(PluginMount)
 class Plugin2(IPlugin2):
     """
     A plugin should be treated as if it were a singleton. The owner does not
@@ -331,4 +443,3 @@ class Plugin2(IPlugin2):
     it will happen, or happen more than once.
     """
     __version__ = 2
-    __metaclass__ = PluginMount

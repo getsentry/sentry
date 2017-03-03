@@ -10,38 +10,21 @@ from __future__ import absolute_import
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.constants import HTTP_METHODS
 from sentry.models import User, Activity
 from sentry.web.forms.fields import RadioFieldRenderer, ReadOnlyTextField
 
 
-class ReplayForm(forms.Form):
-    url = forms.URLField(widget=forms.TextInput(attrs={'class': 'span8'}))
-    method = forms.ChoiceField(choices=((k, k) for k in HTTP_METHODS))
-    data = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
-    headers = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
-
-    def clean_headers(self):
-        value = self.cleaned_data.get('headers')
-        if not value:
-            return
-
-        return dict(line.split(': ', 1) for line in value.splitlines())
-
-
 class BaseUserForm(forms.ModelForm):
     email = forms.EmailField()
-    first_name = forms.CharField(required=True, label=_('Name'))
+    name = forms.CharField(required=True, label=_('Name'))
 
 
 class NewUserForm(BaseUserForm):
-    create_project = forms.BooleanField(required=False,
-        help_text=_("Create a project for this user."))
     send_welcome_mail = forms.BooleanField(required=False,
         help_text=_("Send this user a welcome email which will contain their generated password."))
 
     class Meta:
-        fields = ('first_name', 'username', 'email')
+        fields = ('name', 'username', 'email')
         model = User
 
 
@@ -53,7 +36,7 @@ class ChangeUserForm(BaseUserForm):
                     'explicitly assigning them.'))
 
     class Meta:
-        fields = ('first_name', 'username', 'email', 'is_active', 'is_staff',
+        fields = ('name', 'username', 'email', 'is_active', 'is_staff',
                   'is_superuser')
         model = User
 
@@ -81,11 +64,11 @@ class TestEmailForm(forms.Form):
 
 
 class NewNoteForm(forms.Form):
-    text = forms.CharField(widget=forms.Textarea(attrs={'class': 'span8'}))
+    text = forms.CharField(widget=forms.Textarea(attrs={'rows': '1', 'placeholder': 'Type a note and press enter...'}))
 
-    def save(self, event, user):
+    def save(self, group, user, event=None):
         activity = Activity.objects.create(
-            group=event.group, event=event, project=event.project,
+            group=group, project=group.project,
             type=Activity.NOTE, user=user,
             data=self.cleaned_data
         )

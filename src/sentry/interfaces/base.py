@@ -1,10 +1,23 @@
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
-from django.utils.html import escape
 from django.utils.translation import ugettext as _
 
+from sentry.utils.html import escape
 from sentry.utils.imports import import_string
+
+
+def iter_interfaces():
+    rv = {}
+
+    for name, import_path in six.iteritems(settings.SENTRY_INTERFACES):
+        rv.setdefault(import_path, []).append(name)
+
+    for import_path, keys in six.iteritems(rv):
+        iface = import_string(import_path)
+        yield iface, keys
 
 
 def get_interface(name):
@@ -21,6 +34,10 @@ def get_interface(name):
     return interface
 
 
+class InterfaceValidationError(Exception):
+    pass
+
+
 class Interface(object):
     """
     An interface is a structured representation of data, which may
@@ -30,8 +47,7 @@ class Interface(object):
     _data = None
     score = 0
     display_score = None
-
-    __slots__ = ['_data']
+    ephemeral = False
 
     def __init__(self, **data):
         self._data = data or {}
@@ -42,10 +58,7 @@ class Interface(object):
         return self._data == other._data
 
     def __getstate__(self):
-        return dict(
-            (slot, self.__dict__.get(slot))
-            for slot in self.__slots__
-        )
+        return {'_data': self._data}
 
     def __setstate__(self, state):
         self.__dict__.update(state)
@@ -65,7 +78,7 @@ class Interface(object):
     def to_python(cls, data):
         return cls(data)
 
-    def get_api_context(self):
+    def get_api_context(self, is_public=False):
         return self.to_json()
 
     def to_json(self):
@@ -74,7 +87,7 @@ class Interface(object):
         # XXX(dcramer): its important that we keep zero values here, but empty
         # lists and strings get discarded as we've deemed them not important
         return dict(
-            (k, v) for k, v in self._data.iteritems() if (v == 0 or v)
+            (k, v) for k, v in six.iteritems(self._data) if (v == 0 or v)
         )
 
     def get_path(self):
@@ -105,8 +118,8 @@ class Interface(object):
     def get_score(self):
         return self.score
 
-    def to_html(self, event, is_public=False, **kwargs):
-        return ''
+    def iter_tags(self):
+        return iter(())
 
     def to_string(self, event, is_public=False, **kwargs):
         return ''
@@ -115,4 +128,4 @@ class Interface(object):
         body = self.to_string(event)
         if not body:
             return ''
-        return '<pre>%s</pre>' % (escape(body).replace('\n', '<br>'),)
+        return '<pre>%s</pre>' % (escape(body),)

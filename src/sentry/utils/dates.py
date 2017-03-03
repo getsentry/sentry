@@ -7,11 +7,19 @@ sentry.utils.dates
 """
 from __future__ import absolute_import
 
-from datetime import datetime
+import six
+
+from datetime import (
+    datetime,
+    timedelta,
+)
+
+import pytz
 from dateutil.parser import parse
 from django.db import connections
 
 from sentry.utils.db import get_db_engine
+
 
 DATE_TRUNC_GROUPERS = {
     'oracle': {
@@ -23,6 +31,39 @@ DATE_TRUNC_GROUPERS = {
         'minute': 'minute',
     },
 }
+
+
+epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+
+
+def to_timestamp(value):
+    """
+    Convert a time zone aware datetime to a POSIX timestamp (with fractional
+    component.)
+    """
+    return (value - epoch).total_seconds()
+
+
+def to_datetime(value):
+    """
+    Convert a POSIX timestamp to a time zone aware datetime.
+
+    The timestamp value must be a numeric type (either a integer or float,
+    since it may contain a fractional component.)
+    """
+    return epoch + timedelta(seconds=value)
+
+
+def floor_to_utc_day(value):
+    """
+    Floors a given datetime to UTC midnight.
+    """
+    return value.astimezone(pytz.utc).replace(
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
 
 
 def get_sql_date_trunc(col, db='default', grouper='hour'):
@@ -54,3 +95,25 @@ def parse_date(datestr, timestr):
             return parse(datetimestr)
         except Exception:
             return
+
+
+def parse_timestamp(value):
+    # TODO(mitsuhiko): merge this code with coreapis date parser
+    if isinstance(value, datetime):
+        return value
+    elif isinstance(value, six.integer_types + (float,)):
+        return datetime.utcfromtimestamp(value).replace(tzinfo=pytz.utc)
+    value = (value or '').rstrip('Z').encode('ascii', 'replace').split('.', 1)
+    if not value:
+        return None
+    try:
+        rv = datetime.strptime(value[0], '%Y-%m-%dT%H:%M:%S')
+    except Exception:
+        return None
+    if len(value) == 2:
+        try:
+            rv = rv.replace(microsecond=int(value[1]
+                            .ljust(6, '0')[:6]))
+        except ValueError:
+            rv = None
+    return rv.replace(tzinfo=pytz.utc)
