@@ -1,6 +1,13 @@
 Version 8.15 (Unreleased)
 -------------------------
 
+API Changes
+~~~~~~~~~~~
+
+- Added CommitFileChangeEndpoint
+- Added IssuesResolvedInReleaseEndpoint
+
+
 Version 8.14
 ------------
 
