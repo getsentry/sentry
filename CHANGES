@@ -1,4 +1,14 @@
-Version 8.14 (Unreleased)
+Version 8.15 (Unreleased)
+-------------------------
+
+API Changes
+~~~~~~~~~~~
+
+- Added CommitFileChangeEndpoint
+- Added IssuesResolvedInReleaseEndpoint
+
+
+Version 8.14
 -------------------------
 
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
@@ -27,8 +37,6 @@ API Changes
 - Split out filtered stats onto Inbound Data Filters page
 - Added OrganizationReleasesEndpoint
 - Added OrganizationReleaseFileEndpoint
-- Added CommitFileChangeEndpoint
-- Added IssuesResolvedInReleaseEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~

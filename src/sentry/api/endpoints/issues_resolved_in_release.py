@@ -35,15 +35,13 @@ class IssuesResolvedInReleaseEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        commits = ReleaseCommit.objects.filter(
-            release=release,
-        ).select_related('commit')
-
-        commitresolutions = GroupCommitResolution.objects.filter(
-            commit_id__in=[rc.commit.id for rc in commits]
-        )
-        groups = Group.objects.filter(project=project,
-            id__in=[cr.group_id for cr in commitresolutions]
+        groups = Group.objects.filter(
+            project=project,
+            id__in=GroupCommitResolution.objects.filter(
+                commit_id__in=ReleaseCommit.objects.filter(
+                    release=release,
+                ).values_list('commit_id', flat=True),
+            ).values_list('group_id', flat=True),
         )
 
         context = serialize(

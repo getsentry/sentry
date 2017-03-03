@@ -36,16 +36,10 @@ class CommitFileChangeEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        release_commits = list(ReleaseCommit.objects.filter(
-            release=release,
-        ).select_related('commit', 'commit__author'))
-
-        commit_list = [rc.commit for rc in release_commits]
-
-        # should this be a loop + lambda expression?
-
         queryset = list(CommitFileChange.objects.filter(
-            commit__in=commit_list
+            commit_id__in=ReleaseCommit.objects.filter(
+                release=release,
+            ).values_list('commit_id', flat=True)
         ))
 
         context = serialize(queryset, request.user)
