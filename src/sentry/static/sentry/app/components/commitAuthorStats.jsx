@@ -111,7 +111,7 @@ const CommitAuthorStats = React.createClass({
                   <CommitBar totalCommits={commitList.length} authorCommits={commitCount}/>
                 </div>
                 <div className="col-sm-4 align-right">
-                  <small>{commitCount} commits</small>
+                  <small>{commitCount}</small>
                 </div>
               </div>
             </li>
