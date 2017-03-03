@@ -129,7 +129,11 @@ const GroupEvents = React.createClass({
         return {key, value:issue[key]};
       });
       let scoreElements = Object.keys(seenScoreComponents).map(key=>{
-          return (<td key={key}>{this.displaySimilarity(score[key])}</td>);
+          return (<td key={key}>
+            <span className="similarity-score" style={{backgroundColor:`hsl(${score[key] * 100},40%,80%)`, padding:'9px',display:'block', textAlign:'center', margin:'0 auto'}}>
+            {this.displaySimilarity(score[key])}
+          </span>
+          </td>);
       });
       return (
         <tr key={issue.id}>
