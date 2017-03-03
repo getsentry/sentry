@@ -159,7 +159,7 @@ const ApiDashboard = React.createClass({
 
           <p><small>psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that under <strong>[Project] &raquo; Settings &raquo; Client Keys</strong>.</small></p>
 
-          <table className="table">
+          <table className="table" style={{wordBreak: 'break-word'}}>
             <tbody>
               {(this.state.loading ?
                 <tr><td colSpan="2"><LoadingIndicator /></td></tr>
