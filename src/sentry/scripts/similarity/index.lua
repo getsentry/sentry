@@ -633,7 +633,42 @@ local commands = {
     ),
     EXPORT = takes_configuration(
         function (configuration, arguments)
-            error("not implemented")
+            local bands = range(1, configuration.bands)
+            local time_series = get_active_indices(
+                configuration.interval,
+                configuration.retention,
+                configuration.timestamp
+            )
+            return table.imap(
+                collect_index_key_pairs(arguments),
+                function (source)
+                    return cmsgpack.pack(
+                        table.imap(
+                            bands,
+                            function (band)
+                                return table.imap(
+                                    time_series,
+                                    function (time)
+                                        return {
+                                            time,
+                                            redis.call(
+                                                'HGETALL',
+                                                get_bucket_frequency_key(
+                                                    configuration.scope,
+                                                    source.index,
+                                                    time,
+                                                    band,
+                                                    source.key
+                                                )
+                                            )
+                                        }
+                                    end
+                                )
+                            end
+                        )
+                    )
+                end
+            )
         end
     )
 }

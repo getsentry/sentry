@@ -143,6 +143,28 @@ class MinHashIndex(object):
             arguments,
         )
 
+    def export(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'EXPORT',
+            timestamp,
+            len(self.bands),
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, key in items:
+            arguments.extend([idx, key])
+
+        return index(
+            self.cluster.get_local_client_for_key(scope),
+            [],
+            arguments,
+        )
+
 
 FRAME_ITEM_SEPARATOR = b'\x00'
 FRAME_PAIR_SEPARATOR = b'\x01'
