@@ -109,11 +109,9 @@ const GroupHeader = React.createClass({
     let groupId = group.id,
       projectId = this.getProject().slug,
       orgId = this.getOrganization().slug;
-
     let message = this.getMessage();
 
-    let hasSimView = ConfigStore.getConfig().features.has('organizations:similarity-view');
-
+    let hasSimView = ConfigStore.getConfig().features.has(`${orgId}:${projectId}:similarity-view`);
     return (
       <div className={className}>
         <div className="row">
