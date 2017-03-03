@@ -626,6 +626,16 @@ local commands = {
             end
         end
     ),
+    IMPORT = takes_configuration(
+        function (configuration, arguments)
+            error("not implemented")
+        end
+    ),
+    EXPORT = takes_configuration(
+        function (configuration, arguments)
+            error("not implemented")
+        end
+    )
 }
 
 
