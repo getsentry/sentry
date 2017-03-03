@@ -165,7 +165,7 @@ class OrganizationSettingsView(OrganizationView):
             messages.add_message(request, messages.SUCCESS,
                 _('Changes to your organization were saved.'))
 
-            if any([scrubbing_field in form.cleaned_data for scrubbing_field in data_scrubbing_options]):
+            if any((scrubbing_field in form.cleaned_data for scrubbing_field in data_scrubbing_options)):
                 data_scrubber_enabled.send(organization=organization, sender=request.user)
 
             return HttpResponseRedirect(reverse('sentry-organization-settings', args=[organization.slug]))

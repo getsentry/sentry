@@ -284,7 +284,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             self.build_cursor_link(request, 'next', cursor_result.next),
         ])
 
-        if results and query not in [s['query'] for s in DEFAULT_SAVED_SEARCHES]:
+        SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
+
+        if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
 
         return response

@@ -20,8 +20,7 @@ def create_default_saved_searches(instance, created=True, **kwargs):
         return
 
     for search_kwargs in DEFAULT_SAVED_SEARCHES:
-        search_kwargs.update({'project': instance})
-        SavedSearch.objects.create(**search_kwargs)
+        SavedSearch.objects.create(project=instance, **search_kwargs)
 
 
 def created_custom_saved_search(instance, created=True, **kwargs):
