@@ -21,14 +21,8 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['Deploy'])
 
-        # Adding unique constraint on 'Deploy', fields ['organization_id', 'release', 'environment_id']
-        db.create_unique('sentry_deploy', ['organization_id', 'release_id', 'environment_id'])
-
 
     def backwards(self, orm):
-        # Removing unique constraint on 'Deploy', fields ['organization_id', 'release', 'environment_id']
-        db.delete_unique('sentry_deploy', ['organization_id', 'release_id', 'environment_id'])
-
         # Deleting model 'Deploy'
         db.delete_table('sentry_deploy')
 
@@ -116,7 +110,7 @@ class Migration(SchemaMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 8, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 9, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -163,7 +157,7 @@ class Migration(SchemaMigration):
             'value': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
         },
         'sentry.deploy': {
-            'Meta': {'unique_together': "(('organization_id', 'release', 'environment_id'),)", 'object_name': 'Deploy'},
+            'Meta': {'object_name': 'Deploy'},
             'date_finished': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'date_started': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'environment_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'db_index': 'True'}),
@@ -758,7 +752,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'yDWraq2DrcN6R8yASZgCyo0aClAuqAsQ'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'bwFRUHJbK6Gb0FqW4FuOni1O7b5pEPhk'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},

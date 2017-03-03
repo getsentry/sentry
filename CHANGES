@@ -18,6 +18,14 @@ Version 8.14.1
 - Fixed an issue where Release version names were erronously too restrictve.
 - Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
 
+Schema Changes
+~~~~~~~~~~~~~~
+- Added ``Deploy`` model
+
+API Changes
+~~~~~~~~~~~
+- Added ReleaseDeploysEndpoint
+
 Version 8.14
 ------------
 
@@ -49,7 +57,6 @@ API Changes
 - Split out filtered stats onto Inbound Data Filters page
 - Added OrganizationReleasesEndpoint
 - Added OrganizationReleaseFileEndpoint
-- Added ReleaseDeploysEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -62,7 +69,6 @@ Schema Changes
 - Added ``Project.flags`` column.
 - Added not null constraint to ``Environment.organization_id`` column.
 - Removed not null constraint on ``Environment.project_id`` and ``ReleaseEnvironment.project_id`` columns
-- Added ``Deploy`` model
 
 Version 8.13
 ------------

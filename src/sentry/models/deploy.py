@@ -27,4 +27,3 @@ class Deploy(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_deploy'
-        unique_together = (('organization_id', 'release', 'environment_id'),)

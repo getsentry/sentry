@@ -62,11 +62,19 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
     def post(self, request, organization, version):
         """
-        List a Release's Deploys
-        ````````````````````````
-        Return a list of deploys for a given release.
+        Create a Deploy
+        ```````````````
+        Create a deploy for a given release.
         :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
+        :param string environment: the environment you're deploying to
+        :param string name: the optional name of the deploy
+        :param url url: the optional url that points to the deploy
+        :param datetime dateStarted: an optional date that indicates when
+                                     the deploy started
+        :param datetime dateFinished: an optional date that indicates when
+                                      the deploy ended. If not provided, the
+                                      current time is used.
 
         """
         try:
@@ -90,9 +98,10 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     name=result['environment']
                 )
             except Environment.DoesNotExist:
-                # TODO(jess) should we be creating
-                # environments if they don't exist?
-                raise ResourceDoesNotExist
+                env = Environment.objects.create(
+                    organization_id=organization.id,
+                    name=result['environment']
+                )
 
             try:
                 with transaction.atomic():
@@ -122,8 +131,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             #   208 Already Reported (WebDAV; RFC 5842)
             status = 201 if created else 208
 
-            # TODO(jess) this is sort of weird because there
-            # could have been multiple deploys created...
             return Response(serialize(deploy, request.user), status=status)
 
         return Response(serializer.errors, status=400)
