@@ -39,8 +39,8 @@ class Sdk(Interface):
         return 'sdk'
 
     def get_api_context(self):
-        newest_version = settings.SDK_VERSIONS.get(self.name)
-        newest_name = settings.DEPRECATED_SDKS.get(self.name, self.name)
+        newest_version = self.get_with_prefix(settings.SDK_VERSIONS, self.name)
+        newest_name = self.get_with_prefix(settings.DEPRECATED_SDKS, self.name, self.name)
         if newest_version is not None:
             try:
                 is_newer = (
@@ -61,6 +61,23 @@ class Sdk(Interface):
                 # when this is correct we can make it available
                 # 'version': newest_version,
                 'isNewer': is_newer,
-                'url': settings.SDK_URLS.get(newest_name),
+                'url': self.get_with_prefix(settings.SDK_URLS, newest_name),
             },
         }
+
+    @staticmethod
+    def get_with_prefix(d, k, default=None, delimiter=":"):
+        """\
+        Retrieve a value from the dictionary, falling back to using its
+        prefix, denoted by a delimiter (default ':'). Useful for cases
+        such as looking up `raven-java:logback` in a dict like
+        {"raven-java": "7.0.0"}.
+        """
+
+        prefix = k.split(delimiter, 1)
+        if k in d:
+            return d[k]
+        elif prefix in d:
+            return d[prefix]
+        else:
+            return default

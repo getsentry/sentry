@@ -1134,10 +1134,6 @@ SUDO_URL = 'sentry-sudo'
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
     'raven-java': '7.8.3',
-    'raven-java:android': '7.8.3',
-    'raven-java:log4j': '7.8.3',
-    'raven-java:log4j2': '7.8.3',
-    'raven-java:logback': '7.8.3',
     'raven-js': '3.12.0',
     'raven-python': '6.0.0',
     'sentry-laravel': '0.6.1',
