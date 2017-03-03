@@ -90,13 +90,19 @@ const CommitAuthorStats = React.createClass({
       return _commitAuthors;
     }, {});
 
-    let authorEmails = Object.keys(commitAuthors);
+    let commitAuthorValues = Object.values(commitAuthors);
+
+    // sort commitAuthors by highest commitCount to lowest commitCount
+    commitAuthorValues.sort((a, b) => {
+      return b.commitCount - a.commitCount;
+    });
+
     return (
       <div style={{marginTop: 5}}>
         <h6 className="nav-header m-b-1">Commits by Author</h6>
         <ul className="list-group">
-        {authorEmails.map(authorEmail => {
-          let {author, commitCount} = commitAuthors[authorEmail];
+        {commitAuthorValues.map(commitAuthor => {
+          let {author, commitCount} = commitAuthor;
           return (
             <li className="list-group-item list-group-item-sm list-group-avatar">
               <div className="row">
@@ -105,7 +111,7 @@ const CommitAuthorStats = React.createClass({
                   <CommitBar totalCommits={commitList.length} authorCommits={commitCount}/>
                 </div>
                 <div className="col-sm-4 align-right">
-                  <small>{commitCount} commits</small>
+                  <small>{commitCount}</small>
                 </div>
               </div>
             </li>
