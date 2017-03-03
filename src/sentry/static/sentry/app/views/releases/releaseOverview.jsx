@@ -13,7 +13,7 @@ import {t} from '../../locale';
 
 function Collapsed(props) {
   return (
-    <li className="list-group-item list-group-item-sm">
+    <li className="list-group-item list-group-item-sm align-center">
       <span className="icon-container">
       </span>
       <a onClick={props.onClick}>Show {props.count} collapsed files</a>
