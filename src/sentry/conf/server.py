@@ -1141,7 +1141,7 @@ SDK_VERSIONS = {
     'raven-js': '3.12.0',
     'raven-python': '6.0.0',
     'sentry-laravel': '0.6.1',
-    'sentry-php': '1.6.0',
+    'sentry-php': '1.6.2',
 }
 
 SDK_URLS = {
