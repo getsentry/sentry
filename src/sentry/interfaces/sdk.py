@@ -17,7 +17,7 @@ def get_with_prefix(d, k, default=None, delimiter=":"):
     {"raven-java": "7.0.0"}.
     """
 
-    prefix = k.split(delimiter, 1)
+    prefix = k.split(delimiter, 1)[0]
     if k in d:
         return d[k]
     elif prefix in d:
