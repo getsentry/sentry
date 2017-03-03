@@ -9,10 +9,10 @@ from __future__ import absolute_import, print_function
 
 import functools
 
-from django.core.cache import cache
+from django.core.cache import cache as _cache
+from time import time
 
-
-default_cache = cache
+CACHE_WINDOW = 30
 
 
 class memoize(object):
@@ -76,3 +76,42 @@ class cached_for_request(memoize):
 
     def __get__(self, obj, type=None):
         return functools.partial(self.__call__, obj)
+
+
+class MintCache(object):
+    def __init__(self, cache):
+        self.cache = cache
+
+    def _get_timeout(self, timeout):
+        return timeout or self.default_timeout
+
+    def _get_key(self, key):
+        return u'm:{}'.format(key)
+
+    def add(self, key, value, timeout=0):
+        timeout = self._get_timeout(timeout)
+        refresh_time = timeout + time()
+        key_timeout = timeout + CACHE_WINDOW
+        packed = (value, refresh_time, False)
+        return self.cache.add(self._get_key(key), packed, key_timeout)
+
+    def get(self, key, version=None, default=None):
+        packed = self.cache.get(self._get_key(key), default)
+        if packed is None:
+            return default
+        value, refresh_time, refreshed = packed
+        if time() > refresh_time and not refreshed:
+            # Store the stale value while the cache revalidates
+            self.set(key, value, CACHE_WINDOW, True)
+            return default
+        return value
+
+    def set(self, key, value, timeout=0, refreshed=False):
+        timeout = self._get_timeout(timeout)
+        refresh_time = timeout + time()
+        key_timeout = timeout + CACHE_WINDOW
+        packed = (value, refresh_time, refreshed)
+        return self.cache.set(self._get_key(key), packed, key_timeout)
+
+
+cache = default_cache = MintCache(_cache)
