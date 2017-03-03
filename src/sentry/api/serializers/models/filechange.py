@@ -15,9 +15,10 @@ class CommitFileChangeSerializer(Serializer):
         commits_by_id = {commit.id: commit for commit in commits}
         result = {}
         for item in item_list:
+            commit = commits_by_id[item.commit_id]
             result[item] = {
-                'user': author_objs.get(commits_by_id[item.commit_id].author_id, {}),
-                'message': commits_by_id[item.commit_id].message
+                'user': author_objs.get(commit.author_id, {}),
+                'message': commit.message
             }
 
         return result
