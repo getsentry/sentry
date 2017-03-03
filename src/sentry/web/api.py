@@ -366,7 +366,9 @@ class StoreView(APIView):
                 (app.tsdb.models.organization_total_received, project.organization_id),
                 (app.tsdb.models.organization_total_rejected, project.organization_id),
             ])
-            metrics.incr('events.dropped')
+            metrics.incr('events.dropped', tags={
+                'reason': rate_limit.reason_code if rate_limit else 'unknown',
+            })
             event_dropped.send_robust(
                 ip=remote_addr,
                 project=project,
