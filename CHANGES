@@ -67,6 +67,7 @@ Version 8.14
 - Added the ability to verify TLS connections when fetching artifacts.
 - Added data migration to merge environments across an organization
 - Added ``timesSeen`` keyword to issue search.
+- Added feature signals, such as first time release tracking is enabled.
 
 API Changes
 ~~~~~~~~~~~
