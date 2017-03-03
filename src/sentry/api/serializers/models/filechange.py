@@ -12,14 +12,12 @@ class CommitFileChangeSerializer(Serializer):
     def get_attrs(self, item_list, user):
         commits = Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related('author')
         author_objs = get_users_for_commits(commits)
-        commitDetails = {}
-        for commit in commits:
-            commitDetails[commit.id] = commit
+        commits_by_id = {commit.id: commit for commit in commits}
         result = {}
         for item in item_list:
             result[item] = {
-                'user': author_objs.get(commitDetails[item.commit_id].author_id, {}),
-                'message': commitDetails[item.commit_id].message
+                'user': author_objs.get(commits_by_id[item.commit_id].author_id, {}),
+                'message': commits_by_id[item.commit_id].message
             }
 
         return result
