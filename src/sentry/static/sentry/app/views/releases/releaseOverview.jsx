@@ -30,7 +30,7 @@ const ReleaseOverview = React.createClass({
   mixins: [ApiMixin],
 
   statics: {
-    MAX_WHEN_COLLAPSED: 2
+    MAX_WHEN_COLLAPSED: 5
   },
 
   getInitialState() {
