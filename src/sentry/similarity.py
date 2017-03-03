@@ -165,6 +165,28 @@ class MinHashIndex(object):
             arguments,
         )
 
+    def import_(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'IMPORT',
+            timestamp,
+            len(self.bands),
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, key, data in items:
+            arguments.extend([idx, key, data])
+
+        return index(
+            self.cluster.get_local_client_for_key(scope),
+            [],
+            arguments,
+        )
+
 
 FRAME_ITEM_SEPARATOR = b'\x00'
 FRAME_PAIR_SEPARATOR = b'\x01'

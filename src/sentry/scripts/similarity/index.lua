@@ -628,7 +628,82 @@ local commands = {
     ),
     IMPORT = takes_configuration(
         function (configuration, arguments)
-            error("not implemented")
+            local entries = table.ireduce(
+                arguments,
+                function (state, token)
+                    if state.active == nil then
+                        -- When there is no active entry, we need to initialize
+                        -- a new one. The first token is the index identifier.
+                        state.active = {
+                            index = token,
+                            key = nil,
+                            data = nil,
+                        }
+                    elseif state.active.key == nil then
+                        state.active.key = token
+                    else
+                        state.active.data = cmsgpack.unpack(token)
+                        table.insert(state.completed, state.active)
+                        state.active = nil
+                    end
+                    return state
+                end,
+                {active = nil, completed = {}}
+            )
+
+            -- If there are any entries in progress when we are completed, that
+            -- means the input was in an incorrect format and we should error
+            -- before we record any bad data.
+            assert(entries.active == nil, 'unexpected end of input')
+
+            for _, entry in ipairs(entries.completed) do
+                for band, data in ipairs(entry.data) do
+                    for _, item in ipairs(data) do
+                        local time, buckets = item[1], item[2]
+                        local expiration_time = get_index_expiration_time(
+                            configuration.interval,
+                            configuration.retention,
+                            time
+                        )
+                        local destination_bucket_frequency_key = get_bucket_frequency_key(
+                            configuration.scope,
+                            entry.index,
+                            time,
+                            band,
+                            entry.key
+                        )
+
+                        for _, bucket in ipairs(buckets) do
+                            local bucket_key, count = bucket[1], bucket[2]
+                            local bucket_membership_key = get_bucket_membership_key(
+                                configuration.scope,
+                                entry.index,
+                                time,
+                                band,
+                                bucket_key
+                            )
+                            redis.call('SADD', bucket_membership_key, entry.key)
+                            redis.call('EXPIREAT', bucket_membership_key, expiration_time)
+
+                            redis.call(
+                                'HINCRBY',
+                                destination_bucket_frequency_key,
+                                bucket_key,
+                                count
+                            )
+                        end
+
+                        -- The destination bucket frequency key may have not
+                        -- existed previously, so we need to make sure we set
+                        -- the expiration on it in case it is new.
+                        redis.call(
+                            'EXPIREAT',
+                            destination_bucket_frequency_key,
+                            expiration_time
+                        )
+                    end
+                end
+            end
         end
     ),
     EXPORT = takes_configuration(
@@ -649,18 +724,27 @@ local commands = {
                                 return table.imap(
                                     time_series,
                                     function (time)
+                                        -- TODO(tkaemming): i hate this so much, this is dumb af
+                                        local response = redis.call(
+                                            'HGETALL',
+                                            get_bucket_frequency_key(
+                                                configuration.scope,
+                                                source.index,
+                                                time,
+                                                band,
+                                                source.key
+                                            )
+                                        )
+                                        local result = {}
+                                        for i = 1, #response, 2 do
+                                            table.insert(
+                                                result,
+                                                {response[i], response[i+1]}
+                                            )
+                                        end
                                         return {
                                             time,
-                                            redis.call(
-                                                'HGETALL',
-                                                get_bucket_frequency_key(
-                                                    configuration.scope,
-                                                    source.index,
-                                                    time,
-                                                    band,
-                                                    source.key
-                                                )
-                                            )
+                                            result,
                                         }
                                     end
                                 )
