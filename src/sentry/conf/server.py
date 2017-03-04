@@ -1112,6 +1112,9 @@ def get_raven_config():
         ],
     }
 
+SYMBOL_SERVER_ENABLED = True
+SYMBOL_SERVER_URL = 'http://127.0.0.1:3000/'
+
 RAVEN_CONFIG = get_raven_config()
 
 # Config options that are explicitly disabled from Django
