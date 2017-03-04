@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import time
+
+import msgpack
 import pytest
 
 from sentry.similarity import (
@@ -129,3 +132,52 @@ class MinHashIndexTestCase(TestCase):
         assert results[2][0] in ('3', '4')  # equidistant pairs, order doesn't really matter
         assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
+
+    def test_export_import(self):
+        bands = 2
+        retention = 12
+        index = MinHashIndex(
+            redis.clusters.get('default'),
+            0xFFFF,
+            bands,
+            2,
+            60 * 60,
+            retention,
+        )
+
+        index.record('example', '1', [('index', 'hello world')])
+
+        timestamp = int(time.time())
+        result = index.export('example', [('index', 1)], timestamp=timestamp)
+        assert len(result) == 1
+
+        data = msgpack.unpackb(result[0])
+        assert len(data) == bands
+
+        for band in data:
+            assert len(band) == (retention + 1)
+            assert sum(sum(int(count) for bucket, count in chunk) for _, chunk in band) == 1
+
+        index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
+
+        assert index.export(
+            'example',
+            [('index', 1)],
+            timestamp=timestamp
+        ) == index.export(
+            'example',
+            [('index', 2)],
+            timestamp=timestamp
+        )
+
+        index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
+
+        result = index.export('example', [('index', 2)], timestamp=timestamp)
+        assert len(result) == 1
+
+        data = msgpack.unpackb(result[0])
+        assert len(data) == bands
+
+        for band in data:
+            assert len(band) == (retention + 1)
+            assert sum(sum(int(count) for bucket, count in chunk) for _, chunk in band) == 2
