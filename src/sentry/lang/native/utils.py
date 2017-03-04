@@ -159,3 +159,18 @@ def cpu_name_from_data(data):
 def rebase_addr(instr_addr, img):
     return parse_addr(img['image_vmaddr']) + \
         parse_addr(instr_addr) - parse_addr(img['image_addr'])
+
+
+def sdk_info_to_sdk_id(sdk_info):
+    if sdk_info is None:
+        return None
+    rv = '%s_%d.%d.%d' % (
+        sdk_info['sdk_name'],
+        sdk_info['version_major'],
+        sdk_info['version_minor'],
+        sdk_info['version_patchlevel'],
+    )
+    build = sdk_info.get('build')
+    if build is not None:
+        rv = '%s_%s' % (rv, build)
+    return rv
