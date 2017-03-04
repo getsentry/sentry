@@ -15,13 +15,13 @@ from symsynd.utils import parse_addr
 
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
-from sentry.http import safe_urlopen
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed, \
     ImageLookup
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING, \
     rebase_addr
+from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -351,21 +351,6 @@ def preprocess_apple_crash_event(data):
     return data
 
 
-def sdk_info_to_sdk_id(sdk_info):
-    if sdk_info is None:
-        return None
-    rv = '%s_%d.%d.%d' % (
-        sdk_info['sdk_name'],
-        sdk_info['version_major'],
-        sdk_info['version_minor'],
-        sdk_info['version_patchlevel'],
-    )
-    build = sdk_info.get('build')
-    if build is not None:
-        rv = '%s_%s' % (rv, build)
-    return rv
-
-
 class NativeStacktraceProcessor(StacktraceProcessor):
 
     def __init__(self, *args, **kwargs):
@@ -490,15 +475,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if not to_lookup:
             return
 
-        symbol_query = {
-            'sdk_id': sdk_info_to_sdk_id(self.sdk_info),
-            'cpu_name': self.sym.cpu_name,
-            'symbols': to_lookup,
-        }
-        rv = safe_urlopen('%s/lookup' % settings.SYMBOL_SERVER_URL.rstrip('/'),
-                          method='POST', json=symbol_query)
-        if rv.status_code == 200:
-            for symrv, pf in zip(rv.json()['symbols'], pf_list):
+        rv = lookup_system_symbols(to_lookup, self.sdk_info,
+                                   self.sym.cpu_name)
+        if rv is not None:
+            for symrv, pf in zip(rv, pf_list):
                 if symrv is None:
                     continue
                 pf.data['symbolserver_match'] = symrv
