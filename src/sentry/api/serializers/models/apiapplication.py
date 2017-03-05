@@ -9,7 +9,7 @@ from sentry.models import ApiApplication
 @register(ApiApplication)
 class ApiApplicationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
-        has_secret = obj.date_added > timezone.now() - timedelta(hours=1)
+        has_secret = obj.date_added > timezone.now() - timedelta(days=1)
         return {
             'id': obj.client_id,
             'clientID': obj.client_id,
