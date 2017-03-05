@@ -8,20 +8,11 @@
 {% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-  <div class="sso-link">
-    {% avatar user %}
-    <span class="icon-arrow-right"></span>
-    <span class="icon-arrow-left"></span>
-    <span class="avatar">
-      APP
-    </span>
-  </div>
-
   <form class="form-stacked" action="" method="post" autocomplete="off">
     {% csrf_token %}
 
     <div>
-      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account:</p>
+      <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account ({{ user.username }}):</p>
       <ul>
         <li>Access to your account details, including your name and email address.</li>
         {% for permission in permissions %}
