@@ -23,6 +23,7 @@
     <div>
       <p><strong>{{ application.name }}</strong> is requesting access to your Sentry account:</p>
       <ul>
+        <li>Access to your account details, including your name and email address.</li>
         {% for permission in permissions %}
           <li>{{ permission }}</li>
         {% endfor %}
