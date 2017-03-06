@@ -83,7 +83,6 @@ class GroupListTest(APITestCase):
         assert links['previous']['results'] == 'false'
         assert links['next']['results'] == 'true'
 
-        print(links['next']['cursor'])
         response = self.client.get(links['next']['href'], format='json')
         assert response.status_code == 200
         assert len(response.data) == 1

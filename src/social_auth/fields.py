@@ -24,7 +24,7 @@ class JSONField(models.TextField):
             try:
                 return simplejson.loads(value)
             except Exception as e:
-                raise ValidationError(str(e))
+                raise ValidationError(six.text_type(e))
         else:
             return value
 
@@ -36,14 +36,14 @@ class JSONField(models.TextField):
             try:
                 simplejson.loads(value)
             except Exception as e:
-                raise ValidationError(str(e))
+                raise ValidationError(six.text_type(e))
 
     def get_prep_value(self, value):
         """Convert value to JSON string before save"""
         try:
             return simplejson.dumps(value)
         except Exception as e:
-            raise ValidationError(str(e))
+            raise ValidationError(six.text_type(e))
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
@@ -57,5 +57,5 @@ class JSONField(models.TextField):
 try:
     from south.modelsinspector import add_introspection_rules
     add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-except:
+except Exception:
     pass

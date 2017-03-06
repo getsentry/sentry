@@ -18,6 +18,7 @@ from django.db import models
 from django.db.models.signals import post_delete
 from south.modelsinspector import add_introspection_rules
 
+from sentry import nodestore
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
@@ -81,8 +82,6 @@ class NodeData(collections.MutableMapping):
 
     @memoize
     def data(self):
-        from sentry.app import nodestore
-
         if self._node_data is not None:
             return self._node_data
 
@@ -131,8 +130,6 @@ class NodeField(GzippedDictField):
             weak=False)
 
     def on_delete(self, instance, **kwargs):
-        from sentry.app import nodestore
-
         value = getattr(instance, self.name)
         if not value.id:
             return
@@ -159,8 +156,6 @@ class NodeField(GzippedDictField):
         return NodeData(self, node_id, data)
 
     def get_prep_value(self, value):
-        from sentry.app import nodestore
-
         if not value and self.null:
             # save ourselves some storage
             return None
