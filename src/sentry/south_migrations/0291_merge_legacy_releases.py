@@ -18,7 +18,7 @@ def is_short_sha(version):
 
 
 def is_semver_like(version):
-    return bool(re.match(r'([a-z]*)?(\-)?v?(?:\d+\.)*\d+', version))
+    return bool(re.match(r'([a-z]*)(\-)?v?(?:\d+\.)*\d+', version))
 
 
 def is_travis_build(version):
