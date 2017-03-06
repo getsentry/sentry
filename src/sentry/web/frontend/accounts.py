@@ -27,7 +27,7 @@ from social_auth.backends import get_backend
 from social_auth.models import UserSocialAuth
 from sudo.decorators import sudo_required
 
-from sentry.app import newsletter
+from sentry import newsletter
 from sentry.models import (
     UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )

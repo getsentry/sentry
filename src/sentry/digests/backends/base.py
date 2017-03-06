@@ -56,6 +56,11 @@ class Backend(object):
     be preempted by a new record being added to the timeline, requiring it to
     be transitioned to "waiting" instead.)
     """
+    __all__ = (
+        'add', 'delete', 'digest', 'enabled', 'maintenance', 'schedule',
+        'validate'
+    )
+
     def __init__(self, **options):
         # The ``minimum_delay`` option defines the default minimum amount of
         # time (in seconds) to wait between scheduling digests for delivery

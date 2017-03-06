@@ -14,8 +14,7 @@ from pytz import utc
 from random import randint
 from uuid import uuid4
 
-from sentry import roles
-from sentry.app import tsdb, buffer
+from sentry import buffer, tsdb, roles
 from sentry.models import (
     Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,

@@ -8,8 +8,8 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils import timezone
 
+from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,

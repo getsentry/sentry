@@ -21,8 +21,9 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features
-from sentry.app import buffer, tsdb
+from sentry import eventtypes, features, buffer
+# we need a bunch of unexposed functions from tsdb
+from sentry.tsdb import backend as tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
