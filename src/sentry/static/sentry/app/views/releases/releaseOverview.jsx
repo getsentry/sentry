@@ -139,21 +139,6 @@ const ReleaseOverview = React.createClass({
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{fileCount} Files Changed</h5>
-            <ul className="list-group list-group-striped m-b-2">
-              {files.map(filename => {
-                return (
-                  <FileChange
-                    key={fileChangeSummary[filename].id}
-                    filename={filename}
-                    authors={Object.values(fileChangeSummary[filename].authors)}
-                    types={fileChangeSummary[filename].types}
-                    />
-                );
-              })}
-              {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-            </ul>
-
             <h5>{t('Issues Resolved in this Release')}</h5>
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
@@ -164,7 +149,6 @@ const ReleaseOverview = React.createClass({
               params={{orgId: orgId}}
               className="m-b-2"
               />
-
             <h5>{t('New Issues in this Release')}</h5>
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
@@ -180,6 +164,20 @@ const ReleaseOverview = React.createClass({
               params={{orgId: orgId}}
               className="m-b-2"
               />
+            <h5>{fileCount} Files Changed</h5>
+            <ul className="list-group list-group-striped m-b-2">
+              {files.map(filename => {
+                return (
+                  <FileChange
+                    key={fileChangeSummary[filename].id}
+                    filename={filename}
+                    authors={Object.values(fileChangeSummary[filename].authors)}
+                    types={fileChangeSummary[filename].types}
+                    />
+                );
+              })}
+              {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+            </ul>
           </div>
           <div className="col-sm-4">
             <CommitAuthorStats
