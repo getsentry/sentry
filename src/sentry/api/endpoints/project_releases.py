@@ -16,6 +16,9 @@ from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
+BAD_RELEASE_CHARS = '\n\f\t/'
+
+
 @scenario('CreateNewRelease')
 def create_new_release_scenario(runner):
     runner.request(
@@ -42,14 +45,19 @@ def list_releases_scenario(runner):
 
 
 class ReleaseSerializer(serializers.Serializer):
-    version = serializers.RegexField(r'^[a-zA-Z0-9\-_\. \(\)]+\Z',
-                                     max_length=64, required=True)
+    version = serializers.CharField(max_length=64, required=True)
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False)
+
+    def validate_version(self, attrs, source):
+        value = attrs[source]
+        if any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..'):
+            raise serializers.ValidationError('Invalid value for release')
+        return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
