@@ -26,7 +26,7 @@ class OrganizationStatsTest(APITestCase):
             assert point[1] == 0
         assert len(response.data) == 24
 
-    def test_rollup(self):
+    def test_resolution(self):
         self.login_as(user=self.user)
 
         org = self.create_organization(owner=self.user, name='baz')
@@ -34,7 +34,7 @@ class OrganizationStatsTest(APITestCase):
         tsdb.incr(tsdb.models.organization_total_received, org.id, count=3)
 
         url = reverse('sentry-api-0-organization-stats', args=[org.slug])
-        response = self.client.get('{}?rollup=1d'.format(url), format='json')
+        response = self.client.get('{}?resolution=1d'.format(url), format='json')
 
         assert response.status_code == 200, response.content
         assert response.data[-1][1] == 3, response.data
