@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 import six
 
 from django.conf import settings
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
@@ -175,7 +176,19 @@ class OAuthAuthorizeView(BaseView):
                 if scopes:
                     for s in scopes:
                         setattr(token.scopes, s, True)
-                token.save()
+                    new_scopes = token.scopes
+                else:
+                    new_scopes = None
+                try:
+                    with transaction.atomic():
+                        token.save()
+                except IntegrityError:
+                    token = ApiToken.objects.get(
+                        application=application,
+                        user=request.user,
+                    )
+                    if new_scopes:
+                        token.update(scopes=new_scopes)
 
                 return self.redirect_response(response_type, redirect_uri, {
                     'access_token': token.token,
