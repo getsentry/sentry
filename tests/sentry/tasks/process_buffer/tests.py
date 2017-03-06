@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
-from sentry.tasks.process_buffer import process_incr
+from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.testutils import TestCase
 
 
@@ -18,8 +18,9 @@ class ProcessIncrTest(TestCase):
         process.assert_called_once_with(model=model, columns=columns, filters=filters)
 
 
-class ProcessBufferTest(TestCase):
+class ProcessPendingTest(TestCase):
     @mock.patch('sentry.buffer.backend.process_pending')
-    def test_nothing(self, process_pending):
+    def test_nothing(self, mock_process_pending):
         # this effectively just says "does the code run"
-        process_pending.assert_called_once_with()
+        process_pending()
+        mock_process_pending.assert_called_once_with()
