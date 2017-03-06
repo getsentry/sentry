@@ -1,6 +1,8 @@
 Version 8.15 (Unreleased)
 -------------------------
 
+- Refactor usage of ``sentry.app`` to use individual modules.
+
 Version 8.14
 ------------
 
