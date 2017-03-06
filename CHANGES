@@ -1,5 +1,6 @@
 Version 8.15 (Unreleased)
 -------------------------
+- Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
 
 API Changes
 ~~~~~~~~~~~
