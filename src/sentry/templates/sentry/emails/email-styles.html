@@ -26,6 +26,7 @@
   * {
     font-weight: 300;
   }
+
   a {
     color: #4674ca;
     font-weight: 500;
@@ -51,11 +52,6 @@
 
   small {
     font-size: 13px;
-    color: #838c99;
-  }
-
-  .align-right {
-    text-align: right;
   }
 
   pre, blockquote, table {
@@ -83,6 +79,19 @@
     font-style: normal;
   }
 
+  hr {
+    margin: 30px 0;
+    border: 0;
+    border-bottom: 1px solid #E7EBEE;
+  }
+
+  .divider {
+    margin: 0 6px;
+    border-right: 1px solid #E7EBEE;
+  }
+
+  /* Left for legacy purposes */
+
   .btn, p .btn {
     color: #fff;
     font-weight: 600;
@@ -91,8 +100,38 @@
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
     padding: 8px 15px;
     line-height: 18px;
-    border-radius: 3px;
+    border-radius: 4px;
     display: inline-block;
+  }
+
+  /* New button approach */
+
+  .btn {
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-block;
+    padding: 8px 15px;
+    line-height: 18px;
+    border-radius: 4px;
+  }
+
+  .btn-sm {
+    font-size: 12px !important;
+    padding: 5px 10px;
+  }
+
+  .btn-primary, p .btn-primary {
+    color: #fff;
+    background-color: #6C5FC7;
+    border: 1px solid #413496;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+  }
+
+  .btn-default, p .btn-default {
+    color: #493e54;
+    background-color: #fdfcfd;
+    border: 1px solid #c1b8ca;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.05);
   }
 
   .container {
@@ -171,7 +210,7 @@
   }
 
   h2 {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     margin: 0 0 20px;
   }
@@ -205,6 +244,14 @@
     margin: 0 0 4px;
   }
 
+  h6 {
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0 0 20px;
+    color: #968ba0;
+  }
+
   .inner {
     background-color: #fff;
     padding: 30px 0 20px;
@@ -227,7 +274,7 @@
   }
   .inner table th {
     min-width: 60px;
-    color: #889092;
+    color: #968ba0;
   }
   .interface {
     margin-bottom: 30px;
@@ -610,11 +657,75 @@
   }
 
   .commit-list {
+    margin-top: 20px;
     padding-left: 20px;
   }
   .commit-list li {
     padding: 5px 0;
     font-size: 14px;
+  }
+
+  /* Generic table classes */
+
+  .inner .table-border {
+    border: 1px solid #DDD8E1;
+    box-shadow: 0 1px 1px rgba(0,0,0, .04);
+    border-radius: 4px;
+    margin-bottom: 30px;
+  }
+
+  .inner .table-border table.table{
+    margin-bottom: 0;
+  }
+
+  .inner table.table {
+    width: 100%;
+  }
+
+  .inner table.table td, .inner table.table th {
+    padding: 10px 15px;
+    border-bottom: 1px solid #DDD8E1;
+  }
+
+  .inner table.table.no-gutters td, .inner table.table.no-gutters th {
+    padding: 8px 0;
+  }
+
+  .inner table.table tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .inner table.table th {
+    background: #FBFBFC;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  /* Utility Classes */
+
+  .align-left {
+    text-align: left;
+  }
+
+  .align-center {
+    text-align: center;
+  }
+
+  .align-right {
+    text-align: right !important;
+  }
+
+  .muted, small {
+    color: #968ba0;
+  }
+
+  .m-t-1 {
+    margin-top: 20px;
+  }
+
+  .m-b-1 {
+    margin-bottom: 20px;
   }
 
   @media only screen and (max-device-width: 480px) {
