@@ -693,7 +693,8 @@ class EventManager(object):
 
         if is_new and release:
             buffer.incr(ReleaseProject, {'new_groups': 1}, {
-                'id': release.id,
+                'release_id': release.id,
+                'project_id': project.id,
             })
 
         safe_execute(Group.objects.add_tags, group, tags,
