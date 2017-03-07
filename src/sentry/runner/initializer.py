@@ -296,20 +296,32 @@ def initialize_app(config, skip_backend_validation=False):
 
 
 def validate_backends():
-    from sentry import app
+    from sentry import (
+        buffer, digests, nodestore, quotas, ratelimits, search, tsdb
+    )
 
     backends = (
-        app.buffer,
-        app.digests,
-        app.nodestore,
-        app.quotas,
-        app.ratelimiter,
-        app.search,
-        app.tsdb,
+        buffer,
+        digests,
+        nodestore,
+        quotas,
+        ratelimits,
+        search,
+        tsdb,
     )
 
     for backend in backends:
-        backend.validate()
+        try:
+            backend.validate()
+        except AttributeError as exc:
+            from .importer import ConfigurationError
+            from sentry.utils.settings import reraise_as
+            reraise_as(ConfigurationError(
+                '{} service failed to call validate()\n{}'.format(
+                    backend.__name__,
+                    six.text_type(exc),
+                )
+            ))
 
 
 def validate_options(settings):

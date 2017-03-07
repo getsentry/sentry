@@ -14,7 +14,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.app import digests
+from sentry.digests import backend as digests
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
     ProjectStatus, UserOption, DEFAULT_SUBJECT_TEMPLATE

@@ -10,6 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
@@ -17,7 +18,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
 )
-from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (

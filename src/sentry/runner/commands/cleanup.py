@@ -48,6 +48,11 @@ def cleanup(days, project, concurrency, silent, model):
     done with the `--project` flag which accepts a project ID or a string
     with the form `org/project` where both are slugs.
     """
+    if concurrency < 1:
+        click.echo('Error: Minimum concurrency is 1', err=True)
+        raise click.Abort()
+
+    from threading import Thread
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.models import (
@@ -160,12 +165,23 @@ def cleanup(days, project, concurrency, silent, model):
             if not silent:
                 click.echo('>> Skipping %s' % model.__name__)
         else:
-            BulkDeleteQuery(
+            query = BulkDeleteQuery(
                 model=model,
                 dtfield=dtfield,
                 days=days,
                 project_id=project_id,
-            ).execute_generic()
+            )
+            if concurrency > 1:
+                threads = []
+                for shard_id in range(concurrency):
+                    t = Thread(target=lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id))
+                    t.start()
+                    threads.append(t)
+
+                for t in threads:
+                    t.join()
+            else:
+                query.execute_generic()
 
 
 def cleanup_unused_files(quiet=False):

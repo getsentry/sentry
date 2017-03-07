@@ -11,15 +11,34 @@ import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
 
+function Collapsed(props) {
+  return (
+    <li className="list-group-item list-group-item-sm align-center">
+      <span className="icon-container">
+      </span>
+      <a onClick={props.onClick}>Show {props.count} collapsed files</a>
+    </li>
+  );
+}
+
+Collapsed.propTypes = {
+  onClick: React.PropTypes.func.isRequired,
+  count: React.PropTypes.number.isRequired
+};
 
 const ReleaseOverview = React.createClass({
   mixins: [ApiMixin],
+
+  statics: {
+    MAX_WHEN_COLLAPSED: 5
+  },
 
   getInitialState() {
     return {
       loading: true,
       error: false,
       projects: [],
+      collapsed: true,
     };
   },
 
@@ -71,6 +90,12 @@ const ReleaseOverview = React.createClass({
     return <div className="box empty">{t('No other projects affected.')}</div>;
   },
 
+  onCollapseToggle() {
+    this.setState({
+      collapsed: !this.state.collapsed
+    });
+  },
+
   render() {
     let {orgId, projectId, version} = this.props.params;
 
@@ -100,24 +125,20 @@ const ReleaseOverview = React.createClass({
     }, {});
 
     let fileCount = Object.keys(fileChangeSummary).length;
+
+    const MAX = ReleaseOverview.MAX_WHEN_COLLAPSED;
+
+    let files = Object.keys(fileChangeSummary);
+    files.sort();
+    if (this.state.collapsed && fileCount > MAX) {
+      files = files.slice(0, MAX);
+    }
+    let numCollapsed = fileCount - files.length;
+
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{fileCount} Files Changed</h5>
-            <ul className="list-group list-group-striped m-b-2">
-              {Object.keys(fileChangeSummary).map(filename => {
-                return (
-                  <FileChange
-                    key={fileChangeSummary[filename].id}
-                    filename={filename}
-                    authors={Object.values(fileChangeSummary[filename].authors)}
-                    types={fileChangeSummary[filename].types}
-                    />
-                );
-              })}
-            </ul>
-
             <h5>{t('Issues Resolved in this Release')}</h5>
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
@@ -128,7 +149,6 @@ const ReleaseOverview = React.createClass({
               params={{orgId: orgId}}
               className="m-b-2"
               />
-
             <h5>{t('New Issues in this Release')}</h5>
             <IssueList
               endpoint={`/projects/${orgId}/${projectId}/issues/`}
@@ -144,6 +164,20 @@ const ReleaseOverview = React.createClass({
               params={{orgId: orgId}}
               className="m-b-2"
               />
+            <h5>{fileCount} Files Changed</h5>
+            <ul className="list-group list-group-striped m-b-2">
+              {files.map(filename => {
+                return (
+                  <FileChange
+                    key={fileChangeSummary[filename].id}
+                    filename={filename}
+                    authors={Object.values(fileChangeSummary[filename].authors)}
+                    types={fileChangeSummary[filename].types}
+                    />
+                );
+              })}
+              {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+            </ul>
           </div>
           <div className="col-sm-4">
             <CommitAuthorStats

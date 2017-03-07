@@ -87,6 +87,7 @@ from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoin
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, GlobalDSymFilesEndpoint, \
     UnknownDSymFilesEndpoint, UnknownGlobalDSymFilesEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
@@ -104,7 +105,6 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
-
 
 urlpatterns = patterns(
     '',
@@ -220,6 +220,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$',
         CommitFileChangeEndpoint.as_view(),
         name='sentry-api-0-release-commitfilechange'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/deploys/$',
+        ReleaseDeploysEndpoint.as_view(),
+        name='sentry-api-0-organization-release-deploys'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'),

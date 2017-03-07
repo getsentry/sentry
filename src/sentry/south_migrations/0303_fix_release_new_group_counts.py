@@ -2,80 +2,25 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import IntegrityError, models, transaction
+from django.db import models
 
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 class Migration(DataMigration):
 
     def forwards(self, orm):
         "Write your forwards methods here."
         db.commit_transaction()
-        dupe_envs = orm.Environment.objects.values('name', 'organization_id')\
-                                           .annotate(ecount=models.Count('id'))\
-                                           .filter(ecount__gt=1)
 
-        for env in dupe_envs:
-            name = env['name']
-            organization_id = env['organization_id']
-
-            envs = list(orm.Environment.objects.filter(
-                name=name,
-                organization_id=organization_id,
-            ).order_by('date_added'))
-            to_env = envs[0]
-            from_envs = envs[1:]
-
-            try:
-                with transaction.atomic():
-                    orm.EnvironmentProject.objects.filter(
-                        environment__in=from_envs,
-                    ).update(environment=to_env)
-            except IntegrityError:
-                for ep in orm.EnvironmentProject.objects.filter(environment__in=from_envs):
-                    try:
-                        with transaction.atomic():
-                            ep.update(environment=to_env)
-                    except IntegrityError:
-                        ep.delete()
-
-            from_env_ids = [e.id for e in from_envs]
-            try:
-                with transaction.atomic():
-                    orm.ReleaseEnvironment.objects.filter(
-                        environment_id__in=from_env_ids,
-                    ).update(environment_id=to_env.id)
-            except IntegrityError:
-                for re in orm.ReleaseEnvironment.objects.filter(environment_id__in=from_env_ids):
-                    try:
-                        with transaction.atomic():
-                            re.update(environment_id=to_env.id)
-                    except IntegrityError:
-                        re.delete()
-
-            orm.Environment.objects.filter(id__in=from_env_ids).delete()
-
-        dupe_release_envs = orm.ReleaseEnvironment.objects.values(
-            'release_id', 'organization_id', 'environment_id'
-        ).annotate(
-            recount=models.Count('id')
-        ).filter(recount__gt=1)
-
-        for renv in dupe_release_envs:
-            release_id = renv['release_id']
-            organization_id = renv['organization_id']
-            environment_id = renv['environment_id']
-            renvs = list(orm.ReleaseEnvironment.objects.filter(
-                release_id=release_id,
-                organization_id=organization_id,
-                environment_id=environment_id,
-            ).order_by('first_seen'))
-            to_renv = renvs[0]
-            from_renvs = renvs[1:]
-            last_seen = max([re.last_seen for re in renvs])
-            to_renv.update(last_seen=last_seen)
-            orm.ReleaseEnvironment.objects.filter(
-                id__in=[re.id for re in from_renvs],
-            ).delete()
+        for release_project in RangeQuerySetWrapperWithProgressBar(orm.ReleaseProject.objects.all()):
+            orm.ReleaseProject.objects.filter(
+                id=release_project.id
+            ).update(
+                new_groups=orm.Group.objects.filter(
+                    project_id=release_project.project_id,
+                    first_release_id=release_project.release_id,
+                ).count()
+            )
 
         db.start_transaction()
 
@@ -165,7 +110,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 2, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 14, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -796,7 +741,7 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'xSM70zG7MyRUVIUcaNBY2CyvizXoGfhQ'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'GEDSLaKcJek3vkCe3zdug4N2F42Nentt'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
