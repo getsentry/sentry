@@ -17,7 +17,7 @@ from uuid import uuid4
 from sentry import buffer, roles
 from sentry.tsdb import backend as tsdb
 from sentry.models import (
-    Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
+    Activity, Broadcast, Deploy, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
     GroupRelease, Environment, ReleaseEnvironment, ReleaseCommit, Commit, Repository,
     CommitAuthor, CommitFileChange,
@@ -389,6 +389,15 @@ def main(num_events=1, extra_events=False):
                 ident=release.version,
                 user=user,
                 data={'version': release.version},
+            )
+
+            Deploy.objects.create(
+                organization_id=project.organization_id,
+                release=release,
+                environment_id=Environment.get_or_create(
+                    project=project,
+                    name=ENVIRONMENTS.next()
+                ).id,
             )
 
             # Add a bunch of additional dummy events to support pagination
