@@ -175,7 +175,7 @@ class OrganizationUpdateTest(APITestCase):
 
         assert org.default_role == 'member'
 
-    def test_empty_safe_fields(self):
+    def test_empty_string_in_array_safe_fields(self):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-organization-details', kwargs={
@@ -196,8 +196,11 @@ class OrganizationUpdateTest(APITestCase):
 
         assert not options.get('sentry:safe_fields')
 
-    def test_empty_sensitive_fields(self):
+    def test_empty_string_in_array_sensitive_fields(self):
         org = self.create_organization(owner=self.user)
+        OrganizationOption.objects.set_value(
+            org, 'sentry:sensitive_fields', ['foobar'],
+        )
         self.login_as(user=self.user)
         url = reverse('sentry-api-0-organization-details', kwargs={
             'organization_slug': org.slug,
@@ -206,6 +209,30 @@ class OrganizationUpdateTest(APITestCase):
             'sensitiveFields': [''],
         })
         assert response.status_code == 400, (response.status_code, response.content)
+        org = Organization.objects.get(id=org.id)
+
+        options = {
+            o.key: o.value
+            for o in OrganizationOption.objects.filter(
+                organization=org,
+            )
+        }
+
+        assert options.get('sentry:sensitive_fields') == ['foobar']
+
+    def test_empty_sensitive_fields(self):
+        org = self.create_organization(owner=self.user)
+        OrganizationOption.objects.set_value(
+            org, 'sentry:sensitive_fields', ['foobar'],
+        )
+        self.login_as(user=self.user)
+        url = reverse('sentry-api-0-organization-details', kwargs={
+            'organization_slug': org.slug,
+        })
+        response = self.client.put(url, data={
+            'sensitiveFields': [],
+        })
+        assert response.status_code == 200, (response.status_code, response.content)
         org = Organization.objects.get(id=org.id)
 
         options = {
