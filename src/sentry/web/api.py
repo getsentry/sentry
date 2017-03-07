@@ -17,7 +17,7 @@ from django.views.generic.base import View as BaseView
 from functools import wraps
 from raven.contrib.django.models import client as Raven
 
-from sentry import app
+from sentry import quotas, tsdb
 from sentry.coreapi import (
     APIError, APIForbidden, APIRateLimited, ClientApiHelper, CspApiHelper,
     LazyData
@@ -335,11 +335,11 @@ class StoreView(APIView):
         )
 
         if helper.should_filter(project, data, ip_address=remote_addr):
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.project_total_blacklisted, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
-                (app.tsdb.models.organization_total_blacklisted, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.organization_total_blacklisted, project.organization_id),
             ])
             metrics.incr('events.blacklisted')
             event_filtered.send_robust(
@@ -350,7 +350,7 @@ class StoreView(APIView):
             raise APIForbidden('Event dropped due to filter')
 
         # TODO: improve this API (e.g. make RateLimit act on __ne__)
-        rate_limit = safe_execute(app.quotas.is_rate_limited, project=project,
+        rate_limit = safe_execute(quotas.is_rate_limited, project=project,
                                   _with_transaction=False)
         if isinstance(rate_limit, bool):
             rate_limit = RateLimit(is_limited=rate_limit, retry_after=None)
@@ -360,11 +360,11 @@ class StoreView(APIView):
         if rate_limit is None or rate_limit.is_limited:
             if rate_limit is None:
                 helper.log.debug('Dropped event due to error with rate limiter')
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.project_total_rejected, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
-                (app.tsdb.models.organization_total_rejected, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.project_total_rejected, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.organization_total_rejected, project.organization_id),
             ])
             metrics.incr('events.dropped', tags={
                 'reason': rate_limit.reason_code if rate_limit else 'unknown',
@@ -378,9 +378,9 @@ class StoreView(APIView):
             if rate_limit is not None:
                 raise APIRateLimited(rate_limit.retry_after)
         else:
-            app.tsdb.incr_multi([
-                (app.tsdb.models.project_total_received, project.id),
-                (app.tsdb.models.organization_total_received, project.organization_id),
+            tsdb.incr_multi([
+                (tsdb.models.project_total_received, project.id),
+                (tsdb.models.organization_total_received, project.organization_id),
             ])
 
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)

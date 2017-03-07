@@ -1,12 +1,28 @@
 Version 8.15 (Unreleased)
 -------------------------
 
+- Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
+- Refactor usage of ``sentry.app`` to use individual modules.
+- Implemented ``--concurrency` on `sentry cleanup`
+
 API Changes
 ~~~~~~~~~~~
 
 - Added CommitFileChangeEndpoint
 - Added IssuesResolvedInReleaseEndpoint
+- Added ReleaseDeploysEndpoint
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Deploy`` model
+
+Version 8.14.1
+--------------
+
+- Fixed issues related to migrations failing to finish for 8.14
+- Fixed an issue where Release version names were erronously too restrictve.
+- Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
 
 Version 8.14
 ------------

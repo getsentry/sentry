@@ -20,6 +20,7 @@ from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_text
 
+from sentry import nodestore
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -292,8 +293,6 @@ class BaseManager(Manager):
         return create_or_update(self.model, **kwargs)
 
     def bind_nodes(self, object_list, *node_names):
-        from sentry.app import nodestore
-
         object_node_list = []
         for name in node_names:
             object_node_list.extend((

@@ -365,7 +365,6 @@ class BasicResolvingIntegrationTest(TestCase):
         assert resp.status_code == 200
 
         event = Event.objects.get()
-        print event.data['errors']
 
         bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
         frames = bt.frames

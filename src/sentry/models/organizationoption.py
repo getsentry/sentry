@@ -52,7 +52,11 @@ class OrganizationOptionManager(BaseManager):
         return result.get(key, default)
 
     def unset_value(self, organization, key):
-        self.filter(organization=organization, key=key).delete()
+        try:
+            inst = self.get(organization=organization, key=key)
+        except self.model.DoesNotExist:
+            return
+        inst.delete()
         self.reload_cache(organization.id)
 
     def set_value(self, organization, key, value):

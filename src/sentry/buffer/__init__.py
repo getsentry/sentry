@@ -1,10 +1,12 @@
-"""
-sentry.buffer
-~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
 from __future__ import absolute_import
 
+from django.conf import settings
+
+from sentry.utils.functional import LazyBackendWrapper
+
 from .base import Buffer  # NOQA
+
+
+backend = LazyBackendWrapper(Buffer, settings.SENTRY_BUFFER,
+                             settings.SENTRY_BUFFER_OPTIONS)
+backend.expose(locals())

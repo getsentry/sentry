@@ -1,10 +1,10 @@
 from __future__ import absolute_import
 
 import logging
-import time
-from datetime import datetime, timedelta
-
 import six
+import time
+
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -16,7 +16,8 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from sentry.app import raven, tsdb
+from sentry import tsdb
+from sentry.app import raven
 from sentry.models import ApiKey, AuditLogEntry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -233,7 +234,7 @@ class StatsMixin(object):
         resolution = request.GET.get('resolution')
         if resolution:
             resolution = self._parse_resolution(resolution)
-            assert resolution in tsdb.rollups
+            assert resolution in tsdb.get_rollups()
 
         end = request.GET.get('until')
         if end:
