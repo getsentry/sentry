@@ -8,6 +8,7 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from hashlib import sha1
 from pytz import utc
