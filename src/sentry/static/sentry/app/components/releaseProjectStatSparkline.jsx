@@ -22,12 +22,12 @@ const ReleaseProjectStatSparkline = React.createClass({
       loading: true,
       error: false,
       stats: [],
-      issues: 0,
+      newIssueCount: 0,
     };
   },
 
   componentDidMount() {
-    let {orgId} = this.props;
+    let {orgId, version} = this.props;
     let projectId = this.props.project.slug;
     let path = `/projects/${orgId}/${projectId}/stats/`;
     this.api.request(path, {
@@ -46,13 +46,12 @@ const ReleaseProjectStatSparkline = React.createClass({
         });
       }
     });
-    let issuesPath = `/projects/${orgId}/${projectId}/issues/`;
+    let issuesPath = `/projects/${orgId}/${projectId}/releases/${version}/`;
     this.api.request(issuesPath, {
       method: 'GET',
-      data: {'query': 'first-release:"' + this.props.version + '"'},
       success: (data, _, jqXHR) => {
         this.setState({
-          issues: data.length,
+          newIssueCount: data.newGroups,
         });
       },
       error: () => {
@@ -82,7 +81,7 @@ const ReleaseProjectStatSparkline = React.createClass({
           <h6 className="m-b-0">
             {project.name}
           </h6>
-          <p className="m-b-0">{this.state.issues} New Issues</p>
+          <p className="m-b-0">{this.state.newIssueCount} New Issues</p>
         </Link>
       </li>
     );
