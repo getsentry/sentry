@@ -23,13 +23,11 @@ class DeploySerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, *args, **kwargs):
-        d = {
+        return {
             'environment': attrs.get('environment'),
             'dateStarted': obj.date_started,
             'dateFinished': obj.date_finished,
             'name': obj.name,
             'url': obj.url,
+            'environment': getattr(attrs.get('environment'), 'name', None),
         }
-        if attrs.get('environment'):
-            d['environment'] = attrs['environment'].name
-        return d

@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
-import datetime
-
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -13,7 +12,9 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.app import locks
 from sentry.models import Deploy, Environment, Release
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class DeploySerializer(serializers.Serializer):
@@ -98,10 +99,20 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     name=result['environment'],
                 )
             except Environment.DoesNotExist:
-                env = Environment.objects.create(
-                    organization_id=organization.id,
-                    name=result['environment'],
-                )
+                # TODO(jess): clean up when changing unique constraint
+                lock_key = Environment.get_lock_key(organization.id, result['environment'])
+                lock = locks.get(lock_key, duration=5)
+                with TimedRetryPolicy(10)(lock.acquire):
+                    try:
+                        env = Environment.objects.get(
+                            organization_id=organization.id,
+                            name=result['environment'],
+                        )
+                    except Environment.DoesNotExist:
+                        env = Environment.objects.create(
+                            organization_id=organization.id,
+                            name=result['environment'],
+                        )
 
             try:
                 with transaction.atomic():
@@ -109,7 +120,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                         organization_id=organization.id,
                         release=release,
                         environment_id=env.id,
-                        date_finished=result.get('dateFinished', datetime.datetime.utcnow()),
+                        date_finished=result.get('dateFinished', timezone.now()),
                         date_started=result.get('dateStarted'),
                         name=result.get('name'),
                         url=result.get('url'),
@@ -121,7 +132,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     environment_id=env.id,
                 ), False
                 deploy.update(
-                    date_finished=result.get('dateFinished', datetime.datetime.utcnow()),
+                    date_finished=result.get('dateFinished', timezone.now()),
                     date_started=result.get('dateStarted'),
                 )
 
