@@ -6,6 +6,22 @@ from django.utils import timezone
 
 from sentry.utils import db
 
+BULK_DELETE_QUERY = """
+DELETE FROM {table}
+WHERE id IN (
+  SELECT id
+  FROM {table}
+  {where}
+  LIMIT {chunk_size}
+);
+""".strip()
+
+BULK_DELETE_DATE_QUERY = """
+DELETE FROM {table}
+WHERE {field} < now() - interval '{chunk} seconds'
+{where};
+""".strip()
+
 
 class BulkDeleteQuery(object):
     def __init__(self, model, project_id=None, dtfield=None, days=None):
@@ -15,38 +31,80 @@ class BulkDeleteQuery(object):
         self.days = int(days) if days is not None else None
         self.using = router.db_for_write(model)
 
-    def execute_postgres(self, chunk_size=10000):
-        quote_name = connections[self.using].ops.quote_name
+    def execute_postgres(self, chunk_size=10000, chunk_delta=None):
+        if self.dtfield and self.days is not None:
+            return self.execute_postgres_date(chunk_delta)
 
         where = []
-        if self.dtfield and self.days is not None:
-            where.append("{} < now() - interval '{} days'".format(
-                quote_name(self.dtfield),
-                self.days,
-            ))
         if self.project_id:
-            where.append("project_id = {}".format(self.project_id))
+            where.append("project_id={}".format(self.project_id))
 
         if where:
-            where_clause = 'where {}'.format(' and '.join(where))
+            where_clause = 'WHERE {}'.format(' AND '.join(where))
         else:
             where_clause = ''
 
-        query = """
-            delete from {table}
-            where id = any(array(
-                select id
-                from {table}
-                {where}
-                limit {chunk_size}
-            ));
-        """.format(
+        query = BULK_DELETE_QUERY.format(
             table=self.model._meta.db_table,
             chunk_size=chunk_size,
             where=where_clause,
         )
 
         return self._continuous_query(query)
+
+    def execute_postgres_date(self, chunk_delta=None):
+        if chunk_delta is None:
+            chunk_delta = timedelta(hours=1)
+
+        connection = connections[self.using]
+        dtfield_sql = connection.ops.quote_name(self.dtfield)
+
+        qs = self.model.objects.all()
+
+        where_clause = ''
+        if self.project_id:
+            where_clause = 'AND project_id={}'.format(self.project_id)
+            if 'project' in self.model._meta.get_all_field_names():
+                qs = qs.filter(project=self.project_id)
+            else:
+                qs = qs.filter(project_id=self.project_id)
+
+        try:
+            oldest = qs.order_by(self.dtfield).values_list(self.dtfield, flat=True)[0]
+        except IndexError:
+            # No rows at all
+            return
+
+        now = timezone.now()
+        cutoff_delta = timedelta(days=self.days)
+        cutoff = now - cutoff_delta
+
+        if oldest > cutoff:
+            # Nothing is old enough to be deleted
+            return
+
+        # Grab the actual delta between now and the oldest event we have,
+        # and we want to iterate in chunks from oldest to newest by
+        # the chunk_delta interval until we get to the cutoff delta
+        #
+        # e.g if days=10, chunk_delta=1 day, max_delta=12 days, this means
+        # we'll execute 2 queries. One for < 11 days, then < 10 days
+        delta = now - oldest
+
+        cursor = connection.cursor()
+
+        while 1:
+            delta = max(delta - chunk_delta, cutoff_delta)
+
+            cursor.execute(BULK_DELETE_DATE_QUERY.format(
+                table=self.model._meta.db_table,
+                field=dtfield_sql,
+                chunk=int(delta.total_seconds()),
+                where=where_clause,
+            ))
+
+            if delta == cutoff_delta:
+                break
 
     def _continuous_query(self, query):
         results = True
@@ -104,8 +162,11 @@ class BulkDeleteQuery(object):
                 item.delete()
                 exists = True
 
-    def execute(self, chunk_size=10000):
+    def execute(self, chunk_size=10000, chunk_delta=None):
+        if chunk_delta is None:
+            chunk_delta = timedelta(hours=1)
+
         if db.is_postgres():
-            self.execute_postgres(chunk_size)
+            self.execute_postgres(chunk_size, chunk_delta)
         else:
             self.execute_generic(chunk_size)
