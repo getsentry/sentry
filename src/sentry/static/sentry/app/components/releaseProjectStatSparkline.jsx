@@ -1,12 +1,13 @@
 import React from 'react';
 import {Link} from 'react-router';
+import {Sparklines, SparklinesLine} from 'react-sparklines';
 
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 
-import {Sparklines, SparklinesLine} from 'react-sparklines';
-
 import ApiMixin from '../mixins/apiMixin';
+
+import {t} from '../locale';
 
 const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
@@ -22,12 +23,12 @@ const ReleaseProjectStatSparkline = React.createClass({
       loading: true,
       error: false,
       stats: [],
-      newIssueCount: 0,
+      newIssueCount: null,
     };
   },
 
   componentDidMount() {
-    let {orgId, version} = this.props;
+    let {orgId} = this.props;
     let projectId = this.props.project.slug;
     let path = `/projects/${orgId}/${projectId}/stats/`;
     this.api.request(path, {
@@ -36,9 +37,8 @@ const ReleaseProjectStatSparkline = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           stats: data,
-          loading: false,
-          error: false,
         });
+        this.getNewIssuesCount();
       },
       error: () => {
         this.setState({
@@ -46,12 +46,18 @@ const ReleaseProjectStatSparkline = React.createClass({
         });
       }
     });
+  },
+
+  getNewIssuesCount() {
+    let {orgId, version} = this.props;
+    let projectId = this.props.project.slug;
     let issuesPath = `/projects/${orgId}/${projectId}/releases/${version}/`;
     this.api.request(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
           newIssueCount: data.newGroups,
+          loading: false,
         });
       },
       error: () => {
@@ -64,6 +70,7 @@ const ReleaseProjectStatSparkline = React.createClass({
 
   render() {
     let {orgId, project} = this.props;
+    let newIssueCount = this.state.newIssueCount;
     let values = this.state.stats.map(tuple => tuple[1]);
     if (this.state.loading)
       return <LoadingIndicator/>;
@@ -81,7 +88,9 @@ const ReleaseProjectStatSparkline = React.createClass({
           <h6 className="m-b-0">
             {project.name}
           </h6>
-          <p className="m-b-0">{this.state.newIssueCount} New Issues</p>
+          <p className="m-b-0">
+            {newIssueCount} {newIssueCount !== 1 ? t('New Issues') : t('New Issue')}
+          </p>
         </Link>
       </li>
     );
