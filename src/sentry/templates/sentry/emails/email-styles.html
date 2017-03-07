@@ -691,15 +691,36 @@
     padding: 8px 0;
   }
 
-  .inner table.table tr:last-child td {
+  .inner table.table tr:last-child td, .inner table.table tr:last-child th {
     border-bottom: 0;
   }
+
+  .inner table.table tr:first-child td:first-child, .inner table.table tr:first-child th:first-child {
+    border-top-left-radius: 3px;
+  }
+
+  .inner table.table tr:first-child td:last-child, .inner table.table tr:first-child th:last-child {
+    border-top-right-radius: 3px;
+  }
+
+  .inner table.table tr:last-child td:first-child, .inner table.table tr:last-child th:first-child {
+    border-bottom-left-radius: 3px;
+  }
+
+  .inner table.table tr:last-child td:last-child, .inner table.table tr:last-child th:last-child {
+    border-bottom-right-radius: 3px;
+  }
+
 
   .inner table.table th {
     background: #FBFBFC;
     font-weight: 600;
     font-size: 13px;
     text-transform: uppercase;
+  }
+
+  .inner table.table th.lowercase {
+    text-transform: none;
   }
 
   /* Utility Classes */
