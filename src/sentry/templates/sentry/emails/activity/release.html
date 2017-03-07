@@ -9,7 +9,7 @@
     <h2 style="margin-bottom: 10px">
         Version {{ release.short_version }} was [deployed] to [production]
     </h2>
-    <p class="muted"><small><strong style="color: #72697d;">{{ release.date_added }}</strong> <span class="divider">&nbsp;</span>  3 commits, 2 authors, and 14 files changed across 2 projects</small></p>
+    <p class="muted"><small><strong style="color: #72697d;">{{ release.date_added }}</strong> <span class="divider">&nbsp;</span>  23 commits, 2 authors, and 14 files changed across 2 projects</small></p>
 
     <hr>
 
@@ -49,33 +49,58 @@
     <h6 style="margin-top: 10px">Commits</h6>
     <div class="table-border">
       <table class="table commit-list" style="margin-bottom: 0;">
-        <tbody>
-          {% for commit in commit_list %}
-            <tr>
-              <td>
-                {% if commit.message %}
-                    {{ commit.title }}
-                {% else %}
-                    No message provided
-                {% endif %}
-              </td>
-              <td>
-                <small>{{ commit.short_id }}</small>
-              </td>
-              <td>
-                {% if commit.author %}
-                    <small>{{ commit.author.name }}</small>
-                {% else %}
-                    <small>No author provided</small>
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
+        <tr>
+          <th class="lowercase" colspan="3">getsentry/getsentry</th>
+        </tr>
+        {% for commit in commit_list %}
+          <tr>
+            <td>
+              {% if commit.message %}
+                  {{ commit.title }}
+              {% else %}
+                  No message provided
+              {% endif %}
+            </td>
+            <td>
+              <small>{{ commit.short_id }}</small>
+            </td>
+            <td>
+              {% if commit.author %}
+                  <small>{{ commit.author.name }}</small>
+              {% else %}
+                  <small>No author provided</small>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        <tr>
+          <th class="lowercase" colspan="3">getsentry/sentry</th>
+        </tr>
+        {% for commit in commit_list %}
+          <tr>
+            <td>
+              {% if commit.message %}
+                  {{ commit.title }}
+              {% else %}
+                  No message provided
+              {% endif %}
+            </td>
+            <td>
+              <small>{{ commit.short_id }}</small>
+            </td>
+            <td>
+              {% if commit.author %}
+                  <small>{{ commit.author.name }}</small>
+              {% else %}
+                  <small>No author provided</small>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
       </table>
     </div>
     {% else %}
-        <p>It looks like there's no commit data wired up yet :(</p>
+      <p>It looks like there's no commit data wired up yet :(</p>
     {% endif %}
 
     <!-- {% if commit_list %}
