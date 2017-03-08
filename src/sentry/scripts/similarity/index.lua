@@ -722,6 +722,7 @@ local commands = {
                         -- The destination bucket frequency key may have not
                         -- existed previously, so we need to make sure we set
                         -- the expiration on it in case it is new.
+                        -- TODO(tkaemming): Only need to call this if we mutated anything
                         redis.call(
                             'EXPIREAT',
                             destination_bucket_frequency_key,
