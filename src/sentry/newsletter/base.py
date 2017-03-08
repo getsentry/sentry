@@ -2,6 +2,9 @@ from __future__ import absolute_import
 
 
 class Newsletter(object):
+    __all__ = ('is_enabled', 'get_subscriptions', 'update_subscription',
+               'create_or_update_subscription')
+
     DEFAULT_LIST_ID = 1
 
     enabled = False

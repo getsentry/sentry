@@ -6,3 +6,7 @@ To continue with your password reset, simply follow the link below, and you will
 {{ url|safe }}
 
 This link will expire in 48 hours.
+
+This request was made by:
+IP: {{ ip_address }}
+Date: {{ datetime|date:"N j, Y, P e" }}

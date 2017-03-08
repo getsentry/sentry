@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.testutils import APITestCase
 
 

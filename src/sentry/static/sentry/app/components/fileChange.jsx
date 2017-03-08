@@ -31,7 +31,7 @@ const FileChange = React.createClass({
       <li className="list-group-item list-group-item-sm ">
         <div className="row">
           <div className="col-sm-9"><small>{filename}</small></div>
-          <div className="col-sm-3 avatar-grid">
+          <div className="col-sm-3 avatar-grid align-right">
           {authors.map(author => {
               return (
                 <span className="avatar-grid-item m-b-0 tip"

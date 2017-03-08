@@ -350,7 +350,7 @@ features = FeatureSet(
         8,
         2,
         60 * 60 * 24 * 30,
-        4,
+        3,
     ),
     BidirectionalMapping({
         'exception:message:character-shingles': 'a',
