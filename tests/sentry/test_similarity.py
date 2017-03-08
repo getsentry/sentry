@@ -156,7 +156,7 @@ class MinHashIndexTestCase(TestCase):
 
         for band in data:
             assert len(band) == (retention + 1)
-            assert sum(sum(int(count) for bucket, count in chunk) for _, chunk in band) == 1
+            assert sum(sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band) == 1
 
         index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
@@ -180,4 +180,4 @@ class MinHashIndexTestCase(TestCase):
 
         for band in data:
             assert len(band) == (retention + 1)
-            assert sum(sum(int(count) for bucket, count in chunk) for _, chunk in band) == 2
+            assert sum(sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band) == 2

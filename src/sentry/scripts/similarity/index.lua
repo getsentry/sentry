@@ -30,6 +30,10 @@ if not pcall(redis.replicate_commands) then
     redis.log(redis.LOG_DEBUG, 'Could not enable script effects replication.')
 end
 
+local function identity(value)
+    return value
+end
+
 local function range(start, stop)
     local result = {}
     for i = start, stop do
@@ -149,6 +153,20 @@ local function get_index_expiration_time(interval, retention, index)
 end
 
 
+-- Redis Helpers
+
+local function redis_hgetall_response_to_table(response, value_type)
+    if value_type == nil then
+        value_type = identity
+    end
+    local result = {}
+    for i = 1, #response, 2 do
+        result[response[i]] = value_type(response[i + 1])
+    end
+    return result
+end
+
+
 -- Generic Configuration
 
 local configuration_parser = build_argument_parser({
@@ -228,7 +246,7 @@ end
 
 local function collect_index_key_pairs(arguments, validator)
     if validator == nil then
-        validator = function (entry) end
+        validator = identity
     end
 
     local entries = table.ireduce(
@@ -360,21 +378,23 @@ local commands = {
                             table.imap(
                                 time_series,
                                 function (time)
-                                    return redis.call(
-                                        'HGETALL',
-                                        get_bucket_frequency_key(
-                                            configuration.scope,
-                                            index,
-                                            time,
-                                            band,
-                                            key
-                                        )
+                                    return redis_hgetall_response_to_table(
+                                        redis.call(
+                                            'HGETALL',
+                                            get_bucket_frequency_key(
+                                                configuration.scope,
+                                                index,
+                                                time,
+                                                band,
+                                                key
+                                            )
+                                        ),
+                                        tonumber
                                     )
                                 end
                             ),
                             function (result, response)
-                                for i = 1, #response, 2 do
-                                    local bucket, count = response[i], response[i + 1]
+                                for bucket, count in pairs(response) do
                                     result[bucket] = (result[bucket] or 0) + count
                                 end
                                 return result
@@ -532,13 +552,15 @@ local commands = {
                             time
                         )
 
-                        local response = redis.call(
-                            'HGETALL',
-                            source_bucket_frequency_key
+                        local response = redis_hgetall_response_to_table(
+                            redis.call(
+                                'HGETALL',
+                                source_bucket_frequency_key
+                            ),
+                            tonumber
                         )
-                        for i = 1, #response, 2 do
-                            local bucket, count = response[i], response[i + 1]
 
+                        for bucket, count in pairs(response) do
                             -- Remove the source from the bucket membership
                             -- set, and add the destination to the membership
                             -- set.
@@ -562,6 +584,7 @@ local commands = {
                             )
                         end
 
+                        -- TODO: We only need to do this if the bucket has contents.
                         -- The destination bucket frequency key may have not
                         -- existed previously, so we need to make sure we set
                         -- the expiration on it in case it is new.
@@ -599,13 +622,12 @@ local commands = {
                             source.key
                         )
 
-                        local response = redis.call(
-                            'HGETALL',
+                        local buckets = redis.call(
+                            'HGETKEYS',
                             source_bucket_frequency_key
                         )
 
-                        for i = 1, #response, 2 do
-                            local bucket = response[i]
+                        for _, bucket in ipairs(buckets) do
                             redis.call(
                                 'SREM',
                                 get_bucket_membership_key(
@@ -640,9 +662,14 @@ local commands = {
                             data = nil,
                         }
                     elseif state.active.key == nil then
+                        -- The second token is the key.
                         state.active.key = token
                     else
+                        -- The third and final item is the message packed data
+                        -- from ``EXPORT``.
                         state.active.data = cmsgpack.unpack(token)
+                        -- When the item is marked complete, we can add it to
+                        -- the completed set, and reset the active state.
                         table.insert(state.completed, state.active)
                         state.active = nil
                     end
@@ -673,14 +700,13 @@ local commands = {
                             entry.key
                         )
 
-                        for _, bucket in ipairs(buckets) do
-                            local bucket_key, count = bucket[1], bucket[2]
+                        for bucket, count in pairs(buckets) do
                             local bucket_membership_key = get_bucket_membership_key(
                                 configuration.scope,
                                 entry.index,
                                 time,
                                 band,
-                                bucket_key
+                                bucket
                             )
                             redis.call('SADD', bucket_membership_key, entry.key)
                             redis.call('EXPIREAT', bucket_membership_key, expiration_time)
@@ -688,7 +714,7 @@ local commands = {
                             redis.call(
                                 'HINCRBY',
                                 destination_bucket_frequency_key,
-                                bucket_key,
+                                bucket,
                                 count
                             )
                         end
@@ -724,27 +750,21 @@ local commands = {
                                 return table.imap(
                                     time_series,
                                     function (time)
-                                        -- TODO(tkaemming): i hate this so much, this is dumb af
-                                        local response = redis.call(
-                                            'HGETALL',
-                                            get_bucket_frequency_key(
-                                                configuration.scope,
-                                                source.index,
-                                                time,
-                                                band,
-                                                source.key
-                                            )
-                                        )
-                                        local result = {}
-                                        for i = 1, #response, 2 do
-                                            table.insert(
-                                                result,
-                                                {response[i], response[i+1]}
-                                            )
-                                        end
                                         return {
                                             time,
-                                            result,
+                                            redis_hgetall_response_to_table(
+                                                redis.call(
+                                                    'HGETALL',
+                                                    get_bucket_frequency_key(
+                                                        configuration.scope,
+                                                        source.index,
+                                                        time,
+                                                        band,
+                                                        source.key
+                                                    )
+                                                ),
+                                                tonumber
+                                            ),
                                         }
                                     end
                                 )
