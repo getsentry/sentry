@@ -33,7 +33,8 @@ def patched_symbolize_app_frame(self, frame, img, symbolize_inlined=False):
 
 
 def patched_symbolize_system_frame(self, frame, img, sdk_info,
-                                   symbolize_inlined=False):
+                                   symbolize_inlined=False,
+                                   symbolserver_match=None):
     assert symbolize_inlined
     assert sdk_info == SDK_INFO
     if frame['instruction_addr'] == 6016:
