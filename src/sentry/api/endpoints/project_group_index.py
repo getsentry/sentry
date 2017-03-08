@@ -39,6 +39,7 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
 
 
 @scenario('BulkUpdateIssues')
@@ -283,8 +284,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
         ])
-
-        SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
 
         if results and query not in SAVED_SEARCH_QUERIES:
             advanced_search.send(project=project, sender=request.user)
