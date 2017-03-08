@@ -1,14 +1,20 @@
 from __future__ import absolute_import
 
+import logging
+
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from uuid import uuid4
 
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ApiApplication, ApiApplicationStatus
+from sentry.tasks.deletion import delete_api_application
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 class ApiApplicationSerializer(serializers.Serializer):
@@ -98,10 +104,26 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
 
-        ApiApplication.objects.filter(
+        updated = ApiApplication.objects.filter(
             id=instance.id,
         ).update(
-            status=ApiApplicationStatus.inactive,
+            status=ApiApplicationStatus.pending_delete,
         )
+        if updated:
+            transaction_id = uuid4().hex
+
+            delete_api_application.apply_async(
+                kwargs={
+                    'object_id': instance.id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=3600,
+            )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': instance.id,
+                'transaction_id': transaction_id,
+                'model': type(instance).__name__,
+            })
 
         return Response(status=204)

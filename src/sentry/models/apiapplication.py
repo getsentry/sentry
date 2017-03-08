@@ -16,6 +16,8 @@ from sentry.db.models import (
 class ApiApplicationStatus(object):
     active = 0
     inactive = 1
+    pending_deletion = 2
+    deletion_in_progress = 3
 
 
 class ApiApplication(Model):

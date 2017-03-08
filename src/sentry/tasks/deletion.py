@@ -316,6 +316,91 @@ def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
     })
 
 
+@instrumented_task(name='sentry.tasks.deletion.delete_api_application', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry(exclude=(DeleteAborted,))
+def delete_api_application(object_id, transaction_id=None, continuous=True,
+                           **kwargs):
+    from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant
+
+    try:
+        app = ApiApplication.objects.get(id=object_id)
+    except ApiApplication.DoesNotExist:
+        return
+
+    if app.status == ApiApplicationStatus.active:
+        raise DeleteAborted
+
+    if app.status != ApiApplicationStatus.deletion_in_progress:
+        app.update(status=ApiApplicationStatus.deletion_in_progress)
+
+    has_more = revoke_api_tokens(object_id)
+    if has_more:
+        if continuous:
+            delete_api_application.apply_async(
+                kwargs={
+                    'object_id': object_id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=15,
+            )
+        return
+
+    bulk_model_list = (ApiGrant,)
+    for model in bulk_model_list:
+        has_more = bulk_delete_objects(model, application_id=app.id,
+                                       logger=logger)
+        if has_more:
+            if continuous:
+                delete_api_application.apply_async(
+                    kwargs={
+                        'object_id': object_id,
+                        'transaction_id': transaction_id,
+                    },
+                    countdown=15,
+                )
+            return
+
+    app.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': object_id,
+        'transaction_id': transaction_id,
+        'model': ApiApplication.__name__,
+    })
+
+
+@instrumented_task(name='sentry.tasks.deletion.revoke_api_tokens', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry(exclude=(DeleteAborted,))
+def revoke_api_tokens(object_id, transaction_id=None, continuous=True,
+                      timestamp=None, **kwargs):
+    from sentry.models import ApiToken
+
+    queryset = ApiToken.objects.filter(
+        application=object_id,
+    )
+    if timestamp:
+        queryset = queryset.filter(date_added__lte=timestamp)
+
+    # we're using a slow deletion strategy to avoid a lot of custom code for
+    # mysql/postgres
+    has_more = False
+    for obj in queryset[:1000]:
+        obj.delete()
+        has_more = True
+
+    if has_more and continuous:
+        revoke_api_tokens.apply_async(
+            kwargs={
+                'object_id': object_id,
+                'transaction_id': transaction_id,
+                'timestamp': timestamp,
+            },
+            countdown=15,
+        )
+    return has_more
+
+
 @instrumented_task(name='sentry.tasks.deletion.generic_delete', queue='cleanup',
                    default_retry_delay=60 * 5, max_retries=None)
 @retry(exclude=(DeleteAborted,))
