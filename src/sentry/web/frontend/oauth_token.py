@@ -60,8 +60,8 @@ class OAuthTokenView(View):
 
             token = ApiToken.from_grant(grant)
         elif grant_type == 'refresh_token':
-            refresh_token = request.GET.get('refresh_token')
-            scope = request.GET.get('scope')
+            refresh_token = request.POST.get('refresh_token')
+            scope = request.POST.get('scope')
 
             if not refresh_token:
                 return self.error('invalid_request')
