@@ -239,7 +239,7 @@ class APIView(BaseView):
             else:
                 response['Access-Control-Allow-Origin'] = origin
 
-        api_called.send(organization=project.organization, sender=self)
+        api_called.send(organization=project.organization, project=project, sender=self)
         return response
 
     # XXX: backported from Django 1.5
