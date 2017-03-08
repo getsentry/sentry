@@ -158,6 +158,7 @@ class MinHashIndexTestCase(TestCase):
             assert len(band) == (retention + 1)
             assert sum(sum(dict(bucket_frequencies).values()) for index, bucket_frequencies in band) == 1
 
+        # Copy the data from key 1 to key 2.
         index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
         assert index.export(
@@ -170,6 +171,7 @@ class MinHashIndexTestCase(TestCase):
             timestamp=timestamp
         )
 
+        # Copy the data again to key 2 (duplicating all of the data.)
         index.import_('example', [('index', 2, result[0])], timestamp=timestamp)
 
         result = index.export('example', [('index', 2)], timestamp=timestamp)
