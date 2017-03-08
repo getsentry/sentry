@@ -117,19 +117,47 @@ local function parse_integer(value)
 end
 
 local function build_argument_parser(fields)
-    return function (arguments)
+    return function (arguments, offset)
+        if offset == nil then
+            offset = 0
+        end
         local results = {}
         for i = 1, #fields do
             local name, parser = unpack(fields[i])
             local value = arguments[i]
             local ok, result = pcall(parser, value)
             if not ok then
-                error(string.format('received invalid argument for %q in position %s with value %q; %s', name, i, value, result))
+                error(string.format('received invalid argument for %q in position %s with value %q; %s', name, offset + i, value, result))
             else
                 results[name] = result
             end
         end
         return results, table.slice(arguments, #fields + 1)
+    end
+end
+
+local function build_variadic_argument_parser(fields, validator)
+    if validator == nil then
+        validator = identity
+    end
+    local parser = build_argument_parser(fields)
+    return function (arguments, offset)
+        if offset == nil then
+            offset = 0
+        end
+        if #arguments % #fields ~= 0 then
+            -- TODO: make this error less crummy
+            error('invalid number of arguments')
+        end
+        local results = {}
+        for i = 1, #arguments, #fields do
+            local value, _ = parser(table.slice(arguments, i, i + #fields - 1), i)
+            table.insert(
+                results,
+                validator(value)
+            )
+        end
+        return results
     end
 end
 
@@ -245,33 +273,10 @@ local function scale_to_total(values)
 end
 
 local function collect_index_key_pairs(arguments, validator)
-    if validator == nil then
-        validator = identity
-    end
-
-    local entries = table.ireduce(
-        arguments,
-        function (state, token)
-            if state.active == nil then
-                state.active = {
-                    index = token,
-                    key = nil,
-                }
-            else
-                state.active.key = token
-                validator(state.active)
-                table.insert(
-                    state.completed,
-                    state.active
-                )
-                state.active = nil
-            end
-            return state
-        end,
-        {active = nil, completed = {}}
-    )
-    assert(entries.active == nil, 'unexpected end of input')
-    return entries.completed
+    return build_variadic_argument_parser({
+        {"index", identity},
+        {"key", identity},
+    }, validator)(arguments)
 end
 
 
@@ -520,6 +525,7 @@ local commands = {
                 table.slice(arguments, 2),
                 function (entry)
                     assert(entry.key ~= destination_key, 'cannot merge destination into itself')
+                    return entry
                 end
             )
 
@@ -604,7 +610,6 @@ local commands = {
     DELETE = takes_configuration(
         function (configuration, arguments)
             local sources = collect_index_key_pairs(arguments)
-
             local time_series = get_active_indices(
                 configuration.interval,
                 configuration.retention,
@@ -650,40 +655,15 @@ local commands = {
     ),
     IMPORT = takes_configuration(
         function (configuration, arguments)
-            local entries = table.ireduce(
-                arguments,
-                function (state, token)
-                    if state.active == nil then
-                        -- When there is no active entry, we need to initialize
-                        -- a new one. The first token is the index identifier.
-                        state.active = {
-                            index = token,
-                            key = nil,
-                            data = nil,
-                        }
-                    elseif state.active.key == nil then
-                        -- The second token is the key.
-                        state.active.key = token
-                    else
-                        -- The third and final item is the message packed data
-                        -- from ``EXPORT``.
-                        state.active.data = cmsgpack.unpack(token)
-                        -- When the item is marked complete, we can add it to
-                        -- the completed set, and reset the active state.
-                        table.insert(state.completed, state.active)
-                        state.active = nil
-                    end
-                    return state
-                end,
-                {active = nil, completed = {}}
-            )
+            local entries = build_variadic_argument_parser({
+                {'index', identity},
+                {'key', identity},
+                {'data', function (value)
+                    return cmsgpack.unpack(value)
+                end}
+            })(arguments)
 
-            -- If there are any entries in progress when we are completed, that
-            -- means the input was in an incorrect format and we should error
-            -- before we record any bad data.
-            assert(entries.active == nil, 'unexpected end of input')
-
-            for _, entry in ipairs(entries.completed) do
+            for _, entry in ipairs(entries) do
                 for band, data in ipairs(entry.data) do
                     for _, item in ipairs(data) do
                         local time, buckets = item[1], item[2]
