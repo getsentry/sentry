@@ -1,86 +1,31 @@
 # -*- coding: utf-8 -*-
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import DataMigration
-from django.db import IntegrityError, models, transaction
+from south.v2 import SchemaMigration
+from django.db import models
 
 
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        "Write your forwards methods here."
-        db.commit_transaction()
-        dupe_envs = orm.Environment.objects.values('name', 'organization_id')\
-                                           .annotate(ecount=models.Count('id'))\
-                                           .filter(ecount__gt=1)
+        # Adding model 'Deploy'
+        db.create_table('sentry_deploy', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('organization_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('release', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.Release'])),
+            ('environment_id', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(db_index=True)),
+            ('date_finished', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('date_started', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=64, null=True, blank=True)),
+            ('url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True)),
+        ))
+        db.send_create_signal('sentry', ['Deploy'])
 
-        for env in dupe_envs:
-            name = env['name']
-            organization_id = env['organization_id']
-
-            envs = list(orm.Environment.objects.filter(
-                name=name,
-                organization_id=organization_id,
-            ).order_by('date_added'))
-            to_env = envs[0]
-            from_envs = envs[1:]
-
-            try:
-                with transaction.atomic():
-                    orm.EnvironmentProject.objects.filter(
-                        environment__in=from_envs,
-                    ).update(environment=to_env)
-            except IntegrityError:
-                for ep in orm.EnvironmentProject.objects.filter(environment__in=from_envs):
-                    try:
-                        with transaction.atomic():
-                            ep.update(environment=to_env)
-                    except IntegrityError:
-                        ep.delete()
-
-            from_env_ids = [e.id for e in from_envs]
-            try:
-                with transaction.atomic():
-                    orm.ReleaseEnvironment.objects.filter(
-                        environment_id__in=from_env_ids,
-                    ).update(environment_id=to_env.id)
-            except IntegrityError:
-                for re in orm.ReleaseEnvironment.objects.filter(environment_id__in=from_env_ids):
-                    try:
-                        with transaction.atomic():
-                            re.update(environment_id=to_env.id)
-                    except IntegrityError:
-                        re.delete()
-
-            orm.Environment.objects.filter(id__in=from_env_ids).delete()
-
-        dupe_release_envs = orm.ReleaseEnvironment.objects.values(
-            'release_id', 'organization_id', 'environment_id'
-        ).annotate(
-            recount=models.Count('id')
-        ).filter(recount__gt=1)
-
-        for renv in dupe_release_envs:
-            release_id = renv['release_id']
-            organization_id = renv['organization_id']
-            environment_id = renv['environment_id']
-            renvs = list(orm.ReleaseEnvironment.objects.filter(
-                release_id=release_id,
-                organization_id=organization_id,
-                environment_id=environment_id,
-            ).order_by('first_seen'))
-            to_renv = renvs[0]
-            from_renvs = renvs[1:]
-            last_seen = max([re.last_seen for re in renvs])
-            to_renv.update(last_seen=last_seen)
-            orm.ReleaseEnvironment.objects.filter(
-                id__in=[re.id for re in from_renvs],
-            ).delete()
-
-        db.start_transaction()
 
     def backwards(self, orm):
-        "Write your backwards methods here."
+        # Deleting model 'Deploy'
+        db.delete_table('sentry_deploy')
+
 
     models = {
         'sentry.activity': {
@@ -165,7 +110,7 @@ class Migration(DataMigration):
         'sentry.broadcast': {
             'Meta': {'object_name': 'Broadcast'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 2, 0, 0)', 'null': 'True', 'blank': 'True'}),
+            'date_expires': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 14, 0, 0)', 'null': 'True', 'blank': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True', 'db_index': 'True'}),
             'link': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
@@ -210,6 +155,17 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'project': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Project']", 'unique': 'True'}),
             'value': ('sentry.db.models.fields.bounded.BoundedBigIntegerField', [], {})
+        },
+        'sentry.deploy': {
+            'Meta': {'object_name': 'Deploy'},
+            'date_finished': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'date_started': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
+            'environment_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'db_index': 'True'}),
+            'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'blank': 'True'}),
+            'organization_id': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'db_index': 'True'}),
+            'release': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.Release']"}),
+            'url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'})
         },
         'sentry.dsymbundle': {
             'Meta': {'object_name': 'DSymBundle'},
@@ -796,7 +752,7 @@ class Migration(DataMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'xSM70zG7MyRUVIUcaNBY2CyvizXoGfhQ'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'f9dylmxLjqN5O1yIC9qyrkdgc5c6aT7m'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
@@ -820,4 +776,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['sentry']
-    symmetrical = True

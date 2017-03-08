@@ -10,8 +10,9 @@ from __future__ import absolute_import
 
 from datetime import timedelta
 from django import forms
-
 from django.utils import timezone
+
+from sentry.tsdb import backend as tsdb
 from sentry.rules.conditions.base import EventCondition
 
 
@@ -42,8 +43,6 @@ class BaseEventFrequencyCondition(EventCondition):
     label = NotImplemented  # subclass must implement
 
     def __init__(self, *args, **kwargs):
-        from sentry.app import tsdb
-
         self.tsdb = kwargs.pop('tsdb', tsdb)
 
         super(BaseEventFrequencyCondition, self).__init__(*args, **kwargs)

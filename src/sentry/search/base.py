@@ -13,6 +13,8 @@ EMPTY = object()
 
 
 class SearchBackend(object):
+    __all__ = ('query', 'validate')
+
     def __init__(self, **options):
         pass
 

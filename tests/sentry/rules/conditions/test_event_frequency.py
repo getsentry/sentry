@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import mock
 import six
 
-from sentry.app import tsdb
+from sentry.tsdb import backend as tsdb
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition, EventUniqueUserFrequencyCondition
 )
