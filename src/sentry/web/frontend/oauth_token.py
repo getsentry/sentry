@@ -56,9 +56,6 @@ class OAuthTokenView(View):
             if not redirect_uri:
                 redirect_uri = application.get_default_redirect_uri()
             elif grant.redirect_uri != redirect_uri:
-                return self.error('invalid_request')
-
-            if grant.is_expired():
                 return self.error('invalid_grant')
 
             token = ApiToken.from_grant(grant)
@@ -67,7 +64,7 @@ class OAuthTokenView(View):
             scope = request.GET.get('scope')
 
             if not refresh_token:
-                return self.error('invalid_grant')
+                return self.error('invalid_request')
 
             # TODO(dcramer): support scope
             if scope:
