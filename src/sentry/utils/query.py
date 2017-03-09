@@ -137,7 +137,12 @@ class WithProgressBar(object):
             pbar.start()
             for idx, item in enumerate(self.iterator):
                 yield item
-                pbar.update(idx)
+                # It's possible that we've exceeded the maxval, but instead
+                # of exploding on a ValueError, let's just cap it so we don't.
+                # this could happen if new rows were added between calculating `count()`
+                # and actually beginning iteration where we're iterating slightly more
+                # than we thought.
+                pbar.update(min(idx, self.count))
             pbar.finish()
 
 

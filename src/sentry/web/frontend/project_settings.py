@@ -13,7 +13,7 @@ from uuid import uuid1
 from sentry import options
 from sentry.models import AuditLogEntryEvent, Project, Team
 from sentry.web.forms.fields import (
-    CustomTypedChoiceField, RangeField, OriginsField, IPNetworksField,
+    CustomTypedChoiceField, RangeField, OriginsField,
 )
 from sentry.web.frontend.base import ProjectView
 
@@ -42,6 +42,11 @@ class EditProjectForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'placeholder': _('X-Sentry-Token'),
         }),
+        required=False,
+    )
+    verify_ssl = forms.BooleanField(
+        label=_('Verify TLS/SSL'),
+        help_text=_('Outbound requests will verify TLS (sometimes known as SSL) connections.'),
         required=False,
     )
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
@@ -90,8 +95,6 @@ class EditProjectForm(forms.ModelForm):
         help_text=_('Allow Sentry to scrape missing JavaScript source context when possible.'),
         required=False,
     )
-    blacklisted_ips = IPNetworksField(label=_('Filtered IP Addresses'), required=False,
-        help_text=_('Separate multiple entries with a newline.'))
 
     # Options that are overridden by Organization level settings
     org_overrides = ('scrub_data', 'scrub_defaults', 'scrub_ip_address')
@@ -245,6 +248,7 @@ class ProjectSettingsView(ProjectView):
                 'origins': '\n'.join(project.get_option('sentry:origins', ['*'])),
                 'token': security_token,
                 'token_header': project.get_option('sentry:token_header'),
+                'verify_ssl': bool(project.get_option('sentry:verify_ssl', False)),
                 'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
                 'scrub_data': bool(project.get_option('sentry:scrub_data', True)),
                 'scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
@@ -252,7 +256,6 @@ class ProjectSettingsView(ProjectView):
                 'safe_fields': '\n'.join(project.get_option('sentry:safe_fields', None) or []),
                 'scrub_ip_address': bool(project.get_option('sentry:scrub_ip_address', False)),
                 'scrape_javascript': bool(project.get_option('sentry:scrape_javascript', True)),
-                'blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
                 'default_environment': project.get_option('sentry:default_environment'),
                 'mail_subject_prefix': project.get_option(
                     'mail:subject_prefix', options.get('mail.subject-prefix')),
@@ -268,6 +271,7 @@ class ProjectSettingsView(ProjectView):
                 'origins',
                 'token',
                 'token_header',
+                'verify_ssl',
                 'resolve_age',
                 'scrub_data',
                 'scrub_defaults',
@@ -275,7 +279,6 @@ class ProjectSettingsView(ProjectView):
                 'safe_fields',
                 'scrub_ip_address',
                 'scrape_javascript',
-                'blacklisted_ips',
                 'default_environment',
                 'mail_subject_prefix',
             ):

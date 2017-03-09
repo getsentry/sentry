@@ -1,17 +1,19 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
+import logging
+from uuid import uuid4
+
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.api import client
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
-from sentry.constants import STATUS_CHOICES
 from sentry.models import (
     Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
     GroupTagValue, Release, User, UserReport,
@@ -19,6 +21,8 @@ from sentry.models import (
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
 from sentry.utils.apidocs import scenario, attach_scenarios
+
+delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 @scenario('RetrieveAggregate')
@@ -48,6 +52,17 @@ def delete_aggregate_scenario(runner):
             method='DELETE',
             path='/issues/%s/' % group.id,
         )
+
+
+STATUS_CHOICES = {
+    'resolved': GroupStatus.RESOLVED,
+    'unresolved': GroupStatus.UNRESOLVED,
+    'ignored': GroupStatus.IGNORED,
+    'resolvedInNextRelease': GroupStatus.UNRESOLVED,
+
+    # TODO(dcramer): remove in 9.0
+    'muted': GroupStatus.IGNORED,
+}
 
 
 class GroupSerializer(serializers.Serializer):
@@ -313,9 +328,29 @@ class GroupDetailsEndpoint(GroupEndpoint):
         ).update(status=GroupStatus.PENDING_DELETION)
         if updated:
             GroupHash.objects.filter(group=group).delete()
+
+            transaction_id = uuid4().hex
+            project = group.project
+
             delete_group.apply_async(
-                kwargs={'object_id': group.id},
+                kwargs={
+                    'object_id': group.id,
+                    'transaction_id': transaction_id,
+                },
                 countdown=3600,
             )
+
+            self.create_audit_entry(
+                request=request,
+                organization_id=project.organization_id if project else None,
+                target_object=group.id,
+                transaction_id=transaction_id,
+            )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': group.id,
+                'transaction_id': transaction_id,
+                'model': type(group).__name__,
+            })
 
         return Response(status=202)

@@ -5,7 +5,8 @@ import TimeSince from '../components/timeSince';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import IndicatorStore from '../stores/indicatorStore';
-import {FormState, BooleanField} from '../components/forms';
+import {FormState} from '../components/forms';
+import Switch from '../components/switch';
 import {t, tn} from '../locale';
 
 const MESSAGES = {
@@ -47,12 +48,13 @@ const ProjectProcessingIssues = React.createClass({
     this.fetchData();
   },
 
-  onFieldChange(name, value) {
+  onFieldChange(name) {
     let formData = this.state.formData;
-    formData[name] = value;
+    formData[name] = !this.state.formData['sentry:reprocessing_active'];
     this.setState({
       formData: formData,
     });
+    this.switchReporcessing();
   },
 
   fetchData() {
@@ -284,42 +286,40 @@ const ProjectProcessingIssues = React.createClass({
       return this.renderLoading();
     }
     let isSaving = this.state.formState === FormState.SAVING;
-    let errors = this.state.errors;
     return (
       <div className="box">
         <div className="box-header">
           <h3>{t('Settings')}</h3>
         </div>
         <div className="box-content with-padding">
-          <form onSubmit={this.onSubmit} className="form-stacked">
+          <div className="row">
             {this.state.state === FormState.ERROR &&
               <div className="alert alert-error alert-block">
                 {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
               </div>
             }
-            <fieldset>
-              <BooleanField
-                key="reprocessing-active"
-                name="reprocessing-active"
-                label={t('Reprocessing active')}
-                help={t(`When you save the changes all Processing
-                  Issues will be deleted and future Events can be reprocessed.`)}
-                value={this.state.formData['sentry:reprocessing_active']}
-                error={errors ? errors['sentry:reprocessing_active'] : ''}
-                onChange={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
-            </fieldset>
-            <fieldset className="form-actions">
-              <button type="submit" className="btn btn-primary"
-                      disabled={isSaving}>{t('Save Changes')}</button>
-            </fieldset>
-          </form>
+            <div className="col-md-9" style={{marginBottom: 20}}>
+              <h5 style={{marginBottom: 10}}>Reprocessing active</h5>
+              {t(`If reprocessing is enabled, Events with fixable issues will be
+                held back until you resolve them. Processing issues will then
+                show up in the list above with hints how to fix them.
+                If reprocessing is disabled Events with unresolved issues will also
+                show up in the stream.
+                `)}
+            </div>
+            <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
+              <Switch size="lg"
+                isActive={this.state.formData['sentry:reprocessing_active']}
+                isLoading={isSaving}
+                toggle={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
+            </div>
+          </div>
         </div>
       </div>
     );
   },
 
-  onSubmit(e) {
-    e.preventDefault();
+  switchReporcessing() {
     if (this.state.formState === FormState.SAVING) {
       return;
     }
@@ -354,7 +354,6 @@ const ProjectProcessingIssues = React.createClass({
   render() {
     return (
       <div>
-        {this.renderReprocessingSettings()}
         <h1>{t('Processing Issues')}</h1>
         <p>{t(`
           For some platforms the event processing requires configuration or
@@ -365,6 +364,7 @@ const ProjectProcessingIssues = React.createClass({
         `)}</p>
         {this.renderDebugTable()}
         {this.renderResolveButton()}
+        {this.renderReprocessingSettings()}
       </div>
     );
   }

@@ -1,9 +1,8 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import ListLink from '../components/listLink';
 import NarrowLayout from '../components/narrowLayout';
-import {t, tct} from '../locale';
+import {t} from '../locale';
 
 const ApiDashboard = React.createClass({
   render() {
