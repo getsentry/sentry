@@ -6,6 +6,8 @@ import IssueList from '../../components/issueList';
 import FileChange from '../../components/fileChange';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
+import TimeSince from '../../components/timeSince';
+
 import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
@@ -37,7 +39,9 @@ const ReleaseOverview = React.createClass({
       loading: true,
       error: false,
       projects: [],
+      fileList: [],
       collapsed: true,
+      deploys: [],
     };
   },
 
@@ -50,20 +54,17 @@ const ReleaseOverview = React.createClass({
       data: this.props.location.query,
       success: (data, _, jqXHR) => {
         this.setState({
-          error: false,
-          loading: false,
           fileList: data,
-          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false
         });
       }
     });
     this.getReleaseProjects();
+    this.getDeploys();
   },
 
   getReleaseProjects() {
@@ -74,7 +75,25 @@ const ReleaseOverview = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           projects: data.projects,
-          error: false,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      }
+    });
+  },
+
+  getDeploys() {
+    let {orgId, version} = this.props.params;
+    let path = `/organizations/${orgId}/releases/${version}/deploys/`;
+    this.api.request(path, {
+      method: 'GET',
+      success: (data, _, jqXHR) => {
+        this.setState({
+          deploys: data,
+          loading: false,
         });
       },
       error: () => {
@@ -87,6 +106,11 @@ const ReleaseOverview = React.createClass({
 
   renderEmpty() {
     return <div className="box empty">{t('No other projects affected.')}</div>;
+  },
+
+  renderEmptyDeploys() {
+    return <div className="box empty">{t('No deploys')}</div>;
+
   },
 
   onCollapseToggle() {
@@ -133,7 +157,7 @@ const ReleaseOverview = React.createClass({
       files = files.slice(0, MAX);
     }
     let numCollapsed = fileCount - files.length;
-
+    let deploys = this.state.deploys;
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
@@ -198,6 +222,19 @@ const ReleaseOverview = React.createClass({
                     project={project}
                     version={version}
                   />
+                );
+              })
+            }
+          </ul>
+          <h6 className="nav-header m-b-1">Deploys</h6>
+          <ul className="nav nav-stacked">
+            { !deploys.length ? this.renderEmptyDeploys() :
+              deploys.map((deploy) => {
+                return (
+                  <li key={deploy.id}>
+                    <span className="repo-label">{deploy.environment}</span>
+                    <span className="align-right"><TimeSince date={deploy.dateFinished}/></span>
+                  </li>
                 );
               })
             }
