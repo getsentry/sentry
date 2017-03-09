@@ -2,7 +2,12 @@ from __future__ import absolute_import
 
 from sentry import features
 from sentry.db.models.query import in_iexact
-from sentry.models import GroupSubscriptionReason, Release, ReleaseCommit, User
+from sentry.models import (
+    CommitFileChange, Group, GroupSubscriptionReason,
+    GroupCommitResolution, Release, ReleaseCommit,
+    Repository, User
+)
+from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
 
@@ -10,15 +15,15 @@ from .base import ActivityEmail
 class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
         super(ReleaseActivityEmail, self).__init__(activity)
+        self.organization = self.project.organization
         try:
             self.release = Release.objects.get(
                 organization_id=self.project.organization_id,
-                projects=self.project,
                 version=activity.data['version'],
             )
         except Release.DoesNotExist:
             self.release = None
-            self.commit_list = []
+            self.repos = []
         else:
             self.commit_list = [
                 rc.commit
@@ -26,6 +31,25 @@ class ReleaseActivityEmail(ActivityEmail):
                     release=self.release,
                 ).select_related('commit', 'commit__author')
             ]
+            repos = {
+                r['id']: {
+                    'name': r['name'],
+                    'commits': [],
+                }
+                for r in Repository.objects.filter(
+                    organization_id=self.project.organization_id,
+                    id__in={c.repository_id for c in self.commit_list}
+                ).values('id', 'name')
+            }
+            for commit in self.commit_list:
+                repos[commit.repository_id].commits.append(commit)
+
+            self.repos = repos.values()
+
+            self.email_list = set([
+                c.author.email for c in self.commit_list
+                if c.author
+            ])
 
     def should_email(self):
         return bool(self.release)
@@ -33,12 +57,7 @@ class ReleaseActivityEmail(ActivityEmail):
     def get_participants(self):
         project = self.project
 
-        email_list = set([
-            c.author.email for c in self.commit_list
-            if c.author
-        ])
-
-        if not email_list:
+        if not self.email_list:
             return {}
 
         # identify members which have been seen in the commit log and have
@@ -46,7 +65,7 @@ class ReleaseActivityEmail(ActivityEmail):
         return {
             user: GroupSubscriptionReason.committed
             for user in User.objects.filter(
-                in_iexact('emails__email', email_list),
+                in_iexact('emails__email', self.email_list),
                 emails__is_verified=True,
                 sentry_orgmember_set__teams=project.team,
                 is_active=True,
@@ -55,8 +74,37 @@ class ReleaseActivityEmail(ActivityEmail):
         }
 
     def get_context(self):
+        # TODO(jess): this needs to be filtered by what users have access to
+        projects = list(self.release.projects.all())
+        file_count = CommitFileChange.objects.filter(
+            commit__in=self.commit_list,
+            organization_id=self.organization.id,
+        ).values('filename').distinct().count()
+        release_links = [
+            absolute_uri('/{}/{}/releases/{}/'.format(
+                self.organization.slug,
+                p.slug,
+                self.release.version,
+            )) for p in projects
+        ]
+        resolved_issue_counts = [
+            Group.objects.filter(
+                project=p,
+                id__in=GroupCommitResolution.objects.filter(
+                    commit_id__in=ReleaseCommit.objects.filter(
+                        release=self.release,
+                    ).values_list('commit_id', flat=True),
+                ).values_list('group_id', flat=True),
+            ).count() for p in projects
+        ]
+
         return {
-            'commit_list': self.commit_list,
+            'projects': zip(projects, release_links, resolved_issue_counts),
+            'project_count': len(projects),
+            'commit_count': len(self.commit_list),
+            'author_count': len(self.email_list),
+            'file_count': file_count,
+            'repos': self.repos,
             'release': self.release,
         }
 
