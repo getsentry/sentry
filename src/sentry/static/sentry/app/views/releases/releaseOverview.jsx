@@ -1,5 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
@@ -193,17 +192,12 @@ const ReleaseOverview = React.createClass({
                   return null;
                 }
                 return (
-                  <li key={project.id}>
-                    <div className="sparkline pull-right" style={{width: 96}}>
-                      <ReleaseProjectStatSparkline orgId={orgId} projectId={project.slug} />
-                    </div>
-                    <Link to={`/${orgId}/${project.slug}/`}>
-                      <h6 className="m-b-0">
-                        {project.name}
-                      </h6>
-                      <p className="m-b-0">12 events</p>
-                    </Link>
-                  </li>
+                  <ReleaseProjectStatSparkline
+                    key={project.id}
+                    orgId={orgId}
+                    project={project}
+                    version={version}
+                  />
                 );
               })
             }

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import csv
 import six
 
+from django.utils.encoding import force_bytes
 from django.http import StreamingHttpResponse
 
 # Python 2 doesn't support unicode with CSV, but Python 3 does via
@@ -12,7 +13,7 @@ if six.PY3:
         return row
 else:
     def encode_row(row):
-        return [six.text_type(e).encode('utf-8') for e in row]
+        return map(force_bytes, row)
 
 
 # csv.writer doesn't provide a non-file interface
@@ -40,7 +41,7 @@ class CsvMixin(object):
         pseudo_buffer = Echo()
         writer = csv.writer(pseudo_buffer)
         response = StreamingHttpResponse(
-            (writer.writerow(r) for r in row_iter()),
+            (writer.writerow(encode_row(r)) for r in row_iter()),
             content_type='text/csv',
         )
         response['Content-Disposition'] = \

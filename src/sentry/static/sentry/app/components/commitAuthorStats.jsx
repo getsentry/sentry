@@ -7,6 +7,8 @@ import Avatar from '../components/avatar';
 import TooltipMixin from '../mixins/tooltip';
 import ApiMixin from '../mixins/apiMixin';
 
+import {t} from '../locale';
+
 const CommitBar = React.createClass({
   propTypes: {
     totalCommits: React.PropTypes.number.isRequired,
@@ -66,6 +68,10 @@ const CommitAuthorStats = React.createClass({
     });
   },
 
+  renderEmpty() {
+    return <div className="box empty">{t('No authors in this release')}</div>;
+  },
+
   render() {
 
     if (this.state.loading)
@@ -100,6 +106,7 @@ const CommitAuthorStats = React.createClass({
     return (
       <div style={{marginTop: 5}}>
         <h6 className="nav-header m-b-1">Commits by Author</h6>
+        {!commitAuthorValues.length && this.renderEmpty()}
         <ul className="list-group">
         {commitAuthorValues.map(commitAuthor => {
           let {author, commitCount} = commitAuthor;
