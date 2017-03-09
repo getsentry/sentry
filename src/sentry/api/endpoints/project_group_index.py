@@ -23,7 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Release, TagKey
+    GroupSubscriptionReason, Release, TagKey, User
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -358,7 +358,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-
         result = dict(serializer.object)
 
         acting_user = request.user if request.user.is_authenticated() else None
@@ -470,6 +469,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             group=group,
                             reason=GroupSubscriptionReason.status_change,
                         )
+                        if not GroupAssignee.objects.filter(
+                            group=group, project=group.project
+                        ).first():
+                            result['assignedTo'] = (User.objects.filter(id=acting_user.id).first())
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
