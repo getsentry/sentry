@@ -319,54 +319,66 @@ const OrganizationRepositories = React.createClass({
 
     return (
       <OrganizationHomeContainer>
-        <table className="table table-bordered">
-          <tbody>
-            {this.state.itemList.map((repo) => {
+        <div className="pull-right">
+          <DropdownLink
+              topLevelClasses="anchor-right"
+              className="btn btn-primary btn-sm"
+              title={t('Add Repository')}>
+            {this.state.repoConfig.providers.map((provider) => {
               return (
-                <tr key={repo.id}>
-                  <td>
-                    <strong>{repo.name}</strong>
-                    {repo.status !== 'visible' &&
-                      <small> &mdash; {this.getStatusLabel(repo)}</small>
-                    }
-                    {repo.status === 'pending_deletion' &&
-                      <small> (<a onClick={this.cancelDelete.bind(this, repo)}>{t('Cancel')}</a>)</small>
-                    }<br />
-                    <small>{repo.provider.name}</small>
-                    {repo.url &&
-                      <small> &mdash; <a href={repo.url}>{repo.url}</a></small>
-                    }
-                  </td>
-                  <td style={{width: 60}}>
-                    {repo.status === 'visible' ?
-                      <button onClick={this.deleteRepo.bind(this, repo)}
-                              className="btn btn-default btn-xs">
-                        <span className="icon icon-trash" />
-                      </button>
-                    :
-                      <button onClick={this.deleteRepo.bind(this, repo)}
-                              disabled={true}
-                              className="btn btn-default btn-xs btn-disabled">
-                        <span className="icon icon-trash" />
-                      </button>
-                    }
-                  </td>
-                </tr>
+                <MenuItem noAnchor={true} key={provider.id}>
+                  <AddRepositoryLink provider={provider} orgId={orgId} onSuccess={this.onAddRepo} />
+                </MenuItem>
               );
             })}
-          </tbody>
-        </table>
-        <DropdownLink
-            className="btn btn-primary btn-sm"
-            title={t('Add Repository')}>
-          {this.state.repoConfig.providers.map((provider) => {
-            return (
-              <MenuItem noAnchor={true} key={provider.id}>
-                <AddRepositoryLink provider={provider} orgId={orgId} onSuccess={this.onAddRepo} />
-              </MenuItem>
-            );
-          })}
-        </DropdownLink>
+          </DropdownLink>
+        </div>
+        <h3 className="m-b-2">{t('Repositories')}</h3>
+        {this.state.itemList.length > 0 ?
+          <table className="table table-bordered">
+            <tbody>
+              {this.state.itemList.map((repo) => {
+                return (
+                  <tr key={repo.id}>
+                    <td>
+                      <strong>{repo.name}</strong>
+                      {repo.status !== 'visible' &&
+                        <small> &mdash; {this.getStatusLabel(repo)}</small>
+                      }
+                      {repo.status === 'pending_deletion' &&
+                        <small> (<a onClick={this.cancelDelete.bind(this, repo)}>{t('Cancel')}</a>)</small>
+                      }<br />
+                      <small>{repo.provider.name}</small>
+                      {repo.url &&
+                        <small> &mdash; <a href={repo.url}>{repo.url}</a></small>
+                      }
+                    </td>
+                    <td style={{width: 60}}>
+                      {repo.status === 'visible' ?
+                        <button onClick={this.deleteRepo.bind(this, repo)}
+                                className="btn btn-default btn-xs">
+                          <span className="icon icon-trash" />
+                        </button>
+                      :
+                        <button onClick={this.deleteRepo.bind(this, repo)}
+                                disabled={true}
+                                className="btn btn-default btn-xs btn-disabled">
+                          <span className="icon icon-trash" />
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          :
+          <div className="well blankslate align-center p-t-2 p-b-3 p-x-2">
+            <div className="icon icon-lg icon-git-commit" />
+            <h3>{t('Sentry is better with commit data')}</h3>
+            <p className="m-b-0">{t('Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.')}</p>
+          </div>
+        }
       </OrganizationHomeContainer>
     );
   }
