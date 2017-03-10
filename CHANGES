@@ -11,12 +11,12 @@ API Changes
 - Added CommitFileChangeEndpoint
 - Added IssuesResolvedInReleaseEndpoint
 - Added ReleaseDeploysEndpoint
+- Added OrganizationReleaseCommitsEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``Deploy`` model
-- Added OrganizationReleaseCommitsEndpoint
 
 Version 8.14.1
 --------------
