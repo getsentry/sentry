@@ -95,8 +95,7 @@ const ReleaseOverview = React.createClass({
       method: 'GET',
       success: (data, _, jqXHR) => {
         this.setState({
-          // hasRepos: data.length > 0,
-          hasRepos: false,
+          hasRepos: data.length > 0,
         });
       },
       error: () => {
@@ -232,7 +231,7 @@ const ReleaseOverview = React.createClass({
                 </ul>
               </div>
               :
-              <div className="box m-b-2 connect-repository">
+              <div className="box m-b-2  p-a-2 connect-repository">
                 <b>Releases are better with commit data!</b>
                 <div>Connect a repository to see commit info, files changed, and authors involved in future releases.</div>
                 <a className="btn btn-primary"
