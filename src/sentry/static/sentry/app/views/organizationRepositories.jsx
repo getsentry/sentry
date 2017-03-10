@@ -375,8 +375,8 @@ const OrganizationRepositories = React.createClass({
           :
           <div className="well blankslate align-center p-t-2 p-b-3 p-x-2">
             <div className="icon icon-lg icon-git-commit" />
-            <h3>Sentry is better with commit data</h3>
-            <p className="m-b-0">Adding one or more repositories will enable enhanced releases, the ability to resolve Sentry Issues via git message, and future functionality like automatic attribution and the ability to jump from a stacktrace to your hosted code.</p>
+            <h3>{t('Sentry is better with commit data')}</h3>
+            <p className="m-b-0">{t('Adding one or more repositories will enable enhanced releases, the ability to resolve Sentry Issues via git message, and future functionality like automatic attribution and the ability to jump from a stacktrace to your hosted code.')}</p>
           </div>
         }
       </OrganizationHomeContainer>
