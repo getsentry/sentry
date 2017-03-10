@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from collections import defaultdict
+
 from sentry import features
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -16,6 +18,7 @@ class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
         super(ReleaseActivityEmail, self).__init__(activity)
         self.organization = self.project.organization
+        self.user_id_team_lookup = None
 
         try:
             self.deploy = Deploy.objects.get(id=activity.data['deploy_id'])
@@ -31,6 +34,7 @@ class ReleaseActivityEmail(ActivityEmail):
             self.release = None
             self.repos = []
         else:
+            self.projects = list(self.release.projects.all())
             self.commit_list = [
                 rc.commit
                 for rc in ReleaseCommit.objects.filter(
@@ -82,13 +86,39 @@ class ReleaseActivityEmail(ActivityEmail):
             if features.has('workflow:release-emails', project=self.project, actor=user)
         }
 
+    def get_users_by_teams(self):
+        if not self.user_id_team_lookup:
+            user_teams = defaultdict(list)
+            queryset = User.objects.filter(
+                sentry_orgmember_set__organization_id=self.organization.id
+            ).values('id', 'sentry_orgmember_set__teams')
+            for user_team in queryset:
+                user_teams[user_team['id']].append(user_team['sentry_orgmember_set__teams'])
+            self.user_id_team_lookup = user_teams
+        return self.user_id_team_lookup
+
     def get_context(self):
-        # TODO(jess): this needs to be filtered by what users have access to
-        projects = list(self.release.projects.all())
         file_count = CommitFileChange.objects.filter(
             commit__in=self.commit_list,
             organization_id=self.organization.id,
         ).values('filename').distinct().count()
+
+        return {
+            'commit_count': len(self.commit_list),
+            'author_count': len(self.email_list),
+            'file_count': file_count,
+            'repos': self.repos,
+            'release': self.release,
+            'deploy': self.deploy,
+            'environment': self.environment,
+        }
+
+    def get_user_context(self, user):
+        if user.is_superuser or self.organization.flags.allow_joinleave:
+            projects = self.projects
+        else:
+            teams = self.get_users_by_teams()[user.id]
+            projects = [p for p in self.projects if p.team_id in teams]
         release_links = [
             absolute_uri('/{}/{}/releases/{}/'.format(
                 self.organization.slug,
@@ -106,17 +136,9 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values_list('group_id', flat=True),
             ).count() for p in projects
         ]
-
         return {
             'projects': zip(projects, release_links, resolved_issue_counts),
             'project_count': len(projects),
-            'commit_count': len(self.commit_list),
-            'author_count': len(self.email_list),
-            'file_count': file_count,
-            'repos': self.repos,
-            'release': self.release,
-            'deploy': self.deploy,
-            'environment': self.environment,
         }
 
     def get_subject(self):
