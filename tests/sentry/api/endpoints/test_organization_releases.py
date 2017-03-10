@@ -344,11 +344,11 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 400, response.content
 
         response = self.client.post(url, data={
-            'version': '1.2.3',
+            'version': '1.2.3+dev',
             'projects': [project.slug]
         })
         assert response.status_code == 201, response.content
-        assert response.data['version'] == '1.2.3'
+        assert response.data['version'] == '1.2.3+dev'
 
         release = Release.objects.get(
             organization_id=org.id,

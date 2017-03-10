@@ -12,10 +12,7 @@ import six
 
 from django import forms
 
-from sentry.app import (
-    digests,
-    ratelimiter,
-)
+from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import (
     event_to_record,
@@ -150,7 +147,7 @@ class NotificationPlugin(Plugin):
         return member_set
 
     def __is_rate_limited(self, group, event):
-        return ratelimiter.is_limited(
+        return ratelimits.is_limited(
             project=group.project,
             key=self.get_conf_key(),
             limit=10,

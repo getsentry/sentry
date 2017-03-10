@@ -16,6 +16,9 @@ from uuid import uuid4
 
 
 class NodeStorage(local):
+    __all__ = ('create', 'delete', 'delete_multi', 'get', 'get_multi', 'set',
+               'set_multi', 'generate_id', 'cleanup', 'validate')
+
     def validate(self):
         """
         Validates the settings for this backend (i.e. such as proper connection

@@ -142,7 +142,10 @@ local function get_active_indices(interval, retention, timestamp)
 end
 
 local function get_index_expiration_time(interval, retention, index)
-    return (index + retention) * interval
+    return (
+        (index + 1)  -- upper bound of this interval
+        + retention
+    ) * interval
 end
 
 
@@ -152,7 +155,7 @@ local configuration_parser = build_argument_parser({
     {"timestamp", parse_integer},
     {"bands", parse_integer},
     {"interval", parse_integer},
-    {"retention", parse_integer},
+    {"retention", parse_integer},  -- how many previous intervals to store (does not include current interval)
     {"scope", function (value)
         assert(value ~= nil)
         return value

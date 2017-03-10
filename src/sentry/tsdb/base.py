@@ -7,10 +7,10 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import OrderedDict
 from datetime import timedelta
-
-import six
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -75,6 +75,11 @@ class TSDBModel(Enum):
 
 
 class BaseTSDB(object):
+    __all__ = (
+        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums',
+        'rollup', 'validate',
+    )
+
     models = TSDBModel
 
     def __init__(self, rollups=None, legacy_rollups=None):
@@ -99,6 +104,9 @@ class BaseTSDB(object):
 
         Raise ``InvalidConfiguration`` if there is a configuration error.
         """
+
+    def get_rollups(self):
+        return self.rollups
 
     def normalize_to_epoch(self, timestamp, seconds):
         """

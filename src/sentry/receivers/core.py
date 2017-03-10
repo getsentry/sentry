@@ -10,7 +10,7 @@ from django.db.models.signals import post_syncdb, post_save
 from functools import wraps
 from pkg_resources import parse_version as Version
 
-from sentry import options
+from sentry import buffer, options
 from sentry.models import (
     Organization, OrganizationMember, Project, User,
     Team, ProjectKey, TagKey, TagValue, GroupTagValue, GroupTagKey
@@ -142,8 +142,6 @@ def create_keys_for_project(instance, created, **kwargs):
 
 @buffer_incr_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
-    from sentry import app
-
     if not created:
         return
 
@@ -152,7 +150,7 @@ def record_project_tag_count(filters, created, **kwargs):
     if not project_id:
         project_id = filters['project'].id
 
-    app.buffer.incr(TagKey, {
+    buffer.incr(TagKey, {
         'values_seen': 1,
     }, {
         'project_id': project_id,
@@ -162,8 +160,6 @@ def record_project_tag_count(filters, created, **kwargs):
 
 @buffer_incr_complete.connect(sender=GroupTagValue, weak=False)
 def record_group_tag_count(filters, created, extra, **kwargs):
-    from sentry import app
-
     if not created:
         return
 
@@ -176,7 +172,7 @@ def record_group_tag_count(filters, created, extra, **kwargs):
     if not group_id:
         group_id = filters['group'].id
 
-    app.buffer.incr(GroupTagKey, {
+    buffer.incr(GroupTagKey, {
         'values_seen': 1,
     }, {
         'project_id': project_id,

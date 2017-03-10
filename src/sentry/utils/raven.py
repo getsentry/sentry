@@ -63,7 +63,7 @@ class SentryInternalClient(DjangoClient):
         if not is_current_event_safe():
             return
 
-        from sentry.app import tsdb
+        from sentry import tsdb
         from sentry.coreapi import ClientApiHelper
         from sentry.event_manager import EventManager
         from sentry.models import Project
