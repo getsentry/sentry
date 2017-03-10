@@ -1,6 +1,7 @@
 import React from 'react';
 
 import GroupEventDataSection from './eventDataSection';
+import plugins from '../../plugins';
 import {objectIsEmpty, toTitleCase, defined} from '../../utils';
 
 const CONTEXT_TYPES = {
@@ -27,7 +28,7 @@ const ContextChunk = React.createClass({
     if (defined(value.title)) {
       title = value.title;
     } else {
-      let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
+      let Component = CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
       if (Component.getTitle) {
         title = Component.getTitle(value);
       }
