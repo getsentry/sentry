@@ -231,7 +231,7 @@ const ReleaseOverview = React.createClass({
                 </ul>
               </div>
               :
-              <div className="well blankslate m-t-2 m-b-2 p-a-2 align-center">
+              <div className="well blankslate m-t-2 m-b-2 p-x-2 p-t-1 p-b-2 align-center">
                 <span className="icon icon-git-commit" />
                 <h5>Releases are better with commit data!</h5>
                 <p>Connect a repository to see commit info, files changed, and authors involved in future releases.</p>
