@@ -13,6 +13,7 @@ import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import OrganizationStore from '../stores/organizationStore';
 import {t} from '../locale';
+import {extractMultilineFields} from '../utils';
 
 
 const OrganizationSettingsForm = React.createClass({
@@ -82,8 +83,8 @@ const OrganizationSettingsForm = React.createClass({
         method: 'PUT',
         data: {
           ...formData,
-          safeFields: formData.safeFields.split('\n'),
-          sensitiveFields: formData.sensitiveFields.split('\n'),
+          safeFields: extractMultilineFields(formData.safeFields),
+          sensitiveFields: extractMultilineFields(formData.sensitiveFields),
         },
         success: (data) => {
           this.props.onSave(data);

@@ -12,6 +12,7 @@ import logging
 
 from django.db.models import get_model
 
+from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
@@ -260,7 +261,7 @@ def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
         return
     g_id = group.id
     group.delete()
-    logger.info('object.delete.queued', extra={
+    logger.info('object.delete.executed', extra={
         'object_id': g_id,
         'transaction_id': transaction_id,
         'model': Group.__name__,
@@ -353,7 +354,6 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None,
 
 
 def delete_events(relation, transaction_id=None, limit=10000, chunk_limit=100, logger=None):
-    from sentry.app import nodestore
     from sentry.models import Event, EventTag
 
     while limit > 0:

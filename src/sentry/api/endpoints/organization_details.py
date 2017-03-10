@@ -92,6 +92,18 @@ class OrganizationSerializer(serializers.Serializer):
             raise serializers.ValidationError('The slug "%s" is already in use.' % (value,))
         return attrs
 
+    def validate_sensitiveFields(self, attrs, source):
+        value = attrs[source]
+        if value and not all(value):
+            raise serializers.ValidationError('Empty values are not allowed.')
+        return attrs
+
+    def validate_safeFields(self, attrs, source):
+        value = attrs[source]
+        if value and not all(value):
+            raise serializers.ValidationError('Empty values are not allowed.')
+        return attrs
+
     def validate(self, attrs):
         attrs = super(OrganizationSerializer, self).validate(attrs)
         if attrs.get('avatarType') == 'upload':

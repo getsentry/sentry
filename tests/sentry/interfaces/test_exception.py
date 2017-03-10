@@ -319,7 +319,6 @@ class SlimExceptionDataTest(TestCase):
             assert len(value.stacktrace.frames) == 5
             for f_num, frame in enumerate(value.stacktrace.frames):
                 assert frame.filename == 'exc %d frame %d' % (e_num, f_num)
-                print(frame.filename)
                 if e_num in (0, 4):
                     assert frame.vars is not None
                     assert frame.pre_context is not None

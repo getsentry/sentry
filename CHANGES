@@ -1,6 +1,29 @@
 Version 8.15 (Unreleased)
 -------------------------
 
+- Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
+- Refactor usage of ``sentry.app`` to use individual modules.
+- Implemented ``--concurrency` on `sentry cleanup`
+
+API Changes
+~~~~~~~~~~~
+
+- Added CommitFileChangeEndpoint
+- Added IssuesResolvedInReleaseEndpoint
+- Added ReleaseDeploysEndpoint
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Deploy`` model
+
+Version 8.14.1
+--------------
+
+- Fixed issues related to migrations failing to finish for 8.14
+- Fixed an issue where Release version names were erronously too restrictve.
+- Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
+
 Version 8.14
 ------------
 
@@ -15,7 +38,7 @@ Version 8.14
 - Release functionality is now detected at a project level to enable various features.
 - Added basic encryption facilities (``sentry.utils.encryption``).
 - Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
-- Aded bulk "Resolve in Next Release" to stream actions.
+- Added bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.
