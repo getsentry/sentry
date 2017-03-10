@@ -6,8 +6,8 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.models import (
-    Activity, Commit, CommitAuthor, GroupSubscriptionReason, Release,
-    ReleaseCommit, Repository, UserEmail
+    Activity, Commit, CommitAuthor, Deploy, Environment,
+    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail
 )
 from sentry.plugins.sentry_mail.activity.release import ReleaseActivityEmail
 from sentry.testutils import TestCase
@@ -44,6 +44,14 @@ class ReleaseTestCase(TestCase):
             date_released=timezone.now(),
         )
         self.release.add_project(self.project)
+        self.deploy = Deploy.objects.create(
+            release=self.release,
+            organization_id=self.org.id,
+            environment_id=Environment.objects.create(
+                name='production',
+                organization_id=self.org.id
+            ).id
+        )
         repository = Repository.objects.create(
             organization_id=self.org.id,
             name=self.project.name,
@@ -87,7 +95,10 @@ class ReleaseTestCase(TestCase):
                 project=self.project,
                 user=self.user,
                 type=Activity.RELEASE,
-                data={'version': self.release.version},
+                data={
+                    'version': self.release.version,
+                    'deploy_id': self.deploy.id,
+                },
             )
         )
 
@@ -97,7 +108,8 @@ class ReleaseTestCase(TestCase):
             }
 
             context = email.get_context()
-            assert context['commit_list'] == [self.commit, self.commit2]
+            assert context['environment'] == 'production'
+            assert context['repos'][0]['commits'] == [self.commit, self.commit2]
 
             with self.tasks():
                 email.send()
@@ -112,7 +124,7 @@ class ReleaseTestCase(TestCase):
                 project=self.project,
                 user=self.user,
                 type=Activity.RELEASE,
-                data={'version': 'a'},
+                data={'version': 'a', 'deploy_id': 5},
             )
         )
 
