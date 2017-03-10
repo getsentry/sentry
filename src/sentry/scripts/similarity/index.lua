@@ -654,6 +654,16 @@ local commands = {
         end
     ),
     IMPORT = takes_configuration(
+        --[[
+        Loads data returned by the ``EXPORT`` command into the location
+        specified by the ``index`` and ``key`` arguments. Data can be loaded
+        into multiple indices or keys by providing additional arguments.
+
+        If the destination specified by ``index`` and ``key`` does not exist
+        (relocating data to a new key, for example), it will be created. If
+        data already exists at the new destination, the imported data will be
+        appended to the existing data.
+        ]]--
         function (configuration, arguments)
             local entries = build_variadic_argument_parser({
                 {'index', identity},
@@ -680,6 +690,7 @@ local commands = {
                             entry.key
                         )
 
+                        local touched = false
                         for bucket, count in pairs(buckets) do
                             local bucket_membership_key = get_bucket_membership_key(
                                 configuration.scope,
@@ -697,23 +708,40 @@ local commands = {
                                 bucket,
                                 count
                             )
+                            touched = true
                         end
 
                         -- The destination bucket frequency key may have not
                         -- existed previously, so we need to make sure we set
                         -- the expiration on it in case it is new.
-                        -- TODO(tkaemming): Only need to call this if we mutated anything
-                        redis.call(
-                            'EXPIREAT',
-                            destination_bucket_frequency_key,
-                            expiration_time
-                        )
+                        if touched then
+                            redis.call(
+                                'EXPIREAT',
+                                destination_bucket_frequency_key,
+                                expiration_time
+                            )
+                        end
                     end
                 end
             end
         end
     ),
     EXPORT = takes_configuration(
+        --[[
+        Exports data that is located at the provided ``index`` and ``key`` pairs.
+
+        Generally, this data should be treated as opaque method for extracting
+        data to be provided to the ``IMPORT`` command. Exported data is
+        returned in the same order as the arguments are provided. Each item is
+        a messagepacked blob that is at the top level list, where each member
+        represents the data contained within one band.  Each item in the band
+        list is another list, where each member represents one time series
+        interval. Each item in the time series list is a tuple containing the
+        time series index and a mapping containing the counts for each bucket
+        within the interval. (Due to the Lua data model, an empty mapping will
+        be represented as an empty list. The consumer of this data must convert
+        it back to the correct type.)
+        ]]--
         function (configuration, arguments)
             local bands = range(1, configuration.bands)
             local time_series = get_active_indices(
