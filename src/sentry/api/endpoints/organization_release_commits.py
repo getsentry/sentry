@@ -1,34 +1,31 @@
 from __future__ import absolute_import
 
 from sentry.api.base import DocSection
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseCommit
 
 
-class ReleaseCommitsEndpoint(ProjectEndpoint):
+class OrganizationReleaseCommitsEndpoint(OrganizationReleasesBaseEndpoint):
     doc_section = DocSection.RELEASES
-    permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request, project, version):
+    def get(self, request, organization, version):
         """
-        List a Release's Commits
-        ````````````````````````
+        List an Organization Release's Commits
+        ``````````````````````````````````````
 
         Retrieve a list of commits for a given release.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to list the
-                                     release files of.
         :pparam string version: the version identifier of the release.
         :auth: required
         """
         try:
             release = Release.objects.get(
-                organization_id=project.organization_id,
-                projects=project,
+                organization_id=organization.id,
+                projects=self.get_allowed_projects(request, organization),
                 version=version,
             )
         except Release.DoesNotExist:
