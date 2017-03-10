@@ -6,8 +6,8 @@ import pytz
 from django.views.generic import View
 
 from sentry.models import (
-    Commit, CommitAuthor, GroupSubscriptionReason, Organization, Project,
-    Release, Team
+    Commit, CommitAuthor, Deploy, GroupSubscriptionReason,
+    Organization, Project, Release, Team
 )
 from sentry.utils.http import absolute_uri
 
@@ -47,6 +47,13 @@ class DebugNewReleaseEmailView(View):
             organization_id=org.id,
             version='6c998f755f304593a4713abd123eaf8833a2de5e',
             date_added=datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc)
+        )
+
+        deploy = Deploy(
+            release=release,
+            organization_id=org.id,
+            environment_id=1,
+            date_finished=datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc),
         )
 
         release_links = [
@@ -100,5 +107,6 @@ class DebugNewReleaseEmailView(View):
                 'author_count': 1,
                 'file_count': 5,
                 'environment': 'production',
+                'deploy': deploy,
             },
         ).render(request)

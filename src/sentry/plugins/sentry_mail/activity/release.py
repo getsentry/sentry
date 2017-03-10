@@ -56,6 +56,9 @@ class ReleaseActivityEmail(ActivityEmail):
                 c.author.email for c in self.commit_list
                 if c.author
             ])
+            self.environment = Environment.objects.get(
+                id=self.deploy.environment_id
+            ).name or 'Default Environment'
 
     def should_email(self):
         return bool(self.release and self.deploy)
@@ -104,8 +107,6 @@ class ReleaseActivityEmail(ActivityEmail):
             ).count() for p in projects
         ]
 
-        environment = Environment.objects.get(id=self.deploy.environment_id).name
-
         return {
             'projects': zip(projects, release_links, resolved_issue_counts),
             'project_count': len(projects),
@@ -114,11 +115,15 @@ class ReleaseActivityEmail(ActivityEmail):
             'file_count': file_count,
             'repos': self.repos,
             'release': self.release,
-            'environment': environment or 'Default Environment',
+            'deploy': self.deploy,
+            'environment': self.environment,
         }
 
     def get_subject(self):
-        return u'Released {}'.format(self.release.short_version)
+        return u'Deployed version {} to {}'.format(
+            self.release.short_version,
+            self.environment,
+        )
 
     def get_template(self):
         return 'sentry/emails/activity/release.txt'

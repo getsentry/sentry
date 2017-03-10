@@ -140,9 +140,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                 activity = Activity.objects.create(
                     type=Activity.DEPLOY,
                     project=project,
-                    ident=result['version'],
+                    ident=release.version,
                     data={
-                        'version': result['version'],
+                        'version': release.version,
                         'deploy_id': deploy.id,
                     },
                     datetime=deploy.date_finished,
