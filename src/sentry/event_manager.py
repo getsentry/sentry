@@ -21,8 +21,9 @@ from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
 from uuid import uuid4
 
-from sentry import eventtypes, features
-from sentry.app import buffer, tsdb
+from sentry import eventtypes, features, buffer
+# we need a bunch of unexposed functions from tsdb
+from sentry.tsdb import backend as tsdb
 from sentry.constants import (
     CLIENT_RESERVED_ATTRS, LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH
 )
@@ -30,7 +31,7 @@ from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
     GroupRelease, GroupResolution, GroupStatus, Project, Release,
-    ReleaseEnvironment, TagKey, UserReport
+    ReleaseEnvironment, ReleaseProject, TagKey, UserReport
 )
 from sentry.plugins import plugins
 from sentry.signals import first_event_received, regression_signal
@@ -691,8 +692,9 @@ class EventManager(object):
             ), timestamp=event.datetime)
 
         if is_new and release:
-            buffer.incr(Release, {'new_groups': 1}, {
-                'id': release.id,
+            buffer.incr(ReleaseProject, {'new_groups': 1}, {
+                'release_id': release.id,
+                'project_id': project.id,
             })
 
         safe_execute(Group.objects.add_tags, group, tags,

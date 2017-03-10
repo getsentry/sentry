@@ -1,4 +1,4 @@
-import {valueIsEqual} from 'app/utils';
+import {valueIsEqual, extractMultilineFields} from 'app/utils';
 
 describe('utils.valueIsEqual', function() {
 
@@ -83,5 +83,25 @@ describe('utils.valueIsEqual', function() {
       }
     }, true);
     expect(isEqual).to.be.false;
+  });
+});
+
+describe('utils.extractMultilineFields', function () {
+  it('should work for basic, simple values', function () {
+    expect(extractMultilineFields('one\ntwo\nthree')).to.deep.equal(['one', 'two', 'three']);
+  });
+
+  it('should return an empty array if only whitespace', function () {
+    expect(extractMultilineFields('    \n    \n\n\n   \n')).to.deep.equal([]);
+  });
+
+  it('should trim values and ignore empty lines', function () {
+    expect(extractMultilineFields(`one
+  two
+
+three
+        four
+
+five`)).to.deep.equal(['one', 'two', 'three', 'four', 'five']);
   });
 });

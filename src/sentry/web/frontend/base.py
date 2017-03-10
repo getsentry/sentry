@@ -249,12 +249,18 @@ class BaseView(View, OrganizationMixin):
         )
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
-        entry = AuditLogEntry.objects.create(
+        entry = AuditLogEntry(
             actor=request.user if request.user.is_authenticated() else None,
             # TODO(jtcunning): assert that REMOTE_ADDR is a real IP.
             ip_address=request.META['REMOTE_ADDR'],
             **kwargs
         )
+
+        # Only create a real AuditLogEntry record if we are passing an event type
+        # otherwise, we want to still log to our actual logging
+        if entry.event is not None:
+            entry.save()
+
         extra = {
             'ip_address': entry.ip_address,
             'organization_id': entry.organization_id,
