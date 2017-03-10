@@ -231,9 +231,9 @@ const ReleaseOverview = React.createClass({
                 </ul>
               </div>
               :
-              <div className="box m-b-2  p-a-2 connect-repository">
-                <b>Releases are better with commit data!</b>
-                <div>Connect a repository to see commit info, files changed, and authors involved in future releases.</div>
+              <div className="well blankslate m-t-2 m-b-2 p-a-2 connect-repository">
+                <h5>Releases are better with commit data!</h5>
+                <p>Connect a repository to see commit info, files changed, and authors involved in future releases.</p>
                 <a className="btn btn-primary"
                   href={`/organizations/${orgId}/repos/`}>
                   Connect a repository
