@@ -99,5 +99,6 @@ class DebugNewReleaseEmailView(View):
                 'commit_count': 4,
                 'author_count': 1,
                 'file_count': 5,
+                'environment': 'production',
             },
         ).render(request)

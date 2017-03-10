@@ -13,7 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.app import locks
-from sentry.models import Deploy, Environment, Release
+from sentry.models import Activity, Deploy, Environment, Release
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -135,6 +135,21 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     date_finished=result.get('dateFinished', timezone.now()),
                     date_started=result.get('dateStarted'),
                 )
+
+            for project in release.projects.all():
+                activity = Activity.objects.create(
+                    type=Activity.DEPLOY,
+                    project=project,
+                    ident=result['version'],
+                    data={
+                        'version': result['version'],
+                        'deploy_id': deploy.id,
+                    },
+                    datetime=deploy.date_finished,
+                )
+            # Somewhat hacky, only send notification for one
+            # Deploy Activity record because it will cover all projects
+            activity.send_notification()
 
             # This is the closest status code that makes sense, and we want
             # a unique 2xx response code so people can understand when

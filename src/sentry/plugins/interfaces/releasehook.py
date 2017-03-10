@@ -81,14 +81,13 @@ class ReleaseHook(object):
 
         release.add_project(self.project)
 
-        activity = Activity.objects.create(
+        Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,
             ident=version,
             data={'version': version},
             datetime=values['date_released'],
         )
-        activity.send_notification()
 
     def handle(self, request):
         raise NotImplementedError

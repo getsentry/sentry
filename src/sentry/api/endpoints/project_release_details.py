@@ -156,14 +156,13 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
             hook.set_commits(release.version, commit_list)
 
         if (not was_released and release.date_released):
-            activity = Activity.objects.create(
+            Activity.objects.create(
                 type=Activity.RELEASE,
                 project=project,
                 ident=release.version,
                 data={'version': release.version},
                 datetime=release.date_released,
             )
-            activity.send_notification()
 
         return Response(serialize(release, request.user))
 

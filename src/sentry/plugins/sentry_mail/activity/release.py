@@ -3,9 +3,9 @@ from __future__ import absolute_import
 from sentry import features
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    CommitFileChange, Group, GroupSubscriptionReason,
-    GroupCommitResolution, Release, ReleaseCommit,
-    Repository, User
+    CommitFileChange, Deploy, Environment, Group,
+    GroupSubscriptionReason, GroupCommitResolution,
+    Release, ReleaseCommit, Repository, User
 )
 from sentry.utils.http import absolute_uri
 
@@ -16,6 +16,12 @@ class ReleaseActivityEmail(ActivityEmail):
     def __init__(self, activity):
         super(ReleaseActivityEmail, self).__init__(activity)
         self.organization = self.project.organization
+
+        try:
+            self.deploy = Deploy.objects.get(id=activity.data['deploy_id'])
+        except Deploy.DoesNotExist:
+            self.deploy = None
+
         try:
             self.release = Release.objects.get(
                 organization_id=self.project.organization_id,
@@ -42,7 +48,7 @@ class ReleaseActivityEmail(ActivityEmail):
                 ).values('id', 'name')
             }
             for commit in self.commit_list:
-                repos[commit.repository_id].commits.append(commit)
+                repos[commit.repository_id]['commits'].append(commit)
 
             self.repos = repos.values()
 
@@ -52,7 +58,7 @@ class ReleaseActivityEmail(ActivityEmail):
             ])
 
     def should_email(self):
-        return bool(self.release)
+        return bool(self.release and self.deploy)
 
     def get_participants(self):
         project = self.project
@@ -98,6 +104,8 @@ class ReleaseActivityEmail(ActivityEmail):
             ).count() for p in projects
         ]
 
+        environment = Environment.objects.get(id=self.deploy.environment_id).name
+
         return {
             'projects': zip(projects, release_links, resolved_issue_counts),
             'project_count': len(projects),
@@ -106,6 +114,7 @@ class ReleaseActivityEmail(ActivityEmail):
             'file_count': file_count,
             'repos': self.repos,
             'release': self.release,
+            'environment': environment or 'Default Environment',
         }
 
     def get_subject(self):
