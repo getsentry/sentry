@@ -144,6 +144,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     data={
                         'version': release.version,
                         'deploy_id': deploy.id,
+                        'environment': env.name
                     },
                     datetime=deploy.date_finished,
                 )

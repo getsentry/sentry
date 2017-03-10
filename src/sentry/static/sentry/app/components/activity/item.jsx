@@ -181,6 +181,12 @@ const ActivityItem = React.createClass({
           author: author,
           version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
         });
+      case 'deploy':
+        return tct('[author] deployed version [version] to [environment].', {
+          author: author,
+          version: <Version version={data.version} orgId={orgId} projectId={project.slug} />,
+          environment: data.environment || 'Default Environment'
+        });
       default:
         return ''; // should never hit (?)
     }
