@@ -196,7 +196,7 @@ setup(
     install_requires=install_requires,
     extras_require={
         'dev': dev_requires,
-        'postgres': install_requires,
+        'postgres': [],
         'tests': tests_require,
     },
     cmdclass=cmdclass,
