@@ -105,12 +105,7 @@ const ReleaseOverview = React.createClass({
   },
 
   renderEmpty() {
-    return <div className="box empty">{t('No other projects affected.')}</div>;
-  },
-
-  renderEmptyDeploys() {
-    return <div className="box empty">{t('No deploys')}</div>;
-
+    return <div className="box empty">{t('None')}</div>;
   },
 
   onCollapseToggle() {
@@ -208,7 +203,7 @@ const ReleaseOverview = React.createClass({
               projectId={projectId}
               version={version}
             />
-            <h6 className="nav-header m-b-1">Other Projects Affected</h6>
+            <h6 className="nav-header m-b-1">{t('Other Projects Affected')}</h6>
             <ul className="nav nav-stacked">
             { projects.length === 1 ? this.renderEmpty() :
               projects.map((project) => {
@@ -226,9 +221,9 @@ const ReleaseOverview = React.createClass({
               })
             }
           </ul>
-          <h6 className="nav-header m-b-1">Deploys</h6>
+          <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
           <ul className="nav nav-stacked">
-            { !deploys.length ? this.renderEmptyDeploys() :
+            { !deploys.length ? this.renderEmpty() :
               deploys.map((deploy) => {
                 return (
                   <li key={deploy.id}>
