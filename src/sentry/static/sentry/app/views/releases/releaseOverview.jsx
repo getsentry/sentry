@@ -228,9 +228,15 @@ const ReleaseOverview = React.createClass({
                 return (
                   <li key={deploy.id}>
                     <a href={`/${orgId}/${projectId}/?query=environment:${deploy.environment}+release:${version}`}>
-                      <span className="repo-label">{deploy.environment} </span>
-                      <span>Events </span>
-                      <span className="align-right"><TimeSince date={deploy.dateFinished}/></span>
+                      <div className="row">
+                        <div className="col-xs-8">
+                          <span className="repo-label">{deploy.environment} </span>
+                          <span> Events</span>
+                        </div>
+                        <div className="col-xs-4 align-right">
+                          <TimeSince date={deploy.dateFinished}/>
+                        </div>
+                      </div>
                     </a>
                   </li>
                 );
