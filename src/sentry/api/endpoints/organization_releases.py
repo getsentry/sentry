@@ -148,14 +148,13 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
 
             if release.date_released:
                 for project in new_projects:
-                    activity = Activity.objects.create(
+                    Activity.objects.create(
                         type=Activity.RELEASE,
                         project=project,
                         ident=result['version'],
                         data={'version': result['version']},
                         datetime=release.date_released,
                     )
-                    activity.send_notification()
 
             commit_list = result.get('commits')
             if commit_list:

@@ -7,8 +7,7 @@
 
 {% block activity %}
     <h2 style="margin-bottom: 10px">
-        <!-- TODO(jess) update these static values -->
-        Version {{ release.short_version }} was [deployed] to [production]
+        Version {{ release.short_version }} was [deployed] to [{{ environment }}]
     </h2>
     <p class="muted"><small><strong style="color: #72697d;">{{ release.date_added }}</strong> <span class="divider">&nbsp;</span>  {{ commit_count }} commits, {{ author_count }} authors, and {{ file_count }} files changed across {{ project_count }} projects</small></p>
 
