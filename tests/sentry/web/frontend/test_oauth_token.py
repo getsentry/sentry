@@ -127,7 +127,7 @@ class OAuthTokenCodeTest(TestCase):
         assert data['refresh_token'] == token.refresh_token
         assert data['expires_in']
         assert data['token_type'] == 'bearer'
-        assert data['user'] == {'id': six.text_type(token.user_id)}
+        assert data['user']['id'] == six.text_type(token.user_id)
 
 
 class OAuthTokenRefreshTokenTest(TestCase):
@@ -155,7 +155,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
         })
 
         assert resp.status_code == 400
-        assert json.loads(resp.content) == {'error': 'invalid_grant'}
+        assert json.loads(resp.content) == {'error': 'invalid_request'}
 
     def test_invalid_refresh_token(self):
         self.login_as(self.user)
