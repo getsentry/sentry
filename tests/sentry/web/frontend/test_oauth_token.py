@@ -150,11 +150,9 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_missing_refresh_token(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=refresh_token'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+        })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
@@ -162,11 +160,10 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_invalid_refresh_token(self):
         self.login_as(self.user)
 
-        resp = self.client.post('{}?grant_type=refresh_token&refresh_token=foo'.format(
-            self.path,
-            'https://example.com',
-            self.application.client_id,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+            'refresh_token': 'foo',
+        })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'invalid_grant'}
@@ -180,10 +177,10 @@ class OAuthTokenRefreshTokenTest(TestCase):
             expires_at=timezone.now(),
         )
 
-        resp = self.client.post('{}?grant_type=refresh_token&refresh_token={}'.format(
-            self.path,
-            token.refresh_token,
-        ))
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+            'refresh_token': token.refresh_token,
+        })
 
         assert resp.status_code == 200
 
