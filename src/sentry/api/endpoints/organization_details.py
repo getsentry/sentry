@@ -198,7 +198,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
-        if request.access.has_scope('org:delete'):
+        if request.access.has_scope('org:admin'):
             serializer_cls = OwnerOrganizationSerializer
         else:
             serializer_cls = OrganizationSerializer
