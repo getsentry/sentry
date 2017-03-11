@@ -30,19 +30,27 @@ from six.moves.urllib.parse import urlencode
 from social_auth.utils import dsa_urlopen
 from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
+import  os
+
+GITHUB_BASE_DOMAIN='github.com'
+if 'GITHUB_BASE_DOMAIN' in os.environ:
+    GITHUB_BASE_DOMAIN=os.environ['GITHUB_BASE_DOMAIN']
+
+GITHUB_API_DOMAIN='api.github.com'
+if 'GITHUB_API_DOMAIN' in os.environ:
+    GITHUB_API_DOMAIN=os.environ['GITHUB_API_DOMAIN']
 
 
 # GitHub configuration
-GITHUB_AUTHORIZATION_URL = 'https://github.com/login/oauth/authorize'
-GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token'
-GITHUB_USER_DATA_URL = 'https://api.github.com/user'
+GITHUB_AUTHORIZATION_URL = 'https://{0}/login/oauth/authorize'.format(GITHUB_BASE_DOMAIN)
+GITHUB_ACCESS_TOKEN_URL = 'https://{0}/login/oauth/access_token'.format(GITHUB_BASE_DOMAIN)
+GITHUB_USER_DATA_URL = 'https://{0}/user'.format(GITHUB_API_DOMAIN)
 
 # GitHub organization configuration
 GITHUB_ORGANIZATION_MEMBER_OF_URL = \
-    'https://api.github.com/orgs/{org}/members/{username}'
+    'https://{0}'.format(GITHUB_API_DOMAIN) + '/orgs/{org}/members/{username}'
 
-GITHUB_SERVER = 'github.com'
-
+GITHUB_SERVER = GITHUB_BASE_DOMAIN
 
 class GithubBackend(OAuthBackend):
     """Github OAuth authentication backend"""
