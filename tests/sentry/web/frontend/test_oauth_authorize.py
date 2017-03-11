@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from exam import fixture
 from six.moves.urllib.parse import parse_qs
 
-from sentry.models import ApiApplication, ApiGrant, ApiGrantType, ApiToken
+from sentry.models import ApiApplication, ApiGrant, ApiToken
 from sentry.testutils import TestCase
 
 
@@ -17,7 +17,6 @@ class OAuthAuthorizeCodeTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris='https://example.com',
-            grant_type=ApiGrantType.authorization_code,
         )
 
     def test_missing_response_type(self):
@@ -167,7 +166,6 @@ class OAuthAuthorizeTokenTest(TestCase):
         self.application = ApiApplication.objects.create(
             owner=self.user,
             redirect_uris='https://example.com',
-            grant_type=ApiGrantType.implicit,
         )
 
     def test_missing_response_type(self):

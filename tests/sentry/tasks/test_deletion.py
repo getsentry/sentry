@@ -1,17 +1,18 @@
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+
 import pytest
 
-from datetime import datetime, timedelta
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    ApiApplication, ApiGrant, ApiToken, Commit, CommitAuthor, Environment,
-    EnvironmentProject, Event, EventMapping, EventTag, Group, GroupAssignee,
-    GroupMeta, GroupRedirect, GroupResolution, GroupStatus, GroupTagKey,
-    GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
-    Release, ReleaseCommit, ReleaseEnvironment, Repository, TagKey, TagValue,
-    Team, TeamStatus
+    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit,
+    CommitAuthor, Environment, EnvironmentProject, Event, EventMapping,
+    EventTag, Group, GroupAssignee, GroupMeta, GroupRedirect, GroupResolution,
+    GroupStatus, GroupTagKey, GroupTagValue, Organization, OrganizationStatus,
+    Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
+    Repository, TagKey, TagValue, Team, TeamStatus
 )
 from sentry.tasks.deletion import (
     delete_api_application, delete_group, delete_organization, delete_project,
@@ -277,6 +278,7 @@ class DeleteApplicationTest(TestCase):
     def test_simple(self):
         app = ApiApplication.objects.create(
             owner=self.user,
+            status=ApiApplicationStatus.pending_deletion,
         )
         ApiToken.objects.create(
             application=app,
@@ -317,7 +319,6 @@ class RevokeApiTokensTest(TestCase):
         with self.tasks():
             revoke_api_tokens(object_id=app.id)
 
-        assert not ApiApplication.objects.filter(id=app.id).exists()
         assert not ApiToken.objects.filter(id=token1.id).exists()
         assert not ApiToken.objects.filter(id=token2.idp).exists()
 
@@ -330,19 +331,18 @@ class RevokeApiTokensTest(TestCase):
             application=app,
             user=self.create_user('bar@example.com'),
             scopes=0,
-            datetime=cutoff,
+            date_added=cutoff,
         )
         token2 = ApiToken.objects.create(
             application=app,
             user=self.create_user('foo@example.com'),
             scopes=0,
-            datetime=cutoff + timedelta(days=1),
+            date_added=cutoff + timedelta(days=1),
         )
 
         with self.tasks():
             revoke_api_tokens(object_id=app.id, timestamp=cutoff)
 
-        assert not ApiApplication.objects.filter(id=app.id).exists()
         assert not ApiToken.objects.filter(id=token1.id).exists()
         assert ApiToken.objects.filter(id=token2.idp).exists()
 

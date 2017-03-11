@@ -107,7 +107,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         updated = ApiApplication.objects.filter(
             id=instance.id,
         ).update(
-            status=ApiApplicationStatus.pending_delete,
+            status=ApiApplicationStatus.pending_deletion,
         )
         if updated:
             transaction_id = uuid4().hex
