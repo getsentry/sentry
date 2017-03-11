@@ -7,9 +7,9 @@
 
 {% block activity %}
     <h2 style="margin-bottom: 10px">
-        Version {{ release.short_version }} was [deployed] to [{{ environment }}]
+        Version {{ release.short_version }} was deployed to {{ environment }}
     </h2>
-    <p class="muted"><small><strong style="color: #72697d;">{{ deploy.date_finished }}</strong> <span class="divider">&nbsp;</span>  {{ commit_count }} commits, {{ author_count }} authors, and {{ file_count }} files changed across {{ project_count }} projects</small></p>
+    <p class="muted"><small><strong style="color: #72697d;">{{ deploy.date_finished }}</strong> <span class="divider">&nbsp;</span>  {{ commit_count }} commit{{ commit_count|pluralize }}, {{ author_count }} author{{ author_count|pluralize }}, and {{ file_count }} file{{ file_count|pluralize }} changed across {{ project_count }} project{{ project_count|pluralize }}</small></p>
 
     <hr>
 
@@ -22,7 +22,7 @@
               <td>
                 <h5 style="margin-bottom: 0">{{ project.name }}</h5>
                 <p class="muted" style="margin-bottom: 0">
-                  {{ resolved_issue_count }} Issues expected to be resolved
+                  {{ resolved_issue_count }} Issue{{ resolved_issue_count|pluralize }} expected to be resolved
                 </p>
               </td>
               <td style="text-align: right">
