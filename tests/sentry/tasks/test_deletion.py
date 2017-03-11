@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import pytest
 
+from datetime import datetime, timedelta
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
@@ -14,7 +15,7 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import (
     delete_api_application, delete_group, delete_organization, delete_project,
-    delete_tag_key, delete_team, generic_delete
+    delete_tag_key, delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -295,6 +296,55 @@ class DeleteApplicationTest(TestCase):
         assert not ApiApplication.objects.filter(id=app.id).exists()
         assert not ApiGrant.objects.filter(application=app).exists()
         assert not ApiToken.objects.filter(application=app).exists()
+
+
+class RevokeApiTokensTest(TestCase):
+    def test_basic(self):
+        app = ApiApplication.objects.create(
+            owner=self.user,
+        )
+        token1 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('bar@example.com'),
+            scopes=0,
+        )
+        token2 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('foo@example.com'),
+            scopes=0,
+        )
+
+        with self.tasks():
+            revoke_api_tokens(object_id=app.id)
+
+        assert not ApiApplication.objects.filter(id=app.id).exists()
+        assert not ApiToken.objects.filter(id=token1.id).exists()
+        assert not ApiToken.objects.filter(id=token2.idp).exists()
+
+    def test_with_timestamp(self):
+        cutoff = datetime(2017, 1, 1)
+        app = ApiApplication.objects.create(
+            owner=self.user,
+        )
+        token1 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('bar@example.com'),
+            scopes=0,
+            datetime=cutoff,
+        )
+        token2 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('foo@example.com'),
+            scopes=0,
+            datetime=cutoff + timedelta(days=1),
+        )
+
+        with self.tasks():
+            revoke_api_tokens(object_id=app.id, timestamp=cutoff)
+
+        assert not ApiApplication.objects.filter(id=app.id).exists()
+        assert not ApiToken.objects.filter(id=token1.id).exists()
+        assert ApiToken.objects.filter(id=token2.idp).exists()
 
 
 class GenericDeleteTest(TestCase):
