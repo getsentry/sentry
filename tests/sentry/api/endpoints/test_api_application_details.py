@@ -50,4 +50,4 @@ class ApiApplicationDeleteTest(APITestCase):
         assert response.status_code == 204, response.content
 
         app = ApiApplication.objects.get(id=app.id)
-        assert app.status == ApiApplicationStatus.inactive
+        assert app.status == ApiApplicationStatus.pending_deletion

@@ -320,7 +320,7 @@ class RevokeApiTokensTest(TestCase):
             revoke_api_tokens(object_id=app.id)
 
         assert not ApiToken.objects.filter(id=token1.id).exists()
-        assert not ApiToken.objects.filter(id=token2.idp).exists()
+        assert not ApiToken.objects.filter(id=token2.id).exists()
 
     def test_with_timestamp(self):
         cutoff = datetime(2017, 1, 1)
@@ -344,7 +344,7 @@ class RevokeApiTokensTest(TestCase):
             revoke_api_tokens(object_id=app.id, timestamp=cutoff)
 
         assert not ApiToken.objects.filter(id=token1.id).exists()
-        assert ApiToken.objects.filter(id=token2.idp).exists()
+        assert ApiToken.objects.filter(id=token2.id).exists()
 
 
 class GenericDeleteTest(TestCase):
