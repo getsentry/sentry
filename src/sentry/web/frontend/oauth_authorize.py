@@ -114,8 +114,8 @@ class OAuthAuthorizeView(BaseView):
                         matched_sets.add(scope_set)
                         pending_scopes.remove(scope)
 
-        if pending_scopes:
-            raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
+            if pending_scopes:
+                raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
 
         context = {
             'user': request.user,
