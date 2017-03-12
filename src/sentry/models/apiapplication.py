@@ -26,6 +26,7 @@ class ApiApplication(Model):
     client_id = models.CharField(
         max_length=64, unique=True,
         default=lambda: ApiApplication.generate_token())
+    # TODO(dcramer0: change to EncryptedTextField)
     client_secret = models.CharField(
         max_length=64, unique=True,
         default=lambda: ApiApplication.generate_token())
