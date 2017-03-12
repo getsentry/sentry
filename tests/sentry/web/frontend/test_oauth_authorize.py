@@ -53,7 +53,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
-        assert resp.context['error'] == 'Missing or invalid ``client_id`` parameter.'
+        assert resp.context['error'] == 'Missing or invalid <em>client_id</em> parameter.'
 
     def test_invalid_scope(self):
         self.login_as(self.user)
@@ -76,7 +76,7 @@ class OAuthAuthorizeCodeTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
-        assert resp.context['error'] == 'Missing or invalid ``redirect_uri`` parameter.'
+        assert resp.context['error'] == 'Missing or invalid <em>redirect_uri</em> parameter.'
 
     def test_minimal_params_approve_flow(self):
         self.login_as(self.user)
@@ -202,7 +202,7 @@ class OAuthAuthorizeTokenTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/oauth-error.html')
-        assert resp.context['error'] == 'Missing or invalid ``client_id`` parameter.'
+        assert resp.context['error'] == 'Missing or invalid <em>client_id</em> parameter.'
 
     def test_invalid_scope(self):
         self.login_as(self.user)

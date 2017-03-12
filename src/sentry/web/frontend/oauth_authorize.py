@@ -102,16 +102,17 @@ class OAuthAuthorizeView(BaseView):
         request.session['oa2'] = payload
 
         permissions = []
-        pending_scopes = set(scopes)
-        matched_sets = set()
-        for scope_set in settings.SENTRY_SCOPE_SETS:
-            for scope, description in scope_set:
-                if scope_set in matched_sets:
-                    pending_scopes.remove(scope)
-                elif scope in pending_scopes:
-                    permissions.append(description)
-                    matched_sets.add(scope_set)
-                    pending_scopes.remove(scope)
+        if scopes:
+            pending_scopes = set(scopes)
+            matched_sets = set()
+            for scope_set in settings.SENTRY_SCOPE_SETS:
+                for scope, description in scope_set:
+                    if scope_set in matched_sets:
+                        pending_scopes.remove(scope)
+                    elif scope in pending_scopes:
+                        permissions.append(description)
+                        matched_sets.add(scope_set)
+                        pending_scopes.remove(scope)
 
         if pending_scopes:
             raise NotImplementedError('{} scopes did not have descriptions'.format(pending_scopes))
