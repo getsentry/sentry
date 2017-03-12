@@ -104,6 +104,12 @@
 
         <hr />
 
+        <h4>{% trans "Self Assign Issue" %}</h4>
+
+        {{ settings_form.self_assign_issue|as_crispy_field }}
+
+        <hr />
+
         <h4>{% trans "Fine Tuning" %}</h4>
 
         <p>Use the settings below to fine tune notification settings per-project. You may add or verify additional email addresses via the <a href="{% url "sentry-account-settings-emails" %}">Emails</a> settings.</p>
