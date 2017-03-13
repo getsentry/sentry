@@ -86,6 +86,12 @@
       </table>
     </div>
     {% else %}
-      <p>It looks like there's no commit data wired up yet :(</p>
+    <div class="well">
+      <h3>Deploy emails are better with commit data</h3>
+      <p>Connecting one or more repositories to Sentry will enable us to show a list of commits associated with this deploy.</p>
+      <p>
+        <a href="#" class="btn btn-primary">Connect a repository</a>
+      </p>
+    </div>
     {% endif %}
 {% endblock %}
