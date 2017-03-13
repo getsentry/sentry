@@ -12,6 +12,7 @@ from django.conf import settings
 
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.dates import to_timestamp
 from sentry.utils.iterators import shingle
 from sentry.utils.redis import load_script
 
@@ -299,6 +300,7 @@ class FeatureSet(object):
             '{}'.format(event.project_id),
             '{}'.format(event.group_id),
             items,
+            timestamp=to_timestamp(event.datetime),
         )
 
     def query(self, group):
