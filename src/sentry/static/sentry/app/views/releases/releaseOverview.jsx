@@ -230,8 +230,8 @@ const ReleaseOverview = React.createClass({
                     <a href={`/${orgId}/${projectId}/?query=environment:${deploy.environment}+release:${version}`}>
                       <div className="row row-flex row-center-vertically">
                         <div className="col-xs-6">
-                          <span className="repo-label" style={{verticalAlign: "bottom"}}>{deploy.environment}</span>
-                          <small><span className="icon-open" style={{opacity: ".4", paddingLeft: 8}} /></small>
+                          <span className="repo-label" style={{verticalAlign: 'bottom'}}>{deploy.environment}</span>
+                          <small><span className="icon-open" style={{opacity: '.4', paddingLeft: 8}} /></small>
                         </div>
                         <div className="col-xs-6 align-right">
                           <small><TimeSince date={deploy.dateFinished}/></small>
