@@ -1,5 +1,6 @@
 {% extends "sentry/emails/activity/generic.html" %}
 
+{% load sentry_avatars %}
 {% load sentry_helpers %}
 
 {% block action %}
@@ -46,22 +47,38 @@
           </tr>
           {% for commit in repo.commits %}
             <tr>
-              <td>
-                {% if commit.message %}
-                    {{ commit.title }}
-                {% else %}
-                    No message provided
-                {% endif %}
-              </td>
-              <td>
-                <small>{{ commit.short_id }}</small>
-              </td>
-              <td>
+              <td class="avatar-column">
                 {% if commit.author %}
-                    <small>{{ commit.author.name }}</small>
+                  {% if author.get_avatar_type == 'upload' %}
+                    <img class="avatar" src="{% profile_photo_url commit.author.id size 36 %}">
+                  {% elif commit.author.get_avatar_type == 'letter_avatar' %}
+                    {% email_avatar commit.author.name commit.author.get_label size 36 try_gravatar False %}
+                  {% else %}
+                    {% email_avatar commit.author.name commit.author.get_label size 36 %}
+                  {% endif %}
                 {% else %}
-                    <small>No author provided</small>
+                    <div class="placeholder-avatar">?</div>
                 {% endif %}
+              </td>
+              <td>
+                <h4>
+                  {% if commit.message %}
+                    {{ commit.title }}
+                  {% else %}
+                    No message provided
+                  {% endif %}
+                </h4>
+                <div class="commit-meta muted">
+                  {% if commit.author %}
+                    {{ commit.author.name }}
+                  {% else %}
+                    No author provided
+                  {% endif %}
+                   &middot; 2 hours ago
+                </div>
+              </td>
+              <td class="align-right">
+                <small>{{ commit.short_id }}</small>
               </td>
             </tr>
           {% endfor %}
