@@ -42,15 +42,19 @@ class TSDBModel(Enum):
     project_operations = 102
     # the number of operations with an error state
     project_operation_errors = 103
-    # the number of events blocked due to being blacklisted
+    # the number of events blocked due to being filtered
+    project_total_filtered = 104
     project_total_blacklisted = 104
 
     # the number of events sent to the server
     organization_total_received = 200
     # the number of events rejected due to rate limiting
     organization_total_rejected = 201
-    # the number of events blocked due to being blacklisted
+    # the number of events blocked due to being filtered
+    organization_total_filtered = 202
     organization_total_blacklisted = 202
+    # the number of events accepted
+    organization_total_accepted = 203
 
     # distinct count of users that have been affected by an event in a group
     users_affected_by_group = 300
