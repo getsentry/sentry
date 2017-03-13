@@ -656,15 +656,6 @@
     word-wrap: break-word;
   }
 
-  .commit-list {
-    margin-top: 20px;
-    padding-left: 20px;
-  }
-  .commit-list li {
-    padding: 5px 0;
-    font-size: 14px;
-  }
-
   /* Generic table classes */
 
   .inner .table-border {
@@ -711,7 +702,6 @@
     border-bottom-right-radius: 3px;
   }
 
-
   .inner table.table th {
     background: #FBFBFC;
     font-weight: 600;
@@ -723,17 +713,47 @@
     text-transform: none;
   }
 
+  /* Commit List */
+
+  .inner table.table.commit-list td.avatar-column {
+    width: 36px;
+    padding-right: 0;
+    padding-top: 12px;
+  }
+
+  .inner table.table.commit-list .placeholder-avatar {
+    color: #968ba0;
+    background: #f7f8f9;
+    line-height: 36px;
+    width: 36px;
+    height: 36px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 3px;
+  }
+
+  .inner table.table.commit-list h4 {
+    font-size: 15px;
+    margin: 2px 0;
+  }
+
+  .inner table.table.commit-list .commit-meta {
+    font-size: 14px;
+    margin: 0;
+  }
+
   /* Utility Classes */
 
-  .align-left {
+  .align-left, .inner table td.align-left {
     text-align: left;
   }
 
-  .align-center {
+  .align-center, .inner table td.align-center {
     text-align: center;
   }
 
-  .align-right {
+  .align-right, .inner table td.align-right {
     text-align: right !important;
   }
 
