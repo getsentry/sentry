@@ -263,10 +263,10 @@ const ReleaseOverview = React.createClass({
             <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
             <ul className="nav nav-stacked">
               { !deploys.length ? this.renderEmpty() :
-                deploys.map((deploy) => {
+                deploys.map(deploy => {
                   return (
                     <li key={deploy.id}>
-                      <a href={`/${orgId}/${projectId}/?query=environment:${deploy.environment}+release:${version}`}>
+                      <a href={`/${orgId}/${projectId}/?query=environment${encodeURIComponent(':' + deploy.environment)}+release${encodeURIComponent(':' + version)}`}>
                         <div className="row row-flex row-center-vertically">
                           <div className="col-xs-6">
                             <span className="repo-label" style={{verticalAlign: 'bottom'}}>{deploy.environment}</span>
