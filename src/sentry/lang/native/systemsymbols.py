@@ -2,10 +2,9 @@ from __future__ import absolute_import
 
 import logging
 
-from django.conf import settings
-
 from requests.exceptions import RequestException
 
+from sentry import options
 from sentry.http import Session
 from sentry.lang.native.utils import sdk_info_to_sdk_id
 
@@ -21,10 +20,10 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
     enabled.  If this failes or the server is disabled, `None` is
     returned.
     """
-    if not settings.SYMBOL_SERVER_ENABLED:
+    if not options.get('symbolserver.enabled'):
         return
 
-    url = '%s/lookup' % settings.SYMBOL_SERVER_URL.rstrip('/')
+    url = '%s/lookup' % options.get('symbolserver.url').rstrip('/')
     sess = Session()
     symbol_query = {
         'sdk_id': sdk_info_to_sdk_id(sdk_info),
