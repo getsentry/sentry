@@ -50,7 +50,7 @@ class EditProjectForm(forms.ModelForm):
         required=False,
     )
     resolve_age = RangeField(label=_('Auto resolve'), required=False,
-        min_value=0, max_value=168, step_value=1,
+        min_value=0, max_value=720, step_value=1,
         help_text=_('Automatically resolve an issue if it hasn\'t been seen for this amount of time.'))
     scrub_data = forms.BooleanField(
         label=_('Data Scrubber'),
