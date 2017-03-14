@@ -23,7 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Release, TagKey, User, UserOption
+    GroupSubscriptionReason, Release, TagKey, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -34,6 +34,7 @@ from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor
+from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -167,6 +168,23 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 raise ValidationError(u'Your search query could not be parsed: {}'.format(e.message))
 
         return query_kwargs
+
+    def _subscribe_and_assign_issue(self, acting_user, group, result):
+        if acting_user:
+            GroupSubscription.objects.subscribe(
+                user=acting_user,
+                group=group,
+                reason=GroupSubscriptionReason.status_change,
+            )
+            self_assign_issue = UserOption.objects.get_value(
+                user=acting_user,
+                project=None,
+                key='self_assign_issue',
+                default='0'
+            )
+            if not group.assignee_set.exists() and self_assign_issue == '1':
+                result['assignedTo'] = extract_lazy_object(acting_user)
+        return result
 
     # bookmarks=0/1
     # status=<x>
@@ -407,12 +425,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
-                if acting_user:
-                    GroupSubscription.objects.subscribe(
-                        user=acting_user,
-                        group=group,
-                        reason=GroupSubscriptionReason.status_change,
-                    )
+                result = self._subscribe_and_assign_issue(
+                    acting_user, group, result
+                )
 
                 if created:
                     activity = Activity.objects.create(
@@ -463,20 +478,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
-                    if acting_user:
-                        GroupSubscription.objects.subscribe(
-                            user=acting_user,
-                            group=group,
-                            reason=GroupSubscriptionReason.status_change,
-                        )
-                        self_assign_issue = UserOption.objects.get_value(
-                            user=acting_user,
-                            project=None,
-                            key='self_assign_issue',
-                            default='0'
-                        )
-                        if not group.assignee_set.exists() and self_assign_issue == '1':
-                            result['assignedTo'] = User.objects.filter(id=acting_user.id).first()
+                    result = self._subscribe_and_assign_issue(
+                        acting_user, group, result
+                    )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,
