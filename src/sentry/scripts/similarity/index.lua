@@ -688,7 +688,6 @@ local commands = {
                             entry.key
                         )
 
-                        local touched = false
                         for bucket, count in pairs(buckets) do
                             local bucket_membership_key = get_bucket_membership_key(
                                 configuration.scope,
@@ -706,13 +705,13 @@ local commands = {
                                 bucket,
                                 count
                             )
-                            touched = true
                         end
 
                         -- The destination bucket frequency key may have not
                         -- existed previously, so we need to make sure we set
-                        -- the expiration on it in case it is new.
-                        if touched then
+                        -- the expiration on it in case it is new. (We only
+                        -- have to do this if there we changed any bucket counts.)
+                        if next(buckets) ~= nil then
                             redis.call(
                                 'EXPIREAT',
                                 destination_bucket_frequency_key,
