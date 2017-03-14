@@ -182,9 +182,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 key='self_assign_issue',
                 default='0'
             )
-            if not group.assignee_set.exists() and self_assign_issue == '1':
+            if self_assign_issue == '1' and not group.assignee_set.exists():
                 result['assignedTo'] = extract_lazy_object(acting_user)
-        return result
 
     # bookmarks=0/1
     # status=<x>
@@ -425,7 +424,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
-                result = self._subscribe_and_assign_issue(
+                self._subscribe_and_assign_issue(
                     acting_user, group, result
                 )
 
@@ -478,7 +477,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
-                    result = self._subscribe_and_assign_issue(
+                    self._subscribe_and_assign_issue(
                         acting_user, group, result
                     )
                     activity = Activity.objects.create(
