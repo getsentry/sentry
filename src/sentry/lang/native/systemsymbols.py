@@ -23,7 +23,7 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
     if not options.get('symbolserver.enabled'):
         return
 
-    url = '%s/lookup' % options.get('symbolserver.url').rstrip('/')
+    url = '%s/lookup' % options.get('symbolserver.options')['url'].rstrip('/')
     sess = Session()
     symbol_query = {
         'sdk_id': sdk_info_to_sdk_id(sdk_info),
