@@ -21,9 +21,11 @@
           {% for project, release_link, resolved_issue_count in projects %}
             <tr>
               <td>
-                <h5 style="margin-bottom: 0">{{ project.name }}</h5>
+                <h5 style="margin-bottom: 0">
+                  <a href="{{ release_link }}">{{ project.name }}</a>
+                </h5>
                 <p class="muted" style="margin-bottom: 0">
-                  {{ resolved_issue_count }} Issue{{ resolved_issue_count|pluralize }} expected to be resolved
+                  <a href="{{ release_link }}">{{ resolved_issue_count }} Issue{{ resolved_issue_count|pluralize }} expected to be resolved</a>
                 </p>
               </td>
               <td style="text-align: right">
