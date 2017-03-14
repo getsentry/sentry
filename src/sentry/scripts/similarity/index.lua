@@ -628,7 +628,7 @@ local commands = {
                         )
 
                         local buckets = redis.call(
-                            'HGETKEYS',
+                            'HKEYS',
                             source_bucket_frequency_key
                         )
 

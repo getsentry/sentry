@@ -133,6 +133,11 @@ class MinHashIndexTestCase(TestCase):
         assert results[3][0] in ('3', '4')
         assert results[4][0] == '5'
 
+        index.delete('example', [('index', '3')])
+        assert [key for key, _ in index.query('example', '1', ['index'])[0]] == [
+            '1', '2', '4', '5'
+        ]
+
     def test_export_import(self):
         bands = 2
         retention = 12
