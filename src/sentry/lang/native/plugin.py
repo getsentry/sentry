@@ -7,12 +7,11 @@ import time
 import logging
 import posixpath
 
-from django.conf import settings
-
 from symsynd.demangle import demangle_symbol
 from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
 
+from sentry import options
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed, \
@@ -452,7 +451,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # dict.
         data = self.sym.resolve_missing_vmaddrs()
 
-        if settings.SYMBOL_SERVER_ENABLED:
+        if options.get('symbolserver.enabled'):
             self.fetch_system_symbols(processing_task)
 
         return data
