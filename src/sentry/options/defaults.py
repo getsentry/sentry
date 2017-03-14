@@ -87,4 +87,5 @@ register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=F
 
 # Symbol server
 register('symbolserver.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register('symbolserver.url', default='http://127.0.0.1:3000', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('symbolserver.options', default={'url': 'http://127.0.0.1:3000'},
+         flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
