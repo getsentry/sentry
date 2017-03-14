@@ -668,9 +668,7 @@ local commands = {
             local entries = build_variadic_argument_parser({
                 {'index', identity},
                 {'key', identity},
-                {'data', function (value)
-                    return cmsgpack.unpack(value)
-                end}
+                {'data', cmsgpack.unpack},
             })(arguments)
 
             for _, entry in ipairs(entries) do
