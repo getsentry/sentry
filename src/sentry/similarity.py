@@ -12,6 +12,7 @@ from django.conf import settings
 
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.dates import to_timestamp
 from sentry.utils.iterators import shingle
 from sentry.utils.redis import load_script
 
@@ -136,6 +137,50 @@ class MinHashIndex(object):
 
         for idx, key in items:
             arguments.extend([idx, key])
+
+        return index(
+            self.cluster.get_local_client_for_key(scope),
+            [],
+            arguments,
+        )
+
+    def export(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'EXPORT',
+            timestamp,
+            len(self.bands),
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, key in items:
+            arguments.extend([idx, key])
+
+        return index(
+            self.cluster.get_local_client_for_key(scope),
+            [],
+            arguments,
+        )
+
+    def import_(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'IMPORT',
+            timestamp,
+            len(self.bands),
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, key, data in items:
+            arguments.extend([idx, key, data])
 
         return index(
             self.cluster.get_local_client_for_key(scope),
@@ -299,6 +344,7 @@ class FeatureSet(object):
             '{}'.format(event.project_id),
             '{}'.format(event.group_id),
             items,
+            timestamp=to_timestamp(event.datetime),
         )
 
     def query(self, group):

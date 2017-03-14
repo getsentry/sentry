@@ -28,6 +28,7 @@ Collapsed.propTypes = {
 };
 
 const ReleaseOverview = React.createClass({
+
   mixins: [ApiMixin],
 
   statics: {
@@ -42,6 +43,7 @@ const ReleaseOverview = React.createClass({
       fileList: [],
       collapsed: true,
       deploys: [],
+      hasRepos: false,
     };
   },
 
@@ -65,6 +67,7 @@ const ReleaseOverview = React.createClass({
     });
     this.getReleaseProjects();
     this.getDeploys();
+    this.getRepos();
   },
 
   getReleaseProjects() {
@@ -104,6 +107,24 @@ const ReleaseOverview = React.createClass({
     });
   },
 
+  getRepos() {
+    let {orgId} = this.props.params;
+    let path = `/organizations/${orgId}/repos/`;
+    this.api.request(path, {
+      method: 'GET',
+      success: (data, _, jqXHR) => {
+        this.setState({
+          hasRepos: data.length > 0,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      }
+    });
+  },
+
   renderEmpty() {
     return <div className="box empty">{t('None')}</div>;
   },
@@ -123,7 +144,7 @@ const ReleaseOverview = React.createClass({
     if (this.state.error)
       return <LoadingError/>;
 
-    let {fileList, projects} = this.state;
+    let {fileList, projects, hasRepos} = this.state;
 
     // convert list of individual file changes (can be
     // multiple changes to a single file) into a per-file
@@ -182,70 +203,88 @@ const ReleaseOverview = React.createClass({
               params={{orgId: orgId}}
               className="m-b-2"
               />
-            <h5>{fileCount} Files Changed</h5>
-            <ul className="list-group list-group-striped m-b-2">
-              {files.map(filename => {
-                return (
-                  <FileChange
-                    key={fileChangeSummary[filename].id}
-                    filename={filename}
-                    authors={Object.values(fileChangeSummary[filename].authors)}
-                    types={fileChangeSummary[filename].types}
-                    />
-                );
-              })}
-              {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-            </ul>
+            {hasRepos &&
+              <div>
+                <h5>{fileCount} Files Changed</h5>
+                <ul className="list-group list-group-striped m-b-2">
+                  {files.map(filename => {
+                    return (
+                      <FileChange
+                        key={fileChangeSummary[filename].id}
+                        filename={filename}
+                        authors={Object.values(fileChangeSummary[filename].authors)}
+                        types={fileChangeSummary[filename].types}
+                        />
+                    );
+                  })}
+                  {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+                </ul>
+              </div>
+            }
           </div>
           <div className="col-sm-4">
-            <CommitAuthorStats
-              orgId={orgId}
-              projectId={projectId}
-              version={version}
-            />
-            <h6 className="nav-header m-b-1">{t('Other Projects Affected')}</h6>
-            <ul className="nav nav-stacked">
-            { projects.length === 1 ? this.renderEmpty() :
-              projects.map((project) => {
-                if (project.slug === projectId) {
-                  return null;
+            { hasRepos ?
+              <div>
+                <CommitAuthorStats
+                  orgId={orgId}
+                  projectId={projectId}
+                  version={version}
+                />
+                <h6 className="nav-header m-b-1">Other Projects Affected</h6>
+                <ul className="nav nav-stacked">
+                { projects.length === 1 ? this.renderEmpty() :
+                  projects.map((project) => {
+                    if (project.slug === projectId) {
+                      return null;
+                    }
+                    return (
+                      <ReleaseProjectStatSparkline
+                        key={project.id}
+                        orgId={orgId}
+                        project={project}
+                        version={version}
+                      />
+                    );
+                  })
                 }
-                return (
-                  <ReleaseProjectStatSparkline
-                    key={project.id}
-                    orgId={orgId}
-                    project={project}
-                    version={version}
-                  />
-                );
-              })
+                </ul>
+              </div>
+              :
+              <div className="well blankslate m-t-2 m-b-2 p-x-2 p-t-1 p-b-2 align-center">
+                <span className="icon icon-git-commit" />
+                <h5>Releases are better with commit data!</h5>
+                <p>Connect a repository to see commit info, files changed, and authors involved in future releases.</p>
+                <a className="btn btn-primary"
+                  href={`/organizations/${orgId}/repos/`}>
+                  Connect a repository
+                </a>
+              </div>
             }
-          </ul>
-          <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
-          <ul className="nav nav-stacked">
-            { !deploys.length ? this.renderEmpty() :
-              deploys.map((deploy) => {
-                return (
-                  <li key={deploy.id}>
-                    <a href={`/${orgId}/${projectId}/?query=environment:${deploy.environment}+release:${version}`}>
-                      <div className="row row-flex row-center-vertically">
-                        <div className="col-xs-6">
-                          <span className="repo-label" style={{verticalAlign: 'bottom'}}>{deploy.environment}</span>
-                          <small><span className="icon-open" style={{opacity: '.4', paddingLeft: 8}} /></small>
+            <h6 className="nav-header m-b-1">{t('Deploys')}</h6>
+            <ul className="nav nav-stacked">
+              { !deploys.length ? this.renderEmpty() :
+                deploys.map((deploy) => {
+                  return (
+                    <li key={deploy.id}>
+                      <a href={`/${orgId}/${projectId}/?query=environment:${deploy.environment}+release:${version}`}>
+                        <div className="row row-flex row-center-vertically">
+                          <div className="col-xs-6">
+                            <span className="repo-label" style={{verticalAlign: 'bottom'}}>{deploy.environment}</span>
+                            <small><span className="icon-open" style={{opacity: '.4', paddingLeft: 8}} /></small>
+                          </div>
+                          <div className="col-xs-6 align-right">
+                            <small><TimeSince date={deploy.dateFinished}/></small>
+                          </div>
                         </div>
-                        <div className="col-xs-6 align-right">
-                          <small><TimeSince date={deploy.dateFinished}/></small>
-                        </div>
-                      </div>
-                    </a>
-                  </li>
-                );
-              })
-            }
-          </ul>
+                      </a>
+                    </li>
+                  );
+                })
+              }
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
     );
   }
 });
