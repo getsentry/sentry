@@ -509,7 +509,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 else:
                     logger.debug('Failed to symbolicate with native backend',
                                  exc_info=True)
-                return None, [raw_frame], errors
+                return [raw_frame], [raw_frame], errors
 
             processable_frame.set_cache_value([in_app, symbolicated_frames])
         else:

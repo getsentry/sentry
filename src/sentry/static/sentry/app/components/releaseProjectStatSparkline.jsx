@@ -69,7 +69,7 @@ const ReleaseProjectStatSparkline = React.createClass({
   },
 
   render() {
-    let {orgId, project} = this.props;
+    let {orgId, project, version} = this.props;
     let newIssueCount = this.state.newIssueCount;
     let values = this.state.stats.map(tuple => tuple[1]);
     if (this.state.loading)
@@ -84,7 +84,7 @@ const ReleaseProjectStatSparkline = React.createClass({
             <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
           </Sparklines>
         </div>
-        <Link to={`/${orgId}/${project.slug}/`}>
+        <Link to={`/${orgId}/${project.slug}/releases/${version}/overview`}>
           <h6 className="m-b-0">
             {project.name}
           </h6>
