@@ -116,17 +116,25 @@ class Breadcrumbs(Interface):
     def get_alias(self):
         return 'breadcrumbs'
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, event_cache={}):
         def _convert(x):
-            return {
+            data = {
                 'type': x['type'],
                 'timestamp': to_datetime(x['timestamp']),
                 'level': x.get('level', 'info'),
                 'message': x.get('message'),
                 'category': x.get('category'),
                 'data': x.get('data') or None,
-                'event_id': x.get('event_id'),
             }
+            if x.get('event_id') in event_cache:
+                event = event_cache[x['event_id']]
+                data['event'] = {
+                    'id': six.text_type(event.id),
+                    'groupID': six.text_type(event.group_id),
+                    'eventID': six.text_type(event.event_id),
+                }
+            return data
+
         return {
             'values': [_convert(v) for v in self.values],
         }

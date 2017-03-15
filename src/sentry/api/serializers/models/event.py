@@ -3,7 +3,10 @@ from __future__ import absolute_import
 import six
 
 from datetime import datetime
+from django.db.models import Q
 from django.utils import timezone
+from operator import or_
+from six.moves import reduce
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import Event, EventError
@@ -13,10 +16,10 @@ from sentry.models import Event, EventError
 class EventSerializer(Serializer):
     _reserved_keys = frozenset([
         'sentry.interfaces.User', 'sdk', 'device',
-        'contexts'
+        'contexts',
     ])
 
-    def _get_entries(self, event, user, is_public=False):
+    def _get_entries(self, event, user, is_public, event_cache):
         # XXX(dcramer): These are called entries for future-proofing
         interface_list = []
         for key, interface in six.iteritems(event.interfaces):
@@ -24,7 +27,13 @@ class EventSerializer(Serializer):
             if key in self._reserved_keys:
                 continue
 
-            data = interface.get_api_context(is_public=is_public)
+            if key == 'sentry.interfaces.Breadcrumbs':
+                data = interface.get_api_context(
+                    is_public=is_public, event_cache=event_cache,
+                )
+            else:
+                data = interface.get_api_context(is_public=is_public)
+
             # data might not be returned for e.g. a public HTTP repr
             if not data:
                 continue
@@ -40,6 +49,27 @@ class EventSerializer(Serializer):
 
     def get_attrs(self, item_list, user, is_public=False):
         Event.objects.bind_nodes(item_list, 'data')
+
+        event_cache = {(i.project_id, i.event_id): i for i in item_list}
+
+        related_event_ids = set()
+        for item in item_list:
+            crumbs_int = item.interfaces.get('sentry.interfaces.Breadcrumbs')
+            if not crumbs_int:
+                continue
+            for crumb in crumbs_int.values:
+                if crumb.get('event_id') and crumb['event_id'] not in event_cache:
+                    related_event_ids.add((item.project_id, crumb['event_id']))
+
+        event_cache.update({
+            (e.project_id, e.event_id): e
+            for e in Event.objects.filter(
+                reduce(or_, (
+                    Q(project_id=k, event_id=v)
+                    for k, v in related_event_ids
+                ))
+            )
+        })
 
         results = {}
         for item in item_list:
@@ -68,7 +98,13 @@ class EventSerializer(Serializer):
                 sdk_data = None
 
             results[item] = {
-                'entries': self._get_entries(item, user, is_public=is_public),
+                'entries': self._get_entries(
+                    item, user, is_public=is_public,
+                    event_cache={
+                        v: e for (k, v), e in six.iteritems(event_cache)
+                        if k == item.project_id
+                    },
+                ),
                 'user': user_data,
                 'contexts': contexts_data,
                 'sdk': sdk_data,

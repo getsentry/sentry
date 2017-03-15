@@ -112,7 +112,7 @@ def load_data(platform, default=None, timestamp=None):
 
 
 def create_sample_event(project, platform=None, default=None, raw=True,
-                        **kwargs):
+                        parent_event=None, **kwargs):
     if not platform and not default:
         return
 
@@ -122,6 +122,17 @@ def create_sample_event(project, platform=None, default=None, raw=True,
 
     if not data:
         return
+
+    if parent_event:
+        crumbs = data.setdefault('sentry.interfaces.Breadcrumbs', {'values': []})
+        crumbs['values'].append({
+            'category': 'error',
+            'type': 'default',
+            'level': 'error',
+            'timestamp': milliseconds_ago(parent_event.datetime.replace(tzinfo=None), 0),
+            'message': parent_event.message,
+            'event_id': parent_event.event_id,
+        })
 
     data.update(kwargs)
 

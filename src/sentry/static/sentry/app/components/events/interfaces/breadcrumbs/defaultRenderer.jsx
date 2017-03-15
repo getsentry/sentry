@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router';
 
 import CrumbTable from './crumbTable';
 import SummaryLine from './summaryLine';
@@ -26,6 +27,9 @@ const DefaultRenderer = React.createClass({
     return (
       <SummaryLine crumb={crumb}>
         {crumb.message && <pre><code>{crumb.message}</code></pre>}
+        {crumb.event &&
+          <Link to="" className="btn btn-sm">Jump To</Link>
+        }
       </SummaryLine>
     );
   },
