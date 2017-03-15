@@ -8,7 +8,7 @@ from django.views.generic import View
 
 from sentry.models import (
     Commit, CommitAuthor, Deploy, GroupSubscriptionReason,
-    Organization, Project, Release, Team
+    Organization, Project, Release, Team, User
 )
 from sentry.utils.http import absolute_uri
 
@@ -68,11 +68,11 @@ class DebugNewReleaseEmailView(View):
         repos = [{
             'name': 'getsentry/getsentry',
             'commits': [
-                Commit(
+                (Commit(
                     key='48b86fcd677da3dba5679d7a738240ce6fb74b20',
                     date_added=timezone.now() - datetime.timedelta(hours=2),
-                ),
-                Commit(
+                ), None),
+                (Commit(
                     key='a53a2756bb8d111b43196210b34df90b87ed336b',
                     message='Fix billing',
                     author=CommitAuthor(
@@ -80,16 +80,25 @@ class DebugNewReleaseEmailView(View):
                         email='david@sentry.io',
                     ),
                     date_added=timezone.now() - datetime.timedelta(hours=1),
-                ),
+                ), User(email='david@sentry.io', name='David Cramer')),
             ],
         }, {
             'name': 'getsentry/sentry',
             'commits': [
-                Commit(
+                (Commit(
                     key='3c8eb3b4af6ee2a29c68daa188fc730c8e4b39fd',
                     date_added=timezone.now() - datetime.timedelta(hours=7),
-                ),
-                Commit(
+                ), None),
+                (Commit(
+                    key='373562702009df1692da6eb80a933139f29e094b',
+                    message='Fix padding',
+                    author=CommitAuthor(
+                        name='Chris Jennings',
+                        email='chris@sentry.io',
+                    ),
+                    date_added=timezone.now() - datetime.timedelta(hours=5),
+                ), None),
+                (Commit(
                     key='631cd9096bd9811a046a472bb0aa8b573e86e1f1',
                     message='Update README.rst',
                     author=CommitAuthor(
@@ -97,7 +106,7 @@ class DebugNewReleaseEmailView(View):
                         email='david@sentry.io',
                     ),
                     date_added=timezone.now() - datetime.timedelta(hours=4),
-                ),
+                ), User(email='david@sentry.io', name='David Cramer')),
             ],
         }]
 

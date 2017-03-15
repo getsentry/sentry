@@ -7,7 +7,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models import (
     CommitFileChange, Deploy, Environment, Group,
     GroupSubscriptionReason, GroupCommitResolution,
-    Release, ReleaseCommit, Repository, User
+    Release, ReleaseCommit, Repository, Team, User, UserEmail
 )
 from sentry.utils.http import absolute_uri
 
@@ -33,6 +33,7 @@ class ReleaseActivityEmail(ActivityEmail):
         except Release.DoesNotExist:
             self.release = None
             self.repos = []
+            self.projects = []
         else:
             self.projects = list(self.release.projects.all())
             self.commit_list = [
@@ -51,15 +52,27 @@ class ReleaseActivityEmail(ActivityEmail):
                     id__in={c.repository_id for c in self.commit_list}
                 ).values('id', 'name')
             }
-            for commit in self.commit_list:
-                repos[commit.repository_id]['commits'].append(commit)
-
-            self.repos = repos.values()
 
             self.email_list = set([
                 c.author.email for c in self.commit_list
                 if c.author
             ])
+            users = {
+                ue.email: ue.user
+                for ue in UserEmail.objects.filter(
+                    in_iexact('email', self.email_list),
+                    is_verified=True,
+                    user__sentry_orgmember_set__organization=self.organization,
+                ).select_related('user')
+            }
+
+            for commit in self.commit_list:
+                repos[commit.repository_id]['commits'].append(
+                    (commit, users.get(commit.author.email))
+                )
+
+            self.repos = repos.values()
+
             self.environment = Environment.objects.get(
                 id=self.deploy.environment_id
             ).name or 'Default Environment'
@@ -68,8 +81,6 @@ class ReleaseActivityEmail(ActivityEmail):
         return bool(self.release and self.deploy)
 
     def get_participants(self):
-        project = self.project
-
         if not self.email_list:
             return {}
 
@@ -80,7 +91,9 @@ class ReleaseActivityEmail(ActivityEmail):
             for user in User.objects.filter(
                 in_iexact('emails__email', self.email_list),
                 emails__is_verified=True,
-                sentry_orgmember_set__teams=project.team,
+                sentry_orgmember_set__teams=Team.objects.filter(
+                    id__in=[p.team_id for p in self.projects]
+                ),
                 is_active=True,
             ).distinct()
             if features.has('workflow:release-emails', project=self.project, actor=user)

@@ -109,7 +109,10 @@ class ReleaseTestCase(TestCase):
 
             context = email.get_context()
             assert context['environment'] == 'production'
-            assert context['repos'][0]['commits'] == [self.commit, self.commit2]
+            assert context['repos'][0]['commits'] == [
+                (self.commit, self.user),
+                (self.commit2, self.user2),
+            ]
 
             with self.tasks():
                 email.send()

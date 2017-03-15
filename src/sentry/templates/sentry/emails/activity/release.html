@@ -47,17 +47,19 @@
           <tr>
             <th class="lowercase" colspan="3">{{ repo.name }}</th>
           </tr>
-          {% for commit in repo.commits %}
+          {% for commit, user in repo.commits %}
             <tr>
               <td class="avatar-column">
-                {% if commit.author %}
-                  {% if author.get_avatar_type == 'upload' %}
-                    <img class="avatar" src="{% profile_photo_url commit.author.id size 36 %}">
-                  {% elif commit.author.get_avatar_type == 'letter_avatar' %}
-                    {% email_avatar commit.author.name commit.author.get_label size 36 try_gravatar False %}
+                {% if user %}
+                  {% if user.get_avatar_type == 'upload' %}
+                    <img class="avatar" src="{% profile_photo_url user.id size 36 %}">
+                  {% elif user.get_avatar_type == 'letter_avatar' %}
+                    {% email_avatar user.get_display_name user.get_label size 36 try_gravatar False %}
                   {% else %}
-                    {% email_avatar commit.author.name commit.author.get_label size 36 %}
+                    {% email_avatar user.get_display_name user.get_label size 36 %}
                   {% endif %}
+                {% elif commit.author %}
+                  {% email_avatar commit.author.name commit.author.get_label size 36 %}
                 {% else %}
                     <div class="placeholder-avatar">?</div>
                 {% endif %}
