@@ -1725,79 +1725,58 @@ div.traceback > ul {
   position: relative;
 
   &.react-native {
-    &:before {
-      content: "";
-      display: block;
-      position: absolute;
-      top: -1px;
-      left: 0;
-      right: -1px;
-      height: 1px;
-      background: @blue;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, .6);
-    }
-    &:after {
-      font-family: 'sentry-simple';
-      speak: none;
-      font-style: normal;
-      font-weight: normal;
-      font-variant: normal;
-      text-transform: none;
-      line-height: 1;
-      content: "\e912";
-      display: block;
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      font-size: 12px;
-      color: #fff;
-      background: @blue;
-      text-align: center;
-      line-height: 20px;
-      top: -1px;
-      left: -20px;
-      border-radius: 3px 0 0 3px;
-    }
-
-    &+.react-native {
-      &:before, &:after {
-        display: none;
-      }
-    }
+    .frame-language-icon(react-native, #fff, @blue, "\e912", true);
   }
 
   &.javascript {
-    &:before {
-      content: "";
-      display: block;
-      position: absolute;
-      top: -1px;
-      left: 0;
-      right: -1px;
-      height: 1px;
-      background: @yellow;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, .6);
-    }
-    &:after {
-      content: "JS";
-      display: block;
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      color: #000;
-      font-size: 11px;
-      background: @yellow;
-      text-align: center;
-      line-height: 20px;
-      top: -1px;
-      left: -20px;
-      border-radius: 3px 0 0 3px;
-    }
+    .frame-language-icon(javascript, #000, @yellow, "JS");
+  }
+}
 
-    &+.javascript {
-      &:before, &:after {
-        display: none;
-      }
+.frame-language-icon(@selectorName, @color, @background, @content, @icon : false) {
+  &:before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: -1px;
+    left: 0;
+    right: -1px;
+    height: 1px;
+    background: @background;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .6);
+  }
+  &:after {
+    content: @content;
+    display: block;
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    color: @color;
+    font-size: 11px;
+    background: @background;
+    text-align: center;
+    line-height: 20px;
+    top: -1px;
+    left: -20px;
+    border-radius: 3px 0 0 3px;
+  }
+
+  &:after when (@icon = true) {
+    font-family: 'sentry-simple';
+    speak: none;
+    font-style: normal;
+    font-weight: normal;
+    font-variant: normal;
+    text-transform: none;
+
+    /* Better Font Rendering =========== */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  &+.@{selectorName}{
+    &:before, &:after {
+      display: none;
     }
   }
 }
