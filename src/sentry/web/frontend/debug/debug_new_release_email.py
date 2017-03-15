@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
-from datetime import datetime
+import datetime
 
 import pytz
+from django.utils import timezone
 from django.views.generic import View
 
 from sentry.models import (
@@ -46,14 +47,14 @@ class DebugNewReleaseEmailView(View):
         release = Release(
             organization_id=org.id,
             version='6c998f755f304593a4713abd123eaf8833a2de5e',
-            date_added=datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc)
+            date_added=datetime.datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc)
         )
 
         deploy = Deploy(
             release=release,
             organization_id=org.id,
             environment_id=1,
-            date_finished=datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc),
+            date_finished=datetime.datetime(2016, 10, 12, 15, 39, tzinfo=pytz.utc),
         )
 
         release_links = [
@@ -67,27 +68,35 @@ class DebugNewReleaseEmailView(View):
         repos = [{
             'name': 'getsentry/getsentry',
             'commits': [
-                Commit(key='48b86fcd677da3dba5679d7a738240ce6fb74b20'),
+                Commit(
+                    key='48b86fcd677da3dba5679d7a738240ce6fb74b20',
+                    date_added=timezone.now() - datetime.timedelta(hours=2),
+                ),
                 Commit(
                     key='a53a2756bb8d111b43196210b34df90b87ed336b',
                     message='Fix billing',
                     author=CommitAuthor(
                         name='David Cramer',
                         email='david@sentry.io',
-                    )
+                    ),
+                    date_added=timezone.now() - datetime.timedelta(hours=1),
                 ),
             ],
         }, {
             'name': 'getsentry/sentry',
             'commits': [
-                Commit(key='3c8eb3b4af6ee2a29c68daa188fc730c8e4b39fd'),
+                Commit(
+                    key='3c8eb3b4af6ee2a29c68daa188fc730c8e4b39fd',
+                    date_added=timezone.now() - datetime.timedelta(hours=7),
+                ),
                 Commit(
                     key='631cd9096bd9811a046a472bb0aa8b573e86e1f1',
                     message='Update README.rst',
                     author=CommitAuthor(
                         name='David Cramer',
                         email='david@sentry.io',
-                    )
+                    ),
+                    date_added=timezone.now() - datetime.timedelta(hours=4),
                 ),
             ],
         }]
