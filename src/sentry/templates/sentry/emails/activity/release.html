@@ -76,7 +76,7 @@
                   {% else %}
                     No author provided
                   {% endif %}
-                   &middot; 2 hours ago
+                   &middot; {{ commit.date_added|timesince }}
                 </div>
               </td>
               <td class="align-right">
