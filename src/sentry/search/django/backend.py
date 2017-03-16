@@ -145,10 +145,14 @@ class DjangoSearchBackend(SearchBackend):
                     exclude_tags[k[1:]] = v
                 else:
                     filter_tags[k] = v
-            # Don't allow the same tag to be both excluded and included
-            common_tags = (k for k in filter_tags if k in exclude_tags)
-            if common_tags:
-                return queryset.none()
+            # Don't allow the same tag value to be both excluded and included
+            for k, v in six.iteritems(filter_tags):
+                if k in exclude_tags:
+                    if exclude_tags[k] == v:
+                        return queryset.none()
+                    else:
+                        # This exclude is unnecessary
+                        del exclude_tags[k]
             if filter_tags:
                 matches = self._tags_to_filter(project, filter_tags)
                 if not matches:
@@ -158,8 +162,8 @@ class DjangoSearchBackend(SearchBackend):
                 )
             if exclude_tags:
                 all_matches = []
-                for tag in exclude_tags:
-                    matches = self._tags_to_filter(project, [tag])
+                for k, v in six.iteritems(exclude_tags):
+                    matches = self._tags_to_filter(project, {k: v})
                     if not matches:
                         continue
                     all_matches += matches
