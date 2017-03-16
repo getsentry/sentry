@@ -49,7 +49,7 @@ class DSymAppSerializer(Serializer):
             'bundleID': obj.data.get('bundle_id', None),
             'name': obj.data.get('name', None),
             'appID': obj.data.get('id', None),
-            'platforms': ', '.join(obj.data.get('platforms', None)),
+            'platforms': ', '.join(obj.data.get('platforms', [])),
             'lastSync': obj.last_synced,
         }
         return d
