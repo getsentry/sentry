@@ -17,11 +17,6 @@ from sentry.utils import db
 
 
 class Counter(Model):
-    """
-    A ReleaseFile is an association between a Release and a File.
-
-    The ident of the file should be sha1(name) and must be unique per release.
-    """
     __core__ = False
 
     project = FlexibleForeignKey('sentry.Project', unique=True)
