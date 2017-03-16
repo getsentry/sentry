@@ -126,5 +126,8 @@ class DebugNewReleaseEmailView(View):
                 'file_count': 5,
                 'environment': 'production',
                 'deploy': deploy,
+                'setup_repo_link': absolute_uri('/organizations/{}/repos/'.format(
+                    org.slug,
+                )),
             },
         ).render(request)

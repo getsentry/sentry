@@ -124,6 +124,9 @@ class ReleaseActivityEmail(ActivityEmail):
             'release': self.release,
             'deploy': self.deploy,
             'environment': self.environment,
+            'setup_repo_link': absolute_uri('/organizations/{}/repos/'.format(
+                self.organization.slug,
+            )),
         }
 
     def get_user_context(self, user):
