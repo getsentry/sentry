@@ -469,10 +469,14 @@ def show_emails(request):
         email_form.save()
 
         if user.email != old_email:
-            useroptions = UserOption.objects.filter(user=user, value=old_email)
-            for option in useroptions:
-                option.value = user.email
-                option.save()
+            queryset = UserOption.objects.filter(
+                user=user,
+                key='mail:email',
+            )
+            for option in queryset:
+                if option.value == old_email:
+                    option.value = user.email
+                    option.save()
             UserEmail.objects.filter(user=user, email=old_email).delete()
             try:
                 with transaction.atomic():
