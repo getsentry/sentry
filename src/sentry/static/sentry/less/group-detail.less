@@ -1724,8 +1724,12 @@ div.traceback > ul {
 .frame {
   position: relative;
 
-  &.cocoa, &.objc {
-    .frame-language-icon(react-native, #fff, @blue, "\e912", true);
+  &.cocoa {
+    .frame-language-icon(cocoa, #fff, @blue, "\e912", true);
+  }
+
+  &.objc {
+    .frame-language-icon(objc, #fff, @blue, "\e912", true);
   }
 
   &.javascript {
