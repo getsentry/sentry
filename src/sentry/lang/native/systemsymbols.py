@@ -37,6 +37,11 @@ def lookup_system_symbols(symbols, sdk_info=None, cpu_name=None):
         while 1:
             try:
                 rv = sess.post(url, json=symbol_query)
+                # If the symbols server does not know about the SDK at all
+                # it will report a 404 here.  In that case just assume
+                # that we did not find a match and do not retry.
+                if rv.status_code == 404:
+                    return None
                 rv.raise_for_status()
                 return rv.json()['symbols']
             except (IOError, RequestException):
