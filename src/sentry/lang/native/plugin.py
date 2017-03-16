@@ -11,13 +11,16 @@ from symsynd.demangle import demangle_symbol
 from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
 
+from sentry import options
 from sentry.models import Project, EventError
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed, \
     ImageLookup
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
-    get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING
+    get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING, \
+    rebase_addr
+from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -412,7 +415,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
         processable_frame.data = {
             'instruction_addr': instr_addr,
+            'image': img,
             'image_uuid': img['uuid'] if img is not None else None,
+            'symbolserver_match': None,
         }
 
         if img is not None:
@@ -421,8 +426,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 # Because the images can move around, we want to rebase
                 # the address for the cache key to be within the image
                 # the same way as we do it in the symbolizer.
-                (parse_addr(img['image_vmaddr']) +
-                 instr_addr - parse_addr(img['image_addr'])),
+                rebase_addr(instr_addr, img),
                 img['uuid'].lower(),
                 img['cpu_type'],
                 img['cpu_subtype'],
@@ -445,7 +449,38 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         # The symbolizer gets a reference to the debug meta's images so
         # when it resolves the missing vmaddrs it changes them in the data
         # dict.
-        return self.sym.resolve_missing_vmaddrs()
+        data = self.sym.resolve_missing_vmaddrs()
+
+        if options.get('symbolserver.enabled'):
+            self.fetch_system_symbols(processing_task)
+
+        return data
+
+    def fetch_system_symbols(self, processing_task):
+        to_lookup = []
+        pf_list = []
+        for pf in processing_task.iter_processable_frames(self):
+            img = pf.data['image']
+            if pf.cache_value is not None or img is None or \
+               self.sym.is_frame_from_app_bundle(pf.frame, img):
+                continue
+            to_lookup.append({
+                'object_uuid': img['uuid'],
+                'object_name': img['name'],
+                'addr': '0x%x' % rebase_addr(pf.data['instruction_addr'], img)
+            })
+            pf_list.append(pf)
+
+        if not to_lookup:
+            return
+
+        rv = lookup_system_symbols(to_lookup, self.sdk_info,
+                                   self.sym.cpu_name)
+        if rv is not None:
+            for symrv, pf in zip(rv, pf_list):
+                if symrv is None:
+                    continue
+                pf.data['symbolserver_match'] = symrv
 
     def process_frame(self, processable_frame, processing_task):
         frame = processable_frame.frame
@@ -465,7 +500,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             raw_frame['in_app'] = in_app
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
-                    sym_input_frame, self.sdk_info, symbolize_inlined=True)
+                    sym_input_frame, self.sdk_info,
+                    symbolserver_match=processable_frame.data['symbolserver_match'],
+                    symbolize_inlined=True)
                 if not symbolicated_frames:
                     return None, [raw_frame], []
             except SymbolicationFailed as e:

@@ -146,13 +146,7 @@ class BlacklistAdapter(HTTPAdapter):
         return super(BlacklistAdapter, self).send(request, *args, **kwargs)
 
 
-class SafeSession(requests.Session):
-
-    def __init__(self):
-        requests.Session.__init__(self)
-        self.headers.update({'User-Agent': USER_AGENT})
-        self.mount('https://', BlacklistAdapter())
-        self.mount('http://', BlacklistAdapter())
+class Session(requests.Session):
 
     def request(self, *args, **kwargs):
         kwargs.setdefault('timeout', 30)
@@ -170,6 +164,15 @@ class SafeSession(requests.Session):
         if not response.encoding:
             response.encoding = 'utf-8'
         return response
+
+
+class SafeSession(Session):
+
+    def __init__(self):
+        requests.Session.__init__(self)
+        self.headers.update({'User-Agent': USER_AGENT})
+        self.mount('https://', BlacklistAdapter())
+        self.mount('http://', BlacklistAdapter())
 
 
 build_session = SafeSession

@@ -4,6 +4,7 @@ Version 8.15 (Unreleased)
 - Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
 - Refactor usage of ``sentry.app`` to use individual modules.
 - Implemented ``--concurrency` on `sentry cleanup`
+- Added support for the new symbol server system to support native SDKs better.
 
 API Changes
 ~~~~~~~~~~~
@@ -17,6 +18,17 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``Deploy`` model
+
+Security
+~~~~~~~~
+
+- Added encryption to the following fields:
+  - AuthIdentity.data
+  - AuthProvider.config
+  - Option.value
+  - OrganizationOption.value
+  - ProjectOption.value
+  - UserOption.value
 
 Version 8.14.1
 --------------

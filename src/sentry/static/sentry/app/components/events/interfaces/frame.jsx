@@ -342,6 +342,7 @@ const Frame = React.createClass({
       'system-frame': !data.inApp,
       'frame-errors': data.errors,
       'leads-to-app': this.leadsToApp(),
+      [this.getPlatform()]: true
     });
     let props = {className: className};
 
