@@ -31,12 +31,19 @@ class ReleaseTestCase(TestCase):
             is_verified=True,
         )
         self.org = self.create_organization(owner=None)
+        self.org.flags.allow_joinleave = False
+        self.org.save()
         self.team = self.create_team(organization=self.org)
+        self.team2 = self.create_team(organization=self.org)
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.create_member(user=self.user2, organization=self.org)
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
+        )
+        self.project2 = self.create_project(
+            organization=self.org,
+            team=self.team2,
         )
         self.release = Release.objects.create(
             version='a' * 40,
@@ -44,6 +51,7 @@ class ReleaseTestCase(TestCase):
             date_released=timezone.now(),
         )
         self.release.add_project(self.project)
+        self.release.add_project(self.project2)
         self.deploy = Deploy.objects.create(
             release=self.release,
             organization_id=self.org.id,
@@ -113,6 +121,10 @@ class ReleaseTestCase(TestCase):
                 (self.commit, self.user),
                 (self.commit2, self.user2),
             ]
+            user_context = email.get_user_context(self.user)
+            # make sure this only includes projects user has access to
+            assert len(user_context['projects']) == 1
+            assert user_context['projects'][0][0] == self.project
 
             with self.tasks():
                 email.send()
