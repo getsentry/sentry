@@ -67,6 +67,7 @@ export default {
     routes: require('./routes').default,
     plugins: {
       add: plugins.add,
+      addContext: plugins.addContext,
       BasePlugin: plugins.BasePlugin,
       DefaultIssuePlugin: plugins.DefaultIssuePlugin
     },

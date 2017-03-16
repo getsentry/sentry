@@ -23,7 +23,7 @@ def milliseconds_ago(now, milliseconds):
     return (ago - epoch).total_seconds()
 
 
-def load_data(platform, default=None, timestamp=None):
+def load_data(platform, default=None, timestamp=None, sample_name=None):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -32,13 +32,14 @@ def load_data(platform, default=None, timestamp=None):
     #     event so it's not an empty project.
     #   * When a user clicks Test Configuration from notification plugin settings page,
     #     a fake event is generated to go through the pipeline.
+    sample_name = sample_name or platform
 
     data = None
     for platform in (platform, default):
         if platform is None:
             continue
 
-        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'),))
+        json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (sample_name.encode('utf-8'),))
 
         if not os.path.exists(json_path):
             continue
@@ -54,7 +55,7 @@ def load_data(platform, default=None, timestamp=None):
         return data
 
     data['platform'] = platform
-    data['message'] = 'This is an example %s exception' % (platform,)
+    data['message'] = 'This is an example %s exception' % (sample_name,)
     data['sentry.interfaces.User'] = {
         "username": "getsentry",
         "id": "1671",
@@ -112,16 +113,13 @@ def load_data(platform, default=None, timestamp=None):
 
 
 def create_sample_event(project, platform=None, default=None, raw=True,
-                        **kwargs):
+                        sample_name=None, **kwargs):
     if not platform and not default:
         return
 
-    if platform:
-        platform = platform.split('-', 1)[0].split('_', 1)[0]
-
     timestamp = kwargs.get('timestamp')
 
-    data = load_data(platform, default, timestamp)
+    data = load_data(platform, default, timestamp, sample_name)
 
     if not data:
         return
