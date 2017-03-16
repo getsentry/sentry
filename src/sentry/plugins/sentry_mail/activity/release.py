@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from collections import defaultdict
 
+from django.db.models import Count
+
 from sentry import features
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -77,6 +79,18 @@ class ReleaseActivityEmail(ActivityEmail):
                 id=self.deploy.environment_id
             ).name or 'Default Environment'
 
+            self.group_counts_by_project = {
+                row['project']: row['num_groups']
+                for row in Group.objects.filter(
+                    project__in=self.projects,
+                    id__in=GroupCommitResolution.objects.filter(
+                        commit_id__in=ReleaseCommit.objects.filter(
+                            release=self.release,
+                        ).values_list('commit_id', flat=True),
+                    ).values_list('group_id', flat=True),
+                ).values('project').annotate(num_groups=Count('id'))
+            }
+
     def should_email(self):
         return bool(self.release and self.deploy)
 
@@ -143,14 +157,7 @@ class ReleaseActivityEmail(ActivityEmail):
             )) for p in projects
         ]
         resolved_issue_counts = [
-            Group.objects.filter(
-                project=p,
-                id__in=GroupCommitResolution.objects.filter(
-                    commit_id__in=ReleaseCommit.objects.filter(
-                        release=self.release,
-                    ).values_list('commit_id', flat=True),
-                ).values_list('group_id', flat=True),
-            ).count() for p in projects
+            self.group_counts_by_project[p.id] for p in projects
         ]
         return {
             'projects': zip(projects, release_links, resolved_issue_counts),
