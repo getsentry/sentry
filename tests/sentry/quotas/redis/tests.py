@@ -10,6 +10,7 @@ from exam import fixture, patcher
 
 from sentry.quotas.redis import (
     is_rate_limited,
+    BasicRedisQuota,
     RedisQuota,
 )
 from sentry.testutils import TestCase
@@ -87,4 +88,50 @@ class RedisQuotaTest(TestCase):
     def test_is_limited_on_rejections(self, is_rate_limited):
         self.get_organization_quota.return_value = (100, 60)
         self.get_project_quota.return_value = (200, 60)
+        assert self.quota.is_rate_limited(self.project).is_limited
+
+    @mock.patch.object(RedisQuota, 'get_quotas')
+    @mock.patch('sentry.quotas.redis.is_rate_limited', return_value=(True, False))
+    def test_not_limited_without_enforce(self, mock_is_rate_limited,
+                                         mock_get_quotas):
+        mock_get_quotas.return_value = (
+            BasicRedisQuota(
+                key='p:1',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=False,
+            ),
+            BasicRedisQuota(
+                key='p:2',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=True,
+            ),
+        )
+
+        assert not self.quota.is_rate_limited(self.project).is_limited
+
+    @mock.patch.object(RedisQuota, 'get_quotas')
+    @mock.patch('sentry.quotas.redis.is_rate_limited', return_value=(True, True))
+    def test_limited_without_enforce(self, mock_is_rate_limited,
+                                     mock_get_quotas):
+        mock_get_quotas.return_value = (
+            BasicRedisQuota(
+                key='p:1',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=False,
+            ),
+            BasicRedisQuota(
+                key='p:2',
+                limit=1,
+                window=1,
+                reason_code='project_quota',
+                enforce=True,
+            ),
+        )
+
         assert self.quota.is_rate_limited(self.project).is_limited

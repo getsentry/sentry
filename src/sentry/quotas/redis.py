@@ -19,13 +19,19 @@ is_rate_limited = load_script('quotas/is_rate_limited.lua')
 
 
 class BasicRedisQuota(object):
-    __slots__ = ['key', 'limit', 'window', 'reason_code']
+    __slots__ = ['key', 'limit', 'window', 'reason_code', 'enforce']
 
-    def __init__(self, key, limit=0, window=60, reason_code=None):
+    def __init__(self, key, limit=0, window=60, reason_code=None,
+                 enforce=True):
         self.key = key
+        # maximum number of events in the given window
         self.limit = limit
+        # time in seconds that this quota reflects
         self.window = window
+        # a machine readable string
         self.reason_code = reason_code
+        # should this quota be hard-enforced (or just tracked)
+        self.enforce = enforce
 
 
 class RedisQuota(Quota):
@@ -95,16 +101,19 @@ class RedisQuota(Quota):
         client = self.cluster.get_local_client_for_key(six.text_type(project.organization.pk))
         rejections = is_rate_limited(client, keys, args)
         if any(rejections):
+            enforce = False
             worst_case = (0, None)
             for quota, rejected in zip(quotas, rejections):
                 if not rejected:
                     continue
-                delay = get_next_period_start(quota.window) - timestamp
-                if delay > worst_case[0]:
-                    worst_case = (delay, quota.reason_code)
-            return RateLimited(
-                retry_after=worst_case[0],
-                reason_code=worst_case[1],
-            )
-        else:
-            return NotRateLimited()
+                if quota.enforce:
+                    enforce = True
+                    delay = get_next_period_start(quota.window) - timestamp
+                    if delay > worst_case[0]:
+                        worst_case = (delay, quota.reason_code)
+            if enforce:
+                return RateLimited(
+                    retry_after=worst_case[0],
+                    reason_code=worst_case[1],
+                )
+        return NotRateLimited()
