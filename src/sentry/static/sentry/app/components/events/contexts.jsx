@@ -13,6 +13,22 @@ const CONTEXT_TYPES = {
   'user': require('./contexts/user').default,
 };
 
+function getContextComponent(type) {
+  return CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
+}
+
+function getSourcePlugin(pluginContexts, contextType) {
+  if (CONTEXT_TYPES[contextType]) {
+    return null;
+  }
+  for (let plugin of pluginContexts) {
+    if (plugin.contexts.indexOf(contextType) >= 0) {
+      return plugin;
+    }
+  }
+  return null;
+}
+
 const ContextChunk = React.createClass({
   propTypes: {
     event: React.PropTypes.object.isRequired,
@@ -22,15 +38,49 @@ const ContextChunk = React.createClass({
     value: React.PropTypes.object.isRequired,
   },
 
-  renderTitle() {
+  getInitialState() {
+    return {
+      isLoading: false
+    };
+  },
+
+  componentWillMount() {
+    this.syncPlugin();
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevProps.group.id != this.props.group.id ||
+        prevProps.type != this.props.type) {
+      this.syncPlugin();
+    }
+  },
+
+  syncPlugin() {
+    let sourcePlugin = getSourcePlugin(
+      this.props.group.pluginContexts, this.props.type);
+    if (!sourcePlugin) {
+      this.setState({
+        pluginLoading: false
+      });
+    } else {
+      this.setState({
+        pluginLoading: true,
+      }, () => {
+        plugins.load(sourcePlugin, () => {
+          this.setState({pluginLoading: false});
+        });
+      });
+    }
+  },
+
+  renderTitle(component) {
     let {value, alias, type} = this.props;
     let title = null;
     if (defined(value.title)) {
       title = value.title;
     } else {
-      let Component = CONTEXT_TYPES[type] || plugins.contexts[type] || CONTEXT_TYPES.default;
-      if (Component.getTitle) {
-        title = Component.getTitle(value);
+      if (component.getTitle) {
+        title = component.getTitle(value);
       }
       if (!defined(title)) {
         title = toTitleCase(alias);
@@ -46,10 +96,20 @@ const ContextChunk = React.createClass({
   },
 
   render() {
+    // if we are currently loading the plugin, just render nothing for now.
+    if (this.state.pluginLoading) {
+      return null;
+    }
+
     let group = this.props.group;
     let evt = this.props.event;
     let {type, alias, value} = this.props;
-    let Component = CONTEXT_TYPES[type] || CONTEXT_TYPES.default;
+    let Component = getContextComponent(type);
+
+    // this can happen if the component does not exist
+    if (!Component) {
+      return null;
+    }
 
     return (
       <GroupEventDataSection
@@ -57,7 +117,7 @@ const ContextChunk = React.createClass({
           event={evt}
           key={`context-${alias}`}
           type={`context-${alias}`}
-          title={this.renderTitle()}>
+          title={this.renderTitle(Component)}>
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
