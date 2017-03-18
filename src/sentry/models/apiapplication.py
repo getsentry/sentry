@@ -8,8 +8,8 @@ from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
-    sane_repr
+    Model, BaseManager, BoundedPositiveIntegerField, EncryptedTextField,
+    FlexibleForeignKey, sane_repr
 )
 
 
@@ -26,9 +26,7 @@ class ApiApplication(Model):
     client_id = models.CharField(
         max_length=64, unique=True,
         default=lambda: ApiApplication.generate_token())
-    # TODO(dcramer0: change to EncryptedTextField)
-    client_secret = models.CharField(
-        max_length=64, unique=True,
+    client_secret = EncryptedTextField(
         default=lambda: ApiApplication.generate_token())
     owner = FlexibleForeignKey('sentry.User')
     name = models.CharField(
