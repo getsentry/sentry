@@ -4,6 +4,7 @@ import six
 
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
@@ -31,10 +32,14 @@ class OAuthTokenView(View):
 
         if grant_type == 'authorization_code':
             client_id = request.POST.get('client_id')
+            client_secret = request.POST.get('client_secret')
             redirect_uri = request.POST.get('redirect_uri')
             code = request.POST.get('code')
 
             if not client_id:
+                return self.error('invalid_client')
+
+            if not client_secret:
                 return self.error('invalid_client')
 
             try:
@@ -43,6 +48,9 @@ class OAuthTokenView(View):
                     status=ApiApplicationStatus.active,
                 )
             except ApiApplication.DoesNotExist:
+                return self.error('invalid_client')
+
+            if not constant_time_compare(client_secret, application.client_secret):
                 return self.error('invalid_client')
 
             try:
@@ -62,6 +70,8 @@ class OAuthTokenView(View):
         elif grant_type == 'refresh_token':
             refresh_token = request.POST.get('refresh_token')
             scope = request.POST.get('scope')
+            client_id = request.POST.get('client_id')
+            client_secret = request.POST.get('client_secret')
 
             if not refresh_token:
                 return self.error('invalid_request')
@@ -70,8 +80,26 @@ class OAuthTokenView(View):
             if scope:
                 return self.error('invalid_request')
 
+            if not client_id:
+                return self.error('invalid_client')
+
+            if not client_secret:
+                return self.error('invalid_client')
+
+            try:
+                application = ApiApplication.objects.get(
+                    client_id=client_id,
+                    status=ApiApplicationStatus.active,
+                )
+            except ApiApplication.DoesNotExist:
+                return self.error('invalid_client')
+
+            if not constant_time_compare(client_secret, application.client_secret):
+                return self.error('invalid_client')
+
             try:
                 token = ApiToken.objects.get(
+                    application=application,
                     refresh_token=refresh_token,
                 )
             except ApiToken.DoesNotExist:

@@ -49,6 +49,7 @@ class OAuthTokenCodeTest(TestCase):
             'grant_type': 'foo',
             'redirect_uri': self.application.get_default_redirect_uri(),
             'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
             'code': self.grant.code,
         })
 
@@ -61,6 +62,7 @@ class OAuthTokenCodeTest(TestCase):
         resp = self.client.post(self.path, {
             'grant_type': 'authorization_code',
             'redirect_uri': self.application.get_default_redirect_uri(),
+            'client_secret': self.application.client_secret,
             'code': self.grant.code,
         })
 
@@ -75,6 +77,34 @@ class OAuthTokenCodeTest(TestCase):
             'redirect_uri': self.application.get_default_redirect_uri(),
             'code': self.grant.code,
             'client_id': 'def',
+            'client_secret': self.application.client_secret,
+        })
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_missing_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'client_id': self.application.client_id,
+            'code': self.grant.code,
+        })
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_invalid_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'grant_type': 'authorization_code',
+            'redirect_uri': self.application.get_default_redirect_uri(),
+            'client_id': self.application.client_id,
+            'client_secret': 'abc',
+            'code': self.grant.code,
         })
 
         assert resp.status_code == 400
@@ -87,6 +117,7 @@ class OAuthTokenCodeTest(TestCase):
             'grant_type': 'authorization_code',
             'redirect_uri': self.application.get_default_redirect_uri(),
             'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
         })
 
         assert resp.status_code == 400
@@ -100,6 +131,7 @@ class OAuthTokenCodeTest(TestCase):
             'redirect_uri': self.application.get_default_redirect_uri(),
             'code': 'abc',
             'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
         })
 
         assert resp.status_code == 400
@@ -113,6 +145,7 @@ class OAuthTokenCodeTest(TestCase):
             'redirect_uri': self.application.get_default_redirect_uri(),
             'code': self.grant.code,
             'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
         })
 
         assert resp.status_code == 200
@@ -146,12 +179,69 @@ class OAuthTokenRefreshTokenTest(TestCase):
             application=self.application,
             redirect_uri='https://example.com',
         )
+        self.token = ApiToken.objects.create(
+            application=self.application,
+            user=self.user,
+            expires_at=timezone.now(),
+        )
+
+    def test_missing_client_id(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+            'client_secret': self.application.client_secret,
+            'refresh_token': self.token.refresh_token,
+        })
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_invalid_client_id(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+            'client_id': 'abc',
+            'client_secret': self.application.client_secret,
+            'refresh_token': self.token.refresh_token,
+        })
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_missing_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+            'client_id': self.application.client_id,
+            'refresh_token': self.token.refresh_token,
+        })
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
+
+    def test_invalid_client_secret(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
+            'grant_type': 'refresh_token',
+            'client_id': self.application.client_id,
+            'client_secret': 'abc',
+            'refresh_token': self.token.refresh_token,
+        })
+
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {'error': 'invalid_client'}
 
     def test_missing_refresh_token(self):
         self.login_as(self.user)
 
         resp = self.client.post(self.path, {
             'grant_type': 'refresh_token',
+            'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
         })
 
         assert resp.status_code == 400
@@ -162,6 +252,8 @@ class OAuthTokenRefreshTokenTest(TestCase):
 
         resp = self.client.post(self.path, {
             'grant_type': 'refresh_token',
+            'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
             'refresh_token': 'foo',
         })
 
@@ -171,25 +263,21 @@ class OAuthTokenRefreshTokenTest(TestCase):
     def test_valid_params(self):
         self.login_as(self.user)
 
-        token = ApiToken.objects.create(
-            application=self.application,
-            user=self.user,
-            expires_at=timezone.now(),
-        )
-
         resp = self.client.post(self.path, {
             'grant_type': 'refresh_token',
-            'refresh_token': token.refresh_token,
+            'client_id': self.application.client_id,
+            'client_secret': self.application.client_secret,
+            'refresh_token': self.token.refresh_token,
         })
 
         assert resp.status_code == 200
 
-        token2 = ApiToken.objects.get(id=token.id)
+        token2 = ApiToken.objects.get(id=self.token.id)
 
-        assert token2.application == token.application
-        assert token2.user == token.user
-        assert token2.scopes == token.scopes
-        assert token2.expires_at > token.expires_at
-        assert token2.token != token.token
-        assert token2.refresh_token != token.refresh_token
+        assert token2.application == self.token.application
+        assert token2.user == self.token.user
+        assert token2.scopes == self.token.scopes
+        assert token2.expires_at > self.token.expires_at
+        assert token2.token != self.token.token
+        assert token2.refresh_token != self.token.refresh_token
         assert token2.refresh_token
