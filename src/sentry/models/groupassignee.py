@@ -43,7 +43,7 @@ class GroupAssigneeManager(BaseManager):
             )
         else:
             affected = True
-            issue_assigned.send(organization=group.project.organization, project=group.project, group=group, sender=acting_user)
+            issue_assigned.send(project=group.project, group=group, sender=acting_user)
 
         if affected:
             activity = Activity.objects.create(
