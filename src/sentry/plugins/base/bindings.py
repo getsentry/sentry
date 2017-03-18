@@ -33,6 +33,7 @@ class RepositoryProviderManager(ProviderManager):
 class BindingManager(object):
     BINDINGS = {
         'repository.provider': RepositoryProviderManager,
+        'social-auth.provider': ProviderManager,
     }
 
     def __init__(self):

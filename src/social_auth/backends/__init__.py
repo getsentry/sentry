@@ -691,6 +691,8 @@ class BaseOAuth2(BaseOAuth):
 
 # Cache for discovered backends.
 BACKENDSCACHE = {}
+# Registered backends (explicit)
+BACKENDREGISTRY = {}
 
 _import_lock = threading.Lock()
 
@@ -728,16 +730,15 @@ def get_backends(force_load=False):
                     backends = getattr(module, 'BACKENDS', {})
                     if name in backends and backends[name].enabled():
                         BACKENDSCACHE[name] = backends[name]
+
     return BACKENDSCACHE
 
 
 def get_backend(name, *args, **kwargs):
     get_backends()
 
-    try:
-        # Cached backend which has previously been discovered.
-        backend_cls = BACKENDSCACHE[name]
-    except KeyError:
+    # Cached backend which has previously been discovered.
+    backend_cls = BACKENDREGISTRY.get(name, BACKENDSCACHE.get(name))
+    if backend_cls is None:
         return None
-    else:
-        return backend_cls(*args, **kwargs)
+    return backend_cls(*args, **kwargs)

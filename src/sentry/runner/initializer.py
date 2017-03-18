@@ -70,6 +70,11 @@ def init_plugin(plugin):
             q.durable = False
             settings.CELERY_QUEUES.append(q)
 
+    from social_auth.backends import BACKENDREGISTRY
+    social_auth_providers = bindings.get('social-auth.provider')
+    for auth_id in social_auth_providers:
+        BACKENDREGISTRY[auth_id] = social_auth_providers.get(auth_id)
+
 
 def initialize_receivers():
     # force signal registration
