@@ -1015,8 +1015,8 @@ SENTRY_ROLES = (
         'name': 'Read-Only Member',
         'desc': 'Read-only members can view and search over events but not actually act on them.',
         'scopes': set([
-            'event:read', 'event:delete', 'project:read',
-            'org:read', 'member:read', 'team:read',
+            'event:read', 'project:read', 'org:read',
+            'member:read', 'team:read',
         ]),
     },
     {
