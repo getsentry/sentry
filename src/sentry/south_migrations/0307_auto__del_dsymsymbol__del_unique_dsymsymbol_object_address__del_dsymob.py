@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models, OperationalError
+from django.db import models, OperationalError, ProgrammingError
 
 
 class Migration(SchemaMigration):
@@ -26,9 +26,8 @@ class Migration(SchemaMigration):
         # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
         try:
             db.delete_index(u'sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
-        except OperationalError:
+        except (OperationalError, ProgrammingError):
             pass
-
 
     def backwards(self, orm):
         # Adding index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
