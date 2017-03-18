@@ -12,6 +12,7 @@ from django.conf import settings
 
 from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
+from sentry.utils.dates import to_timestamp
 from sentry.utils.iterators import shingle
 from sentry.utils.redis import load_script
 
@@ -136,6 +137,50 @@ class MinHashIndex(object):
 
         for idx, key in items:
             arguments.extend([idx, key])
+
+        return index(
+            self.cluster.get_local_client_for_key(scope),
+            [],
+            arguments,
+        )
+
+    def export(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'EXPORT',
+            timestamp,
+            len(self.bands),
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, key in items:
+            arguments.extend([idx, key])
+
+        return index(
+            self.cluster.get_local_client_for_key(scope),
+            [],
+            arguments,
+        )
+
+    def import_(self, scope, items, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+
+        arguments = [
+            'IMPORT',
+            timestamp,
+            len(self.bands),
+            self.interval,
+            self.retention,
+            scope,
+        ]
+
+        for idx, key, data in items:
+            arguments.extend([idx, key, data])
 
         return index(
             self.cluster.get_local_client_for_key(scope),
@@ -286,6 +331,12 @@ class FeatureSet(object):
         self.features = features
         assert set(self.aliases) == set(self.features)
 
+    def __get_scope(self, group):
+        return '{}'.format(group.project_id)
+
+    def __get_key(self, group):
+        return '{}'.format(group.id)
+
     def record(self, event):
         items = []
         for label, feature in self.features.items():
@@ -296,17 +347,18 @@ class FeatureSet(object):
                         characteristics,
                     ))
         return self.index.record(
-            '{}'.format(event.project_id),
-            '{}'.format(event.group_id),
+            self.__get_scope(event.group),
+            self.__get_key(event.group),
             items,
+            timestamp=to_timestamp(event.datetime),
         )
 
     def query(self, group):
         features = list(self.features.keys())
 
         results = self.index.query(
-            '{}'.format(group.project_id),
-            '{}'.format(group.id),
+            self.__get_scope(group),
+            self.__get_key(group),
             [self.aliases[label] for label in features],
         )
 
@@ -322,6 +374,62 @@ class FeatureSet(object):
             items.items(),
             key=lambda (id, features): sum(features.values()),
             reverse=True,
+        )
+
+    def merge(self, destination, sources, allow_unsafe=False):
+        def add_index_aliases_to_key(key):
+            return [(self.aliases[label], key) for label in self.features.keys()]
+
+        # Collect all of the sources by the scope that they are contained
+        # within so that we can make the most efficient queries possible and
+        # reject queries that cross scopes if we haven't explicitly allowed
+        # unsafe actions.
+        scopes = {}
+        for source in sources:
+            scopes.setdefault(
+                self.__get_scope(source),
+                set(),
+            ).add(source)
+
+        unsafe_scopes = set(scopes.keys()) - set([self.__get_scope(destination)])
+        if unsafe_scopes and not allow_unsafe:
+            raise ValueError('all groups must belong to same project if unsafe merges are not allowed')
+
+        destination_scope = self.__get_scope(destination)
+        destination_key = self.__get_key(destination)
+
+        for source_scope, sources in scopes.items():
+            items = []
+            for source in sources:
+                items.extend(
+                    add_index_aliases_to_key(
+                        self.__get_key(source),
+                    ),
+                )
+
+            if source_scope != destination_scope:
+                imports = [
+                    (alias, destination_key, data)
+                    for (alias, _), data in
+                    zip(
+                        items,
+                        self.index.export(source_scope, items),
+                    )
+                ]
+                self.index.delete(source_scope, items)
+                self.index.import_(destination_scope, imports)
+            else:
+                self.index.merge(
+                    destination_scope,
+                    destination_key,
+                    items,
+                )
+
+    def delete(self, group):
+        key = self.__get_key(group)
+        return self.index.delete(
+            self.__get_scope(group),
+            [(self.aliases[label], key) for label in self.features.keys()],
         )
 
 

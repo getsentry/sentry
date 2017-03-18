@@ -13,6 +13,7 @@ import logging
 from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
+from sentry.similarity import features
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion import delete_group
 
@@ -90,6 +91,8 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
             recursed=True,
         )
         return
+
+    features.merge(new_group, [group], allow_unsafe=True)
 
     previous_group_id = group.id
 
