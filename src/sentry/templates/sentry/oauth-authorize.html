@@ -8,7 +8,7 @@
 {% block title %}{% trans "Authorize Application" %} | {{ block.super }}{% endblock %}
 
 {% block auth_main %}
-  <form class="form-stacked" action="" method="post" autocomplete="off">
+  <form class="form-stacked" action="." method="post" autocomplete="off">
     {% csrf_token %}
 
     <div>
