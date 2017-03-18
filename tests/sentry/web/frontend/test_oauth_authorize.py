@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from exam import fixture
 from six.moves.urllib.parse import parse_qs
 
-from sentry.models import ApiApplication, ApiGrant, ApiToken
+from sentry.models import ApiApplication, ApiAuthorization, ApiGrant, ApiToken
 from sentry.testutils import TestCase
 
 
@@ -97,13 +97,18 @@ class OAuthAuthorizeCodeTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
-        # TODO(dcramer): BitField API is awful
         assert not grant.scopes.mask
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?code={}'.format(
             grant.code,
         )
+
+        authorization = ApiAuthorization.objects.get(
+            user=self.user,
+            application=self.application,
+        )
+        assert authorization.scopes == grant.scopes
 
     def test_minimal_params_deny_flow(self):
         self.login_as(self.user)
@@ -154,6 +159,74 @@ class OAuthAuthorizeCodeTest(TestCase):
         )
 
         assert not ApiToken.objects.filter(user=self.user).exists()
+
+    def test_approve_flow_bypass_prompt(self):
+        self.login_as(self.user)
+
+        ApiAuthorization.objects.create(
+            user=self.user,
+            application=self.application,
+        )
+
+        resp = self.client.get('{}?response_type=code&client_id={}'.format(
+            self.path,
+            self.application.client_id,
+        ))
+
+        grant = ApiGrant.objects.get(user=self.user)
+        assert grant.redirect_uri == self.application.get_default_redirect_uri()
+        assert grant.application == self.application
+        assert not grant.scopes.mask
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'https://example.com?code={}'.format(
+            grant.code,
+        )
+
+    def test_approve_flow_force_prompt(self):
+        self.login_as(self.user)
+
+        ApiAuthorization.objects.create(
+            user=self.user,
+            application=self.application,
+        )
+
+        resp = self.client.get('{}?response_type=code&client_id={}&force_prompt=1'.format(
+            self.path,
+            self.application.client_id,
+        ))
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/oauth-authorize.html')
+        assert resp.context['application'] == self.application
+
+    def test_approve_flow_requires_prompt_new_scope(self):
+        self.login_as(self.user)
+
+        authorization = ApiAuthorization.objects.create(
+            user=self.user,
+            application=self.application,
+            scopes=getattr(ApiAuthorization.scopes, 'org:write', None),
+        )
+
+        resp = self.client.get('{}?response_type=code&client_id={}&scope=org:read'.format(
+            self.path,
+            self.application.client_id,
+        ))
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/oauth-authorize.html')
+        assert resp.context['application'] == self.application
+
+        resp = self.client.post(self.path, {
+            'op': 'approve',
+        })
+
+        authorization = ApiAuthorization.objects.get(id=authorization.id)
+        assert authorization.scopes.mask == (
+            getattr(ApiAuthorization.scopes, 'org:read') |
+            getattr(ApiAuthorization.scopes, 'org:write')
+        )
 
 
 class OAuthAuthorizeTokenTest(TestCase):
@@ -235,7 +308,6 @@ class OAuthAuthorizeTokenTest(TestCase):
 
         token = ApiToken.objects.get(user=self.user)
         assert token.application == self.application
-        # TODO(dcramer): BitField API is awful
         assert not token.scopes.mask
         assert not token.refresh_token
 

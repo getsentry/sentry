@@ -4,13 +4,16 @@ import six
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
+from operator import or_
+from six.moves import reduce
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import (
-    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
+    ApiApplication, ApiApplicationStatus, ApiAuthorization, ApiGrant, ApiToken
 )
 from sentry.web.frontend.base import BaseView
 
@@ -18,7 +21,9 @@ from sentry.web.frontend.base import BaseView
 class OAuthAuthorizeView(BaseView):
     @never_cache
     def dispatch(self, request, *args, **kwargs):
-        return super(OAuthAuthorizeView, self).dispatch(request, *args, **kwargs)
+        with transaction.atomic():
+            return super(OAuthAuthorizeView, self).dispatch(
+                request, *args, **kwargs)
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == 'token':
@@ -49,6 +54,7 @@ class OAuthAuthorizeView(BaseView):
         redirect_uri = request.GET.get('redirect_uri')
         scopes = request.GET.get('scope')
         state = request.GET.get('state')
+        force_prompt = request.GET.get('force_prompt')
 
         if not client_id:
             return self.respond('sentry/oauth-error.html', {
@@ -88,6 +94,29 @@ class OAuthAuthorizeView(BaseView):
                         response_type=response_type,
                         redirect_uri=redirect_uri,
                         name='invalid_scope',
+                        state=state,
+                    )
+        else:
+            scopes = []
+
+        if not force_prompt:
+            try:
+                existing_auth = ApiAuthorization.objects.get(
+                    user=request.user,
+                    application=application,
+                )
+            except ApiAuthorization.DoesNotExist:
+                pass
+            else:
+                # if we've already approved all of the required scopes
+                # we can skip prompting the user
+                if all(getattr(existing_auth, s) for s in scopes):
+                    return self.approve(
+                        request=request,
+                        application=application,
+                        scopes=scopes,
+                        response_type=response_type,
+                        redirect_uri=redirect_uri,
                         state=state,
                     )
 
@@ -154,51 +183,14 @@ class OAuthAuthorizeView(BaseView):
 
         op = request.POST.get('op')
         if op == 'approve':
-            if response_type == 'code':
-                grant = ApiGrant(
-                    user=request.user,
-                    application=application,
-                    redirect_uri=redirect_uri,
-                )
-                if scopes:
-                    for s in scopes:
-                        setattr(grant.scopes, s, True)
-                grant.save()
-                return self.redirect_response(response_type, redirect_uri, {
-                    'code': grant.code,
-                    'state': payload['st'],
-                })
-            elif response_type == 'token':
-                token = ApiToken(
-                    application=application,
-                    user=request.user,
-                    refresh_token=None,
-                )
-                if scopes:
-                    for s in scopes:
-                        setattr(token.scopes, s, True)
-                    new_scopes = token.scopes
-                else:
-                    new_scopes = None
-                try:
-                    with transaction.atomic():
-                        token.save()
-                except IntegrityError:
-                    token = ApiToken.objects.get(
-                        application=application,
-                        user=request.user,
-                    )
-                    if new_scopes:
-                        token.update(scopes=new_scopes)
-
-                return self.redirect_response(response_type, redirect_uri, {
-                    'access_token': token.token,
-                    'expires_in': (timezone.now() - token.expires_at).total_seconds(),
-                    'expires_at': token.expires_at.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-                    'token_type': 'bearer',
-                    'scope': ' '.join(k for k, v in token.scopes.iteritems() if v),  # NOQA
-                    'state': payload['st'],
-                })
+            return self.approve(
+                request=request,
+                application=application,
+                scopes=scopes,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                state=payload['st'],
+            )
 
         elif op == 'deny':
             return self.error(
@@ -209,3 +201,68 @@ class OAuthAuthorizeView(BaseView):
             )
         else:
             raise NotImplementedError
+
+    def approve(self, request, application, **params):
+        try:
+            ApiAuthorization.objects.create(
+                application=application,
+                user=request.user,
+                scopes=reduce(or_, (
+                    getattr(ApiAuthorization.scopes, k)
+                    for k in params['scopes']
+                )),
+            )
+        except IntegrityError:
+            auth_scopes = F('scopes')
+            for s in params['scopes']:
+                auth_scopes = auth_scopes.bitor(
+                    getattr(ApiAuthorization.scopes, s)
+                )
+
+            ApiAuthorization.objects.filter(
+                application=application,
+                user=request.user,
+            ).update(
+                scopes=auth_scopes,
+            )
+
+        if params['response_type'] == 'code':
+            grant = ApiGrant(
+                user=request.user,
+                application=application,
+                redirect_uri=params['redirect_uri'],
+            )
+            if params['scopes']:
+                for s in params['scopes']:
+                    setattr(grant.scopes, s, True)
+            grant.save()
+            return self.redirect_response(
+                params['response_type'],
+                params['redirect_uri'],
+                {
+                    'code': grant.code,
+                    'state': params['state'],
+                },
+            )
+        elif params['response_type'] == 'token':
+            token = ApiToken(
+                application=application,
+                user=request.user,
+                refresh_token=None,
+            )
+            for s in params['scopes']:
+                setattr(token.scopes, s, True)
+            token.save()
+
+            return self.redirect_response(
+                params['response_type'],
+                params['redirect_uri'],
+                {
+                    'access_token': token.token,
+                    'expires_in': (timezone.now() - token.expires_at).total_seconds(),
+                    'expires_at': token.expires_at.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+                    'token_type': 'bearer',
+                    'scope': ' '.join(k for k, v in token.scopes.iteritems() if v),  # NOQA
+                    'state': params['state'],
+                },
+            )

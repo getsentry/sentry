@@ -20,12 +20,12 @@ Schema Changes
 
 - Added ``Deploy`` model
 - Added ``ApiApplication`` model
+- Added ``ApiAuthorization`` model
 - Added ``ApiGrant`` model
 - Removed ``ApiToken.key`` column
 - Added ``ApiToken.application`` column
 - Added ``ApiToken.refresh_token`` column
 - Added ``ApiToken.expires_at`` column
-- Added unique index on ``ApiToken(application, user)``
 
 Security
 ~~~~~~~~

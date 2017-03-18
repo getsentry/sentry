@@ -41,9 +41,8 @@ class ApiToken(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_apitoken'
-        unique_together = (('application', 'user'),)
 
-    __repr__ = sane_repr('key_id', 'user_id', 'token')
+    __repr__ = sane_repr('user_id', 'token', 'application_id')
 
     def __unicode__(self):
         return six.text_type(self.token)
