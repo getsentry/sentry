@@ -207,24 +207,29 @@ class OAuthAuthorizeView(BaseView):
             ApiAuthorization.objects.create(
                 application=application,
                 user=request.user,
-                scopes=reduce(or_, (
-                    getattr(ApiAuthorization.scopes, k)
-                    for k in params['scopes']
-                )),
+                scopes=(
+                    reduce(or_, (
+                        getattr(ApiAuthorization.scopes, k)
+                        for k in params['scopes']
+                    ))
+                    if params['scopes']
+                    else 0,
+                ),
             )
         except IntegrityError:
-            auth_scopes = F('scopes')
-            for s in params['scopes']:
-                auth_scopes = auth_scopes.bitor(
-                    getattr(ApiAuthorization.scopes, s)
-                )
+            if params['scopes']:
+                auth_scopes = F('scopes')
+                for s in params['scopes']:
+                    auth_scopes = auth_scopes.bitor(
+                        getattr(ApiAuthorization.scopes, s)
+                    )
 
-            ApiAuthorization.objects.filter(
-                application=application,
-                user=request.user,
-            ).update(
-                scopes=auth_scopes,
-            )
+                ApiAuthorization.objects.filter(
+                    application=application,
+                    user=request.user,
+                ).update(
+                    scopes=auth_scopes,
+                )
 
         if params['response_type'] == 'code':
             grant = ApiGrant(
