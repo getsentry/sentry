@@ -29,7 +29,8 @@ class LegacyBrowserFilterSerializer(serializers.Serializer):
         'ie10',
         'opera_pre_15',
         'android_pre_4',
-        'safari_pre_6'
+        'safari_pre_6',
+        'opera_mini'
     ])
 
 
@@ -115,6 +116,10 @@ class LegacyBrowsersFilter(Filter):
             return True
 
         return False
+
+    def filter_opera_mini(self, browser):
+        return browser['family'] == "Opera Mini"
+
 
     def filter_safari_pre_6(self, browser):
         if not browser['family'] == "Safari":

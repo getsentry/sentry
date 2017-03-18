@@ -18,6 +18,7 @@ USER_AGENTS = {
     'opera_11': 'Opera/9.80 (Windows NT 5.1; U; it) Presto/2.7.62 Version/11.00',
     'opera_12': 'Opera/9.80 (X11; Linux i686; Ubuntu/14.10) Presto/2.12.388 Version/12.16',
     'opera_15': 'Mozilla/5.0 (X11; Linux x86_64; Debian) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/28.0.1500.52 Safari/537.36 OPR/15.0.1147.100',
+    'opera_mini': 'Opera/9.80 (VRE; Opera Mini/4.2/28.2794; U; en) Presto/2.8.119 Version/11.10',
     'chrome': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
     'edge': 'Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.10136',
     'safari_5': 'Mozilla/5.0 (Windows; U; Windows NT 6.1; zh-HK) AppleWebKit/533.18.1 (KHTML, like Gecko) Version/5.0.2 Safari/533.18.5',
@@ -86,6 +87,26 @@ class SetLegacyBrowserFilterTest(APITestCase):
             key='filters:legacy-browsers'
         )
         assert options == {'opera_pre_15'}
+
+    def test_set_opera_mini(self):
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        url = reverse('sentry-api-0-project-filters', kwargs={
+            'organization_slug': project.organization.slug,
+            'project_slug': project.slug,
+            'filter_id': "legacy-browsers"
+        })
+        response = self.client.put(url, data={
+            'subfilters': ["opera_mini"]
+        })
+        assert response.status_code == 201, response.content
+
+        options = ProjectOption.objects.get_value(
+            project=project,
+            key='filters:legacy-browsers'
+        )
+        assert options == {'opera_mini'}
 
     def test_set_ie9(self):
         self.login_as(user=self.user)
@@ -256,6 +277,15 @@ class LegacyBrowsersFilterTest(TestCase):
             value={'opera_pre_15'}
         )
         data = self.get_mock_data(USER_AGENTS['opera_12'])
+        assert self.apply_filter(data) is True
+
+    def test_filter_opera_mini(self):
+        ProjectOption.objects.set_value(
+            project=self.project,
+            key='filters:legacy-browsers',
+            value={'opera_mini'}
+        )
+        data = self.get_mock_data(USER_AGENTS['opera_mini'])
         assert self.apply_filter(data) is True
 
     def test_filter_opera_method(self):
