@@ -213,7 +213,7 @@ class OAuthAuthorizeView(BaseView):
                         for k in params['scopes']
                     ))
                     if params['scopes']
-                    else 0,
+                    else 0
                 ),
             )
         except IntegrityError:
