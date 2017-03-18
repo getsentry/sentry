@@ -327,19 +327,10 @@ class CommonDSymFile(Model):
 class ProjectDSymFile(CommonDSymFile):
     project = FlexibleForeignKey('sentry.Project', null=True)
     uuid = models.CharField(max_length=36)
-    is_global = False
 
     class Meta(CommonDSymFile.Meta):
         unique_together = (('project', 'uuid'),)
         db_table = 'sentry_projectdsymfile'
-
-
-class GlobalDSymFile(CommonDSymFile):
-    uuid = models.CharField(max_length=36, unique=True)
-    is_global = True
-
-    class Meta(CommonDSymFile.Meta):
-        db_table = 'sentry_globaldsymfile'
 
 
 def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
@@ -349,13 +340,8 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     `create_files_from_macho_zip` for doing everything.
     """
     extra = {}
-    if project is None:
-        cls = GlobalDSymFile
-        file_type = 'global.dsym'
-    else:
-        cls = ProjectDSymFile
-        extra['project'] = project
-        file_type = 'project.dsym'
+    cls = ProjectDSymFile
+    extra['project'] = project
 
     h = hashlib.sha1()
     while 1:
@@ -379,7 +365,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
 
     file = File.objects.create(
         name=uuid,
-        type=file_type,
+        type='project.dsym',
         headers={
             'Content-Type': 'application/x-mach-binary'
         },
@@ -439,9 +425,7 @@ def create_files_from_macho_zip(fileobj, project=None):
 
 
 def find_dsym_file(project, image_uuid):
-    """Finds a dsym file for the given uuid.  Looks both within the project
-    as well the global store.
-    """
+    """Finds a dsym file for the given uuid."""
     image_uuid = image_uuid.lower()
     try:
         return ProjectDSymFile.objects.filter(
@@ -450,12 +434,6 @@ def find_dsym_file(project, image_uuid):
         ).select_related('file').get()
     except ProjectDSymFile.DoesNotExist:
         pass
-    try:
-        return GlobalDSymFile.objects.filter(
-            uuid=image_uuid
-        ).select_related('file').get()
-    except GlobalDSymFile.DoesNotExist:
-        return None
 
 
 def find_missing_dsym_files(checksums, project=None):
@@ -470,15 +448,5 @@ def find_missing_dsym_files(checksums, project=None):
 
         for values in found:
             missing.discard(values.values()[0])
-
-        if not missing:
-            return []
-
-    found = GlobalDSymFile.objects.filter(
-        file__checksum__in=list(missing),
-    ).values('file__checksum')
-
-    for values in found:
-        missing.discard(values.values()[0])
 
     return list(missing)
