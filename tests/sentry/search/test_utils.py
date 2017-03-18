@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
-
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -70,6 +68,22 @@ class ParseQueryTest(TestCase):
     def test_tag_with_colon_in_value(self):
         result = self.parse_query('url:http://example.com')
         assert result == {'tags': {'url': 'http://example.com'}, 'query': ''}
+
+    def test_single_space_in_value(self):
+        result = self.parse_query('key:"value1 value2"')
+        assert result == {'tags': {'key': 'value1 value2'}, 'query': ''}
+
+    def test_multiple_spaces_in_value(self):
+        result = self.parse_query('key:"value1  value2"')
+        assert result == {'tags': {'key': 'value1  value2'}, 'query': ''}
+
+    def test_invalid_tag_as_query(self):
+        result = self.parse_query('Resque::DirtyExit')
+        assert result == {'tags': {}, 'query': 'Resque::DirtyExit'}
+
+    def test_colons_in_tag_value(self):
+        result = self.parse_query('key:Resque::DirtyExit')
+        assert result == {'tags': {'key': 'Resque::DirtyExit'}, 'query': ''}
 
     def test_multiple_tags(self):
         result = self.parse_query('foo:bar key:value')
@@ -271,9 +285,3 @@ class ParseQueryTest(TestCase):
     def test_quoted_string(self):
         result = self.parse_query('"release:foo"')
         assert result == {'tags': {}, 'query': 'release:foo'}
-
-    # TODO(dcramer): it'd be nice to support this without quotes
-    @pytest.mark.xfail
-    def test_invalid_tag_as_query(self):
-        result = self.parse_query('Resque::DirtyExit')
-        assert result == {'tags': {}, 'query': 'Resque::DirtyExit'}
