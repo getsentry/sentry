@@ -10,22 +10,10 @@ from sentry.testutils import TestCase
 from sentry.utils import json
 
 
-class OAuthTokenCodeTest(TestCase):
+class OAuthTokenTest(TestCase):
     @fixture
     def path(self):
         return '/oauth/token/'
-
-    def setUp(self):
-        super(OAuthTokenCodeTest, self).setUp()
-        self.application = ApiApplication.objects.create(
-            owner=self.user,
-            redirect_uris='https://example.com',
-        )
-        self.grant = ApiGrant.objects.create(
-            user=self.user,
-            application=self.application,
-            redirect_uri='https://example.com',
-        )
 
     def test_no_get(self):
         self.login_as(self.user)
@@ -47,14 +35,28 @@ class OAuthTokenCodeTest(TestCase):
 
         resp = self.client.post(self.path, {
             'grant_type': 'foo',
-            'redirect_uri': self.application.get_default_redirect_uri(),
-            'client_id': self.application.client_id,
-            'client_secret': self.application.client_secret,
-            'code': self.grant.code,
         })
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {'error': 'unsupported_grant_type'}
+
+
+class OAuthTokenCodeTest(TestCase):
+    @fixture
+    def path(self):
+        return '/oauth/token/'
+
+    def setUp(self):
+        super(OAuthTokenCodeTest, self).setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris='https://example.com',
+        )
+        self.grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri='https://example.com',
+        )
 
     def test_missing_client_id(self):
         self.login_as(self.user)
