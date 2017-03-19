@@ -243,7 +243,7 @@ def tokenize_query(query):
     }
     """
     result = defaultdict(list)
-    query_params = {'tags': [], 'query': []}
+    query_params = defaultdict(list)
     tokens = split_query_into_tokens(query)
     for token in tokens:
         state = 'query'

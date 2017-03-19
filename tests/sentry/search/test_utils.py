@@ -162,6 +162,23 @@ class ParseQueryTest(TestCase):
             'age_to_inclusive': False
         }
 
+    @mock.patch('django.utils.timezone.now')
+    def test_two_age_tags(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected_to = start - timedelta(hours=12)
+        expected_from = start - timedelta(hours=24)
+        result = self.parse_query('age:+12h age:-24h')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_to': expected_to,
+            'age_from': expected_from,
+            'age_to_inclusive': False,
+            'age_from_inclusive': True
+        }
+
+
     def test_event_timestamp_syntax(self):
         result = self.parse_query('event.timestamp:2016-01-02')
         assert result == {
