@@ -248,12 +248,11 @@ def tokenize_query(query):
     for token in tokens:
         state = 'query'
         for idx, char in enumerate(token):
-            if idx == 0 and char in ['"', "'"]:
+            next_char = token[idx + 1] if idx < len(token) - 1 else None
+            if idx == 0 and char in ('"', "'"):
                 break
             if char == ':':
-                if token[idx + 1] == ':':
-                    state = 'query'
-                elif token[idx + 1] == ' ':
+                if next_char in (':', ' '):
                     state = 'query'
                 else:
                     state = 'tags'
