@@ -79,10 +79,7 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('foo-bar:foobar')
         assert result == {'tags': {'foo-bar': 'foobar'}, 'query': ''}
 
-    # TODO: update test cases to cover query parsing of age tag into
-    # timestamp
     # TODO: update docs to include minutes, days, and weeks suffixes
-    # @pytest.mark.xfail
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_negative_value(self, now):
         start = datetime(2016, 1, 1, tzinfo=timezone.utc)
@@ -109,7 +106,6 @@ class ParseQueryTest(TestCase):
             'age_to_inclusive': False
         }
 
-    # @pytest.mark.xfail
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_weeks(self, now):
         start = datetime(2016, 1, 1, tzinfo=timezone.utc)
@@ -177,7 +173,6 @@ class ParseQueryTest(TestCase):
             'age_to_inclusive': False,
             'age_from_inclusive': True
         }
-
 
     def test_event_timestamp_syntax(self):
         result = self.parse_query('event.timestamp:2016-01-02')

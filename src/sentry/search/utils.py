@@ -1,6 +1,5 @@
 from __future__ import absolute_import, division, print_function
 
-import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -316,10 +315,10 @@ def split_query_into_tokens(query):
     for idx, char in enumerate(query):
         next_char = query[idx + 1] if idx < len(query) - 1 else None
         token += char
-        if next_char and not re.match('\s', char) and re.match('\s', next_char):
+        if next_char and not char.isspace() and next_char.isspace():
             end_of_prev_word = char
-        if re.match('\s', char) and not quote_enclosed and end_of_prev_word != ':':
-            if re.search('\w', token):
+        if char.isspace() and not quote_enclosed and end_of_prev_word != ':':
+            if not token.isspace():
                 tokens.append(token.strip(' '))
                 token = ''
         if char in ("'", '"'):
@@ -327,7 +326,7 @@ def split_query_into_tokens(query):
                 quote_enclosed = not quote_enclosed
                 if quote_enclosed:
                     quote_type = char
-    if re.search('\w', token):
+    if not token.isspace():
         tokens.append(token.strip(' '))
     return tokens
 
