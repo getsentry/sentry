@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import pytest
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -56,6 +57,99 @@ class ParseQueryTest(TestCase):
     def test_useless_prefix(self):
         result = self.parse_query('foo: bar')
         assert result == {'tags': {}, 'query': 'foo: bar'}
+
+    def test_useless_prefix_with_symbol(self):
+        result = self.parse_query('foo:  @ba$r')
+        assert result == {'tags': {}, 'query': 'foo:  @ba$r'}
+
+    def test_useless_prefix_with_colon(self):
+        result = self.parse_query('foo:  :ba:r::foo:')
+        assert result == {'tags': {}, 'query': 'foo:  :ba:r::foo:'}
+
+    def test_handles_space_seperation_after_useless_prefix_exception(self):
+        result = self.parse_query('foo: bar foo:bar')
+        assert result == {'tags': {'foo': 'bar'}, 'query': 'foo: bar'}
+
+    def test_handles_period_in_tag_key(self):
+        result = self.parse_query('foo.bar:foobar')
+        assert result == {'tags': {'foo.bar': 'foobar'}, 'query': ''}
+
+    def test_handles_dash_in_tag_key(self):
+        result = self.parse_query('foo-bar:foobar')
+        assert result == {'tags': {'foo-bar': 'foobar'}, 'query': ''}
+
+    # TODO: update test cases to cover query parsing of age tag into
+    # timestamp
+    # TODO: update docs to include minutes, days, and weeks suffixes
+    @pytest.mark.xfail
+    def test_age_tag_positive_value(self):
+        result = self.parse_query('age:-12h')
+        assert result == {'tags': {'age': '-12h'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_age_tag_negative_value(self):
+        result = self.parse_query('age:+12h')
+        assert result == {'tags': {'age': '+12h'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_age_tag_weeks(self):
+        result = self.parse_query('age:+12w')
+        assert result == {'tags': {'age': '+12w'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_age_tag_days(self):
+        result = self.parse_query('age:+12d')
+        assert result == {'tags': {'age': '+12d'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_age_tag_hours(self):
+        result = self.parse_query('age:+12h')
+        assert result == {'tags': {'age': '+12h'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_age_tag_minutes(self):
+        result = self.parse_query('age:+12m')
+        assert result == {'tags': {'age': '+12m'}, 'query': ''}
+
+    def test_event_timestamp_syntax(self):
+        result = self.parse_query('event.timestamp:2016-01-02')
+        assert result == {
+            'query': '',
+            'date_from': datetime(2016, 1, 2, tzinfo=timezone.utc),
+            'date_from_inclusive': True,
+            'date_to': datetime(2016, 1, 3, tzinfo=timezone.utc),
+            'date_to_inclusive': False,
+            'tags': {}
+        }
+
+    # @pytest.mark.xfail
+    def test_times_seen_syntax(self):
+        result = self.parse_query('timesSeen:10')
+        assert result == {'tags': {'times_seen': 10}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_greater_than_comparator(self):
+        result = self.parse_query('age:>12h event.timestamp:>2016-01-02 timesSeen:>10')
+        assert result == {'tags': {'age': '>12h', 'event.timestamp': '>2016-01-02', 'timesSeen': '>10'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_greater_than_equal_comparator(self):
+        result = self.parse_query('age:>=12h event.timestamp:>=2016-01-02 timesSeen:>=10')
+        assert result == {'tags': {'age': '>=12h', 'event.timestamp': '>=2016-01-02', 'timesSeen': '>=10'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_less_than_comparator(self):
+        result = self.parse_query('age:<12h event.timestamp:<2016-01-02 timesSeen:<10')
+        assert result == {'tags': {'age': '<12h', 'event.timestamp': '<2016-01-02', 'timesSeen': '<10'}, 'query': ''}
+
+    @pytest.mark.xfail
+    def test_less_than_equal_comparator(self):
+        result = self.parse_query('age:<=12h event.timestamp:<=2016-01-02 timesSeen:<=10')
+        assert result == {'tags': {'age': '<=12h', 'event.timestamp': '<=2016-01-02', 'timesSeen': '<=10'}, 'query': ''}
+
+    def test_handles_underscore_in_tag_key(self):
+        result = self.parse_query('foo_bar:foobar')
+        assert result == {'tags': {'foo_bar': 'foobar'}, 'query': ''}
 
     def test_mix_tag_and_query(self):
         result = self.parse_query('foo bar key:value')
