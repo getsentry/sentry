@@ -61,8 +61,8 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
-    PLUGIN_ADD = 84
-    PLUGIN_REMOVE = 85
+    PLUGIN_ADD = 90
+    PLUGIN_REMOVE = 91
 
 
 class AuditLogEntry(Model):
@@ -243,5 +243,11 @@ class AuditLogEntry(Model):
             return 'edited rule "%s"' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.RULE_REMOVE:
             return 'removed rule "%s"' % (self.data['label'],)
+
+        # TODO(mattrobenolt): We need to fix this
+        elif self.event == AuditLogEntryEvent.PLUGIN_ADD:
+            return 'added plugin "%s"'
+        elif self.event == AuditLogEntryEvent.PLUGIN_REMOVE:
+            return 'removed plugin "%s"'
 
         return ''
