@@ -25,6 +25,7 @@ from sentry.models import (
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
     GroupSubscriptionReason, Release, TagKey
 )
+from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import InvalidQuery, parse_query
 from sentry.tasks.deletion import delete_group
@@ -220,6 +221,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
+            matching_event = None
             if len(query) == 32:
                 # check to see if we've got an event ID
                 try:
@@ -231,6 +233,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     pass
                 else:
                     matching_group = Group.objects.get(id=mapping.group_id)
+                    try:
+                        matching_event = Event.objects.get(event_id=query, project_id=project.id)
+                    except Event.DoesNotExist:
+                        pass
 
             # If the query looks like a short id, we want to provide some
             # information about where that is.  Note that this can return
@@ -246,7 +252,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if matching_group is not None:
                 response = Response(serialize(
                     [matching_group], request.user, StreamGroupSerializer(
-                        stats_period=stats_period
+                        stats_period=stats_period, matching_event_id=getattr(matching_event, 'id', None)
                     )
                 ))
                 response['X-Sentry-Direct-Hit'] = '1'
