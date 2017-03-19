@@ -96,6 +96,9 @@ const SharedGroupDetails = React.createClass({
                 <a href="/">
                   <span className="icon-sentry-logo-full" />
                 </a>
+                <a className="pull-right" href={this.state.group.permalink}>
+                  Details
+                </a>
               </div>
               <div className="box-content">
                 <div className="content">
