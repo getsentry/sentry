@@ -263,7 +263,7 @@ def tokenize_query(query):
     for tag in query_params['tags']:
         key, value = format_tag(tag)
         result[key].append(value)
-    return result
+    return dict(result)
 
 
 def format_tag(tag):

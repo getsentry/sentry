@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import pytest
+import mock
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -81,35 +82,85 @@ class ParseQueryTest(TestCase):
     # TODO: update test cases to cover query parsing of age tag into
     # timestamp
     # TODO: update docs to include minutes, days, and weeks suffixes
-    @pytest.mark.xfail
-    def test_age_tag_positive_value(self):
+    # @pytest.mark.xfail
+    @mock.patch('django.utils.timezone.now')
+    def test_age_tag_negative_value(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected = start - timedelta(hours=12)
         result = self.parse_query('age:-12h')
-        assert result == {'tags': {'age': '-12h'}, 'query': ''}
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_from': expected,
+            'age_from_inclusive': True
+        }
 
-    @pytest.mark.xfail
-    def test_age_tag_negative_value(self):
+    @mock.patch('django.utils.timezone.now')
+    def test_age_tag_positive_value(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected = start - timedelta(hours=12)
         result = self.parse_query('age:+12h')
-        assert result == {'tags': {'age': '+12h'}, 'query': ''}
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_to': expected,
+            'age_to_inclusive': False
+        }
 
-    @pytest.mark.xfail
-    def test_age_tag_weeks(self):
-        result = self.parse_query('age:+12w')
-        assert result == {'tags': {'age': '+12w'}, 'query': ''}
+    # @pytest.mark.xfail
+    @mock.patch('django.utils.timezone.now')
+    def test_age_tag_weeks(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected = start - timedelta(days=35)
+        result = self.parse_query('age:+5w')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_to': expected,
+            'age_to_inclusive': False
+        }
 
-    @pytest.mark.xfail
-    def test_age_tag_days(self):
-        result = self.parse_query('age:+12d')
-        assert result == {'tags': {'age': '+12d'}, 'query': ''}
+    @mock.patch('django.utils.timezone.now')
+    def test_age_tag_days(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected = start - timedelta(days=10)
+        result = self.parse_query('age:+10d')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_to': expected,
+            'age_to_inclusive': False
+        }
 
-    @pytest.mark.xfail
-    def test_age_tag_hours(self):
-        result = self.parse_query('age:+12h')
-        assert result == {'tags': {'age': '+12h'}, 'query': ''}
+    @mock.patch('django.utils.timezone.now')
+    def test_age_tag_hours(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected = start - timedelta(hours=10)
+        result = self.parse_query('age:+10h')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_to': expected,
+            'age_to_inclusive': False
+        }
 
-    @pytest.mark.xfail
-    def test_age_tag_minutes(self):
-        result = self.parse_query('age:+12m')
-        assert result == {'tags': {'age': '+12m'}, 'query': ''}
+    @mock.patch('django.utils.timezone.now')
+    def test_age_tag_minutes(self, now):
+        start = datetime(2016, 1, 1, tzinfo=timezone.utc)
+        now.return_value = start
+        expected = start - timedelta(minutes=30)
+        result = self.parse_query('age:+30m')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'age_to': expected,
+            'age_to_inclusive': False
+        }
 
     def test_event_timestamp_syntax(self):
         result = self.parse_query('event.timestamp:2016-01-02')
@@ -122,30 +173,57 @@ class ParseQueryTest(TestCase):
             'tags': {}
         }
 
-    # @pytest.mark.xfail
     def test_times_seen_syntax(self):
         result = self.parse_query('timesSeen:10')
-        assert result == {'tags': {'times_seen': 10}, 'query': ''}
+        assert result == {'tags': {}, 'times_seen': 10, 'query': ''}
 
+    # TODO: query parser for '>' timestamp should set inclusive to False.
     @pytest.mark.xfail
     def test_greater_than_comparator(self):
-        result = self.parse_query('age:>12h event.timestamp:>2016-01-02 timesSeen:>10')
-        assert result == {'tags': {'age': '>12h', 'event.timestamp': '>2016-01-02', 'timesSeen': '>10'}, 'query': ''}
+        result = self.parse_query('timesSeen:>10 event.timestamp:>2016-01-02')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'times_seen_lower': 10,
+            'times_seen_lower_inclusive': False,
+            'date_from': datetime(2016, 1, 2, tzinfo=timezone.utc),
+            'date_from_inclusive': False
+        }
 
-    @pytest.mark.xfail
     def test_greater_than_equal_comparator(self):
-        result = self.parse_query('age:>=12h event.timestamp:>=2016-01-02 timesSeen:>=10')
-        assert result == {'tags': {'age': '>=12h', 'event.timestamp': '>=2016-01-02', 'timesSeen': '>=10'}, 'query': ''}
+        result = self.parse_query('timesSeen:>=10 event.timestamp:>=2016-01-02')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'times_seen_lower': 10,
+            'times_seen_lower_inclusive': True,
+            'date_from': datetime(2016, 1, 2, tzinfo=timezone.utc),
+            'date_from_inclusive': True
+        }
 
-    @pytest.mark.xfail
     def test_less_than_comparator(self):
-        result = self.parse_query('age:<12h event.timestamp:<2016-01-02 timesSeen:<10')
-        assert result == {'tags': {'age': '<12h', 'event.timestamp': '<2016-01-02', 'timesSeen': '<10'}, 'query': ''}
+        result = self.parse_query('event.timestamp:<2016-01-02 timesSeen:<10')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'times_seen_upper': 10,
+            'times_seen_upper_inclusive': False,
+            'date_to': datetime(2016, 1, 2, tzinfo=timezone.utc),
+            'date_to_inclusive': False
+        }
 
+    # TODO: query parser for '<=' timestamp should set inclusive to True.
     @pytest.mark.xfail
     def test_less_than_equal_comparator(self):
-        result = self.parse_query('age:<=12h event.timestamp:<=2016-01-02 timesSeen:<=10')
-        assert result == {'tags': {'age': '<=12h', 'event.timestamp': '<=2016-01-02', 'timesSeen': '<=10'}, 'query': ''}
+        result = self.parse_query('event.timestamp:<=2016-01-02 timesSeen:<=10')
+        assert result == {
+            'tags': {},
+            'query': '',
+            'times_seen_upper': 10,
+            'times_seen_upper_inclusive': True,
+            'date_to': datetime(2016, 1, 2, tzinfo=timezone.utc),
+            'date_to_inclusive': True
+        }
 
     def test_handles_underscore_in_tag_key(self):
         result = self.parse_query('foo_bar:foobar')
