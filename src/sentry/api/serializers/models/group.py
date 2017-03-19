@@ -188,8 +188,13 @@ class GroupSerializer(Serializer):
         else:
             status_label = 'unresolved'
 
-        permalink = absolute_uri(reverse('sentry-group', args=[
-            obj.organization.slug, obj.project.slug, obj.id]))
+        # If user is not logged in and member of the organization,
+        # do not return the permalink which contains private information i.e. org name.
+        if user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
+            permalink = absolute_uri(reverse('sentry-group', args=[
+                obj.organization.slug, obj.project.slug, obj.id]))
+        else:
+            permalink = None
 
         is_subscribed, subscription = attrs['subscription']
 
