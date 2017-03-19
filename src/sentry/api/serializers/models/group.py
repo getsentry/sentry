@@ -242,11 +242,12 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, stats_period=None):
+    def __init__(self, stats_period=None, matching_event_id=None):
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
 
         self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
@@ -279,6 +280,9 @@ class StreamGroupSerializer(GroupSerializer):
             result['stats'] = {
                 self.stats_period: attrs['stats'],
             }
+
+        if self.matching_event_id:
+            result['matchingEventId'] = self.matching_event_id
 
         return result
 
