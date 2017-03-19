@@ -229,7 +229,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 else:
                     matching_group = Group.objects.get(id=mapping.group_id)
                     try:
-                        matching_event = Event.objects.get(event_id=query)
+                        matching_event = Event.objects.get(event_id=query, project_id=project.id)
                     except Event.DoesNotExist:
                         pass
 
