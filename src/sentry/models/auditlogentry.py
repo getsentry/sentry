@@ -61,6 +61,9 @@ class AuditLogEntryEvent(object):
     RULE_EDIT = 81
     RULE_REMOVE = 82
 
+    PLUGIN_ADD = 84
+    PLUGIN_REMOVE = 85
+
 
 class AuditLogEntry(Model):
     __core__ = False
@@ -121,6 +124,9 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
         (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
         (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
+
+        (AuditLogEntryEvent.PLUGIN_ADD, 'plugin.add'),
+        (AuditLogEntryEvent.PLUGIN_REMOVE, 'plugin.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
