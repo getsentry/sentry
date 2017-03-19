@@ -322,7 +322,7 @@ def split_query_into_tokens(query):
             if re.search('\w', token):
                 tokens.append(token.strip(' '))
                 token = ''
-        if char in ["'", '"']:
+        if char in ("'", '"'):
             if not quote_enclosed or quote_type == char:
                 quote_enclosed = not quote_enclosed
                 if quote_enclosed:
