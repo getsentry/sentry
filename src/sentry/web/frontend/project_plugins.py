@@ -21,33 +21,40 @@ class ProjectPluginsView(ProjectView):
                 user=request.user,
                 organization=organization,
             )
+            disabled_list = []
+            enabled_list = []
 
             for plugin in plugins.configurable_for_project(project, version=None):
                 if plugin.slug in enabled:
                     if not plugin.is_enabled(project):
-                        AuditLogEntry.objects.create(
-                            organization=organization,
-                            actor=request.user,
-                            ip_address=request.META['REMOTE_ADDR'],
-                            target_object=member.id,
-                            target_user=request.user,
-                            event=AuditLogEntryEvent.PLUGIN_ADD,
-                            data=member.get_audit_log_data(),
-                        )
+                        enabled_list.append(plugin)
                     plugin.enable(project)
-
                 else:
                     if plugin.is_enabled(project):
-                        AuditLogEntry.objects.create(
-                            organization=organization,
-                            actor=request.user,
-                            ip_address=request.META['REMOTE_ADDR'],
-                            target_object=member.id,
-                            target_user=request.user,
-                            event=AuditLogEntryEvent.PLUGIN_REMOVE,
-                            data=member.get_audit_log_data(),
-                        )
+                        disabled_list.append(plugin)
                     plugin.disable(project)
+
+            for plugin in enabled_list:
+                AuditLogEntry.objects.create(
+                    organization=organization,
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    target_object=member.id,
+                    target_user=request.user,
+                    event=AuditLogEntryEvent.PLUGIN_ADD,
+                    data=member.get_audit_log_data(),
+                )
+
+            for plugin in disabled_list:
+                AuditLogEntry.objects.create(
+                    organization=organization,
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    target_object=member.id,
+                    target_user=request.user,
+                    event=AuditLogEntryEvent.PLUGIN_REMOVE,
+                    data=member.get_audit_log_data(),
+                )
 
             messages.add_message(
                 request, messages.SUCCESS,
