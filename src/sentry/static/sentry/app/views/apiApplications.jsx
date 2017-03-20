@@ -182,7 +182,7 @@ const ApiApplications = React.createClass({
           </table>
 
           <div className="form-actions" style={{textAlign: 'right'}}>
-            <a className="btn btn-primary"
+            <a className="btn btn-primary ref-create-application"
                onClick={this.createApplication}>{t('Create New Application')}</a>
           </div>
         </div>

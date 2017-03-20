@@ -103,10 +103,8 @@ react_page_view = ReactPageView.as_view()
 urlpatterns = patterns('')
 
 if getattr(settings, 'DEBUG_VIEWS', settings.DEBUG):
-    urlpatterns += patterns(
-        '',
-        url('', include('sentry.web.debug_urls')),
-    )
+    from sentry.web.debug_urls import urlpatterns as debug_urls
+    urlpatterns += debug_urls
 
 urlpatterns += patterns(
     '',
@@ -219,6 +217,7 @@ urlpatterns += patterns(
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
     url(r'^account/settings/social/', include('social_auth.urls')),
+
     url(r'^account/', react_page_view),
 
     # Admin
