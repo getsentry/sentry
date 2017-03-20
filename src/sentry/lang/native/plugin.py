@@ -29,7 +29,7 @@ from sentry.constants import NATIVE_UNKNOWN_STRING
 logger = logging.getLogger(__name__)
 
 
-FRAME_CACHE_VERSION = 1
+FRAME_CACHE_VERSION = 2
 model_re = re.compile(r'^(\S+?)\d')
 
 APP_BUNDLE_PATHS = (
