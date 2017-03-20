@@ -91,7 +91,7 @@ class ApiApplication(Model):
         return {
             'client_id': self.client_id,
             'name': self.name,
-            'redirect_uris': int(self.redirect_uris),
-            'allowed_origins': int(self.allowed_origins),
+            'redirect_uris': self.redirect_uris,
+            'allowed_origins': self.allowed_origins,
             'status': self.status,
         }
