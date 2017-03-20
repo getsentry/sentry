@@ -366,3 +366,8 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter(fields=[''])
         proc.apply(data)
         assert data['extra'] == {'foobar': 'xxx'}
+
+    def test_should_have_mysql_pwd_as_a_default(self):
+        proc = SensitiveDataFilter(include_defaults=True)
+        assert proc.sanitize('MYSQL_PWD', 'the one') == FILTER_MASK
+        assert proc.sanitize('mysql_pwd', 'the two') == FILTER_MASK

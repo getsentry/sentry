@@ -138,6 +138,21 @@ const EventContextSummary = React.createClass({
             unknownTitle={t('Unknown OS')} />
         ));
         break;
+      case 'java':
+        if (contexts.os && contexts.os.name === 'Android') {
+          children.push((
+            <DeviceSummary
+              key="device"
+              data={contexts.device} />
+          ));
+          children.push((
+            <GenericSummary
+              key="os"
+              data={contexts.os}
+              unknownTitle={t('Unknown OS')} />
+          ));
+        }
+        break;
       case 'javascript':
         children.push((
           <GenericSummary

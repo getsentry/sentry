@@ -356,6 +356,10 @@ const Stream = React.createClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
+           if (data[0].matchingEventId){
+            return void browserHistory.pushState(null,
+              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/events/${data[0].matchingEventId}/`);
+          }
           return void browserHistory.pushState(null,
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
         }

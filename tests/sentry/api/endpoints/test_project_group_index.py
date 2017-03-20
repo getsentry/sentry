@@ -17,6 +17,7 @@ from sentry.models import (
     GroupTagValue, GroupResolution, GroupSeen, GroupSnooze, GroupStatus,
     GroupSubscription, Release
 )
+from sentry.models.event import Event
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
 
@@ -181,8 +182,13 @@ class GroupListTest(APITestCase):
         project.update_option('sentry:resolve_age', 1)
         group = self.create_group(checksum='a' * 32)
         self.create_group(checksum='b' * 32)
+        event_id = 'c' * 32
+        event = Event.objects.create(
+            project_id=self.project.id,
+            event_id=event_id
+        )
         EventMapping.objects.create(
-            event_id='c' * 32,
+            event_id=event_id,
             project=group.project,
             group=group,
         )
@@ -193,6 +199,7 @@ class GroupListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]['id'] == six.text_type(group.id)
+        assert response.data[0]['matchingEventId'] == event.id
 
     def test_lookup_by_event_id_with_whitespace(self):
         project = self.project
