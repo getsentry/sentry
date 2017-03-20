@@ -520,6 +520,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         org.flags.allow_joinleave = False
         org.save()
 
+        org2 = self.create_organization()
+
         team1 = self.create_team(organization=org)
         project1 = self.create_project(team=team1, organization=org)
         release1 = Release.objects.create(
@@ -529,31 +531,42 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
         release1.add_project(project1)
 
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+
+        # test right org, wrong permissions level
         bad_api_key = ApiKey.objects.create(
             organization=org,
             scopes=getattr(ApiKey.scopes, 'project:read'),
         )
-
-        url = reverse('sentry-api-0-organization-releases', kwargs={
-            'organization_slug': org.slug
-        })
         response = self.client.post(url,
             data={
                 'version': '1.2.1',
                 'projects': [project1.slug]
             }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(bad_api_key.key)))
-
         assert response.status_code == 403
 
+        # test wrong org, right permissions level
+        wrong_org_api_key = ApiKey.objects.create(
+            organization=org2,
+            scopes=getattr(ApiKey.scopes, 'project:write'),
+        )
+        response = self.client.post(url,
+            data={
+                'version': '1.2.1',
+                'projects': [project1.slug]
+            }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(wrong_org_api_key.key)))
+        assert response.status_code == 403
+
+        # test right org, right permissions level
         good_api_key = ApiKey.objects.create(
             organization=org,
             scopes=getattr(ApiKey.scopes, 'project:write'),
         )
-
         response = self.client.post(url,
             data={
                 'version': '1.2.1',
                 'projects': [project1.slug]
             }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(good_api_key.key)))
-
         assert response.status_code == 201, response.content
