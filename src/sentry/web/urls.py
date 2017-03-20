@@ -258,6 +258,7 @@ urlpatterns += patterns(
 
     url(r'^api/$', react_page_view, name='sentry-api'),
     url(r'^api/[^0]+/', react_page_view),
+    url(r'^account/', react_page_view),
 
     url(r'^out/$', OutView.as_view()),
 

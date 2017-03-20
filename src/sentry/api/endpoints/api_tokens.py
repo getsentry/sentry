@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.db.models import Q
 from operator import or_
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
@@ -10,7 +9,7 @@ from six.moves import reduce
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
-from sentry.models import ApiApplicationStatus, ApiToken
+from sentry.models import ApiToken
 
 
 class ApiTokenSerializer(serializers.Serializer):
@@ -30,7 +29,7 @@ class ApiTokensEndpoint(Endpoint):
 
     def get(self, request):
         token_list = list(ApiToken.objects.filter(
-            Q(application__isnull=True) | Q(application__status=ApiApplicationStatus.active),
+            application__isnull=True,
             user=request.user,
         ).select_related('application'))
 
@@ -62,6 +61,7 @@ class ApiTokensEndpoint(Endpoint):
         ApiToken.objects.filter(
             user=request.user,
             token=token,
+            application__isnull=True,
         ).delete()
 
         return Response(status=204)

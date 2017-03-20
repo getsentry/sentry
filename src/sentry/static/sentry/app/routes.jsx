@@ -3,6 +3,8 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 
 import HookStore from './stores/hookStore';
 
+import AccountAuthorizations from './views/accountAuthorizations';
+import AccountLayout from './views/accountLayout';
 import ApiApplications from './views/apiApplications';
 import ApiApplicationDetails from './views/apiApplicationDetails';
 import ApiDashboard from './views/apiDashboard';
@@ -97,11 +99,15 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
+      <Route path="/account/" component={errorHandler(AccountLayout)}>
+        <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
+      </Route>
+
       <Route path="/api/" component={errorHandler(ApiDashboard)}>
         <IndexRoute component={errorHandler(ApiTokens)} />
-        <Route path="/api/applications/" component={errorHandler(ApiApplications)} />
-        <Route path="/api/applications/:appId/" component={errorHandler(ApiApplicationDetails)} />
-        <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
+        <Route path="applications/" component={errorHandler(ApiApplications)} />
+        <Route path="applications/:appId/" component={errorHandler(ApiApplicationDetails)} />
+        <Route path="new-token/" component={errorHandler(ApiNewToken)} />
       </Route>
 
       <Route path="/manage/" component={errorHandler(Admin)}>

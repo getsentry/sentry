@@ -204,18 +204,19 @@ class OAuthAuthorizeView(BaseView):
 
     def approve(self, request, application, **params):
         try:
-            ApiAuthorization.objects.create(
-                application=application,
-                user=request.user,
-                scopes=(
-                    reduce(or_, (
-                        getattr(ApiAuthorization.scopes, k)
-                        for k in params['scopes']
-                    ))
-                    if params['scopes']
-                    else 0
-                ),
-            )
+            with transaction.atomic():
+                ApiAuthorization.objects.create(
+                    application=application,
+                    user=request.user,
+                    scopes=(
+                        reduce(or_, (
+                            getattr(ApiAuthorization.scopes, k)
+                            for k in params['scopes']
+                        ))
+                        if params['scopes']
+                        else 0
+                    ),
+                )
         except IntegrityError:
             if params['scopes']:
                 auth_scopes = F('scopes')

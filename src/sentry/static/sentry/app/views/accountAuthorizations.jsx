@@ -10,10 +10,10 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
 
-const ApiTokenRow = React.createClass({
+const AuthorizationRow = React.createClass({
   propTypes: {
-    token: React.PropTypes.object.isRequired,
-    onRemove: React.PropTypes.func.isRequired
+    authorization: React.PropTypes.object.isRequired,
+    onRevoke: React.PropTypes.func.isRequired
   },
 
   mixins: [ApiMixin],
@@ -24,32 +24,32 @@ const ApiTokenRow = React.createClass({
     };
   },
 
-  onRemove() {
+  onRevoke() {
     if (this.state.loading) return;
 
-    let token = this.props.token;
+    let {authorization} = this.props;
 
     this.setState({
       loading: true,
     }, () => {
       let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      this.api.request('/api-tokens/', {
+      this.api.request('/api-authorizations/', {
         method: 'DELETE',
-        data: {token: token.token},
+        data: {authorization: authorization.id},
         success: (data) => {
           IndicatorStore.remove(loadingIndicator);
           this.props.onRemove();
         },
         error: () => {
           IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(t('Unable to remove token. Please try again.'), 'error');
+          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
         }
       });
     });
   },
 
   render() {
-    let token = this.props.token;
+    let authorization = this.props.authorization;
 
     let btnClassName = 'btn btn-default';
     if (this.state.loading)
@@ -58,18 +58,18 @@ const ApiTokenRow = React.createClass({
     return (
       <tr>
         <td>
-          <div style={{marginBottom: 5}}>
-            <small><AutoSelectText>{token.token}</AutoSelectText></small>
-          </div>
-          <div style={{marginBottom: 5}}>
-            <small>Created <DateTime value={token.dateCreated} /></small>
-          </div>
+          <h5 style={{marginBottom: 5}}>{authorization.application.name}</h5>
+          {authorization.homepageUrl &&
+            <div style={{marginBottom: 5}}>
+              <small><a href={authorization.homepageUrl}>{authorization.homepageUrl}</a></small>
+            </div>
+          }
           <div>
-            <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+            <small style={{color: '#999'}}>{authorization.scopes.join(', ')}</small>
           </div>
         </td>
         <td style={{width: 32}}>
-          <a onClick={this.onRemove.bind(this, token)}
+          <a onClick={this.onRevoke.bind(this, authorization)}
              className={btnClassName}
              disabled={this.state.loading}>
             <span className="icon icon-trash" />
@@ -80,14 +80,14 @@ const ApiTokenRow = React.createClass({
   }
 });
 
-const ApiTokens = React.createClass({
+const AccountAuthorizations = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
-      tokenList: [],
+      authorizationList: [],
     };
   },
 
@@ -104,12 +104,12 @@ const ApiTokens = React.createClass({
       loading: true,
     });
 
-    this.api.request('/api-tokens/', {
+    this.api.request('/api-authorizations/', {
       success: (data, _, jqXHR) => {
         this.setState({
           loading: false,
           error: false,
-          tokenList: data
+          authorizationList: data
         });
       },
       error: () => {
@@ -121,22 +121,23 @@ const ApiTokens = React.createClass({
     });
   },
 
-  onRemoveToken(token) {
+  onRevoke(authorization) {
     this.setState({
-      tokenList: this.state.tokenList.filter((tk) => tk.token !== token.token),
+      authorizationList: this.state.authorizationList.filter(
+        (a) => a.id !== authorization.id
+      ),
     });
   },
 
   renderResults() {
-    let {tokenList} = this.state;
-
-    if (tokenList.length === 0) {
+    let {authorizationList} = this.state;
+    if (authorizationList.length === 0) {
       return (
         <table className="table">
           <tbody>
             <tr colSpan="2">
               <td className="blankslate well">
-                {t('You haven\'t created any authentication tokens yet.')}
+                {t('You haven\'t approved any third party applications.')}
               </td>
             </tr>
           </tbody>
@@ -146,14 +147,15 @@ const ApiTokens = React.createClass({
 
     return (
       <div>
+        <h4>Approved Applications</h4>
         <table className="table">
           <tbody>
-          {tokenList.map((token) => {
+          {authorizationList.map((authorization) => {
             return (
-              <ApiTokenRow
-                key={token.token}
-                token={token}
-                onRemove={this.onRemoveToken.bind(this, token)} />
+              <AuthorizationRow
+                key={authorization.id}
+                authorization={authorization}
+                onRemove={this.onRevoke.bind(this, authorization)} />
             );
           })}
           </tbody>
@@ -163,20 +165,13 @@ const ApiTokens = React.createClass({
   },
 
   getTitle() {
-    return 'API Tokens - Sentry';
+    return 'Approved Applications - Sentry';
   },
 
   render() {
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
-          <p>{t('Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.')}</p>
-          <p>{tct('For more information on how to use the web API, see our [link:documentation].', {
-            link: <a href="https://docs.sentry.io/hosted/api/" />
-          })}</p>
-
-          <p><small>psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that under <strong>[Project] &raquo; Settings &raquo; Client Keys</strong>.</small></p>
-
           {(this.state.loading ?
             <LoadingIndicator />
           : (this.state.error ?
@@ -184,14 +179,11 @@ const ApiTokens = React.createClass({
           :
             this.renderResults()
           ))}
-
-          <div className="form-actions" style={{textAlign: 'right'}}>
-            <Link to="/api/new-token/" className="btn btn-primary ref-create-token">{t('Create New Token')}</Link>
-          </div>
+          <p><small>You can manage your own applications via the <a href="/api/">API dashboard</a>.</small></p>
         </div>
       </DocumentTitle>
     );
   }
 });
 
-export default ApiTokens;
+export default AccountAuthorizations;
