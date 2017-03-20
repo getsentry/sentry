@@ -1,14 +1,11 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
-import AutoSelectText from '../components/autoSelectText';
-import DateTime from '../components/dateTime';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {t, tct} from '../locale';
+import {t} from '../locale';
 
 const AuthorizationRow = React.createClass({
   propTypes: {
@@ -38,7 +35,7 @@ const AuthorizationRow = React.createClass({
         data: {authorization: authorization.id},
         success: (data) => {
           IndicatorStore.remove(loadingIndicator);
-          this.props.onRemove();
+          this.props.onRevoke();
         },
         error: () => {
           IndicatorStore.remove(loadingIndicator);
@@ -155,7 +152,7 @@ const AccountAuthorizations = React.createClass({
               <AuthorizationRow
                 key={authorization.id}
                 authorization={authorization}
-                onRemove={this.onRevoke.bind(this, authorization)} />
+                onRevoke={this.onRevoke.bind(this, authorization)} />
             );
           })}
           </tbody>
