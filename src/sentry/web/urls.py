@@ -219,6 +219,7 @@ urlpatterns += patterns(
     url(r'^account/remove/$', RemoveAccountView.as_view(),
         name='sentry-remove-account'),
     url(r'^account/settings/social/', include('social_auth.urls')),
+    url(r'^account/', react_page_view),
 
     # Admin
     url(r'^manage/queue/$', AdminQueueView.as_view(),
@@ -258,7 +259,6 @@ urlpatterns += patterns(
 
     url(r'^api/$', react_page_view, name='sentry-api'),
     url(r'^api/[^0]+/', react_page_view),
-    url(r'^account/', react_page_view),
 
     url(r'^out/$', OutView.as_view()),
 
