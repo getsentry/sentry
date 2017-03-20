@@ -22,3 +22,11 @@ class ApiApplicationTest(TestCase):
         assert app.is_valid_redirect_uri('http://sub.example.com/path/bar')
         assert not app.is_valid_redirect_uri('http://sub.example.com')
         assert not app.is_valid_redirect_uri('https://sub.example.com')
+
+    def test_get_default_redirect_uri(self):
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris='http://example.com\nhttp://sub.example.com/path',
+        )
+
+        assert app.test_get_default_redirect_uri() == 'http://example.com'
