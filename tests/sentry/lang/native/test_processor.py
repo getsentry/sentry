@@ -37,7 +37,7 @@ def patched_symbolize_system_frame(self, frame, img, sdk_info,
                                    symbolserver_match=None):
     assert symbolize_inlined
     assert sdk_info == SDK_INFO
-    if frame['instruction_addr'] == 6016:
+    if 6016 <= frame['instruction_addr'] < 6020:
         return [{
             'object_name': '/usr/lib/whatever.dylib',
             'symbol_name': 'whatever_system',
