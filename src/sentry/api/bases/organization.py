@@ -8,7 +8,8 @@ from sentry.api.permissions import ScopedPermission
 from sentry.app import raven
 from sentry.auth import access
 from sentry.models import (
-    Organization, OrganizationMemberTeam, OrganizationStatus, Project, ReleaseProject, Team
+    ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus,
+    Project, ReleaseProject, Team
 )
 from sentry.models.apikey import ROOT_KEY
 from sentry.utils import auth
@@ -98,10 +99,17 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     def get_allowed_projects(self, request, organization):
-        if not request.user.is_authenticated():
+        has_valid_api_key = False
+        if isinstance(request.auth, ApiKey):
+            if request.auth.organization_id != organization.id:
+                return []
+            has_valid_api_key = request.auth.has_scope('project:releases') or \
+                request.auth.has_scope('project:write')
+
+        if not (has_valid_api_key or request.user.is_authenticated()):
             return []
 
-        if request.is_superuser() or organization.flags.allow_joinleave:
+        if has_valid_api_key or request.is_superuser() or organization.flags.allow_joinleave:
             allowed_teams = Team.objects.filter(
                 organization=organization
             ).values_list('id', flat=True)
