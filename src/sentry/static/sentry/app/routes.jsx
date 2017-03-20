@@ -7,7 +7,7 @@ import AccountAuthorizations from './views/accountAuthorizations';
 import AccountLayout from './views/accountLayout';
 import ApiApplications from './views/apiApplications';
 import ApiApplicationDetails from './views/apiApplicationDetails';
-import ApiDashboard from './views/apiDashboard';
+import ApiLayout from './views/apiLayout';
 import ApiNewToken from './views/apiNewToken';
 import ApiTokens from './views/apiTokens';
 import Admin from './views/admin';
@@ -103,12 +103,13 @@ function routes() {
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
 
-      <Route path="/api/" component={errorHandler(ApiDashboard)}>
+      <Route path="/api/" component={errorHandler(ApiLayout)}>
         <IndexRoute component={errorHandler(ApiTokens)} />
         <Route path="applications/" component={errorHandler(ApiApplications)} />
         <Route path="applications/:appId/" component={errorHandler(ApiApplicationDetails)} />
-        <Route path="new-token/" component={errorHandler(ApiNewToken)} />
       </Route>
+
+      <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
       <Route path="/manage/" component={errorHandler(Admin)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
