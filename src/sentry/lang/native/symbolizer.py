@@ -12,7 +12,7 @@ from symsynd.utils import parse_addr
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
-from sentry.models import DSymSymbol, EventError
+from sentry.models import EventError
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 
@@ -99,21 +99,6 @@ def trim_frame(frame):
     frame['symbol_name'] = trim(frame.get('symbol_name'), MAX_SYM)
     frame['filename'] = trim(frame.get('filename'), 256)
     return frame
-
-
-def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
-    """Finds a system symbol."""
-    img_cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
-    cpu_name = img_cpu_name or cpu_name
-    return DSymSymbol.objects.lookup_symbol(
-        instruction_addr=instruction_addr,
-        image_addr=img['image_addr'],
-        image_vmaddr=img['image_vmaddr'],
-        uuid=img['uuid'],
-        cpu_name=cpu_name,
-        object_path=img['name'],
-        sdk_info=sdk_info
-    )
 
 
 def make_symbolizer(project, image_lookup, referenced_images=None):
@@ -327,28 +312,21 @@ class Symbolizer(object):
                                symbolize_inlined=False,
                                symbolserver_match=None):
         """Symbolizes a frame with system symbols only."""
-        if symbolserver_match is not None:
-            rv = self._process_frame(dict(frame,
-                symbol_name=symbolserver_match['symbol'], filename=None,
-                line=0, column=0,
-                object_name=symbolserver_match['object_name']), img)
-        else:
-            symbol = find_system_symbol(
-                img, frame['instruction_addr'], sdk_info, self.cpu_name)
-            if symbol is None:
-                # Simulator frames cannot be symbolicated
-                if self._is_simulator_frame(frame, img):
-                    type = EventError.NATIVE_SIMULATOR_FRAME
-                else:
-                    type = EventError.NATIVE_MISSING_SYSTEM_DSYM
-                raise SymbolicationFailed(
-                    type=type,
-                    image=img
-                )
-            rv = self._process_frame(dict(frame,
-                symbol_name=symbol, filename=None, line=0, column=0,
-                object_name=img['name']), img)
+        if symbolserver_match is None:
+            # Simulator frames cannot be symbolicated
+            if self._is_simulator_frame(frame, img):
+                type = EventError.NATIVE_SIMULATOR_FRAME
+            else:
+                type = EventError.NATIVE_MISSING_SYSTEM_DSYM
+            raise SymbolicationFailed(
+                type=type,
+                image=img
+            )
 
+        rv = self._process_frame(dict(frame,
+            symbol_name=symbolserver_match['symbol'], filename=None,
+            line=0, column=0,
+            object_name=symbolserver_match['object_name']), img)
         # We actually do not support inline symbolication for system
         # frames, so we just only ever return a single frame here.  Maybe
         # we can improve this in the future.

@@ -24,9 +24,6 @@ class DSymCache(object):
     def get_project_path(self, project):
         return os.path.join(self.dsym_cache_path, six.text_type(project.id))
 
-    def get_global_path(self):
-        return os.path.join(self.dsym_cache_path, 'global')
-
     def fetch_dsyms(self, project, uuids):
         bases = set()
         loaded = set()
@@ -45,25 +42,21 @@ class DSymCache(object):
 
     def fetch_dsym(self, project, image_uuid):
         image_uuid = image_uuid.lower()
-        for path in self.get_project_path(project), self.get_global_path():
-            base = self.get_project_path(project)
-            dsym = os.path.join(base, image_uuid)
-            try:
-                os.stat(dsym)
-            except OSError as e:
-                if e.errno != errno.ENOENT:
-                    raise
-            else:
-                return base
+        base = self.get_project_path(project)
+        dsym = os.path.join(base, image_uuid)
+        try:
+            os.stat(dsym)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+        else:
+            return base
 
         dsf = find_dsym_file(project, image_uuid)
         if dsf is None:
             return None
 
-        if dsf.is_global:
-            base = self.get_global_path()
-        else:
-            base = self.get_project_path(project)
+        base = self.get_project_path(project)
         dsym = os.path.join(base, image_uuid)
 
         try:

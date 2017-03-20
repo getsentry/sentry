@@ -3,11 +3,10 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import ProjectDSymFile, GlobalDSymFile
+from sentry.models import ProjectDSymFile
 
 
 @register(ProjectDSymFile)
-@register(GlobalDSymFile)
 class DSymFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {
