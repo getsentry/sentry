@@ -134,8 +134,8 @@ urlpatterns += patterns(
         name='sentry-error-page-embed'),
 
     # OAuth
-    url(r'^oauth/authorize/', OAuthAuthorizeView.as_view()),
-    url(r'^oauth/token/', OAuthTokenView.as_view()),
+    url(r'^oauth/authorize/$', OAuthAuthorizeView.as_view()),
+    url(r'^oauth/token/$', OAuthTokenView.as_view()),
 
     # Auth
     url(r'^auth/link/(?P<organization_slug>[^/]+)/$', AuthOrganizationLoginView.as_view(),
