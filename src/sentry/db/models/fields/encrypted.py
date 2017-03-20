@@ -9,6 +9,7 @@ __all__ = (
 
 import six
 
+from django.db import models
 from django.db.models import CharField, TextField
 from jsonfield import JSONField
 from picklefield.fields import PickledObjectField
@@ -16,6 +17,7 @@ from sentry.utils.encryption import decrypt, encrypt
 from south.modelsinspector import add_introspection_rules
 
 
+@six.add_metaclass(models.SubfieldBase)
 class EncryptedCharField(CharField):
     def get_db_prep_value(self, value, *args, **kwargs):
         value = super(EncryptedCharField, self).get_db_prep_value(
@@ -72,6 +74,7 @@ class EncryptedPickledObjectField(PickledObjectField):
         ))
 
 
+@six.add_metaclass(models.SubfieldBase)
 class EncryptedTextField(TextField):
     def get_db_prep_value(self, value, *args, **kwargs):
         value = super(EncryptedTextField, self).get_db_prep_value(
