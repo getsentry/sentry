@@ -1,9 +1,10 @@
 from __future__ import absolute_import
 
+from base64 import b64encode
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
-from sentry.models import Activity, Release, ReleaseCommit, ReleaseProject
+from sentry.models import ApiKey, Activity, Release, ReleaseCommit, ReleaseProject
 from sentry.testutils import APITestCase
 
 
@@ -511,5 +512,48 @@ class OrganizationReleaseCreateTest(APITestCase):
             'version': '1.2.1',
             'projects': [project1.slug]
         })
+
+        assert response.status_code == 201, response.content
+
+    def test_api_key(self):
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(team=team1, organization=org)
+        release1 = Release.objects.create(
+            organization_id=org.id,
+            version='1',
+            date_added=datetime(2013, 8, 13, 3, 8, 24, 880386),
+        )
+        release1.add_project(project1)
+
+        bad_api_key = ApiKey.objects.create(
+            organization=org,
+            scopes=getattr(ApiKey.scopes, 'project:read'),
+        )
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url,
+            data={
+                'version': '1.2.1',
+                'projects': [project1.slug]
+            }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(bad_api_key.key)))
+
+        assert response.status_code == 403
+
+        good_api_key = ApiKey.objects.create(
+            organization=org,
+            scopes=getattr(ApiKey.scopes, 'project:write'),
+        )
+
+        response = self.client.post(url,
+            data={
+                'version': '1.2.1',
+                'projects': [project1.slug]
+            }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(good_api_key.key)))
 
         assert response.status_code == 201, response.content
