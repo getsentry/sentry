@@ -98,6 +98,7 @@ def init_all_applications():
 init_all_applications()
 
 # Only create one instance of the ReactPageView since it's duplicated errywhere
+generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
 urlpatterns = patterns('')
@@ -218,7 +219,7 @@ urlpatterns += patterns(
         name='sentry-remove-account'),
     url(r'^account/settings/social/', include('social_auth.urls')),
 
-    url(r'^account/', react_page_view),
+    url(r'^account/', generic_react_page_view),
 
     # Admin
     url(r'^manage/queue/$', AdminQueueView.as_view(),
@@ -256,8 +257,8 @@ urlpatterns += patterns(
         RedirectView.as_view(url='https://docs.sentry.io/hosted/api/', permanent=False),
         name='sentry-api-docs-redirect'),
 
-    url(r'^api/$', react_page_view, name='sentry-api'),
-    url(r'^api/[^0]+/', react_page_view),
+    url(r'^api/$', generic_react_page_view, name='sentry-api'),
+    url(r'^api/[^0]+/', generic_react_page_view),
 
     url(r'^out/$', OutView.as_view()),
 
