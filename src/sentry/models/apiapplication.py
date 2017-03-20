@@ -5,6 +5,7 @@ import petname
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from six.moves.urllib.parse import urlparse
 from uuid import uuid4
 
 from sentry.db.models import (
@@ -70,7 +71,10 @@ class ApiApplication(Model):
         return value in ('code', 'token')
 
     def is_valid_redirect_uri(self, value):
+        v_netloc = urlparse(value).netloc
         for ruri in self.redirect_uris.split('\n'):
+            if v_netloc != urlparse(ruri).netloc:
+                continue
             if value.startswith(ruri):
                 return True
         return False
