@@ -41,7 +41,10 @@ class ApiAuthorizationsDeleteTest(APITestCase):
             application=app,
             user=self.user,
         )
-        token = ApiToken.objects.create(user=self.user)
+        token = ApiToken.objects.create(
+            application=app,
+            user=self.user,
+        )
         self.login_as(self.user)
         url = reverse('sentry-api-0-api-authorizations')
         response = self.client.delete(url, data={'authorization': auth.id})
