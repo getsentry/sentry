@@ -110,7 +110,7 @@ class OAuthAuthorizeView(BaseView):
             else:
                 # if we've already approved all of the required scopes
                 # we can skip prompting the user
-                if all(getattr(existing_auth, s) for s in scopes):
+                if all(getattr(existing_auth.scopes, s) for s in scopes):
                     return self.approve(
                         request=request,
                         application=application,
