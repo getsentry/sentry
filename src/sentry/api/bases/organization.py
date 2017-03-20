@@ -16,10 +16,10 @@ from sentry.utils import auth
 
 class OrganizationPermission(ScopedPermission):
     scope_map = {
-        'GET': ['org:read', 'org:write', 'org:delete'],
-        'POST': ['org:write', 'org:delete'],
-        'PUT': ['org:write', 'org:delete'],
-        'DELETE': ['org:delete'],
+        'GET': ['org:read', 'org:write', 'org:admin'],
+        'POST': ['org:write', 'org:admin'],
+        'PUT': ['org:write', 'org:admin'],
+        'DELETE': ['org:admin'],
     }
 
     def needs_sso(self, request, organization):
@@ -63,10 +63,10 @@ class OrganizationPermission(ScopedPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete', 'project:releases'],
-        'POST': ['project:write', 'project:delete', 'project:releases'],
-        'PUT': ['project:write', 'project:delete', 'project:releases'],
-        'DELETE': ['project:delete', 'project:releases'],
+        'GET': ['project:read', 'project:write', 'project:admin', 'project:releases'],
+        'POST': ['project:write', 'project:admin', 'project:releases'],
+        'PUT': ['project:write', 'project:admin', 'project:releases'],
+        'DELETE': ['project:admin', 'project:releases'],
     }
 
 

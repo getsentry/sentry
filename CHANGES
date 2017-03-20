@@ -6,6 +6,7 @@ Version 8.15 (Unreleased)
 - Implemented ``--concurrency` on `sentry cleanup`
 - Added support for the new symbol server system to support native SDKs better.
 - Added deploy email
+- Added OAuth2 support to the web API.
 
 API Changes
 ~~~~~~~~~~~
@@ -19,6 +20,13 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``Deploy`` model
+- Added ``ApiApplication`` model
+- Added ``ApiAuthorization`` model
+- Added ``ApiGrant`` model
+- Removed ``ApiToken.key`` column
+- Added ``ApiToken.application`` column
+- Added ``ApiToken.refresh_token`` column
+- Added ``ApiToken.expires_at`` column
 
 Security
 ~~~~~~~~

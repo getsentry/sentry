@@ -31,7 +31,7 @@ class Browser(object):
         """
         Return the absolute URI for a given route in Sentry.
         """
-        return '{}/{}'.format(self.live_server_url, path.strip('/').format(
+        return '{}/{}'.format(self.live_server_url, path.lstrip('/').format(
             *args, **kwargs
         ))
 

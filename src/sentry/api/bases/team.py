@@ -11,10 +11,10 @@ from .organization import OrganizationPermission
 
 class TeamPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['team:read', 'team:write', 'team:delete'],
-        'POST': ['team:write', 'team:delete'],
-        'PUT': ['team:write', 'team:delete'],
-        'DELETE': ['team:delete'],
+        'GET': ['team:read', 'team:write', 'team:admin'],
+        'POST': ['team:write', 'team:admin'],
+        'PUT': ['team:write', 'team:admin'],
+        'DELETE': ['team:admin'],
     }
 
     def has_object_permission(self, request, view, team):

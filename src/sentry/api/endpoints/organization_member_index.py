@@ -12,10 +12,10 @@ from sentry.models import OrganizationMember
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['member:read', 'member:write', 'member:delete'],
-        'POST': ['member:write', 'member:delete'],
-        'PUT': ['member:write', 'member:delete'],
-        'DELETE': ['member:delete'],
+        'GET': ['member:read', 'member:write', 'member:admin'],
+        'POST': ['member:write', 'member:admin'],
+        'PUT': ['member:write', 'member:admin'],
+        'DELETE': ['member:admin'],
     }
 
 

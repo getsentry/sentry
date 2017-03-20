@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 class GroupPermission(ProjectPermission):
     scope_map = {
-        'GET': ['event:read', 'event:write', 'event:delete'],
-        'POST': ['event:write', 'event:delete'],
-        'PUT': ['event:write', 'event:delete'],
-        'DELETE': ['event:delete'],
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
     }
 
     def has_object_permission(self, request, view, group):
