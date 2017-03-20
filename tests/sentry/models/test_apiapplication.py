@@ -29,4 +29,4 @@ class ApiApplicationTest(TestCase):
             redirect_uris='http://example.com\nhttp://sub.example.com/path',
         )
 
-        assert app.test_get_default_redirect_uri() == 'http://example.com'
+        assert app.get_default_redirect_uri() == 'http://example.com'
