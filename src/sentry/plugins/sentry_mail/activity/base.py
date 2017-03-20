@@ -135,6 +135,10 @@ class ActivityEmail(object):
                 description, html_params),
         }
 
+    def get_user_context(self, user):
+        # use in case context of email changes depending on user
+        return {}
+
     def get_headers(self):
         project = self.project
         group = self.group
@@ -263,6 +267,11 @@ class ActivityEmail(object):
                         kwargs={'issue_id': group.id},
                     ),
                 })
+            user_context = self.get_user_context(user)
+            if user_context:
+                user_context.update(context)
+            else:
+                user_context = context
 
             msg = MessageBuilder(
                 subject=self.get_subject_with_prefix(),
@@ -270,7 +279,7 @@ class ActivityEmail(object):
                 html_template=html_template,
                 headers=headers,
                 type=email_type,
-                context=context,
+                context=user_context,
                 reference=activity,
                 reply_reference=group,
             )
