@@ -5,6 +5,7 @@ Version 8.15 (Unreleased)
 - Refactor usage of ``sentry.app`` to use individual modules.
 - Implemented ``--concurrency` on `sentry cleanup`
 - Added support for the new symbol server system to support native SDKs better.
+- Added deploy email
 
 API Changes
 ~~~~~~~~~~~
