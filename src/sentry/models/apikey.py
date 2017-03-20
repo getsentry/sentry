@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 import six
 
 from bitfield import BitField
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -33,24 +34,7 @@ class ApiKey(Model):
     organization = FlexibleForeignKey('sentry.Organization', related_name='key_set')
     label = models.CharField(max_length=64, blank=True, default='Default')
     key = models.CharField(max_length=32, unique=True)
-    scopes = BitField(flags=(
-        ('project:read', 'project:read'),
-        ('project:write', 'project:write'),
-        ('project:delete', 'project:delete'),
-        ('project:releases', 'project:releases'),
-        ('team:read', 'team:read'),
-        ('team:write', 'team:write'),
-        ('team:delete', 'team:delete'),
-        ('event:read', 'event:read'),
-        ('event:write', 'event:write'),
-        ('event:delete', 'event:delete'),
-        ('org:read', 'org:read'),
-        ('org:write', 'org:write'),
-        ('org:delete', 'org:delete'),
-        ('member:read', 'member:read'),
-        ('member:write', 'member:write'),
-        ('member:delete', 'member:delete'),
-    ))
+    scopes = BitField(flags=tuple((k, k) for k in settings.SENTRY_SCOPES))
     status = BoundedPositiveIntegerField(default=0, choices=(
         (ApiKeyStatus.ACTIVE, _('Active')),
         (ApiKeyStatus.INACTIVE, _('Inactive')),

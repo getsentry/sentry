@@ -86,7 +86,7 @@ const TeamDetails = React.createClass({
       <OrganizationHomeContainer>
         <h3>{team.name}</h3>
 
-        {access.has('team:delete') &&
+        {access.has('team:admin') &&
           <DropdownLink topLevelClasses="pull-right anchor-right" className="dropdown-menu-right" title={t('More')}>
             <MenuItem href={`${routePrefix}/remove/`}>{t('Remove Team')}</MenuItem>
           </DropdownLink>

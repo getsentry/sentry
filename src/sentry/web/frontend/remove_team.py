@@ -15,7 +15,7 @@ class RemoveTeamForm(forms.Form):
 
 
 class RemoveTeamView(TeamView):
-    required_scope = 'team:delete'
+    required_scope = 'team:admin'
     sudo_required = True
 
     def get_form(self, request):

@@ -1,19 +1,22 @@
 from __future__ import absolute_import
 
+from datetime import datetime, timedelta
+
 import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.models import (
-    Environment, EnvironmentProject, Event, EventMapping, EventTag,
-    Group, GroupAssignee, GroupMeta, GroupResolution, GroupRedirect, GroupStatus, GroupTagKey,
-    GroupTagValue, Organization, OrganizationStatus, Project, ProjectStatus,
-    Release, ReleaseCommit, ReleaseEnvironment, Repository,
-    TagKey, TagValue, Team, TeamStatus, Commit, CommitAuthor
+    ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit,
+    CommitAuthor, Environment, EnvironmentProject, Event, EventMapping,
+    EventTag, Group, GroupAssignee, GroupMeta, GroupRedirect, GroupResolution,
+    GroupStatus, GroupTagKey, GroupTagValue, Organization, OrganizationStatus,
+    Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
+    Repository, TagKey, TagValue, Team, TeamStatus
 )
 from sentry.tasks.deletion import (
-    delete_group, delete_organization, delete_project, delete_tag_key,
-    delete_team, generic_delete
+    delete_api_application, delete_group, delete_organization, delete_project,
+    delete_tag_key, delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -269,6 +272,79 @@ class DeleteGroupTest(TestCase):
         ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
+
+
+class DeleteApplicationTest(TestCase):
+    def test_simple(self):
+        app = ApiApplication.objects.create(
+            owner=self.user,
+            status=ApiApplicationStatus.pending_deletion,
+        )
+        ApiToken.objects.create(
+            application=app,
+            user=self.user,
+            scopes=0,
+        )
+        ApiGrant.objects.create(
+            application=app,
+            user=self.user,
+            scopes=0,
+            redirect_uri='http://example.com',
+        )
+
+        with self.tasks():
+            delete_api_application(object_id=app.id)
+
+        assert not ApiApplication.objects.filter(id=app.id).exists()
+        assert not ApiGrant.objects.filter(application=app).exists()
+        assert not ApiToken.objects.filter(application=app).exists()
+
+
+class RevokeApiTokensTest(TestCase):
+    def test_basic(self):
+        app = ApiApplication.objects.create(
+            owner=self.user,
+        )
+        token1 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('bar@example.com'),
+            scopes=0,
+        )
+        token2 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('foo@example.com'),
+            scopes=0,
+        )
+
+        with self.tasks():
+            revoke_api_tokens(object_id=app.id)
+
+        assert not ApiToken.objects.filter(id=token1.id).exists()
+        assert not ApiToken.objects.filter(id=token2.id).exists()
+
+    def test_with_timestamp(self):
+        cutoff = datetime(2017, 1, 1)
+        app = ApiApplication.objects.create(
+            owner=self.user,
+        )
+        token1 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('bar@example.com'),
+            scopes=0,
+            date_added=cutoff,
+        )
+        token2 = ApiToken.objects.create(
+            application=app,
+            user=self.create_user('foo@example.com'),
+            scopes=0,
+            date_added=cutoff + timedelta(days=1),
+        )
+
+        with self.tasks():
+            revoke_api_tokens(object_id=app.id, timestamp=cutoff)
+
+        assert not ApiToken.objects.filter(id=token1.id).exists()
+        assert ApiToken.objects.filter(id=token2.id).exists()
 
 
 class GenericDeleteTest(TestCase):
