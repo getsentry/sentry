@@ -4,9 +4,10 @@ from datetime import timedelta
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from jsonfield import JSONField
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    EncryptedJsonField, FlexibleForeignKey, Model, sane_repr
+)
 
 
 class AuthIdentity(Model):
@@ -15,7 +16,7 @@ class AuthIdentity(Model):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey('sentry.AuthProvider')
     ident = models.CharField(max_length=128)
-    data = JSONField()
+    data = EncryptedJsonField()
     last_verified = models.DateTimeField(default=timezone.now)
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)

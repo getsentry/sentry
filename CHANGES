@@ -4,6 +4,9 @@ Version 8.15 (Unreleased)
 - Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
 - Refactor usage of ``sentry.app`` to use individual modules.
 - Implemented ``--concurrency` on `sentry cleanup`
+- Added support for the new symbol server system to support native SDKs better.
+- Added deploy email
+- Added OAuth2 support to the web API.
 
 API Changes
 ~~~~~~~~~~~
@@ -17,6 +20,24 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``Deploy`` model
+- Added ``ApiApplication`` model
+- Added ``ApiAuthorization`` model
+- Added ``ApiGrant`` model
+- Removed ``ApiToken.key`` column
+- Added ``ApiToken.application`` column
+- Added ``ApiToken.refresh_token`` column
+- Added ``ApiToken.expires_at`` column
+
+Security
+~~~~~~~~
+
+- Added encryption to the following fields:
+  - AuthIdentity.data
+  - AuthProvider.config
+  - Option.value
+  - OrganizationOption.value
+  - ProjectOption.value
+  - UserOption.value
 
 Version 8.14.1
 --------------

@@ -98,6 +98,7 @@ class DebugMeta(Interface):
                 'version_major': sdk_info['version_major'],
                 'version_minor': sdk_info['version_minor'],
                 'version_patchlevel': sdk_info.get('version_patchlevel') or 0,
+                'build': sdk_info.get('build'),
             }
         except KeyError as e:
             raise InterfaceValidationError('Missing value for sdk_info: %s'

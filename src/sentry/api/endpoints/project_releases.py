@@ -173,14 +173,13 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 hook.set_commits(release.version, commit_list)
 
             if (not was_released and release.date_released):
-                activity = Activity.objects.create(
+                Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
                     ident=result['version'],
                     data={'version': result['version']},
                     datetime=release.date_released,
                 )
-                activity.send_notification()
 
             if not created:
                 # This is the closest status code that makes sense, and we want

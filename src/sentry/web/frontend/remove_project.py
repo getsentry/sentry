@@ -15,7 +15,7 @@ class RemoveProjectForm(forms.Form):
 
 
 class RemoveProjectView(ProjectView):
-    required_scope = 'project:delete'
+    required_scope = 'project:admin'
     sudo_required = True
 
     def get_form(self, request):

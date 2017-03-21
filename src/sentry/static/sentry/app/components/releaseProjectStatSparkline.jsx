@@ -84,7 +84,7 @@ const ReleaseProjectStatSparkline = React.createClass({
             <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
           </Sparklines>
         </div>
-        <Link to={`/${orgId}/${project.slug}/releases/${version}/overview`}>
+        <Link to={`/${orgId}/${project.slug}/releases/${version}/overview/`}>
           <h6 className="m-b-0">
             {project.name}
           </h6>

@@ -173,6 +173,7 @@ DEFAULT_SCRUBBED_FIELDS = (
     'access_token',
     'auth',
     'credentials',
+    'mysql_pwd',
 )
 
 VALID_PLATFORMS = set([

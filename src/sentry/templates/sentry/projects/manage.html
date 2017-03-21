@@ -94,7 +94,7 @@
         <h3>{% trans "Remove Project" %}</h3>
       </div>
       <div class="box-content with-padding">
-        {% if not ACCESS.project_delete %}
+        {% if not ACCESS.project_admin %}
         <p>{% trans "You do not have the required permission to remove this project." %}</p>
         {% elif project.is_internal_project %}
         <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>

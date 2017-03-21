@@ -13,7 +13,7 @@ from django.conf import settings
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.db.models.fields import UnicodePickledObjectField
+from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import BaseManager
 
 
@@ -117,7 +117,7 @@ class UserOption(Model):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey('sentry.Project', null=True)
     key = models.CharField(max_length=64)
-    value = UnicodePickledObjectField()
+    value = EncryptedPickledObjectField()
 
     objects = UserOptionManager()
 

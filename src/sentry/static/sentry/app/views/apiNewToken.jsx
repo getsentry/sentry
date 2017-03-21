@@ -11,25 +11,23 @@ import {t, tct} from '../locale';
 const SCOPES = new Set([
   'project:read',
   'project:write',
-  'project:delete',
+  'project:admin',
   'project:releases',
   'team:read',
   'team:write',
-  'team:delete',
+  'team:admin',
   'event:read',
-  'event:write',
-  'event:delete',
+  'event:admin',
   'org:read',
   'org:write',
-  'org:delete',
+  'org:admin',
   'member:read',
-  'member:write',
-  'member:delete'
+  'member:admin'
 ]);
 
 const DEFAULT_SCOPES = new Set([
   'event:read',
-  'event:write',
+  'event:admin',
   'project:read',
   'project:releases',
   'org:read',
