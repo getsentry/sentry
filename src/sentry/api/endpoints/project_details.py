@@ -14,7 +14,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.app import digests
+from sentry.digests import backend as digests
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
     ProjectStatus, UserOption, DEFAULT_SUBJECT_TEMPLATE
@@ -94,11 +94,11 @@ class ProjectAdminSerializer(serializers.Serializer):
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
         # PUT checks for permissions based on fields
-        'PUT': ['project:read', 'project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'PUT': ['project:read', 'project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
 

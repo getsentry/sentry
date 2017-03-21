@@ -4,11 +4,10 @@ import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
+import DateTime from '../components/dateTime';
 import IndicatorStore from '../stores/indicatorStore';
-import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import NarrowLayout from '../components/narrowLayout';
 import {t, tct} from '../locale';
 
 const ApiTokenRow = React.createClass({
@@ -38,10 +37,12 @@ const ApiTokenRow = React.createClass({
         method: 'DELETE',
         data: {token: token.token},
         success: (data) => {
+          IndicatorStore.remove(loadingIndicator);
           this.props.onRemove();
         },
-        complete: () => {
+        error: () => {
           IndicatorStore.remove(loadingIndicator);
+          IndicatorStore.add(t('Unable to remove token. Please try again.'), 'error');
         }
       });
     });
@@ -57,8 +58,15 @@ const ApiTokenRow = React.createClass({
     return (
       <tr>
         <td>
-          <small><AutoSelectText>{token.token}</AutoSelectText></small>
-          <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+          <div style={{marginBottom: 5}}>
+            <small><AutoSelectText>{token.token}</AutoSelectText></small>
+          </div>
+          <div style={{marginBottom: 5}}>
+            <small>Created <DateTime value={token.dateCreated} /></small>
+          </div>
+          <div>
+            <small style={{color: '#999'}}>{token.scopes.join(', ')}</small>
+          </div>
         </td>
         <td style={{width: 32}}>
           <a onClick={this.onRemove.bind(this, token)}
@@ -72,7 +80,7 @@ const ApiTokenRow = React.createClass({
   }
 });
 
-const ApiDashboard = React.createClass({
+const ApiTokens = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -120,38 +128,48 @@ const ApiDashboard = React.createClass({
   },
 
   renderResults() {
-    if (this.state.tokenList.length === 0) {
+    let {tokenList} = this.state;
+
+    if (tokenList.length === 0) {
       return (
-        <tr colSpan="2">
-          <td className="blankslate well">
-            {t('You haven\'t created any authentication tokens yet.')}
-          </td>
-        </tr>
+        <table className="table">
+          <tbody>
+            <tr colSpan="2">
+              <td className="blankslate well">
+                {t('You haven\'t created any authentication tokens yet.')}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       );
     }
 
-    return this.state.tokenList.map((token) => {
-      return (
-        <ApiTokenRow
-          key={token.token}
-          token={token}
-          onRemove={this.onRemoveToken.bind(this, token)} />
-      );
-    });
+    return (
+      <div>
+        <table className="table">
+          <tbody>
+          {tokenList.map((token) => {
+            return (
+              <ApiTokenRow
+                key={token.token}
+                token={token}
+                onRemove={this.onRemoveToken.bind(this, token)} />
+            );
+          })}
+          </tbody>
+        </table>
+      </div>
+    );
   },
 
   getTitle() {
-    return 'Sentry API';
+    return 'API Tokens - Sentry';
   },
 
   render() {
     return (
       <DocumentTitle title={this.getTitle()}>
-        <NarrowLayout>
-          <h3>{t('Sentry Web API')}</h3>
-          <ul className="nav nav-tabs border-bottom">
-            <ListLink to="/api/">{t('Auth Tokens')}</ListLink>
-          </ul>
+        <div>
           <p>{t('Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.')}</p>
           <p>{tct('For more information on how to use the web API, see our [link:documentation].', {
             link: <a href="https://docs.sentry.io/hosted/api/" />
@@ -159,26 +177,21 @@ const ApiDashboard = React.createClass({
 
           <p><small>psst. Looking for the <strong>DSN</strong> for an SDK? You'll find that under <strong>[Project] &raquo; Settings &raquo; Client Keys</strong>.</small></p>
 
-          <table className="table">
-            <tbody>
-              {(this.state.loading ?
-                <tr><td colSpan="2"><LoadingIndicator /></td></tr>
-              : (this.state.error ?
-                <tr><td colSpan="2"><LoadingError onRetry={this.fetchData} /></td></tr>
-              :
-                this.renderResults()
-              ))}
-            </tbody>
-          </table>
+          {(this.state.loading ?
+            <LoadingIndicator />
+          : (this.state.error ?
+            <LoadingError onRetry={this.fetchData} />
+          :
+            this.renderResults()
+          ))}
 
           <div className="form-actions" style={{textAlign: 'right'}}>
-            <Link to="/api/new-token/" className="btn btn-primary">{t('Create New Token')}</Link>
+            <Link to="/api/new-token/" className="btn btn-primary ref-create-token">{t('Create New Token')}</Link>
           </div>
-        </NarrowLayout>
+        </div>
       </DocumentTitle>
     );
   }
 });
 
-export default ApiDashboard;
-
+export default ApiTokens;

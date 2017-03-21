@@ -9,8 +9,6 @@ from symsynd.report import ReportSymbolizer
 from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
 from symsynd.utils import parse_addr
 
-from django.core.cache import cache
-
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
@@ -236,7 +234,7 @@ class Symbolizer(object):
             return obj_name
         return img['name']
 
-    def _is_frame_from_app_bundle(self, frame, img):
+    def is_frame_from_app_bundle(self, frame, img):
         fn = self._get_frame_package(frame, img)
         if not (fn.startswith(APP_BUNDLE_PATHS) or
                 (SIM_PATH in fn and SIM_APP_PATH in fn)):
@@ -259,7 +257,7 @@ class Symbolizer(object):
         """Given a frame derives the value of `in_app` by discarding the
         original value of the frame.
         """
-        if not self._is_frame_from_app_bundle(frame, img):
+        if not self.is_frame_from_app_bundle(frame, img):
             return False
         return not self._is_app_bundled_framework(frame, img)
 
@@ -267,7 +265,7 @@ class Symbolizer(object):
         """Checks if this is a dsym that is optional."""
         # Frames that are not in the app are not considered optional.  In
         # theory we should never reach this anyways.
-        if not self._is_frame_from_app_bundle(frame, img):
+        if not self.is_frame_from_app_bundle(frame, img):
             return False
 
         # If we're dealing with an app bundled framework that is also
@@ -326,48 +324,30 @@ class Symbolizer(object):
         return self._process_frame(rv, img)
 
     def symbolize_system_frame(self, frame, img, sdk_info,
-                               symbolize_inlined=False):
+                               symbolize_inlined=False,
+                               symbolserver_match=None):
         """Symbolizes a frame with system symbols only."""
-        # This is most likely a good enough cache match even though we are
-        # ignoring the image here since we cache by instruction address.
-        #
-        # In some cases old clients might not send an sdk_info with it
-        # in which case the caching won't work.
-        if sdk_info is not None:
-            cache_key = 'ssym:%s:%s:%s:%s:%s:%s:%s' % (
-                frame['instruction_addr'],
-                get_cpu_name(img['cpu_type'], img['cpu_subtype']),
-                sdk_info['sdk_name'],
-                sdk_info['dsym_type'],
-                sdk_info['version_major'],
-                sdk_info['version_minor'],
-                sdk_info['version_patchlevel'],
-            )
-            symbol = cache.get(cache_key)
+        if symbolserver_match is not None:
+            rv = self._process_frame(dict(frame,
+                symbol_name=symbolserver_match['symbol'], filename=None,
+                line=0, column=0,
+                object_name=symbolserver_match['object_name']), img)
         else:
-            cache_key = None
-            symbol = None
-
-        if symbol is None:
             symbol = find_system_symbol(
                 img, frame['instruction_addr'], sdk_info, self.cpu_name)
-
-        if symbol is None:
-            # Simulator frames cannot be symbolicated
-            if self._is_simulator_frame(frame, img):
-                type = EventError.NATIVE_SIMULATOR_FRAME
-            else:
-                type = EventError.NATIVE_MISSING_SYSTEM_DSYM
-            raise SymbolicationFailed(
-                type=type,
-                image=img
-            )
-        elif cache_key is not None:
-            cache.set(cache_key, symbol, 3600)
-
-        rv = self._process_frame(dict(frame,
-            symbol_name=symbol, filename=None, line=0, column=0,
-            object_name=img['name']), img)
+            if symbol is None:
+                # Simulator frames cannot be symbolicated
+                if self._is_simulator_frame(frame, img):
+                    type = EventError.NATIVE_SIMULATOR_FRAME
+                else:
+                    type = EventError.NATIVE_MISSING_SYSTEM_DSYM
+                raise SymbolicationFailed(
+                    type=type,
+                    image=img
+                )
+            rv = self._process_frame(dict(frame,
+                symbol_name=symbol, filename=None, line=0, column=0,
+                object_name=img['name']), img)
 
         # We actually do not support inline symbolication for system
         # frames, so we just only ever return a single frame here.  Maybe
@@ -376,7 +356,17 @@ class Symbolizer(object):
             return [rv]
         return rv
 
-    def symbolize_frame(self, frame, sdk_info=None, symbolize_inlined=False):
+    def symbolize_symbolserver_match(self, frame, img, match,
+                                     symbolize_inlined=False):
+        rv = self._process_frame(dict(frame,
+            symbol_name=match['symbol'], filename=None, line=0, column=0,
+            object_name=match['object_name']), img)
+        if symbolize_inlined:
+            return [rv]
+        return rv
+
+    def symbolize_frame(self, frame, sdk_info=None, symbolserver_match=None,
+                        symbolize_inlined=False):
         # If we do not have a CPU name we fail.  We currently only support
         # a single cpu architecture.
         if self.cpu_name is None:
@@ -394,9 +384,10 @@ class Symbolizer(object):
         # If we are dealing with a frame that is not bundled with the app
         # we look at system symbols.  If that fails, we go to looking for
         # app symbols explicitly.
-        if not self._is_frame_from_app_bundle(frame, img):
+        if not self.is_frame_from_app_bundle(frame, img):
             return self.symbolize_system_frame(frame, img, sdk_info,
-                                               symbolize_inlined)
+                                               symbolize_inlined,
+                                               symbolserver_match)
 
         return self.symbolize_app_frame(frame, img, symbolize_inlined)
 

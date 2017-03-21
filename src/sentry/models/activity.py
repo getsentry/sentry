@@ -40,6 +40,7 @@ class Activity(Model):
     MERGE = 14
     SET_RESOLVED_BY_AGE = 15
     SET_RESOLVED_IN_COMMIT = 16
+    DEPLOY = 17
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -59,6 +60,7 @@ class Activity(Model):
         (ASSIGNED, 'assigned'),
         (UNASSIGNED, 'unassigned'),
         (MERGE, 'merge'),
+        (DEPLOY, 'deploy'),
     )
 
     project = FlexibleForeignKey('sentry.Project')
@@ -83,7 +85,7 @@ class Activity(Model):
         from sentry.models import Release
 
         # XXX(dcramer): fix for bad data
-        if self.type == self.RELEASE and isinstance(self.data['version'], Release):
+        if self.type in (self.RELEASE, self.DEPLOY) and isinstance(self.data['version'], Release):
             self.data['version'] = self.data['version'].version
         if self.type == self.ASSIGNED:
             self.data['assignee'] = six.text_type(self.data['assignee'])

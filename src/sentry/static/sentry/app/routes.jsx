@@ -3,8 +3,13 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 
 import HookStore from './stores/hookStore';
 
-import ApiDashboard from './views/apiDashboard';
+import AccountAuthorizations from './views/accountAuthorizations';
+import AccountLayout from './views/accountLayout';
+import ApiApplications from './views/apiApplications';
+import ApiApplicationDetails from './views/apiApplicationDetails';
+import ApiLayout from './views/apiLayout';
 import ApiNewToken from './views/apiNewToken';
+import ApiTokens from './views/apiTokens';
 import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
 import AdminOrganizations from './views/adminOrganizations';
@@ -57,6 +62,7 @@ import ReleaseArtifacts from './views/releaseArtifacts';
 import ReleaseCommits from './views/releases/releaseCommits';
 import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
+import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
@@ -93,7 +99,16 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
-      <Route path="/api/" component={errorHandler(ApiDashboard)} />
+      <Route path="/account/" component={errorHandler(AccountLayout)}>
+        <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
+      </Route>
+
+      <Route path="/api/" component={errorHandler(ApiLayout)}>
+        <IndexRoute component={errorHandler(ApiTokens)} />
+        <Route path="applications/" component={errorHandler(ApiApplications)} />
+        <Route path="applications/:appId/" component={errorHandler(ApiApplicationDetails)} />
+      </Route>
+
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
       <Route path="/manage/" component={errorHandler(Admin)}>
@@ -150,6 +165,7 @@ function routes() {
           <Route path="releases/" component={errorHandler(ProjectReleases)} />
           <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}>
             <IndexRoute component={errorHandler(ReleaseNewEvents)} />
+            <Route path="overview/" component={errorHandler(ReleaseOverview)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
             <Route path="commits/" component={errorHandler(ReleaseCommits)}/>

@@ -140,14 +140,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         if (not was_released and release.date_released):
             for project in release.projects.all():
-                activity = Activity.objects.create(
+                Activity.objects.create(
                     type=Activity.RELEASE,
                     project=project,
                     ident=release.version,
                     data={'version': release.version},
                     datetime=release.date_released,
                 )
-            activity.send_notification()
 
         return Response(serialize(release, request.user))
 

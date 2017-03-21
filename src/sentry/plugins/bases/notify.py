@@ -12,10 +12,7 @@ import six
 
 from django import forms
 
-from sentry.app import (
-    digests,
-    ratelimiter,
-)
+from sentry import digests, ratelimits
 from sentry.digests import get_option_key as get_digest_option_key
 from sentry.digests.notifications import (
     event_to_record,
@@ -140,17 +137,19 @@ class NotificationPlugin(Plugin):
         # determine members default settings
         members_to_check = set(u for u in member_set if u not in alert_settings)
         if members_to_check:
-            disabled = set(UserOption.objects.filter(
-                key='subscribe_by_default',
-                value='0',
-                user__in=members_to_check,
-            ).values_list('user', flat=True))
+            disabled = set((
+                uo.user_id for uo in UserOption.objects.filter(
+                    key='subscribe_by_default',
+                    user__in=members_to_check,
+                )
+                if uo.value == '0'
+            ))
             member_set = [x for x in member_set if x not in disabled]
 
         return member_set
 
     def __is_rate_limited(self, group, event):
-        return ratelimiter.is_limited(
+        return ratelimits.is_limited(
             project=group.project,
             key=self.get_conf_key(),
             limit=10,

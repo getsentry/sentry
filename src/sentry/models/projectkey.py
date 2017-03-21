@@ -65,11 +65,11 @@ class ProjectKey(Model):
     scopes = (
         'project:read',
         'project:write',
-        'project:delete',
+        'project:admin',
         'project:releases',
         'event:read',
         'event:write',
-        'event:delete',
+        'event:admin',
     )
 
     class Meta:

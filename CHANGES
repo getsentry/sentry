@@ -1,5 +1,53 @@
-Version 8.14 (Unreleased)
+Version 8.15 (Unreleased)
 -------------------------
+
+- Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
+- Refactor usage of ``sentry.app`` to use individual modules.
+- Implemented ``--concurrency` on `sentry cleanup`
+- Added support for the new symbol server system to support native SDKs better.
+- Added deploy email
+- Added OAuth2 support to the web API.
+
+API Changes
+~~~~~~~~~~~
+
+- Added CommitFileChangeEndpoint
+- Added IssuesResolvedInReleaseEndpoint
+- Added ReleaseDeploysEndpoint
+- Added OrganizationReleaseCommitsEndpoint
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``Deploy`` model
+- Added ``ApiApplication`` model
+- Added ``ApiAuthorization`` model
+- Added ``ApiGrant`` model
+- Removed ``ApiToken.key`` column
+- Added ``ApiToken.application`` column
+- Added ``ApiToken.refresh_token`` column
+- Added ``ApiToken.expires_at`` column
+
+Security
+~~~~~~~~
+
+- Added encryption to the following fields:
+  - AuthIdentity.data
+  - AuthProvider.config
+  - Option.value
+  - OrganizationOption.value
+  - ProjectOption.value
+  - UserOption.value
+
+Version 8.14.1
+--------------
+
+- Fixed issues related to migrations failing to finish for 8.14
+- Fixed an issue where Release version names were erronously too restrictve.
+- Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
+
+Version 8.14
+------------
 
 - Added new internal processing interface that supports multiple processing steps per stacktrace (for instance JavaScript + native)
 - Add IE10 legacy browser filter
@@ -12,7 +60,7 @@ Version 8.14 (Unreleased)
 - Release functionality is now detected at a project level to enable various features.
 - Added basic encryption facilities (``sentry.utils.encryption``).
 - Added support for "Fixes XXX, YYY" and "Fixes XXX YYY" notations.
-- Aded bulk "Resolve in Next Release" to stream actions.
+- Added bulk "Resolve in Next Release" to stream actions.
 - Various visual improvements to notifications, including the addition of
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.

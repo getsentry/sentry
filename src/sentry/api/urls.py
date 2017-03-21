@@ -2,6 +2,9 @@ from __future__ import absolute_import, print_function
 
 from django.conf.urls import include, patterns, url
 
+from .endpoints.api_applications import ApiApplicationsEndpoint
+from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
+from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -46,6 +49,7 @@ from .endpoints.organization_releases import OrganizationReleasesEndpoint
 from .endpoints.organization_release_details import OrganizationReleaseDetailsEndpoint
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
+from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
@@ -81,10 +85,13 @@ from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
-from .endpoints.release_commits import ReleaseCommitsEndpoint
+from .endpoints.filechange import CommitFileChangeEndpoint
+from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
+from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
+from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, GlobalDSymFilesEndpoint, \
     UnknownDSymFilesEndpoint, UnknownGlobalDSymFilesEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
@@ -103,11 +110,19 @@ from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 
-
 urlpatterns = patterns(
     '',
 
-    # Api Tokens
+    # Api Data
+    url(r'^api-applications/$',
+        ApiApplicationsEndpoint.as_view(),
+        name='sentry-api-0-api-applications'),
+    url(r'^api-applications/(?P<app_id>[^\/]+)/$',
+        ApiApplicationDetailsEndpoint.as_view(),
+        name='sentry-api-0-api-application-details'),
+    url(r'^api-authorizations/$',
+        ApiAuthorizationsEndpoint.as_view(),
+        name='sentry-api-0-api-authorizations'),
     url(r'^api-tokens/$',
         ApiTokensEndpoint.as_view(),
         name='sentry-api-0-api-tokens'),
@@ -215,6 +230,15 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$',
         OrganizationReleaseFileDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-release-file-details'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commitfiles/$',
+        CommitFileChangeEndpoint.as_view(),
+        name='sentry-api-0-release-commitfilechange'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/deploys/$',
+        ReleaseDeploysEndpoint.as_view(),
+        name='sentry-api-0-organization-release-deploys'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
+        OrganizationReleaseCommitsEndpoint.as_view(),
+        name='sentry-api-0-organization-release-commits'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'),
@@ -300,8 +324,11 @@ urlpatterns = patterns(
         ProjectReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-project-release-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
-        ReleaseCommitsEndpoint.as_view(),
-        name='sentry-api-0-release-commits'),
+        ProjectReleaseCommitsEndpoint.as_view(),
+        name='sentry-api-0-project-release-commits'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/resolved/$',
+        IssuesResolvedInReleaseEndpoint.as_view(),
+        name='sentry-api-0-release-resolved'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$',
         ProjectReleaseFilesEndpoint.as_view(),
         name='sentry-api-0-project-release-files'),

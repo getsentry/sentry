@@ -9,8 +9,10 @@ from sentry.testutils import TestCase
 class ProjectOptionManagerTest(TestCase):
     def test_set_value(self):
         ProjectOption.objects.set_value(self.project, 'foo', 'bar')
-        assert ProjectOption.objects.filter(
-            project=self.project, key='foo', value='bar').exists()
+        assert ProjectOption.objects.get(
+            project=self.project,
+            key='foo',
+        ).value == 'bar'
 
     def test_get_value(self):
         result = ProjectOption.objects.get_value(self.project, 'foo')

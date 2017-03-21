@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division, print_function
 
 from datetime import timedelta
+import logging
 from uuid import uuid4
 
 import six
@@ -9,6 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import search
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.fields import UserField
@@ -16,7 +18,6 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import (
     SUBSCRIPTION_REASON_MAP, StreamGroupSerializer
 )
-from sentry.app import search
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
 from sentry.models import (
@@ -24,12 +25,16 @@ from sentry.models import (
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
     GroupSubscriptionReason, Release, TagKey
 )
+from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
 from sentry.search.utils import InvalidQuery, parse_query
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor
+
+delete_logger = logging.getLogger('sentry.deletions.api')
+
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 
@@ -211,6 +216,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         query = request.GET.get('query', '').strip()
         if query:
             matching_group = None
+            matching_event = None
             if len(query) == 32:
                 # check to see if we've got an event ID
                 try:
@@ -222,6 +228,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     pass
                 else:
                     matching_group = Group.objects.get(id=mapping.group_id)
+                    try:
+                        matching_event = Event.objects.get(event_id=query, project_id=project.id)
+                    except Event.DoesNotExist:
+                        pass
 
             # If the query looks like a short id, we want to provide some
             # information about where that is.  Note that this can return
@@ -237,7 +247,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             if matching_group is not None:
                 response = Response(serialize(
                     [matching_group], request.user, StreamGroupSerializer(
-                        stats_period=stats_period
+                        stats_period=stats_period, matching_event_id=getattr(matching_event, 'id', None)
                     )
                 ))
                 response['X-Sentry-Direct-Hit'] = '1'
@@ -730,10 +740,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             ]
         ).update(status=GroupStatus.PENDING_DELETION)
         GroupHash.objects.filter(group__id__in=group_ids).delete()
+
+        transaction_id = uuid4().hex
+
         for group in group_list:
             delete_group.apply_async(
-                kwargs={'object_id': group.id},
+                kwargs={
+                    'object_id': group.id,
+                    'transaction_id': transaction_id,
+                },
                 countdown=3600,
             )
+
+            self.create_audit_entry(
+                request=request,
+                organization_id=project.organization_id,
+                target_object=group.id,
+                transaction_id=transaction_id,
+            )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': group.id,
+                'transaction_id': transaction_id,
+                'model': type(group).__name__,
+            })
 
         return Response(status=204)

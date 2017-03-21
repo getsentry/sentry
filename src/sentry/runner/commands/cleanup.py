@@ -48,11 +48,16 @@ def cleanup(days, project, concurrency, silent, model):
     done with the `--project` flag which accepts a project ID or a string
     with the form `org/project` where both are slugs.
     """
+    if concurrency < 1:
+        click.echo('Error: Minimum concurrency is 1', err=True)
+        raise click.Abort()
+
+    from threading import Thread
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry.models import (
-        Event, EventMapping, Group, GroupRuleStatus, GroupTagValue,
-        LostPasswordHash, TagValue, GroupEmailThread,
+        ApiGrant, ApiToken, Event, EventMapping, Group, GroupRuleStatus,
+        GroupTagValue, LostPasswordHash, TagValue, GroupEmailThread,
     )
 
     models = {m.lower() for m in model}
@@ -76,7 +81,7 @@ def cleanup(days, project, concurrency, silent, model):
     )
 
     if not silent:
-        click.echo("Removing expired values for LostPasswordHash")
+        click.echo('Removing expired values for LostPasswordHash')
 
     if is_filtered('LostPasswordHash'):
         if not silent:
@@ -85,6 +90,18 @@ def cleanup(days, project, concurrency, silent, model):
         LostPasswordHash.objects.filter(
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
+
+    for model in [ApiGrant, ApiToken]:
+        if not silent:
+            click.echo('Removing expired values for {}'.format(model.__name__))
+
+        if is_filtered(model.__name__):
+            if not silent:
+                click.echo('>> Skipping {}'.format(model.__name__))
+        else:
+            model.objects.filter(
+                expires_at__lt=timezone.now()
+            ).delete()
 
     project_id = None
     if project:
@@ -160,12 +177,23 @@ def cleanup(days, project, concurrency, silent, model):
             if not silent:
                 click.echo('>> Skipping %s' % model.__name__)
         else:
-            BulkDeleteQuery(
+            query = BulkDeleteQuery(
                 model=model,
                 dtfield=dtfield,
                 days=days,
                 project_id=project_id,
-            ).execute_generic()
+            )
+            if concurrency > 1:
+                threads = []
+                for shard_id in range(concurrency):
+                    t = Thread(target=lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id))
+                    t.start()
+                    threads.append(t)
+
+                for t in threads:
+                    t.join()
+            else:
+                query.execute_generic()
 
 
 def cleanup_unused_files(quiet=False):

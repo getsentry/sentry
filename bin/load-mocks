@@ -8,23 +8,32 @@ import six
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 from hashlib import sha1
 from pytz import utc
 from random import randint
 from uuid import uuid4
 
-from sentry import roles
-from sentry.app import tsdb, buffer
+from sentry import buffer, roles
+from sentry.tsdb import backend as tsdb
 from sentry.models import (
-    Activity, Broadcast, File, GroupMeta, Organization, OrganizationAccessRequest,
+    Activity, Broadcast, Deploy, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
     GroupRelease, Environment, ReleaseEnvironment, ReleaseCommit, Commit, Repository,
     CommitAuthor, CommitFileChange,
 )
 from sentry.signals import mocks_loaded
+from sentry.similarity import features
 from sentry.utils.hashlib import md5_text
-from sentry.utils.samples import create_sample_event
+from sentry.utils.samples import create_sample_event as _create_sample_event
+
+
+def create_sample_event(*args, **kwargs):
+    event = _create_sample_event(*args, **kwargs)
+    features.record(event)
+    return event
+
 
 PLATFORMS = itertools.cycle([
     'ruby',
@@ -324,10 +333,10 @@ def main(num_events=1, extra_events=False):
 
             repo = Repository.objects.get_or_create(
                 organization_id=org.id,
-                name='Example Repo',
                 provider='github',
                 external_id='example/example',
                 defaults={
+                    'name': 'Example Repo',
                     'url': 'https://github.com/example/example',
                 }
             )
@@ -381,6 +390,15 @@ def main(num_events=1, extra_events=False):
                 ident=release.version,
                 user=user,
                 data={'version': release.version},
+            )
+
+            Deploy.objects.create(
+                organization_id=project.organization_id,
+                release=release,
+                environment_id=Environment.get_or_create(
+                    project=project,
+                    name=ENVIRONMENTS.next()
+                ).id,
             )
 
             # Add a bunch of additional dummy events to support pagination
@@ -439,6 +457,14 @@ def main(num_events=1, extra_events=False):
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
+                )
+
+                create_sample_event(
+                    project=project,
+                    platform='cocoa',
+                    sample_name='react-native',
+                    release=release.version,
+                    environment=ENVIRONMENTS.next(),
                 )
 
             Commit.objects.get_or_create(

@@ -219,6 +219,14 @@ export function formatBytes(bytes) {
   return bytes.toFixed(1) + ' ' + units[u];
 }
 
+/**
+ * Converts a multi-line textarea input value into an array,
+ * eliminating empty lines
+ */
+export function extractMultilineFields(value) {
+  return value.split('\n').map(f => trim(f)).filter(f => f !== '');
+}
+
 // import/export sub-utils
 import parseLinkHeader from './utils/parseLinkHeader';
 import deviceNameMapper from './utils/deviceNameMapper';
