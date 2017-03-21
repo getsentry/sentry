@@ -27,6 +27,8 @@ Schema Changes
 - Added ``ApiToken.application`` column
 - Added ``ApiToken.refresh_token`` column
 - Added ``ApiToken.expires_at`` column
+- Added ``ApiToken.scope_list`` column
+- Added ``ApiKey.scope_list`` column
 
 Security
 ~~~~~~~~
