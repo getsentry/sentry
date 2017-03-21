@@ -43,6 +43,13 @@ class DebugNewReleaseEmailView(View):
                 slug='another-project',
                 name='Another Project',
             ),
+            Project(
+                id=3,
+                organization=org,
+                team=team,
+                slug='yet-another-project',
+                name='Yet Another Project',
+            ),
         ]
         release = Release(
             organization_id=org.id,
@@ -115,7 +122,7 @@ class DebugNewReleaseEmailView(View):
             text_template='sentry/emails/activity/release.txt',
             context={
                 'release': release,
-                'projects': zip(projects, release_links, [6, 1]),
+                'projects': zip(projects, release_links, [6, 1, 0]),
                 'repos': repos,
                 'reason': GroupSubscriptionReason.descriptions[
                     GroupSubscriptionReason.committed
