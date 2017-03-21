@@ -86,7 +86,7 @@ class ApiToken(Model):
 
     def is_expired(self):
         if not self.expires_at:
-            return True
+            return False
 
         return timezone.now() >= self.expires_at
 
