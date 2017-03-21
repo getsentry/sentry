@@ -7,6 +7,9 @@ Version 8.15 (Unreleased)
 - Added support for the new symbol server system to support native SDKs better.
 - Added deploy email
 - Added OAuth2 support to the web API.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
+- Disallow duplicating primary emails for users moving forward.
 
 API Changes
 ~~~~~~~~~~~
@@ -65,9 +68,6 @@ Version 8.14
   transactions.
 - Plugins can now add tasks that run in sentry as celery workers.
 - Added the ability to verify TLS connections when fetching artifacts.
-- Simplified management of secondary email addresses.
-- Fixed an issue where changing primary email address would remove the pre-existing verified email.
-- Disallow duplicating primary emails for users moving forward.
 - Added data migration to merge environments across an organization
 - Added ``timesSeen`` keyword to issue search.
 

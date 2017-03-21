@@ -17,6 +17,7 @@ from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import never_cache
@@ -470,10 +471,9 @@ def show_emails(request):
         return HttpResponseRedirect(request.path)
 
     if 'primary' in request.POST:
-        new_primary = request.POST.get('new_primary_email').lower()
+        new_primary = request.POST['new_primary_email'].lower()
 
-        if User.objects.filter(username__iexact=new_primary).exclude(id=user.id).exists()\
-                or User.objects.filter(email__iexact=new_primary).exclude(id=user.id).exists():
+        if User.objects.filter(Q(email__iexact=new_primary) | Q(username__iexact=new_primary)).exclude(id=user.id).exists():
             messages.add_message(request,
                 messages.ERROR,
                 _("That email is already in use for another user")
@@ -493,7 +493,7 @@ def show_emails(request):
                 option.value = new_primary
                 option.save()
 
-            new_username = user.email == user.username
+            has_new_username = user.email == user.username
 
             user.email = new_primary
 
@@ -503,7 +503,7 @@ def show_emails(request):
                 messages.SUCCESS,
                 msg)
 
-            if new_username and not User.objects.filter(username__iexact=new_primary).exists():
+            if has_new_username and not User.objects.filter(username__iexact=new_primary).exists():
                 user.username = user.email
             user.save()
         return HttpResponseRedirect(request.path)

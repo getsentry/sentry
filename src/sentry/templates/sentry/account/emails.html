@@ -55,7 +55,7 @@
             {% endif %}
           </td>
           <td style="text-align:center">
-            {% if email  != primary_email %}
+            {% if email != primary_email %}
             <form action="" method="post">
               {% csrf_token %}
               <input type='hidden' name='email' value='{{ email.email }}'>

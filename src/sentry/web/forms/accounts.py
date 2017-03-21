@@ -13,6 +13,7 @@ import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.db.models import Q
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
@@ -320,8 +321,7 @@ class AccountSettingsForm(forms.Form):
 
     def clean_email(self):
         value = self._clean_managed_field('email').lower()
-        if User.objects.filter(email__iexact=value).exclude(id=self.user.id).exists()\
-                or User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
+        if User.objects.filter(Q(email__iexact=value) | Q(username__iexact=value)).exclude(id=self.user.id).exists():
             raise forms.ValidationError(
                 _("There was an error adding %s: that email is already in use")
                 % self.cleaned_data['email']
