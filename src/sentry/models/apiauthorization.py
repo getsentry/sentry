@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from bitfield import BitField
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
@@ -21,24 +22,7 @@ class ApiAuthorization(Model):
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey('sentry.ApiApplication', null=True)
     user = FlexibleForeignKey('sentry.User')
-    scopes = BitField(flags=(
-        ('project:read', 'project:read'),
-        ('project:write', 'project:write'),
-        ('project:admin', 'project:admin'),
-        ('project:releases', 'project:releases'),
-        ('team:read', 'team:read'),
-        ('team:write', 'team:write'),
-        ('team:admin', 'team:admin'),
-        ('event:read', 'event:read'),
-        ('event:write', 'event:write'),
-        ('event:admin', 'event:admin'),
-        ('org:read', 'org:read'),
-        ('org:write', 'org:write'),
-        ('org:admin', 'org:admin'),
-        ('member:read', 'member:read'),
-        ('member:write', 'member:write'),
-        ('member:admin', 'member:admin'),
-    ))
+    scopes = BitField(flags=tuple((k, k) for k in settings.SENTRY_SCOPES))
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:

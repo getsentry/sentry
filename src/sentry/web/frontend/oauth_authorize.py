@@ -89,7 +89,7 @@ class OAuthAuthorizeView(BaseView):
         if scopes:
             scopes = scopes.split(' ')
             for scope in scopes:
-                if scope not in settings.SENTRY_SCOPES:
+                if scope not in set(settings.SENTRY_SCOPES):
                     return self.error(
                         response_type=response_type,
                         redirect_uri=redirect_uri,
