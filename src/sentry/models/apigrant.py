@@ -56,9 +56,6 @@ class ApiGrant(Model):
         return uuid4().hex
 
     def is_expired(self):
-        if not self.expires_at:
-            return True
-
         return timezone.now() >= self.expires_at
 
     def redirect_uri_allowed(self, uri):
