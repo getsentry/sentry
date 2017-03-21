@@ -17,7 +17,15 @@ const ReleaseCommit = React.createClass({
     repository: React.PropTypes.object,
 
   },
+
+  getCommitUrl() {
+    if (this.props.repository.provider.id === 'github') {
+      return this.props.repository.url + '/commit/' + this.props.commitId;
+    }
+  },
+
   render() {
+    let commitUrl = this.getCommitUrl();
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
@@ -28,10 +36,12 @@ const ReleaseCommit = React.createClass({
           </div>
           <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
-            <a className="btn btn-default btn-sm"
-               href={this.props.repository.url + '/' + this.props.commitId}
-               target="_blank"><span
-               className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a>
+            {commitUrl ?
+              <a className="btn btn-default btn-sm"
+                 href={commitUrl}
+                 target="_blank"><span
+                 className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a> :
+              <span>{this.props.shortId}</span>}
           </div>
         </div>
       </li>
