@@ -1,6 +1,8 @@
 import React from 'react';
 import {Link} from 'react-router';
 
+import HoverCard from './hoverCard';
+
 const Version = React.createClass({
   propTypes: {
     anchor: React.PropTypes.bool,
@@ -15,6 +17,18 @@ const Version = React.createClass({
     };
   },
 
+  getInitialState() {
+    return {
+      showHovercard: false,
+    };
+  },
+
+  toggleHovercard () {
+    this.setState({
+      showHovercard: !this.state.showHovercard
+    });
+  },
+
   render() {
     let {orgId, projectId, version} = this.props;
     let shortVersion = version.match(/^[a-f0-9]{40}$/) ? version.substr(0, 12) : version;
@@ -23,9 +37,14 @@ const Version = React.createClass({
       return (
         // NOTE: version is encoded because it can contain slashes "/",
         //       which can interfere with URL construction
-        <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
+        <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}>
+          <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
           <span title={version}>{shortVersion}</span>
-        </Link>
+          </Link>
+          {this.state.showHovercard &&
+            <HoverCard orgId={orgId} projectId={projectId} version={shortVersion} />
+          }
+        </span>
       );
     }
     return <span title={version}>{shortVersion}</span>;
@@ -33,4 +52,3 @@ const Version = React.createClass({
 });
 
 export default Version;
-

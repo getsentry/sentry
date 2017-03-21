@@ -1,0 +1,73 @@
+/**
+ * HoverCard
+ * ============================================================================
+ */
+
+.hovercard {
+  @hovercard-padding: 15px;
+  .dropdown-menu;
+  display: block;
+  top: auto;
+  left: auto;
+  right: 0;
+  bottom: 35px;
+  width: 295px;
+  padding: 0;
+  border-radius: 4px;
+  line-height: 1;
+
+  &:before, &:after {
+    top: auto;
+    left: auto;
+  }
+
+  &:before {
+    bottom: -22px;
+    right: 20px;
+    border-bottom: 11px solid transparent;
+    border-left: 11px solid transparent;
+    border-right: 11px solid transparent;
+    border-top: 11px solid rgba(52, 60, 69, 0.35);
+  }
+
+  &:after {
+    bottom: -20px;
+    right: 21px;
+    border-bottom: 10px solid transparent;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #fff;
+  }
+
+  .hovercard-header {
+    padding: (@hovercard-padding/1.5) @hovercard-padding;
+    background: @white-dark;
+    border-bottom: 1px solid @trim;
+    border-radius: 4px 4px 0 0;
+    font-weight: 600;
+
+    .pull-right {
+      a {
+        color: @50;
+
+        &:hover {
+          color: @70;
+        }
+      }
+    }
+  }
+
+  .hovercard-body {
+    padding: @hovercard-padding;
+  }
+
+  h6 {
+    color: @50 !important;
+    margin-bottom: 4px !important;
+  }
+
+  .count {
+    color: @80;
+    font-size: 22px;
+  }
+}
