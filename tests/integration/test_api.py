@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import six
 
+from django.conf import settings
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
 from sentry.utils.auth import SSO_SESSION_KEY
@@ -63,3 +64,23 @@ class AuthenticationTest(AuthProviderTestCase):
         for path in paths:
             resp = self.client.get(path)
             assert resp.status_code == 200, (path, resp.status_code, resp.content)
+
+
+class ScopeTest(AuthProviderTestCase):
+    def test_order(self):
+        assert settings.SENTRY_SCOPES[0] == 'project:read'
+        assert settings.SENTRY_SCOPES[1] == 'project:write'
+        assert settings.SENTRY_SCOPES[2] == 'project:admin'
+        assert settings.SENTRY_SCOPES[3] == 'project:releases'
+        assert settings.SENTRY_SCOPES[4] == 'team:read'
+        assert settings.SENTRY_SCOPES[5] == 'team:write'
+        assert settings.SENTRY_SCOPES[6] == 'team:admin'
+        assert settings.SENTRY_SCOPES[7] == 'event:read'
+        assert settings.SENTRY_SCOPES[8] == 'event:write'
+        assert settings.SENTRY_SCOPES[9] == 'event:admin'
+        assert settings.SENTRY_SCOPES[10] == 'org:read'
+        assert settings.SENTRY_SCOPES[11] == 'org:write'
+        assert settings.SENTRY_SCOPES[12] == 'org:admin'
+        assert settings.SENTRY_SCOPES[13] == 'member:read'
+        assert settings.SENTRY_SCOPES[14] == 'member:write'
+        assert settings.SENTRY_SCOPES[15] == 'member:admin'

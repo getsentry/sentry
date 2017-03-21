@@ -984,24 +984,26 @@ SENTRY_DISALLOWED_IPS = ()
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
-SENTRY_SCOPES = set([
+# XXX(dcramer): do NOT remove from this set or change the order, as it is
+# used to build BitField mappings
+SENTRY_SCOPES = [
+    'project:read',
+    'project:write',
+    'project:admin',
+    'project:releases',
+    'team:read',
+    'team:write',
+    'team:admin',
+    'event:read',
+    'event:write',
+    'event:admin',
     'org:read',
     'org:write',
     'org:admin',
     'member:read',
     'member:write',
     'member:admin',
-    'team:read',
-    'team:write',
-    'team:admin',
-    'project:read',
-    'project:write',
-    'project:admin',
-    'project:releases',
-    'event:read',
-    'event:write',
-    'event:admin',
-])
+]
 
 SENTRY_SCOPE_SETS = (
     (
