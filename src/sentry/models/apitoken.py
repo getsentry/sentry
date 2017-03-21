@@ -4,7 +4,6 @@ import six
 
 from bitfield import BitField
 from datetime import timedelta
-from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from uuid import uuid4
@@ -31,7 +30,24 @@ class ApiToken(Model):
     expires_at = models.DateTimeField(
         null=True,
         default=lambda: timezone.now() + DEFAULT_EXPIRATION)
-    scopes = BitField(flags=tuple((k, k) for k in settings.SENTRY_SCOPES))
+    scopes = BitField(flags=(
+        ('project:read', 'project:read'),
+        ('project:write', 'project:write'),
+        ('project:admin', 'project:admin'),
+        ('project:releases', 'project:releases'),
+        ('team:read', 'team:read'),
+        ('team:write', 'team:write'),
+        ('team:admin', 'team:admin'),
+        ('event:read', 'event:read'),
+        ('event:write', 'event:write'),
+        ('event:admin', 'event:admin'),
+        ('org:read', 'org:read'),
+        ('org:write', 'org:write'),
+        ('org:admin', 'org:admin'),
+        ('member:read', 'member:read'),
+        ('member:write', 'member:write'),
+        ('member:admin', 'member:admin'),
+    ))
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=(
