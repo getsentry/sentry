@@ -36,10 +36,10 @@ class Migration(SchemaMigration):
         # Adding model 'ApiApplication'
         db.create_table('sentry_apiapplication', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('client_id', self.gf('django.db.models.fields.CharField')(default='d9b84dfa79bb4e32adcf81d7743040e892da7561b3e64f05976948ddb260aa4f', unique=True, max_length=64)),
-            ('client_secret', self.gf('sentry.db.models.fields.encrypted.EncryptedTextField')(default='7ed28a2a6ca74469a30b4b77a112323051e744b45b984b2689fa6370311742b2')),
+            ('client_id', self.gf('django.db.models.fields.CharField')(unique=True, max_length=64)),
+            ('client_secret', self.gf('sentry.db.models.fields.encrypted.EncryptedTextField')()),
             ('owner', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.User'])),
-            ('name', self.gf('django.db.models.fields.CharField')(default='Hifalutin Malaysia', max_length=64, blank=True)),
+            ('name', self.gf('django.db.models.fields.CharField')(max_length=64, blank=True)),
             ('status', self.gf('sentry.db.models.fields.bounded.BoundedPositiveIntegerField')(default=0, db_index=True)),
             ('allowed_origins', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
             ('redirect_uris', self.gf('django.db.models.fields.TextField')()),
@@ -60,12 +60,12 @@ class Migration(SchemaMigration):
 
         # Adding field 'ApiToken.refresh_token'
         db.add_column('sentry_apitoken', 'refresh_token',
-                      self.gf('django.db.models.fields.CharField')(default='b9ea406c599a42a7a5860a6899a7a985879619ac763f49daa0de5322c3569b2f', max_length=64, unique=True, null=True),
+                      self.gf('django.db.models.fields.CharField')(max_length=64, unique=True, null=True),
                       keep_default=False)
 
         # Adding field 'ApiToken.expires_at'
         db.add_column('sentry_apitoken', 'expires_at',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime(2017, 4, 17, 0, 0), null=True),
+                      self.gf('django.db.models.fields.DateTimeField')(null=True),
                       keep_default=False)
 
 
