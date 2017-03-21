@@ -19,6 +19,7 @@ const ReleaseCommit = React.createClass({
   },
 
   getCommitUrl() {
+    // TODO(jess): move this to plugins
     if (this.props.repository.provider.id === 'github') {
       return this.props.repository.url + '/commit/' + this.props.commitId;
     }
