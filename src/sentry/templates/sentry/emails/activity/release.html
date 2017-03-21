@@ -25,7 +25,9 @@
                   <a href="{{ release_link }}">{{ project.name }}</a>
                 </h5>
                 <p class="muted" style="margin-bottom: 0">
-                  <a href="{{ release_link }}">{{ resolved_issue_count }} Issue{{ resolved_issue_count|pluralize }} expected to be resolved</a>
+                  {% if resolved_issue_count %}
+                    <a href="{{ release_link }}">{{ resolved_issue_count }} Issue{{ resolved_issue_count|pluralize }} expected to be resolved</a>
+                  {% endif %}
                 </p>
               </td>
               <td style="text-align: right">
