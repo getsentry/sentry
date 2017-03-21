@@ -48,7 +48,7 @@ const OrganizationSettingsForm = React.createClass({
       safeFields: data.safeFields.join('\n'),
       sensitiveFields: data.sensitiveFields.join('\n'),
     };
-    if (this.props.access.has('org:delete')) {
+    if (this.props.access.has('org:admin')) {
       result.defaultRole = data.defaultRole;
     }
     return result;
@@ -170,7 +170,7 @@ const OrganizationSettingsForm = React.createClass({
 
           <legend>{t('Membership')}</legend>
 
-          {access.has('org:delete') &&
+          {access.has('org:admin') &&
             <Select2Field
               key="defaultRole"
               name="defaultRole"
@@ -338,7 +338,7 @@ const OrganizationSettings = React.createClass({
           </div>
         </div>
 
-        {access.has('org:delete') && !data.isDefault &&
+        {access.has('org:admin') && !data.isDefault &&
           <div className="box">
             <div className="box-header">
               <h3>{t('Remove Organization')}</h3>

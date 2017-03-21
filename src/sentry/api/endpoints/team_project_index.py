@@ -48,10 +48,10 @@ class ProjectSerializer(serializers.Serializer):
 # as you are a member of that team and have project scoped permissions.
 class TeamProjectPermission(TeamPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        'PUT': ['project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
 

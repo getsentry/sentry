@@ -18,7 +18,7 @@ DEFAULT_SCOPES = [
 
 
 class OrganizationApiKeysView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:admin'
 
     def handle(self, request, organization):
         if request.POST.get('op') == 'newkey':
