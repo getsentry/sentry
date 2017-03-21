@@ -157,8 +157,7 @@ def cpu_name_from_data(data):
 
 
 def rebase_addr(instr_addr, img):
-    return parse_addr(img['image_vmaddr']) + \
-        parse_addr(instr_addr) - parse_addr(img['image_addr'])
+    return parse_addr(instr_addr) - parse_addr(img['image_addr'])
 
 
 def sdk_info_to_sdk_id(sdk_info):
