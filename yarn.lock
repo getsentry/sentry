@@ -4258,9 +4258,9 @@ range-parser@^1.0.3:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/range-parser/-/range-parser-1.2.0.tgz#f49be6b487894ddc40dcc94a322f611092e00d5e"
 
-raven-js@3.12.1:
-  version "3.12.1"
-  resolved "https://registry.yarnpkg.com/raven-js/-/raven-js-3.12.1.tgz#bec1aebbc0b14fbfe651ffff4c5692931065d418"
+raven-js@3.13.0:
+  version "3.13.0"
+  resolved "https://registry.yarnpkg.com/raven-js/-/raven-js-3.13.0.tgz#baf9d7f913524e8782578e766931194dba2ac93a"
   dependencies:
     json-stringify-safe "^5.0.1"
 

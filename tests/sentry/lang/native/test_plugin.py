@@ -232,7 +232,7 @@ class BasicResolvingIntegrationTest(TestCase):
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
             "SentryTest.app/SentryTest"
         )
-        if parse_addr(frame['instruction_addr']) != 4295098384:
+        if not (4295098384 <= parse_addr(frame['instruction_addr']) < 4295098388):
             return [{
                 'filename': 'Foo.swift',
                 'line': 82,

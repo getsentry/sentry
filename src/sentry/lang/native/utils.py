@@ -4,6 +4,7 @@ import six
 import logging
 
 from symsynd.macho.arch import get_cpu_name
+from symsynd.utils import parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 
@@ -105,6 +106,7 @@ def get_sdk_from_os(data):
         'version_major': system_version[0],
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
+        'build': data.get('build'),
     }
 
 
@@ -152,3 +154,22 @@ def cpu_name_from_data(data):
             break
 
     return unique_cpu_name
+
+
+def rebase_addr(instr_addr, img):
+    return parse_addr(instr_addr) - parse_addr(img['image_addr'])
+
+
+def sdk_info_to_sdk_id(sdk_info):
+    if sdk_info is None:
+        return None
+    rv = '%s_%d.%d.%d' % (
+        sdk_info['sdk_name'],
+        sdk_info['version_major'],
+        sdk_info['version_minor'],
+        sdk_info['version_patchlevel'],
+    )
+    build = sdk_info.get('build')
+    if build is not None:
+        rv = '%s_%s' % (rv, build)
+    return rv

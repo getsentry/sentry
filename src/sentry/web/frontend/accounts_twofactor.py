@@ -4,7 +4,6 @@ from django import forms
 from django.db import transaction
 from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
-from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.core.context_processors import csrf
@@ -38,7 +37,6 @@ class U2fForm(forms.Form):
 class TwoFactorSettingsView(BaseView):
     interface_id = None
 
-    @method_decorator(csrf_protect)
     @method_decorator(never_cache)
     @method_decorator(login_required)
     @method_decorator(sudo_required)
