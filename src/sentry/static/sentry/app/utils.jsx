@@ -219,6 +219,10 @@ export function formatBytes(bytes) {
   return bytes.toFixed(1) + ' ' + units[u];
 }
 
+export function getShortVersion(version) {
+  return version.match(/^[a-f0-9]{40}$/) ? version.substr(0, 12) : version;
+}
+
 /**
  * Converts a multi-line textarea input value into an array,
  * eliminating empty lines
