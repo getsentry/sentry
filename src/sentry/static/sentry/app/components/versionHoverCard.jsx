@@ -27,9 +27,9 @@ const VersionHoverCard = React.createClass({
   },
 
   componentDidMount() {
-    let {orgId, version} = this.props;
+    let {orgId, projectId, version} = this.props;
 
-    let path = `/organizations/${orgId}/releases/${version}/`;
+    let path = `/projects/${orgId}/${projectId}/releases/${version}/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
