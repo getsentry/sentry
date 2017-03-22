@@ -17,7 +17,6 @@ class ApiAuthorizationsListTest(APITestCase):
         auth = ApiAuthorization.objects.create(
             application=app,
             user=self.user,
-            scopes=getattr(ApiAuthorization.scopes, 'event:read'),
         )
         ApiAuthorization.objects.create(
             application=app,

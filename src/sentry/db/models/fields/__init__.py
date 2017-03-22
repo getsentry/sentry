@@ -8,6 +8,7 @@ sentry.db.models.fields
 
 from __future__ import absolute_import
 
+from .array import *  # NOQA
 from .bounded import *  # NOQA
 from .encrypted import *  # NOQA
 from .foreignkey import *  # NOQA

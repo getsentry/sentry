@@ -4,12 +4,9 @@ import six
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.db.models import F
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
-from operator import or_
-from six.moves import reduce
 from six.moves.urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from sentry.models import (
@@ -110,7 +107,7 @@ class OAuthAuthorizeView(BaseView):
             else:
                 # if we've already approved all of the required scopes
                 # we can skip prompting the user
-                if all(getattr(existing_auth.scopes, s) for s in scopes):
+                if all(existing_auth.has_scope(s) for s in scopes):
                     return self.approve(
                         request=request,
                         application=application,
@@ -208,40 +205,26 @@ class OAuthAuthorizeView(BaseView):
                 ApiAuthorization.objects.create(
                     application=application,
                     user=request.user,
-                    scopes=(
-                        reduce(or_, (
-                            getattr(ApiAuthorization.scopes, k)
-                            for k in params['scopes']
-                        ))
-                        if params['scopes']
-                        else 0
-                    ),
+                    scope_list=params['scopes'],
                 )
         except IntegrityError:
             if params['scopes']:
-                auth_scopes = F('scopes')
-                for s in params['scopes']:
-                    auth_scopes = auth_scopes.bitor(
-                        getattr(ApiAuthorization.scopes, s)
-                    )
-
-                ApiAuthorization.objects.filter(
+                auth = ApiAuthorization.objects.get(
                     application=application,
                     user=request.user,
-                ).update(
-                    scopes=auth_scopes,
                 )
+                for scope in params['scopes']:
+                    if scope not in auth.scope_list:
+                        auth.scope_list.append(scope)
+                auth.save()
 
         if params['response_type'] == 'code':
-            grant = ApiGrant(
+            grant = ApiGrant.objects.create(
                 user=request.user,
                 application=application,
                 redirect_uri=params['redirect_uri'],
+                scope_list=params['scopes'],
             )
-            if params['scopes']:
-                for s in params['scopes']:
-                    setattr(grant.scopes, s, True)
-            grant.save()
             return self.redirect_response(
                 params['response_type'],
                 params['redirect_uri'],
@@ -251,14 +234,12 @@ class OAuthAuthorizeView(BaseView):
                 },
             )
         elif params['response_type'] == 'token':
-            token = ApiToken(
+            token = ApiToken.objects.create(
                 application=application,
                 user=request.user,
                 refresh_token=None,
+                scope_list=params['scopes'],
             )
-            for s in params['scopes']:
-                setattr(token.scopes, s, True)
-            token.save()
 
             return self.redirect_response(
                 params['response_type'],
@@ -268,7 +249,7 @@ class OAuthAuthorizeView(BaseView):
                     'expires_in': (timezone.now() - token.expires_at).total_seconds(),
                     'expires_at': token.expires_at.strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
                     'token_type': 'bearer',
-                    'scope': ' '.join(k for k, v in token.scopes.iteritems() if v),  # NOQA
+                    'scope': ' '.join(token.get_scopes()),  # NOQA
                     'state': params['state'],
                 },
             )
