@@ -676,6 +676,8 @@
   .inner table.table td, .inner table.table th {
     padding: 10px 15px;
     border-bottom: 1px solid #DDD8E1;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
   }
 
   .inner table.table.no-gutters td, .inner table.table.no-gutters th {
@@ -715,10 +717,20 @@
 
   /* Commit List */
 
+  .inner table.table.commit-list {
+    table-layout: fixed;
+  }
+
   .inner table.table.commit-list td.avatar-column {
     width: 36px;
     padding-right: 0;
     padding-top: 12px;
+  }
+
+  .inner table.table.commit-list td.avatar-column img {
+    width: 36px;
+    height: 36px;
+    border-radius: 3px;
   }
 
   .inner table.table.commit-list .placeholder-avatar {
