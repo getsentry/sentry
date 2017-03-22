@@ -84,7 +84,7 @@ const SeenInfo = React.createClass({
         )}
         <dt key={4}>{t('Release')}:</dt>
         {defined(release) ?
-          <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} /></dd>
+          <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} onIssuePage={true} /></dd>
         : (!this.props.hasRelease ?
           <dd key={5}><small style={{marginLeft: 5, fontStyle: 'italic'}}><a href={this.getReleaseTrackingUrl()}>not configured</a></small></dd>
         :
