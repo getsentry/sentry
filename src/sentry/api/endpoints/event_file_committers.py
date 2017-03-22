@@ -63,6 +63,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 bestScore = score
                 matching_commits = {}
             if score == bestScore:
+                #  we want a list of unique commits that tie for longest match
                 matching_commits[fileChange.commit.id] = serialize(fileChange.commit)
 
         return matching_commits.values()
