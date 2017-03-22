@@ -7,9 +7,14 @@ from sentry.api.serializers import serialize
 from sentry.models import (
     Release, ReleaseCommit, Commit, CommitFileChange, Event
 )
+from sentry.api.serializers.models.release import get_users_for_commits
 
 from itertools import izip
 from collections import defaultdict
+
+
+def tokenize_path(path):
+    return reversed(path.split('/'))
 
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
@@ -26,45 +31,46 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         return frames
 
-    def _score_path_match_length(self, pathA, pathB):
-        segments_a = reversed(pathA.split('/'))  # todo maxbittker better splitting
-        segments_a = reversed(pathB.split('/'))
+    def _score_path_match_length(self, path_a, path_b):
         score = 0
-        for a, b in izip(segments_a, segments_a):
+        for a, b in izip(tokenize_path(path_a), tokenize_path(path_b)):
             if a != b:
                 break
             score += 1
         return score
 
     def _get_commits(self, project_id, version):
-        commits = Commit.objects.filter(
-            releasecommit=ReleaseCommit.objects.filter(
-                release=Release.objects.get(
-                    projects=project_id,
-                    version=version,
-                ),
+        try:
+            commits = Commit.objects.filter(
+                releasecommit=ReleaseCommit.objects.filter(
+                    release=Release.objects.get(
+                        projects=project_id,
+                        version=version,
+                    ),
+                )
             )
-        )
+        except Release.DoesNotExist:
+            return None
         return list(commits)
 
     def _match_commits_frame(self, commits, frame):
 
         possible_file_change_matches = CommitFileChange.objects.filter(
             commit__in=commits,
-            filename__endswith=frame['filename']  # todo maxbittker take last token the same way as score_path_match
+            filename__endswith=frame['filename']  # TODO(maxbittker) take last token the same way as score_path_match
         )
 
         matching_commits = {}
-        bestScore = 0
-        for fileChange in possible_file_change_matches:
-            score = self._score_path_match_length(fileChange.filename, frame['abs_path'])
-            if score > bestScore:
+        best_score = 0
+        for file_change in possible_file_change_matches:
+            score = self._score_path_match_length(file_change.filename, frame['abs_path'])
+            if score > best_score:
                 # reset matches for better match.
-                bestScore = score
+                best_score = score
                 matching_commits = {}
-            if score == bestScore:
+            if score == best_score:
                 #  we want a list of unique commits that tie for longest match
-                matching_commits[fileChange.commit.id] = serialize(fileChange.commit)
+                matching_commits[file_change.commit.id] = file_change.commit
 
         return matching_commits.values()
 
@@ -109,13 +115,19 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             for commit in annotated_frame['commits']:
                 if limit == 0:
                     break
-                committers[commit['author']['email']] += limit
+                committers[commit.author.id] += limit
                 limit -= 1
 
         sorted_committers = sorted(committers, key=committers.get)
+        sentry_user_dict = get_users_for_commits(commits)
+
+        serialized_annotated_frames = [{
+            'frame': frame['frame'],
+            'commits': serialize(frame['commits'])
+        } for frame in annotated_frames]
 
         data = {
-            'committers': sorted_committers,  # todo maxbittker richer data than email here
-            'annotatedFrames': annotated_frames
+            'committers': [sentry_user_dict[author_id] for author_id in sorted_committers],
+            'annotatedFrames': serialized_annotated_frames
         }
         return Response(data)
