@@ -292,10 +292,8 @@ const ProjectDebugSymbols = React.createClass({
       <div>
         <h3>{t('Unreferenced Debug Symbols')}</h3>
         <p>{t(`
-          Here you can find uploaded debug information (for instance debug
-          symbol files).  This is used to convert addresses from crash dumps
-          into function names and locations.  For JavaScript debug support
-          look at releases instead.
+          This list represents all Debug Symbols which are not assigned to an
+          app version.
         `)}</p>
         <table className="table">
           <thead>
@@ -320,8 +318,10 @@ const ProjectDebugSymbols = React.createClass({
       <div>
         <h1>{t('Debug Symbols')}</h1>
         <p>{t(`
-          This list represents all Debug Symbols which are not assigned to an
-          app version.
+          Here you can find uploaded debug information (for instance debug
+          symbol files).  This is used to convert addresses from crash dumps
+          into function names and locations.  For JavaScript debug support
+          look at releases instead.
         `)}</p>
         {this.renderDebugTable()}
         {this.renderUnreferencedDebugSymbols()}
