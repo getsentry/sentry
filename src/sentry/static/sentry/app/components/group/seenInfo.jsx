@@ -2,6 +2,7 @@ import React from 'react';
 import DateTime from '../../components/dateTime';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
+import VersionHoverCard from '../../components/versionHoverCard';
 import TooltipMixin from '../../mixins/tooltip';
 import {defined, toTitleCase} from '../../utils';
 import componentToString from '../../utils/componentToString';
@@ -18,6 +19,11 @@ const SeenInfo = React.createClass({
     }),
     environment: React.PropTypes.string,
     hasRelease: React.PropTypes.bool.isRequired,
+  },
+
+
+  contextTypes: {
+    organization: React.PropTypes.object,
   },
 
   mixins: [
@@ -84,7 +90,18 @@ const SeenInfo = React.createClass({
         )}
         <dt key={4}>{t('Release')}:</dt>
         {defined(release) ?
-          <dd key={5}><Version orgId={orgId} projectId={projectId} version={release.version} onIssuePage={true} /></dd>
+          <dd key={5}>
+          {new Set(this.context.organization.features).has('release-commits') ?
+            <VersionHoverCard
+              orgId={orgId}
+              projectId={projectId}
+              version={release.version}>
+              <Version orgId={orgId} projectId={projectId} version={release.version}/>
+            </VersionHoverCard>
+          :
+            <Version orgId={orgId} projectId={projectId} version={release.version}/>
+          }
+          </dd>
         : (!this.props.hasRelease ?
           <dd key={5}><small style={{marginLeft: 5, fontStyle: 'italic'}}><a href={this.getReleaseTrackingUrl()}>not configured</a></small></dd>
         :
