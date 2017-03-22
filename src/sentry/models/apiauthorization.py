@@ -1,11 +1,13 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from bitfield import BitField
 from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, FlexibleForeignKey, sane_repr
+    ArrayField, Model, FlexibleForeignKey, sane_repr
 )
 
 
@@ -39,6 +41,7 @@ class ApiAuthorization(Model):
         ('member:write', 'member:write'),
         ('member:admin', 'member:admin'),
     ))
+    scope_list = ArrayField(of=models.TextField)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -47,3 +50,11 @@ class ApiAuthorization(Model):
         unique_together = (('user', 'application'),)
 
     __repr__ = sane_repr('user_id', 'application_id')
+
+    def get_scopes(self):
+        if self.scope_list:
+            return self.scope_list
+        return [k for k, v in six.iteritems(self.scopes) if v]
+
+    def has_scope(self, scope):
+        return scope in self.get_scopes()
