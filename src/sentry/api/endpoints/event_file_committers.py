@@ -27,51 +27,45 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         return frames
 
     def _score_path_match_length(self, pathA, pathB):
-        segmentsA = reversed(pathA.split('/'))  # todo maxbittker better splitting
-        segmentsB = reversed(pathB.split('/'))
+        segments_a = reversed(pathA.split('/'))  # todo maxbittker better splitting
+        segments_a = reversed(pathB.split('/'))
         score = 0
-        for a, b in izip(segmentsA, segmentsB):
+        for a, b in izip(segments_a, segments_a):
             if a != b:
                 break
             score += 1
         return score
 
     def _get_commits(self, project_id, version):
-        try:
-            commits = Commit.objects.filter(
-                releasecommit=ReleaseCommit.objects.filter(
-                    release=Release.objects.get(
-                        projects=project_id,
-                        version=version,
-                    ),
-                )
+        commits = Commit.objects.filter(
+            releasecommit=ReleaseCommit.objects.filter(
+                release=Release.objects.get(
+                    projects=project_id,
+                    version=version,
+                ),
             )
-        except Commit.DoesNotExist:
-            return None
-        return commits
+        )
+        return list(commits)
 
     def _match_commits_frame(self, commits, frame):
 
-        matchingCommits = []
+        possible_file_change_matches = CommitFileChange.objects.filter(
+            commit__in=commits,
+            filename__endswith=frame['filename']  # todo maxbittker take last token the same way as score_path_match
+        )
 
-        for commit in commits:
-            possibleFileChangeMatches = CommitFileChange.objects.filter(
-                commit=commit.id,
-                filename__endswith=frame['filename']
-            )
+        matching_commits = {}
+        bestScore = 0
+        for fileChange in possible_file_change_matches:
+            score = self._score_path_match_length(fileChange.filename, frame['abs_path'])
+            if score > bestScore:
+                # reset matches for better match.
+                bestScore = score
+                matching_commits = {}
+            if score == bestScore:
+                matching_commits[fileChange.commit.id] = serialize(fileChange.commit)
 
-            bestScore = 1
-            match = None
-            for fileChange in possibleFileChangeMatches:
-                score = self._score_path_match_length(fileChange.filename, frame['abs_path'])
-                if score > bestScore:
-                    bestScore = score
-                    match = fileChange
-
-            if match:
-                matchingCommits.append(serialize(commit))
-
-        return matchingCommits
+        return matching_commits.values()
 
     def get(self, request, project, event_id):
         """
@@ -101,26 +95,26 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         if not commits:
             return Response({'detail': 'No Commits found for Release'}, status=404)
 
-        annotatedFrames = [{
+        annotated_frames = [{
             'frame': frame,
             'commits': self._match_commits_frame(commits, frame)
         } for frame in frames]
 
         committers = defaultdict(int)
         limit = 5
-        for annotatedFrame in annotatedFrames:
+        for annotated_frame in annotated_frames:
             if limit == 0:
                 break
-            for commit in annotatedFrame['commits']:
+            for commit in annotated_frame['commits']:
                 if limit == 0:
                     break
                 committers[commit['author']['email']] += limit
                 limit -= 1
 
-        sortedCommitters = sorted(committers, key=committers.get)
+        sorted_committers = sorted(committers, key=committers.get)
 
         data = {
-            'committers': sortedCommitters,  # todo maxbittker richer data than email here
-            'annotatedFrames': annotatedFrames
+            'committers': sorted_committers,  # todo maxbittker richer data than email here
+            'annotatedFrames': annotated_frames
         }
         return Response(data)
