@@ -215,7 +215,10 @@ class Release(Model):
             return True
 
     def set_commits(self, commit_list):
-        from sentry.models import Commit, CommitAuthor, ReleaseCommit, Repository
+        from sentry.models import (
+            Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
+            GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
+        )
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -273,3 +276,21 @@ class Release(Model):
                     commit=commit,
                     order=idx,
                 )
+
+        group_ids = list(GroupCommitResolution.objects.filter(
+            commit_id__in=ReleaseCommit.objects.filter(
+                release=self
+            ).values_list('commit_id', flat=True),
+        ).values_list('group_id', flat=True))
+        for group_id in group_ids:
+            GroupResolution.objects.create_or_update(
+                group_id=group_id,
+                release=self,
+                values={
+                    'status': GroupResolutionStatus.RESOLVED,
+                },
+            )
+
+        Group.objects.filter(
+            id__in=group_ids,
+        ).update(status=GroupStatus.RESOLVED)
