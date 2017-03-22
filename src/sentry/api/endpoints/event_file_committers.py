@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
+import six
+
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import (
@@ -14,6 +16,7 @@ from collections import defaultdict
 
 
 def tokenize_path(path):
+    # TODO(maxbittker) tokenize in a smarter crossplatform way.
     return reversed(path.split('/'))
 
 
@@ -57,7 +60,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         possible_file_change_matches = CommitFileChange.objects.filter(
             commit__in=commits,
-            filename__endswith=frame['filename']  # TODO(maxbittker) take last token the same way as score_path_match
+            filename__endswith=six.next(tokenize_path(frame['abs_path']))
         )
 
         matching_commits = {}
