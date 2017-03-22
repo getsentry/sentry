@@ -8,24 +8,32 @@ const Version = React.createClass({
     anchor: React.PropTypes.bool,
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+    onIssuePage: React.PropTypes.bool,
+  },
+
+  contextTypes: {
+    organization: React.PropTypes.object,
   },
 
   getDefaultProps() {
     return {
-      anchor: true
+      anchor: true,
+      onIssuePage: false,
     };
   },
 
   getInitialState() {
     return {
       showHovercard: false,
+      mountHovercard: false,
     };
   },
 
   toggleHovercard () {
     this.setState({
-      showHovercard: !this.state.showHovercard
+      showHovercard: !this.state.showHovercard,
+      mountHovercard: true,
     });
   },
 
@@ -41,8 +49,8 @@ const Version = React.createClass({
           <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
           <span title={version}>{shortVersion}</span>
           </Link>
-          {this.state.showHovercard &&
-            <HoverCard orgId={orgId} projectId={projectId} version={shortVersion} />
+          {this.state.mountHovercard && this.props.onIssuePage && new Set(this.context.organization.features).has('release-commits') &&
+            <HoverCard visible={this.state.showHovercard} orgId={orgId} projectId={projectId} version={version} />
           }
         </span>
       );
