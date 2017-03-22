@@ -7,7 +7,6 @@ from django.core.context_processors import csrf
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
 from django.utils.decorators import method_decorator
 
 from sudo.decorators import sudo_required
@@ -30,7 +29,6 @@ from sentry.utils.safe import safe_execute
 class AccountNotificationView(BaseView):
     notification_settings_form = NotificationSettingsForm
 
-    @method_decorator(csrf_protect)
     @method_decorator(never_cache)
     @method_decorator(login_required)
     @method_decorator(sudo_required)

@@ -68,10 +68,10 @@ const HomeSidebar = React.createClass({
                   </a>
                 </li>
               }
-              {features.has('sso') && access.has('org:delete') &&
+              {features.has('sso') && access.has('org:admin') &&
                 <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>
               }
-              {access.has('org:delete') && features.has('api-keys') &&
+              {access.has('org:admin') && features.has('api-keys') &&
                 <li><a href={`/organizations/${orgId}/api-keys/`}>{t('API Keys')}</a></li>
               }
               {access.has('org:write') &&

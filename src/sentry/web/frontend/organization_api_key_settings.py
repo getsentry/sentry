@@ -21,7 +21,7 @@ class ApiKeyForm(forms.ModelForm):
 
 
 class OrganizationApiKeySettingsView(OrganizationView):
-    required_scope = 'org:delete'
+    required_scope = 'org:admin'
 
     def handle(self, request, organization, key_id):
         key = get_object_or_404(ApiKey, organization=organization, id=key_id)

@@ -23,7 +23,7 @@ class WebHooksPluginTest(TestCase):
         responses.add(responses.POST, 'http://example.com')
 
         group = self.create_group(message='Hello world')
-        event = self.create_event(group=group, message='Hello world', tags={'level': 'warning'})
+        event = self.create_event(group=group, message='Hello world', tags={'level': 'warning'}, id=24)
 
         rule = Rule.objects.create(project=self.project, label='my rule')
 
@@ -39,3 +39,5 @@ class WebHooksPluginTest(TestCase):
 
         assert payload['level'] == 'warning'
         assert payload['message'] == 'Hello world'
+        assert payload['event']['id'] == 24
+        assert payload['event']['event_id'] == event.event_id

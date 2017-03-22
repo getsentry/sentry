@@ -109,7 +109,7 @@ class OrganizationSettingsView(OrganizationView):
     required_scope = 'org:write'
 
     def get_form(self, request, organization):
-        has_delete = request.access.has_scope('org:delete')
+        has_delete = request.access.has_scope('org:admin')
 
         return OrganizationSettingsForm(
             has_delete=has_delete,

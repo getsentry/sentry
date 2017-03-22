@@ -22,11 +22,11 @@ class SavedSearchSerializer(serializers.Serializer):
 
 class RelaxedSearchPermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
         # members can do partial writes
-        'PUT': ['project:write', 'project:delete', 'project:read'],
-        'DELETE': ['project:delete'],
+        'PUT': ['project:write', 'project:admin', 'project:read'],
+        'DELETE': ['project:admin'],
     }
 
 

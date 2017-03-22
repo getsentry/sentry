@@ -94,11 +94,11 @@ class ProjectAdminSerializer(serializers.Serializer):
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
         # PUT checks for permissions based on fields
-        'PUT': ['project:read', 'project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'PUT': ['project:read', 'project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
 

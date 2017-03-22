@@ -24,8 +24,8 @@ class OrganizationMemberTeamSerializer(serializers.Serializer):
 
 class RelaxedOrganizationPermission(OrganizationPermission):
     _allowed_scopes = [
-        'org:read', 'org:write', 'org:delete',
-        'member:read', 'member:write', 'member:delete',
+        'org:read', 'org:write', 'org:admin',
+        'member:read', 'member:write', 'member:admin',
     ]
 
     scope_map = {

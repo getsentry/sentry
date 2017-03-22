@@ -13,7 +13,7 @@ from .unassigned import UnassignedActivityEmail
 emails = {
     Activity.ASSIGNED: AssignedActivityEmail,
     Activity.NOTE: NoteActivityEmail,
-    Activity.RELEASE: ReleaseActivityEmail,
+    Activity.DEPLOY: ReleaseActivityEmail,
     Activity.SET_REGRESSION: RegressionActivityEmail,
     Activity.SET_RESOLVED: ResolvedActivityEmail,
     Activity.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityEmail,

@@ -103,7 +103,7 @@ const EventEntries = React.createClass({
     );
 
     let hasContextSummary = (
-      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript')
+      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript' || evt.platform === 'java')
     );
 
     return (

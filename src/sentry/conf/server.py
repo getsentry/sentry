@@ -987,21 +987,52 @@ SENTRY_MANAGED_USER_FIELDS = ()
 SENTRY_SCOPES = set([
     'org:read',
     'org:write',
-    'org:delete',
+    'org:admin',
     'member:read',
     'member:write',
-    'member:delete',
+    'member:admin',
     'team:read',
     'team:write',
-    'team:delete',
+    'team:admin',
     'project:read',
     'project:write',
-    'project:delete',
+    'project:admin',
     'project:releases',
     'event:read',
     'event:write',
-    'event:delete',
+    'event:admin',
 ])
+
+SENTRY_SCOPE_SETS = (
+    (
+        ('org:admin', 'Read, write, and admin access to organization details.'),
+        ('org:write', 'Read and write access to organization details.'),
+        ('org:read', 'Read access to organization details.'),
+    ),
+    (
+        ('member:admin', 'Read, write, and admin access to organization members.'),
+        ('member:write', 'Read and write access to organization members.'),
+        ('member:read', 'Read access to organization members.'),
+    ),
+    (
+        ('team:admin', 'Read, write, and admin access to teams.'),
+        ('team:write', 'Read and write access to teams.'),
+        ('team:read', 'Read access to teams.'),
+    ),
+    (
+        ('project:admin', 'Read, write, and admin access to projects.'),
+        ('project:write', 'Read and write access to projects.'),
+        ('project:read', 'Read access to projects.'),
+    ),
+    (
+        ('project:releases', 'Read, write, and admin access to project releases.'),
+    ),
+    (
+        ('event:admin', 'Read, write, and admin access to events.'),
+        ('event:write', 'Read and write access to events.'),
+        ('event:read', 'Read access to events.'),
+    ),
+)
 
 SENTRY_DEFAULT_ROLE = 'member'
 
@@ -1015,7 +1046,7 @@ SENTRY_ROLES = (
         'name': 'Member',
         'desc': 'Members can view and act on events, as well as view most other data within the organization.',
         'scopes': set([
-            'event:read', 'event:write', 'event:delete', 'project:releases',
+            'event:read', 'event:write', 'event:admin', 'project:releases',
             'project:read', 'org:read', 'member:read', 'team:read',
         ]),
     },
@@ -1024,10 +1055,10 @@ SENTRY_ROLES = (
         'name': 'Admin',
         'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
         'scopes': set([
-            'event:read', 'event:write', 'event:delete',
+            'event:read', 'event:write', 'event:admin',
             'org:read', 'member:read',
-            'project:read', 'project:write', 'project:delete', 'project:releases',
-            'team:read', 'team:write', 'team:delete',
+            'project:read', 'project:write', 'project:admin', 'project:releases',
+            'team:read', 'team:write', 'team:admin',
         ]),
     },
     {
@@ -1036,10 +1067,10 @@ SENTRY_ROLES = (
         'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
         'is_global': True,
         'scopes': set([
-            'event:read', 'event:write', 'event:delete',
-            'member:read', 'member:write', 'member:delete',
-            'project:read', 'project:write', 'project:delete', 'project:releases',
-            'team:read', 'team:write', 'team:delete',
+            'event:read', 'event:write', 'event:admin',
+            'member:read', 'member:write', 'member:admin',
+            'project:read', 'project:write', 'project:admin', 'project:releases',
+            'team:read', 'team:write', 'team:admin',
             'org:read', 'org:write',
         ]),
     },
@@ -1049,11 +1080,11 @@ SENTRY_ROLES = (
         'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
         'is_global': True,
         'scopes': set([
-            'org:read', 'org:write', 'org:delete',
-            'member:read', 'member:write', 'member:delete',
-            'team:read', 'team:write', 'team:delete',
-            'project:read', 'project:write', 'project:delete', 'project:releases',
-            'event:read', 'event:write', 'event:delete',
+            'org:read', 'org:write', 'org:admin',
+            'member:read', 'member:write', 'member:admin',
+            'team:read', 'team:write', 'team:admin',
+            'project:read', 'project:write', 'project:admin', 'project:releases',
+            'event:read', 'event:write', 'event:admin',
         ]),
     },
 )

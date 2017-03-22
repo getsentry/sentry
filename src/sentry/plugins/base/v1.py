@@ -320,7 +320,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin):
             'group': group,
             'event': event,
             'can_admin_event': request.access.has_scope('event:write'),
-            'can_remove_event': request.access.has_scope('event:delete'),
+            'can_remove_event': request.access.has_scope('event:admin'),
         })
 
     def view(self, request, group, **kwargs):

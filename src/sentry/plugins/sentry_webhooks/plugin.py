@@ -87,6 +87,8 @@ class WebHooksPlugin(notify.NotificationPlugin):
         }
         data['event'] = dict(event.data or {})
         data['event']['tags'] = event.get_tags()
+        data['event']['event_id'] = event.event_id
+        data['event']['id'] = event.id
         return data
 
     def get_webhook_urls(self, project):
