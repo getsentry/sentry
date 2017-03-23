@@ -57,7 +57,7 @@ class DSymPlatform(object):
 
 class DSymAppManager(BaseManager):
 
-    def create_or_update(self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC):
+    def create_or_update_app(self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC):
         if data is None:
             data = {}
         existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
