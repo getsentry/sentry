@@ -55,12 +55,21 @@ class DSymPlatform(object):
     ANDROID = 2
 
 
+DSYM_PLATFORMS = {
+    'generic': DSymPlatform.GENERIC,
+    'apple': DSymPlatform.APPLE,
+    'android': DSymPlatform.ANDROID,
+}
+
+
 class DSymAppManager(BaseManager):
 
-    def create_or_update_app(self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC):
+    def create_or_update_app(self, sync_id, app_id, project, data=None,
+                             platform=DSymPlatform.GENERIC):
         if data is None:
             data = {}
-        existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
+        existing_app = DSymApp.objects.filter(
+            app_id=app_id, project=project).first()
         if existing_app is not None:
             now = timezone.now()
             existing_app.update(
@@ -88,9 +97,9 @@ class DSymApp(Model):
     sync_id = models.CharField(max_length=64, null=True)
     data = JSONField()
     platform = BoundedPositiveIntegerField(default=0, choices=(
-        (DSymPlatform.GENERIC, _('generic')),
-        (DSymPlatform.APPLE, _('apple')),
-        (DSymPlatform.ANDROID, _('android'))
+        (DSymPlatform.GENERIC, _('Generic')),
+        (DSymPlatform.APPLE, _('Apple')),
+        (DSymPlatform.ANDROID, _('Android')),
     ))
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
