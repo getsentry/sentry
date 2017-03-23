@@ -60,8 +60,8 @@ class DSymAppManager(BaseManager):
     def create_or_update(self, sync_id, app_id, project, data=None, platform=DSymPlatform.GENERIC):
         if data is None:
             data = {}
-        existing_app = DSymApp.objects.filter(app_id=app_id, project=project)
-        if existing_app:
+        existing_app = DSymApp.objects.filter(app_id=app_id, project=project).first()
+        if existing_app is not None:
             now = timezone.now()
             existing_app.update(
                 sync_id=sync_id,
