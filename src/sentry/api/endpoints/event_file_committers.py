@@ -124,12 +124,14 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         sorted_committers = sorted(committers, key=committers.get)
         sentry_user_dict = get_users_for_commits(commits)
 
+        # serialize the commit objects
         serialized_annotated_frames = [{
             'frame': frame['frame'],
             'commits': serialize(frame['commits'])
         } for frame in annotated_frames]
 
         data = {
+            # map author ids to sentry user dicts
             'committers': [sentry_user_dict[author_id] for author_id in sorted_committers],
             'annotatedFrames': serialized_annotated_frames
         }
