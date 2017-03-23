@@ -4,7 +4,7 @@
 #      and: https://github.com/samdmarshall/pyconfig/blob/develop/Dangerfile
 
 # set the number of lines that must be changed before this classifies as a "Big PR"
-@S_BIG_PR_LINES ||= 500
+@S_BIG_PR_LINES ||= 0
 
 # require changelog entry if number of lines changed is beyond this
 @S_CHANGE_LINES ||= 50
@@ -38,7 +38,7 @@
 # set the patterns to watch and warn about if they need security review
 @S_SECURITY_FILE_PATTERN ||= /Dangerfile|(auth|login|permission|email|twofactor|sudo).*\.py/
 # content changes within the diff
-@S_SECURITY_CONTENT_PATTERN ||= /auth|password|secret|security/
+@S_SECURITY_CONTENT_PATTERN ||= nil
 # dont ever match against changes in these files
 @S_SECURITY_EXCLUDE_FILES ||= /test_.*\.py|migrations|south_migrations|CHANGES|tests|yarn\.lock|\.html|\.jsx/
 
@@ -52,6 +52,7 @@ def checkFiles(files_array)
 end
 
 def checkFilesPattern(pattern, exclude = nil)
+    return [] unless pattern
     git.modified_files.select do |f|
         next(false) if exclude && exclude =~ f
         next(pattern =~ f)
@@ -59,6 +60,7 @@ def checkFilesPattern(pattern, exclude = nil)
 end
 
 def checkContents(pattern, exclude = nil)
+    return [] unless pattern
     git.modified_files.select do |f|
         next(false) if exclude && exclude =~ f
         next(git.diff_for_file(f).patch =~ pattern)
@@ -94,7 +96,7 @@ end
 warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]" || github.pr_body.include?("#wip")
 
 # Warn when there is a big PR
-warn("Big PR -- consider splitting it up into multiple changesets") if git.lines_of_code > @S_BIG_PR_LINES
+warn("Big PR -- consider splitting it up into multiple changesets") if @S_BIG_PR_LINES && git.lines_of_code > @S_BIG_PR_LINES
 
 # License is immutable
 fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_FILES).any?
