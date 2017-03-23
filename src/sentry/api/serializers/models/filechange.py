@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import Commit, CommitFileChange
+from sentry.models import Commit, CommitFileChange, Repository
 from sentry.api.serializers.models.release import get_users_for_commits
 
 
@@ -18,7 +18,8 @@ class CommitFileChangeSerializer(Serializer):
             commit = commits_by_id[item.commit_id]
             result[item] = {
                 'user': author_objs.get(commit.author_id, {}),
-                'message': commit.message
+                'message': commit.message,
+                'repository_name': Repository.objects.get(id=commit.repository_id).name
             }
 
         return result
@@ -26,9 +27,10 @@ class CommitFileChangeSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
-            'org_id': obj.organization_id,
+            'orgId': obj.organization_id,
             'author': attrs.get('user', {}),
-            'commit_message': attrs.get('message', ''),
+            'commitMessage': attrs.get('message', ''),
             'filename': obj.filename,
-            'type': obj.type
+            'type': obj.type,
+            'repoName': attrs.get('repository_name', ''),
         }

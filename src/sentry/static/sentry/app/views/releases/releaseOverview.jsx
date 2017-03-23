@@ -149,11 +149,28 @@ const ReleaseOverview = React.createClass({
     // convert list of individual file changes (can be
     // multiple changes to a single file) into a per-file
     // summary
+    let filesByRepository = fileList.reduce(function (fbr, file) {
+      let {filename, repoName, author, type} = file;
+      if (!fbr.hasOwnProperty(repoName)) {
+        fbr[repoName] = {};
+      }
+      if (!fbr[repoName].hasOwnProperty(filename)) {
+          fbr[repoName][filename] = {
+          authors: {}, types: new Set(), repos: new Set(),
+        };
+      }
+
+      fbr[repoName][filename].authors[author.email] = author;
+      fbr[repoName][filename].types.add(type);
+
+      return fbr;
+    }, {});
+    console.log(filesByRepository);
     let fileChangeSummary = fileList.reduce(function (summary, fileChange) {
       let {author, type, filename} = fileChange;
       if (!summary.hasOwnProperty(filename)) {
         summary[filename] = {
-          authors: {}, types: new Set()
+          authors: {}, types: new Set(), repos: new Set(),
         };
       }
 
@@ -162,17 +179,17 @@ const ReleaseOverview = React.createClass({
 
       return summary;
     }, {});
-
+    // console.log(fileChangeSummary);
     let fileCount = Object.keys(fileChangeSummary).length;
 
-    const MAX = ReleaseOverview.MAX_WHEN_COLLAPSED;
+    // const MAX = ReleaseOverview.MAX_WHEN_COLLAPSED;
 
-    let files = Object.keys(fileChangeSummary);
-    files.sort();
-    if (this.state.collapsed && fileCount > MAX) {
-      files = files.slice(0, MAX);
-    }
-    let numCollapsed = fileCount - files.length;
+    // let files = Object.keys(fileChangeSummary);
+    // files.sort();
+    // if (this.state.collapsed && fileCount > MAX) {
+    //   files = files.slice(0, MAX);
+    // }
+    // let numCollapsed = fileCount - files.length;
     let deploys = this.state.deploys;
     return (
       <div>
@@ -206,19 +223,25 @@ const ReleaseOverview = React.createClass({
             {hasRepos &&
               <div>
                 <h5>{fileCount} Files Changed</h5>
-                <ul className="list-group list-group-striped m-b-2">
-                  {files.map(filename => {
-                    return (
-                      <FileChange
-                        key={fileChangeSummary[filename].id}
-                        filename={filename}
-                        authors={Object.values(fileChangeSummary[filename].authors)}
-                        types={fileChangeSummary[filename].types}
-                        />
-                    );
-                  })}
-                  {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-                </ul>
+                {Object.keys(filesByRepository).map(repository => {
+                  let files = Object.keys(filesByRepository[repository]);
+                  files.sort();
+                  return(
+                    <ul className="list-group list-group-striped m-b-2">
+                    <h6>{repository}: </h6>
+                    {files.map(filename => {
+                    let {id, authors, types} = filesByRepository[repository][filename];
+                      return (
+                        <FileChange
+                          key={id}
+                          filename={filename}
+                          authors={Object.values(authors)}
+                          types={types}
+                          />
+                      );
+                    })}
+                    </ul>);
+                })}
               </div>
             }
           </div>
