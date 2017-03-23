@@ -14,6 +14,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
 from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
     GroupTagValue, Release, User, UserReport,
@@ -144,6 +145,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
                                              _with_transaction=False)
         return plugin_issues
 
+    def _get_context_plugins(self, request, group):
+        project = group.project
+        return serialize([
+            plugin
+            for plugin in plugins.for_project(project, version=None)
+            if plugin.has_project_conf() and hasattr(plugin, 'get_custom_contexts')
+            and plugin.get_custom_contexts()
+        ], request.user, PluginSerializer(project))
+
     def _get_release_info(self, request, group, version):
         try:
             release = Release.objects.get(
@@ -241,6 +251,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             'participants': serialize(participants, request.user),
             'pluginActions': action_list,
             'pluginIssues': self._get_available_issue_plugins(request, group),
+            'pluginContexts': self._get_context_plugins(request, group),
             'userReportCount': UserReport.objects.filter(group=group).count(),
             'tags': sorted(serialize(tags, request.user), key=lambda x: x['name']),
             'stats': {
