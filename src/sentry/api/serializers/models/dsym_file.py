@@ -34,7 +34,7 @@ class VersionDSymFileSerializer(Serializer):
             'version': obj.version,
             'build': obj.build,
             'dateAdded': obj.date_added,
-            'appID': obj.dsym_app_id,
+            'dsymAppId': obj.dsym_app_id,
             'dsym': serialize(obj.dsym_file)
         }
         return d
@@ -46,9 +46,8 @@ class DSymAppSerializer(Serializer):
         d = {
             'id': six.text_type(obj.id),
             'iconUrl': obj.data.get('icon_url', None),
-            'bundleID': obj.data.get('bundle_id', None),
+            'appId': six.text_type(obj.app_id),
             'name': obj.data.get('name', None),
-            'appID': obj.data.get('id', None),
             'platforms': ', '.join(obj.data.get('platforms', [])),
             'lastSync': obj.last_synced,
         }
