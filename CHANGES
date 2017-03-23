@@ -8,6 +8,7 @@ Version 8.15 (Unreleased)
 - Added deploy email
 - Added OAuth2 support to the web API.
 - Resolve issues when commits with ``Fixes SHORTID`` are included in releases
+- Added support for associating debug symbols with iTunes applications and builds.
 
 API Changes
 ~~~~~~~~~~~
