@@ -13,13 +13,13 @@ class EventCommittersTest(APITestCase):
         group = self.create_group()
 
         event = self.create_event(
-            event_id=1,
+            event_id='a',
             group=group,
             datetime=datetime(2016, 8, 13, 3, 8, 25),
         )
 
         url = reverse('sentry-api-0-event-file-committers', kwargs={
-            'event_id': event.event_id,
+            'event_id': event.id,
             'project_slug': event.project.slug,
             'organization_slug': event.project.organization.slug,
         })
