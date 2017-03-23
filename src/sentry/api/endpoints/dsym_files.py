@@ -124,6 +124,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         data = serializer.object
+        data['appId'] = 'com.clickgamer.AngryBirds'
 
         associated = []
         dsym_app = DSymApp.objects.create_or_update_app(
