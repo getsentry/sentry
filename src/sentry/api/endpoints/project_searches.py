@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry.api.bases.project import ProjectEndpoint, RelaxedSearchPermission
 from sentry.api.serializers import serialize
 from sentry.models import SavedSearch, SavedSearchUserDefault
+from sentry.signals import save_search_created
 
 
 class SavedSearchSerializer(serializers.Serializer):
@@ -69,6 +70,8 @@ class ProjectSearchesEndpoint(ProjectEndpoint):
                         is_default=result.get('isDefault', False),
                         owner=(None if request.access.has_scope('project:write') else request.user)
                     )
+                    save_search_created.send(project=project, sender=self)
+
                 except IntegrityError:
                     return Response({
                         'detail': 'Search with same name already exists.'

@@ -13,6 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
     AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember
 )
+from sentry.signals import sso_enabled
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
 
@@ -99,6 +100,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             else:
                 # TODO(dcramer): proper error message
                 return Response({'detail': ERR_UNINVITABLE}, status=400)
+        if has_sso:
+            sso_enabled.send(organization=organization, sender=request.user)
+
         return Response(status=204)
 
     def delete(self, request, organization, member_id):

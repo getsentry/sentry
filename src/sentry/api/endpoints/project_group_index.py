@@ -27,7 +27,9 @@ from sentry.models import (
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
+from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
+from sentry.signals import advanced_search, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
@@ -37,6 +39,7 @@ delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
 
 
 @scenario('BulkUpdateIssues')
@@ -214,6 +217,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             stats_period = None
 
         query = request.GET.get('query', '').strip()
+
         if query:
             matching_group = None
             matching_event = None
@@ -280,6 +284,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
         ])
+
+        if results and query not in SAVED_SEARCH_QUERIES:
+            advanced_search.send(project=project, sender=request.user)
 
         return response
 
@@ -424,6 +431,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     # before sending notifications on bulk changes
                     if not is_bulk:
                         activity.send_notification()
+
+                    issue_resolved_in_release.send(project=project, sender=acting_user)
 
             queryset.update(
                 status=GroupStatus.RESOLVED,
