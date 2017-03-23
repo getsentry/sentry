@@ -5,40 +5,21 @@ from django.db.models.signals import post_save
 from sentry.models import Project, SavedSearch
 
 
+DEFAULT_SAVED_SEARCHES = [
+    {'name': 'Unresolved Issues', 'query': 'is:unresolved', 'is_default': True},
+    {'name': 'Needs Triage', 'query': 'is:unresolved is:unassigned'},
+    {'name': 'Assigned To Me', 'query': 'is:unresolved assigned:me'},
+    {'name': 'My Bookmarks', 'query': 'is:unresolved bookmarks:me'},
+    {'name': 'New Today', 'query': 'is:unresolved age:-24h'},
+]
+
+
 def create_default_saved_searches(instance, created=True, **kwargs):
     if not created:
         return
 
-    SavedSearch.objects.create(
-        project=instance,
-        name='Unresolved Issues',
-        query='is:unresolved',
-        is_default=True,
-    )
-
-    SavedSearch.objects.create(
-        project=instance,
-        name='Needs Triage',
-        query='is:unresolved is:unassigned',
-    )
-
-    SavedSearch.objects.create(
-        project=instance,
-        name='Assigned To Me',
-        query='is:unresolved assigned:me',
-    )
-
-    SavedSearch.objects.create(
-        project=instance,
-        name='My Bookmarks',
-        query='is:unresolved bookmarks:me',
-    )
-
-    SavedSearch.objects.create(
-        project=instance,
-        name='New Today',
-        query='is:unresolved age:-24h',
-    )
+    for search_kwargs in DEFAULT_SAVED_SEARCHES:
+        SavedSearch.objects.create(project=instance, **search_kwargs)
 
 
 post_save.connect(
