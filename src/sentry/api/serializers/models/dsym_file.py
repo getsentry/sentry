@@ -34,7 +34,7 @@ class VersionDSymFileSerializer(Serializer):
             'version': obj.version,
             'build': obj.build,
             'dateAdded': obj.date_added,
-            'appID': obj.app_id,
+            'appID': obj.dsym_app_id,
             'dsym': serialize(obj.dsym_file)
         }
         return d

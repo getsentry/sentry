@@ -18,11 +18,12 @@ from jsonfield import JSONField
 from itertools import chain
 from django.db import models, router, transaction, connection, IntegrityError
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from symsynd.macho.arch import get_macho_uuids
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
-    sane_repr, BaseManager
+    sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
@@ -36,9 +37,9 @@ class VersionDSymFile(Model):
 
     objects = BaseManager()
     dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile', null=True)
-    app = FlexibleForeignKey('sentry.DSymApp')
+    dsym_app = FlexibleForeignKey('sentry.DSymApp')
     version = models.CharField(max_length=32)
-    build = models.CharField(max_length=32)
+    build = models.CharField(max_length=32, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -47,23 +48,32 @@ class VersionDSymFile(Model):
         unique_together = (('dsym_file', 'version', 'build'),)
 
 
+# TODO(dcramer): pull in enum library
+class DSymPlatform(object):
+    GENERIC = 0
+    APPLE = 1
+    ANDROID = 2
+
+
 class DSymAppManager(BaseManager):
 
-    def create_or_update(self, app, project):
-        app_id = app['id']
+    def create_or_update(self, sync_id, app_id, project, data={}, platform=DSymPlatform.GENERIC):
         exsisting_app = DSymApp.objects.filter(app_id=app_id, project=project)
         if exsisting_app:
             now = timezone.now()
             exsisting_app.update(
-                data=app,
+                sync_id=sync_id,
+                data=data,
                 last_synced=now,
             )
             return exsisting_app
 
         return BaseManager.create(self,
+            sync_id=sync_id,
             app_id=app_id,
-            data=app,
-            project=project
+            data=data,
+            project=project,
+            platform=platform
         )
 
 
@@ -72,14 +82,21 @@ class DSymApp(Model):
 
     objects = DSymAppManager()
     project = FlexibleForeignKey('sentry.Project')
-    app_id = models.CharField(max_length=40, unique=True)
+    app_id = models.CharField(max_length=64)
+    sync_id = models.CharField(max_length=64, null=True)
     data = JSONField()
+    platform = BoundedPositiveIntegerField(default=0, choices=(
+        (DSymPlatform.GENERIC, _('generic')),
+        (DSymPlatform.APPLE, _('apple')),
+        (DSymPlatform.ANDROID, _('android'))
+    ))
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_dsymapp'
+        unique_together = (('project', 'platform', 'app_id'),)
 
 
 class DSymSDKManager(BaseManager):
