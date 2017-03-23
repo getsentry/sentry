@@ -42,7 +42,7 @@ class RedisTSDBTest(TestCase):
         assert result == 'bf4e529197e56a48ae2737505b9736e4'
 
     def test_simple(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         def timestamp(d):
@@ -80,6 +80,33 @@ class RedisTSDBTest(TestCase):
         assert results == {
             1: 9,
             2: 4,
+        }
+
+        self.db.merge(TSDBModel.project, 1, [2], now)
+
+        results = self.db.get_range(TSDBModel.project, [1], dts[0], dts[-1])
+        assert results == {
+            1: [
+                (timestamp(dts[0]), 1),
+                (timestamp(dts[1]), 3),
+                (timestamp(dts[2]), 1),
+                (timestamp(dts[3]), 8),
+            ],
+        }
+        results = self.db.get_range(TSDBModel.project, [2], dts[0], dts[-1])
+        assert results == {
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 13,
+            2: 0,
         }
 
     def test_count_distinct(self):

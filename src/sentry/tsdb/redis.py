@@ -213,6 +213,58 @@ class RedisTSDB(BaseTSDB):
             results_by_key[key] = sorted(points.items())
         return dict(results_by_key)
 
+    def merge(self, model, destination, sources, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
+                end=None,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+
+        with self.cluster.map() as client:
+            data = {}
+            for rollup, series in rollups.items():
+                data[rollup] = {}
+                for timestamp in series:
+                    results = data[rollup][timestamp] = []
+                    for source in sources:
+                        source_model_key = self.get_model_key(source)
+                        key = self.make_counter_key(
+                            model,
+                            self.normalize_to_rollup(timestamp, rollup),
+                            source_model_key,
+                        )
+                        results.append(client.hget(key, source_model_key))
+                        client.hdel(key, source_model_key)
+
+        with self.cluster.map() as client:
+            destination_model_key = self.get_model_key(destination)
+
+            for rollup, series in data.items():
+                for timestamp, results in series.items():
+                    total = sum(int(result.value or 0) for result in results)
+                    if total:
+                        destination_counter_key = self.make_counter_key(
+                            model,
+                            self.normalize_to_rollup(timestamp, rollup),
+                            destination_model_key,
+                        )
+                        client.hincrby(
+                            destination_counter_key,
+                            destination_model_key,
+                            total,
+                        )
+                        client.expireat(
+                            destination_counter_key,
+                            self.calculate_expiry(
+                                rollup,
+                                self.rollups[rollup],
+                                timestamp,
+                            ),
+                        )
+
     def record(self, model, key, values, timestamp=None):
         self.record_multi(((model, key, values),), timestamp)
 
