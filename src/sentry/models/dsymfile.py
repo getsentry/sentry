@@ -13,6 +13,7 @@ import shutil
 import hashlib
 import six
 import tempfile
+from requests.exceptions import RequestException
 
 from jsonfield import JSONField
 from itertools import chain
@@ -62,12 +63,30 @@ DSYM_PLATFORMS = {
 }
 
 
+def _auto_enrich_data(data, app_id, platform):
+    # If we don't have an icon URL we can try to fetch one from iTunes
+    if 'icon_url' not in data and platform == DSymPlatform.APPLE:
+        from sentry.http import safe_urlopen
+        try:
+            rv = safe_urlopen('http://itunes.apple.com/lookup', params={
+                'bundleId': app_id,
+            })
+        except RequestException:
+            pass
+        else:
+            if rv.ok:
+                rv = rv.json()
+                if rv.get('results'):
+                    data['icon_url'] = rv['results'][0]['artworkUrl512']
+
+
 class DSymAppManager(BaseManager):
 
     def create_or_update_app(self, sync_id, app_id, project, data=None,
                              platform=DSymPlatform.GENERIC):
         if data is None:
             data = {}
+        _auto_enrich_data(data, app_id, platform)
         existing_app = DSymApp.objects.filter(
             app_id=app_id, project=project).first()
         if existing_app is not None:
