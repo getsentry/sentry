@@ -394,10 +394,40 @@ class CommonDSymFile(Model):
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
 
+class ProjectDSymFileManager(BaseManager):
+
+    def find_missing(self, checksums, project):
+        if not checksums:
+            return[]
+
+        checksums = [x.lower() for x in checksums]
+        missing = set(checksums)
+
+        found = ProjectDSymFile.objects.filter(
+            file__checksum__in=checksums,
+            project=project
+        ).values('file__checksum')
+
+        for values in found:
+            missing.discard(values.values()[0])
+
+        return sorted(missing)
+
+    def find_by_checksums(self, checksums, project):
+        if not checksums:
+            return []
+        checksums = [x.lower() for x in checksums]
+        return ProjectDSymFile.objects.filter(
+            file__checksum__in=checksums,
+            project=project
+        )
+
+
 class ProjectDSymFile(CommonDSymFile):
     project = FlexibleForeignKey('sentry.Project', null=True)
     uuid = models.CharField(max_length=36)
     is_global = False
+    objects = ProjectDSymFileManager()
 
     class Meta(CommonDSymFile.Meta):
         unique_together = (('project', 'uuid'),)
@@ -526,29 +556,3 @@ def find_dsym_file(project, image_uuid):
         ).select_related('file').get()
     except GlobalDSymFile.DoesNotExist:
         return None
-
-
-def find_missing_dsym_files(checksums, project=None):
-    checksums = [x.lower() for x in checksums]
-    missing = set(checksums)
-
-    if project is not None:
-        found = ProjectDSymFile.objects.filter(
-            file__checksum__in=checksums,
-            project=project
-        ).values('file__checksum')
-
-        for values in found:
-            missing.discard(values.values()[0])
-
-        if not missing:
-            return []
-
-    found = GlobalDSymFile.objects.filter(
-        file__checksum__in=list(missing),
-    ).values('file__checksum')
-
-    for values in found:
-        missing.discard(values.values()[0])
-
-    return list(missing)

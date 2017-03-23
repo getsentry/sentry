@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from rest_framework import serializers
 
 from sentry.api.base import DocSection
 from sentry.api.base import Endpoint
@@ -8,10 +9,20 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.permissions import SystemPermission
 from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
-    find_missing_dsym_files, VersionDSymFile, DSymApp
+    VersionDSymFile, DSymApp
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
+
+
+class AssociateDsymSerializer(serializers.Serializer):
+    checksums = ListField(child=serializers.CharField(max_length=40))
+    platform = serializers.CharField(max_length=20)
+    name = serializers.CharField(max_length=250)
+    appId = serializers.CharField(max_length=250)
+    version = serializers.CharField(max_length=40)
+    build = serializers.CharField(max_length=40)
 
 
 def upload_from_request(request, project=None):
@@ -97,14 +108,22 @@ class UnknownDSymFilesEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         checksums = request.GET.getlist('checksums')
-        missing = find_missing_dsym_files(checksums, project=project)
+        missing = ProjectDSymFile.objects.find_missing(checksums, project=project)
         return Response({'missing': missing})
 
 
-class UnknownGlobalDSymFilesEndpoint(Endpoint):
-    permission_classes = (SystemPermission,)
+class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    doc_section = DocSection.PROJECTS
+    permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request):
-        checksums = request.GET.getlist('checksums')
-        missing = find_missing_dsym_files(checksums, project=None)
-        return Response({'missing': missing})
+    def post(self, request, project):
+        serializer = AssociateDsymSerializer(data=request.DATA)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        data = serializer.object
+
+        ProjectDSymFile.objects.find_by_checksums(
+            data['checksums'], project)
+
+        return Response({'data': data})
