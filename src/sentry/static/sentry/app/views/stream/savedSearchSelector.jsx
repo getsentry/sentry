@@ -19,7 +19,7 @@ const SaveSearchButton = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-
+    access: React.PropTypes.object.isRequired,
     query: React.PropTypes.string.isRequired,
     disabled: React.PropTypes.bool,
     style: React.PropTypes.object,
@@ -134,11 +134,13 @@ const SaveSearchButton = React.createClass({
                 name="is-user-default"
                 label={t('Make this the default view for myself.')}
                 onChange={this.onFieldChange.bind(this, 'isUserDefault')} />
-              <BooleanField
-                key="isDefault"
-                name="is-default"
-                label={t('Make this the default view for my team.')}
-                onChange={this.onFieldChange.bind(this, 'isDefault')} />
+              {this.props.access.has('project:write') &&
+                <BooleanField
+                  key="isDefault"
+                  name="is-default"
+                  label={t('Make this the default view for my team.')}
+                  onChange={this.onFieldChange.bind(this, 'isDefault')} />
+              }
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-default"
@@ -199,23 +201,21 @@ const SavedSearchSelector = React.createClass({
           {access.has('project:write') &&
             <MenuItem divider={true} />
           }
-          {access.has('project:write') &&
-            <li>
-              <div className="row">
-                <div className="col-md-7">
-                  <SaveSearchButton
-                      className="btn btn-sm btn-default"
-                      onSave={this.props.onSavedSearchCreate}
-                      {...this.props}>{t('Save Current Search')}</SaveSearchButton>
-                </div>
-                <div className="col-md-5">
-                  <Link
-                    to={`/${orgId}/${projectId}/settings/saved-searches/`}
-                    className="btn btn-sm btn-default">{t('Manage')}</Link>
-                </div>
+          <li>
+            <div className="row">
+              <div className="col-md-7">
+                <SaveSearchButton
+                    className="btn btn-sm btn-default"
+                    onSave={this.props.onSavedSearchCreate}
+                    {...this.props}>{t('Save Current Search')}</SaveSearchButton>
               </div>
-            </li>
-          }
+              <div className="col-md-5">
+                <Link
+                  to={`/${orgId}/${projectId}/settings/saved-searches/`}
+                  className="btn btn-sm btn-default">{t('Manage')}</Link>
+              </div>
+            </div>
+          </li>
         </DropdownLink>
       </div>
     );
