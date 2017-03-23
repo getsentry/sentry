@@ -149,7 +149,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         project = group.project
         return serialize([
             plugin
-            for plugin in plugins.configurable_for_project(project, version=None)
+            for plugin in plugins.for_project(project, version=None)
             if plugin.has_project_conf() and hasattr(plugin, 'get_custom_contexts')
             and plugin.get_custom_contexts()
         ], request.user, PluginSerializer(project))
