@@ -8,6 +8,20 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'VersionDSymFile'
+        db.create_table('sentry_versiondsymfile', (
+            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
+            ('dsym_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ProjectDSymFile'], null=True)),
+            ('dsym_app', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymApp'])),
+            ('version', self.gf('django.db.models.fields.CharField')(max_length=32)),
+            ('build', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
+            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+        ))
+        db.send_create_signal('sentry', ['VersionDSymFile'])
+
+        # Adding unique constraint on 'VersionDSymFile', fields ['dsym_file', 'version', 'build']
+        db.create_unique('sentry_versiondsymfile', ['dsym_file_id', 'version', 'build'])
+
         # Adding model 'DSymApp'
         db.create_table('sentry_dsymapp', (
             ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
@@ -24,33 +38,19 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'DSymApp', fields ['project', 'platform', 'app_id']
         db.create_unique('sentry_dsymapp', ['project_id', 'platform', 'app_id'])
 
-        # Adding model 'VersionDSymFile'
-        db.create_table('sentry_versiondsymfile', (
-            ('id', self.gf('sentry.db.models.fields.bounded.BoundedBigAutoField')(primary_key=True)),
-            ('dsym_file', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.ProjectDSymFile'], null=True)),
-            ('dsym_app', self.gf('sentry.db.models.fields.foreignkey.FlexibleForeignKey')(to=orm['sentry.DSymApp'])),
-            ('version', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('build', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
-            ('date_added', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
-        ))
-        db.send_create_signal('sentry', ['VersionDSymFile'])
-
-        # Adding unique constraint on 'VersionDSymFile', fields ['dsym_file', 'version', 'build']
-        db.create_unique('sentry_versiondsymfile', ['dsym_file_id', 'version', 'build'])
-
 
     def backwards(self, orm):
-        # Removing unique constraint on 'VersionDSymFile', fields ['dsym_file', 'version', 'build']
-        db.delete_unique('sentry_versiondsymfile', ['dsym_file_id', 'version', 'build'])
-
         # Removing unique constraint on 'DSymApp', fields ['project', 'platform', 'app_id']
         db.delete_unique('sentry_dsymapp', ['project_id', 'platform', 'app_id'])
 
-        # Deleting model 'DSymApp'
-        db.delete_table('sentry_dsymapp')
+        # Removing unique constraint on 'VersionDSymFile', fields ['dsym_file', 'version', 'build']
+        db.delete_unique('sentry_versiondsymfile', ['dsym_file_id', 'version', 'build'])
 
         # Deleting model 'VersionDSymFile'
         db.delete_table('sentry_versiondsymfile')
+
+        # Deleting model 'DSymApp'
+        db.delete_table('sentry_dsymapp')
 
 
     models = {
@@ -68,12 +68,12 @@ class Migration(SchemaMigration):
         'sentry.apiapplication': {
             'Meta': {'object_name': 'ApiApplication'},
             'allowed_origins': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'client_id': ('django.db.models.fields.CharField', [], {'default': "'f7afccd701fa44f1a47d1a967356cacc868d539649154463b16292f368aa0451'", 'unique': 'True', 'max_length': '64'}),
-            'client_secret': ('sentry.db.models.fields.encrypted.EncryptedTextField', [], {'default': "'ab395c1c026844c0bcf7fb715a949a7aa99f650c05ea47419ee9f6a6a4215b46'"}),
+            'client_id': ('django.db.models.fields.CharField', [], {'default': "'6949fb4996184c5abf84d6e2206deb2028847544b25745dcb59f9788f860cd4b'", 'unique': 'True', 'max_length': '64'}),
+            'client_secret': ('sentry.db.models.fields.encrypted.EncryptedTextField', [], {'default': "'120099c387964b1c826925621112bec1d8dbb441c0f24233b2487fa1350c03d7'"}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'homepage_url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'default': "'Flagrant Babette'", 'max_length': '64', 'blank': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'default': "'Transitive Clemente'", 'max_length': '64', 'blank': 'True'}),
             'owner': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"}),
             'privacy_url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True'}),
             'redirect_uris': ('django.db.models.fields.TextField', [], {}),
@@ -85,16 +85,18 @@ class Migration(SchemaMigration):
             'application': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.ApiApplication']", 'null': 'True'}),
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
+            'scope_list': ('sentry.db.models.fields.array.ArrayField', [], {'of': ('django.db.models.fields.TextField', [], {})}),
             'scopes': ('django.db.models.fields.BigIntegerField', [], {'default': 'None'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.apigrant': {
             'Meta': {'object_name': 'ApiGrant'},
             'application': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.ApiApplication']"}),
-            'code': ('django.db.models.fields.CharField', [], {'default': "'f55ac7b8537c4e23b6ffbf1807f21868'", 'max_length': '64', 'db_index': 'True'}),
+            'code': ('django.db.models.fields.CharField', [], {'default': "'c52f5a5dc7dd41448dc017bd251144dc'", 'max_length': '64', 'db_index': 'True'}),
             'expires_at': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 3, 23, 0, 0)', 'db_index': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'redirect_uri': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
+            'scope_list': ('sentry.db.models.fields.array.ArrayField', [], {'of': ('django.db.models.fields.TextField', [], {})}),
             'scopes': ('django.db.models.fields.BigIntegerField', [], {'default': 'None'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
@@ -106,6 +108,7 @@ class Migration(SchemaMigration):
             'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '32'}),
             'label': ('django.db.models.fields.CharField', [], {'default': "'Default'", 'max_length': '64', 'blank': 'True'}),
             'organization': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'key_set'", 'to': "orm['sentry.Organization']"}),
+            'scope_list': ('sentry.db.models.fields.array.ArrayField', [], {'of': ('django.db.models.fields.TextField', [], {})}),
             'scopes': ('django.db.models.fields.BigIntegerField', [], {'default': 'None'}),
             'status': ('sentry.db.models.fields.bounded.BoundedPositiveIntegerField', [], {'default': '0', 'db_index': 'True'})
         },
@@ -115,9 +118,10 @@ class Migration(SchemaMigration):
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'expires_at': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime(2017, 4, 22, 0, 0)', 'null': 'True'}),
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
-            'refresh_token': ('django.db.models.fields.CharField', [], {'default': "'19b4dedb8cc24daebff1f15ec39bb96231f0e9a7b43145ac95949f51212eaa1a'", 'max_length': '64', 'unique': 'True', 'null': 'True'}),
+            'refresh_token': ('django.db.models.fields.CharField', [], {'default': "'4f556f8dc184403fa0cd07e85a1a388204ca73f817294a0a9652081c86929bca'", 'max_length': '64', 'unique': 'True', 'null': 'True'}),
+            'scope_list': ('sentry.db.models.fields.array.ArrayField', [], {'of': ('django.db.models.fields.TextField', [], {})}),
             'scopes': ('django.db.models.fields.BigIntegerField', [], {'default': 'None'}),
-            'token': ('django.db.models.fields.CharField', [], {'default': "'b25013fe36944364b34a587f86a139519f6239f60ca44e638cd69848a417e35b'", 'unique': 'True', 'max_length': '64'}),
+            'token': ('django.db.models.fields.CharField', [], {'default': "'da4ff55914c148c1b652ef734ac727adc0fc7dc596a2445199009467c7d51337'", 'unique': 'True', 'max_length': '64'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'to': "orm['sentry.User']"})
         },
         'sentry.auditlogentry': {
@@ -824,7 +828,7 @@ class Migration(SchemaMigration):
             'id': ('sentry.db.models.fields.bounded.BoundedBigAutoField', [], {'primary_key': 'True'}),
             'is_verified': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'user': ('sentry.db.models.fields.foreignkey.FlexibleForeignKey', [], {'related_name': "'emails'", 'to': "orm['sentry.User']"}),
-            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'Jd9DaRD3fynEu9PRc3utgXT5go5VTIGf'", 'max_length': '32'})
+            'validation_hash': ('django.db.models.fields.CharField', [], {'default': "u'MJgpqztt1JFwT0a7mqP7bJys66oGvuWt'", 'max_length': '32'})
         },
         'sentry.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
