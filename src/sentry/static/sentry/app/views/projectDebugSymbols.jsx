@@ -149,7 +149,7 @@ const ProjectDebugSymbols = React.createClass({
                 <div className="box-header clearfix">
                   <div className="row">
                     <h3 className="debug-symbols">
-                      <img src={app.iconUrl} width="28" height="28" style={{marginRight: 8}} />
+                      <div className="app-icon" style={{backgroundImage: `url(${app.iconUrl})`}} />
                       {app.name} <small>({app.bundleID})</small>
                     </h3>
                   </div>
