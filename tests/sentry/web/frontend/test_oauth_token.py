@@ -156,7 +156,7 @@ class OAuthTokenCodeTest(TestCase):
         token = ApiToken.objects.get(token=data['access_token'])
         assert token.application == self.application
         assert token.user == self.grant.user
-        assert token.scopes == self.grant.scopes
+        assert token.get_scopes() == self.grant.get_scopes()
 
         assert data['access_token'] == token.token
         assert data['refresh_token'] == token.refresh_token
@@ -278,7 +278,7 @@ class OAuthTokenRefreshTokenTest(TestCase):
 
         assert token2.application == self.token.application
         assert token2.user == self.token.user
-        assert token2.scopes == self.token.scopes
+        assert token2.get_scopes() == self.token.get_scopes()
         assert token2.expires_at > self.token.expires_at
         assert token2.token != self.token.token
         assert token2.refresh_token != self.token.refresh_token

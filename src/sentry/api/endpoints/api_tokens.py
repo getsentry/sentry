@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
-from operator import or_
+from django.conf import settings
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from six.moves import reduce
 
 from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.fields import MultipleChoiceField
@@ -15,7 +14,7 @@ from sentry.models import ApiToken
 class ApiTokenSerializer(serializers.Serializer):
     scopes = MultipleChoiceField(
         required=True,
-        choices=ApiToken.scopes.keys(),
+        choices=settings.SENTRY_SCOPES,
     )
 
 
@@ -43,9 +42,7 @@ class ApiTokensEndpoint(Endpoint):
 
             token = ApiToken.objects.create(
                 user=request.user,
-                scopes=reduce(or_, (
-                    getattr(ApiToken.scopes, k) for k in result['scopes']
-                )),
+                scope_list=result['scopes'],
                 refresh_token=None,
                 expires_at=None,
             )

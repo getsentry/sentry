@@ -22,6 +22,7 @@ def create_new_org_release_scenario(runner):
         data={
             'version': '2.0rc2',
             'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
+            'projects': [runner.default_project.slug],
         }
     )
 
@@ -44,8 +45,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
     @attach_scenarios([list_org_releases_scenario])
     def get(self, request, organization):
         """
-        List an Organizations Releases
-        ``````````````````````````````
+        List an Organization's Releases
+        ```````````````````````````````
         Return a list of releases for a given organization.
 
         :pparam string organization_slug: the organization short name
@@ -56,7 +57,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
 
         queryset = Release.objects.filter(
             organization=organization,
-            projects=self.get_allowed_projects(request, organization)
+            projects__in=self.get_allowed_projects(request, organization)
         ).select_related('owner')
 
         if query:

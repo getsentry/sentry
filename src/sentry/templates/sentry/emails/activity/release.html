@@ -45,6 +45,10 @@
     <h6 style="margin-top: 10px">Commits</h6>
     <div class="table-border">
       <table class="table commit-list" style="margin-bottom: 0;">
+        <colgroup>
+          <col width="48px">
+          <col width="400px">
+        </colgroup>
         {% for repo in repos %}
           <tr>
             <th class="lowercase" colspan="3">{{ repo.name }}</th>
@@ -80,7 +84,7 @@
                   {% else %}
                     No author provided
                   {% endif %}
-                   &middot; {{ commit.date_added|timesince }}
+                   &middot; {{ commit.date_added }}
                 </div>
               </td>
               <td class="align-right">

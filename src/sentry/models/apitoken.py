@@ -4,12 +4,12 @@ import six
 
 from bitfield import BitField
 from datetime import timedelta
-from django.db import IntegrityError, models, transaction
+from django.db import models, transaction
 from django.utils import timezone
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, FlexibleForeignKey, sane_repr
+    ArrayField, Model, BaseManager, FlexibleForeignKey, sane_repr
 )
 
 DEFAULT_EXPIRATION = timedelta(days=30)
@@ -48,6 +48,7 @@ class ApiToken(Model):
         ('member:write', 'member:write'),
         ('member:admin', 'member:admin'),
     ))
+    scope_list = ArrayField(of=models.TextField)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager(cache_fields=(
@@ -69,20 +70,12 @@ class ApiToken(Model):
 
     @classmethod
     def from_grant(cls, grant):
-        try:
-            with transaction.atomic():
-                return cls.objects.create(
-                    application=grant.application,
-                    user=grant.user,
-                    scopes=grant.scopes,
-                )
-        except IntegrityError:
-            instance = cls.objects.get(
+        with transaction.atomic():
+            return cls.objects.create(
                 application=grant.application,
                 user=grant.user,
+                scope_list=grant.get_scopes(),
             )
-            instance.update(scopes=grant.scopes)
-            return instance
 
     def is_expired(self):
         if not self.expires_at:
@@ -92,14 +85,16 @@ class ApiToken(Model):
 
     def get_audit_log_data(self):
         return {
-            'scopes': int(self.scopes),
+            'scopes': self.get_scopes(),
         }
 
     def get_scopes(self):
+        if self.scope_list:
+            return self.scope_list
         return [k for k, v in six.iteritems(self.scopes) if v]
 
     def has_scope(self, scope):
-        return scope in self.scopes
+        return scope in self.get_scopes()
 
     def get_allowed_origins(self):
         if self.application:

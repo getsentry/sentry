@@ -538,7 +538,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # test right org, wrong permissions level
         bad_api_key = ApiKey.objects.create(
             organization=org,
-            scopes=getattr(ApiKey.scopes, 'project:read'),
+            scope_list=['project:read'],
         )
         response = self.client.post(url,
             data={
@@ -550,7 +550,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # test wrong org, right permissions level
         wrong_org_api_key = ApiKey.objects.create(
             organization=org2,
-            scopes=getattr(ApiKey.scopes, 'project:write'),
+            scope_list=['project:write'],
         )
         response = self.client.post(url,
             data={
@@ -562,7 +562,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # test right org, right permissions level
         good_api_key = ApiKey.objects.create(
             organization=org,
-            scopes=getattr(ApiKey.scopes, 'project:write'),
+            scope_list=['project:write'],
         )
         response = self.client.post(url,
             data={

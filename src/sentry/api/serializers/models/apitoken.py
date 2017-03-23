@@ -27,7 +27,7 @@ class ApiTokenSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         data = {
             'id': six.text_type(obj.id),
-            'scopes': [k for k, v in six.iteritems(obj.scopes) if v],
+            'scopes': obj.get_scopes(),
             'application': attrs['application'],
             'expiresAt': obj.expires_at,
             'dateCreated': obj.date_added,

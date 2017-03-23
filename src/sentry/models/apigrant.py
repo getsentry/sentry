@@ -1,12 +1,14 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from bitfield import BitField
 from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 from uuid import uuid4
 
-from sentry.db.models import Model, FlexibleForeignKey
+from sentry.db.models import ArrayField, Model, FlexibleForeignKey
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
@@ -46,6 +48,7 @@ class ApiGrant(Model):
         ('member:write', 'member:write'),
         ('member:admin', 'member:admin'),
     ))
+    scope_list = ArrayField(of=models.TextField)
 
     class Meta:
         app_label = 'sentry'
@@ -54,6 +57,14 @@ class ApiGrant(Model):
     @classmethod
     def generate_code(cls):
         return uuid4().hex
+
+    def get_scopes(self):
+        if self.scope_list:
+            return self.scope_list
+        return [k for k, v in six.iteritems(self.scopes) if v]
+
+    def has_scope(self, scope):
+        return scope in self.get_scopes()
 
     def is_expired(self):
         return timezone.now() >= self.expires_at
