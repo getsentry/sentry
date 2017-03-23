@@ -94,8 +94,12 @@ def merge_group(from_object_id=None, to_object_id=None, transaction_id=None,
         return
 
     features.merge(new_group, [group], allow_unsafe=True)
+
     for model in [tsdb.models.group]:
         tsdb.merge(model, new_group.id, [group.id])
+
+    for model in [tsdb.models.users_affected_by_group]:
+        tsdb.merge_distinct_counts(model, new_group.id, [group.id])
 
     previous_group_id = group.id
 
