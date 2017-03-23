@@ -121,16 +121,16 @@ const ProjectDebugSymbols = React.createClass({
   renderResults() {
     let groupedDsyms = [];
     this.state.debugSymbols.map((dsym, idx) => {
-      if (groupedDsyms[dsym.appID] === undefined) {
-        groupedDsyms[dsym.appID] = [];
+      if (groupedDsyms[dsym.dsymAppId] === undefined) {
+        groupedDsyms[dsym.dsymAppId] = [];
       }
-      if (groupedDsyms[dsym.appID][dsym.version] === undefined) {
-        groupedDsyms[dsym.appID][dsym.version] = [];
+      if (groupedDsyms[dsym.dsymAppId][dsym.version] === undefined) {
+        groupedDsyms[dsym.dsymAppId][dsym.version] = [];
       }
-      if (groupedDsyms[dsym.appID][dsym.version][dsym.build] === undefined) {
-        groupedDsyms[dsym.appID][dsym.version][dsym.build] = [];
+      if (groupedDsyms[dsym.dsymAppId][dsym.version][dsym.build] === undefined) {
+        groupedDsyms[dsym.dsymAppId][dsym.version][dsym.build] = [];
       }
-      groupedDsyms[dsym.appID][dsym.version][dsym.build].push(dsym);
+      groupedDsyms[dsym.dsymAppId][dsym.version][dsym.build].push(dsym);
     });
 
     let indexedApps = [];
@@ -149,8 +149,8 @@ const ProjectDebugSymbols = React.createClass({
                 <div className="box-header clearfix">
                   <div className="row">
                     <h3 className="debug-symbols">
-                      <div className="app-icon" style={{backgroundImage: `url(${app.iconUrl})`}} />
-                      {app.name} <small>({app.bundleID})</small>
+                      <div className="app-icon" style={app.iconUrl && {backgroundImage: `url(${app.iconUrl})`}} />
+                      {app.name} <small>({app.appId})</small>
                     </h3>
                   </div>
                 </div>
