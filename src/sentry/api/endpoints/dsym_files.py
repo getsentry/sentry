@@ -11,14 +11,16 @@ from sentry.api.permissions import SystemPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
-    VersionDSymFile, DSymApp
+    VersionDSymFile, DSymApp, DSYM_PLATFORMS
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
 
 
 class AssociateDsymSerializer(serializers.Serializer):
     checksums = ListField(child=serializers.CharField(max_length=40))
-    platform = serializers.CharField(max_length=20)
+    platform = serializers.ChoiceField(choices=zip(
+        DSYM_PLATFORMS.keys(), DSYM_PLATFORMS.keys(),
+    ))
     name = serializers.CharField(max_length=250)
     appId = serializers.CharField(max_length=250)
     version = serializers.CharField(max_length=40)
@@ -123,7 +125,27 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 
         data = serializer.object
 
-        ProjectDSymFile.objects.find_by_checksums(
+        associated = []
+        dsym_app = DSymApp.objects.create_or_update_app(
+            sync_id=None,
+            app_id=data['appId'],
+            project=project,
+            data={'name': data['name']},
+            platform=DSYM_PLATFORMS[data['platform']],
+        )
+        dsym_files = ProjectDSymFile.objects.find_by_checksums(
             data['checksums'], project)
 
-        return Response({'data': data})
+        for dsym_file in dsym_files:
+            version_dsym_file, created = VersionDSymFile.objects.get_or_create(
+                dsym_file=dsym_file,
+                dsym_app=dsym_app,
+                version=data['version'],
+                build=data['build'],
+            )
+            if created:
+                associated.append(dsym_file)
+
+        return Response({
+            'associatedDsymFiles': serialize(associated, request.user),
+        })
