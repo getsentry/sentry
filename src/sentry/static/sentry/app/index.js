@@ -109,6 +109,7 @@ export default {
     U2fEnrollment: require('./components/u2fenrollment').default,
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
+    Switch: require('./components/switch').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
       logging: require('./utils/logging'),
