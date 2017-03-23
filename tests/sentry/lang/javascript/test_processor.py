@@ -216,6 +216,10 @@ class DiscoverSourcemapTest(TestCase):
         result = http.UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js\n//# sourceMappingURL=http://example.com/source2.map.js', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/source2.map.js'
 
+        # sourceMappingURL found directly after code w/o newline
+        result = http.UrlResult('http://example.com', {}, 'console.log(true);//# sourceMappingURL=http://example.com/source.map.js', 200, None)
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
         result = http.UrlResult('http://example.com', {}, '//# sourceMappingURL=app.map.js/*ascii:lol*/', 200, None)
         assert discover_sourcemap(result) == 'http://example.com/app.map.js'
 

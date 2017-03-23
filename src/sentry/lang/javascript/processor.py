@@ -52,7 +52,7 @@ CLEAN_MODULE_RE = re.compile(r"""^
 """, re.X | re.I)
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
-
+SOURCE_MAPPING_URL_RE = re.compile(r'\/\/(?:#|@) ?sourceMappingURL=(.*)$', re.I)
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
@@ -154,6 +154,19 @@ def discover_sourcemap(result):
             if line[:21] in ('//# sourceMappingURL=', '//@ sourceMappingURL='):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
+
+        # If we still haven't found anything, check end of last line AFTER source code.
+        # This is not the literal interpretation of the spec, but browsers support this.
+        # e.g. {code}#// sourceMappingURL={url}
+        if not sourcemap:
+            # Only look at last 300 characters to keep search space reasonable (minified
+            # JS on a single line could be tens of thousands of chars). 200 is a totally
+            # arbitrary number / best guess; most sourceMappingURLs are relative and
+            # not very long.
+            search_space = possibilities[-1][-300:].rstrip()
+            match = SOURCE_MAPPING_URL_RE.search(search_space)
+            if match:
+                sourcemap = match.groups()[0]
 
     if sourcemap:
         # react-native shoves a comment at the end of the
