@@ -433,6 +433,72 @@ class RedisTSDB(BaseTSDB):
             ]
         )
 
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
+                end=None,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+
+        temporary_id = uuid.uuid1().hex
+
+        def make_temporary_key(key):
+            return '{}{}:{}'.format(self.prefix, temporary_id, key)
+
+        data = {}
+        for rollup, series in rollups.items():
+            data[rollup] = {timestamp: [] for timestamp in series}
+
+        with self.cluster.fanout() as client:
+            for source in sources:
+                c = client.target_key(source)
+                for rollup, series in data.items():
+                    for timestamp, results in series.items():
+                        key = self.make_key(
+                            model,
+                            rollup,
+                            to_timestamp(timestamp),
+                            source,
+                        )
+                        results.append(c.get(key))
+                        c.delete(key)
+
+        with self.cluster.fanout() as client:
+            c = client.target_key(destination)
+
+            temporary_key_sequence = itertools.count()
+
+            for rollup, series in data.items():
+                for timestamp, results in series.items():
+                    values = {}
+                    for result in results:
+                        if result.value is None:
+                            continue
+                        k = make_temporary_key(next(temporary_key_sequence))
+                        values[k] = result.value
+
+                    if values:
+                        key = self.make_key(
+                            model,
+                            rollup,
+                            to_timestamp(timestamp),
+                            destination,
+                        )
+                        c.mset(values)
+                        c.pfmerge(key, key, *values.keys())
+                        c.delete(*values.keys())
+                        c.expireat(
+                            key,
+                            self.calculate_expiry(
+                                rollup,
+                                self.rollups[rollup],
+                                timestamp,
+                            ),
+                        )
+
     def make_frequency_table_keys(self, model, rollup, timestamp, key):
         prefix = self.make_key(model, rollup, timestamp, key)
         return map(

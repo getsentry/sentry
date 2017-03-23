@@ -110,7 +110,7 @@ class RedisTSDBTest(TestCase):
         }
 
     def test_count_distinct(self):
-        now = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
 
         model = TSDBModel.users_affected_by_group
@@ -179,6 +179,37 @@ class RedisTSDBTest(TestCase):
 
         assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
+
+        self.db.merge_distinct_counts(model, 1, [2], dts[0])
+
+        assert self.db.get_distinct_counts_series(model, [1], dts[0], dts[-1], rollup=3600) == {
+            1: [
+                (timestamp(dts[0]), 2),
+                (timestamp(dts[1]), 1),
+                (timestamp(dts[2]), 3),
+                (timestamp(dts[3]), 1),
+            ],
+        }
+
+        assert self.db.get_distinct_counts_series(model, [2], dts[0], dts[-1], rollup=3600) == {
+            2: [
+                (timestamp(dts[0]), 0),
+                (timestamp(dts[1]), 0),
+                (timestamp(dts[2]), 0),
+                (timestamp(dts[3]), 0),
+            ],
+        }
+
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1], rollup=3600)
+        assert results == {
+            1: 3,
+            2: 0,
+        }
+
+        assert self.db.get_distinct_counts_union(model, [], dts[0], dts[-1], rollup=3600) == 0
+        assert self.db.get_distinct_counts_union(model, [1], dts[0], dts[-1], rollup=3600) == 3
+        assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
+        assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
 
     def test_frequency_tables(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
