@@ -303,6 +303,14 @@ def main(num_events=1, extra_events=False):
 
             raw_commits = [
                 {
+                    'key': '5fb7672bee9c461a8aa074f52ed72eddzc9399e7a',
+                    'message': 'modified js view',
+                    'author': (user.name, user.email),
+                    'files': [
+                        ('/sentry/scripts/views.js', 'M'),
+                    ],
+                },
+                {
                     'key': '6fb7672bee9c469a8aa074f52ed72eddzc9399e7d',
                     'message': 'modified raven base',
                     'author': (user.name, user.email),
