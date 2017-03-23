@@ -97,7 +97,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
-        assert not grant.scopes.mask
+        assert not grant.get_scopes()
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?code={}'.format(
@@ -108,7 +108,7 @@ class OAuthAuthorizeCodeTest(TestCase):
             user=self.user,
             application=self.application,
         )
-        assert authorization.scopes == grant.scopes
+        assert authorization.get_scopes() == grant.get_scopes()
 
     def test_minimal_params_deny_flow(self):
         self.login_as(self.user)
@@ -151,7 +151,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
-        assert getattr(grant.scopes, 'org:read')
+        assert grant.get_scopes() == ['org:read']
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?state=foo&code={}'.format(
@@ -176,7 +176,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         grant = ApiGrant.objects.get(user=self.user)
         assert grant.redirect_uri == self.application.get_default_redirect_uri()
         assert grant.application == self.application
-        assert not grant.scopes.mask
+        assert not grant.get_scopes()
 
         assert resp.status_code == 302
         assert resp['Location'] == 'https://example.com?code={}'.format(
@@ -206,7 +206,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         authorization = ApiAuthorization.objects.create(
             user=self.user,
             application=self.application,
-            scopes=getattr(ApiAuthorization.scopes, 'org:write', None),
+            scope_list=['org:write'],
         )
 
         resp = self.client.get('{}?response_type=code&client_id={}&scope=org:read'.format(
@@ -223,10 +223,7 @@ class OAuthAuthorizeCodeTest(TestCase):
         })
 
         authorization = ApiAuthorization.objects.get(id=authorization.id)
-        assert authorization.scopes.mask == (
-            getattr(ApiAuthorization.scopes, 'org:read') |
-            getattr(ApiAuthorization.scopes, 'org:write')
-        )
+        assert sorted(authorization.get_scopes()) == ['org:read', 'org:write']
 
 
 class OAuthAuthorizeTokenTest(TestCase):
@@ -308,7 +305,7 @@ class OAuthAuthorizeTokenTest(TestCase):
 
         token = ApiToken.objects.get(user=self.user)
         assert token.application == self.application
-        assert not token.scopes.mask
+        assert not token.get_scopes()
         assert not token.refresh_token
 
         assert resp.status_code == 302
