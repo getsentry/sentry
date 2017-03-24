@@ -50,7 +50,7 @@ const RepositoryFileSummary = React.createClass({
       files = files.slice(0, MAX);
     }
     let numCollapsed = fileCount - files.length;
-
+    let canCollapse = fileCount > MAX;
     return(
       <ul className="list-group list-group-striped m-b-2">
       <h6>{fileCount} {fileCount !== 1 ? t('files ') : t('file ')} {t('changed in ')} {repository}</h6>
@@ -66,6 +66,12 @@ const RepositoryFileSummary = React.createClass({
         );
       })}
       {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+      {numCollapsed === 0 && canCollapse &&
+        <li className="list-group-item list-group-item-sm align-center">
+          <span className="icon-container"></span>
+          <a onClick={this.onCollapseToggle}>Collapse</a>
+        </li>
+      }
       </ul>);
 }
 });
