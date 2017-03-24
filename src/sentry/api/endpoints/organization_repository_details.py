@@ -79,7 +79,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
                 kwargs={
                     'app_label': Repository._meta.app_label,
                     'model_name': Repository._meta.model_name,
-                    'object_id': organization.id,
+                    'object_id': repo.id,
                     'transaction_id': transaction_id,
                     'actor_id': request.user.id,
                 },
