@@ -7,7 +7,7 @@ import LoadingError from '../components/loadingError';
 
 import ApiMixin from '../mixins/apiMixin';
 
-import {t} from '../locale';
+import {tn} from '../locale';
 
 const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
@@ -88,9 +88,11 @@ const ReleaseProjectStatSparkline = React.createClass({
           <h6 className="m-b-0">
             {project.name}
           </h6>
-          <p className="m-b-0">
-            {newIssueCount} {newIssueCount !== 1 ? t('New Issues') : t('New Issue')}
-          </p>
+          {newIssueCount > 0 &&
+            <p className="m-b-0">
+              {tn('%d New Issue', '%d New Issues', newIssueCount)}
+            </p>
+          }
         </Link>
       </li>
     );
