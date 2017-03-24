@@ -13,13 +13,17 @@ class CommitFileChangeSerializer(Serializer):
         commits = Commit.objects.filter(id__in=[f.commit_id for f in item_list]).select_related('author')
         author_objs = get_users_for_commits(commits)
         commits_by_id = {commit.id: commit for commit in commits}
+
+        repositories = Repository.objects.filter(id__in=[commit.repository_id for commit in commits])
+        repo_names_by_id = {repository.id: repository.name for repository in repositories}
+
         result = {}
         for item in item_list:
             commit = commits_by_id[item.commit_id]
             result[item] = {
                 'user': author_objs.get(commit.author_id, {}),
                 'message': commit.message,
-                'repository_name': Repository.objects.get(id=commit.repository_id).name
+                'repository_name': repo_names_by_id[commit.repository_id]
             }
 
         return result
