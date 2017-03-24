@@ -3,9 +3,6 @@
 # see also: https://github.com/samdmarshall/danger/blob/master/Dangerfile
 #      and: https://github.com/samdmarshall/pyconfig/blob/develop/Dangerfile
 
-# set the number of lines that must be changed before this classifies as a "Big PR"
-@S_BIG_PR_LINES ||= 0
-
 # require changelog entry if number of lines changed is beyond this
 @S_CHANGE_LINES ||= 50
 
@@ -94,9 +91,6 @@ end
 
 # Make it more obvious that a PR is a work in progress and shouldn"t be merged yet
 warn("PR is classed as Work in Progress") if github.pr_title.include? "[WIP]" || github.pr_body.include?("#wip")
-
-# Warn when there is a big PR
-warn("Big PR -- consider splitting it up into multiple changesets") if @S_BIG_PR_LINES && git.lines_of_code > @S_BIG_PR_LINES
 
 # License is immutable
 fail("Do not modify the License") if @S_LICENSE_FILES && checkFiles(@S_LICENSE_FILES).any?
