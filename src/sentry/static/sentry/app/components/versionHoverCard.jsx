@@ -59,6 +59,7 @@ const VersionHoverCard = React.createClass({
       <div className="hovercard-body">
         {this.state.loading ? <LoadingIndicator mini={true}/> :
           (this.state.error ? <LoadingError /> :
+            <div>
             <div className="row row-flex">
               <div className="col-xs-4">
                 <h6>New Issues</h6>
@@ -78,6 +79,19 @@ const VersionHoverCard = React.createClass({
                 </div>
               </div>
             </div>
+            <h6 className="commit-heading">Last commit</h6>
+            <div className="commit">
+              <div className="commit-avatar">
+                <Avatar user="chris@getsentry.com"/>
+              </div>
+              <div className="commit-message">
+                [billing] reinstate use of ondemand_events for spend calc the alternative (newer) mechanism is not always accurate, and as a quick fix we'll revert to using the old mechanism
+              </div>
+              <div className="commit-meta">
+                <strong>dcramer</strong> committed a day ago
+              </div>
+            </div>
+          </div>
           )
         }
       </div>

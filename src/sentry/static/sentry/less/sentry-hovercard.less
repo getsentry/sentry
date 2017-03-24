@@ -72,4 +72,39 @@
     font-size: 24px;
     padding: 3px 0 0;
   }
+
+  .avatar-grid {
+    margin-top: 2px;
+  }
+
+  .commit-heading {
+    margin: 10px 0;
+  }
+
+  .commit {
+    margin-top: 5px;
+    position: relative;
+    padding: 1px 0 0 32px;
+    font-size: 13px;
+
+    .commit-avatar {
+      position: absolute;
+      .square(24px);
+      left: 0;
+
+      .avatar {
+        .square(24px);
+      }
+    }
+
+    .commit-message {
+      line-height: 1.4;
+      margin: 2px 0 5px;
+    }
+
+    .commit-meta {
+      font-size: 12px;
+      color: @70;
+    }
+  }
 }
