@@ -6,6 +6,8 @@ import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
 
 import {getShortVersion} from '../utils';
+import {t} from '../locale';
+
 import ApiMixin from '../mixins/apiMixin';
 
 const VersionHoverCard = React.createClass({
@@ -23,6 +25,7 @@ const VersionHoverCard = React.createClass({
       error: false,
       data: {},
       visible: false,
+      hasRepos: false,
     };
   },
 
@@ -35,12 +38,33 @@ const VersionHoverCard = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           release: data,
-          loading: false,
         });
       },
       error: () => {
         this.setState({
           error: true,
+          loading: false,
+        });
+      }
+    });
+    this.getRepos();
+  },
+
+  getRepos() {
+    let {orgId} = this.props;
+    let path = `/organizations/${orgId}/repos/`;
+    this.api.request(path, {
+      method: 'GET',
+      success: (data, _, jqXHR) => {
+        this.setState({
+          hasRepos: data.length > 0,
+          loading:false,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false,
         });
       }
     });
@@ -50,6 +74,20 @@ const VersionHoverCard = React.createClass({
     this.setState({
       visible: !this.state.visible,
     });
+  },
+
+  renderRepoLink() {
+    let {orgId} = this.props;
+    return (
+      <div className="version-hovercard blankslate m-a-0 p-x-2 p-t-1 p-b-2 align-center">
+        <h5>Releases are better with commit data!</h5>
+        <p>Connect a repository to see commit info, files changed, and authors involved in future releases.</p>
+        <a className="btn btn-primary"
+          href={`/organizations/${orgId}/repos/`}>
+          Connect a repository
+        </a>
+      </div>
+    );
   },
 
   renderBody() {
@@ -65,7 +103,7 @@ const VersionHoverCard = React.createClass({
                 <div className="count">{release.newGroups}</div>
               </div>
               <div className="col-xs-8">
-                <h6>{release.commitCount} commits by {release.authors.length} authors</h6>
+                <h6>{release.commitCount} {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')} {release.authors.length} {release.authors.length !== 1 ? t('authors') : t('author')} </h6>
                 <div className="avatar-grid">
                   {release.authors.map(author => {
                     return (
@@ -97,7 +135,7 @@ const VersionHoverCard = React.createClass({
             <div className="hovercard-header">
               <span>Release {shortVersion}</span>
             </div>
-            {this.renderBody()}
+            {this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
           </div>
         }
       </span>
