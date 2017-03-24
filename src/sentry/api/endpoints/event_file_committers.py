@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 import six
+import operator
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
@@ -21,6 +22,14 @@ def tokenize_path(path):
     # TODO(maxbittker) tokenize in a smarter crossplatform way.
     return reversed(path.split('/'))
 
+def score_path_match_length(path_a, path_b):
+    score = 0
+    for a, b in izip(tokenize_path(path_a), tokenize_path(path_b)):
+        if a != b:
+            break
+        score += 1
+    return score
+
 
 class EventFileCommittersEndpoint(ProjectEndpoint):
 
@@ -36,35 +45,29 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         return frames
 
-    def _score_path_match_length(self, path_a, path_b):
-        score = 0
-        for a, b in izip(tokenize_path(path_a), tokenize_path(path_b)):
-            if a != b:
-                break
-            score += 1
-        return score
 
-    def _get_commits(self, project_id, version):
+    def _get_commits(self, project, version):
         try:
             commits = Commit.objects.filter(
                 releasecommit=ReleaseCommit.objects.filter(
                     release=Release.objects.get(
-                        projects=project_id,
+                        projects=project,
                         version=version,
                     ),
                 )
             )
         except Release.DoesNotExist:
             return None
+
         return list(commits)
 
     def _get_commit_file_changes(self, commits, path_name_set):
         # build a single query to get all of the commit file that might match the first n frames
 
-        pathQuery = Q(filename__endswith=six.next(tokenize_path(path_name_set.pop())))
-
-        for path in path_name_set:
-            pathQuery.add(Q(filename__endswith=six.next(tokenize_path(path))), Q.OR)
+        pathQuery = reduce(operator.or_, (
+            Q(filename__endswith=next(tokenize_path(path)))
+            for path in path_name_set
+        ))
 
         query = Q(commit__in=commits) & pathQuery
 
@@ -78,7 +81,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         matching_commits = {}
         best_score = 0
         for file_change in commit_file_changes:
-            score = self._score_path_match_length(file_change.filename, frame['abs_path'])
+            score = score_path_match_length(file_change.filename, frame['abs_path'])
             if score > best_score:
                 # reset matches for better match.
                 best_score = score
@@ -98,10 +101,10 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             if limit == 0:
                 break
             for commit in annotated_frame['commits']:
-                if limit == 0:
-                    break
                 committers[commit.author.id] += limit
                 limit -= 1
+                if limit == 0:
+                    break
 
         # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
         sorted_committers = sorted(committers, key=committers.get)
@@ -109,7 +112,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         return [sentry_user_dict[author_id] for author_id in sorted_committers]
 
-    def get(self, request, project, event_id):
+    def get(self, _, project, event_id):
         """
         Retrieve Committer information for an event
         ```````````````````````````````
@@ -127,23 +130,25 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 id=event_id,
                 project_id=project.id,
             )
+            Event.objects.bind_nodes([event], 'data')
         except Event.DoesNotExist:
             return Response({'detail': 'Event not found'}, status=404)
 
-        Event.objects.bind_nodes([event], 'data')
-        frames = self._get_frame_paths(event)
 
-        commits = self._get_commits(project.id, event.get_tag('sentry:release'))
-
+        commits = self._get_commits(event.project, event.get_tag('sentry:release'))
         if not commits:
             return Response({'detail': 'No Commits found for Release'}, status=404)
 
+
+        frames = self._get_frame_paths(event)
         frame_limit = 10
         app_frames = [frame for frame in frames if frame['in_app']][:frame_limit]
 
         path_set = {frame['abs_path'] for frame in app_frames}
 
-        file_changes = self._get_commit_file_changes(commits, path_set)
+        file_changes = []
+        if path_set:
+            file_changes = self._get_commit_file_changes(commits, path_set)
 
         annotated_frames = [{
             'frame': frame,
