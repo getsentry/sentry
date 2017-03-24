@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import OrganizationState from '../mixins/organizationState';
 import TimeSince from '../components/timeSince';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -31,7 +32,7 @@ const HELP_LINKS = {
 
 
 const ProjectProcessingIssues = React.createClass({
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -282,6 +283,7 @@ const ProjectProcessingIssues = React.createClass({
   },
 
   renderReprocessingSettings() {
+    let access = this.getAccess();
     if (this.state.loading) {
       return this.renderLoading();
     }
@@ -309,11 +311,19 @@ const ProjectProcessingIssues = React.createClass({
             </div>
             <div className="col-md-3 align-right" style={{paddingRight: '25px'}}>
               <Switch size="lg"
+                isDisabled={!access.has('project:write')}
                 isActive={this.state.formData['sentry:reprocessing_active']}
                 isLoading={isSaving}
                 toggle={this.onFieldChange.bind(this, 'sentry:reprocessing_active')} />
             </div>
           </div>
+          {!access.has('project:write') &&
+            <div className="row">
+              <div className="col-md-12" style={{marginBottom: 20}}>
+                <strong>{t('Note: ')}</strong>
+                {t('An admin can turn processing on or off')}
+              </div>
+            </div>}
         </div>
       </div>
     );
