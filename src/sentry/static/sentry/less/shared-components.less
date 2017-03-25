@@ -834,7 +834,11 @@ table.integrations {
   &.switch-disabled {
     cursor: not-allowed;
     pointer-events: none;
-    background: #eee;
+    background: @white-darker;
+
+    .switch-toggle {
+      opacity: .4;
+    }
   }
 }
 
