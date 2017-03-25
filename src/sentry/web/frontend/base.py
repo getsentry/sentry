@@ -17,7 +17,9 @@ from sentry.models import (
     AuditLogEntry, Organization, OrganizationMember, OrganizationStatus, Project,
     ProjectStatus, Team, TeamStatus
 )
+from sentry.signals import keep_user_logged_in
 from sentry.utils import auth
+from sentry.auth.utils import can_update_last_login
 from sentry.web.helpers import render_to_response
 from sentry.api.serializers import serialize
 
@@ -184,6 +186,8 @@ class BaseView(View, OrganizationMixin):
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
+        self.update_last_login(request)
+
         return self.handle(request, *args, **kwargs)
 
     def get_access(self, request, *args, **kwargs):
@@ -275,6 +279,10 @@ class BaseView(View, OrganizationMixin):
         audit_logger.info(entry.get_event_display(), extra=extra)
 
         return entry
+
+    def update_last_login(self, request):
+        if can_update_last_login(request.user):
+            keep_user_logged_in.send(sender=request, user=request.user)
 
 
 class OrganizationView(BaseView):

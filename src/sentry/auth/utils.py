@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.conf import settings
+from django.utils import timezone
 
 
 def is_internal_ip(request):
@@ -24,3 +27,13 @@ def is_active_superuser(request):
         return False
 
     return is_privileged_request(request)
+
+
+def can_update_last_login(user):
+    if not user or not user.is_authenticated():
+        return False
+
+    time_passed = timezone.now() - user.last_login
+    interval_time = timedelta(seconds=settings.USER_LAST_LOGIN_UPDATE_INTERVAL)
+
+    return time_passed > interval_time
