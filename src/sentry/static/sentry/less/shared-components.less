@@ -1815,7 +1815,7 @@ ul.faces {
     padding-bottom: 3px;
     max-width: 250px;
     top: 30px;
-    z-index: 1000;
+    z-index: @zindex-dropdown;
     font-size: 13px;
 
     .form-control {
@@ -1915,7 +1915,7 @@ ul.faces {
   right: 0;
   bottom: 0;
   background: rgba(0,0,0, .65);
-  z-index: 10000;
+  z-index: @zindex-settings-modal;
   overflow: auto;
 
   .container {
@@ -1927,7 +1927,7 @@ ul.faces {
     margin-bottom: 30px;
     border-radius: 5px;
     background: #fff;
-    z-index: 10000;
+    z-index: @zindex-settings-modal;
   }
 
   .settings-modal-header {
