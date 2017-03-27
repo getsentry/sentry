@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
+import SuggestedOwners from './suggestedOwners';
 import GroupParticipants from './participants';
 import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
@@ -107,6 +108,8 @@ const GroupSidebar = React.createClass({
 
     return (
       <div className="group-stats">
+        <SuggestedOwners />
+
         <GroupReleaseStats
             group={group}
             location={this.context.location}
