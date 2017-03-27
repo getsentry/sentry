@@ -94,6 +94,7 @@ const VersionHoverCard = React.createClass({
   renderBody() {
     let {release} = this.state;
     let lastCommit = release.lastCommit;
+    let commitAuthor = lastCommit && lastCommit.author;
 
     return (
       <div className="hovercard-body">
@@ -119,18 +120,22 @@ const VersionHoverCard = React.createClass({
                 </div>
               </div>
             </div>
-            <h6 className="commit-heading">Last commit</h6>
-            <div className="commit">
-              <div className="commit-avatar">
-                <Avatar user={lastCommit.author}/>
-              </div>
-              <div className="commit-message">
-                {lastCommit.message}
-              </div>
-              <div className="commit-meta">
-                <strong>{lastCommit.author.name}</strong> <TimeSince date={lastCommit.dateCreated} />
-              </div>
-            </div>
+            {lastCommit &&
+              <div>
+                <h6 className="commit-heading">Last commit</h6>
+                <div className="commit">
+                  <div className="commit-avatar">
+                    <Avatar user={commitAuthor || {'username': '?'}}/>
+                  </div>
+                  <div className="commit-message">
+                    {lastCommit.message || t('No message provided')}
+                  </div>
+                  <div className="commit-meta">
+                    <strong>{(commitAuthor && commitAuthor.name) || t('Unknown Author')}</strong>&nbsp;
+                    <TimeSince date={lastCommit.dateCreated} />
+                  </div>
+                </div>
+              </div>}
           </div>
           )
         }
