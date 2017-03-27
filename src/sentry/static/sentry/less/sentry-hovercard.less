@@ -75,6 +75,10 @@
 
   .avatar-grid {
     margin-top: 2px;
+
+    .tip {
+      border-bottom: 0 !important;
+    }
   }
 
   .commit-heading {
@@ -84,16 +88,17 @@
   .commit {
     margin-top: 5px;
     position: relative;
-    padding: 1px 0 0 26px;
+    padding: 1px 0 0 25px;
     font-size: 13px;
 
     .commit-avatar {
       position: absolute;
-      .square(20px);
+      .square(19px);
+      top: 2px;
       left: 0;
 
       .avatar {
-        .square(20px);
+        .square(19px);
       }
     }
 
