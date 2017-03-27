@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from rest_framework.response import Response
 
-import six
 import operator
 
 from sentry.api.bases.project import ProjectEndpoint
@@ -21,6 +20,7 @@ from collections import defaultdict
 def tokenize_path(path):
     # TODO(maxbittker) tokenize in a smarter crossplatform way.
     return reversed(path.split('/'))
+
 
 def score_path_match_length(path_a, path_b):
     score = 0
@@ -44,7 +44,6 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 return []  # can't find stacktrace information
 
         return frames
-
 
     def _get_commits(self, project, version):
         try:
@@ -134,11 +133,9 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         except Event.DoesNotExist:
             return Response({'detail': 'Event not found'}, status=404)
 
-
         commits = self._get_commits(event.project, event.get_tag('sentry:release'))
         if not commits:
             return Response({'detail': 'No Commits found for Release'}, status=404)
-
 
         frames = self._get_frame_paths(event)
         frame_limit = 10

@@ -274,7 +274,7 @@ class Fixtures(object):
 
         repo = self.create_repo(project)
 
-        commit = self.create_commit(project, repo, author, release)
+        self.create_commit(project, repo, author, release)
 
         return release
 
@@ -322,14 +322,13 @@ class Fixtures(object):
         )[0]
         return commit_author
 
-
     def create_commit_file_change(self, commit, release, project, filename):
         commit_file_change = CommitFileChange.objects.get_or_create(
-                organization_id=project.organization_id,
-                commit=commit,
-                filename=filename,
-                type='M',
-            )
+            organization_id=project.organization_id,
+            commit=commit,
+            filename=filename,
+            type='M',
+        )
         return commit_file_change
 
     def create_user(self, email=None, **kwargs):

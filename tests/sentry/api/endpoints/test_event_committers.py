@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.testutils import APITestCase
 
+
 class EventCommittersTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.user)
@@ -22,7 +23,7 @@ class EventCommittersTest(APITestCase):
             event_id='a',
             group=group,
             datetime=datetime(2016, 8, 13, 3, 8, 25),
-            tags={'sentry:release':release.version}
+            tags={'sentry:release': release.version}
         )
 
         url = reverse('sentry-api-0-event-file-committers', kwargs={
@@ -39,7 +40,7 @@ class EventCommittersTest(APITestCase):
         assert len(response.data['annotatedFrames']) == 1
         assert len(response.data['annotatedFrames'][0]['commits']) == 1
         assert response.data['annotatedFrames'][0]['commits'][0]['author']['username'] == 'admin@localhost'
-        #TODO(maxbittker) test more edge cases here
+        # TODO(maxbittker) test more edge cases here
 
     def test_no_commits(self):
         self.login_as(user=self.user)
