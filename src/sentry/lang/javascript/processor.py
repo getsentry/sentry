@@ -52,7 +52,7 @@ CLEAN_MODULE_RE = re.compile(r"""^
 """, re.X | re.I)
 VERSION_RE = re.compile(r'^[a-f0-9]{32}|[a-f0-9]{40}$', re.I)
 NODE_MODULES_RE = re.compile(r'\bnode_modules/')
-SOURCE_MAPPING_URL_RE = re.compile(r'\/\/(?:#|@) ?sourceMappingURL=(.*)$', re.I)
+SOURCE_MAPPING_URL_RE = re.compile(r'\/\/# sourceMappingURL=(.*)$')
 # the maximum number of remote resources (i.e. sourc eifles) that should be
 # fetched
 MAX_RESOURCE_FETCHES = 100
@@ -157,7 +157,7 @@ def discover_sourcemap(result):
 
         # If we still haven't found anything, check end of last line AFTER source code.
         # This is not the literal interpretation of the spec, but browsers support this.
-        # e.g. {code}#// sourceMappingURL={url}
+        # e.g. {code}//# sourceMappingURL={url}
         if not sourcemap:
             # Only look at last 300 characters to keep search space reasonable (minified
             # JS on a single line could be tens of thousands of chars). 200 is a totally
