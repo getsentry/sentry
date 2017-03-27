@@ -826,9 +826,19 @@ table.integrations {
     }
   }
 
+  &.switch-changing {
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   &.switch-disabled {
     cursor: not-allowed;
-    pointer-events: none
+    pointer-events: none;
+    background: @white-darker;
+
+    .switch-toggle {
+      opacity: .4;
+    }
   }
 }
 
