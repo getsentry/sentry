@@ -22,7 +22,7 @@ const VersionHoverCard = React.createClass({
       loading: true,
       error: false,
       data: {},
-      visible: true,
+      visible: false,
     };
   },
 
@@ -104,7 +104,7 @@ const VersionHoverCard = React.createClass({
     let {visible} = this.state;
 
     return (
-      <span >
+      <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}>
         {this.props.children}
         {visible &&
           <div className="hovercard" >
