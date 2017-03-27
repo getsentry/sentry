@@ -46,18 +46,14 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         return frames
 
     def _get_commits(self, project, version):
-        try:
-            commits = Commit.objects.filter(
-                releasecommit=ReleaseCommit.objects.filter(
-                    release=Release.objects.get(
-                        projects=project,
-                        version=version,
-                    ),
-                )
+        commits = Commit.objects.filter(
+            releasecommit=ReleaseCommit.objects.filter(
+                release=Release.objects.get(
+                    projects=project,
+                    version=version,
+                ),
             )
-        except Release.DoesNotExist:
-            return None
-
+        )
         return list(commits)
 
     def _get_commit_file_changes(self, commits, path_name_set):
