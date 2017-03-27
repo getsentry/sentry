@@ -15,6 +15,7 @@ API Changes
 - Added IssuesResolvedInReleaseEndpoint
 - Added ReleaseDeploysEndpoint
 - Added OrganizationReleaseCommitsEndpoint
+- Added EventFileCommittersEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
