@@ -156,17 +156,17 @@ def discover_sourcemap(result):
                 sourcemap = line[21:].rstrip()
 
         # If we still haven't found anything, check end of last line AFTER source code.
-        # This is not the literal interpretation of the spec, but browsers support this.
+        # This is not the literal interpretation of the spec, but browsers support it.
         # e.g. {code}//# sourceMappingURL={url}
         if not sourcemap:
             # Only look at last 300 characters to keep search space reasonable (minified
-            # JS on a single line could be tens of thousands of chars). 200 is a totally
+            # JS on a single line could be tens of thousands of chars). This is a totally
             # arbitrary number / best guess; most sourceMappingURLs are relative and
             # not very long.
             search_space = possibilities[-1][-300:].rstrip()
             match = SOURCE_MAPPING_URL_RE.search(search_space)
             if match:
-                sourcemap = match.groups()[0]
+                sourcemap = match.group(1)
 
     if sourcemap:
         # react-native shoves a comment at the end of the
