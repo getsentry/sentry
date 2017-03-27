@@ -525,8 +525,8 @@ class NotificationSettingsForm(forms.Form):
     )
 
     self_assign_issue = forms.BooleanField(
-        label=_('Automatically self-assign issue on resolve'),
-        help_text=_("When enabled, you'll automatically be assigned to issues on marking them resolved (when it is unassigned)."),
+        label=_('Claim unassigned issues when resolving them'),
+        help_text=_("When enabled, you'll automatically be assigned to unassigned issues when marking them as resolved."),
         required=False,
     )
 
