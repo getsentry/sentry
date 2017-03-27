@@ -5,13 +5,7 @@ from oauth2 import (
     SignatureMethod_HMAC_SHA1, HTTP_METHOD
 )
 
-try:
-    import json as simplejson
-except ImportError:
-    try:
-        import simplejson
-    except ImportError:
-        from django.utils import simplejson
+import simplejson
 
 from social_auth.models import UserSocialAuth
 from social_auth.utils import dsa_urlopen
