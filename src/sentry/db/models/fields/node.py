@@ -16,7 +16,6 @@ import warnings
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
-from south.modelsinspector import add_introspection_rules
 
 from sentry import nodestore
 from sentry.utils.cache import memoize
@@ -111,7 +110,6 @@ class NodeData(collections.MutableMapping):
             self.data['_ref_version'] = self.field.ref_version
 
 
-@six.add_metaclass(models.SubfieldBase)
 class NodeField(GzippedDictField):
     """
     Similar to the gzippedictfield except that it stores a reference
@@ -171,5 +169,10 @@ class NodeField(GzippedDictField):
             'node_id': value.id
         }))
 
+if hasattr(models, 'SubfieldBase'):
+    NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)
 
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])
+if 'south' in settings.INSTALLED_APPS:
+    from south.modelsinspector import add_introspection_rules
+
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])

@@ -32,4 +32,5 @@ class GroupEventJsonView(ProjectView):
         Event.objects.bind_nodes([event], 'data')
         GroupMeta.objects.populate_cache([group])
 
-        return HttpResponse(json.dumps(event.as_dict()), mimetype='application/json')
+        return HttpResponse(json.dumps(event.as_dict()),
+                            content_type='application/json')

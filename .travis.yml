@@ -39,6 +39,9 @@ after_failure:
 # each attribute in the matrix will override the global attribute
 matrix:
   fast_finish: true
+  allow_failures:
+    - python: 2.7
+      env: TEST_SUITE=django-18
   include:
     - language: ruby
       rvm: 2.2
@@ -80,3 +83,9 @@ matrix:
         - postgresql
     - python: 2.7
       env: TEST_SUITE=dist
+    - python: 2.7
+      env: TEST_SUITE=django-18
+      services:
+        - memcached
+        - redis-server
+        - postgresql

@@ -1,7 +1,7 @@
 import React from 'react';
 import Avatar from './avatar';
 import TooltipMixin from '../mixins/tooltip';
-import {tct} from '../locale';
+import {t} from '../locale';
 
 const ReleaseStats = React.createClass({
   propTypes: {
@@ -22,10 +22,11 @@ const ReleaseStats = React.createClass({
       return null;
     }
 
-    let releaseSummary = tct('[commitCount] commits by [authorCount] authors', {
-      commitCount,
-      authorCount
-    });
+    let releaseSummary = (
+      commitCount +
+      t(commitCount !== 1 ? ' commits ' : ' commit ') +
+      t('by ') + authorCount +
+      t(authorCount !== 1 ? ' authors' : ' author'));
 
     return (
       <div className="release-stats">

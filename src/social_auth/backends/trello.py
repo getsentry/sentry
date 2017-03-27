@@ -14,13 +14,7 @@ into settings.py
 """
 from __future__ import absolute_import
 
-try:
-    import json as simplejson
-except ImportError:
-    try:
-        import simplejson
-    except ImportError:
-        from django.utils import simplejson
+import simplejson
 
 from six.moves.urllib.parse import urlencode
 from social_auth.backends import ConsumerBasedOAuth, OAuthBackend

@@ -2,7 +2,13 @@ from __future__ import absolute_import
 
 import six
 
-from django.http import HttpResponse, CompatibleStreamingHttpResponse
+try:
+    from django.http import (
+        HttpResponse,
+        CompatibleStreamingHttpResponse as StreamingHttpResponse
+    )
+except ImportError:
+    from django.http import HttpResponse, StreamingHttpResponse
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.group import GroupPermission
@@ -71,7 +77,7 @@ class EventAppleCrashReportEndpoint(Endpoint):
                 event.event_id,
                 symbolicated and '-symbolicated' or ''
             )
-            response = CompatibleStreamingHttpResponse(
+            response = StreamingHttpResponse(
                 apple_crash_report_string,
                 content_type='text/plain',
             )

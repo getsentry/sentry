@@ -330,7 +330,7 @@ function Sketch:increment(items)
 
             -- This uses the score from the index (if it's available) instead
             -- of the index to avoid data rot as much as possible.
-            local score = (tonumber(redis.call('ZSCORE', self.index, item)) or reduce(math.min, estimates)) + delta
+            local score = (tonumber(redis.call('ZSCORE', self.index, value)) or reduce(math.min, estimates)) + delta
             for i, item in pairs(zip({coordinates, estimates})) do
                 local c, estimate = unpack(item)
                 local update = math.max(score, estimate)

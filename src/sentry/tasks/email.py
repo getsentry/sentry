@@ -42,7 +42,7 @@ def process_inbound_email(mailfrom, group_id, payload):
     from sentry.web.forms import NewNoteForm
 
     try:
-        group = Group.objects.select_related('project', 'team').get(pk=group_id)
+        group = Group.objects.select_related('project').get(pk=group_id)
     except Group.DoesNotExist:
         logger.warning('Group does not exist: %d', group_id)
         return

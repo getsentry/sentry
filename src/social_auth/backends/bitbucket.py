@@ -12,13 +12,8 @@ extend it.
 """
 from __future__ import absolute_import
 
-try:
-    import json as simplejson
-except ImportError:
-    try:
-        import simplejson
-    except ImportError:
-        from django.utils import simplejson
+import simplejson
+
 from social_auth.backends import ConsumerBasedOAuth, OAuthBackend
 from social_auth.utils import dsa_urlopen
 
