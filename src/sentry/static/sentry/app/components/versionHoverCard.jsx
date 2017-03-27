@@ -91,6 +91,24 @@ const VersionHoverCard = React.createClass({
     );
   },
 
+  renderMessage(message) {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    if (message.length > 100) {
+      let truncated = message.substr(0, 90);
+      let words = truncated.split(' ');
+      // try to not have elipsis mid-word
+      if (words.length > 1) {
+        words.pop();
+        truncated = words.join(' ');
+      }
+      return truncated + '...';
+    }
+    return message;
+  },
+
   renderBody() {
     let {release} = this.state;
     let lastCommit = release.lastCommit;
@@ -128,7 +146,7 @@ const VersionHoverCard = React.createClass({
                     <Avatar user={commitAuthor || {'username': '?'}}/>
                   </div>
                   <div className="commit-message">
-                    {lastCommit.message || t('No message provided')}
+                    {this.renderMessage(lastCommit.message)}
                   </div>
                   <div className="commit-meta">
                     <strong>{(commitAuthor && commitAuthor.name) || t('Unknown Author')}</strong>&nbsp;
