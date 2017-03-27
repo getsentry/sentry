@@ -198,7 +198,7 @@ class ReleaseSerializer(Serializer):
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': attrs.get('commit_count', 0),
-            'lastCommit': attrs.get('last_commit', {}),
+            'lastCommit': attrs.get('last_commit'),
             'authors': attrs.get('authors', []),
             'projects': attrs.get('projects', [])
         }
