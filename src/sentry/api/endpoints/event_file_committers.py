@@ -63,12 +63,12 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
     def _get_commit_file_changes(self, commits, path_name_set):
         # build a single query to get all of the commit file that might match the first n frames
 
-        pathQuery = reduce(operator.or_, (
+        path_query = reduce(operator.or_, (
             Q(filename__endswith=next(tokenize_path(path)))
             for path in path_name_set
         ))
 
-        query = Q(commit__in=commits) & pathQuery
+        query = Q(commit__in=commits) & path_query
 
         commit_file_change_matches = CommitFileChange.objects.filter(query)
 
@@ -129,9 +129,11 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 id=event_id,
                 project_id=project.id,
             )
-            Event.objects.bind_nodes([event], 'data')
         except Event.DoesNotExist:
             return Response({'detail': 'Event not found'}, status=404)
+
+        # populate event data
+        Event.objects.bind_nodes([event], 'data')
 
         commits = self._get_commits(event.project, event.get_tag('sentry:release'))
         if not commits:
@@ -141,6 +143,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         frame_limit = 10
         app_frames = [frame for frame in frames if frame['in_app']][:frame_limit]
 
+        # TODO(maxbittker) return this set instead of annotated frames
         path_set = {frame['abs_path'] for frame in app_frames}
 
         file_changes = []
