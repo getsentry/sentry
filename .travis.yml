@@ -85,3 +85,7 @@ matrix:
       env: TEST_SUITE=dist
     - python: 2.7
       env: TEST_SUITE=django-18
+      services:
+        - memcached
+        - redis-server
+        - postgresql
