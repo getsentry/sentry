@@ -180,7 +180,7 @@ travis-install-js: travis-upgrade-pip install-python install-python-tests instal
 travis-install-cli: travis-install-postgres
 travis-install-dist: travis-upgrade-pip install-python install-python-tests install-yarn
 travis-install-django-18: travis-install-postgres
-	pip install "Django>=1.8<1.9"
+	pip install "Django>=1.8,<1.9"
 
 .PHONY: travis-install-danger travis-install-sqlite travis-install-postgres travis-install-js travis-install-cli travis-install-dist
 
