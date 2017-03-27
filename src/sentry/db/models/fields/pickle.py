@@ -2,8 +2,8 @@ from __future__ import absolute_import
 
 import six
 
+from django.conf import settings
 from picklefield.fields import PickledObjectField
-from south.modelsinspector import add_introspection_rules
 
 
 class UnicodePickledObjectField(PickledObjectField):
@@ -14,4 +14,7 @@ class UnicodePickledObjectField(PickledObjectField):
             value, *args, **kwargs)
 
 
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField"])
+if 'south' in settings.INSTALLED_APPS:
+    from south.modelsinspector import add_introspection_rules
+
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField"])

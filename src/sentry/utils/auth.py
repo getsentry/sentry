@@ -9,13 +9,13 @@ from __future__ import absolute_import
 
 import six
 import logging
-from time import time
 
 from django.conf import settings
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.core.urlresolvers import reverse, resolve
 from sudo.utils import is_safe_url
+from time import time
 
 from sentry.models import User, Authenticator
 
@@ -87,6 +87,8 @@ def get_login_url(reset=False):
 
         if _LOGIN_URL is None:
             _LOGIN_URL = reverse('sentry-login')
+        # ensure type is coerced to string (to avoid lazy proxies)
+        _LOGIN_URL = six.text_type(_LOGIN_URL)
     return _LOGIN_URL
 
 

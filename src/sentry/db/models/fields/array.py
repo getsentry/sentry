@@ -12,7 +12,6 @@ SOUTH = 'south' in settings.INSTALLED_APPS
 
 # Adapted from django-pgfields
 # https://github.com/lukesneeringer/django-pgfields/blob/master/django_pg/models/fields/array.py
-@six.add_metaclass(models.SubfieldBase)
 class ArrayField(models.Field):
     def __init__(self, of=models.TextField, **kwargs):
         # The `of` argument is a bit tricky once we need compatibility
@@ -102,3 +101,6 @@ class ArrayField(models.Field):
                 ),
             },
         )
+
+if hasattr(models, 'SubfieldBase'):
+    ArrayField = six.add_metaclass(models.SubfieldBase)(ArrayField)
