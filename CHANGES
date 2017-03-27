@@ -9,6 +9,7 @@ Version 8.15 (Unreleased)
 - Added OAuth2 support to the web API.
 - Resolve issues when commits with ``Fixes SHORTID`` are included in releases
 - Added support for associating debug symbols with iTunes applications and builds.
+- Added the ability to claim unassigned issues when resolving them.
 
 API Changes
 ~~~~~~~~~~~

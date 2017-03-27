@@ -82,6 +82,8 @@
 
         {{ settings_form.workflow_notifications|as_crispy_field }}
 
+        {{ settings_form.self_assign_issue|as_crispy_field }}
+
         {{ settings_form.self_notifications|as_crispy_field }}
 
         <p>
@@ -101,12 +103,6 @@
         <p>{% blocktrans %}Reports contain a summary of what's happened within your organization over the last week.{% endblocktrans %}</p>
 
         {{ reports_form.organizations|as_crispy_field }}
-
-        <hr />
-
-        <h4>{% trans "Self Assign Issue" %}</h4>
-
-        {{ settings_form.self_assign_issue|as_crispy_field }}
 
         <hr />
 
