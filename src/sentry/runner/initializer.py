@@ -242,7 +242,8 @@ def initialize_app(config, skip_backend_validation=False):
 
     configure_structlog()
 
-    fix_south(settings)
+    if 'south' in settings.INSTALLED_APPS:
+        fix_south(settings)
 
     apply_legacy_settings(settings)
 
@@ -483,5 +484,6 @@ def on_configure(config):
     """
     settings = config['settings']
 
-    skip_migration_if_applied(
-        settings, 'social_auth', 'social_auth_association')
+    if 'south' in settings.INSTALLED_APPS:
+        skip_migration_if_applied(
+            settings, 'social_auth', 'social_auth_association')

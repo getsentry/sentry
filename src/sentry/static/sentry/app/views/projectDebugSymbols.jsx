@@ -293,7 +293,10 @@ const ProjectDebugSymbols = React.createClass({
         <h3>{t('Unreferenced Debug Symbols')}</h3>
         <p>{t(`
           This list represents all Debug Symbols which are not assigned to an
-          app version.
+          app version. We will still find these debug symbols for symbolication
+          but we can't tell you which versions they belong to.  This happens
+          if you upload them with an old verison of sentry-cli or if sentry-cli
+          can't locate the Info.plist file at the time of upload.
         `)}</p>
         <table className="table">
           <thead>
