@@ -41,7 +41,7 @@ class StacktraceTest(TestCase):
         # objects
         event = self.event
         interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
-        assert len(interface.frames) == 1
+        assert len(interface.frames) == 2
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
