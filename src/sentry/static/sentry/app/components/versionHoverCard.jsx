@@ -4,6 +4,7 @@ import Avatar from './avatar';
 
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
+import TimeSince from './timeSince';
 
 import {getShortVersion} from '../utils';
 import {t} from '../locale';
@@ -92,6 +93,7 @@ const VersionHoverCard = React.createClass({
 
   renderBody() {
     let {release} = this.state;
+    let lastCommit = release.lastCommit;
 
     return (
       <div className="hovercard-body">
@@ -120,13 +122,13 @@ const VersionHoverCard = React.createClass({
             <h6 className="commit-heading">Last commit</h6>
             <div className="commit">
               <div className="commit-avatar">
-                <Avatar user="chris@getsentry.com"/>
+                <Avatar user={lastCommit.author}/>
               </div>
               <div className="commit-message">
-                [billing] reinstate use of ondemand_events for spend calc the alternative (newer) mechanism is not always accurate, and as a quick fix we'll revert to using the old mechanism
+                {lastCommit.message}
               </div>
               <div className="commit-meta">
-                <strong>dcramer</strong> committed a day ago
+                <strong>{lastCommit.author.name}</strong> <TimeSince date={lastCommit.dateCreated} />
               </div>
             </div>
           </div>
