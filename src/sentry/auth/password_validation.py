@@ -104,6 +104,33 @@ class MinimumLengthValidator(object):
         ) % {'min_length': self.min_length}
 
 
+class MaximumLengthValidator(object):
+    """
+    Validate whether the password is of a maximum length.
+    """
+    def __init__(self, max_length=256):
+        self.max_length = max_length
+
+    def validate(self, password):
+        if len(password) > self.max_length:
+            raise ValidationError(
+                ungettext(
+                    "This password is too long. It must contain no more than %(max_length)d character.",
+                    "This password is too long. It must contain no more than %(max_length)d characters.",
+                    self.max_length
+                ),
+                code='password_too_long',
+                params={'max_length': self.max_length},
+            )
+
+    def get_help_text(self):
+        return ungettext(
+            "Your password must contain no more than %(max_length)d character.",
+            "Your password must contain no more than %(max_length)d characters.",
+            self.max_length
+        ) % {'max_length': self.max_length}
+
+
 class NumericPasswordValidator(object):
     """
     Validate whether the password is alphanumeric.
