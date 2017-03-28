@@ -12,11 +12,14 @@ class EventCommittersTest(APITestCase):
 
         project = self.create_project()
 
-        group = self.create_group(project=project)
-
         release = self.create_release(
             project,
             self.user
+        )
+
+        group = self.create_group(
+            project=project,
+            first_release=release
         )
 
         event = self.create_event(
@@ -35,7 +38,9 @@ class EventCommittersTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert len(response.data['committers']) == 1
-        assert response.data['committers'][0]['username'] == 'admin@localhost'
+        assert response.data['committers'][0]['author']['username'] == 'admin@localhost'
+        assert len(response.data['committers'][0]['commits']) == 1
+        assert response.data['committers'][0]['commits'][0]['message'] == 'placeholder commit message'
 
         assert len(response.data['annotatedFrames']) == 1
         assert len(response.data['annotatedFrames'][0]['commits']) == 1

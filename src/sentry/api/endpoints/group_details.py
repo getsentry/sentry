@@ -17,7 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
-    GroupTagValue, Release, User, UserReport,
+    Release, User, UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
@@ -186,31 +186,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
         activity = self._get_activity(request, group, num=100)
         seen_by = self._get_seen_by(request, group)
 
-        # find first seen release
-        if group.first_release is None:
-            try:
-                first_release = GroupTagValue.objects.filter(
-                    group=group,
-                    key__in=('sentry:release', 'release'),
-                ).order_by('first_seen')[0]
-            except IndexError:
-                first_release = None
-            else:
-                first_release = first_release.value
-        else:
-            first_release = group.first_release.version
+        first_release = group.get_first_release()
 
         if first_release is not None:
-            # find last seen release
-            try:
-                last_release = GroupTagValue.objects.filter(
-                    group=group,
-                    key__in=('sentry:release', 'release'),
-                ).order_by('-last_seen')[0]
-            except IndexError:
-                last_release = None
-            else:
-                last_release = last_release.value
+            last_release = group.get_last_release()
         else:
             last_release = None
 
