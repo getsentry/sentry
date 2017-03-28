@@ -1167,7 +1167,7 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-java': '7.8.3',
+    'raven-java': '8.0.0',
     'raven-js': '3.12.0',
     'raven-node': '1.1.4',
     'raven-python': '6.0.0',
@@ -1197,6 +1197,7 @@ DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
+    'sentry-android': 'raven-java',
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }
