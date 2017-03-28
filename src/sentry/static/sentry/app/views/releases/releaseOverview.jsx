@@ -3,37 +3,18 @@ import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IssueList from '../../components/issueList';
-import FileChange from '../../components/fileChange';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
+import RepositoryFileSummary from '../../components/repositoryFileSummary';
 import TimeSince from '../../components/timeSince';
 
 import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
 
-function Collapsed(props) {
-  return (
-    <li className="list-group-item list-group-item-sm align-center">
-      <span className="icon-container">
-      </span>
-      <a onClick={props.onClick}>Show {props.count} collapsed files</a>
-    </li>
-  );
-}
-
-Collapsed.propTypes = {
-  onClick: React.PropTypes.func.isRequired,
-  count: React.PropTypes.number.isRequired
-};
-
 const ReleaseOverview = React.createClass({
 
   mixins: [ApiMixin],
-
-  statics: {
-    MAX_WHEN_COLLAPSED: 5
-  },
 
   getInitialState() {
     return {
@@ -41,7 +22,6 @@ const ReleaseOverview = React.createClass({
       error: false,
       projects: [],
       fileList: [],
-      collapsed: true,
       deploys: [],
       hasRepos: false,
     };
@@ -129,12 +109,6 @@ const ReleaseOverview = React.createClass({
     return <div className="box empty">{t('None')}</div>;
   },
 
-  onCollapseToggle() {
-    this.setState({
-      collapsed: !this.state.collapsed
-    });
-  },
-
   render() {
     let {orgId, projectId, version} = this.props.params;
 
@@ -148,31 +122,24 @@ const ReleaseOverview = React.createClass({
 
     // convert list of individual file changes (can be
     // multiple changes to a single file) into a per-file
-    // summary
-    let fileChangeSummary = fileList.reduce(function (summary, fileChange) {
-      let {author, type, filename} = fileChange;
-      if (!summary.hasOwnProperty(filename)) {
-        summary[filename] = {
-          authors: {}, types: new Set()
+    // summary grouped by repository
+    let filesByRepository = fileList.reduce(function (fbr, file) {
+      let {filename, repoName, author, type} = file;
+      if (!fbr.hasOwnProperty(repoName)) {
+        fbr[repoName] = {};
+      }
+      if (!fbr[repoName].hasOwnProperty(filename)) {
+          fbr[repoName][filename] = {
+          authors: {}, types: new Set(), repos: new Set(),
         };
       }
 
-      summary[filename].authors[author.email] = author;
-      summary[filename].types.add(type);
+      fbr[repoName][filename].authors[author.email] = author;
+      fbr[repoName][filename].types.add(type);
 
-      return summary;
+      return fbr;
     }, {});
 
-    let fileCount = Object.keys(fileChangeSummary).length;
-
-    const MAX = ReleaseOverview.MAX_WHEN_COLLAPSED;
-
-    let files = Object.keys(fileChangeSummary);
-    files.sort();
-    if (this.state.collapsed && fileCount > MAX) {
-      files = files.slice(0, MAX);
-    }
-    let numCollapsed = fileCount - files.length;
     let deploys = this.state.deploys;
     return (
       <div>
@@ -205,20 +172,11 @@ const ReleaseOverview = React.createClass({
               />
             {hasRepos &&
               <div>
-                <h5>{fileCount} Files Changed</h5>
-                <ul className="list-group list-group-striped m-b-2">
-                  {files.map(filename => {
-                    return (
-                      <FileChange
-                        key={fileChangeSummary[filename].id}
-                        filename={filename}
-                        authors={Object.values(fileChangeSummary[filename].authors)}
-                        types={fileChangeSummary[filename].types}
-                        />
-                    );
-                  })}
-                  {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-                </ul>
+                {Object.keys(filesByRepository).map(repository => {
+                  return (<RepositoryFileSummary
+                            repository={repository}
+                            fileChangeSummary={filesByRepository[repository]}/>);
+                })}
               </div>
             }
           </div>
