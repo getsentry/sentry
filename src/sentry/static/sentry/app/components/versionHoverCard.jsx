@@ -4,6 +4,7 @@ import Avatar from './avatar';
 
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
+import TimeSince from './timeSince';
 
 import {getShortVersion} from '../utils';
 import {t} from '../locale';
@@ -90,13 +91,34 @@ const VersionHoverCard = React.createClass({
     );
   },
 
+  renderMessage(message) {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    if (message.length > 100) {
+      let truncated = message.substr(0, 90);
+      let words = truncated.split(' ');
+      // try to not have elipsis mid-word
+      if (words.length > 1) {
+        words.pop();
+        truncated = words.join(' ');
+      }
+      return truncated + '...';
+    }
+    return message;
+  },
+
   renderBody() {
     let {release} = this.state;
+    let lastCommit = release.lastCommit;
+    let commitAuthor = lastCommit && lastCommit.author;
 
     return (
       <div className="hovercard-body">
         {this.state.loading ? <LoadingIndicator mini={true}/> :
           (this.state.error ? <LoadingError /> :
+            <div>
             <div className="row row-flex">
               <div className="col-xs-4">
                 <h6>New Issues</h6>
@@ -116,6 +138,23 @@ const VersionHoverCard = React.createClass({
                 </div>
               </div>
             </div>
+            {lastCommit &&
+              <div>
+                <h6 className="commit-heading">Last commit</h6>
+                <div className="commit">
+                  <div className="commit-avatar">
+                    <Avatar user={commitAuthor || {'username': '?'}}/>
+                  </div>
+                  <div className="commit-message">
+                    {this.renderMessage(lastCommit.message)}
+                  </div>
+                  <div className="commit-meta">
+                    <strong>{(commitAuthor && commitAuthor.name) || t('Unknown Author')}</strong>&nbsp;
+                    <TimeSince date={lastCommit.dateCreated} />
+                  </div>
+                </div>
+              </div>}
+          </div>
           )
         }
       </div>
