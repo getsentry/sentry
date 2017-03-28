@@ -9,7 +9,7 @@ from datetime import (
 
 from sentry.testutils import TestCase
 from sentry.tsdb.base import TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
-from sentry.tsdb.redis import RedisTSDB
+from sentry.tsdb.redis import RedisTSDB, CountMinScript
 from sentry.utils.dates import to_timestamp
 
 
@@ -385,3 +385,254 @@ class RedisTSDBTest(TestCase):
                 "project:1": 0.0,
             },
         }
+
+    def test_frequency_table_import_export_no_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 10]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                1, 'foo',
+                2, 'bar',
+                3, 'baz',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                1, 'alpha',
+                2, 'beta',
+                3, 'gamma',
+                4, 'delta',
+                5, 'epsilon',
+                6, 'zeta',
+                7, 'eta',
+                8, 'theta',
+                9, 'iota',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert not client.exists('1:e')
+        assert client.exists('2:i')
+        assert not client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+    def test_frequency_table_import_export_both_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 5]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                1, 'foo',
+                2, 'bar',
+                3, 'baz',
+                4, 'wilco',
+                5, 'tango',
+                6, 'foxtrot',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                1, 'alpha',
+                2, 'beta',
+                3, 'gamma',
+                4, 'delta',
+                5, 'epsilon',
+                6, 'zeta',
+                7, 'eta',
+                8, 'theta',
+                9, 'iota',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+        assert client.exists('2:i')
+        assert client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+        assert CountMinScript(
+            ['1:i', '1:e'],
+            ['RANKED'] + parameters,
+            client=client,
+        ) == [
+            ['iota', '9'],
+            ['theta', '8'],
+            ['eta', '7'],
+            ['zeta', '6'],
+            ['foxtrot', '6'],
+        ]
+
+    def test_frequency_table_import_export_source_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 5]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                5, 'foo',
+                7, 'bar',
+                9, 'baz',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                1, 'alpha',
+                2, 'beta',
+                3, 'gamma',
+                4, 'delta',
+                5, 'epsilon',
+                6, 'zeta',
+                7, 'eta',
+                8, 'theta',
+                9, 'iota',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert not client.exists('1:e')
+        assert client.exists('2:i')
+        assert client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+        assert CountMinScript(
+            ['1:i', '1:e'],
+            ['RANKED'] + parameters,
+            client=client,
+        ) == [
+            ['iota', '9'],
+            ['baz', '9'],
+            ['theta', '8'],
+            ['eta', '7'],
+            ['bar', '7'],
+        ]
+
+    def test_frequency_table_import_export_destination_estimators(self):
+        client = self.db.cluster.get_local_client_for_key('key')
+
+        parameters = [64, 5, 5]
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['INCR'] + parameters + [
+                1, 'alpha',
+                2, 'beta',
+                3, 'gamma',
+                4, 'delta',
+                5, 'epsilon',
+                6, 'zeta',
+                7, 'eta',
+                8, 'theta',
+                9, 'iota',
+            ],
+            client=client,
+        )
+
+        CountMinScript(
+            ['2:i', '2:e'],
+            ['INCR'] + parameters + [
+                5, 'foo',
+                7, 'bar',
+                9, 'baz',
+            ],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+        assert client.exists('2:i')
+        assert not client.exists('2:e')
+
+        exports = CountMinScript(
+            ['2:i', '2:e'],
+            ['EXPORT'] + parameters,
+            client=client,
+        )
+
+        assert len(exports) == 1
+
+        CountMinScript(
+            ['1:i', '1:e'],
+            ['IMPORT'] + parameters + [exports[0]],
+            client=client,
+        )
+
+        assert client.exists('1:i')
+        assert client.exists('1:e')
+
+        assert CountMinScript(
+            ['1:i', '1:e'],
+            ['RANKED'] + parameters,
+            client=client,
+        ) == [
+            ['iota', '9'],
+            ['baz', '9'],
+            ['theta', '8'],
+            ['eta', '7'],
+            ['bar', '7'],
+        ]

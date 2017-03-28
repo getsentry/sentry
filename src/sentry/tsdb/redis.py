@@ -639,3 +639,58 @@ class RedisTSDB(BaseTSDB):
                     response[member] = response.get(member, 0.0) + value
 
         return responses
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        if not self.enable_frequency_sketches:
+            return
+
+        rollups = []
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
+                end=None,
+                rollup=rollup,
+            )
+            rollups.append((
+                rollup,
+                map(to_datetime, series),
+            ))
+
+        exports = defaultdict(list)
+
+        for source in sources:
+            for rollup, series in rollups:
+                for timestamp in series:
+                    keys = self.make_frequency_table_keys(
+                        model,
+                        rollup,
+                        to_timestamp(timestamp),
+                        source,
+                    )
+                    arguments = ['EXPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS)
+                    exports[source].extend([
+                        (CountMinScript, keys, arguments),
+                        ('DEL',) + tuple(keys),
+                    ])
+
+        imports = []
+
+        for source, results in self.cluster.execute_commands(exports).items():
+            results = iter(results)
+            for rollup, series in rollups:
+                for timestamp in series:
+                    imports.append((
+                        CountMinScript,
+                        self.make_frequency_table_keys(
+                            model,
+                            rollup,
+                            to_timestamp(timestamp),
+                            destination,
+                        ),
+                        ['IMPORT'] + list(self.DEFAULT_SKETCH_PARAMETERS) + next(results).value,
+                    ))
+                    next(results)  # pop off the result of DEL
+
+        self.cluster.execute_commands({
+            destination: imports,
+        })

@@ -318,6 +318,166 @@ function Sketch:increment(items)
     return results
 end
 
+local function response_to_table(response)
+    local result = {}
+    for i = 1, #response, 2 do
+        result[response[i]] = response[i + 1]
+    end
+    return result
+end
+
+function Sketch:export()
+    -- If there's no data, there's nothing meaningful to export.
+    if not self:exists() then
+        return cmsgpack.pack(nil)
+    end
+    return cmsgpack.pack({
+        response_to_table(redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')),
+        response_to_table(redis.call('HGETALL', self.estimates)),
+    })
+end
+
+function table.is_empty(t)
+    return next(t) == nil
+end
+
+function Sketch:import(payload)
+    local data = cmsgpack.unpack(payload)
+    if data == nil then
+        return  -- nothing to do here
+    end
+
+    local source_index, source_estimators = unpack(data)
+
+    -- TODO: This is absolutely not efficient when we're merging multiple things into the same sketch.
+    local destination_index = response_to_table(redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES'))
+    local destination_estimators = response_to_table(redis.call('HGETALL', self.estimates))
+
+    if table.is_empty(source_estimators) and table.is_empty(destination_estimators) then
+        -- If we're just writing the index values (and not estimators) to the
+        -- destination, we can just directly increment the sketch which will
+        -- take care of estimator updates and index truncation.
+        local items = {}
+        for key, value in pairs(source_index) do
+            table.insert(
+                items,
+                {key, tonumber(value)}
+            )
+        end
+        self:increment(items)
+    elseif not table.is_empty(source_estimators) and not table.is_empty(destination_estimators) then
+        -- Merge estimators.
+        for key, value in pairs(source_estimators) do
+            redis.call('HINCRBY', self.estimates, key, value)
+        end
+
+        -- Rebuild the index by using the keys from both indices and the new estimates.
+        local members = {}
+
+        for key, _ in pairs(source_index) do
+            members[key] = true
+        end
+
+        for key, _ in pairs(destination_index) do
+            members[key] = true
+        end
+
+        redis.call('DEL', self.index)
+        for key, _ in pairs(members) do
+            redis.call(
+                'ZADD',
+                self.index,
+                reduce(
+                    math.min,
+                    map(
+                        function (coordinates)
+                            return self:observations(coordinates)
+                        end,
+                        self:coordinates(key)
+                    )
+                ),
+                key
+            )
+        end
+
+        -- Remove extra items from the index.
+        redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
+    elseif table.is_empty(source_estimators) and not table.is_empty(destination_estimators) then
+        -- If we're just writing the index values (and not estimators) to the
+        -- destination, we can just directly increment the sketch which will
+        -- take care of estimator updates and index truncation.
+        local items = {}
+        for key, value in pairs(source_index) do
+            table.insert(
+                items,
+                {key, tonumber(value)}
+            )
+        end
+        self:increment(items)
+    elseif not table.is_empty(source_estimators) and table.is_empty(destination_estimators) then
+        -- Build the estimators for the side that doesn't have them.
+        for key, score in pairs(destination_index) do
+            local coordinates = self:coordinates(key)
+            local estimates = map(
+                function (coordinate)
+                    return self:observations(coordinate)
+                end,
+                coordinates
+            )
+            for _, item in pairs(zip({coordinates, estimates})) do
+                local coordinate, estimate = unpack(item)
+                local update = math.max(score, estimate)
+                if estimate ~= update then
+                    redis.call(
+                        'HSET',
+                        self.estimates,
+                        struct.pack('>HH', unpack(coordinate)),
+                        update
+                    )
+                end
+            end
+        end
+
+        -- Merge the estimators.
+        for key, value in pairs(source_estimators) do
+            redis.call('HINCRBY', self.estimates, key, value)
+        end
+
+        -- Rebuild the index by using the keys from both indices and the new estimates.
+        local members = {}
+
+        for key, _ in pairs(source_index) do
+            members[key] = true
+        end
+
+        for key, _ in pairs(destination_index) do
+            members[key] = true
+        end
+
+        redis.call('DEL', self.index)
+        for key, _ in pairs(members) do
+            redis.call(
+                'ZADD',
+                self.index,
+                reduce(
+                    math.min,
+                    map(
+                        function (coordinates)
+                            return self:observations(coordinates)
+                        end,
+                        self:coordinates(key)
+                    )
+                ),
+                key
+            )
+        end
+
+        redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
+    else
+        error('unepected fallthrough')
+    end
+end
+
 
 --[[ Redis API ]]--
 
@@ -511,5 +671,29 @@ return Router:new({
                 return trimmed
             end
         end
-    )
+    ),
+
+    EXPORT = Command:new(
+        function (sketches, arguments)
+            return map(
+                function (sketch)
+                    return sketch:export()
+                end,
+                sketches
+            )
+        end
+    ),
+
+    IMPORT = Command:new(
+        function (sketches, arguments)
+            return map(
+                function (item)
+                    local sketch, data = unpack(item)
+                    return sketch:import(data)
+                end,
+                zip({sketches, arguments})
+            )
+        end
+    ),
+
 })(KEYS, ARGV)
