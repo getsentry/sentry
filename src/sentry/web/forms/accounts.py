@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
+from zxcvbn import zxcvbn
 
 from sentry import options
 from sentry.auth import password_validation
@@ -187,8 +188,18 @@ class RegistrationForm(forms.ModelForm):
         return value.lower()
 
     def clean_password(self):
+        username = (self.cleaned_data.get('username') or '').strip()
         password = self.cleaned_data['password']
         password_validation.validate_password(password)
+        results = zxcvbn(password, user_inputs=[username])
+        if results['score'] < 3:
+            if results['feedback']['warning']:
+                errorMessage = results['feedback']['warning']
+            elif len(results['feedback']['suggestions']):
+                errorMessage = results['feedback']['suggestions'][0]
+            else:
+                errorMessage = 'Common words are easy to guess. Try again ?'
+            raise forms.ValidationError(_(errorMessage))
         return password
 
     def save(self, commit=True):

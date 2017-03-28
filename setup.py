@@ -146,6 +146,7 @@ install_requires = [
     'rb>=1.6.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
+    'zxcvbn-python==4.4.14',
 ]
 
 
