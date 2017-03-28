@@ -22,7 +22,8 @@ const VersionHoverCard = React.createClass({
 
   getInitialState() {
     return {
-      loading: true,
+      reposLoading: true,
+      releaseLoading: true,
       error: false,
       data: {},
       visible: false,
@@ -39,12 +40,13 @@ const VersionHoverCard = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           release: data,
+          releaseLoading: false,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          releaseLoading: false,
         });
       }
     });
@@ -59,13 +61,13 @@ const VersionHoverCard = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           hasRepos: data.length > 0,
-          loading:false,
+          reposLoading: false,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
+          reposLoading: false,
         });
       }
     });
@@ -116,7 +118,7 @@ const VersionHoverCard = React.createClass({
 
     return (
       <div className="hovercard-body">
-        {this.state.loading ? <LoadingIndicator mini={true}/> :
+        {(this.state.releaseLoading || this.state.reposLoading) ? <LoadingIndicator mini={true}/> :
           (this.state.error ? <LoadingError /> :
             <div>
             <div className="row row-flex">
