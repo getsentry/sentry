@@ -8,14 +8,13 @@ sentry.models.counter
 
 from __future__ import absolute_import
 
-from django.conf import settings
 from django.db import connection, connections
 from django.db.models.signals import post_syncdb
 
 from sentry.db.models import (
     FlexibleForeignKey, Model, sane_repr, BoundedBigIntegerField
 )
-from sentry.utils import db
+from sentry.utils.db import is_mysql, is_postgres, is_sqlite
 
 
 class Counter(Model):
@@ -43,12 +42,12 @@ def increment_project_counter(project, delta=1):
 
     cur = connection.cursor()
     try:
-        if db.is_postgres():
+        if is_postgres():
             cur.execute('''
                 select sentry_increment_project_counter(%s, %s)
             ''', [project.id, delta])
             return cur.fetchone()[0]
-        elif db.is_sqlite():
+        elif is_sqlite():
             value = cur.execute('''
                 insert or ignore into sentry_projectcounter
                   (project_id, value) values (%s, 0);
@@ -68,7 +67,7 @@ def increment_project_counter(project, delta=1):
                 ''').fetchone()[0]
                 if changes != 0:
                     return value + delta
-        elif db.is_mysql():
+        elif is_mysql():
             cur.execute('''
                 insert into sentry_projectcounter
                             (project_id, value)
@@ -87,7 +86,7 @@ def increment_project_counter(project, delta=1):
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
 def create_counter_function(db, created_models, **kwargs):
-    if 'postgres' not in settings.DATABASES[db]['ENGINE']:
+    if not is_postgres(db):
         return
 
     if Counter not in created_models:
