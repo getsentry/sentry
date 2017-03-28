@@ -109,6 +109,7 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
+from .endpoints.event_file_committers import EventFileCommittersEndpoint
 
 urlpatterns = patterns(
     '',
@@ -296,6 +297,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$',
+        EventFileCommittersEndpoint.as_view(),
+        name='sentry-api-0-event-file-committers'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/$',
         ProjectFiltersEndpoint.as_view(),
         name='sentry-api-0-project-filters'),
