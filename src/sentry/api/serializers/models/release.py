@@ -109,8 +109,9 @@ class ReleaseSerializer(Serializer):
             commit_count_by_release_id[rc.release_id] += 1
 
             # look for latest commit by release
-            if latest_commit_by_release_id.get(rc.release_id) is None \
-                    or latest_commit_by_release_id.get(rc.release_id).order > rc.order:
+            # lower order means newer commit
+            if rc.release_id not in latest_commit_by_release_id \
+                    or latest_commit_by_release_id[rc.release_id].order > rc.order:
                 latest_commit_by_release_id[rc.release_id] = rc
 
         result = {}
