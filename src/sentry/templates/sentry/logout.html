@@ -1,0 +1,18 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Logout" %} | {{ block.super }}{% endblock %}
+
+{% block modal_header_signout %}{% endblock %}
+
+{% block auth_main %}
+<form class="form-stacked" method="post">
+  {% csrf_token %}
+  <div class="p-b-2 align-center" style="margin-top: 25px">
+    <button class="btn btn-primary">Sign out of this session</button>
+    <button class="btn btn-default" name="all" value="1">Sign out all sessions</button>
+  </div>
+</form>
+{% endblock %}

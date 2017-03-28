@@ -13,7 +13,10 @@
 <div class="box box-modal">
   <div class="box-header">
     <div class="pull-right">
-      <a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a>
+      <form id='form-logout' action="{% url 'sentry-logout' %}" method="post">
+        {% csrf_token %}
+        <a href="{% url 'sentry-logout' %}" onclick="return document.getElementById('form-logout').submit() || false">{% trans "Sign out" %}</a>
+      </form>
     </div>
     <a href="/">
       <span class="icon-sentry-logo"></span>

@@ -126,7 +126,12 @@
               {% if request.is_superuser %}
                 <li><a href="{% url 'sentry-admin-overview' %}">{% trans "Admin" %}</a></li>
               {% endif %}
-              <li><a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a></li>
+              <li>
+                <form id='form-logout' action="{% url 'sentry-logout' %}" method="post">
+                  {% csrf_token %}
+                  <a href="{% url 'sentry-logout' %}" onclick="return document.getElementById('form-logout').submit() || false">{% trans "Sign out" %}</a>
+                </form>
+              </li>
             </ul>
           </div>
         </div>
