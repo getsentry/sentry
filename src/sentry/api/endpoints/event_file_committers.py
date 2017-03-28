@@ -7,7 +7,7 @@ import operator
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import (
-    Release, ReleaseCommit, Commit, CommitFileChange, Event
+    Release, ReleaseCommit, Commit, CommitFileChange, Event, Group
 )
 from sentry.api.serializers.models.release import get_users_for_commits
 
@@ -74,13 +74,12 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         return list(commit_file_change_matches)
 
-    def _match_commits_frame(self, commit_file_changes, frame):
+    def _match_commits_path(self, commit_file_changes, path):
         #  find commits that match the run time path the best.
-
         matching_commits = {}
         best_score = 0
         for file_change in commit_file_changes:
-            score = score_path_match_length(file_change.filename, frame['abs_path'])
+            score = score_path_match_length(file_change.filename, path)
             if score > best_score:
                 # reset matches for better match.
                 best_score = score
@@ -90,6 +89,17 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 matching_commits[file_change.commit.id] = file_change.commit
 
         return matching_commits.values()
+
+    def _get_commits_committer(self, commits, author_id):
+        committer_commit_list = [
+            serialize(commit)
+            for commit in commits if commit.author.id == author_id
+        ]
+
+        # filter out the author data
+        for c in committer_commit_list:
+            del c['author']
+        return committer_commit_list
 
     def _get_committers(self, annotated_frames, commits):
         # extract the unique committers and return their serialized sentry accounts
@@ -109,7 +119,12 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         sorted_committers = sorted(committers, key=committers.get)
         sentry_user_dict = get_users_for_commits(commits)
 
-        return [sentry_user_dict[author_id] for author_id in sorted_committers]
+        user_dicts = [{
+            'author': sentry_user_dict[author_id],
+            'commits': self._get_commits_committer(commits, author_id)
+        } for author_id in sorted_committers]
+
+        return user_dicts
 
     def get(self, _, project, event_id):
         """
@@ -135,7 +150,10 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         # populate event data
         Event.objects.bind_nodes([event], 'data')
 
-        commits = self._get_commits(event.project, event.get_tag('sentry:release'))
+        group = Group.objects.get(id=event.group_id)
+
+        commits = self._get_commits(event.project, group.get_first_release())
+
         if not commits:
             return Response({'detail': 'No Commits found for Release'}, status=404)
 
@@ -150,12 +168,23 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
         if path_set:
             file_changes = self._get_commit_file_changes(commits, path_set)
 
+        commit_path_matches = {
+            path: self._match_commits_path(file_changes, path)
+            for path in path_set
+        }
+
         annotated_frames = [{
             'frame': frame,
-            'commits': self._match_commits_frame(file_changes, frame)
+            'commits': commit_path_matches[frame['abs_path']]
         } for frame in app_frames]
 
-        committers = self._get_committers(annotated_frames, commits)
+        relevant_commits = list({
+            commit
+            for match in commit_path_matches
+            for commit in commit_path_matches[match]
+        })
+
+        committers = self._get_committers(annotated_frames, relevant_commits)
 
         # serialize the commit objects
         serialized_annotated_frames = [{
