@@ -97,13 +97,20 @@ class ReleaseSerializer(Serializer):
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
         latest_commit_by_release_id = {}
+        set_of_users = set()
 
         for rc in release_commits:
             # Accumulate authors per release
             author = rc.commit.author
+
             if author:
-                authors_by_release_id[rc.release_id][author.id] = \
-                    users_by_email[author.id]
+                author_user = users_by_email[author.id]
+                if author_user.get('id') and author_user['id'] in set_of_users:
+                    pass
+                else:
+                    authors_by_release_id[rc.release_id][author.id] = \
+                        users_by_email[author.id]
+                author_user.get('id') and set_of_users.add(author_user['id'])
 
             # Increment commit count per release
             commit_count_by_release_id[rc.release_id] += 1
