@@ -1,13 +1,13 @@
 import React from 'react';
 import FileChange from './fileChange';
-import {tn} from '../locale';
+import {t, tn} from '../locale';
 
 function Collapsed(props) {
   return (
     <li className="list-group-item list-group-item-sm align-center">
       <span className="icon-container">
       </span>
-      <a onClick={props.onClick}>{tn(('Show ' + props.count + ' collapsed file'), ('Show ' + props.count + ' collapsed files'), props.count)}</a>
+      <a onClick={props.onClick}>{tn(('Show %d collapsed file'), ('Show %d collapsed files'), props.count)}</a>
     </li>
   );
 }
@@ -54,7 +54,7 @@ const RepositoryFileSummary = React.createClass({
     return(
       <ul className="list-group list-group-striped m-b-2">
       <h6>
-        {fileCount} {tn((' file changed in ' + repository), (' files changed in ' + repository), fileCount)}
+        {tn(('%d file changed in ' + repository), ('%d files changed in ' + repository), fileCount)}
       </h6>
       {files.map(filename => {
         let {id, authors, types} = fileChangeSummary[filename];
@@ -71,7 +71,7 @@ const RepositoryFileSummary = React.createClass({
       {numCollapsed === 0 && canCollapse &&
         <li className="list-group-item list-group-item-sm align-center">
           <span className="icon-container"></span>
-          <a onClick={this.onCollapseToggle}>Collapse</a>
+          <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
         </li>
       }
       </ul>);
