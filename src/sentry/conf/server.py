@@ -344,6 +344,12 @@ AUTH_PASSWORD_VALIDATORS = [
             'min_length': 6,
         },
     },
+    {
+        'NAME': 'sentry.auth.password_validation.MaximumLengthValidator',
+        'OPTIONS': {
+            'max_length': 256,
+        },
+    },
 ]
 
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
