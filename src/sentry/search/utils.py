@@ -222,6 +222,12 @@ def _default_tag(tokenized_tag, dictionary, user, project):
 # TODO(dcramer): currently inclusivity is not controllable by the query
 # as from date is always inclusive, and to date is always exclusive
 def _age_tag(tokenized_tag, dictionary, user, project):
+    if tokenized_tag['prefix_operator'] not in ('-', '+'):
+        raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have leading '+' or '-' operator e.g. 'age:-24h'".format(tokenized_tag['string']))
+    if tokenized_tag['suffix_operator'] not in ('w', 'd', 'h', 'm'):
+        raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have trailing time interval operator 'm', 'h', 'd', or 'w' e.g. 'age:-24h'".format(tokenized_tag['string']))
+    if not tokenized_tag['value'].__class__.__name__ == 'int':
+        raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have integer value 'age:-24h'".format(tokenized_tag['string']))
     operator = tokenized_tag['prefix_operator']
     time_stamp = _parse_timestamp(tokenized_tag)
     inclusivity = operator == '-'

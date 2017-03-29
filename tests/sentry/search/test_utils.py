@@ -7,12 +7,23 @@ from django.utils import timezone
 from sentry.models import EventUser, GroupStatus, Release
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
-from sentry.search.utils import parse_query
+from sentry.search.utils import parse_query, InvalidQuery
+
+# To run tests w/o DB:
+# > export DB=sqlite
+# > export SENTRY_SOUTH_TESTS_MIGRATE=0
 
 
 class ParseQueryTest(TestCase):
     def parse_query(self, query):
         return parse_query(self.project, query, self.user)
+
+    def test_malformed_age_tag_raises_invalid_query_exception(self):
+        self.assertRaises(InvalidQuery, self.parse_query, 'age:24h')
+        self.assertRaises(InvalidQuery, self.parse_query, 'age:>24h')
+        self.assertRaises(InvalidQuery, self.parse_query, 'age:+24')
+        self.assertRaises(InvalidQuery, self.parse_query, 'age:+24e')
+        self.assertRaises(InvalidQuery, self.parse_query, 'age:+abdh')
 
     def test_simple(self):
         result = self.parse_query('foo bar')
