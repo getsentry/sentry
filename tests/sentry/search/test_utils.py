@@ -201,8 +201,6 @@ class ParseQueryTest(TestCase):
             'date_to_inclusive': False
         }
 
-    # TODO: query parser for '<=' timestamp should set inclusive to True.
-    # @pytest.mark.xfail
     def test_less_than_equal_comparator(self):
         result = self.parse_query('event.timestamp:<=2016-01-02 timesSeen:<=10')
         assert result == {
