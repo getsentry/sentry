@@ -10,42 +10,6 @@ from sentry.search.base import ANY
 from sentry.search.utils import parse_query
 
 
-# def test_get_numeric_field_value():
-#     assert get_numeric_field_value('foo', '10') == {
-#         'foo': 10,
-#     }
-#
-#     assert get_numeric_field_value('foo', '>10') == {
-#         'foo_lower': 10,
-#         'foo_lower_inclusive': False,
-#     }
-#
-#     assert get_numeric_field_value('foo', '>=10') == {
-#         'foo_lower': 10,
-#         'foo_lower_inclusive': True,
-#     }
-#
-#     assert get_numeric_field_value('foo', '<10') == {
-#         'foo_upper': 10,
-#         'foo_upper_inclusive': False,
-#     }
-#
-#     assert get_numeric_field_value('foo', '<=10') == {
-#         'foo_upper': 10,
-#         'foo_upper_inclusive': True,
-#     }
-#
-#     assert get_numeric_field_value('foo', '>3.5', type=float) == {
-#         'foo_lower': 3.5,
-#         'foo_lower_inclusive': False,
-#     }
-#
-#     assert get_numeric_field_value('foo', '<=-3.5', type=float) == {
-#         'foo_upper': -3.5,
-#         'foo_upper_inclusive': True,
-#     }
-
-
 class ParseQueryTest(TestCase):
     def parse_query(self, query):
         return parse_query(self.project, query, self.user)

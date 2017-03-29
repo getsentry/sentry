@@ -90,9 +90,6 @@ def tokenize_query(query):
 
     result['query'] = map(format_query, query_params['query'])
     result['tags'] = map(format_tag, query_params['tags'])
-    # for tag in query_params['tags']:
-    #     key, value = format_tag(tag)
-    #     result[key].append(value)
     return dict(result)
 
 
