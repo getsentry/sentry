@@ -214,6 +214,69 @@ class Release(Model):
         else:
             return True
 
+    def set_head_commits(self, head_commits, user, fetch_commits=False):
+        from sentry.models import Commit, ReleaseHeadCommit, Repository
+        from sentry.plugins import bindings
+
+        prev_release = type(self).objects.filter(
+            organization_id=self.organization_id,
+            projects__in=self.projects.all(),
+        ).order_by('-date_added').first()
+
+        commit_list = []
+
+        for head_commit in head_commits:
+            repo = Repository.objects.get_or_create(
+                organization_id=self.organization_id,
+                name=head_commit['repository'],
+            )[0]
+            commit = Commit.objects.get_or_create(
+                organization_id=self.organization_id,
+                repository_id=repo.id,
+                key=head_commit['current_id'],
+            )[0]
+            # TODO(jess): what if this exists? update?
+            ReleaseHeadCommit.objects.create(
+                organization_id=self.organization_id,
+                repository_id=repo.id,
+                release=self,
+                commit=commit,
+            )
+            if fetch_commits:
+                try:
+                    provider_cls = bindings.get('repository.provider').get(repo.provider)
+                except KeyError:
+                    continue
+
+                # TODO(jess): what do we do if no prev_release?
+                # what about if no prev_release head commit?
+                # we probably just want to require previous_id
+                # if we have no historical head commit for a release
+                if not prev_release or head_commit.get('previous_id'):
+                    continue
+
+                if head_commit.get('previous_id'):
+                    start_sha = head_commit['previous_id']
+                else:
+                    try:
+                        prev_head = ReleaseHeadCommit.objects.get(
+                            organization_id=self.organization_id,
+                            release=prev_release,
+                            repository_id=repo.id,
+                        )
+                    except ReleaseHeadCommit.DoesNotExist:
+                        continue
+                    start_sha = prev_head.commit.key
+
+                end_sha = commit.key
+                provider = provider_cls(id=repo.provider)
+                commit_list.extend(
+                    provider.compare_commits(repo.name, start_sha, end_sha, actor=user)
+                )
+
+            if commit_list:
+                self.set_commits(commit_list)
+
     def set_commits(self, commit_list):
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
