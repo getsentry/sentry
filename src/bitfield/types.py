@@ -155,7 +155,7 @@ class BitHandler(object):
         return '<%s: %s>' % (self.__class__.__name__, ', '.join('%s=%s' % (k, self.get_bit(n).is_set) for n, k in enumerate(self._keys)),)
 
     def __str__(self):
-        return six.texzt_type(self._value)
+        return six.text_type(self._value)
 
     def __int__(self):
         return self._value
