@@ -164,13 +164,13 @@ def version_build_from_data(data):
     app_context = data.get('contexts', {}).get('app', {})
     if app_context is not None:
         if (app_context.get('app_identifier', None) and
-                app_context.get('app_short_version', None) and
                 app_context.get('app_version', None) and
+                app_context.get('app_build', None) and
                 app_context.get('app_name', None)):
             return AppInfo(
                 app_context.get('app_identifier', None),
-                app_context.get('app_short_version', None),
                 app_context.get('app_version', None),
+                app_context.get('app_build', None),
                 app_context.get('app_name', None),
             )
     return None
