@@ -27,11 +27,12 @@ class DSymCache(object):
     def get_global_path(self):
         return os.path.join(self.dsym_cache_path, 'global')
 
-    def fetch_dsyms(self, project, uuids):
+    def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
         bases = set()
         loaded = set()
         for image_uuid in uuids:
-            base = self.fetch_dsym(project, image_uuid)
+            base = self.fetch_dsym(project, image_uuid,
+                on_dsym_file_referenced=on_dsym_file_referenced)
             if base is not None:
                 loaded.add(image_uuid)
                 bases.add(base)
@@ -43,7 +44,7 @@ class DSymCache(object):
             os.utime(path, (now, now))
         return path
 
-    def fetch_dsym(self, project, image_uuid):
+    def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
         image_uuid = image_uuid.lower()
         for path in self.get_project_path(project), self.get_global_path():
             base = self.get_project_path(project)
@@ -63,6 +64,8 @@ class DSymCache(object):
         if dsf.is_global:
             base = self.get_global_path()
         else:
+            if on_dsym_file_referenced is not None:
+                on_dsym_file_referenced(dsf)
             base = self.get_project_path(project)
         dsym = os.path.join(base, image_uuid)
 

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import six
 import logging
 
+from collections import namedtuple
 from symsynd.macho.arch import get_cpu_name
 from symsynd.utils import parse_addr
 
@@ -25,6 +26,8 @@ KNOWN_DSYM_TYPES = {
     'macOS': 'macho',
     'watchOS': 'macho',
 }
+
+AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
 
 
 def find_apple_crash_report_referenced_images(binary_images, threads):
@@ -154,6 +157,23 @@ def cpu_name_from_data(data):
             break
 
     return unique_cpu_name
+
+
+def version_build_from_data(data):
+    """Returns release and build string from the given data if it exists."""
+    app_context = data.get('contexts', {}).get('app', {})
+    if app_context is not None:
+        if (app_context.get('app_identifier', None) and
+                app_context.get('app_short_version', None) and
+                app_context.get('app_version', None) and
+                app_context.get('app_name', None)):
+            return AppInfo(
+                app_context.get('app_identifier', None),
+                app_context.get('app_short_version', None),
+                app_context.get('app_version', None),
+                app_context.get('app_name', None),
+            )
+    return None
 
 
 def rebase_addr(instr_addr, img):
