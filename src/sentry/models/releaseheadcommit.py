@@ -16,9 +16,8 @@ class ReleaseHeadCommit(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_releaseheadcommit'
-        # TODO(jess): this should probably just be ('repository_id, 'release')
         unique_together = (
-            ('repository_id', 'release', 'commit'),
+            ('repository_id', 'release'),
         )
 
     __repr__ = sane_repr('release_id', 'commit_id', 'repository_id')

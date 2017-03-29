@@ -235,12 +235,14 @@ class Release(Model):
                 repository_id=repo.id,
                 key=head_commit['current_id'],
             )[0]
-            # TODO(jess): what if this exists? update?
-            ReleaseHeadCommit.objects.create(
+            # update head commit for repo/release if exists
+            ReleaseHeadCommit.objects.create_or_update(
                 organization_id=self.organization_id,
                 repository_id=repo.id,
                 release=self,
-                commit=commit,
+                values={
+                    'commit': commit,
+                }
             )
             if fetch_commits:
                 try:
@@ -248,16 +250,11 @@ class Release(Model):
                 except KeyError:
                     continue
 
-                # TODO(jess): what do we do if no prev_release?
-                # what about if no prev_release head commit?
-                # we probably just want to require previous_id
-                # if we have no historical head commit for a release
-                if not prev_release or head_commit.get('previous_id'):
-                    continue
-
+                # if previous commit isn't provided, try to get from
+                # previous release otherwise, give up
                 if head_commit.get('previous_id'):
                     start_sha = head_commit['previous_id']
-                else:
+                elif prev_release:
                     try:
                         prev_head = ReleaseHeadCommit.objects.get(
                             organization_id=self.organization_id,
@@ -267,6 +264,8 @@ class Release(Model):
                     except ReleaseHeadCommit.DoesNotExist:
                         continue
                     start_sha = prev_head.commit.key
+                else:
+                    continue
 
                 end_sha = commit.key
                 provider = provider_cls(id=repo.provider)
