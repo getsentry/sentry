@@ -16,6 +16,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
     BaseManager
 from sentry.models.activity import Activity
+from sentry.signals import issue_assigned
 
 
 class GroupAssigneeManager(BaseManager):
@@ -42,6 +43,7 @@ class GroupAssigneeManager(BaseManager):
             )
         else:
             affected = True
+            issue_assigned.send(project=group.project, group=group, sender=acting_user)
 
         if affected:
             activity = Activity.objects.create(

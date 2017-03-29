@@ -169,7 +169,7 @@ const ProjectReleases = React.createClass({
             <div className="row">
               <div className="col-sm-8 col-xs-7">{t('Version')}</div>
               <div className="col-sm-2 col-xs-3">
-                {t('New Events')}
+                {t('New Issues')}
               </div>
               <div className="col-sm-2 col-xs-2">
                 {t('Last Event')}

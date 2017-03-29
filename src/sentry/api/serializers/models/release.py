@@ -96,6 +96,7 @@ class ReleaseSerializer(Serializer):
         users_by_email = get_users_for_commits([rc.commit for rc in release_commits])
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
+        latest_commit_by_release_id = {}
 
         for rc in release_commits:
             # Accumulate authors per release
@@ -107,11 +108,19 @@ class ReleaseSerializer(Serializer):
             # Increment commit count per release
             commit_count_by_release_id[rc.release_id] += 1
 
+            # look for latest commit by release
+            # lower order means newer commit
+            if rc.release_id not in latest_commit_by_release_id \
+                    or latest_commit_by_release_id[rc.release_id].order > rc.order:
+                latest_commit_by_release_id[rc.release_id] = rc
+
         result = {}
         for item in item_list:
+            last_commit = latest_commit_by_release_id.get(item.id)
             result[item] = {
                 'commit_count': commit_count_by_release_id[item.id],
                 'authors': authors_by_release_id.get(item.id, {}).values(),
+                'last_commit': serialize(last_commit.commit) if last_commit is not None else None,
             }
         return result
 
@@ -190,6 +199,7 @@ class ReleaseSerializer(Serializer):
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': attrs.get('commit_count', 0),
+            'lastCommit': attrs.get('last_commit'),
             'authors': attrs.get('authors', []),
             'projects': attrs.get('projects', [])
         }

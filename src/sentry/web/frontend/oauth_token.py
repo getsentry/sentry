@@ -115,7 +115,7 @@ class OAuthTokenView(View):
             'expires_in': (timezone.now() - token.expires_at).total_seconds(),
             'expires_at': token.expires_at,
             'token_type': 'bearer',
-            'scope': ' '.join(k for k, v in token.scopes.iteritems() if v),  # NOQA
+            'scope': ' '.join(token.get_scopes()),  # NOQA
             'user': {
                 'id': six.text_type(token.user.id),
                 # we might need these to become scope based

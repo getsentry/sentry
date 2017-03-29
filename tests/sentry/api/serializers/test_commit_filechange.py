@@ -51,7 +51,7 @@ class CommitFileChangeSerializerTest(TestCase):
         result = serialize(cfc, user)
 
         assert result['filename'] == '.gitignore'
-        assert result['commit_message'] == 'waddap'
+        assert result['commitMessage'] == 'waddap'
         assert result['author'] == {'name': 'stebe', 'email': 'stebe@sentry.io'}
 
     def test_no_author(self):

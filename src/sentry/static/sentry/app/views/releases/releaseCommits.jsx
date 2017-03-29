@@ -7,6 +7,8 @@ import TimeSince from '../../components/timeSince';
 
 import ApiMixin from '../../mixins/apiMixin';
 
+import {t} from '../../locale';
+
 const ReleaseCommit = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
@@ -15,7 +17,6 @@ const ReleaseCommit = React.createClass({
     commitDateCreated: React.PropTypes.string,
     author: React.PropTypes.object,
     repository: React.PropTypes.object,
-
   },
 
   getCommitUrl() {
@@ -32,8 +33,8 @@ const ReleaseCommit = React.createClass({
         <div className="row row-center-vertically">
           <div className="col-xs-8 list-group-avatar">
             <Avatar user={this.props.author}/>
-            <h5>{this.props.commitMessage}</h5>
-            <p><strong>{this.props.author.name}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
+            <h5>{this.props.commitMessage || t('No message provided')}</h5>
+            <p><strong>{this.props.author.name || t('Unknown author')}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
           </div>
           <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
