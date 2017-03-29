@@ -1,11 +1,11 @@
 from __future__ import absolute_import, division, print_function
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 
-import six
+import re
 from django.db import DataError
-from django.utils import timezone
+from django.utils import timezone, dateparse
 
 from sentry.constants import STATUS_CHOICES
 from sentry.models import EventUser, Release, User
@@ -46,97 +46,6 @@ def get_user_tag(project, key, value):
     return euser.tag_value
 
 
-def parse_datetime_range(value):
-    try:
-        flag, count, interval = value[0], int(value[1:-1]), value[-1]
-    except (ValueError, TypeError, IndexError):
-        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
-
-    if flag not in ('+', '-'):
-        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
-
-    if interval == 'h':
-        delta = timedelta(hours=count)
-    elif interval == 'w':
-        delta = timedelta(days=count * 7)
-    elif interval == 'd':
-        delta = timedelta(days=count)
-    elif interval == 'm':
-        delta = timedelta(minutes=count)
-    else:
-        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
-
-    if flag == '-':
-        return (timezone.now() - delta, None)
-    else:
-        return (None, timezone.now() - delta)
-
-
-def parse_datetime_comparison(value):
-    # TODO(dcramer): currently inclusitivity is not controllable by the query
-    # as from date is always inclusive, and to date is always exclusive
-    if value[:2] in ('>=', '=>'):
-        return (parse_datetime_value(value[2:])[0], None)
-    if value[:2] in ('<=', '=<'):
-        return (None, parse_datetime_value(value[2:])[0])
-    if value[:1] in ('>'):
-        return (parse_datetime_value(value[1:])[0], None)
-    if value[:1] in ('<'):
-        return (None, parse_datetime_value(value[1:])[0])
-    if value[0] == '=':
-        return parse_datetime_value(value[1:])
-    raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
-
-
-def parse_datetime_value(value):
-    try:
-        return _parse_datetime_value(value)
-    except (ValueError, IndexError):
-        raise InvalidQuery(u'{} is not a valid datetime query'.format(value))
-
-
-def _parse_datetime_value(value):
-    # this one is fuzzy, and not entirely correct
-    if value.startswith(('-', '+')):
-        return parse_datetime_range(value)
-
-    # timezones are not supported and are assumed UTC
-    if value[-1] == 'Z':
-        value = value[:-1]
-
-    value_len = len(value)
-    if value_len in (8, 10):
-        value = datetime.strptime(value, '%Y-%m-%d').replace(
-            tzinfo=timezone.utc,
-        )
-        return [value, value + timedelta(days=1)]
-    elif value[4] == '-':
-        try:
-            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S').replace(
-                tzinfo=timezone.utc,
-            )
-        except ValueError:
-            value = datetime.strptime(value, '%Y-%m-%dT%H:%M:%S.%f').replace(
-                tzinfo=timezone.utc,
-            )
-    else:
-        value = datetime.utcfromtimestamp(float(value)).replace(
-            tzinfo=timezone.utc,
-        )
-    return [value - timedelta(minutes=5), value + timedelta(minutes=6)]
-
-
-def parse_datetime_expression(value):
-    # result must be (from inclusive, to exclusive)
-    if value.startswith(('-', '+')):
-        return parse_datetime_range(value)
-
-    if value.startswith(('>', '<', '=', '<=', '>=')):
-        return parse_datetime_comparison(value)
-
-    return parse_datetime_value(value)
-
-
 def parse_user_value(value, user):
     if value == 'me':
         return user
@@ -147,85 +56,6 @@ def parse_user_value(value, user):
         # XXX(dcramer): hacky way to avoid showing any results when
         # an invalid user is entered
         return User(id=0)
-
-
-def get_date_params(value, from_field, to_field):
-    date_from, date_to = parse_datetime_expression(value)
-    result = {}
-    if date_from:
-        result.update({
-            from_field: date_from,
-            '{}_inclusive'.format(from_field): True,
-        })
-    if date_to:
-        result.update({
-            to_field: date_to,
-            '{}_inclusive'.format(to_field): False,
-        })
-    return result
-
-
-numeric_modifiers = [
-    ('>=', lambda field, value: {
-        '{}_lower'.format(field): value,
-        '{}_lower_inclusive'.format(field): True,
-    }),
-    ('<=', lambda field, value: {
-        '{}_upper'.format(field): value,
-        '{}_upper_inclusive'.format(field): True,
-    }),
-    ('>', lambda field, value: {
-        '{}_lower'.format(field): value,
-        '{}_lower_inclusive'.format(field): False,
-    }),
-    ('<', lambda field, value: {
-        '{}_upper'.format(field): value,
-        '{}_upper_inclusive'.format(field): False,
-    }),
-]
-
-
-def get_numeric_field_value(field, raw_value, type=int):
-    for modifier, function in numeric_modifiers:
-        if raw_value.startswith(modifier):
-            return function(
-                field,
-                type(raw_value[len(modifier):]),
-            )
-    else:
-        return {
-            field: type(raw_value),
-        }
-
-reserved_tag_names = frozenset([
-    'query',
-    'is',
-    'assigned',
-    'bookmarks',
-    'subscribed',
-    'first-release',
-    'firstRelease',
-    'release',
-    'level',
-    'user',
-    'user.id',
-    'user.ip',
-    'has',
-    'age',
-    'firstSeen',
-    'activeSince',
-    'last_seen',
-    'lastSeen',
-    'environment',
-    'browser',
-    'device',
-    'os',
-    'app',
-    'os.name',
-    'url',
-    'event.timestamp'
-    'timesSeen',
-])
 
 
 def tokenize_query(query):
@@ -259,9 +89,10 @@ def tokenize_query(query):
         query_params[state].append(token)
 
     result['query'] = map(format_query, query_params['query'])
-    for tag in query_params['tags']:
-        key, value = format_tag(tag)
-        result[key].append(value)
+    result['tags'] = map(format_tag, query_params['tags'])
+    # for tag in query_params['tags']:
+    #     key, value = format_tag(tag)
+    #     result[key].append(value)
     return dict(result)
 
 
@@ -272,14 +103,14 @@ def format_tag(tag):
 
     Example:
     >>> format_tag('user:foo')
-    'user', 'foo'
-    >>>format_tag('user:"foo bar"'')
-    'user', 'foo bar'
+    'user:foo'
+    >>>format_tag('user:"foo bar"')
+    'user:foo bar'
     '''
-    idx = tag.index(':')
-    key = tag[:idx].strip('"')
-    value = tag[idx + 1:].strip('"')
-    return key, value
+    key, value = tag.split(':', 1)
+    key = key.strip('"')
+    value = value.strip('"')
+    return '{}:{}'.format(key, value)
 
 
 def format_query(query):
@@ -331,64 +162,260 @@ def split_query_into_tokens(query):
     return tokens
 
 
+def _assigned_tag(tokenized_tag, dictionary, user, project):
+    '''Handles behavior for 'event.timestamp' tags.  Returns mutated dictionary'''
+    value = tokenized_tag['value']
+    dictionary['assigned_to'] = parse_user_value(value, user)
+    return dictionary
+
+
+def _bookmark_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    dictionary['bookmarked_by'] = parse_user_value(value, user)
+    return dictionary
+
+
+def _subscribed_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    dictionary['subscribed_by'] = parse_user_value(value, user)
+    return dictionary
+
+
+def _event_timestamp_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    operator = tokenized_tag['prefix_operator']
+    time_stamp = _parse_timestamp(tokenized_tag)
+    if operator:
+        inclusitivity = operator in ('>=', '<=')
+        bound = 'to' if operator in ('<', '<=') else 'from'
+        dictionary['date_{}'.format(bound)] = time_stamp
+        dictionary['date_{}_inclusive'.format(bound)] = inclusitivity
+    else:
+        start_offset = 0 if dateparse.parse_date(value) else 5
+        end_offset = 1440 if dateparse.parse_date(value) else 6
+        start_time = time_stamp - timedelta(minutes=start_offset)
+        end_time = time_stamp + timedelta(minutes=end_offset)
+        dictionary['date_to'] = end_time
+        dictionary['date_to_inclusive'] = False
+        dictionary['date_from'] = start_time
+        dictionary['date_from_inclusive'] = True
+    return dictionary
+
+
+def _times_seen(tokenized_tag, dictionary, user, project):
+    operator = tokenized_tag['prefix_operator']
+    value = tokenized_tag['value']
+    if not operator:
+        dictionary['times_seen'] = value
+        return dictionary
+    inclusivity = operator in ('<=', '>=')
+    bound = 'lower' if operator in ('>=', '>') else 'upper'
+    dictionary['times_seen_{}'.format(bound)] = int(value)
+    dictionary['times_seen_{}_inclusive'.format(bound)] = inclusivity
+    return dictionary
+
+
+def _default_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    key = tokenized_tag['key']
+    dictionary['tags'][key] = value
+    return dictionary
+
+
+# TODO(dcramer): currently inclusivity is not controllable by the query
+# as from date is always inclusive, and to date is always exclusive
+def _age_tag(tokenized_tag, dictionary, user, project):
+    operator = tokenized_tag['prefix_operator']
+    time_stamp = _parse_timestamp(tokenized_tag)
+    inclusivity = operator == '-'
+    bound = 'to' if operator == '+' else 'from'
+    dictionary['age_{}'.format(bound)] = time_stamp
+    dictionary['age_{}_inclusive'.format(bound)] = inclusivity
+    return dictionary
+
+
+def _first_seen_tag(tokenized_tag, dictionary, user, project):
+    time_stamp = _parse_timestamp(tokenized_tag)
+    operator = tokenized_tag['prefix_operator']
+    inclusivity = operator == '-'
+    bound = 'to' if operator == '+' else 'from'
+    dictionary['first_seen_{}'.format(bound)] = time_stamp
+    dictionary['first_seen_{}_inclusive'.format(bound)] = inclusivity
+    return dictionary
+
+
+def _last_seen_tag(tokenized_tag, dictionary, user, project):
+    time_stamp = _parse_timestamp(tokenized_tag)
+    operator = tokenized_tag['prefix_operator']
+    inclusivity = operator == '-'
+    bound = 'to' if operator == '+' else 'from'
+    dictionary['last_seen_{}'.format(bound)] = time_stamp
+    dictionary['last_seen_{}_inclusive'.format(bound)] = inclusivity
+    return dictionary
+
+
+def _active_since_tag(tokenized_tag, dictionary, user, project):
+    time_stamp = _parse_timestamp(tokenized_tag)
+    operator = tokenized_tag['prefix_operator']
+    inclusivity = operator == '-'
+    bound = 'to' if operator == '+' else 'from'
+    dictionary['active_at_{}'.format(bound)] = time_stamp
+    dictionary['active_at_{}_inclusive'.format(bound)] = inclusivity
+    return dictionary
+
+
+def _user_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    key = tokenized_tag['key']
+    if ':' in value:
+        comp, value = value.split(':', 1)
+    elif key.startswith('user.'):
+        comp = key.split('.', 1)[1]
+    else:
+        comp = 'id'
+    dictionary['tags']['sentry:user'] = get_user_tag(project, comp, value)
+    return dictionary
+
+
+def _release_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    dictionary['tags']['sentry:release'] = parse_release(project, value)
+    return dictionary
+
+
+def _first_release_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    dictionary['first_release'] = parse_release(project, value)
+    return dictionary
+
+
+def _has_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    if value in ('user', 'release'):
+        value = 'sentry:' + value
+    dictionary['tags'][value] = ANY
+    return dictionary
+
+
+def _is_tag(tokenized_tag, dictionary, user, project):
+    value = tokenized_tag['value']
+    if value == 'unassigned':
+        dictionary['unassigned'] = True
+    elif value == 'assigned':
+        dictionary['unassigned'] = False
+    else:
+        try:
+            dictionary['status'] = STATUS_CHOICES[value]
+        except KeyError:
+            raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
+    return dictionary
+
+
+def tokenize_tag(tag):
+    '''
+    Parses tag in string format and returns a dictionary of tokens.
+
+    Examples:
+    'age:-24h' -> {'value': '24', 'prefix_operator': '-', 'suffix_operator': 'h' 'key': 'age', 'string': 'age:-24h'}
+    'event.timestamp:>=2017-01-01' -> {'value': '2017-01-01', 'prefix_operator': '>=', 'suffix_operator': '' 'key': 'event.timestamp', 'string': 'event.timestamp:>=2017-01-01'}
+    'user:joe' -> {'value': 'joe', 'prefix_operator': '', 'suffix_operator': '' 'key': 'user', 'string': 'user:joe'}
+    '''
+    key, value = tag.split(':', 1)
+    tags_with_prefix_operators = ('age', 'event.timestamp', 'timesSeen', 'lastSeen', 'activeSince', 'firstSeen')
+    tags_with_suffix_operators = ('age', 'activeSince', 'lastSeen', 'firstSeen')
+    prefix_operators = ('>', '<', '-', '+')
+    suffix_operators = ('m', 'h', 'd', 'w')
+    prefix_operator = ''
+    suffix_operator = ''
+    if key in tags_with_prefix_operators and value[0] in prefix_operators:
+        prefix_operator = value[0]
+        value = value[1:]
+    if prefix_operator and value[0] == '=':
+        prefix_operator += '='
+        value = value[1:]
+    if key in tags_with_suffix_operators and value[-1] in suffix_operators:
+        suffix_operator = value[-1]
+        value = value[:-1]
+    result = {
+        'key': key,
+        'prefix_operator': prefix_operator,
+        'suffix_operator': suffix_operator,
+        'value': int(value) if value.isdigit() else value,
+        'string': tag
+    }
+    return result
+
+
+def _parse_timestamp(tokenized_tag):
+    '''
+    Returns timestamp from tokenized tag value as datetime object.
+    Handles the following timestamp formats:
+    '2012-01-01' -> datetime.datetime(2012, 1, 1, 0, 0, 0, tzinfo=<UTC>)
+    '2012-01-01T12:34:56' -> datetime.datetime(2012, 1, 1, 12, 34, tzinfo=<UTC>)
+
+    If value is an integer, returns timedelta before current time:
+    { 'value': '24', 'suffix_operator': 'h' ->  current time - timedelta(hours=24)
+    '''
+    value = tokenized_tag['value']
+    if value.__class__.__name__ == 'int':
+        mins = _scale_time(tokenized_tag)
+        time_stamp = timezone.now() - timedelta(minutes=mins)
+    elif dateparse.parse_datetime(value):
+        time_stamp = dateparse.parse_datetime(value)
+    else:
+        time_stamp = dateparse.parse_datetime(value + 'T00:00:00')
+    return time_stamp.replace(tzinfo=timezone.utc)
+
+
+def _scale_time(tokenized_tag):
+    '''
+    Returns tokenized_tag['value'] scaled to minutes based on
+    time interval in tokenized_tag['suffix_operator'].
+    {'value': '1', 'suffix_operator': 'd' } -> 1440
+    '''
+    operator = tokenized_tag['suffix_operator']
+    minutes = int(tokenized_tag['value'])
+    if operator == 'h':
+        minutes *= 60
+    elif operator == 'd':
+        minutes *= 60 * 24
+    elif operator == 'w':
+        minutes *= 60 * 24 * 7
+    return minutes
+
+
+def to_snake(name):
+    '''Converts string to snake_case'''
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
 def parse_query(project, query, user):
-    # TODO(dcramer): handle query being wrapped in quotes
-    tokens = tokenize_query(query)
-
     results = {'tags': {}, 'query': []}
-    for key, token_list in six.iteritems(tokens):
-        for value in token_list:
-            if key == 'query':
-                results['query'].append(value)
-            elif key == 'is':
-                if value == 'unassigned':
-                    results['unassigned'] = True
-                elif value == 'assigned':
-                    results['unassigned'] = False
-                else:
-                    try:
-                        results['status'] = STATUS_CHOICES[value]
-                    except KeyError:
-                        raise InvalidQuery(u"'is:' had unknown status code '{}'.".format(value))
-            elif key == 'assigned':
-                results['assigned_to'] = parse_user_value(value, user)
-            elif key == 'bookmarks':
-                results['bookmarked_by'] = parse_user_value(value, user)
-            elif key == 'subscribed':
-                results['subscribed_by'] = parse_user_value(value, user)
-            elif key in ('first-release', 'firstRelease'):
-                results['first_release'] = parse_release(project, value)
-            elif key == 'release':
-                results['tags']['sentry:release'] = parse_release(project, value)
-            elif key == 'user':
-                if ':' in value:
-                    comp, value = value.split(':', 1)
-                else:
-                    comp = 'id'
-                results['tags']['sentry:user'] = get_user_tag(
-                    project, comp, value)
-            elif key == 'has':
-                if value == 'user':
-                    value = 'sentry:user'
-                elif value == 'release':
-                    value = 'sentry:release'
-                results['tags'][value] = ANY
-            elif key in ('age', 'firstSeen'):
-                results.update(get_date_params(value, 'age_from', 'age_to'))
-            elif key in ('last_seen', 'lastSeen'):
-                results.update(get_date_params(value, 'last_seen_from', 'last_seen_to'))
-            elif key == 'activeSince':
-                results.update(get_date_params(value, 'active_at_from', 'active_at_to'))
-            elif key.startswith('user.'):
-                results['tags']['sentry:user'] = get_user_tag(
-                    project, key.split('.', 1)[1], value)
-            elif key == 'event.timestamp':
-                results.update(get_date_params(value, 'date_from', 'date_to'))
-            elif key == 'timesSeen':
-                results.update(get_numeric_field_value('times_seen', value))
-            else:
-                results['tags'][key] = value
-
-    results['query'] = ' '.join(results['query'])
-
+    tokens = tokenize_query(query)
+    results['query'] = ' '.join(tokens['query']) if tokens['query'] else ''
+    for tag in tokens['tags']:
+        tag_tokens = tokenize_tag(tag)
+        key = tag_tokens['key']
+        selector = to_snake(key).split('.')[0].replace('-', '_')
+        action = special_tag_behaviors.get(selector) or _default_tag
+        results = action(tag_tokens, results, user, project)
     return results
+
+
+special_tag_behaviors = {
+    'age': _age_tag,
+    'event': _event_timestamp_tag,
+    'times_seen': _times_seen,
+    'assigned': _assigned_tag,
+    'bookmarks': _bookmark_tag,
+    'subscribed': _subscribed_tag,
+    'first_seen': _first_seen_tag,
+    'last_seen': _last_seen_tag,
+    'active_since': _active_since_tag,
+    'user': _user_tag,
+    'release': _release_tag,
+    'first_release': _first_release_tag,
+    'has': _has_tag,
+    'is': _is_tag
+}

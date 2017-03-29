@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-import pytest
 import mock
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -8,43 +7,43 @@ from django.utils import timezone
 from sentry.models import EventUser, GroupStatus, Release
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
-from sentry.search.utils import parse_query, get_numeric_field_value
+from sentry.search.utils import parse_query
 
 
-def test_get_numeric_field_value():
-    assert get_numeric_field_value('foo', '10') == {
-        'foo': 10,
-    }
-
-    assert get_numeric_field_value('foo', '>10') == {
-        'foo_lower': 10,
-        'foo_lower_inclusive': False,
-    }
-
-    assert get_numeric_field_value('foo', '>=10') == {
-        'foo_lower': 10,
-        'foo_lower_inclusive': True,
-    }
-
-    assert get_numeric_field_value('foo', '<10') == {
-        'foo_upper': 10,
-        'foo_upper_inclusive': False,
-    }
-
-    assert get_numeric_field_value('foo', '<=10') == {
-        'foo_upper': 10,
-        'foo_upper_inclusive': True,
-    }
-
-    assert get_numeric_field_value('foo', '>3.5', type=float) == {
-        'foo_lower': 3.5,
-        'foo_lower_inclusive': False,
-    }
-
-    assert get_numeric_field_value('foo', '<=-3.5', type=float) == {
-        'foo_upper': -3.5,
-        'foo_upper_inclusive': True,
-    }
+# def test_get_numeric_field_value():
+#     assert get_numeric_field_value('foo', '10') == {
+#         'foo': 10,
+#     }
+#
+#     assert get_numeric_field_value('foo', '>10') == {
+#         'foo_lower': 10,
+#         'foo_lower_inclusive': False,
+#     }
+#
+#     assert get_numeric_field_value('foo', '>=10') == {
+#         'foo_lower': 10,
+#         'foo_lower_inclusive': True,
+#     }
+#
+#     assert get_numeric_field_value('foo', '<10') == {
+#         'foo_upper': 10,
+#         'foo_upper_inclusive': False,
+#     }
+#
+#     assert get_numeric_field_value('foo', '<=10') == {
+#         'foo_upper': 10,
+#         'foo_upper_inclusive': True,
+#     }
+#
+#     assert get_numeric_field_value('foo', '>3.5', type=float) == {
+#         'foo_lower': 3.5,
+#         'foo_lower_inclusive': False,
+#     }
+#
+#     assert get_numeric_field_value('foo', '<=-3.5', type=float) == {
+#         'foo_upper': -3.5,
+#         'foo_upper_inclusive': True,
+#     }
 
 
 class ParseQueryTest(TestCase):
@@ -79,7 +78,6 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('foo-bar:foobar')
         assert result == {'tags': {'foo-bar': 'foobar'}, 'query': ''}
 
-    # TODO: update docs to include minutes, days, and weeks suffixes
     @mock.patch('django.utils.timezone.now')
     def test_age_tag_negative_value(self, now):
         start = datetime(2016, 1, 1, tzinfo=timezone.utc)
@@ -189,8 +187,6 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('timesSeen:10')
         assert result == {'tags': {}, 'times_seen': 10, 'query': ''}
 
-    # TODO: query parser for '>' timestamp should set inclusive to False.
-    @pytest.mark.xfail
     def test_greater_than_comparator(self):
         result = self.parse_query('timesSeen:>10 event.timestamp:>2016-01-02')
         assert result == {
@@ -225,7 +221,7 @@ class ParseQueryTest(TestCase):
         }
 
     # TODO: query parser for '<=' timestamp should set inclusive to True.
-    @pytest.mark.xfail
+    # @pytest.mark.xfail
     def test_less_than_equal_comparator(self):
         result = self.parse_query('event.timestamp:<=2016-01-02 timesSeen:<=10')
         assert result == {
@@ -412,15 +408,15 @@ class ParseQueryTest(TestCase):
 
     def test_first_seen_range(self):
         result = self.parse_query('firstSeen:-24h firstSeen:+12h')
-        assert result['age_from'] > timezone.now() - timedelta(hours=25)
-        assert result['age_from'] < timezone.now() - timedelta(hours=23)
-        assert result['age_to'] > timezone.now() - timedelta(hours=13)
-        assert result['age_to'] < timezone.now() - timedelta(hours=11)
+        assert result['first_seen_from'] > timezone.now() - timedelta(hours=25)
+        assert result['first_seen_from'] < timezone.now() - timedelta(hours=23)
+        assert result['first_seen_to'] > timezone.now() - timedelta(hours=13)
+        assert result['first_seen_to'] < timezone.now() - timedelta(hours=11)
 
     def test_date_range(self):
         result = self.parse_query('event.timestamp:>2016-01-01 event.timestamp:<2016-01-02')
         assert result['date_from'] == datetime(2016, 1, 1, tzinfo=timezone.utc)
-        assert result['date_from_inclusive']
+        assert not result['date_from_inclusive']
         assert result['date_to'] == datetime(2016, 1, 2, tzinfo=timezone.utc)
         assert not result['date_to_inclusive']
 
