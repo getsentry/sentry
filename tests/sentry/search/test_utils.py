@@ -25,6 +25,12 @@ class ParseQueryTest(TestCase):
         self.assertRaises(InvalidQuery, self.parse_query, 'age:+24e')
         self.assertRaises(InvalidQuery, self.parse_query, 'age:+abdh')
 
+    def test_improperly_formated_timestamp_raises_invalid_query_exception(self):
+        self.assertRaises(InvalidQuery, self.parse_query, 'event.timestamp:12-10')
+        self.assertRaises(InvalidQuery, self.parse_query, 'event.timestamp:12-10-10T')
+        self.assertRaises(InvalidQuery, self.parse_query, 'event.timestamp:12-10T:00:00:00')
+        self.assertRaises(InvalidQuery, self.parse_query, 'event.timestamp:12-10-05T:00:00')
+
     def test_simple(self):
         result = self.parse_query('foo bar')
         assert result == {'tags': {}, 'query': 'foo bar'}

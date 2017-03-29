@@ -224,8 +224,8 @@ def _default_tag(tokenized_tag, dictionary, user, project):
 def _age_tag(tokenized_tag, dictionary, user, project):
     if tokenized_tag['prefix_operator'] not in ('-', '+'):
         raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have leading '+' or '-' operator e.g. 'age:-24h'".format(tokenized_tag['string']))
-    if tokenized_tag['suffix_operator'] not in ('w', 'd', 'h', 'm'):
-        raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have trailing time interval operator 'm', 'h', 'd', or 'w' e.g. 'age:-24h'".format(tokenized_tag['string']))
+    # if tokenized_tag['suffix_operator'] not in ('w', 'd', 'h', 'm'):
+    #     raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have trailing time interval operator 'm', 'h', 'd', or 'w' e.g. 'age:-24h'".format(tokenized_tag['string']))
     if not tokenized_tag['value'].__class__.__name__ == 'int':
         raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have integer value 'age:-24h'".format(tokenized_tag['string']))
     operator = tokenized_tag['prefix_operator']
@@ -365,8 +365,10 @@ def _parse_timestamp(tokenized_tag):
         time_stamp = timezone.now() - timedelta(minutes=mins)
     elif dateparse.parse_datetime(value):
         time_stamp = dateparse.parse_datetime(value)
-    else:
+    elif dateparse.parse_date(value):
         time_stamp = dateparse.parse_datetime(value + 'T00:00:00')
+    else:
+        raise InvalidQuery('Malformed Query {}.  Improperly formated timestamp'.format(tokenized_tag['value']))
     return time_stamp.replace(tzinfo=timezone.utc)
 
 
@@ -377,6 +379,8 @@ def _scale_time(tokenized_tag):
     {'value': '1', 'suffix_operator': 'd' } -> 1440
     '''
     operator = tokenized_tag['suffix_operator']
+    if operator not in ('w', 'd', 'h', 'm'):
+        raise InvalidQuery("Malformed Query: '{}'. time interval operator be one of 'm', 'h', 'd', or 'w' e.g. 'age:-24h'".format(tokenized_tag['string']))
     minutes = int(tokenized_tag['value'])
     if operator == 'h':
         minutes *= 60
