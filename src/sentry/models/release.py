@@ -7,7 +7,9 @@ sentry.models.release
 """
 from __future__ import absolute_import, print_function
 
+import logging
 import re
+import six
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
@@ -17,8 +19,11 @@ from jsonfield import JSONField
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
+from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+
+logger = logging.getLogger(__name__)
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
@@ -269,9 +274,14 @@ class Release(Model):
 
                 end_sha = commit.key
                 provider = provider_cls(id=repo.provider)
-                commit_list.extend(
-                    provider.compare_commits(repo.name, start_sha, end_sha, actor=user)
-                )
+                try:
+                    reop_commits = provider.compare_commits(
+                        repo.name, start_sha, end_sha, actor=user
+                    )
+                except (PluginError, InvalidIdentity) as e:
+                    logger.exception(six.text_type(e))
+                else:
+                    commit_list.extend(reop_commits)
 
             if commit_list:
                 self.set_commits(commit_list)
