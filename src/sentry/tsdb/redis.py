@@ -385,7 +385,7 @@ class RedisTSDB(BaseTSDB):
         prefix = self.make_key(model, rollup, timestamp, key)
         return map(
             operator.methodcaller('format', prefix),
-            ('{}:c', '{}:i', '{}:e'),
+            ('{}:i', '{}:e'),
         )
 
     def record_frequency_multi(self, requests, timestamp=None):

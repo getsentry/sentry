@@ -31,9 +31,8 @@ parameters to use when initializing a new sketch:
 - WIDTH: number of columns for the estimation matrix,
 - CAPACITY: maximum size of the index (to disable indexing entirely, set to 0.)
 
-The ``KEYS`` provided to each command are the three keys used for sketch storage:
+The ``KEYS`` provided to each command are the two keys used for sketch storage:
 
-- configuration key (bytes, serialized MessagePack data)
 - index key (sorted set)
 - estimation matrix key (hash of frequencies (floats), keyed by struct packed matrix coordinates)
 
@@ -179,47 +178,6 @@ local function mmh3(key, seed)
 end
 
 
---[[ Configuration ]]--
-
-local Configuration = {}
-
-function Configuration:new(key, readonly, defaults)
-    self.__index = self
-    return setmetatable({
-        key = key,
-        readonly = readonly,
-        defaults = defaults,
-        data = nil,
-        loaded = false
-    }, self)
-end
-
-function Configuration:exists()
-    self:load()
-    return self.data ~= nil
-end
-
-function Configuration:load()
-    if not self.loaded then
-        local raw = redis.call('GET', self.key)
-        if raw == false then
-            self.data = self.defaults
-            if not self.readonly then
-                redis.call('SET', self.key, cmsgpack.pack(self.data))
-            end
-        else
-            self.data = cmsgpack.unpack(raw)
-        end
-        self.loaded = true
-    end
-end
-
-function Configuration:get(key)
-    self:load()
-    return self.data[key]
-end
-
-
 --[[ Sketch ]]--
 
 local Sketch = {}
@@ -235,12 +193,15 @@ end
 
 function Sketch:coordinates(value)
     local coordinates = {}
-    local width = self.configuration:get('width')
-    for d = 1, self.configuration:get('depth') do
-        local w = (mmh3(value, d) % width) + 1  -- This Kool-Aid is delicious!
+    for d = 1, self.configuration.depth do
+        local w = (mmh3(value, d) % self.configuration.width) + 1  -- This Kool-Aid is delicious!
         table.insert(coordinates, {d, w})
     end
     return coordinates
+end
+
+function Sketch:exists()
+    return redis.call('EXISTS', self.estimates, self.index) > 0
 end
 
 function Sketch:observations(coordinates)
@@ -248,7 +209,7 @@ function Sketch:observations(coordinates)
 end
 
 function Sketch:estimate(value)
-    if self.configuration:exists() then
+    if self:exists() then
         local score = tonumber(redis.call('ZSCORE', self.index, value))
         if score ~= nil then
             return score
@@ -268,11 +229,9 @@ function Sketch:estimate(value)
 end
 
 function Sketch:increment(items)
-    assert(not self.configuration.readonly)
-
     local results = {}
     local usage = redis.call('ZCARD', self.index)
-    if self.configuration:get('index') > usage then
+    if self.configuration.index > usage then
         -- Add all of the items to the index. (Note that this can cause the
         -- index to temporarily grow to the size of the capacity - 1 + number
         -- of items being updated in the worst case.)
@@ -288,7 +247,7 @@ function Sketch:increment(items)
         -- If the number of items added pushes the index to capacity, we need
         -- to initialize the sketch matrix with all of the current members of
         -- the index.
-        if added + usage >= self.configuration:get('index') then
+        if added + usage >= self.configuration.index then
             -- TODO: Use this data to generate the response value.
             local members = redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')
             for i = 1, #members, 2 do
@@ -311,7 +270,7 @@ function Sketch:increment(items)
             end
 
             -- Remove extra items from the index.
-            redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration:get('index') - 1)
+            redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
         end
     else
         -- Fetch the estimates for each item and update them.
@@ -338,7 +297,7 @@ function Sketch:increment(items)
             results[i] = score
         end
 
-        if self.configuration:get('index') > 0 then
+        if self.configuration.index > 0 then
             local added = 0
             local minimum = tonumber(redis.call('ZRANGE', self.index, 0, 0, 'WITHSCORES')[2])
             for i, item in pairs(items) do
@@ -352,7 +311,7 @@ function Sketch:increment(items)
 
             if added > 0 then
                 -- Remove extra items from the index.
-                redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration:get('index') - 1)
+                redis.call('ZREMRANGEBYRANK', self.index, 0, -self.configuration.index - 1)
             end
         end
     end
@@ -370,7 +329,7 @@ function Command:new(fn, readonly)
     end
 
     return function (keys, arguments)
-        local defaults, arguments = (
+        local configuration, arguments = (
             function (depth, width, index, ...)
                 return {
                     -- TODO: Actually validate these.
@@ -382,11 +341,11 @@ function Command:new(fn, readonly)
         )(unpack(arguments))
 
         local sketches = {}
-        for i = 1, #keys, 3 do
+        for i = 1, #keys, 2 do
             table.insert(sketches, Sketch:new(
-                Configuration:new(keys[i], readonly, defaults),
-                keys[i + 1],
-                keys[i + 2]
+                configuration,
+                keys[i],
+                keys[i + 1]
             ))
         end
         return fn(sketches, arguments)
@@ -469,7 +428,7 @@ return Router:new({
             -- We only care about sketches that actually exist.
             sketches = filter(
                 function (sketch)
-                    return sketch.configuration:exists()
+                    return sketch:exists()
                 end,
                 sketches
             )
@@ -485,7 +444,7 @@ return Router:new({
                     math.min,
                     map(
                         function (sketch)
-                            return sketch.configuration:get('index')
+                            return sketch.configuration.index
                         end,
                         sketches
                     )
