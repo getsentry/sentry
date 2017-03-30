@@ -31,9 +31,6 @@ parameters to use when initializing a new sketch:
 - WIDTH: number of columns for the estimation matrix,
 - CAPACITY: maximum size of the index (to disable indexing entirely, set to 0.)
 
-(Configuration parameters are not required for readonly commands such as
-`ESTIMATE` and `RANKED`.)
-
 The ``KEYS`` provided to each command are the three keys used for sketch storage:
 
 - configuration key (bytes, serialized MessagePack data)
@@ -373,19 +370,16 @@ function Command:new(fn, readonly)
     end
 
     return function (keys, arguments)
-        local defaults = nil
-        if not readonly then
-            defaults, arguments = (
-                function (depth, width, index, ...)
-                    return {
-                        -- TODO: Actually validate these.
-                        depth=tonumber(depth),
-                        width=tonumber(width),
-                        index=tonumber(index)
-                    }, {...}
-                end
-            )(unpack(arguments))
-        end
+        local defaults, arguments = (
+            function (depth, width, index, ...)
+                return {
+                    -- TODO: Actually validate these.
+                    depth=tonumber(depth),
+                    width=tonumber(width),
+                    index=tonumber(index)
+                }, {...}
+            end
+        )(unpack(arguments))
 
         local sketches = {}
         for i = 1, #keys, 3 do
