@@ -9,8 +9,9 @@ const AppContextType = React.createClass({
   },
 
   render() {
-    let {app_id, app_start_time, device_app_hash,
-      build_type, ...data} = this.props.data;
+    let {app_id, app_start_time, device_app_hash, build_type,
+      app_identifier, app_name, app_version,
+      app_build, ...data} = this.props.data;
     return (
       <ContextBlock
         data={data}
@@ -19,6 +20,10 @@ const AppContextType = React.createClass({
           ['?Start Time', app_start_time],
           ['?Device', device_app_hash],
           ['?Build Type', build_type],
+          ['?Bundle ID', app_identifier],
+          ['?Bundle Name', app_name],
+          ['?Version', app_version],
+          ['?Build', app_build],
         ]}
         alias={this.props.alias} />
     );
