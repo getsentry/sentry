@@ -201,7 +201,7 @@ function Sketch:coordinates(value)
 end
 
 function Sketch:exists()
-    return redis.call('EXISTS', self.estimates, self.index) > 0
+    return redis.call('EXISTS', self.index)
 end
 
 function Sketch:observations(coordinates)
