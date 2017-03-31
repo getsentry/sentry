@@ -8,8 +8,22 @@ from django.db import IntegrityError, models, transaction
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        "Write your forwards methods here."
         db.commit_transaction()
+        try:
+            self._forwards(orm)
+        except Exception:
+            # Explicitly resume the transaction because
+            # South is going to try and roll it back, but when
+            # it can't find one, it'll error itself, masking
+            # the actual exception being raised
+            #
+            # See https://github.com/getsentry/sentry/issues/5035
+            db.start_transaction()
+            raise
+        db.start_transaction()
+
+    def _forwards(self, orm):
+        "Write your forwards methods here."
         dupe_envs = orm.Environment.objects.values('name', 'organization_id')\
                                            .annotate(ecount=models.Count('id'))\
                                            .filter(ecount__gt=1)
@@ -76,8 +90,6 @@ class Migration(DataMigration):
             orm.ReleaseEnvironment.objects.filter(
                 id__in=[re.id for re in from_renvs],
             ).delete()
-
-        db.start_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."

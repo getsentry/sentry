@@ -10,9 +10,22 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        "Write your forwards methods here."
         db.commit_transaction()
+        try:
+            self._forwards(orm)
+        except Exception:
+            # Explicitly resume the transaction because
+            # South is going to try and roll it back, but when
+            # it can't find one, it'll error itself, masking
+            # the actual exception being raised
+            #
+            # See https://github.com/getsentry/sentry/issues/5035
+            db.start_transaction()
+            raise
+        db.start_transaction()
 
+    def _forwards(self, orm):
+        "Write your forwards methods here."
         for release in RangeQuerySetWrapperWithProgressBar(orm.Release.objects.exclude(new_groups=0)):
             projects = list(release.projects.values_list('id', flat=True))
             if len(projects) > 1:
@@ -35,8 +48,6 @@ class Migration(DataMigration):
                     release_id=release.id,
                     project_id=projects[0]
                 ).update(new_groups=release.new_groups)
-
-        db.start_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."
