@@ -277,3 +277,62 @@ class ReleaseSerializerTest(TestCase):
 
         result = serialize(release, user)
         assert result['authors'] == []
+
+    def test_deduplicate_users(self):
+        """
+        Tests that the same user is not returned more than once
+        if there are commits associated with multiple of their
+        emails
+        """
+        user = User.objects.create(email='stebe@sentry.io')
+        email = UserEmail.objects.get(user=user, email='stebe@sentry.io')
+        otheremail = UserEmail.objects.create(email='alsostebe@sentry.io', user=user)
+        project = self.create_project()
+        self.create_member(user=user, organization=project.organization)
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version=uuid4().hex,
+            new_groups=1,
+        )
+        release.add_project(project)
+        commit_author1 = CommitAuthor.objects.create(
+            name='stebe',
+            email=email.email,
+            organization_id=project.organization_id,
+        )
+        commit_author2 = CommitAuthor.objects.create(
+            name='stebe',
+            email=otheremail.email,
+            organization_id=project.organization_id,
+        )
+        commit1 = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='abc',
+            author=commit_author1,
+            message='waddap',
+        )
+        commit2 = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key='cde',
+            author=commit_author2,
+            message='oh hi',
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit1,
+            order=1,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit2,
+            order=2,
+        )
+        result = serialize(release, user)
+        assert len(result['authors']) == 1
+        assert result['authors'][0]['email'] == 'stebe@sentry.io'
