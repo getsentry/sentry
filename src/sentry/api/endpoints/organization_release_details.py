@@ -47,7 +47,7 @@ class ReleaseSerializer(serializers.Serializer):
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False)
-    head_commits = ListField(child=ReleaseHeadCommitSerializer(), required=False)
+    headCommits = ListField(child=ReleaseHeadCommitSerializer(), required=False)
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
@@ -141,7 +141,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             # TODO(dcramer): handle errors with release payloads
             release.set_commits(commit_list)
 
-        head_commits = result.get('head_commits')
+        head_commits = result.get('headCommits')
         if head_commits:
             fetch_commits = request.user.is_authenticated() and not commit_list
             release.set_head_commits(head_commits, request.user, fetch_commits=fetch_commits)

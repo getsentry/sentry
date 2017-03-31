@@ -138,9 +138,9 @@ class UpdateReleaseDetailsTest(APITestCase):
         })
         response = self.client.put(url, {
             'ref': 'master',
-            'head_commits': [
-                {'current_id': 'a' * 40, 'repository': repo.name},
-                {'current_id': 'b' * 40, 'repository': repo2.name},
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
             ],
         })
 
