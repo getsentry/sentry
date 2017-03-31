@@ -242,7 +242,7 @@ class Release(Model):
             commit = Commit.objects.get_or_create(
                 organization_id=self.organization_id,
                 repository_id=repo.id,
-                key=head_commit['current_id'],
+                key=head_commit['currentId'],
             )[0]
             # update head commit for repo/release if exists
             ReleaseHeadCommit.objects.create_or_update(
@@ -261,8 +261,8 @@ class Release(Model):
 
                 # if previous commit isn't provided, try to get from
                 # previous release otherwise, give up
-                if head_commit.get('previous_id'):
-                    start_sha = head_commit['previous_id']
+                if head_commit.get('previousId'):
+                    start_sha = head_commit['previousId']
                 elif prev_release:
                     try:
                         start_sha = Commit.objects.filter(

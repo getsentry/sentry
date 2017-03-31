@@ -469,9 +469,9 @@ class OrganizationReleaseCreateTest(APITestCase):
         })
         response = self.client.post(url, data={
             'version': '1.2.1',
-            'head_commits': [
-                {'current_id': 'a' * 40, 'repository': repo.name},
-                {'current_id': 'b' * 40, 'repository': repo2.name},
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
             ],
             'projects': [project.slug]
         })
@@ -673,9 +673,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         response = self.client.post(url, data={
             'version': '1.2.1',
-            'head_commits': [
-                {'current_id': 'a' * 40, 'repository': repo.name},
-                {'current_id': 'b' * 40, 'repository': repo2.name},
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
             ],
             'projects': [project1.slug]
         }, HTTP_AUTHORIZATION='Bearer {}'.format(api_token.token))
