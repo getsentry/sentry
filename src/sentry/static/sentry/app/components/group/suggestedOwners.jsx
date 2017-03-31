@@ -87,7 +87,7 @@ const SuggestedOwners = React.createClass({
                  <span key={c.id}>
                   <span>{c.message} : </span>
                   <span>{moment(c.dateCreated).fromNow()}</span>
-                </span>);
+                 </span>);
               })}
             </div>
           </div>)
