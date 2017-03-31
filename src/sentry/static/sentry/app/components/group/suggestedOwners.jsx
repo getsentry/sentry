@@ -83,7 +83,7 @@ const SuggestedOwners = React.createClass({
             </strong>
             <div className="commit-list">
               {commits.map( c => {
-                  return (
+                return (
                  <span key={c.id}>
                   <span>{c.message} : </span>
                   <span>{moment(c.dateCreated).fromNow()}</span>
