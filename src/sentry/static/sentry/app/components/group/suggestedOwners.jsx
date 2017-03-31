@@ -6,7 +6,6 @@ import Avatar from '../avatar';
 import TooltipMixin from '../../mixins/tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-// import {CommitLink} from '../../views/releases/releaseCommits';
 import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
@@ -76,7 +75,7 @@ const SuggestedOwners = React.createClass({
 
   renderCommitter({author, commits}) {
     return (
-      <span key={author.id} className="avatar-grid-item tip" onClick={()=>this.assignTo(author)} title={
+      <span key={author.id} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
         ReactDOMServer.renderToStaticMarkup(
           <div style={{whiteSpace: 'nowrap'}}>
             <strong className="time-label">
@@ -88,7 +87,6 @@ const SuggestedOwners = React.createClass({
                  <span key={c.id}>
                   <span>{c.message} : </span>
                   <span>{moment(c.dateCreated).fromNow()}</span>
-                  {/* <CommitLink commitId={c.id} repository={c.repository}/> */}
                 </span>);
               })}
             </div>
