@@ -231,10 +231,14 @@ class Release(Model):
         commit_list = []
 
         for head_commit in head_commits:
-            repo = Repository.objects.get_or_create(
-                organization_id=self.organization_id,
-                name=head_commit['repository'],
-            )[0]
+            try:
+                repo = Repository.objects.get(
+                    organization_id=self.organization_id,
+                    name=head_commit['repository'],
+                )
+            except Repository.DoesNotExist:
+                continue
+
             commit = Commit.objects.get_or_create(
                 organization_id=self.organization_id,
                 repository_id=repo.id,
@@ -261,14 +265,13 @@ class Release(Model):
                     start_sha = head_commit['previous_id']
                 elif prev_release:
                     try:
-                        prev_head = ReleaseHeadCommit.objects.get(
+                        start_sha = Commit.objects.filter(
                             organization_id=self.organization_id,
-                            release=prev_release,
+                            releaseheadcommit__release=prev_release,
                             repository_id=repo.id,
-                        )
-                    except ReleaseHeadCommit.DoesNotExist:
+                        ).values_list('key', flat=True)[0]
+                    except IndexError:
                         continue
-                    start_sha = prev_head.commit.key
                 else:
                     continue
 
@@ -278,6 +281,8 @@ class Release(Model):
                     reop_commits = provider.compare_commits(
                         repo.name, start_sha, end_sha, actor=user
                     )
+                except NotImplementedError:
+                    pass
                 except (PluginError, InvalidIdentity) as e:
                     logger.exception(six.text_type(e))
                 else:
