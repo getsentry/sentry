@@ -33,6 +33,7 @@ Schema Changes
 - Added ``ApiToken.expires_at`` column
 - Added ``ApiToken.scope_list`` column
 - Added ``ApiKey.scope_list`` column
+- Added ``ReleaseHeadCommit`` model
 
 Security
 ~~~~~~~~
