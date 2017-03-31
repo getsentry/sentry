@@ -86,7 +86,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 matching_commits = {}
             if score == best_score:
                 # skip 1-score matches when file change is longer than 1 token
-                if score == 1 and len(tokenize_path(file_change.filename)) > 1:
+                if score == 1 and len(list(tokenize_path(file_change.filename))) > 1:
                     continue
                 #  we want a list of unique commits that tie for longest match
                 matching_commits[file_change.commit.id] = file_change.commit
