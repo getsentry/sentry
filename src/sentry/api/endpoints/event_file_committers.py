@@ -77,7 +77,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
     def _match_commits_path(self, commit_file_changes, path):
         #  find commits that match the run time path the best.
         matching_commits = {}
-        best_score = 0
+        best_score = 1
         for file_change in commit_file_changes:
             score = score_path_match_length(file_change.filename, path)
             if score > best_score:
@@ -85,6 +85,9 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                 best_score = score
                 matching_commits = {}
             if score == best_score:
+                # skip 1-score matches when file change is longer than 1 token
+                if score == 1 and len(tokenize_path(file_change.filename)) > 1:
+                    continue
                 #  we want a list of unique commits that tie for longest match
                 matching_commits[file_change.commit.id] = file_change.commit
 

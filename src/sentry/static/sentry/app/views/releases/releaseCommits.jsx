@@ -9,13 +9,9 @@ import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
 
-const ReleaseCommit = React.createClass({
+const CommitLink = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
-    shortId: React.PropTypes.string,
-    commitMessage: React.PropTypes.string,
-    commitDateCreated: React.PropTypes.string,
-    author: React.PropTypes.object,
     repository: React.PropTypes.object,
   },
 
@@ -28,6 +24,27 @@ const ReleaseCommit = React.createClass({
 
   render() {
     let commitUrl = this.getCommitUrl();
+    let shortId = this.props.commitId.slice(0, 7);
+
+    return (commitUrl ?
+              <a className="btn btn-default btn-sm"
+                 href={commitUrl}
+                 target="_blank"><span
+                 className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {shortId}</a> :
+              <span>{shortId}</span>);
+  }
+});
+
+const ReleaseCommit = React.createClass({
+  propTypes: {
+    commitId: React.PropTypes.string,
+    commitMessage: React.PropTypes.string,
+    commitDateCreated: React.PropTypes.string,
+    author: React.PropTypes.object,
+    repository: React.PropTypes.object,
+  },
+
+  render() {
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
@@ -38,12 +55,7 @@ const ReleaseCommit = React.createClass({
           </div>
           <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
-            {commitUrl ?
-              <a className="btn btn-default btn-sm"
-                 href={commitUrl}
-                 target="_blank"><span
-                 className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a> :
-              <span>{this.props.shortId}</span>}
+            <CommitLink commitId={this.props.commitId} repository={this.props.repository}/>
           </div>
         </div>
       </li>
@@ -125,12 +137,10 @@ const ReleaseCommits = React.createClass({
         </div>
         <ul className="list-group list-group-lg commit-list">
           {commitList.map(commit => {
-            let shortId = commit.id.slice(0, 7);
             return (
               <ReleaseCommit
                 key={commit.id}
                 commitId={commit.id}
-                shortId={shortId}
                 author={commit.author}
                 commitMessage={commit.message}
                 commitDateCreated={commit.dateCreated}
@@ -145,3 +155,4 @@ const ReleaseCommits = React.createClass({
 });
 
 export default ReleaseCommits;
+export {ReleaseCommits, CommitLink};
