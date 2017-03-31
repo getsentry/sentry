@@ -6,7 +6,6 @@ import Avatar from '../avatar';
 import TooltipMixin from '../../mixins/tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-
 import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
@@ -20,7 +19,7 @@ const SuggestedOwners = React.createClass({
     TooltipMixin({
       selector: '.tip',
       html: true,
-      container: 'body'
+      container: 'body',
     })
   ],
 
@@ -70,17 +69,27 @@ const SuggestedOwners = React.createClass({
     });
   },
 
+  assignTo(member) {
+    this.api.assignTo({id: this.props.event.groupID, member: member});
+  },
+
   renderCommitter({author, commits}) {
     return (
-      <span key={author.id} className="avatar-grid-item tip" title={
+      <span key={author.id} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
         ReactDOMServer.renderToStaticMarkup(
-          <div>
-            <strong>
-              {`${author.name}:`}
-            </strong><br/>
-            <ul>
-              {commits.map(c=><li key={c.id}>{c.message} - {moment(c.dateCreated).fromNow()}</li>)}
-            </ul>
+          <div style={{whiteSpace: 'nowrap'}}>
+            <strong className="time-label">
+              {`${author.name}: `}
+            </strong>
+            <div className="commit-list">
+              {commits.map( c => {
+                return (
+                 <span key={c.id}>
+                  <span>{c.message} : </span>
+                  <span>{moment(c.dateCreated).fromNow()}</span>
+                 </span>);
+              })}
+            </div>
           </div>)
         }>
         <Avatar user={author}/>
@@ -88,12 +97,12 @@ const SuggestedOwners = React.createClass({
   },
 
   render() {
-    if (!this.state.owners) {
+    if (!(this.state.owners && this.state.owners.length)) {
       return null;
     }
     return(
       <div className="m-b-1">
-        <h6><span>{t('Suggested Owners')}</span></h6>
+        <h6><span>{t('Suggested Owners')}</span><small style={{background: '#FFFFFF'}}>Click to assign</small></h6>
         <div className="avatar-grid">
           {this.state.owners.map(c => this.renderCommitter(c))}
         </div>
