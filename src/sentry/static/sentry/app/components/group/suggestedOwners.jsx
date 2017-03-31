@@ -6,7 +6,7 @@ import Avatar from '../avatar';
 import TooltipMixin from '../../mixins/tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-import {CommitLink} from '../../views/releases/releaseCommits';
+// import {CommitLink} from '../../views/releases/releaseCommits';
 import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
@@ -21,7 +21,6 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
-      trigger: 'click'
     })
   ],
 
@@ -71,21 +70,27 @@ const SuggestedOwners = React.createClass({
     });
   },
 
+  assignTo(member) {
+    this.api.assignTo({id: this.props.event.groupID, member: member});
+  },
+
   renderCommitter({author, commits}) {
     return (
-      <span key={author.id} className="avatar-grid-item tip" title={
+      <span key={author.id} className="avatar-grid-item tip" onClick={()=>this.assignTo(author)} title={
         ReactDOMServer.renderToStaticMarkup(
-          <div>
+          <div style={{whiteSpace: 'nowrap'}}>
             <strong className="time-label">
-              {`${author.name}:`}
-            </strong><br/>
-            <div>
-              {commits.map(c=>
-               (<span key={c.id}>
-                  <span key={c.id}>{c.message}</span>
+              {`${author.name}: `}
+            </strong>
+            <div className="commit-list">
+              {commits.map( c => {
+                  return (
+                 <span key={c.id}>
+                  <span>{c.message} : </span>
                   <span>{moment(c.dateCreated).fromNow()}</span>
-                  <CommitLink commitId={c.id} repository={c.repository}/>
-              </span>))}
+                  {/* <CommitLink commitId={c.id} repository={c.repository}/> */}
+                </span>);
+              })}
             </div>
           </div>)
         }>
@@ -99,7 +104,7 @@ const SuggestedOwners = React.createClass({
     }
     return(
       <div className="m-b-1">
-        <h6><span>{t('Suggested Owners')}</span></h6>
+        <h6><span>{t('Suggested Owners')}</span><small style={{background: '#FFFFFF'}}>Click to assign</small></h6>
         <div className="avatar-grid">
           {this.state.owners.map(c => this.renderCommitter(c))}
         </div>
