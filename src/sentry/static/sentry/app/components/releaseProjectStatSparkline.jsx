@@ -88,8 +88,8 @@ const ReleaseProjectStatSparkline = React.createClass({
           <h6 className="m-b-0">
             {project.name}
           </h6>
-          <p className="m-b-0">
-            {newIssueCount > 0 ? tn('%d New Issue', '%d New Issues', newIssueCount) : t('No New Issues')}
+          <p className="m-b-0 text-muted">
+            <small>{newIssueCount > 0 ? tn('%d new issue', '%d new issues', newIssueCount) : t('No new issues')}</small>
           </p>
         </Link>
       </li>
