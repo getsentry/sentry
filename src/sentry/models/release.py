@@ -278,7 +278,7 @@ class Release(Model):
                 end_sha = commit.key
                 provider = provider_cls(id=repo.provider)
                 try:
-                    reop_commits = provider.compare_commits(
+                    repo_commits = provider.compare_commits(
                         repo.name, start_sha, end_sha, actor=user
                     )
                 except NotImplementedError:
@@ -286,7 +286,7 @@ class Release(Model):
                 except (PluginError, InvalidIdentity) as e:
                     logger.exception(six.text_type(e))
                 else:
-                    commit_list.extend(reop_commits)
+                    commit_list.extend(repo_commits)
 
             if commit_list:
                 self.set_commits(commit_list)
