@@ -140,6 +140,7 @@ These are not full configurations, but abbreviated versions to highlight the dif
 
       if ($http_referer ~ .com/sentry) {
         rewrite /_static/(.*)$ /sentry/_static/$1 break;
+        rewrite /api/(.*)$ /sentry/api/$1 break;
         rewrite /sentry/sentry/(.*)$ /sentry/$1 break;
       }
 
