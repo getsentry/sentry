@@ -190,6 +190,9 @@ const ProjectSelector = React.createClass({
 
   onOpen(evt) {
     ReactDOM.findDOMNode(this.refs.filter).focus();
+    this.setState({
+      ...this.getProjectState(this.state)
+    });
   },
 
   onClose() {

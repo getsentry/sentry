@@ -1,13 +1,14 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from bitfield import BitField
 from datetime import timedelta
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from uuid import uuid4
 
-from sentry.db.models import Model, FlexibleForeignKey
+from sentry.db.models import ArrayField, Model, FlexibleForeignKey
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
 
@@ -29,7 +30,25 @@ class ApiGrant(Model):
         db_index=True,
         default=lambda: timezone.now() + DEFAULT_EXPIRATION)
     redirect_uri = models.CharField(max_length=255)
-    scopes = BitField(flags=tuple((k, k) for k in settings.SENTRY_SCOPES))
+    scopes = BitField(flags=(
+        ('project:read', 'project:read'),
+        ('project:write', 'project:write'),
+        ('project:admin', 'project:admin'),
+        ('project:releases', 'project:releases'),
+        ('team:read', 'team:read'),
+        ('team:write', 'team:write'),
+        ('team:admin', 'team:admin'),
+        ('event:read', 'event:read'),
+        ('event:write', 'event:write'),
+        ('event:admin', 'event:admin'),
+        ('org:read', 'org:read'),
+        ('org:write', 'org:write'),
+        ('org:admin', 'org:admin'),
+        ('member:read', 'member:read'),
+        ('member:write', 'member:write'),
+        ('member:admin', 'member:admin'),
+    ))
+    scope_list = ArrayField(of=models.TextField)
 
     class Meta:
         app_label = 'sentry'
@@ -39,10 +58,15 @@ class ApiGrant(Model):
     def generate_code(cls):
         return uuid4().hex
 
-    def is_expired(self):
-        if not self.expires_at:
-            return True
+    def get_scopes(self):
+        if self.scope_list:
+            return self.scope_list
+        return [k for k, v in six.iteritems(self.scopes) if v]
 
+    def has_scope(self, scope):
+        return scope in self.get_scopes()
+
+    def is_expired(self):
         return timezone.now() >= self.expires_at
 
     def redirect_uri_allowed(self, uri):

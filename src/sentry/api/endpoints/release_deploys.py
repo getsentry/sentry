@@ -32,10 +32,11 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         """
         List a Release's Deploys
         ````````````````````````
+
         Return a list of deploys for a given release.
+
         :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
-
         """
         try:
             release = Release.objects.get(
@@ -65,7 +66,9 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         """
         Create a Deploy
         ```````````````
+
         Create a deploy for a given release.
+
         :pparam string organization_slug: the organization short name
         :pparam string version: the version identifier of the release.
         :param string environment: the environment you're deploying to
@@ -76,7 +79,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         :param datetime dateFinished: an optional date that indicates when
                                       the deploy ended. If not provided, the
                                       current time is used.
-
         """
         try:
             release = Release.objects.get(

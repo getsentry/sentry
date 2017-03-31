@@ -124,7 +124,7 @@ const GroupEventDetails = React.createClass({
             )}
           </div>
           <div className="secondary">
-            <GroupSidebar group={group} />
+            <GroupSidebar group={group} event={evt} />
           </div>
         </div>
       </div>

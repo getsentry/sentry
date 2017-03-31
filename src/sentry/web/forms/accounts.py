@@ -513,6 +513,12 @@ class NotificationSettingsForm(forms.Form):
         required=False,
     )
 
+    self_assign_issue = forms.BooleanField(
+        label=_('Claim unassigned issues when resolving them'),
+        help_text=_("When enabled, you'll automatically be assigned to unassigned issues when marking them as resolved."),
+        required=False,
+    )
+
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(NotificationSettingsForm, self).__init__(*args, **kwargs)
@@ -548,6 +554,13 @@ class NotificationSettingsForm(forms.Form):
             default='0'
         ) == '1'
 
+        self.fields['self_assign_issue'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='self_assign_issue',
+            default='0'
+        ) == '1'
+
     def get_title(self):
         return "General"
 
@@ -571,6 +584,13 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='self_notifications',
             value='1' if self.cleaned_data['self_notifications'] else '0',
+        )
+
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='self_assign_issue',
+            value='1' if self.cleaned_data['self_assign_issue'] else '0',
         )
 
         if self.cleaned_data.get('workflow_notifications') is True:

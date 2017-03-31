@@ -7,6 +7,8 @@ import TimeSince from '../../components/timeSince';
 
 import ApiMixin from '../../mixins/apiMixin';
 
+import {t} from '../../locale';
+
 const ReleaseCommit = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
@@ -15,23 +17,33 @@ const ReleaseCommit = React.createClass({
     commitDateCreated: React.PropTypes.string,
     author: React.PropTypes.object,
     repository: React.PropTypes.object,
-
   },
+
+  getCommitUrl() {
+    // TODO(jess): move this to plugins
+    if (this.props.repository.provider.id === 'github') {
+      return this.props.repository.url + '/commit/' + this.props.commitId;
+    }
+  },
+
   render() {
+    let commitUrl = this.getCommitUrl();
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
           <div className="col-xs-8 list-group-avatar">
             <Avatar user={this.props.author}/>
-            <h5>{this.props.commitMessage}</h5>
-            <p><strong>{this.props.author.name}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
+            <h5>{this.props.commitMessage || t('No message provided')}</h5>
+            <p><strong>{this.props.author.name || t('Unknown author')}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
           </div>
           <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
           <div className="col-xs-2 align-right">
-            <a className="btn btn-default btn-sm"
-               href={this.props.repository.url + '/' + this.props.commitId}
-               target="_blank"><span
-               className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a>
+            {commitUrl ?
+              <a className="btn btn-default btn-sm"
+                 href={commitUrl}
+                 target="_blank"><span
+                 className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {this.props.shortId}</a> :
+              <span>{this.props.shortId}</span>}
           </div>
         </div>
       </li>

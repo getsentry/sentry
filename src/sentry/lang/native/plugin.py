@@ -12,14 +12,15 @@ from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
 
 from sentry import options
-from sentry.models import Project, EventError
+from sentry.models import Project, EventError, VersionDSymFile, DSymPlatform, \
+    DSymApp
 from sentry.plugins import Plugin2
 from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed, \
     ImageLookup
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING, \
-    rebase_addr
+    rebase_addr, version_build_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
@@ -29,7 +30,7 @@ from sentry.constants import NATIVE_UNKNOWN_STRING
 logger = logging.getLogger(__name__)
 
 
-FRAME_CACHE_VERSION = 3
+FRAME_CACHE_VERSION = 4
 model_re = re.compile(r'^(\S+?)\d')
 
 APP_BUNDLE_PATHS = (
@@ -442,9 +443,27 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             for pf in processing_task.iter_processable_frames(self)
             if pf.cache_value is None and pf.data['image_uuid'] is not None)
 
+        def on_referenced(dsym_file):
+            app_info = version_build_from_data(self.data)
+            if app_info is not None:
+                dsym_app = DSymApp.objects.create_or_update_app(
+                    sync_id=None,
+                    app_id=app_info.id,
+                    project=self.project,
+                    data={'name': app_info.name},
+                    platform=DSymPlatform.APPLE,
+                )
+                version_dsym_file, created = VersionDSymFile.objects.get_or_create(
+                    dsym_file=dsym_file,
+                    dsym_app=dsym_app,
+                    version=app_info.version,
+                    build=app_info.build,
+                )
+
         self.sym = Symbolizer(self.project, self.image_lookup,
                               cpu_name=self.cpu_name,
-                              referenced_images=referenced_images)
+                              referenced_images=referenced_images,
+                              on_dsym_file_referenced=on_referenced)
 
         # The symbolizer gets a reference to the debug meta's images so
         # when it resolves the missing vmaddrs it changes them in the data

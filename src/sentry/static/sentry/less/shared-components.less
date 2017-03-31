@@ -826,9 +826,19 @@ table.integrations {
     }
   }
 
+  &.switch-changing {
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   &.switch-disabled {
     cursor: not-allowed;
-    pointer-events: none
+    pointer-events: none;
+    background: @white-darker;
+
+    .switch-toggle {
+      opacity: .4;
+    }
   }
 }
 
@@ -3683,6 +3693,12 @@ div.qrcode {
 
     &.modal-sm {
       margin-left: -200px;
+    }
+
+    &.modal-lg {
+      top: 10%;
+      margin-left: -450px;
+      margin-top: -55px;
     }
   }
 

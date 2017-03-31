@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import datetime
 
 import pytz
-from django.utils import timezone
 from django.views.generic import View
 
 from sentry.models import (
@@ -43,6 +42,13 @@ class DebugNewReleaseEmailView(View):
                 slug='another-project',
                 name='Another Project',
             ),
+            Project(
+                id=3,
+                organization=org,
+                team=team,
+                slug='yet-another-project',
+                name='Yet Another Project',
+            ),
         ]
         release = Release(
             organization_id=org.id,
@@ -70,7 +76,7 @@ class DebugNewReleaseEmailView(View):
             'commits': [
                 (Commit(
                     key='48b86fcd677da3dba5679d7a738240ce6fb74b20',
-                    date_added=timezone.now() - datetime.timedelta(hours=2),
+                    date_added=datetime.datetime(2016, 10, 11, 15, 39, tzinfo=pytz.utc),
                 ), None),
                 (Commit(
                     key='a53a2756bb8d111b43196210b34df90b87ed336b',
@@ -79,7 +85,7 @@ class DebugNewReleaseEmailView(View):
                         name='David Cramer',
                         email='david@sentry.io',
                     ),
-                    date_added=timezone.now() - datetime.timedelta(hours=1),
+                    date_added=datetime.datetime(2016, 10, 11, 16, 45, tzinfo=pytz.utc),
                 ), User(email='david@sentry.io', name='David Cramer')),
             ],
         }, {
@@ -87,7 +93,7 @@ class DebugNewReleaseEmailView(View):
             'commits': [
                 (Commit(
                     key='3c8eb3b4af6ee2a29c68daa188fc730c8e4b39fd',
-                    date_added=timezone.now() - datetime.timedelta(hours=7),
+                    date_added=datetime.datetime(2016, 10, 10, 15, 39, tzinfo=pytz.utc),
                 ), None),
                 (Commit(
                     key='373562702009df1692da6eb80a933139f29e094b',
@@ -96,7 +102,7 @@ class DebugNewReleaseEmailView(View):
                         name='Chris Jennings',
                         email='chris@sentry.io',
                     ),
-                    date_added=timezone.now() - datetime.timedelta(hours=5),
+                    date_added=datetime.datetime(2016, 10, 10, 16, 39, tzinfo=pytz.utc),
                 ), None),
                 (Commit(
                     key='631cd9096bd9811a046a472bb0aa8b573e86e1f1',
@@ -105,7 +111,7 @@ class DebugNewReleaseEmailView(View):
                         name='David Cramer',
                         email='david@sentry.io',
                     ),
-                    date_added=timezone.now() - datetime.timedelta(hours=4),
+                    date_added=datetime.datetime(2016, 10, 11, 10, 39, tzinfo=pytz.utc),
                 ), User(email='david@sentry.io', name='David Cramer')),
             ],
         }]
@@ -115,7 +121,7 @@ class DebugNewReleaseEmailView(View):
             text_template='sentry/emails/activity/release.txt',
             context={
                 'release': release,
-                'projects': zip(projects, release_links, [6, 1]),
+                'projects': zip(projects, release_links, [6, 1, 0]),
                 'repos': repos,
                 'reason': GroupSubscriptionReason.descriptions[
                     GroupSubscriptionReason.committed

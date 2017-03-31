@@ -93,7 +93,7 @@ from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEnd
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.release_deploys import ReleaseDeploysEndpoint
 from .endpoints.dsym_files import DSymFilesEndpoint, GlobalDSymFilesEndpoint, \
-    UnknownDSymFilesEndpoint, UnknownGlobalDSymFilesEndpoint
+    UnknownDSymFilesEndpoint, AssociateDSymFilesEndpoint
 from .endpoints.shared_group_details import SharedGroupDetailsEndpoint
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
@@ -109,6 +109,7 @@ from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
+from .endpoints.event_file_committers import EventFileCommittersEndpoint
 
 urlpatterns = patterns(
     '',
@@ -296,6 +297,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/$',
         ProjectEventDetailsEndpoint.as_view(),
         name='sentry-api-0-project-event-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/(?P<event_id>[\w-]+)/committers/$',
+        EventFileCommittersEndpoint.as_view(),
+        name='sentry-api-0-event-file-committers'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/$',
         ProjectFiltersEndpoint.as_view(),
         name='sentry-api-0-project-filters'),
@@ -341,6 +345,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/unknown/$',
         UnknownDSymFilesEndpoint.as_view(),
         name='sentry-api-0-unknown-dsym-files'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/associate/$',
+        AssociateDSymFilesEndpoint.as_view(),
+        name='sentry-api-0-associate-dsym-files'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$',
         ProjectRulesEndpoint.as_view(),
         name='sentry-api-0-project-rules'),
@@ -451,9 +458,6 @@ urlpatterns = patterns(
     url(r'^system/global-dsyms/$',
         GlobalDSymFilesEndpoint.as_view(),
         name='sentry-api-0-global-dsym-files'),
-    url(r'^system/global-dsyms/unknown/$',
-        UnknownGlobalDSymFilesEndpoint.as_view(),
-        name='sentry-api-0-unknown-global-dsym-files'),
 
     # Internal
     url(r'^internal/health/$',

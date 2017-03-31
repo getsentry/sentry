@@ -53,7 +53,7 @@ class ReleaseWebhookView(View):
             # the view code. Instead we hack around it with an ApiKey instance
             god = ApiKey(
                 organization=project.organization,
-                scopes=getattr(ApiKey.scopes, 'project:write'),
+                scope_list=['project:write'],
             )
 
             resp = client.post(

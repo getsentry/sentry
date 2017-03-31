@@ -27,7 +27,7 @@ class ApiAuthorizationSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': six.text_type(obj.id),
-            'scopes': [k for k, v in six.iteritems(obj.scopes) if v],
+            'scopes': obj.get_scopes(),
             'application': attrs['application'],
             'dateCreated': obj.date_added,
         }

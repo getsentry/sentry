@@ -59,14 +59,17 @@ class ReleaseActivityEmail(ActivityEmail):
                 c.author.email for c in self.commit_list
                 if c.author
             ])
-            users = {
-                ue.email: ue.user
-                for ue in UserEmail.objects.filter(
-                    in_iexact('email', self.email_list),
-                    is_verified=True,
-                    user__sentry_orgmember_set__organization=self.organization,
-                ).select_related('user')
-            }
+            if self.email_list:
+                users = {
+                    ue.email: ue.user
+                    for ue in UserEmail.objects.filter(
+                        in_iexact('email', self.email_list),
+                        is_verified=True,
+                        user__sentry_orgmember_set__organization=self.organization,
+                    ).select_related('user')
+                }
+            else:
+                users = {}
 
             for commit in self.commit_list:
                 repos[commit.repository_id]['commits'].append(

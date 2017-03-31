@@ -23,20 +23,24 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Release, TagKey
+    GroupSubscriptionReason, Release, TagKey, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
+from sentry.receivers import DEFAULT_SAVED_SEARCHES
 from sentry.search.utils import InvalidQuery, parse_query
+from sentry.signals import advanced_search, issue_resolved_in_release
 from sentry.tasks.deletion import delete_group
 from sentry.tasks.merge import merge_group
 from sentry.utils.apidocs import attach_scenarios, scenario
 from sentry.utils.cursors import Cursor
+from sentry.utils.functional import extract_lazy_object
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
+SAVED_SEARCH_QUERIES = set([s['query'] for s in DEFAULT_SAVED_SEARCHES])
 
 
 @scenario('BulkUpdateIssues')
@@ -165,6 +169,22 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         return query_kwargs
 
+    def _subscribe_and_assign_issue(self, acting_user, group, result):
+        if acting_user:
+            GroupSubscription.objects.subscribe(
+                user=acting_user,
+                group=group,
+                reason=GroupSubscriptionReason.status_change,
+            )
+            self_assign_issue = UserOption.objects.get_value(
+                user=acting_user,
+                project=None,
+                key='self_assign_issue',
+                default='0'
+            )
+            if self_assign_issue == '1' and not group.assignee_set.exists():
+                result['assignedTo'] = extract_lazy_object(acting_user)
+
     # bookmarks=0/1
     # status=<x>
     # <tag>=<value>
@@ -214,6 +234,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             stats_period = None
 
         query = request.GET.get('query', '').strip()
+
         if query:
             matching_group = None
             matching_event = None
@@ -280,6 +301,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             self.build_cursor_link(request, 'previous', cursor_result.prev),
             self.build_cursor_link(request, 'next', cursor_result.next),
         ])
+
+        if results and query not in SAVED_SEARCH_QUERIES:
+            advanced_search.send(project=project, sender=request.user)
 
         return response
 
@@ -351,7 +375,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-
         result = dict(serializer.object)
 
         acting_user = request.user if request.user.is_authenticated() else None
@@ -401,12 +424,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                         group=group,
                     ), False
 
-                if acting_user:
-                    GroupSubscription.objects.subscribe(
-                        user=acting_user,
-                        group=group,
-                        reason=GroupSubscriptionReason.status_change,
-                    )
+                self._subscribe_and_assign_issue(
+                    acting_user, group, result
+                )
 
                 if created:
                     activity = Activity.objects.create(
@@ -424,6 +444,8 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     # before sending notifications on bulk changes
                     if not is_bulk:
                         activity.send_notification()
+
+                    issue_resolved_in_release.send(project=project, sender=acting_user)
 
             queryset.update(
                 status=GroupStatus.RESOLVED,
@@ -455,12 +477,9 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
-                    if acting_user:
-                        GroupSubscription.objects.subscribe(
-                            user=acting_user,
-                            group=group,
-                            reason=GroupSubscriptionReason.status_change,
-                        )
+                    self._subscribe_and_assign_issue(
+                        acting_user, group, result
+                    )
                     activity = Activity.objects.create(
                         project=group.project,
                         group=group,

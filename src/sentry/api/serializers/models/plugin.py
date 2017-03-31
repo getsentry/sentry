@@ -12,6 +12,9 @@ class PluginSerializer(Serializer):
         self.project = project
 
     def serialize(self, obj, attrs, user):
+        contexts = []
+        if hasattr(obj, 'get_custom_contexts'):
+            contexts.extend(x.type for x in obj.get_custom_contexts() or ())
         d = {
             'id': obj.slug,
             'name': six.text_type(obj.get_title()),
@@ -19,6 +22,7 @@ class PluginSerializer(Serializer):
             'canDisable': obj.can_disable,
             'isTestable': obj.is_testable(),
             'metadata': obj.get_metadata(),
+            'contexts': contexts,
             'assets': [
                 {
                     'url': absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset)),

@@ -15,7 +15,7 @@ from mock import patch
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupTagValue, GroupResolution, GroupSeen, GroupSnooze, GroupStatus,
-    GroupSubscription, Release
+    GroupSubscription, Release, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
@@ -357,6 +357,93 @@ class GroupUpdateTest(APITestCase):
             user=self.user,
             group=new_group4,
         )
+
+    def test_self_assign_issue(self):
+        group = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
+        user = self.user
+
+        uo1 = UserOption.objects.create(
+            key='self_assign_issue', value='1',
+            project=None, user=user
+        )
+
+        self.login_as(user=user)
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group
+        )
+        response = self.client.put(
+            url, data={
+                'status': 'resolved',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data['assignedTo']['id'] == six.text_type(user.id)
+        assert response.data['status'] == 'resolved'
+
+        assert GroupAssignee.objects.filter(
+            group=group, user=user
+        ).exists()
+
+        assert GroupSubscription.objects.filter(
+            user=user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        uo1.delete()
+
+    def test_self_assign_issue_next_release(self):
+        release = Release.objects.create(organization_id=self.project.organization_id,
+                                         version='a')
+        release.add_project(self.project)
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        uo1 = UserOption.objects.create(
+            key='self_assign_issue', value='1',
+            project=None, user=self.user
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolvedInNextRelease',
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inNextRelease']
+        assert response.data['assignedTo']['id'] == six.text_type(self.user.id)
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
+        uo1.delete()
 
     def test_selective_status_update(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
