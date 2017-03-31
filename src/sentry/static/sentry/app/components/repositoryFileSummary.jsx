@@ -52,29 +52,31 @@ const RepositoryFileSummary = React.createClass({
     let numCollapsed = fileCount - files.length;
     let canCollapse = fileCount > MAX;
     return(
-      <ul className="list-group list-group-striped m-b-2">
-      <h6>
-        {tn(('%d file changed in ' + repository), ('%d files changed in ' + repository), fileCount)}
-      </h6>
-      {files.map(filename => {
-        let {id, authors, types} = fileChangeSummary[filename];
-        return (
-          <FileChange
-            key={id}
-            filename={filename}
-            authors={Object.values(authors)}
-            types={types}
-            />
-        );
-      })}
-      {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
-      {numCollapsed === 0 && canCollapse &&
-        <li className="list-group-item list-group-item-sm align-center">
-          <span className="icon-container"></span>
-          <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
-        </li>
-      }
-      </ul>);
+      <div>
+        <h5>
+          {tn(('%d file changed in ' + repository), ('%d files changed in ' + repository), fileCount)}
+        </h5>
+        <ul className="list-group list-group-striped m-b-2">
+        {files.map(filename => {
+          let {id, authors, types} = fileChangeSummary[filename];
+          return (
+            <FileChange
+              key={id}
+              filename={filename}
+              authors={Object.values(authors)}
+              types={types}
+              />
+          );
+        })}
+        {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
+        {numCollapsed === 0 && canCollapse &&
+          <li className="list-group-item list-group-item-sm align-center">
+            <span className="icon-container"></span>
+            <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
+          </li>
+        }
+        </ul>
+      </div>);
 }
 });
 
