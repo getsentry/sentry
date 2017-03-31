@@ -11,7 +11,7 @@ potentially overcounting lower-frequency items due to hash collisions.
 This implementation extends the conventional Count-Min algorithm, adding an
 index that allows querying for the top N items that have been observed in the
 stream. The index also serves as the primary storage, reducing storage
-requirements and improving accuracy, auntil it's capacity is exceeded, at which
+requirements and improving accuracy, until it's capacity is exceeded, at which
 point the index data is used to initialize the estimation matrix. Once the
 index capacity as been exceeded and the estimation matrix has been initialized,
 the index of most frequent items is maintained using the estimates from the
@@ -23,9 +23,9 @@ The public API consists of three main methods:
 - ESTIMATE: used to query the number of times a specific item has been seen,
 - RANKED: used to query the top N items that have been recorded in a sketch.
 
-The named command to use is the first item passed as ``ARGV``. For commands
-that mutate data (`INCR`), the command is followed by the accuracy and storage
-parameters to use when initializing a new sketch:
+The named command to use is the first item passed as ``ARGV``.  The command is
+followed by the accuracy and storage parameters to use when initializing a new
+sketch:
 
 - DEPTH: number of rows for the estimation matrix,
 - WIDTH: number of columns for the estimation matrix,
@@ -38,7 +38,7 @@ The ``KEYS`` provided to each command are the two keys used for sketch storage:
 
 Multiple sketches can be provided to each command by providing another set of keys, e.g.
 
-    EVALSHA $SHA 6 1:config 1:index 1:estimates 2:config 2:index 2:estimates [...]
+    EVALSHA $SHA 4 1:index 1:estimates 2:index 2:estimates [...]
 
 (Whether a command returns a single result that encompasses all sketches, or a
 sequence of results that correspond to each sketch is dependent on the command
@@ -47,11 +47,11 @@ being called.)
 To add two items, "foo" with a score of 1, and "bar" with a score of 2 to two
 sketches with depth 5, width 64 and index capacity of 50:
 
-    EVALSHA $SHA 6 1:c 1:i 1:e 2:c 2:i 2:e INCR 5 64 50 1 foo 2 bar
+    EVALSHA $SHA 4 1:i 1:e 2:i 2:e INCR 5 64 50 1 foo 2 bar
 
-To query the top 5 items from the first sketch:
+To query the top 10 items from the first sketch:
 
-    EVALSHA $SHA 3 1:c 1:i 1:e RANKED 5
+    EVALSHA $SHA 2 1:i 1:e RANKED 5 64 50 10
 
 ]]--
 
