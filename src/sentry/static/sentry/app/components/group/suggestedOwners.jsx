@@ -6,7 +6,7 @@ import Avatar from '../avatar';
 import TooltipMixin from '../../mixins/tooltip';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
-
+import {CommitLink} from '../../views/releases/releaseCommits';
 import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
@@ -20,7 +20,8 @@ const SuggestedOwners = React.createClass({
     TooltipMixin({
       selector: '.tip',
       html: true,
-      container: 'body'
+      container: 'body',
+      trigger: 'click'
     })
   ],
 
@@ -75,12 +76,17 @@ const SuggestedOwners = React.createClass({
       <span key={author.id} className="avatar-grid-item tip" title={
         ReactDOMServer.renderToStaticMarkup(
           <div>
-            <strong>
+            <strong className="time-label">
               {`${author.name}:`}
             </strong><br/>
-            <ul>
-              {commits.map(c=><li key={c.id}>{c.message} - {moment(c.dateCreated).fromNow()}</li>)}
-            </ul>
+            <div>
+              {commits.map(c=>
+               (<span key={c.id}>
+                  <span key={c.id}>{c.message}</span>
+                  <span>{moment(c.dateCreated).fromNow()}</span>
+                  <CommitLink commitId={c.id} repository={c.repository}/>
+              </span>))}
+            </div>
           </div>)
         }>
         <Avatar user={author}/>
@@ -88,7 +94,7 @@ const SuggestedOwners = React.createClass({
   },
 
   render() {
-    if (!this.state.owners) {
+    if (!(this.state.owners && this.state.owners.length)) {
       return null;
     }
     return(
