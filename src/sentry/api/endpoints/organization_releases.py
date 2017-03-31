@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ListField
+from sentry.api.serializers.rest_framework import ReleaseHeadCommitSerializer, ListField
 from sentry.models import Activity, Release
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -37,6 +37,7 @@ def list_org_releases_scenario(runner):
 
 class ReleaseSerializerWithProjects(ReleaseSerializer):
     projects = ListField()
+    head_commits = ListField(child=ReleaseHeadCommitSerializer(), required=False)
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
@@ -160,6 +161,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
             commit_list = result.get('commits')
             if commit_list:
                 release.set_commits(commit_list)
+
+            head_commits = result.get('head_commits')
+            if head_commits:
+                fetch_commits = request.user.is_authenticated() and not commit_list
+                release.set_head_commits(head_commits, request.user, fetch_commits=fetch_commits)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want

@@ -185,8 +185,8 @@ class Organization(Model):
         from sentry.models import (
             ApiKey, AuditLogEntry, Commit, OrganizationMember,
             OrganizationMemberTeam, Project, Release, ReleaseCommit,
-            ReleaseEnvironment, ReleaseFile, Repository, Team,
-            Environment,
+            ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit,
+            Repository, Team, Environment,
         )
 
         for from_member in OrganizationMember.objects.filter(organization=from_org, user__isnull=False):
@@ -254,7 +254,8 @@ class Organization(Model):
                 organization=from_org,
             ).update(organization=to_org)
 
-        for model in (Commit, ReleaseCommit, ReleaseEnvironment, Repository, Environment):
+        for model in (Commit, ReleaseCommit, ReleaseEnvironment,
+                      ReleaseHeadCommit, Repository, Environment):
             model.objects.filter(
                 organization_id=from_org.id,
             ).update(organization_id=to_org.id)
