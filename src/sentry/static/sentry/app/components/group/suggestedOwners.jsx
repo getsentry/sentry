@@ -20,6 +20,7 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
+      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner owners"></div></div>',
     })
   ],
 
@@ -77,7 +78,7 @@ const SuggestedOwners = React.createClass({
     return (
       <span key={author.id} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
         ReactDOMServer.renderToStaticMarkup(
-          <div style={{whiteSpace: 'nowrap'}}>
+          <div>
             <strong className="time-label">
               {`${author.name}: `}
             </strong>
