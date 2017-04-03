@@ -257,7 +257,7 @@ const Frame = React.createClass({
 
   leadsToApp() {
     return !this.props.data.inApp && this.props.nextFrame
-      && this.props.nextFrame.InApp;
+      && this.props.nextFrame.inApp;
   },
 
   isInlineFrame() {
