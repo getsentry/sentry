@@ -305,6 +305,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         result = cache.get(cache_key)
         if result == 0:
             one_hit_wonder = False
+            result = None
         elif result is not None:
             # Previous caches would be a 3-tuple instead of a 4-tuple,
             # so this is being maintained for backwards compatibility
