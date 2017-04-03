@@ -106,6 +106,17 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
                                       the current time is assumed.
+        :param array commits: an optional list of commit data to be associated
+                              with the release. Commits must include parameters
+                              ``id`` (the sha of the commit), and can optionally
+                              include ``repository``, ``message``, ``author_name``,
+                              ``author_email``, and ``timestamp``.
+        :param array headCommits: an optional way to indicate the start and end commits
+                                  for each repository included in a release. Head commits
+                                  must include parameters ``repository`` and ``currentId``
+                                  (the HEAD sha). They can optionally include ``previousId``
+                                  (the sha of the HEAD of the previous release), which should
+                                  be specified if this is the first time you've sent commit data.
         :auth: required
         """
         serializer = ReleaseSerializerWithProjects(data=request.DATA)
