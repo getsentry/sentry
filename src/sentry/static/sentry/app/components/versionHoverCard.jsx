@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'underscore';
 
 import Avatar from './avatar';
 
@@ -22,8 +23,7 @@ const VersionHoverCard = React.createClass({
 
   getInitialState() {
     return {
-      reposLoading: true,
-      releaseLoading: true,
+      loading: true,
       error: false,
       data: {},
       visible: false,
@@ -32,44 +32,47 @@ const VersionHoverCard = React.createClass({
   },
 
   componentDidMount() {
-    let {orgId, projectId, version} = this.props;
-
-    let path = `/projects/${orgId}/${projectId}/releases/${version}/`;
-    this.api.request(path, {
-      method: 'GET',
-      success: (data, _, jqXHR) => {
-        this.setState({
-          release: data,
-          releaseLoading: false,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          releaseLoading: false,
-        });
-      }
+    let done = _.after(2, () => {
+      this.setState({loading: false});
     });
-    this.getRepos();
+    this.fetchData(done);
   },
 
-  getRepos() {
-    let {orgId} = this.props;
-    let path = `/organizations/${orgId}/repos/`;
-    this.api.request(path, {
+  fetchData(done) {
+    let {orgId, projectId, version} = this.props;
+
+    // releases
+    let releasePath = `/projects/${orgId}/${projectId}/releases/${version}/`;
+    this.api.request(releasePath, {
       method: 'GET',
-      success: (data, _, jqXHR) => {
+      success: (data) => {
         this.setState({
-          hasRepos: data.length > 0,
-          reposLoading: false,
+          release: data,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          reposLoading: false,
         });
-      }
+      },
+      complete: done
+    });
+
+    // repos
+    let repoPath = `/organizations/${orgId}/repos/`;
+    this.api.request(repoPath, {
+      method: 'GET',
+      success: (data) => {
+        this.setState({
+          hasRepos: data.length > 0,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+        });
+      },
+      complete: done
     });
   },
 
@@ -118,7 +121,7 @@ const VersionHoverCard = React.createClass({
 
     return (
       <div className="hovercard-body">
-        {(this.state.releaseLoading || this.state.reposLoading) ? <LoadingIndicator mini={true}/> :
+        {this.state.loading ? <LoadingIndicator mini={true}/> :
           (this.state.error ? <LoadingError /> :
             <div>
             <div className="row row-flex">
