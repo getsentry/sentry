@@ -24,11 +24,11 @@ class DummyRepositoryProvider(RepositoryProvider):
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         return [{
             'id': '62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            'repository': repo,
+            'repository': repo.name,
         }, {
             'id': '58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            'repository': repo,
+            'repository': repo.name,
         }, {
             'id': end_sha,
-            'repository': repo,
+            'repository': repo.name,
         }]

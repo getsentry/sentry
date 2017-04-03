@@ -279,7 +279,7 @@ class Release(Model):
                 provider = provider_cls(id=repo.provider)
                 try:
                     repo_commits = provider.compare_commits(
-                        repo.name, start_sha, end_sha, actor=user
+                        repo, start_sha, end_sha, actor=user
                     )
                 except NotImplementedError:
                     pass
