@@ -291,6 +291,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     cache_key = 'source:cache:v4:%s' % (
         md5_text(url).hexdigest(),
     )
+    one_hit_wonder = True
 
     if result is None:
         if not allow_scraping or not url.startswith(('http:', 'https:')):
@@ -302,7 +303,9 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
-        if result is not None:
+        if result == b'\x00':
+            one_hit_wonder = False
+        elif result is not None:
             # Previous caches would be a 3-tuple instead of a 4-tuple,
             # so this is being maintained for backwards compatibility
             try:
@@ -329,7 +332,10 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         with metrics.timer('sourcemaps.fetch'):
             result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
-            cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
+            if one_hit_wonder:
+                cache.set(cache_key, b'\x00', 60)
+            else:
+                cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
     # Make sure the file we're getting back is six.binary_type. The only
     # reason it'd not be binary would be from old cached blobs, so
