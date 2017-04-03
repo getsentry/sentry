@@ -20,7 +20,7 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
-      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner owners"></div></div>',
+      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner owners break-word"></div></div>',
     })
   ],
 
