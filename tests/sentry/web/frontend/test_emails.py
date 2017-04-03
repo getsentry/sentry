@@ -18,7 +18,6 @@ class EmailsTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/account/settings/emails.html')
-        assert 'alt_emails' in resp.context
         assert 'primary_email' in resp.context
         self.assertIn('foo@example.com', resp.content)
 
@@ -37,7 +36,6 @@ class EmailsTest(TestCase):
         user.set_password('something')
         user.save()
         resp = self.client.post(self.path, data={
-            'primary_email': user.email,
             'alt_email': 'hello@gmail.com',
             'password': 'something'},
             follow=True
@@ -53,8 +51,8 @@ class EmailsTest(TestCase):
         user.set_password('something')
         user.save()
         resp = self.client.post(self.path, data={
-            'primary_email': user.email,
-            'alt_email': 'hello@gmail.com'},
+            'alt_email': 'hello@gmail.com',
+        },
             follow=True
         )
         assert resp.status_code == 200
@@ -68,8 +66,7 @@ class EmailsTest(TestCase):
         user.set_unusable_password()
         user.save()
         resp = self.client.post(self.path, data={
-            'primary_email': user.email,
-            'alt_email': 'hello@gmail.com'
+            'alt_email': 'hello@gmail.com',
         },
             follow=True
         )
@@ -92,16 +89,24 @@ class EmailsTest(TestCase):
     def test_change_primary_email(self):
         user = self.create_user('foo@example.com')
         self.login_as(user)
-        user.set_password('something')
-        user.save()
         resp = self.client.get(self.path)
         self.assertIn('foo@example.com', resp.content)
         resp = self.client.post(self.path,
-            {'primary_email': 'bar@example.com',
-             'password': 'something'},
+            {'primary': '',
+             'new_primary_email': 'bar@example.com'},
             follow=True
         )
         self.assertIn('bar@example.com', resp.content)
         user = User.objects.get(id=user.id)
         assert user.email != 'foo@example.com'
         assert user.email == 'bar@example.com'
+
+    def test_username_updates(self):
+        user = self.create_user('foo@example.com')
+        self.login_as(user)
+        email = UserEmail(user=user, email='bar@example.com')
+        email.save()
+        self.client.post(self.path, data={'primary': '', 'new_primary_email': 'bar@example.com'}, follow=True)
+        user = User.objects.get(id=user.id)
+        assert user.username != 'foo@example.com'
+        assert user.username == 'bar@example.com'
