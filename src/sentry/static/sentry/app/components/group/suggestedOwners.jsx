@@ -76,18 +76,19 @@ const SuggestedOwners = React.createClass({
 
   renderCommitter({author, commits}) {
     return (
-      <span key={author.id} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
+      <span key={author.id || author.email} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
         ReactDOMServer.renderToStaticMarkup(
           <div>
             <strong className="time-label">
-              {`${author.name}: `}
+              {author.name}: {author.id ? '' : `Unknown member: ${author.email}`}
+              {author.id ? '' : (<div><br/>(Link alternative emails under account settings)</div>)}
             </strong>
             <div className="commit-list">
               {commits.map( c => {
                 return (
-                 <span key={c.id}>
-                  <span>{c.message} : </span>
-                  <span>{moment(c.dateCreated).fromNow()}</span>
+                 <span key={c.id} style={{textAlign:'start'}}>
+                  <span>{moment(c.dateCreated).fromNow()}:</span>
+                  <span className="truncate">{c.message}</span>
                  </span>);
               })}
             </div>
