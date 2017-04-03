@@ -303,7 +303,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
 
         logger.debug('Checking cache for url %r', url)
         result = cache.get(cache_key)
-        if result == b'\x00':
+        if result == 0:
             one_hit_wonder = False
         elif result is not None:
             # Previous caches would be a 3-tuple instead of a 4-tuple,
@@ -333,7 +333,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
             result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
             z_body = zlib.compress(result.body)
             if one_hit_wonder:
-                cache.set(cache_key, b'\x00', 60)
+                cache.set(cache_key, 0, 60)
             else:
                 cache.set(cache_key, (url, result.headers, z_body, result.status, result.encoding), 60)
 
