@@ -13,6 +13,7 @@ import pytz
 from django import forms
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.db.models import Q
 from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
@@ -233,7 +234,6 @@ class ChangePasswordRecoverForm(forms.Form):
 
 
 class EmailForm(forms.Form):
-    primary_email = forms.EmailField(label=_('Primary Email'))
 
     alt_email = forms.EmailField(
         label=_('New Email'),
@@ -256,23 +256,6 @@ class EmailForm(forms.Form):
 
         if not needs_password:
             del self.fields['password']
-
-    def save(self, commit=True):
-
-        if self.cleaned_data['primary_email'] != self.user.email:
-            new_username = self.user.email == self.user.username
-        else:
-            new_username = False
-
-        self.user.email = self.cleaned_data['primary_email']
-
-        if new_username and not User.objects.filter(username__iexact=self.user.email).exists():
-            self.user.username = self.user.email
-
-        if commit:
-            self.user.save()
-
-        return self.user
 
     def clean_password(self):
         value = self.cleaned_data.get('password')
@@ -337,7 +320,13 @@ class AccountSettingsForm(forms.Form):
         return self.cleaned_data[field]
 
     def clean_email(self):
-        return self._clean_managed_field('email')
+        value = self._clean_managed_field('email').lower()
+        if User.objects.filter(Q(email__iexact=value) | Q(username__iexact=value)).exclude(id=self.user.id).exists():
+            raise forms.ValidationError(
+                _("There was an error adding %s: that email is already in use")
+                % self.cleaned_data['email']
+            )
+        return value
 
     def clean_name(self):
         return self._clean_managed_field('name')
@@ -642,7 +631,8 @@ class ProjectEmailOptionsForm(forms.Form):
         specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
         emails.extend([user.email, alert_email, specified_email])
 
-        choices = [(email, email) for email in set(emails) if email is not None]
+        choices = [(email, email) for email in sorted(set(emails)) if email]
+
         self.fields['email'].choices = choices
 
         self.fields['alert'].initial = has_alerts
