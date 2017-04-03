@@ -323,7 +323,7 @@ class Symbolizer(object):
             )
 
         if symbolize_inlined:
-            return [self._process_frame(nf, img) for nf in rv]
+            return [self._process_frame(nf, img) for nf in reversed(rv)]
         return self._process_frame(rv, img)
 
     def symbolize_system_frame(self, frame, img, sdk_info,
