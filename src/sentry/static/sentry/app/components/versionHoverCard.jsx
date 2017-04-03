@@ -32,14 +32,14 @@ const VersionHoverCard = React.createClass({
   },
 
   componentDidMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {orgId, projectId, version} = this.props;
     let done = _.after(2, () => {
       this.setState({loading: false});
     });
-    this.fetchData(done);
-  },
-
-  fetchData(done) {
-    let {orgId, projectId, version} = this.props;
 
     // releases
     let releasePath = `/projects/${orgId}/${projectId}/releases/${version}/`;
