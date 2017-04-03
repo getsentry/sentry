@@ -108,15 +108,14 @@ class AppleCrashReport(object):
         if stacktrace:
             frames = stacktrace.get('frames')
             if frames:
-                i = 0
-                for frame in reversed(frames):
+                for i, frame in enumerate(reversed(frames)):
                     frame_string = self._convert_frame_to_apple_string(
                         frame=frame,
+                        next=frames[len(frames) - i - 2] if i < len(frames) - 1 else None,
                         number=i
                     )
                     if frame_string is not None:
                         rv.append(frame_string)
-                        i += 1
 
         if len(rv) == 0:
             return None  # No frames in thread, so we remove thread
@@ -128,7 +127,7 @@ class AppleCrashReport(object):
             thread_string += 'Thread %s Crashed:\n' % thread['id']
         return thread_string + '\n'.join(rv)
 
-    def _convert_frame_to_apple_string(self, frame, number=0):
+    def _convert_frame_to_apple_string(self, frame, next=None, number=0):
         if frame.get('instruction_addr') is None:
             return None
         slide_value = self._get_slide_value(frame.get('image_addr'))
@@ -154,6 +153,9 @@ class AppleCrashReport(object):
                 frame.get('function') or NATIVE_UNKNOWN_STRING,
                 file
             )
+            if next and parse_addr(frame['instruction_addr']) == \
+               parse_addr(next['instruction_addr']):
+                symbol = '[inlined] ' + symbol
         return '%s%s%s%s%s' % (
             str(number).ljust(4, ' '),
             (frame.get('package') or NATIVE_UNKNOWN_STRING).rsplit('/', 1)[-1].ljust(32, ' '),
