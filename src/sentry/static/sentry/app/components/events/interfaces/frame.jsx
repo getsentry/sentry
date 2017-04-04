@@ -266,6 +266,25 @@ const Frame = React.createClass({
       this.props.data.instructionAddr == this.props.prevFrame.instructionAddr;
   },
 
+  getFrameHint() {
+    if (this.isInlineFrame()) {
+      return t('Inlined frame');
+    }
+    if (this.getPlatform() == 'cocoa') {
+      let func = this.props.data.function || '<unknown>';
+      if (func.match(/^@objc\s/)) {
+        return t('Objective-C -> Swift shim frame');
+      }
+      if (func === '<redacted>') {
+        return t('Unknown system frame. Usually from beta SDKs');
+      }
+      if (func.match(/^__?hidden#\d+/)) {
+        return t('Hidden function from bitcode build');
+      }
+    }
+    return null;
+  },
+
   renderLeadHint() {
     if (this.leadsToApp() && !this.state.isExpanded) {
       return (
@@ -302,6 +321,7 @@ const Frame = React.createClass({
 
   renderCocoaLine() {
     let data = this.props.data;
+    let hint = this.getFrameHint();
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <div className="title as-table">
@@ -323,8 +343,8 @@ const Frame = React.createClass({
             {data.filename &&
               <span className="filename">{data.filename}
                 {data.lineNo ? ':' + data.lineNo : ''}</span>}
-            {this.isInlineFrame() ?
-              <a key="inline" className="tip" data-title={_.escape(_('Inlined frame'))}>
+            {hint !== null ?
+              <a key="inline" className="tip" data-title={_.escape(hint)}>
                 {' '}<span className="icon-question" />
               </a>
               : null}
