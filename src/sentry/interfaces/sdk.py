@@ -18,7 +18,11 @@ def get_with_prefix(d, k, default=None, delimiter=":"):
     """
 
     prefix = k.split(delimiter, 1)[0]
-    for key in [k, k.lower(), prefix, prefix.lower()]:
+    for key in [k, prefix]:
+        if key in d:
+            return d[key]
+
+        key = key.lower()
         if key in d:
             return d[key]
 
