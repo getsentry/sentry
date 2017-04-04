@@ -323,11 +323,7 @@ end
 
 local Command = {}
 
-function Command:new(fn, readonly)
-    if readonly == nil then
-        readonly = false
-    end
-
+function Command:new(fn)
     return function (keys, arguments)
         local configuration, arguments = (
             function (depth, width, index, ...)
@@ -388,8 +384,7 @@ return Router:new({
                 end,
                 sketches
             )
-        end,
-        false
+        end
     ),
 
     --[[
@@ -413,8 +408,7 @@ return Router:new({
                 end,
                 sketches
             )
-        end,
-        true
+        end
     ),
 
     --[[
@@ -516,7 +510,6 @@ return Router:new({
                 end
                 return trimmed
             end
-        end,
-        true
+        end
     )
 })(KEYS, ARGV)
