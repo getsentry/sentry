@@ -316,6 +316,7 @@ const OrganizationRepositories = React.createClass({
       return <LoadingIndicator />;
 
     let orgId = this.props.params.orgId;
+    let itemList = this.state.itemList;
 
     return (
       <OrganizationHomeContainer>
@@ -334,10 +335,20 @@ const OrganizationRepositories = React.createClass({
           </DropdownLink>
         </div>
         <h3 className="m-b-2">{t('Repositories')}</h3>
-        {this.state.itemList.length > 0 ?
+        {itemList.length > 0 &&
+          <div className="m-b-2">
+            {t('Connecting a repository allows Sentry to capture commit data via webhooks. ' +
+               'This enables features like suggested assignees and resolving issues via commit message. ' +
+               'Once you\'ve connected a repository, you can associate commits with releases via the API.')}
+            &nbsp;
+            <a href="https://docs.sentry.io/api/releases/post-organization-releases/">
+              {t('See our API documentation for more information.')}
+            </a>
+          </div>}
+        {itemList.length > 0 ?
           <table className="table table-bordered">
             <tbody>
-              {this.state.itemList.map((repo) => {
+              {itemList.map((repo) => {
                 return (
                   <tr key={repo.id}>
                     <td>
