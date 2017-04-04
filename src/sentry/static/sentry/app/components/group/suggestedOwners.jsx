@@ -20,7 +20,7 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
-      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner owners break-word"></div></div>',
+      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
     })
   ],
 
@@ -71,26 +71,39 @@ const SuggestedOwners = React.createClass({
   },
 
   assignTo(member) {
-    this.api.assignTo({id: this.props.event.groupID, member: member});
+    if (member.id !== undefined) {
+      this.api.assignTo({id: this.props.event.groupID, member: member});
+    }
   },
 
   renderCommitter({author, commits}) {
     return (
-      <span key={author.id} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
+      <span key={author.id || author.email} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
         ReactDOMServer.renderToStaticMarkup(
           <div>
-            <strong className="time-label">
-              {`${author.name}: `}
-            </strong>
-            <div className="commit-list">
-              {commits.map( c => {
+            {author.id ?
+              ( <div className="tooltip-owners-name">
+                  {author.name}
+                </div>)  :
+                (<div className="tooltip-owners-unknown">
+                  <p className="tooltip-owners-unknown-email">
+                    <span className="icon icon-circle-cross" />
+                    <strong>{author.email}</strong>
+                  </p>
+                  <p>Sorry, we don't recognize this member. Make sure to link alternative emails in Account Settings.</p>
+                  <hr/>
+                </div>)
+              }
+            <ul className="tooltip-owners-commits">
+              {commits.slice(0, 6).map( c => {
                 return (
-                 <span key={c.id}>
-                  <span>{c.message} : </span>
-                  <span>{moment(c.dateCreated).fromNow()}</span>
-                 </span>);
+                  <li key={c.id} className="tooltip-owners-commit">
+                    {c.message}
+                    <span className="tooltip-owners-date"> - {moment(c.dateCreated).fromNow()}</span>
+                  </li>
+                );
               })}
-            </div>
+            </ul>
           </div>)
         }>
         <Avatar user={author}/>
