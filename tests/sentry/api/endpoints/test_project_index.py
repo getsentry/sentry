@@ -85,7 +85,6 @@ class ProjectsListTest(APITestCase):
         self.create_project(name='bar', organization=org2)
 
         self.login_as(user=user)
-
         response = self.client.get(self.path + '?query=foo')
         assert response.status_code == 200
         assert len(response.data) == 1
@@ -106,7 +105,6 @@ class ProjectsListTest(APITestCase):
         self.create_project(name='bar', slug='bar', organization=org)
 
         self.login_as(user=user)
-
         response = self.client.get(self.path + '?query=slug:foo')
         assert response.status_code == 200
         assert len(response.data) == 1

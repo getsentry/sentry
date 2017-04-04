@@ -224,8 +224,6 @@ def _default_tag(tokenized_tag, dictionary, user, project):
 def _age_tag(tokenized_tag, dictionary, user, project):
     if tokenized_tag['prefix_operator'] not in ('-', '+'):
         raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have leading '+' or '-' operator e.g. 'age:-24h'".format(tokenized_tag['string']))
-    # if tokenized_tag['suffix_operator'] not in ('w', 'd', 'h', 'm'):
-    #     raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have trailing time interval operator 'm', 'h', 'd', or 'w' e.g. 'age:-24h'".format(tokenized_tag['string']))
     if not tokenized_tag['value'].__class__.__name__ == 'int':
         raise InvalidQuery("Malformed Query: '{}'. 'age' tag must have integer value 'age:-24h'".format(tokenized_tag['string']))
     operator = tokenized_tag['prefix_operator']
@@ -407,6 +405,7 @@ def parse_query(project, query, user):
         selector = to_snake(key).split('.')[0].replace('-', '_')
         action = special_tag_behaviors.get(selector) or _default_tag
         results = action(tag_tokens, results, user, project)
+    # import pdb; pdb.set_trace()
     return results
 
 
