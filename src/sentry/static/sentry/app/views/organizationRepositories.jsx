@@ -337,57 +337,63 @@ const OrganizationRepositories = React.createClass({
         <h3 className="m-b-2">{t('Repositories')}</h3>
         {itemList.length > 0 &&
           <div className="m-b-2">
-            {t('Connecting a repository allows Sentry to capture commit data via webhooks. ' +
+            <p>{t('Connecting a repository allows Sentry to capture commit data via webhooks. ' +
                'This enables features like suggested assignees and resolving issues via commit message. ' +
                'Once you\'ve connected a repository, you can associate commits with releases via the API.')}
-            &nbsp;
-            <a href="https://docs.sentry.io/api/releases/post-organization-releases/">
-              {t('See our API documentation for more information.')}
-            </a>
+               &nbsp;
+               {tct('See our [link:documentation] for more details.', {
+                 link: <a href="https://docs.sentry.io/learn/releases/"/>
+               })}
+            </p>
           </div>}
         {itemList.length > 0 ?
-          <table className="table table-bordered">
-            <tbody>
-              {itemList.map((repo) => {
-                return (
-                  <tr key={repo.id}>
-                    <td>
-                      <strong>{repo.name}</strong>
-                      {repo.status !== 'visible' &&
-                        <small> &mdash; {this.getStatusLabel(repo)}</small>
-                      }
-                      {repo.status === 'pending_deletion' &&
-                        <small> (<a onClick={this.cancelDelete.bind(this, repo)}>{t('Cancel')}</a>)</small>
-                      }<br />
-                      <small>{repo.provider.name}</small>
-                      {repo.url &&
-                        <small> &mdash; <a href={repo.url}>{repo.url}</a></small>
-                      }
-                    </td>
-                    <td style={{width: 60}}>
-                      {repo.status === 'visible' ?
-                        <button onClick={this.deleteRepo.bind(this, repo)}
-                                className="btn btn-default btn-xs">
-                          <span className="icon icon-trash" />
-                        </button>
-                      :
-                        <button onClick={this.deleteRepo.bind(this, repo)}
-                                disabled={true}
-                                className="btn btn-default btn-xs btn-disabled">
-                          <span className="icon icon-trash" />
-                        </button>
-                      }
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="panel panel-default">
+            <table className="table">
+              <tbody>
+                {itemList.map((repo) => {
+                  return (
+                    <tr key={repo.id}>
+                      <td>
+                        <strong>{repo.name}</strong>
+                        {repo.status !== 'visible' &&
+                          <small> &mdash; {this.getStatusLabel(repo)}</small>
+                        }
+                        {repo.status === 'pending_deletion' &&
+                          <small> (<a onClick={this.cancelDelete.bind(this, repo)}>{t('Cancel')}</a>)</small>
+                        }<br />
+                        <small>{repo.provider.name}</small>
+                        {repo.url &&
+                          <small> &mdash; <a href={repo.url}>{repo.url}</a></small>
+                        }
+                      </td>
+                      <td style={{width: 60}}>
+                        {repo.status === 'visible' ?
+                          <button onClick={this.deleteRepo.bind(this, repo)}
+                                  className="btn btn-default btn-xs">
+                            <span className="icon icon-trash" />
+                          </button>
+                        :
+                          <button onClick={this.deleteRepo.bind(this, repo)}
+                                  disabled={true}
+                                  className="btn btn-default btn-xs btn-disabled">
+                            <span className="icon icon-trash" />
+                          </button>
+                        }
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
           :
-          <div className="well blankslate align-center p-t-2 p-b-3 p-x-2">
+          <div className="well blankslate align-center p-x-2 p-y-1">
             <div className="icon icon-lg icon-git-commit" />
             <h3>{t('Sentry is better with commit data')}</h3>
-            <p className="m-b-0">{t('Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.')}</p>
+            <p>{t('Adding one or more repositories will enable enhanced releases and the ability to resolve Sentry Issues via git message.')}</p>
+            <p className="m-b-1">
+              <a className="btn btn-default" href="https://docs.sentry.io/learn/releases/">Learn more</a>
+            </p>
           </div>
         }
       </OrganizationHomeContainer>
