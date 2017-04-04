@@ -740,13 +740,12 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:repos': False,
     'organizations:sso': True,
-    'organizations:callsigns': False,
+    'organizations:callsigns': True,
     'organizations:release-commits': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
     'projects:sample-events': True,
-    'workflow:release-emails': False,
 }
 
 # Default time zone for localization in the UI.
