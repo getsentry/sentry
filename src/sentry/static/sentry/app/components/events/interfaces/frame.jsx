@@ -23,7 +23,8 @@ export function trimPackage(pkg) {
 const Frame = React.createClass({
   propTypes: {
     data: React.PropTypes.object.isRequired,
-    nextFrameInApp: React.PropTypes.bool,
+    nextFrame: React.PropTypes.object,
+    prevFrame: React.PropTypes.object,
     platform: React.PropTypes.string,
     isExpanded: React.PropTypes.bool,
     emptySourceNotation: React.PropTypes.bool,
@@ -255,7 +256,33 @@ const Frame = React.createClass({
   },
 
   leadsToApp() {
-    return !this.props.data.inApp && this.props.nextFrameInApp;
+    return !this.props.data.inApp && this.props.nextFrame
+      && this.props.nextFrame.inApp;
+  },
+
+  isInlineFrame() {
+    return this.props.prevFrame &&
+      this.getPlatform() == (this.props.prevFrame.platform || this.props.platform) &&
+      this.props.data.instructionAddr == this.props.prevFrame.instructionAddr;
+  },
+
+  getFrameHint() {
+    if (this.isInlineFrame()) {
+      return t('Inlined frame');
+    }
+    if (this.getPlatform() == 'cocoa') {
+      let func = this.props.data.function || '<unknown>';
+      if (func.match(/^@objc\s/)) {
+        return t('Objective-C -> Swift shim frame');
+      }
+      if (func === '<redacted>') {
+        return t('Unknown system frame. Usually from beta SDKs');
+      }
+      if (func.match(/^__?hidden#\d+/)) {
+        return t('Hidden function from bitcode build');
+      }
+    }
+    return null;
   },
 
   renderLeadHint() {
@@ -294,6 +321,7 @@ const Frame = React.createClass({
 
   renderCocoaLine() {
     let data = this.props.data;
+    let hint = this.getFrameHint();
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : null}>
         <div className="title as-table">
@@ -315,6 +343,11 @@ const Frame = React.createClass({
             {data.filename &&
               <span className="filename">{data.filename}
                 {data.lineNo ? ':' + data.lineNo : ''}</span>}
+            {hint !== null ?
+              <a key="inline" className="tip" data-title={_.escape(hint)}>
+                {' '}<span className="icon-question" />
+              </a>
+              : null}
             {this.renderExpander()}
           </span>
         </div>

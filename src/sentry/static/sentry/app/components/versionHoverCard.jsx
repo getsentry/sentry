@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'underscore';
 
 import Avatar from './avatar';
 
@@ -31,12 +32,20 @@ const VersionHoverCard = React.createClass({
   },
 
   componentDidMount() {
-    let {orgId, projectId, version} = this.props;
+    this.fetchData();
+  },
 
-    let path = `/projects/${orgId}/${projectId}/releases/${version}/`;
-    this.api.request(path, {
+  fetchData() {
+    let {orgId, projectId, version} = this.props;
+    let done = _.after(2, () => {
+      this.setState({loading: false});
+    });
+
+    // releases
+    let releasePath = `/projects/${orgId}/${projectId}/releases/${version}/`;
+    this.api.request(releasePath, {
       method: 'GET',
-      success: (data, _, jqXHR) => {
+      success: (data) => {
         this.setState({
           release: data,
         });
@@ -44,30 +53,26 @@ const VersionHoverCard = React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false,
         });
-      }
+      },
+      complete: done
     });
-    this.getRepos();
-  },
 
-  getRepos() {
-    let {orgId} = this.props;
-    let path = `/organizations/${orgId}/repos/`;
-    this.api.request(path, {
+    // repos
+    let repoPath = `/organizations/${orgId}/repos/`;
+    this.api.request(repoPath, {
       method: 'GET',
-      success: (data, _, jqXHR) => {
+      success: (data) => {
         this.setState({
           hasRepos: data.length > 0,
-          loading:false,
         });
       },
       error: () => {
         this.setState({
           error: true,
-          loading: false,
         });
-      }
+      },
+      complete: done
     });
   },
 

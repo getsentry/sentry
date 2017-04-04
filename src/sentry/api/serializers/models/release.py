@@ -98,12 +98,24 @@ class ReleaseSerializer(Serializer):
         authors_by_release_id = defaultdict(dict)
         latest_commit_by_release_id = {}
 
+        # it's possible to have duplicate users in users_by_email
+        # when CommitAuthor objects are different
+        # but emails are associated to the same user, so
+        # this is to prevent duplicate users from being returned
+        authors_seen_in_release = defaultdict(set)
+
         for rc in release_commits:
             # Accumulate authors per release
             author = rc.commit.author
+
             if author:
-                authors_by_release_id[rc.release_id][author.id] = \
-                    users_by_email[author.id]
+                author_user = users_by_email[author.id]
+                if author_user.get('id') and author_user['id'] in authors_seen_in_release[rc.release_id]:
+                    pass
+                else:
+                    authors_by_release_id[rc.release_id][author.id] = \
+                        users_by_email[author.id]
+                author_user.get('id') and authors_seen_in_release[rc.release_id].add(author_user['id'])
 
             # Increment commit count per release
             commit_count_by_release_id[rc.release_id] += 1

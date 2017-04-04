@@ -68,6 +68,7 @@ const StacktraceContent = React.createClass({
     let frames = [];
     let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
+      let prevFrame = data.frames[frameIdx - 1];
       let nextFrame = data.frames[frameIdx + 1];
       let repeatedFrame = nextFrame &&
        frame.lineNo === nextFrame.lineNo &&
@@ -85,7 +86,8 @@ const StacktraceContent = React.createClass({
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
             isOnlyFrame={this.props.data.frames.length === 1}
-            nextFrameInApp={nextFrame && nextFrame.inApp}
+            nextFrame={nextFrame}
+            prevFrame={prevFrame}
             platform={this.props.platform}
             timesRepeated={nRepeats}/>
         );

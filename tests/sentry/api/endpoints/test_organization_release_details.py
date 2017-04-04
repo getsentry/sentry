@@ -4,7 +4,8 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+    Activity, File, Release, ReleaseCommit,
+    ReleaseFile, ReleaseProject, Repository
 )
 from sentry.testutils import APITestCase
 
@@ -99,6 +100,17 @@ class UpdateReleaseDetailsTest(APITestCase):
         org.flags.allow_joinleave = False
         org.save()
 
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
+
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
@@ -124,10 +136,36 @@ class UpdateReleaseDetailsTest(APITestCase):
             'organization_slug': org.slug,
             'version': release.version,
         })
-        response = self.client.put(url, {'ref': 'master'})
+        response = self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
+            ],
+        })
 
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo.id,
+            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo.id,
+            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo2.id,
+            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo2.id,
+            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            release__version=response.data['version'],
+        ).exists()
 
         release = Release.objects.get(id=release.id)
         assert release.ref == 'master'

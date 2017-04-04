@@ -7,6 +7,9 @@ Version 8.15 (Unreleased)
 - Added support for the new symbol server system to support native SDKs better.
 - Added deploy email
 - Added OAuth2 support to the web API.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
+- Disallow duplicating primary emails for users moving forward.
 - Resolve issues when commits with ``Fixes SHORTID`` are included in releases
 - Added support for associating debug symbols with iTunes applications and builds.
 - Added the ability to claim unassigned issues when resolving them.
@@ -33,6 +36,7 @@ Schema Changes
 - Added ``ApiToken.expires_at`` column
 - Added ``ApiToken.scope_list`` column
 - Added ``ApiKey.scope_list`` column
+- Added ``ReleaseHeadCommit`` model
 
 Security
 ~~~~~~~~

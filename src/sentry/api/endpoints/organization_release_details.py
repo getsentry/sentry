@@ -8,7 +8,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import CommitSerializer, ListField
+from sentry.api.serializers.rest_framework import (
+    CommitSerializer, ListField, ReleaseHeadCommitSerializer
+)
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -45,6 +47,7 @@ class ReleaseSerializer(serializers.Serializer):
     dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False)
+    headCommits = ListField(child=ReleaseHeadCommitSerializer(), required=False)
 
 
 class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
@@ -137,6 +140,11 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if commit_list:
             # TODO(dcramer): handle errors with release payloads
             release.set_commits(commit_list)
+
+        head_commits = result.get('headCommits')
+        if head_commits:
+            fetch_commits = request.user.is_authenticated() and not commit_list
+            release.set_head_commits(head_commits, request.user, fetch_commits=fetch_commits)
 
         if (not was_released and release.date_released):
             for project in release.projects.all():

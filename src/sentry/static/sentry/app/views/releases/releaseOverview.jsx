@@ -2,6 +2,7 @@ import React from 'react';
 
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
+import IconOpen from '../../icons/icon-open';
 import IssueList from '../../components/issueList';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
@@ -225,11 +226,13 @@ const ReleaseOverview = React.createClass({
                   let query = encodeURIComponent(`environment:${deploy.environment} release:${version}`);
                   return (
                     <li key={deploy.id}>
-                      <a href={`/${orgId}/${projectId}/?query=${query}`}>
+                      <a href={`/${orgId}/${projectId}/?query=${query}`} title={t('View in stream')}>
                         <div className="row row-flex row-center-vertically">
                           <div className="col-xs-6">
-                            <span className="repo-label" style={{verticalAlign: 'bottom'}}>{deploy.environment}</span>
-                            <small><span className="icon-open" style={{opacity: '.4', paddingLeft: 8}} /></small>
+                            <span className="repo-label" style={{verticalAlign: 'bottom'}}>
+                              {deploy.environment}
+                              <IconOpen className="icon-open" size={11} style={{marginLeft: 6}}/>
+                            </span>
                           </div>
                           <div className="col-xs-6 align-right">
                             <small><TimeSince date={deploy.dateFinished}/></small>

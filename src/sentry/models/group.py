@@ -379,6 +379,33 @@ class Group(Model):
 
         return self._tag_cache
 
+    def get_first_release(self):
+        from sentry.models import GroupTagValue
+        if self.first_release_id is None:
+            try:
+                first_release = GroupTagValue.objects.filter(
+                    group=self,
+                    key__in=('sentry:release', 'release'),
+                ).order_by('first_seen')[0]
+            except IndexError:
+                return None
+            else:
+                return first_release.value
+
+        return self.first_release.version
+
+    def get_last_release(self):
+        from sentry.models import GroupTagValue
+        try:
+            last_release = GroupTagValue.objects.filter(
+                group=self,
+                key__in=('sentry:release', 'release'),
+            ).order_by('-last_seen')[0]
+        except IndexError:
+            return None
+
+        return last_release.value
+
     def get_event_type(self):
         """
         Return the type of this issue.

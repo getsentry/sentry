@@ -80,3 +80,6 @@ class RepositoryProvider(ProviderMixin):
 
     def delete_repository(self, repo, actor=None):
         pass
+
+    def compare_commits(self, repo, start_sha, end_sha, actor=None):
+        raise NotImplementedError
