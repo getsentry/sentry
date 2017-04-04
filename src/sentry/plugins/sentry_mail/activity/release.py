@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from django.db.models import Count
 
-from sentry import features
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     CommitFileChange, Deploy, Environment, Group,
@@ -113,7 +112,6 @@ class ReleaseActivityEmail(ActivityEmail):
                 ),
                 is_active=True,
             ).distinct()
-            if features.has('workflow:release-emails', project=self.project, actor=user)
         }
 
     def get_users_by_teams(self):
