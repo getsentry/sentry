@@ -8,6 +8,13 @@
   padding: 5px 10px;
   box-shadow: 0 1px 4px rgba(0,0,0, .15);
 
+  hr {
+    border: 0px;
+    margin: 10px auto;
+    width: 80px;
+    border-bottom: 2px solid @90;
+  }
+
   dl {
     margin: 0 !important;
   }
@@ -114,7 +121,7 @@
 // Owners
 
 .tooltip-owners {
-  max-width: 300px;
+  max-width: 310px !important;
   text-align: left;
   font-weight: normal;
   font-size: 13px;
@@ -134,8 +141,7 @@
   }
 
   .tooltip-owners-date {
-    float: right;
-    color: @50;
+    color: @40;
   }
 
   ul.tooltip-owners-commits {
@@ -163,7 +169,7 @@
   // Unknown member
 
   .tooltip-owners-unknown {
-    padding: 14px 0;
+    padding: 14px 0 0;
     text-align: center;
 
     .icon-circle-cross {
