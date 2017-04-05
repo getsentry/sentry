@@ -483,7 +483,10 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        # Freeze ordering of the members (we'll need these later.)
+        # Here we freeze ordering of the members, since we'll be passing these
+        # as positional arguments to the Redis script and later associating the
+        # results (which are returned in the same order that the arguments were
+        # provided) with the original input values to compose the result.
         for key, members in items.items():
             items[key] = list(members)
 
