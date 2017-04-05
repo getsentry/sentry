@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 
 import mock
+import pytest
 from datetime import datetime, timedelta
 from django.utils import timezone
 
 from sentry.models import EventUser, GroupStatus, Release
 from sentry.testutils import TestCase
 from sentry.search.base import ANY
-from sentry.search.utils import parse_query, InvalidQuery
+from sentry.search.utils import parse_query, tokenize_query, InvalidQuery
 
 # To run tests w/o DB:
 # > export DB=sqlite
@@ -441,6 +442,95 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('has:release')
         assert result['tags']['sentry:release'] == ANY
 
-    def test_quoted_string(self):
+    def test_quote_wrapped_query(self):
         result = self.parse_query('"release:foo"')
         assert result == {'tags': {}, 'query': 'release:foo'}
+
+
+class TokenizeQueryTest(TestCase):
+
+    def test_simple(self):
+        result = tokenize_query('foo bar')
+        assert result == {'query': ['foo', 'bar']}
+
+    def test_useless_prefix(self):
+        result = tokenize_query('foo: bar')
+        assert result == {'query': ['foo: bar']}
+
+    def test_useless_prefix_with_symbol(self):
+        result = tokenize_query('foo:  @ba$r')
+        assert result == {'query': ['foo:  @ba$r']}
+
+    def test_useless_prefix_with_colon(self):
+        result = tokenize_query('foo:  :ba:r::foo:')
+        assert result == {'query': ['foo:  :ba:r::foo:']}
+
+    def test_handles_space_seperation_after_useless_prefix_exception(self):
+        result = tokenize_query('foo: bar foo:bar')
+        assert result == {'query': ['foo: bar'], 'foo': ['bar']}
+
+    def test_handles_period_in_tag_key(self):
+        result = tokenize_query('foo.bar:foobar')
+        assert result == {'query': [], 'foo.bar': ['foobar']}
+
+    def test_handles_dash_in_tag_key(self):
+        result = tokenize_query('foo-bar:foobar')
+        assert result == {'query': [], 'foo-bar': ['foobar']}
+
+    def test_multiple_instances_of_same_tag(self):
+        result = tokenize_query('age:-24h age:+12h')
+        assert result == {'query': [], 'age': ['-24h', '+12h']}
+
+    def test_handles_underscore_in_tag_key(self):
+        result = tokenize_query('foo_bar:foobar')
+        assert result == {'query': [], 'foo_bar': ['foobar']}
+
+    def test_mix_tag_and_query(self):
+        result = tokenize_query('foo bar key:value')
+        assert result == {'query': ['foo', 'bar'], 'key': ['value']}
+
+    def test_single_tag(self):
+        result = tokenize_query('key:value')
+        assert result == {'query': [], 'key': ['value']}
+
+    @pytest.mark.xfail
+    def test_tag_with_colon_in_value(self):
+        result = tokenize_query('url:http://example.com')
+        assert result == {'tags': {'url': 'http://example.com'}, 'query': ''}
+
+    def test_single_space_in_value(self):
+        result = tokenize_query('key:"value1 value2"')
+        assert result == {'query': [], 'key': ['value1 value2']}
+
+    def test_multiple_spaces_in_value(self):
+        result = tokenize_query('key:"value1  value2"')
+        assert result == {'query': [], 'key': ['value1  value2']}
+
+    def test_invalid_tag_as_query(self):
+        result = tokenize_query('Resque::DirtyExit')
+        assert result == {'query': ['Resque::DirtyExit']}
+
+    @pytest.mark.xfail
+    def test_colons_in_tag_value(self):
+        result = tokenize_query('key:Resque::DirtyExit')
+        assert result == {'tags': {'key': 'Resque::DirtyExit'}, 'query': ''}
+
+    def test_multiple_tags(self):
+        result = tokenize_query('foo:bar key:value')
+        assert result == {'query': [], 'foo': ['bar'], 'key': ['value']}
+
+    def test_single_tag_with_quotes(self):
+        result = tokenize_query('foo:"bar"')
+        assert result == {'query': [], 'foo': ['bar']}
+
+    def test_tag_with_quotes_and_query(self):
+        result = tokenize_query('key:"a value" hello')
+        assert result == {'query': ['hello'], 'key': ['a value']}
+
+    def test_padded_spacing(self):
+        result = tokenize_query('release:bar  foo   bar')
+        assert result == {'release': ['bar'], 'query': ['foo', 'bar']}
+
+    def test_quote_wrapped_query(self):
+        result = tokenize_query('"release:foo"')
+        assert result == {'query': ['release:foo']}
