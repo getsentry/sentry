@@ -391,6 +391,7 @@ def _to_snake(name):
 
 
 def _format_for_parsing(query):
+    '''Formats query string for 'parse_query'''
     result = {}
     tokens = _split_query_into_tokens(query)
     tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
@@ -405,7 +406,7 @@ def tokenize_query(query):
     tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
     result['query'] = map(_format_query, tags_and_queries['query'])
     for tag in tags_and_queries['tags']:
-        key, value = _format_tag(tag).split(':')
+        key, value = _format_tag(tag).split(':', 1)
         result[key].append(value)
     return dict(result)
 

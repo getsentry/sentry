@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import mock
-import pytest
 from datetime import datetime, timedelta
 from django.utils import timezone
 
@@ -493,10 +492,9 @@ class TokenizeQueryTest(TestCase):
         result = tokenize_query('key:value')
         assert result == {'query': [], 'key': ['value']}
 
-    @pytest.mark.xfail
     def test_tag_with_colon_in_value(self):
         result = tokenize_query('url:http://example.com')
-        assert result == {'tags': {'url': 'http://example.com'}, 'query': ''}
+        assert result == {'url': ['http://example.com'], 'query': []}
 
     def test_single_space_in_value(self):
         result = tokenize_query('key:"value1 value2"')
@@ -510,10 +508,9 @@ class TokenizeQueryTest(TestCase):
         result = tokenize_query('Resque::DirtyExit')
         assert result == {'query': ['Resque::DirtyExit']}
 
-    @pytest.mark.xfail
     def test_colons_in_tag_value(self):
         result = tokenize_query('key:Resque::DirtyExit')
-        assert result == {'tags': {'key': 'Resque::DirtyExit'}, 'query': ''}
+        assert result == {'query': [], 'key': ['Resque::DirtyExit']}
 
     def test_multiple_tags(self):
         result = tokenize_query('foo:bar key:value')
