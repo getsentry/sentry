@@ -71,10 +71,7 @@ def _divide_tokens_into_tags_and_queries(tokens):
         'tag': ['value'],
     }
     """
-    # result = defaultdict(list)
-    # query_params = defaultdict(list)
     query_params = {'query': [], 'tags': []}
-    # tokens = _split_query_into_tokens(query)
     for token in tokens:
         state = 'query'
         for idx, char in enumerate(token):
@@ -407,7 +404,6 @@ def tokenize_query(query):
     tokens = _split_query_into_tokens(query)
     tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
     result['query'] = map(_format_query, tags_and_queries['query'])
-    # result['tags'] = map(_format_tag, tags_and_queries['tags'])
     for tag in tags_and_queries['tags']:
         key, value = _format_tag(tag).split(':')
         result[key].append(value)
@@ -424,7 +420,6 @@ def parse_query(project, query, user):
         selector = _to_snake(key).split('.')[0].replace('-', '_')
         action = special_tag_behaviors.get(selector) or _default_tag
         results = action(tag_tokens, results, user, project)
-    # import pdb; pdb.set_trace()
     return results
 
 

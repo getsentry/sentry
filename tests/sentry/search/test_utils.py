@@ -18,22 +18,6 @@ class ParseQueryTest(TestCase):
     def parse_query(self, query):
         return parse_query(self.project, query, self.user)
 
-    def test_1(self):
-        result = self.parse_query('foo')
-        assert result == {}
-
-    def test_3(self):
-        result = self.parse_query('slug:foo')
-        assert result == {}
-
-    def test_4(self):
-        result = self.parse_query('slug:baz')
-        assert result == {}
-
-    def test_2(self):
-        result = self.parse_query('baz')
-        assert result == {}
-
     def test_malformed_age_tag_raises_invalid_query_exception(self):
         self.assertRaises(InvalidQuery, self.parse_query, 'age:24h')
         self.assertRaises(InvalidQuery, self.parse_query, 'age:>24h')
