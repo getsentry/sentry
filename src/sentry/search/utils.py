@@ -58,7 +58,7 @@ def parse_user_value(value, user):
         return User(id=0)
 
 
-def tokenize_query(query):
+def _divide_tokens_into_tags_and_queries(tokens):
     """
     Tokenizes a standard Sentry search query.
 
@@ -71,9 +71,10 @@ def tokenize_query(query):
         'tag': ['value'],
     }
     """
-    result = defaultdict(list)
-    query_params = defaultdict(list)
-    tokens = split_query_into_tokens(query)
+    # result = defaultdict(list)
+    # query_params = defaultdict(list)
+    query_params = {'query': [], 'tags': []}
+    # tokens = _split_query_into_tokens(query)
     for token in tokens:
         state = 'query'
         for idx, char in enumerate(token):
@@ -87,10 +88,7 @@ def tokenize_query(query):
                     state = 'tags'
                 break
         query_params[state].append(token)
-
-    result['query'] = map(format_query, query_params['query'])
-    result['tags'] = map(format_tag, query_params['tags'])
-    return dict(result)
+    return query_params
 
 
 def format_tag(tag):
@@ -121,7 +119,7 @@ def format_query(query):
     return query.strip('"')
 
 
-def split_query_into_tokens(query):
+def _split_query_into_tokens(query):
     '''
     Splits query string into tokens for parsing by 'tokenize_query'.
     Returns list of strigs
@@ -132,7 +130,7 @@ def split_query_into_tokens(query):
         - end of last word is a ':' -> 'user:  foo'
 
     Example:
-    >>> split_query_into_tokens('user:foo user: bar  user"foo bar' foo  bar) =>
+    >>> _split_query_into_tokens('user:foo user: bar  user"foo bar' foo  bar) =>
     ['user:foo', 'user: bar', 'user"foo bar"', 'foo',  'bar']
     '''
     tokens = []
@@ -395,9 +393,30 @@ def to_snake(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
+def _format_for_parsing(query):
+    result = {}
+    tokens = _split_query_into_tokens(query)
+    tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
+    result['query'] = map(format_query, tags_and_queries['query'])
+    result['tags'] = map(format_tag, tags_and_queries['tags'])
+    return dict(result)
+
+
+def tokenize_query(query):
+    result = defaultdict(list)
+    tokens = _split_query_into_tokens(query)
+    tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
+    result['query'] = map(format_query, tags_and_queries['query'])
+    # result['tags'] = map(format_tag, tags_and_queries['tags'])
+    for tag in tags_and_queries['tags']:
+        key, value = format_tag(tag).split(':')
+        result[key].append(value)
+    return dict(result)
+
+
 def parse_query(project, query, user):
     results = {'tags': {}, 'query': []}
-    tokens = tokenize_query(query)
+    tokens = _format_for_parsing(query)
     results['query'] = ' '.join(tokens['query']) if tokens['query'] else ''
     for tag in tokens['tags']:
         tag_tokens = tokenize_tag(tag)
