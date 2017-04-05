@@ -385,7 +385,7 @@ class RedisTSDB(BaseTSDB):
         prefix = self.make_key(model, rollup, timestamp, key)
         return map(
             operator.methodcaller('format', prefix),
-            ('{}:c', '{}:i', '{}:e'),
+            ('{}:i', '{}:e'),
         )
 
     def record_frequency_multi(self, requests, timestamp=None):
@@ -433,7 +433,7 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        arguments = ['RANKED']
+        arguments = ['RANKED'] + list(self.DEFAULT_SKETCH_PARAMETERS)
         if limit is not None:
             arguments.append(int(limit))
 
@@ -456,7 +456,7 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        arguments = ['RANKED']
+        arguments = ['RANKED'] + list(self.DEFAULT_SKETCH_PARAMETERS)
         if limit is not None:
             arguments.append(int(limit))
 
@@ -483,18 +483,22 @@ class RedisTSDB(BaseTSDB):
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
-        # Freeze ordering of the members (we'll need these later.)
+        # Here we freeze ordering of the members, since we'll be passing these
+        # as positional arguments to the Redis script and later associating the
+        # results (which are returned in the same order that the arguments were
+        # provided) with the original input values to compose the result.
         for key, members in items.items():
-            items[key] = tuple(members)
+            items[key] = list(members)
 
         commands = {}
 
+        arguments = ['ESTIMATE'] + list(self.DEFAULT_SKETCH_PARAMETERS)
         for key, members in items.items():
             ks = []
             for timestamp in series:
                 ks.extend(self.make_frequency_table_keys(model, rollup, timestamp, key))
 
-            commands[key] = [(CountMinScript, ks, ('ESTIMATE',) + members)]
+            commands[key] = [(CountMinScript, ks, arguments + members)]
 
         results = {}
 
