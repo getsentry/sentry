@@ -1,5 +1,6 @@
 Version 8.16 (Unreleased)
 -------------------------
+- Fixed several issues with parsing search queries
 
 Version 8.15
 ------------
