@@ -1,5 +1,8 @@
-Version 8.15 (Unreleased)
+Version 8.16 (Unreleased)
 -------------------------
+
+Version 8.15
+------------
 
 - Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
 - Refactor usage of ``sentry.app`` to use individual modules.
