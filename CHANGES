@@ -22,6 +22,7 @@ API Changes
 - Added ReleaseDeploysEndpoint
 - Added OrganizationReleaseCommitsEndpoint
 - Added EventFileCommittersEndpoint
+- Added ReleaseDeploysEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
