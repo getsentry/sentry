@@ -4,6 +4,7 @@ from south.db import db
 from south.v2 import DataMigration
 from django.db import models
 
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 class Migration(DataMigration):
 
@@ -27,7 +28,7 @@ class Migration(DataMigration):
 
         users = orm.User.objects.exclude(email__in=orm.UserEmail.objects.all().values_list('email', flat=True))
 
-        for user in users:
+        for user in RangeQuerySetWrapperWithProgressBar(users):
             orm.UserEmail.objects.get_or_create(
                 user=user,
                 email=user.email
