@@ -350,8 +350,12 @@ function Sketch:import(payload)
     local source_index, source_estimators = unpack(data)
 
     -- TODO: This is absolutely not efficient when we're merging multiple things into the same sketch.
-    local destination_index = response_to_table(redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES'))
     local destination_estimators = response_to_table(redis.call('HGETALL', self.estimates))
+    local get_destination_index_contents = function ()
+        return response_to_table(
+            redis.call('ZRANGE', self.index, 0, -1, 'WITHSCORES')
+        )
+    end
 
     if table.is_empty(source_estimators) and table.is_empty(destination_estimators) then
         -- If we're just writing the index values (and not estimators) to the
@@ -378,7 +382,7 @@ function Sketch:import(payload)
             members[key] = true
         end
 
-        for key, _ in pairs(destination_index) do
+        for key, _ in pairs(get_destination_index_contents()) do
             members[key] = true
         end
 
@@ -416,6 +420,7 @@ function Sketch:import(payload)
         self:increment(items)
     elseif not table.is_empty(source_estimators) and table.is_empty(destination_estimators) then
         -- Build the estimators for the side that doesn't have them.
+        local destination_index = get_destination_index_contents()
         for key, score in pairs(destination_index) do
             local coordinates = self:coordinates(key)
             local estimates = map(
