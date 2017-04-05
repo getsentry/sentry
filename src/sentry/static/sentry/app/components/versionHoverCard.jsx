@@ -176,6 +176,7 @@ const VersionHoverCard = React.createClass({
         {this.props.children}
         {visible &&
           <div className="hovercard" >
+            <div className="hovercard-hoverlap" />
             <div className="hovercard-header">
               <span>Release {shortVersion}</span>
             </div>
