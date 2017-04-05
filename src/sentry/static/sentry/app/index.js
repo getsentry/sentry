@@ -110,6 +110,7 @@ export default {
     U2fSign: require('./components/u2fsign').default,
     Badge: require('./components/badge').default,
     Switch: require('./components/switch').default,
+    NumberConfirm: require('./components/confirms/numberConfirm').default,
     utils: {
       errorHandler: require('./utils/errorHandler').default,
       logging: require('./utils/logging'),
