@@ -226,6 +226,12 @@ class BaseTSDB(object):
         for model, key in items:
             self.incr(model, key, timestamp, count)
 
+    def merge(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all counters from the source keys to the destination key.
+        """
+        raise NotImplementedError
+
     def get_range(self, model, keys, start, end, rollup=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -298,6 +304,13 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all distinct counters from the source keys to the
+        destination key.
+        """
+        raise NotImplementedError
+
     def record_frequency_multi(self, requests, timestamp=None):
         """
         Record items in a frequency table.
@@ -358,5 +371,12 @@ class BaseTSDB(object):
         Results are returned as a mapping, where the key is the key requested
         and the value is a mapping of ``{item: score, ...}`` containing the
         total score of items over the interval.
+        """
+        raise NotImplementedError
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all frequency tables from the source keys to the destination
+        key.
         """
         raise NotImplementedError
