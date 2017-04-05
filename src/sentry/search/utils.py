@@ -17,7 +17,7 @@ class InvalidQuery(Exception):
     pass
 
 
-def parse_release(project, value):
+def _parse_release(project, value):
     # TODO(dcramer): add environment support
     if value == 'latest':
         value = Release.objects.filter(
@@ -31,7 +31,7 @@ def parse_release(project, value):
     return value
 
 
-def get_user_tag(project, key, value):
+def _get_user_tag(project, key, value):
     # TODO(dcramer): do something with case of multiple matches
     try:
         lookup = EventUser.attr_from_keyword(key)
@@ -46,7 +46,7 @@ def get_user_tag(project, key, value):
     return euser.tag_value
 
 
-def parse_user_value(value, user):
+def _parse_user_value(value, user):
     if value == 'me':
         return user
 
@@ -91,15 +91,15 @@ def _divide_tokens_into_tags_and_queries(tokens):
     return query_params
 
 
-def format_tag(tag):
+def _format_tag(tag):
     '''
     Splits tags on ':' and removes enclosing quotes if present and returns
     returns both sides of the split as strings
 
     Example:
-    >>> format_tag('user:foo')
+    >>> _format_tag('user:foo')
     'user:foo'
-    >>>format_tag('user:"foo bar"')
+    >>>_format_tag('user:"foo bar"')
     'user:foo bar'
     '''
     key, value = tag.split(':', 1)
@@ -108,12 +108,12 @@ def format_tag(tag):
     return '{}:{}'.format(key, value)
 
 
-def format_query(query):
+def _format_query(query):
     '''
     Strips enclosing quotes from queries if present.
 
     Example:
-    >>> format_query('"user:foo bar"')
+    >>> _format_query('"user:foo bar"')
     'user:foo bar'
     '''
     return query.strip('"')
@@ -160,19 +160,19 @@ def _split_query_into_tokens(query):
 def _assigned_tag(tokenized_tag, dictionary, user, project):
     '''Handles behavior for 'event.timestamp' tags.  Returns mutated dictionary'''
     value = tokenized_tag['value']
-    dictionary['assigned_to'] = parse_user_value(value, user)
+    dictionary['assigned_to'] = _parse_user_value(value, user)
     return dictionary
 
 
 def _bookmark_tag(tokenized_tag, dictionary, user, project):
     value = tokenized_tag['value']
-    dictionary['bookmarked_by'] = parse_user_value(value, user)
+    dictionary['bookmarked_by'] = _parse_user_value(value, user)
     return dictionary
 
 
 def _subscribed_tag(tokenized_tag, dictionary, user, project):
     value = tokenized_tag['value']
-    dictionary['subscribed_by'] = parse_user_value(value, user)
+    dictionary['subscribed_by'] = _parse_user_value(value, user)
     return dictionary
 
 
@@ -272,19 +272,19 @@ def _user_tag(tokenized_tag, dictionary, user, project):
         comp = key.split('.', 1)[1]
     else:
         comp = 'id'
-    dictionary['tags']['sentry:user'] = get_user_tag(project, comp, value)
+    dictionary['tags']['sentry:user'] = _get_user_tag(project, comp, value)
     return dictionary
 
 
 def _release_tag(tokenized_tag, dictionary, user, project):
     value = tokenized_tag['value']
-    dictionary['tags']['sentry:release'] = parse_release(project, value)
+    dictionary['tags']['sentry:release'] = _parse_release(project, value)
     return dictionary
 
 
 def _first_release_tag(tokenized_tag, dictionary, user, project):
     value = tokenized_tag['value']
-    dictionary['first_release'] = parse_release(project, value)
+    dictionary['first_release'] = _parse_release(project, value)
     return dictionary
 
 
@@ -310,7 +310,7 @@ def _is_tag(tokenized_tag, dictionary, user, project):
     return dictionary
 
 
-def tokenize_tag(tag):
+def _tokenize_tag(tag):
     '''
     Parses tag in string format and returns a dictionary of tokens.
 
@@ -387,7 +387,7 @@ def _scale_time(tokenized_tag):
     return minutes
 
 
-def to_snake(name):
+def _to_snake(name):
     '''Converts string to snake_case'''
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
@@ -397,8 +397,8 @@ def _format_for_parsing(query):
     result = {}
     tokens = _split_query_into_tokens(query)
     tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
-    result['query'] = map(format_query, tags_and_queries['query'])
-    result['tags'] = map(format_tag, tags_and_queries['tags'])
+    result['query'] = map(_format_query, tags_and_queries['query'])
+    result['tags'] = map(_format_tag, tags_and_queries['tags'])
     return dict(result)
 
 
@@ -406,10 +406,10 @@ def tokenize_query(query):
     result = defaultdict(list)
     tokens = _split_query_into_tokens(query)
     tags_and_queries = _divide_tokens_into_tags_and_queries(tokens)
-    result['query'] = map(format_query, tags_and_queries['query'])
-    # result['tags'] = map(format_tag, tags_and_queries['tags'])
+    result['query'] = map(_format_query, tags_and_queries['query'])
+    # result['tags'] = map(_format_tag, tags_and_queries['tags'])
     for tag in tags_and_queries['tags']:
-        key, value = format_tag(tag).split(':')
+        key, value = _format_tag(tag).split(':')
         result[key].append(value)
     return dict(result)
 
@@ -419,9 +419,9 @@ def parse_query(project, query, user):
     tokens = _format_for_parsing(query)
     results['query'] = ' '.join(tokens['query']) if tokens['query'] else ''
     for tag in tokens['tags']:
-        tag_tokens = tokenize_tag(tag)
+        tag_tokens = _tokenize_tag(tag)
         key = tag_tokens['key']
-        selector = to_snake(key).split('.')[0].replace('-', '_')
+        selector = _to_snake(key).split('.')[0].replace('-', '_')
         action = special_tag_behaviors.get(selector) or _default_tag
         results = action(tag_tokens, results, user, project)
     # import pdb; pdb.set_trace()
