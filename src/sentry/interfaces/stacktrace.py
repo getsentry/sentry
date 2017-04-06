@@ -368,6 +368,12 @@ class Frame(Interface):
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
         output = []
+        # Safari throws [native code] frames in for calls like ``forEach``
+        # whereas Chrome ignores these. Let's remove it from the hashing algo
+        # so that they're more likely to group together
+        if self.filename == '[native code]':
+            return output
+
         if self.module:
             if self.is_unhashable_module():
                 output.append('<module>')
