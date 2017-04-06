@@ -223,10 +223,12 @@ class Release(Model):
         from sentry.models import Commit, ReleaseHeadCommit, Repository
         from sentry.plugins import bindings
 
+        # TODO: this does the wrong thing unless you are on the most
+        # recent release.  Add a timestamp compare?
         prev_release = type(self).objects.filter(
             organization_id=self.organization_id,
             projects__in=self.projects.all(),
-        ).order_by('-date_added').first()
+        ).exclude(version=self.version).order_by('-date_added').first()
 
         commit_list = []
 
