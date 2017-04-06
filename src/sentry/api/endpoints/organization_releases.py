@@ -184,7 +184,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                     'commit': r['currentId'],
                 } for r in result.get('headCommits', [])]
             if refs:
-                fetch_commits = request.user.is_authenticated() and not commit_list
+                if not request.user.is_authenticated():
+                    return Response({
+                        'refs': ['You must use an authenticated API token to fetch refs']
+                    }, status=400)
+                fetch_commits = not commit_list
                 release.set_refs(refs, request.user, fetch_commits=fetch_commits)
 
             if not created and not new_projects:
