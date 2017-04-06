@@ -9,7 +9,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ReleaseHeadCommitSerializer, ListField
+from sentry.api.serializers.rest_framework import (
+    ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
+)
 from sentry.models import Activity, Release
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -37,7 +39,8 @@ def list_org_releases_scenario(runner):
 
 class ReleaseSerializerWithProjects(ReleaseSerializer):
     projects = ListField()
-    headCommits = ListField(child=ReleaseHeadCommitSerializer(), required=False)
+    headCommits = ListField(child=ReleaseHeadCommitSerializerDeprecated(), required=False)
+    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False)
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
@@ -111,12 +114,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                               ``id`` (the sha of the commit), and can optionally
                               include ``repository``, ``message``, ``author_name``,
                               ``author_email``, and ``timestamp``.
-        :param array headCommits: an optional way to indicate the start and end commits
-                                  for each repository included in a release. Head commits
-                                  must include parameters ``repository`` and ``currentId``
-                                  (the HEAD sha). They can optionally include ``previousId``
-                                  (the sha of the HEAD of the previous release), which should
-                                  be specified if this is the first time you've sent commit data.
+        :param array refs: an optional way to indicate the start and end commits
+                           for each repository included in a release. Head commits
+                           must include parameters ``repository`` and ``commit``
+                           (the HEAD sha). They can optionally include ``previousCommit``
+                           (the sha of the HEAD of the previous release), which should
+                           be specified if this is the first time you've sent commit data.
         :auth: required
         """
         serializer = ReleaseSerializerWithProjects(data=request.DATA)
@@ -173,10 +176,16 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
             if commit_list:
                 release.set_commits(commit_list)
 
-            head_commits = result.get('headCommits')
-            if head_commits:
+            refs = result.get('refs')
+            if not refs:
+                refs = [{
+                    'repository': r['repository'],
+                    'previousCommit': r.get('previousId'),
+                    'commit': r['currentId'],
+                } for r in result.get('headCommits', [])]
+            if refs:
                 fetch_commits = request.user.is_authenticated() and not commit_list
-                release.set_head_commits(head_commits, request.user, fetch_commits=fetch_commits)
+                release.set_refs(refs, request.user, fetch_commits=fetch_commits)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want

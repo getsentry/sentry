@@ -219,7 +219,7 @@ class Release(Model):
         else:
             return True
 
-    def set_head_commits(self, head_commits, user, fetch_commits=False):
+    def set_refs(self, refs, user, fetch_commits=False):
         from sentry.models import Commit, ReleaseHeadCommit, Repository
         from sentry.plugins import bindings
 
@@ -232,11 +232,11 @@ class Release(Model):
 
         commit_list = []
 
-        for head_commit in head_commits:
+        for ref in refs:
             try:
                 repo = Repository.objects.get(
                     organization_id=self.organization_id,
-                    name=head_commit['repository'],
+                    name=ref['repository'],
                 )
             except Repository.DoesNotExist:
                 continue
@@ -244,7 +244,7 @@ class Release(Model):
             commit = Commit.objects.get_or_create(
                 organization_id=self.organization_id,
                 repository_id=repo.id,
-                key=head_commit['currentId'],
+                key=ref['commit'],
             )[0]
             # update head commit for repo/release if exists
             ReleaseHeadCommit.objects.create_or_update(
@@ -263,8 +263,8 @@ class Release(Model):
 
                 # if previous commit isn't provided, try to get from
                 # previous release otherwise, give up
-                if head_commit.get('previousId'):
-                    start_sha = head_commit['previousId']
+                if ref.get('previousCommit'):
+                    start_sha = ref['previousCommit']
                 elif prev_release:
                     try:
                         start_sha = Commit.objects.filter(
