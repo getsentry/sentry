@@ -45,7 +45,7 @@ const NumberConfirm = React.createClass({
   render() {
     return (
       <Modal show={this.state.showModal} onHide={this.closeModal}
-        animation={true} backdrop="static" enforceFocus={true}>
+        animation={true} backdrop="static" enforceFocus={true} bsSize="sm">
           <Modal.Header closeButton>
             <Modal.Title>{t('Please enter your code:')}</Modal.Title>
           </Modal.Header>
