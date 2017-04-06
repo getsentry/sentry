@@ -126,6 +126,13 @@ var config = {
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
         loader: 'file-loader?name=' + '[name].[ext]'
+      },
+      {
+          test: /\.css$/,
+          loaders: [
+              'style?sourceMap',
+              'css?modules&importLoaders=1&localIdentName=[path]___[name]__[local]___[hash:base64:5]'
+          ]
       }
     ],
     noParse: [
@@ -148,7 +155,7 @@ var config = {
       underscore: 'underscore',
       _: 'underscore'
     }),
-    new ExtractTextPlugin('[name].css'),
+    new ExtractTextPlugin('[name].css', { allChunks: true }),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
     new webpack.DefinePlugin({
       'process.env': {
