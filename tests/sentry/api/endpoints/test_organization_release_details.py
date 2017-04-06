@@ -117,6 +117,11 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(team=team1, organization=org)
         project2 = self.create_project(team=team2, organization=org)
 
+        base_release = Release.objects.create(
+            organization_id=org.id,
+            version='000000000',
+        )
+        base_release.add_project(project)
         release = Release.objects.create(
             organization_id=org.id,
             version='abcabcabc',
@@ -131,6 +136,18 @@ class UpdateReleaseDetailsTest(APITestCase):
         self.create_member(teams=[team1], user=user, organization=org)
 
         self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': base_release.version,
+        })
+        self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+        })
 
         url = reverse('sentry-api-0-organization-release-details', kwargs={
             'organization_slug': org.slug,
@@ -201,6 +218,12 @@ class UpdateReleaseDetailsTest(APITestCase):
         project = self.create_project(team=team1, organization=org)
         project2 = self.create_project(team=team2, organization=org)
 
+        base_release = Release.objects.create(
+            organization_id=org.id,
+            version='000000000',
+        )
+        base_release.add_project(project)
+
         release = Release.objects.create(
             organization_id=org.id,
             version='abcabcabc',
@@ -215,6 +238,18 @@ class UpdateReleaseDetailsTest(APITestCase):
         self.create_member(teams=[team1], user=user, organization=org)
 
         self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': base_release.version,
+        })
+        self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+        })
 
         url = reverse('sentry-api-0-organization-release-details', kwargs={
             'organization_slug': org.slug,
