@@ -376,6 +376,15 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         assert result == []
 
+    def test_get_hash_ignores_safari_native_code(self):
+        interface = Frame.to_python({
+            'abs_path': '[native code]',
+            'filename': '[native code]',
+            'function': 'forEach',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [])
+
     def test_cocoa_culprit(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
             {
