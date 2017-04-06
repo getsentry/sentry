@@ -59,10 +59,21 @@ def get_users_for_commits(item_list):
 
     author_objs = {}
     for author in authors:
-        author_objs[author.id] = users_by_email.get(author.email, {
-            "name": author.name,
-            "email": author.email
-        })
+        if users_by_email.get(author.email):
+            user_obj = users_by_email[author.email]
+            author_objs[author.id] = {
+                'name': user_obj['name'],
+                'username': user_obj['username'],
+                'email': user_obj['email'],
+                'avatarUrl': user_obj['avatarUrl'],
+                'avatar': user_obj['avatar'],
+                'id': user_obj['id']
+            }
+        else:
+            author_objs[author.id] = {
+                "name": author.name,
+                "email": author.email
+            }
 
     return author_objs
 
