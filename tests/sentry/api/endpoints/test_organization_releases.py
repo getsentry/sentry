@@ -467,6 +467,14 @@ class OrganizationReleaseCreateTest(APITestCase):
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug
         })
+        self.client.post(url, data={
+            'version': '1',
+            'refs': [
+                {'commit': '0' * 40, 'repository': repo.name},
+                {'commit': '0' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project.slug]
+        })
         response = self.client.post(url, data={
             'version': '1.2.1',
             'refs': [
@@ -527,6 +535,14 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         url = reverse('sentry-api-0-organization-releases', kwargs={
             'organization_slug': org.slug
+        })
+        self.client.post(url, data={
+            'version': '1',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project.slug]
         })
         response = self.client.post(url, data={
             'version': '1.2.1',
@@ -732,6 +748,13 @@ class OrganizationReleaseCreateTest(APITestCase):
             'organization_slug': org.slug
         })
 
+        response = self.client.post(url, data={
+            'version': '1',
+            'headCommits': [
+                {'currentId': 'b' * 40, 'repository': repo2.name},
+            ],
+            'projects': [project1.slug]
+        }, HTTP_AUTHORIZATION='Bearer {}'.format(api_token.token))
         response = self.client.post(url, data={
             'version': '1.2.1',
             'headCommits': [
