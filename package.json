@@ -45,6 +45,7 @@
     "react-addons-test-utils": "15.3.2",
     "react-addons-update": "15.3.2",
     "react-bootstrap": "^0.29.5",
+    "react-code-input": "1.0.8",
     "react-document-title": "1.0.4",
     "react-dom": "15.3.2",
     "react-icon-base": "^2.0.4",
