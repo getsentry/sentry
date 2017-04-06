@@ -4316,6 +4316,12 @@ react-bootstrap@^0.29.5:
     uncontrollable "^3.2.3"
     warning "^2.1.0"
 
+react-code-input@1.0.8:
+  version "1.0.8"
+  resolved "https://registry.yarnpkg.com/react-code-input/-/react-code-input-1.0.8.tgz#2d83f00cac29f3d66a9391407b80438188cbe91b"
+  dependencies:
+    react "^15.3.2"
+
 react-document-title@1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/react-document-title/-/react-document-title-1.0.4.tgz#57289d6856ffeff1fb7d055cb3558ea494cf8f87"
@@ -4385,7 +4391,7 @@ react-sticky@5.0.4:
   version "5.0.4"
   resolved "https://registry.yarnpkg.com/react-sticky/-/react-sticky-5.0.4.tgz#4f6ea7790c943d6085dcb7e659e0eb2013dd52c3"
 
-react@15.3.2:
+react@15.3.2, react@^15.3.2:
   version "15.3.2"
   resolved "https://registry.yarnpkg.com/react/-/react-15.3.2.tgz#a7bccd2fee8af126b0317e222c28d1d54528d09e"
   dependencies:

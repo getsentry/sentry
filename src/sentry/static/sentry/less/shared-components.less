@@ -3660,6 +3660,32 @@ div.qrcode {
 }
 
 /**
+ * react-code-input
+ * ============================================================================
+ */
+.react-code-input {
+  text-align: center;
+  display: block !important;
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+  }
+  input[type='number'] {
+    -moz-appearance:textfield;
+  }
+  input {
+      text-align: center !important;
+      padding: 0 !important;
+      color: transparent !important;
+      text-shadow: 0 0 0 black !important;
+      &::selection { background: transparent; }
+      &::-moz-selection { background: transparent; }
+  }
+
+}
+
+/**
 * Responsive small screens
 * ============================================================================
 */
