@@ -401,6 +401,22 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data.get('environment') == '42'
 
+    def test_build_number_too_long(self):
+        data = self.helper.validate_data(self.project, {
+            'build_number': 'a' * 65,
+        })
+        assert not data.get('build_number')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'build_number'
+        assert data['errors'][0]['value'] == 'a' * 65
+
+    def test_build_number_as_non_string(self):
+        data = self.helper.validate_data(self.project, {
+            'build_number': 42,
+        })
+        assert data.get('build_number') == '42'
+
     def test_time_spent_too_large(self):
         data = self.helper.validate_data(self.project, {
             'time_spent': 2147483647 + 1,

@@ -415,6 +415,7 @@ class EventManager(object):
         platform = data.pop('platform', None)
         release = data.pop('release', None)
         environment = data.pop('environment', None)
+        build_number = data.pop('build_number', None)
 
         # unused
         time_spent = data.pop('time_spent', None)
@@ -458,6 +459,8 @@ class EventManager(object):
             tags['environment'] = environment
         if transaction_name:
             tags['transaction'] = transaction_name
+        if build_number:
+            tags['build'] = build_number
 
         if release:
             # dont allow a conflicting 'release' tag

@@ -406,6 +406,13 @@ class EventManagerTest(TransactionTestCase):
         data = manager.normalize()
         assert len(data['culprit']) == MAX_CULPRIT_LENGTH
 
+    def test_build_number(self):
+        manager = EventManager(self.make_event(
+            build_number='1.0',
+        ))
+        event = manager.save(1)
+        assert dict(event.tags).get('build') == '1.0'
+
     def test_long_message(self):
         manager = EventManager(self.make_event(
             message='x' * (settings.SENTRY_MAX_MESSAGE_LENGTH + 1),
