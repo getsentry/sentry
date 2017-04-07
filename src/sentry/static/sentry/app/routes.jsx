@@ -163,6 +163,7 @@ function routes() {
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
           <Route path="releases/" component={errorHandler(ProjectReleases)} />
+          {/* TODO(jess): take this out when we release releases to everyone */}
           <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}
                  getIndexRoute={(partialNextState, cb) => {
                   let client = new this.api.Client();
