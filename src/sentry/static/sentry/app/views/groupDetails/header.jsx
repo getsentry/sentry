@@ -114,7 +114,7 @@ const GroupHeader = React.createClass({
     return (
       <div className={className}>
         <div className="row">
-          <div className="col-sm-8">
+          <div className="col-sm-7">
             <h3>
               <GroupTitle data={group} />
             </h3>
@@ -141,7 +141,7 @@ const GroupHeader = React.createClass({
               })}
             </div>
           </div>
-          <div className="col-sm-4 stats">
+          <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
               {group.shortId && this.getFeatures().has('callsigns') &&
                 <div className="short-id-box count align-right">
