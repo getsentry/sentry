@@ -10,6 +10,7 @@ import ListLink from '../../components/listLink';
 import ShortId from '../../components/shortId';
 import GroupTitle from '../../components/group/title';
 import ProjectState from '../../mixins/projectState';
+import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
 const GroupHeader = React.createClass({
@@ -22,7 +23,13 @@ const GroupHeader = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [ApiMixin, ProjectState],
+  mixins: [
+    ApiMixin,
+    ProjectState,
+    TooltipMixin({
+      selector: '.tip',
+    }),
+  ],
 
   onToggleMute() {
     let group = this.props.group;
@@ -150,7 +157,11 @@ const GroupHeader = React.createClass({
               {group.shortId &&
                 this.getFeatures().has('callsigns') &&
                 <div className="short-id-box count align-right">
-                  <h6 className="nav-header">{t('Issue #')}</h6>
+                  <h6 className="nav-header">
+                    <a className="help-link tip"
+                       title={t('This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.')}
+                       href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits">{t('Issue #')}</a>
+                  </h6>
                   <ShortId shortId={group.shortId} />
                 </div>}
               <div className="assigned-to">
