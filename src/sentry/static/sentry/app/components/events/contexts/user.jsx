@@ -21,7 +21,7 @@ const UserContextType = React.createClass({
       'Email',
       <pre>
         {user.email}
-        <a href={`mailto:${user.email}`} className="external-icon">
+        <a href={`mailto:${user.email}`} target="_blank" className="external-icon">
           <em className="icon-envelope" />
         </a>
       </pre>
