@@ -11,9 +11,9 @@ from sentry.models import EventUser
 class ProjectUserDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
 
-    def get(self, request, project, user_id):
+    def get(self, request, project, user_hash):
         euser = EventUser.objects.get(
             project=project,
-            hash=user_id,
+            hash=user_hash,
         )
         return Response(serialize(euser, request.user))

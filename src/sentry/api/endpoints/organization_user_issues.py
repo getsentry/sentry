@@ -9,8 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import StreamGroupSerializer
 from sentry.models import (
-    EventUser, Group, GroupTagValue, OrganizationMember,
-    OrganizationMemberTeam, Project, Team
+    EventUser, Group, GroupTagValue
 )
 
 
@@ -18,26 +17,13 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
     def get(self, request, organization, user_id):
         limit = request.GET.get('limit', 100)
 
-        # limit to only teams user has opted into
-        member = OrganizationMember.objects.get(
-            user=request.user,
-            organization=organization,
-        )
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-                is_active=True,
-            ).values('team')
+        euser = EventUser.objects.get(
+            project__organization=organization,
+            id=user_id,
         )
 
-        project_ids = list(Project.objects.filter(
-            team__in=list(teams),
-        ).values_list('id', flat=True)[:1000])
-
-        event_users = list(EventUser.objects.filter(
-            hash=user_id,
-            project_id__in=project_ids,
-        )[:100])
+        other_eusers = euser.find_similar_users(request.user)
+        event_users = [euser] + list(other_eusers)
 
         if event_users:
             tag_filters = [

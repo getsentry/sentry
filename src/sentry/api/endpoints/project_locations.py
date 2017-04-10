@@ -6,11 +6,11 @@ from sentry.api.serializers import serialize
 from sentry.models import TagValue
 
 
-class ProjectUserLocationsEndpoint(ProjectEndpoint):
+class ProjectLocationsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         queryset = TagValue.objects.filter(
             project=project,
-            key='user.location',
+            key='location.country',
         )
 
         sort = request.GET.get('sort')

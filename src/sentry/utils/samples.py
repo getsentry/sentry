@@ -12,15 +12,12 @@ import random
 import six
 
 from datetime import datetime, timedelta
-from loremipsum import Generator
 
 from sentry.constants import DATA_ROOT
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
 
-
-loremipsum = Generator()
 
 epoch = datetime.utcfromtimestamp(0)
 
@@ -45,9 +42,16 @@ def random_ip():
     ))
 
 
+def random_username():
+    return random.choice([
+        'jess', 'david', 'chris', 'katie', 'ben', 'armin', 'saloni',
+        'max', 'meredith', 'matt', 'sentry',
+    ])
+
+
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None:
-        username = random.choice(loremipsum.words[:10]).lower()
+        username = random_username()
     return UserInterface.to_python({
         'id': id,
         'username': username,

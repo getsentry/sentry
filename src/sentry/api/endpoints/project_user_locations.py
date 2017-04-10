@@ -1,19 +1,23 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
-from sentry.api.bases.group import GroupEndpoint
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator, Paginator
 from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue
+from sentry.models import EventUser, EventUserLocation
 
 
-class GroupUserLocationsEndpoint(GroupEndpoint):
-    doc_section = DocSection.EVENTS
+class ProjectUserLocationsEndpoint(ProjectEndpoint):
+    def get(self, request, project, user_hash):
+        euser = EventUser.objects.get(
+            project=project,
+            hash=user_hash,
+        )
 
-    def get(self, request, group):
-        queryset = GroupTagValue.objects.filter(
-            group=group,
-            key='user.location',
+        other_eusers = euser.find_similar_users(request.user)
+        event_users = [euser] + list(other_eusers)
+
+        queryset = EventUserLocation.objects.filter(
+            event_user_id__in=[e.id for e in event_users],
         )
 
         sort = request.GET.get('sort')

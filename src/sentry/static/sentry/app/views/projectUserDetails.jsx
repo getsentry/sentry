@@ -7,9 +7,13 @@ import LoadingIndicator from '../components/loadingIndicator';
 import IssueList from '../components/issueList';
 
 const UserActivity = React.createClass({
+  propTypes: {
+    user: React.PropTypes.object.isRequired,
+  },
+
   getEndpoint() {
-    let {orgId, userId} = this.props.params;
-    return `/organizations/${orgId}/users/${userId}/issues/`;
+    let {params, user} = this.props;
+    return `/organizations/${params.orgId}/users/${user.id}/issues/`;
   },
 
   render() {
@@ -24,23 +28,64 @@ const UserActivity = React.createClass({
   },
 });
 
-const UserLocation = React.createClass({
-  propTypes: {
-    user: React.PropTypes.object.isRequired,
+const LocationsMap = React.createClass({
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+    };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    this.setState({
+      loading: true,
+      error: false
+    });
+
+    this.api.request(this.getEndpoint(), {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          error: false,
+          loading: false,
+          data: data,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+      }
+    });
+  },
+
+  getEndpoint() {
+    let {orgId, projectId, userId} = this.props.params;
+    return `/projects/${orgId}/${projectId}/users/${userId}/locations/`;
+  },
+
+  renderLoading() {
+    return (
+      <div className="box">
+        <LoadingIndicator />
+      </div>
+    );
   },
 
   render() {
-    let {user} = this.props;
-    if (!user.location)
-      return null;
+    if (this.state.loading)
+      return this.renderLoading();
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
 
-    let series = [[user.location, 1]];
-    return (
-      <div>
-        <h4>Where am I?</h4>
-        <GeoMap highlightCountryCode={user.location} series={series}/>
-      </div>
-    );
+    let series = this.state.data.map(i => [i.country, i.count]);
+    return <GeoMap series={series}/>;
   },
 });
 
@@ -114,17 +159,23 @@ export default React.createClass({
     return (
       <div>
         <h4>{this.getDisplayName(data)}</h4>
-        <dl>
-          <dt>ID:</dt>
-          <dd>{data.id || <em>n/a</em>}</dd>
-          <dt>Username:</dt>
-          <dd>{data.username || <em>n/a</em>}</dd>
-          <dt>Email:</dt>
-          <dd>{data.email || <em>n/a</em>}</dd>
-          <dt>IP Address:</dt>
-          <dd>{data.ipAddress || <em>n/a</em>}</dd>
-        </dl>
-        <UserLocation {...this.props} user={data} />
+        <div className="row">
+          <div className="col-md-4">
+            <dl>
+              <dt>ID:</dt>
+              <dd>{data.id || <em>n/a</em>}</dd>
+              <dt>Username:</dt>
+              <dd>{data.username || <em>n/a</em>}</dd>
+              <dt>Email:</dt>
+              <dd>{data.email || <em>n/a</em>}</dd>
+              <dt>IP Address:</dt>
+              <dd>{data.ipAddress || <em>n/a</em>}</dd>
+            </dl>
+          </div>
+          <div className="col-md-8">
+            <LocationsMap {...this.props} />
+          </div>
+        </div>
         <UserActivity {...this.props} user={data} />
       </div>
     );

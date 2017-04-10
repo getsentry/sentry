@@ -29,7 +29,8 @@ from sentry.constants import (
 )
 from sentry.interfaces.base import get_interface
 from sentry.models import (
-    Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
+    Activity, City, Environment, Event, EventMapping, EventUser,
+    EventUserLocation, Group, GroupLocation, GroupHash,
     GroupRelease, GroupResolution, GroupStatus, Project, Release,
     ReleaseEnvironment, ReleaseProject, TagKey, UserReport
 )
@@ -471,12 +472,15 @@ class EventManager(object):
 
             tags['sentry:release'] = release.version
 
-        event_user = self._get_event_user(project, data)
+        event_user, city = self._get_event_user(project, data, date)
         if event_user:
             # dont allow a conflicting 'user' tag
             if 'user' in tags:
                 del tags['user']
             tags['sentry:user'] = event_user.tag_value
+
+        if city:
+            tags['location.country'] = city.country
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
@@ -488,10 +492,6 @@ class EventManager(object):
 
         # tags are stored as a tuple
         tags = tags.items()
-
-        user_data = data.get('sentry.interfaces.User')
-        if user_data and user_data.get('location'):
-            tags.append(('user.location', user_data['location']))
 
         # XXX(dcramer): we're relying on mutation of the data object to ensure
         # this propagates into Event
@@ -609,6 +609,13 @@ class EventManager(object):
             name=environment,
         )
 
+        if city:
+            GroupLocation.objects.create(
+                project_id=project.id,
+                group_id=group.id,
+                city_id=city.id,
+            )
+
         if release:
             ReleaseEnvironment.get_or_create(
                 project=project,
@@ -725,10 +732,10 @@ class EventManager(object):
 
         return event
 
-    def _get_event_user(self, project, data):
+    def _get_event_user(self, project, data, date):
         user_data = data.get('sentry.interfaces.User')
         if not user_data:
-            return
+            return None, None
 
         euser = EventUser(
             project=project,
@@ -739,22 +746,41 @@ class EventManager(object):
         )
 
         if not euser.tag_value:
-            return
+            return None, None
 
         cache_key = 'euser:{}:{}'.format(
             project.id,
             md5_text(euser.tag_value).hexdigest(),
         )
-        cached = default_cache.get(cache_key)
-        if cached is None:
+        euser_id = default_cache.get(cache_key)
+        if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
-                pass
-            default_cache.set(cache_key, '', 3600)
+                euser = EventUser.objects.get(
+                    project=project,
+                    hash=euser.hash,
+                )
+                euser_id = euser.id
+            default_cache.set(cache_key, euser.id, 3600)
 
-        return euser
+        if euser_id and user_data.get('ip_address'):
+            city = City.from_ip_address(user_data['ip_address'])
+            if city:
+                buffer.incr(EventUserLocation, {
+                    'times_seen': 1,
+                }, {
+                    'project_id': project.id,
+                    'event_user_id': euser_id,
+                    'city_id': city.id,
+                }, {
+                    'last_seen': date,
+                })
+        else:
+            city = None
+
+        return euser, city
 
     def _find_hashes(self, project, hash_list):
         matches = []

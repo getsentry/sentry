@@ -25,7 +25,7 @@ from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
-from .endpoints.group_userlocations import GroupUserLocationsEndpoint
+from .endpoints.group_locations import GroupLocationsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
@@ -83,12 +83,13 @@ from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
-from .endpoints.project_users import ProjectUsersEndpoint
-from .endpoints.project_userlocations import ProjectUserLocationsEndpoint
-from .endpoints.project_user_details import ProjectUserDetailsEndpoint
-from .endpoints.project_user_reports import ProjectUserReportsEndpoint
+from .endpoints.project_locations import ProjectLocationsEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_user_details import ProjectUserDetailsEndpoint
+from .endpoints.project_user_locations import ProjectUserLocationsEndpoint
+from .endpoints.project_user_reports import ProjectUserReportsEndpoint
+from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -356,8 +357,8 @@ urlpatterns = patterns(
         AssociateDSymFilesEndpoint.as_view(),
         name='sentry-api-0-associate-dsym-files'),\
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/locations/$',
-        ProjectUserLocationsEndpoint.as_view(),
-        name='sentry-api-0-project-userlocations'),
+        ProjectLocationsEndpoint.as_view(),
+        name='sentry-api-0-project-locations'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$',
         ProjectRulesEndpoint.as_view(),
         name='sentry-api-0-project-rules'),
@@ -385,8 +386,11 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/$',
         ProjectUsersEndpoint.as_view(),
         name='sentry-api-0-project-users'),
-    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/(?P<user_id>[^/]+)/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/(?P<user_hash>[^/]+)/$',
         ProjectUserDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-user-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/(?P<user_hash>[^/]+)/locations/$',
+        ProjectUserLocationsEndpoint.as_view(),
         name='sentry-api-0-project-user-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
@@ -437,8 +441,8 @@ urlpatterns = patterns(
         GroupEnvironmentDetailsEndpoint.as_view(),
         name='sentry-api-0-group-environment-details'),
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/locations/$',
-        GroupUserLocationsEndpoint.as_view(),
-        name='sentry-api-0-group-userlocations'),
+        GroupLocationsEndpoint.as_view(),
+        name='sentry-api-0-group-locations'),
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'),

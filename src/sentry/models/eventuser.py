@@ -2,6 +2,8 @@ from __future__ import absolute_import
 
 from django.db import models
 from django.utils import timezone
+from operator import or_
+from six.moves import reduce
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.utils.hashlib import md5_text
@@ -91,3 +93,37 @@ class EventUser(Model):
 
     def get_display_name(self):
         return self.email or self.username
+
+    def find_similar_users(self, user):
+        from sentry.models import (
+            OrganizationMember, OrganizationMemberTeam, Project, Team
+        )
+        # limit to only teams user has opted into
+        member = OrganizationMember.objects.get(
+            user=user,
+            organization=self.project.organization,
+        )
+        teams = Team.objects.filter(
+            id__in=OrganizationMemberTeam.objects.filter(
+                organizationmember=member,
+                is_active=True,
+            ).values('team')
+        )
+
+        project_ids = list(Project.objects.filter(
+            team__in=list(teams),
+        ).values_list('id', flat=True)[:1000])
+        if not project_ids:
+            return type(self).objects.none()
+
+        filters = []
+        if self.email:
+            filters.append(models.Q(email__iexact=self.email))
+        if self.ip_address:
+            filters.append(models.Q(ip_address=self.ip_address))
+        if not filters:
+            return type(self).objects.none()
+        return type(self).objects.exclude(id=self.id).filter(
+            reduce(or_, filters),
+            project__in=project_ids,
+        )
