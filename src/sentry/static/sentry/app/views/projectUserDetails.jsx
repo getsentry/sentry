@@ -3,6 +3,25 @@ import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import IssueList from '../components/issueList';
+
+const UserActivity = React.createClass({
+  getEndpoint() {
+    let {orgId, userId} = this.props.params;
+    return `/organizations/${orgId}/users/${userId}/issues/`;
+  },
+
+  render() {
+    return (
+      <div>
+        <h4>Activity</h4>
+        <IssueList
+          endpoint={this.getEndpoint()}
+          {...this.props} />
+      </div>
+    );
+  },
+});
 
 export default React.createClass({
   mixins: [ApiMixin],
@@ -84,6 +103,7 @@ export default React.createClass({
           <dt>IP Address:</dt>
           <dd>{data.ipAddress || <em>n/a</em>}</dd>
         </dl>
+        <UserActivity {...this.props} />
       </div>
     );
   },

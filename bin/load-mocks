@@ -16,7 +16,6 @@ from random import randint
 from uuid import uuid4
 
 from sentry import buffer, roles
-from sentry.interfaces.user import User as UserInterface
 from sentry.tsdb import backend as tsdb
 from sentry.models import (
     Activity, Broadcast, Deploy, File, GroupMeta, Organization, OrganizationAccessRequest,
