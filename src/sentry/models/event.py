@@ -7,14 +7,16 @@ sentry.models.event
 """
 from __future__ import absolute_import
 
+import six
+import string
 import warnings
 
-import six
 from collections import OrderedDict
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import eventtypes
 from sentry.db.models import (
     BaseManager, BoundedBigIntegerField, BoundedIntegerField,
     Model, NodeField, sane_repr
@@ -22,7 +24,7 @@ from sentry.db.models import (
 from sentry.interfaces.base import get_interface
 from sentry.utils.cache import memoize
 from sentry.utils.safe import safe_execute
-from sentry.utils.strings import truncatechars, strip
+from sentry.utils.strings import truncatechars
 
 
 class Event(Model):
@@ -89,27 +91,49 @@ class Event(Model):
         })
         return msg_interface.get('formatted', msg_interface['message'])
 
-    def error(self):
-        message = strip(self.get_legacy_message())
-        if not message:
-            message = '<unlabeled message>'
-        else:
-            message = truncatechars(message.splitlines()[0], 100)
-        return message
-    error.short_description = _('error')
+    def get_event_type(self):
+        """
+        Return the type of this event.
 
-    def has_two_part_message(self):
-        message = strip(self.get_legacy_message())
-        return '\n' in message or len(message) > 100
+        See ``sentry.eventtypes``.
+        """
+        return self.data.get('type', 'default')
+
+    def get_event_metadata(self):
+        """
+        Return the metadata of this event.
+
+        See ``sentry.eventtypes``.
+        """
+        etype = self.data.get('type', 'default')
+        if 'metadata' not in self.data:
+            # TODO(dcramer): remove after Dec 1 2016
+            data = self.data.copy() if self.data else {}
+            data['message'] = self.message
+            return eventtypes.get(etype)(data).get_metadata()
+        return self.data['metadata']
+
+    @property
+    def title(self):
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.to_string(self.get_event_metadata())
+
+    def error(self):
+        warnings.warn('Event.error is deprecated, use Event.title',
+                      DeprecationWarning)
+        return self.title
+    error.short_description = _('error')
 
     @property
     def message_short(self):
-        message = strip(self.get_legacy_message())
-        if not message:
-            message = '<unlabeled message>'
-        else:
-            message = truncatechars(message.splitlines()[0], 100)
-        return message
+        warnings.warn('Event.message_short is deprecated, use Event.title',
+                      DeprecationWarning)
+        return self.title
+
+    def has_two_part_message(self):
+        warnings.warn('Event.has_two_part_message is no longer used',
+                      DeprecationWarning)
+        return False
 
     @property
     def team(self):
@@ -141,7 +165,7 @@ class Event(Model):
 
     def get_interfaces(self):
         result = []
-        for key, data in self.data.iteritems():
+        for key, data in six.iteritems(self.data):
             try:
                 cls = get_interface(key)
             except ValueError:
@@ -191,14 +215,14 @@ class Event(Model):
         data['datetime'] = self.datetime
         data['time_spent'] = self.time_spent
         data['tags'] = self.get_tags()
-        for k, v in sorted(self.data.iteritems()):
+        for k, v in sorted(six.iteritems(self.data)):
             data[k] = v
         return data
 
     @property
     def size(self):
         data_len = len(self.get_legacy_message())
-        for value in self.data.itervalues():
+        for value in six.itervalues(self.data):
             data_len += len(repr(value))
         return data_len
 
@@ -234,16 +258,59 @@ class Event(Model):
     @property
     def culprit(self):
         warnings.warn('Event.culprit is deprecated. Use Group.culprit instead.')
-        return self.group.culprit
+        return self.transaction or self.group.culprit
 
     @property
     def checksum(self):
         warnings.warn('Event.checksum is no longer used', DeprecationWarning)
         return ''
 
+    @property
+    def transaction(self):
+        return self.get_tag('transaction')
+
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
-            self.project.get_full_name().encode('utf-8'),
-            six.text_type(self.get_tag('level')).upper().encode('utf-8'),
-            self.message_short.encode('utf-8')
-        )
+        template = self.project.get_option('mail:subject_template')
+        if template:
+            template = EventSubjectTemplate(template)
+        else:
+            template = DEFAULT_SUBJECT_TEMPLATE
+        return truncatechars(
+            template.safe_substitute(
+                EventSubjectTemplateData(self),
+            ),
+            128,
+        ).encode('utf-8')
+
+
+class EventSubjectTemplate(string.Template):
+    idpattern = r'(tag:)?[_a-z][_a-z0-9]*'
+
+
+class EventSubjectTemplateData(object):
+    tag_aliases = {
+        'release': 'sentry:release',
+    }
+
+    def __init__(self, event):
+        self.event = event
+
+    def __getitem__(self, name):
+        if name.startswith('tag:'):
+            name = name[4:]
+            value = self.event.get_tag(self.tag_aliases.get(name, name))
+            if value is None:
+                raise KeyError
+            return six.text_type(value)
+        elif name == 'project':
+            return self.event.project.get_full_name()
+        elif name == 'projectID':
+            return self.event.project.slug
+        elif name == 'orgID':
+            return self.event.organization.slug
+        elif name == 'title':
+            return self.event.title
+        raise KeyError
+
+
+DEFAULT_SUBJECT_TEMPLATE = EventSubjectTemplate('[$project] ${tag:level}: $title')

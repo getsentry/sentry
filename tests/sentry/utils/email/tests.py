@@ -63,7 +63,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<html><body><b>hello world</b></body></html>',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -85,7 +85,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<html><body><b>hello world</b></body></html>',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -111,7 +111,7 @@ class MessageBuilderTest(TestCase):
         msg = MessageBuilder(
             subject='Test',
             body='hello world',
-            html_body='<b>hello world</b>',
+            html_body='<!DOCTYPE html>\n<b>hello world</b>',
         )
         msg.add_users([user_a.id, user_b.id, user_c.id], project=project)
         msg.send()
@@ -145,7 +145,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<html><body><b>hello world</b></body></html>',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -172,7 +172,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<html><body><b>hello world</b></body></html>',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -207,7 +207,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<html><body><b>hello world</b></body></html>',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -233,7 +233,7 @@ class MessageBuilderTest(TestCase):
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
-            '<html><body><b>hello world</b></body></html>',
+            '<!DOCTYPE html>\n<html><body><b>hello world</b></body></html>',
             'text/html',
         )
 
@@ -298,6 +298,17 @@ class MessageBuilderTest(TestCase):
         ).get_built_messages(['foo@example.com'])[0].message()
 
         assert 'List-Id' not in message
+
+    def test_stripped_newline(self):
+        msg = MessageBuilder(
+            subject='Foo\r\nBar',
+            body='hello world',
+            html_body='<b>hello world</b',
+        )
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject == 'Foo'
 
 
 class MiscTestCase(TestCase):

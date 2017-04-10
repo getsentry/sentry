@@ -7,13 +7,16 @@ sentry.utils.javascript
 """
 from __future__ import absolute_import
 
+import six
+
 from collections import defaultdict
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from django.utils.html import escape
 
-from sentry.app import env, tsdb
+from sentry import tsdb
+from sentry.app import env
 from sentry.constants import TAG_LABELS
 from sentry.models import (
     Group, GroupBookmark, GroupMeta, GroupTagKey, GroupSeen, GroupStatus,
@@ -53,7 +56,7 @@ def transform(objects, request=None):
     elif not isinstance(objects, (list, tuple)):
         return transform([objects], request=request)[0]
     # elif isinstance(obj, dict):
-    #     return dict((k, transform(v, request=request)) for k, v in obj.iteritems())
+    #     return dict((k, transform(v, request=request)) for k, v in six.iteritems(obj))
     t = transformers.get(type(objects[0]))
 
     if t:
@@ -143,7 +146,7 @@ class GroupTransformer(Transformer):
         for g in objects:
             g.is_bookmarked = g.pk in bookmarks
             g.historical_data = [x[1] for x in historical_data.get(g.id, [])]
-            active_date = g.active_at or g.last_seen
+            active_date = g.active_at or g.first_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
             g.annotations = []
             for key in sorted(tag_keys):
@@ -169,8 +172,8 @@ class GroupTransformer(Transformer):
         status = obj.get_status()
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-        elif status == GroupStatus.MUTED:
-            status_label = 'muted'
+        elif status == GroupStatus.IGNORED:
+            status_label = 'ignored'
         else:
             status_label = 'unresolved'
 
@@ -180,10 +183,10 @@ class GroupTransformer(Transformer):
         version = int(version.strftime('%s'))
 
         d = {
-            'id': str(obj.id),
-            'count': str(obj.times_seen),
+            'id': six.text_type(obj.id),
+            'count': six.text_type(obj.times_seen),
             'title': escape(obj.title),
-            'message': escape(obj.message_short),
+            'message': escape(obj.get_legacy_message()),
             'level': obj.level,
             'levelName': escape(obj.get_level_display()),
             'logger': escape(obj.logger),

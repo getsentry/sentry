@@ -7,7 +7,7 @@
 {% block content %}
 
 <div class="container" style="padding-top: 30px;">
-  <h2>{{ counts|length }} new notification{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
+  <h2>{{ counts|length }} new alert{{ counts|pluralize }} from <a href="{{ project.get_absolute_url }}">{{ project.name }}</a></h2>
   {% with start=start|date:"N j, Y, P e" end=end|date:"N j, Y, P e" %}
     <div class="dateline">{{ start }}{% if start != end %} to {{ end }}{% endif %}</div>
   {% endwith %}
@@ -33,9 +33,7 @@
                   </td>
                   <td class="event-detail">
                       {% include "sentry/emails/_group.html" %}
-                      <p>
-                        <small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small>
-                      </p>
+                      <div><small>{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}</small></div>
                   </td>
               </tr>
           {% endfor %}
@@ -51,19 +49,5 @@
       </table>
     </div>
 {% endfor %}
-
-    <p>
-      <a href="{{ unsubscribe_link }}">Click to unsubscribe</a>
-    </p>
-
-<div class="container">
-  <div class="footer" style="margin-top: 30px">
-    {% block footer %}
-    <a href="{% absolute_uri %}" style="float:right">Home</a>
-    {% url 'sentry-account-settings-notifications' as settings_link %}
-    <a href="{% absolute_uri settings_link %}">Notification Settings</a>
-    {% endblock %}
-  </div>
-</div>
 
 {% endblock %}

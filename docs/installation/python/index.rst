@@ -14,13 +14,14 @@ Some basic prerequisites which you'll need in order to run Sentry:
 * A UNIX-based operating system. We test on Ubuntu and this documentation
   assumes an ubuntu based system.
 * Python 2.7
-* ``python-setuptools``, ``python-pip``, ``python-dev``, ``libxslt1-dev``,
+* pip 8.1+
+* ``python-setuptools``, ``python-dev``, ``libxslt1-dev``,
   ``gcc``, ``libffi-dev``, ``libjpeg-dev``, ``libxml2-dev``, ``libxslt-dev``,
-  ``libyaml-dev``
+  ``libyaml-dev``, ``libpq-dev``
 
 If you're building from source you'll also need:
 
-* Node.js 0.12 or newer.
+* Node.js 4.0 or newer.
 
 Setting up an Environment
 -------------------------
@@ -263,9 +264,7 @@ Starting the Web Service
 ------------------------
 
 Sentry provides a built-in webserver (powered by uWSGI) to
-get you off the ground quickly, also you can setup Sentry as WSGI
-application, in that case skip to section `Running Sentry as WSGI
-application`.
+get you off the ground quickly.
 
 To start the built-in webserver run ``sentry run web``:
 

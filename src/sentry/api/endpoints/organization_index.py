@@ -1,18 +1,24 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import roles
+from sentry import features, options, roles
+from sentry.app import ratelimiter
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import DateTimePaginator, OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.db.models.query import in_iexact
 from sentry.models import (
-    AuditLogEntryEvent, Organization, OrganizationMember, OrganizationStatus
+    AuditLogEntryEvent, Organization, OrganizationMember,
+    OrganizationMemberTeam, OrganizationStatus, ProjectPlatform
 )
+from sentry.search.utils import tokenize_query
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -25,8 +31,10 @@ def list_your_organizations_scenario(runner):
 
 
 class OrganizationSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=200, required=True)
-    slug = serializers.CharField(max_length=200, required=False)
+    name = serializers.CharField(max_length=64, required=True)
+    slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
+                                  required=False)
+    defaultTeam = serializers.BooleanField(required=False)
 
 
 class OrganizationIndexEndpoint(Endpoint):
@@ -73,16 +81,63 @@ class OrganizationIndexEndpoint(Endpoint):
 
         query = request.GET.get('query')
         if query:
-            queryset = queryset.filter(
-                Q(name__icontains=query) | Q(slug__icontains=query),
+            tokens = tokenize_query(query)
+            for key, value in six.iteritems(tokens):
+                if key == 'query':
+                    value = ' '.join(value)
+                    queryset = queryset.filter(
+                        Q(name__icontains=value) |
+                        Q(slug__icontains=value) |
+                        Q(members__email__iexact=value)
+                    )
+                elif key == 'slug':
+                    queryset = queryset.filter(
+                        in_iexact('slug', value)
+                    )
+                elif key == 'email':
+                    queryset = queryset.filter(
+                        in_iexact('members__email', value)
+                    )
+                elif key == 'platform':
+                    queryset = queryset.filter(
+                        project__in=ProjectPlatform.objects.filter(
+                            platform__in=value,
+                        ).values('project_id')
+                    )
+                elif key == 'id':
+                    queryset = queryset.filter(id__in=value)
+
+        sort_by = request.GET.get('sortBy')
+        if sort_by == 'members':
+            queryset = queryset.annotate(
+                member_count=Count('member_set'),
             )
+            order_by = '-member_count'
+            paginator_cls = OffsetPaginator
+        elif sort_by == 'projects':
+            queryset = queryset.annotate(
+                project_count=Count('project'),
+            )
+            order_by = '-project_count'
+            paginator_cls = OffsetPaginator
+        elif sort_by == 'events':
+            queryset = queryset.annotate(
+                event_count=Sum('stats__events_24h'),
+            ).filter(
+                stats__events_24h__isnull=False,
+            )
+            order_by = '-event_count'
+            paginator_cls = OffsetPaginator
+        else:
+            order_by = '-date_added'
+            paginator_cls = DateTimePaginator
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by='name',
+            order_by=order_by,
             on_results=lambda x: serialize(x, request.user),
-            paginator_cls=OffsetPaginator,
+            paginator_cls=paginator_cls,
         )
 
     # XXX: endpoint useless for end-users as it needs user context.
@@ -104,6 +159,20 @@ class OrganizationIndexEndpoint(Endpoint):
             return Response({'detail': 'This endpoint requires user info'},
                             status=401)
 
+        if not features.has('organizations:create', actor=request.user):
+            return Response({
+                'detail': 'Organizations are not allowed to be created by this user.'
+            }, status=401)
+
+        limit = options.get('api.rate-limit.org-create')
+        if limit and ratelimiter.is_limited(
+            u'org-create:{}'.format(request.user.id),
+            limit=limit, window=3600,
+        ):
+            return Response({
+                'detail': 'You are attempting to create too many organizations too quickly.'
+            }, status=429)
+
         serializer = OrganizationSerializer(data=request.DATA)
 
         if serializer.is_valid():
@@ -121,11 +190,22 @@ class OrganizationIndexEndpoint(Endpoint):
                     status=409,
                 )
 
-            OrganizationMember.objects.create(
-                user=request.user,
+            om = OrganizationMember.objects.create(
                 organization=org,
+                user=request.user,
                 role=roles.get_top_dog().id,
             )
+
+            if result.get('defaultTeam'):
+                team = org.team_set.create(
+                    name=org.name,
+                )
+
+                OrganizationMemberTeam.objects.create(
+                    team=team,
+                    organizationmember=om,
+                    is_active=True
+                )
 
             self.create_audit_entry(
                 request=request,

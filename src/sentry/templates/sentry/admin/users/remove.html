@@ -7,6 +7,8 @@
 
 {% block main %}
     <section class="body">
+        <h3>Remove User <small>{{ user.username }}</small></h3>
+
         <form action="" method="post">
             {% csrf_token %}
             {{ form|as_crispy_errors }}

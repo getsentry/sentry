@@ -11,7 +11,13 @@ import os
 import click
 import sys
 import sentry
+import datetime
 from sentry.utils.imports import import_string
+
+
+# We need to run this here because of a concurrency bug in Python's locale
+# with the lazy initialization.
+datetime.datetime.strptime('', '')
 
 # Parse out a pretty version for use with --version
 if sentry.__build__ is None:
@@ -45,7 +51,7 @@ def cli(ctx, config):
 
 
 # TODO(mattrobenolt): Autodiscover commands?
-map(lambda cmd: cli.add_command(import_string(cmd)), (
+list(map(lambda cmd: cli.add_command(import_string(cmd)), (
     'sentry.runner.commands.backup.export',
     'sentry.runner.commands.backup.import_',
     'sentry.runner.commands.cleanup.cleanup',
@@ -65,7 +71,7 @@ map(lambda cmd: cli.add_command(import_string(cmd)), (
     'sentry.runner.commands.tsdb.tsdb',
     'sentry.runner.commands.upgrade.upgrade',
     'sentry.runner.commands.dsym.dsym',
-))
+)))
 
 
 def make_django_command(name, django_command=None, help=None):
@@ -90,10 +96,9 @@ def make_django_command(name, django_command=None, help=None):
     return inner
 
 
-map(cli.add_command, (
+list(map(cli.add_command, (
     make_django_command('shell', help='Run a Python interactive interpreter.'),
-    make_django_command('celery', help='DEPRECATED see `sentry run` instead.'),
-))
+)))
 
 
 def configure():

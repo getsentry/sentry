@@ -14,7 +14,7 @@ describe('SnoozeAction', function() {
   describe('render()', function() {
     it('should show a gravatar when avatar type is gravatar', function () {
       let wrapper = shallow(<SnoozeAction onSnooze={function(){}}/>);
-      expect(wrapper.find('h5').text()).to.equal('How long should we snooze this issue?');
+      expect(wrapper.find('h5').text()).to.equal('How long should we ignore this issue?');
     });
   });
 

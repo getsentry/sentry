@@ -1,7 +1,6 @@
 import React from 'react';
 import ListLink from '../listLink';
 import OrganizationState from '../../mixins/organizationState';
-import ConfigStore from '../../stores/configStore';
 import HookStore from '../../stores/hookStore';
 import {t} from '../../locale';
 
@@ -29,7 +28,6 @@ const HomeSidebar = React.createClass({
     let access = this.getAccess();
     let features = this.getFeatures();
     let org = this.getOrganization();
-    let urlPrefix = ConfigStore.get('urlPrefix') + '/organizations/' + org.slug;
 
     let orgId = org.slug;
     return (
@@ -62,7 +60,7 @@ const HomeSidebar = React.createClass({
             <ul className="nav nav-stacked">
               {access.has('org:read') &&
                 <li>
-                  <a href={urlPrefix + '/members/'}>
+                  <a href={`/organizations/${orgId}/members/`}>
                     {t('Members')}&nbsp;
                     {access.has('org:write') && org.pendingAccessRequests > 0 &&
                       <span className="badge" style={{marginLeft: 5}}>{org.pendingAccessRequests}</span>
@@ -70,11 +68,11 @@ const HomeSidebar = React.createClass({
                   </a>
                 </li>
               }
-              {features.has('sso') && access.has('org:write') &&
-                <li><a href={urlPrefix + '/auth/'}>{t('Auth')}</a></li>
+              {features.has('sso') && access.has('org:admin') &&
+                <li><a href={`/organizations/${orgId}/auth/`}>{t('Auth')}</a></li>
               }
-              {access.has('org:delete') && features.has('api-keys') &&
-                <li><a href={urlPrefix + '/api-keys/'}>{t('API Keys')}</a></li>
+              {access.has('org:admin') && features.has('api-keys') &&
+                <li><a href={`/organizations/${orgId}/api-keys/`}>{t('API Keys')}</a></li>
               }
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/audit-log/`}>{t('Audit Log')}</ListLink>
@@ -82,8 +80,11 @@ const HomeSidebar = React.createClass({
               {access.has('org:write') &&
                 <ListLink to={`/organizations/${orgId}/rate-limits/`}>{t('Rate Limits')}</ListLink>
               }
+              {features.has('repos') && access.has('org:write') &&
+                <ListLink to={`/organizations/${orgId}/repos/`}>{t('Repositories')}</ListLink>
+              }
               {access.has('org:write') &&
-                <li><a href={urlPrefix + '/settings/'}>{t('Settings')}</a></li>
+                <ListLink to={`/organizations/${orgId}/settings/`}>{t('Settings')}</ListLink>
               }
             </ul>
           </div>

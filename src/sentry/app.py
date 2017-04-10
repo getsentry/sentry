@@ -9,11 +9,9 @@ from __future__ import absolute_import
 
 from threading import local
 
-from django.conf import settings
 from raven.contrib.django.models import client
 
 from sentry.utils import redis
-from sentry.utils.imports import import_string
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
 
@@ -24,22 +22,16 @@ class State(local):
 
 env = State()
 
+# COMPAT
+from .buffer import backend as buffer  # NOQA
+from .digests import backend as digests  # NOQA
+from .newsletter import backend as newsletter  # NOQA
+from .nodestore import backend as nodestore  # NOQA
+from .quotas import backend as quotas  # NOQA
+from .ratelimits import backend as ratelimiter  # NOQA
+from .search import backend as search  # NOQA
+from .tsdb import backend as tsdb  # NOQA
 
-def get_instance(path, options):
-    cls = import_string(path)
-    return cls(**options)
-
-
-# TODO(dcramer): this is getting heavy, we should find a better way to structure
-# this
-buffer = get_instance(settings.SENTRY_BUFFER, settings.SENTRY_BUFFER_OPTIONS)
-digests = get_instance(settings.SENTRY_DIGESTS, settings.SENTRY_DIGESTS_OPTIONS)
-quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)
-nodestore = get_instance(
-    settings.SENTRY_NODESTORE, settings.SENTRY_NODESTORE_OPTIONS)
-ratelimiter = get_instance(
-    settings.SENTRY_RATELIMITER, settings.SENTRY_RATELIMITER_OPTIONS)
-search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
-tsdb = get_instance(settings.SENTRY_TSDB, settings.SENTRY_TSDB_OPTIONS)
 raven = client
+
 locks = LockManager(RedisLockBackend(redis.clusters.get('default')))

@@ -12,5 +12,6 @@ from __future__ import absolute_import, print_function
 from sentry.runner import configure, main  # NOQA
 
 import warnings
+
 warnings.warn("'sentry.utils.runner' has moved to 'sentry.runner'",
               DeprecationWarning)

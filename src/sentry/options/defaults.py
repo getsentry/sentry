@@ -20,6 +20,8 @@ from sentry.utils.types import Dict, String, Sequence
 
 # System
 register('system.admin-email', flags=FLAG_REQUIRED)
+register('system.support-email', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('system.security-email', flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('system.databases', type=Dict, flags=FLAG_NOSTORE)
 # register('system.debug', default=False, flags=FLAG_NOSTORE)
 register('system.rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -48,7 +50,6 @@ register(
 register('redis.options', type=Dict, flags=FLAG_NOSTORE)
 
 # symbolizer specifics
-register('dsym.llvm-symbolizer-path', type=String)
 register('dsym.cache-path', type=String, default='/tmp/sentry-dsym-cache')
 
 # Mail
@@ -77,3 +78,14 @@ register('u2f.facets', default=(), type=Sequence,
 
 register('auth.ip-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('auth.user-rate-limit', default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+register('api.rate-limit.org-create', default=5, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# Filestore
+register('filestore.backend', default='filesystem', flags=FLAG_NOSTORE)
+register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=FLAG_NOSTORE)
+
+# Symbol server
+register('symbolserver.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register('symbolserver.options', default={'url': 'http://127.0.0.1:3000'},
+         flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)

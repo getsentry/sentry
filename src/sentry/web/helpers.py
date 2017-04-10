@@ -11,7 +11,6 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 
@@ -19,29 +18,9 @@ from sentry.api.serializers.base import serialize
 from sentry.auth import access
 from sentry.constants import EVENTS_PER_PAGE
 from sentry.models import Team
+from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
 
 logger = logging.getLogger('sentry')
-
-
-_LOGIN_URL = None
-
-
-def get_login_url(reset=False):
-    global _LOGIN_URL
-
-    if _LOGIN_URL is None or reset:
-        # if LOGIN_URL resolves force login_required to it instead of our own
-        # XXX: this must be done as late as possible to avoid idempotent requirements
-        try:
-            resolve(settings.LOGIN_URL)
-        except Exception:
-            _LOGIN_URL = settings.SENTRY_LOGIN_URL
-        else:
-            _LOGIN_URL = settings.LOGIN_URL
-
-        if _LOGIN_URL is None:
-            _LOGIN_URL = reverse('sentry-login')
-    return _LOGIN_URL
 
 
 def get_default_context(request, existing_context=None, team=None):
@@ -50,6 +29,7 @@ def get_default_context(request, existing_context=None, team=None):
 
     context = {
         'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
+        'CSRF_COOKIE_NAME': settings.CSRF_COOKIE_NAME,
         'URL_PREFIX': options.get('system.url-prefix'),
         'SINGLE_ORGANIZATION': settings.SENTRY_SINGLE_ORGANIZATION,
         'PLUGINS': plugins,

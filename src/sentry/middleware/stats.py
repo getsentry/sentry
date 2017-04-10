@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import inspect
+import six
 import time
 
 from django.http import Http404
@@ -10,7 +11,7 @@ from sentry.utils import metrics
 
 class ResponseCodeMiddleware(object):
     def process_response(self, request, response):
-        metrics.incr('response', instance=str(response.status_code))
+        metrics.incr('response', instance=six.text_type(response.status_code))
         return response
 
     def process_exception(self, request, exception):

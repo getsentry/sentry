@@ -37,7 +37,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
             raise AuthenticationFailed('Key is disabled')
 
         raven.tags_context({
-            'api_key': userid,
+            'api_key': key.id,
         })
 
         return (AnonymousUser(), key)
@@ -61,11 +61,23 @@ class TokenAuthentication(QuietBasicAuthentication):
 
     def authenticate_credentials(self, token):
         try:
-            token = ApiToken.objects.get(token=token)
+            token = ApiToken.objects.filter(
+                token=token,
+            ).select_related('user', 'application').get()
         except ApiToken.DoesNotExist:
             raise AuthenticationFailed('Invalid token')
 
+        if token.is_expired():
+            raise AuthenticationFailed('Token expired')
+
         if not token.user.is_active:
             raise AuthenticationFailed('User inactive or deleted')
+
+        if token.application and not token.application.is_active:
+            raise AuthenticationFailed('UserApplication inactive or deleted')
+
+        raven.tags_context({
+            'api_token': token.id,
+        })
 
         return (token.user, token)

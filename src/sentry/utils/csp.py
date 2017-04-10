@@ -52,7 +52,9 @@ DISALLOWED_SOURCES = (
     'savingsslider-a.akamaihd.net',
     'injections.adguard.com',
     'icontent.us',
-    'amiok.org'
+    'amiok.org',
+    'connectionstrenth.com',
+    'siteheart.net',
 )
 
 ALLOWED_DIRECTIVES = frozenset((
@@ -71,32 +73,37 @@ ALLOWED_DIRECTIVES = frozenset((
     # 'sandbox',
 ))
 
+# URIs that are pure noise and will never be actionable
+DISALLOWED_BLOCKED_URIS = frozenset((
+    'about',
+    'ms-browser-extension',
+))
+
 
 def is_valid_csp_report(report, project=None):
     # Some reports from Chrome report blocked-uri as just 'about'.
     # In this case, this is not actionable and is just noisy.
     # Observed in Chrome 45 and 46.
-
-    if report.get('effective-directive') not in ALLOWED_DIRECTIVES:
+    if report.get('effective_directive') not in ALLOWED_DIRECTIVES:
         return False
 
-    blocked_uri = report.get('blocked-uri')
-    if blocked_uri == 'about':
+    blocked_uri = report.get('blocked_uri')
+    if blocked_uri in DISALLOWED_BLOCKED_URIS:
         return False
 
-    source_file = report.get('source-file')
+    source_file = report.get('source_file')
 
     # We must have one of these to do anyting sensible
     if not any((blocked_uri, source_file)):
         return False
 
-    if project is None or bool(project.get_option('sentry:csp_ignore_hosts_defaults', True)):
+    if project is None or bool(project.get_option('sentry:csp_ignored_sources_defaults', True)):
         disallowed_sources = DISALLOWED_SOURCES
     else:
         disallowed_sources = ()
 
     if project is not None:
-        disallowed_sources += tuple(project.get_option('sentry:csp_ignore_hosts', []))
+        disallowed_sources += tuple(project.get_option('sentry:csp_ignored_sources', []))
 
     if not disallowed_sources:
         return True

@@ -1,4 +1,5 @@
 import React from 'react';
+import ReleaseStats from '../../components/releaseStats';
 import Count from '../../components/count';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
@@ -14,21 +15,24 @@ const ReleaseList = React.createClass({
     let {orgId, projectId} = this.props;
 
     return (
-      <ul className="release-list">
+      <ul className="list-group list-group-lg">
           {this.props.releaseList.map((release) => {
             return (
-              <li className="release" key={release.version}>
-                <div className="row">
-                  <div className="col-sm-8 col-xs-6">
-                    <h4><Version orgId={orgId} projectId={projectId} version={release.version} /></h4>
-                    <div className="release-meta">
+              <li className="list-group-item" key={release.version}>
+                <div className="row row-center-vertically">
+                  <div className="col-sm-4 col-xs-6">
+                    <h2><Version orgId={orgId} projectId={projectId} version={release.version} /></h2>
+                    <p className="m-b-0 text-light">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
-                    </div>
+                    </p>
                   </div>
-                  <div className="col-sm-2 col-xs-3 release-stats stream-count">
+                  <div className="col-sm-4 hidden-xs">
+                    <ReleaseStats release={release}/>
+                  </div>
+                  <div className="col-sm-2 col-xs-3 text-big text-light">
                     <Count className="release-count" value={release.newGroups} />
                   </div>
-                  <div className="col-sm-2 col-xs-3 release-stats">
+                  <div className="col-sm-2 col-xs-3 text-light">
                     {release.lastEvent ?
                       <TimeSince date={release.lastEvent} />
                     :

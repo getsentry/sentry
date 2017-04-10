@@ -3,6 +3,7 @@ import GroupEventDataSection from '../eventDataSection';
 import PropTypes from '../../../proptypes';
 import RichHttpContent from './richHttpContent';
 import {getCurlCommand} from './utils';
+import {isUrl} from '../../../utils';
 import {t} from '../../../locale';
 
 import Truncate from '../../../components/truncate';
@@ -60,7 +61,10 @@ const RequestInterface = React.createClass({
 
     let children = [];
 
-    if (!this.isPartial()) {
+    // Check if the url passed in is a safe url to avoid XSS
+    let isValidUrl = isUrl(fullUrl);
+
+    if (!this.isPartial() && isValidUrl) {
       children.push(
         <div key="view-buttons" className="btn-group">
           <a className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
@@ -75,13 +79,15 @@ const RequestInterface = React.createClass({
 
     children.push(
       <h3 key="title">
-        <a href={fullUrl} title={fullUrl}>
+        <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
           <span className="path"><strong>{data.method || 'GET'}</strong>
             <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
           </span>
-          <span className="external-icon">
-            <em className="icon-open" />
-          </span>
+          {isValidUrl &&
+            <span className="external-icon">
+              <em className="icon-open" />
+            </span>
+          }
         </a>
         <small style={{marginLeft: 10}} className="host">{parsedUrl.hostname}</small>
       </h3>

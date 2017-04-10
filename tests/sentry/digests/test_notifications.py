@@ -4,8 +4,8 @@ from collections import (
     OrderedDict,
     defaultdict,
 )
-
 from exam import fixture
+from six.moves import reduce
 
 from sentry.digests import Record
 from sentry.digests.notifications import (
@@ -81,7 +81,7 @@ class GroupRecordsTestCase(TestCase):
         return self.project.rule_set.all()[0]
 
     def test_success(self):
-        events = [self.create_event(group=self.group) for _ in xrange(3)]
+        events = [self.create_event(group=self.group) for _ in range(3)]
         records = [Record(event.id, Notification(event, [self.rule]), event.datetime) for event in events]
         assert reduce(group_records, records, defaultdict(lambda: defaultdict(list))) == {
             self.rule: {
@@ -107,7 +107,7 @@ class SortRecordsTestCase(TestCase):
         )
 
         rules = list(self.project.rule_set.all())
-        groups = [self.create_group() for _ in xrange(3)]
+        groups = [self.create_group() for _ in range(3)]
 
         groups[0].event_count = 10
         groups[0].user_count = 4

@@ -99,10 +99,12 @@ const ActionLink = React.createClass({
     let confirmationQuestion = resolveLabel(this.props.confirmationQuestion);
 
     return (
-      <a title={this.props.tooltip || this.props.buttonTitle}
+      <a title={this.props.tooltip !== null ? this.props.tooltip : this.props.buttonTitle}
          className={className}
          disabled={this.props.disabled}
-         onClick={this.handleClick}>
+         onClick={this.handleClick}
+         data-placement="bottom"
+         >
         {this.props.children}
 
         <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false} onHide={this.handleToggle}>
@@ -126,4 +128,3 @@ const ActionLink = React.createClass({
 });
 
 export default ActionLink;
-

@@ -1,0 +1,23 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Restore Organization" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <section class="body">
+    {% if pending_deletion %}
+    <form class="form-stacked" action="" method="post">
+      {% csrf_token %}
+      <p>The <strong>{{ deleting_organization.name }}</strong> organization is currently scheduled for deletion deletion.</p>
+      <p>{% blocktrans %}Would you like to cancel and restore the organization back to the original state?{% endblocktrans %}</p>
+
+      <div class="actions">
+        <button type="submit" class="btn btn-primary">{% trans "Restore Organization" %}</button>
+      </div>
+    </form>
+    {% else %}
+    <p>{% blocktrans %}Sorry, but this organization is currently in progress of being deleted. No turning back.{% endblocktrans %} :(</p>
+    {% endif %}
+  </section>
+{% endblock %}

@@ -7,15 +7,14 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.constants import RESERVED_TEAM_SLUGS
         from sentry.models import slugify_instance
 
         for team in orm['sentry.Team'].objects.filter(models.Q(slug='') | models.Q(slug__isnull=True)):
-            slugify_instance(team, team.name, reserved=RESERVED_TEAM_SLUGS)
+            slugify_instance(team, team.name)
             team.save()
 
         for project in orm['sentry.Project'].objects.filter(models.Q(slug='') | models.Q(slug__isnull=True)):
-            slugify_instance(project, project.name, reserved=RESERVED_TEAM_SLUGS)
+            slugify_instance(project, project.name)
             project.save()
 
 

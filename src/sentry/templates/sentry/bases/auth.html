@@ -3,10 +3,14 @@
 {% load crispy_forms_tags %}
 {% load i18n %}
 
-{% block wrapperclass %}narrow auth org-login hide-sidebar{% endblock %}
+{% block global_sidebar %}{% endblock %}
+{% block sub-header %}{% endblock %}
+
+{% block wrapperclass %}narrow auth org-login{% endblock %}
 
 {% block main %}
-  <section class="body org-login">
+  <div class="pattern-bg"></div>
+  <section class="org-login">
     {% block auth_main %}{% endblock %}
   </section>
 {% endblock %}

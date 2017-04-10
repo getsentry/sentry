@@ -3,14 +3,16 @@
 from __future__ import absolute_import
 
 import mock
+import pytest
+import responses
+import six
 
 from django.core.urlresolvers import reverse
 from exam import fixture
 from social_auth.models import UserSocialAuth
 
 from sentry.models import (
-    UserEmail, LostPasswordHash, ProjectStatus, User, UserOption,
-    UserOptionValue
+    UserEmail, LostPasswordHash, User, UserOption
 )
 from sentry.testutils import TestCase
 
@@ -58,7 +60,7 @@ class SettingsTest(TestCase):
             'email': 'admin@localhost',
             'name': 'Foo bar',
         }
-        return dict((k, v) for k, v in params.iteritems() if k not in without)
+        return dict((k, v) for k, v in six.iteritems(params) if k not in without)
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -100,6 +102,7 @@ class SettingsTest(TestCase):
         assert user.name == params['name']
 
     def test_can_change_password_with_password(self):
+        old_nonce = self.user.session_nonce
         self.login_as(self.user)
 
         params = self.params()
@@ -110,6 +113,7 @@ class SettingsTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('foobar')
+        assert user.session_nonce != old_nonce
 
     def test_cannot_change_password_with_invalid_password(self):
         self.login_as(self.user)
@@ -178,89 +182,6 @@ class SettingsTest(TestCase):
         assert user.email == 'admin@localhost'
 
 
-class NotificationSettingsTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-account-settings-notifications')
-
-    def params(self, without=()):
-        params = {
-            'alert_email': 'foo@example.com',
-        }
-        return dict((k, v) for k, v in params.iteritems() if k not in without)
-
-    def test_requires_authentication(self):
-        self.assertRequiresAuthentication(self.path)
-
-    def test_renders_with_required_context(self):
-        user = self.create_user('foo@example.com')
-        organization = self.create_organization()
-        team = self.create_team(organization=organization)
-        project = self.create_project(organization=organization, team=team)
-        team2 = self.create_team(organization=organization)
-        self.create_project(organization=organization, team=team, status=ProjectStatus.PENDING_DELETION)
-        self.create_project(organization=organization, team=team2)
-        self.create_member(organization=organization, user=user, teams=[project.team])
-        self.login_as(user)
-        resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/account/notifications.html')
-        assert 'form' in resp.context
-        assert len(resp.context['project_forms']) == 1
-
-    def test_valid_params(self):
-        self.login_as(self.user)
-
-        params = self.params()
-
-        resp = self.client.post(self.path, params)
-        assert resp.status_code == 302
-
-        options = UserOption.objects.get_all_values(user=self.user, project=None)
-
-        assert options.get('alert_email') == 'foo@example.com'
-
-    def test_can_change_workflow(self):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, {
-            'workflow_notifications': '1',
-        })
-        assert resp.status_code == 302
-
-        options = UserOption.objects.get_all_values(
-            user=self.user, project=None
-        )
-
-        assert options.get('workflow:notifications') == '0'
-
-        resp = self.client.post(self.path, {
-            'workflow_notifications': '',
-        })
-        assert resp.status_code == 302
-
-        options = UserOption.objects.get_all_values(
-            user=self.user, project=None
-        )
-
-        assert options.get('workflow:notifications') == \
-            UserOptionValue.participating_only
-
-    def test_can_change_subscribe_by_default(self):
-        self.login_as(self.user)
-
-        resp = self.client.post(self.path, {
-            'subscribe_by_default': '1',
-        })
-        assert resp.status_code == 302
-
-        options = UserOption.objects.get_all_values(
-            user=self.user, project=None
-        )
-
-        assert options.get('subscribe_by_default') == '1'
-
-
 class ListIdentitiesTest(TestCase):
     @fixture
     def path(self):
@@ -319,7 +240,7 @@ class RecoverPasswordTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/account/recover/sent.html')
         assert 'email' in resp.context
-        send_recover_mail.assert_called_once_with()
+        send_recover_mail.call_count == 1
 
 
 class RecoverPasswordConfirmTest(TestCase):
@@ -342,6 +263,7 @@ class RecoverPasswordConfirmTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/account/recover/failure.html')
 
     def test_change_password(self):
+        old_nonce = self.user.session_nonce
         resp = self.client.post(self.path, {
             'password': 'bar',
             'confirm_password': 'bar'
@@ -349,15 +271,32 @@ class RecoverPasswordConfirmTest(TestCase):
         assert resp.status_code == 302
         user = User.objects.get(id=self.user.id)
         assert user.check_password('bar')
+        assert user.session_nonce != old_nonce
 
 
 class ConfirmEmailSendTest(TestCase):
     @mock.patch('sentry.models.User.send_confirm_emails')
     def test_valid(self, send_confirm_email):
         self.login_as(self.user)
-        resp = self.client.get(reverse('sentry-account-confirm-email-send'))
-        self.assertRedirects(resp, reverse('sentry-account-settings'), status_code=302)
+        resp = self.client.post(reverse('sentry-account-confirm-email-send'))
+        self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         send_confirm_email.assert_called_once_with()
+
+    def test_get_request_not_valid(self):
+        self.login_as(self.user)
+        resp = self.client.get(reverse('sentry-account-confirm-email-send'))
+        assert resp.status_code == 405
+
+    @mock.patch('sentry.models.User.send_confirm_email_singular')
+    def test_send_single_email(self, send_confirm_email):
+        user = self.create_user('foo@example.com')
+        email = UserEmail.objects.create(user=user, email='bar@example.com')
+        email.save()
+        self.login_as(user)
+        self.client.post(reverse('sentry-account-confirm-email-send'),
+                        data={'primary-email': '', 'email': 'foo@example.com'},
+                        follow=True)
+        send_confirm_email.assert_called_once_with(UserEmail.get_primary_email(user))
 
 
 class ConfirmEmailTest(TestCase):
@@ -373,10 +312,49 @@ class ConfirmEmailTest(TestCase):
     def test_valid(self):
         self.user.save()
         self.login_as(self.user)
-        self.client.get(reverse('sentry-account-confirm-email-send'))
+        self.client.post(reverse('sentry-account-confirm-email-send'))
         email = self.user.emails.first()
         resp = self.client.get(reverse('sentry-account-confirm-email',
                                        args=[self.user.id, email.validation_hash]))
-        self.assertRedirects(resp, reverse('sentry-account-settings'), status_code=302)
+        self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         email = self.user.emails.first()
         assert email.is_verified
+
+
+class DisconnectIdentityTest(TestCase):
+    @responses.activate
+    def test_simple(self):
+        self.login_as(self.user)
+
+        auth = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='github',
+            extra_data={'access_token': 'abcdef'},
+        )
+
+        with self.settings(GITHUB_APP_ID='app_id', GITHUB_API_SECRET='secret'):
+            resp = self.client.post(reverse('sentry-account-disconnect-identity', args=[
+                auth.id,
+            ]))
+
+        assert resp['Location'] == 'http://testserver{}'.format(
+            reverse('sentry-account-settings-identities'),
+        )
+
+        assert not UserSocialAuth.objects.filter(id=auth.id).exists()
+
+    @responses.activate
+    def test_invalid_backend(self):
+        self.login_as(self.user)
+
+        auth = UserSocialAuth.objects.create(
+            user=self.user,
+            provider='invalid',
+            extra_data={'access_token': 'abcdef'},
+        )
+
+        with pytest.raises(Exception):
+            # this should just error hard
+            self.client.post(reverse('sentry-account-disconnect-identity', args=[
+                auth.id,
+            ]))

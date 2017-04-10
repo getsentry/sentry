@@ -4,8 +4,9 @@ sentry.logging.handlers
 :copyright: (c) 2010-2016 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
-
+import six
 import logging
 
 from django.utils.timezone import now
@@ -43,7 +44,7 @@ class HumanRenderer(object):
     def __call__(self, logger, name, event_dict):
         level = event_dict.pop('level')
         real_level = (level.upper()
-            if isinstance(level, basestring)
+            if isinstance(level, six.string_types)
             else logging.getLevelName(level)
         )
         base = '%s [%s] %s: %s' % (
@@ -53,7 +54,7 @@ class HumanRenderer(object):
             event_dict.pop('event', ''),
         )
         join = ' '.join(k + '=' + repr(v)
-               for k, v in event_dict.iteritems())
+               for k, v in six.iteritems(event_dict))
         return '%s%s' % (base, (' (%s)' % join if join else ''))
 
 
@@ -65,7 +66,7 @@ class StructLogHandler(logging.StreamHandler):
         # and just turn them into attributes.
         kwargs = {
             k: v
-            for k, v in vars(record).iteritems()
+            for k, v in six.iteritems(vars(record))
             if k not in throwaways
             and v is not None
         }

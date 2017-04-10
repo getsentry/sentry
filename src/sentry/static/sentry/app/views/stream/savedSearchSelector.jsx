@@ -7,7 +7,7 @@ import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
-import {CheckboxField, TextField} from '../../components/forms';
+import {BooleanField, TextField} from '../../components/forms';
 
 const SaveSearchState = {
   READY: 'Ready',
@@ -19,7 +19,7 @@ const SaveSearchButton = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
-
+    access: React.PropTypes.object.isRequired,
     query: React.PropTypes.string.isRequired,
     disabled: React.PropTypes.bool,
     style: React.PropTypes.object,
@@ -117,24 +117,30 @@ const SaveSearchButton = React.createClass({
               <p>{t('Saving this search will give you and your team quick access to it in the future.')}</p>
               <TextField
                 key="name"
+                name="name"
                 label={t('Name')}
                 placeholder="e.g. My Search Results"
                 required={true}
                 onChange={this.onFieldChange.bind(this, 'name')} />
               <TextField
                 key="query"
+                name="query"
                 label={t('Query')}
                 value={this.state.formData.query}
                 required={true}
                 onChange={this.onFieldChange.bind(this, 'query')} />
-              <CheckboxField
+              <BooleanField
                 key="isUserDefault"
+                name="is-user-default"
                 label={t('Make this the default view for myself.')}
                 onChange={this.onFieldChange.bind(this, 'isUserDefault')} />
-              <CheckboxField
-                key="isDefault"
-                label={t('Make this the default view for my team.')}
-                onChange={this.onFieldChange.bind(this, 'isDefault')} />
+              {this.props.access.has('project:write') &&
+                <BooleanField
+                  key="isDefault"
+                  name="is-default"
+                  label={t('Make this the default view for my team.')}
+                  onChange={this.onFieldChange.bind(this, 'isDefault')} />
+              }
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-default"
@@ -195,23 +201,21 @@ const SavedSearchSelector = React.createClass({
           {access.has('project:write') &&
             <MenuItem divider={true} />
           }
-          {access.has('project:write') &&
-            <li>
-              <div className="row">
-                <div className="col-md-7">
-                  <SaveSearchButton
-                      className="btn btn-sm btn-default"
-                      onSave={this.props.onSavedSearchCreate}
-                      {...this.props}>{t('Save Current Search')}</SaveSearchButton>
-                </div>
-                <div className="col-md-5">
-                  <Link
-                    to={`/${orgId}/${projectId}/settings/saved-searches/`}
-                    className="btn btn-sm btn-default">{t('Manage')}</Link>
-                </div>
+          <li>
+            <div className="row">
+              <div className="col-md-7">
+                <SaveSearchButton
+                    className="btn btn-sm btn-default"
+                    onSave={this.props.onSavedSearchCreate}
+                    {...this.props}>{t('Save Current Search')}</SaveSearchButton>
               </div>
-            </li>
-          }
+              <div className="col-md-5">
+                <Link
+                  to={`/${orgId}/${projectId}/settings/saved-searches/`}
+                  className="btn btn-sm btn-default">{t('Manage')}</Link>
+              </div>
+            </div>
+          </li>
         </DropdownLink>
       </div>
     );

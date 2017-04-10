@@ -1,5 +1,6 @@
 {% load i18n %}
 {% load sentry_api %}
+{% load sentry_avatars %}
 {% load sentry_dsn %}
 {% load sentry_assets %}
 {% load sentry_features %}
@@ -24,11 +25,18 @@
   <link rel="apple-touch-icon" sizes="120x120" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-120x120.png" %}">
   <link rel="apple-touch-icon" sizes="152x152" href="{% absolute_asset_url "sentry" "images/icons/apple-touch-icon-152x152.png" %}">
 
+  <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/icons/sentry-glyph-black.svg" %}" color="#FB4226">
+
   {% block css %}
   <link href="{% asset_url "sentry" "dist/sentry.css" %}" rel="stylesheet"/>
   {% endblock %}
 
   <title>{% block title %}Sentry{% endblock %}</title>
+
+  <script>
+  window.csrfCookieName = '{{ CSRF_COOKIE_NAME }}';
+  </script>
+
 
   {% block scripts %}
   <script src="{% asset_url "sentry" "dist/vendor.js" %}"{% crossorigin %}></script>
@@ -36,8 +44,8 @@
   <script src="{% asset_url "sentry" "dist/app.js" %}"{% crossorigin %}></script>
 
   <script>
-    for (var n in window.exports) {
-      window[n] = window.exports[n];
+    for (var n in window.exports.default) {
+      window[n] = window.exports.default[n];
     }
     window.$ = window.jQuery;
 
@@ -64,11 +72,42 @@
         {% show_system_status %}
     {% endif %}
 
+    {% block global_sidebar %}
+      {% if request.user.is_authenticated %}
+        <div id="blk_sidebar"></div>
+        <script>
+        $(function(){
+          var SidebarWrapper = React.createClass({
+            propTypes: {
+              organization: React.PropTypes.any.isRequired
+            },
+            getChildContext: function () {
+              return {
+                organization: this.props.organization,
+              }
+            },
+            render: function () {
+              return React.createElement(Sentry.OrganizationsLoader, {},
+                React.createElement(Sentry.Sidebar));
+            }
+          });
+          SidebarWrapper.childContextTypes = {
+            organization: React.PropTypes.any
+          };
+          ReactDOM.render(React.createFactory(SidebarWrapper)({
+            organization: {% serialize_detailed_org organization %},
+          }), document.getElementById('blk_sidebar'));
+        });
+        </script>
+      {% endif %}
+    {% endblock %}
+
     {% block alerts %}
     {% include "sentry/partial/alerts.html" %}
     {% endblock %}
 
     {% block header %}
+    {% comment %}
     <header>
       <div class="container">
         {% if request.user.is_authenticated %}
@@ -77,12 +116,7 @@
           <div class="dropdown">
             <a class="dropdown-toggle" data-toggle="dropdown">
               <span class="avatar">
-                {% letter_avatar_svg request.user.get_display_name request.user.get_label %}
-                {% if request.user.get_avatar_type == 'upload' %}
-                  <img src="{% profile_photo_url request.user.id size 72 %}">
-                {% elif request.user.get_avatar_type == 'gravatar' %}
-                  <img src="{% gravatar_url user.email size 72 default 'blank' %}">
-                {% endif %}
+                {% avatar request.user %}
               </span>
               <i class="icon-arrow-down"></i>
             </a>
@@ -105,7 +139,7 @@
 
         <ul class="global-nav pull-right">
           {% block global_nav %}
-          <li><a href="https://docs.getsentry.com">{% trans "Docs" %}</a></li>
+          <li><a href="https://docs.sentry.io">{% trans "Docs" %}</a></li>
           {% endblock %}
         </ul>
 
@@ -132,19 +166,15 @@
         {% endif %}
       </div>
     </header>
+    {% endcomment %}
     {% endblock %}
 
-    {% if organization and request.user.is_authenticated %}
+    {% if organization and ACCESS.org_read %}
     {% block sub-header %}
-    <div class="sub-header">
-      <div class="container">
-        <div class="pull-right">
-          {% block header_action %}{% endblock %}
-        </div>
-        <div class="org-name">
-            <a href="{% url 'sentry-organization-home' organization.slug %}">{{ organization.name }}</a>
-        </div>
+    <div class="sub-header flex flex-container flex-vertically-centered">
+      <div>
         <div id="blk_projectselect"></div>
+        {% block header_nav %}{% endblock %}
         <script>
         $(function(){
           ReactDOM.render(React.createFactory(Sentry.ProjectSelector)({
@@ -153,6 +183,9 @@
           }), document.getElementById('blk_projectselect'));
         });
         </script>
+      </div>
+      <div class="align-right project-actions">
+        {% block header_action %}{% endblock %}
       </div>
     </div>
     {% endblock %}
@@ -185,12 +218,12 @@
         {% block footer %}
         <div class="pull-right">
           {% block support_link %}{% endblock %}
-          <a href="https://docs.getsentry.com/hosted/api/">{% trans "API" %}</a>
-          <a href="https://docs.getsentry.com">{% trans "Docs" %}</a>
+          <a href="https://docs.sentry.io/hosted/api/">{% trans "API" %}</a>
+          <a href="https://docs.sentry.io">{% trans "Docs" %}</a>
           <a href="https://github.com/getsentry/sentry" rel="noreferrer">{% trans "Contribute" %}</a>
           {% if ONPREMISE %}<a href="/out/">{% trans "Migrate to SaaS" %}</a>{% endif %}
         </div>
-        <div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>
+        {% if ONPREMISE %}<div class="version pull-left">Sentry {{ sentry_version.current }} {% if sentry_version.update_available %}<a href="#" title="You're running an old version of Sentry, did you know {{ sentry_version.latest }} is available?" class="tip icon-circle-arrow-up">&nbsp;</a>{% endif %}</div>{% endif %}
         <a href="/" class="icon-sentry-logo"></a>
         {% endblock %}
       </div>
@@ -312,8 +345,6 @@
   });
   </script>
   {% endblock %}
-
-  {% load_captcha %}
 
   {% block scripts_bottom %}{% endblock %}
 </body>

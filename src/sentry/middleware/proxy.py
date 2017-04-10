@@ -1,7 +1,16 @@
 from __future__ import absolute_import
 
+import six
+
+from django.conf import settings
+
 
 class SetRemoteAddrFromForwardedFor(object):
+    def __init__(self):
+        if not getattr(settings, 'SENTRY_USE_X_FORWARDED_FOR', True):
+            from django.core.exceptions import MiddlewareNotUsed
+            raise MiddlewareNotUsed
+
     def process_request(self, request):
         try:
             real_ip = request.META['HTTP_X_FORWARDED_FOR']
@@ -27,6 +36,6 @@ class ContentLengthHeaderMiddleware(object):
             return response
 
         if not response.streaming:
-            response['Content-Length'] = str(len(response.content))
+            response['Content-Length'] = six.text_type(len(response.content))
 
         return response

@@ -11,7 +11,7 @@ import click
 from sentry.runner.decorators import configuration
 
 
-def _upgrade(interactive, traceback, verbosity):
+def _upgrade(interactive, traceback, verbosity, repair):
     from django.core.management import call_command as dj_call_command
     dj_call_command(
         'syncdb',
@@ -29,10 +29,11 @@ def _upgrade(interactive, traceback, verbosity):
         verbosity=verbosity,
     )
 
-    from sentry.runner import call_command
-    call_command(
-        'sentry.runner.commands.repair.repair',
-    )
+    if repair:
+        from sentry.runner import call_command
+        call_command(
+            'sentry.runner.commands.repair.repair',
+        )
 
 
 @click.command()
@@ -40,9 +41,10 @@ def _upgrade(interactive, traceback, verbosity):
 @click.option('--traceback', default=True, is_flag=True, help='Raise on exception.')
 @click.option('--noinput', default=False, is_flag=True, help='Do not prompt the user for input of any kind.')
 @click.option('--lock', default=False, is_flag=True, help='Hold a global lock and limit upgrade to one concurrent.')
+@click.option('--no-repair', default=False, is_flag=True, help='Skip repair step.')
 @configuration
 @click.pass_context
-def upgrade(ctx, verbosity, traceback, noinput, lock):
+def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair):
     "Perform any pending database migrations and upgrades."
 
     if lock:
@@ -51,8 +53,8 @@ def upgrade(ctx, verbosity, traceback, noinput, lock):
         lock = locks.get('upgrade', duration=0)
         try:
             with lock.acquire():
-                _upgrade(not noinput, traceback, verbosity)
+                _upgrade(not noinput, traceback, verbosity, not no_repair)
         except UnableToAcquireLock:
             raise click.ClickException('Unable to acquire `upgrade` lock.')
     else:
-        _upgrade(not noinput, traceback, verbosity)
+        _upgrade(not noinput, traceback, verbosity, not no_repair)

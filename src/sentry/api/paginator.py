@@ -19,12 +19,13 @@ quote_name = connections['default'].ops.quote_name
 
 
 class BasePaginator(object):
-    def __init__(self, queryset, order_by):
+    def __init__(self, queryset, order_by, max_limit=100):
         if order_by.startswith('-'):
             self.key, self.desc = order_by[1:], True
         else:
             self.key, self.desc = order_by, False
         self.queryset = queryset
+        self.max_limit = max_limit
 
     def _build_queryset(self, value, is_prev):
         queryset = self.queryset
@@ -86,6 +87,8 @@ class BasePaginator(object):
         #   (identifier(integer), row offset, is_prev)
         if cursor is None:
             cursor = Cursor(0, 0, 0)
+
+        limit = min(limit, self.max_limit)
 
         if cursor.value:
             cursor_value = self.value_from_cursor(cursor)
@@ -149,6 +152,8 @@ class OffsetPaginator(BasePaginator):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
+        limit = min(limit, self.max_limit)
+
         queryset = self.queryset
         if self.desc:
             queryset = queryset.order_by('-{}'.format(self.key))
@@ -161,7 +166,7 @@ class OffsetPaginator(BasePaginator):
 
         results = list(queryset[offset:stop])
         if cursor.value != limit:
-            results = results[::-1][:limit + 1][::-1]
+            results = results[-(limit + 1):]
 
         next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
         prev_cursor = Cursor(limit, page - 1, True, page > 0)

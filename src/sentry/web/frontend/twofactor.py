@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
+import six
 import time
 
 from django.http import HttpResponseRedirect, HttpResponse
-from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import options
@@ -22,13 +22,15 @@ class TwoFactorAuthView(BaseView):
     auth_required = False
 
     def perform_signin(self, request, user, interface=None):
-        auth.login(request, user, passed_2fa=True)
+        assert auth.login(request, user, passed_2fa=True)
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
             interface.authenticator.mark_used()
             if not interface.is_backup_interface:
-                rv.set_cookie(COOKIE_NAME, str(interface.type),
-                              max_age=COOKIE_MAX_AGE, path='/')
+                rv.set_cookie(
+                    COOKIE_NAME,
+                    six.text_type(interface.type).encode('utf-8'),
+                    max_age=COOKIE_MAX_AGE, path='/')
         return rv
 
     def fail_signin(self, request, user, form):
@@ -56,7 +58,7 @@ class TwoFactorAuthView(BaseView):
         interface_type = request.COOKIES.get(COOKIE_NAME)
         if interface_type:
             for interface in interfaces:
-                if str(interface.type) == interface_type:
+                if six.text_type(interface.type) == interface_type:
                     return interface
 
         # Fallback is to go the highest ranked as default.  This will be
@@ -97,8 +99,8 @@ class TwoFactorAuthView(BaseView):
 
     def handle(self, request):
         user = auth.get_pending_2fa_user(request)
-        if user is None or request.user.is_authenticated():
-            return HttpResponseRedirect(reverse('sentry'))
+        if user is None:
+            return HttpResponseRedirect(auth.get_login_url())
 
         interfaces = Authenticator.objects.all_interfaces_for_user(user)
 

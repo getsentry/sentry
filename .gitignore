@@ -21,6 +21,7 @@ sentry-package.json
 /node_modules/
 /docs/_build
 example/db.sqlite
+/src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/
 /src/sentry/static/sentry/vendor/
@@ -30,3 +31,5 @@ example/db.sqlite
 /src/sentry/integration-docs
 /wheelhouse
 /test_cli/
+Gemfile.lock
+.idea/

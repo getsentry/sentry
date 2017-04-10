@@ -11,12 +11,11 @@ from __future__ import absolute_import
 __all__ = ('Stacktrace',)
 
 import re
-from types import NoneType
-from six import string_types
+import six
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
 from sentry.app import env
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -41,6 +40,21 @@ _java_enhancer_re = re.compile(r'''
 ''', re.X)
 
 
+def max_addr(cur, addr):
+    if addr is None:
+        return cur
+    length = len(addr) - 2
+    if length > cur:
+        return length
+    return cur
+
+
+def pad_hex_addr(addr, length):
+    if length is None or addr is None:
+        return addr
+    return '0x' + addr[2:].rjust(length, '0')
+
+
 def trim_package(pkg):
     if not pkg:
         return '?'
@@ -53,13 +67,17 @@ def trim_package(pkg):
 def to_hex_addr(addr):
     if addr is None:
         return None
-    elif isinstance(addr, (int, long)):
-        return '0x%x' % addr
-    elif isinstance(addr, basestring):
+    elif isinstance(addr, six.integer_types):
+        rv = '0x%x' % addr
+    elif isinstance(addr, six.string_types):
         if addr[:2] == '0x':
-            return addr
-        return '0x%x' % int(addr)
-    raise ValueError('Unsupported address format %r' % (addr,))
+            addr = int(addr[2:], 16)
+        rv = '0x%x' % int(addr)
+    else:
+        raise ValueError('Unsupported address format %r' % (addr,))
+    if len(rv) > 24:
+        raise ValueError('Address too long %r' % (rv,))
+    return rv
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None,
@@ -147,6 +165,8 @@ def remove_filename_outliers(filename):
 
 def remove_module_outliers(module):
     """Remove things that augment the module but really should not."""
+    if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
+        return 'sun.reflect.GeneratedMethodAccessor'
     return _java_enhancer_re.sub(r'\1<auto>', module)
 
 
@@ -222,37 +242,49 @@ def handle_nan(value):
 
 class Frame(Interface):
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, raw=False):
         abs_path = data.get('abs_path')
         filename = data.get('filename')
+        symbol = data.get('symbol')
         function = data.get('function')
         module = data.get('module')
+        package = data.get('package')
 
-        for name in ('abs_path', 'filename', 'function', 'module'):
-            if not isinstance(data.get(name), (string_types, NoneType)):
-                raise InterfaceValidationError("Invalid value for '%s'" % name)
-
-        # absolute path takes priority over filename
-        # (in the end both will get set)
-        if not abs_path:
-            abs_path = filename
-            filename = None
-
-        if not filename and abs_path:
-            if is_url(abs_path):
-                urlparts = urlparse(abs_path)
-                if urlparts.path:
-                    filename = urlparts.path
-                else:
-                    filename = abs_path
-            else:
-                filename = abs_path
-
-        if not (filename or function or module):
-            raise InterfaceValidationError("No 'filename' or 'function' or 'module'")
-
+        # For legacy reasons
         if function == '?':
             function = None
+
+        # For consistency reasons
+        if symbol == '?':
+            symbol = None
+
+        for name in ('abs_path', 'filename', 'symbol', 'function', 'module',
+                     'package'):
+            v = data.get(name)
+            if v is not None and not isinstance(v, six.string_types):
+                raise InterfaceValidationError("Invalid value for '%s'" % name)
+
+        # Some of this processing should only be done for non raw frames
+        if not raw:
+            # absolute path takes priority over filename
+            # (in the end both will get set)
+            if not abs_path:
+                abs_path = filename
+                filename = None
+
+            if not filename and abs_path:
+                if is_url(abs_path):
+                    urlparts = urlparse(abs_path)
+                    if urlparts.path:
+                        filename = urlparts.path
+                    else:
+                        filename = abs_path
+                else:
+                    filename = abs_path
+
+            if not (filename or function or module or package):
+                raise InterfaceValidationError("No 'filename' or 'function' or "
+                                               "'module' or 'package'")
 
         platform = data.get('platform')
         if platform not in VALID_PLATFORMS:
@@ -289,22 +321,17 @@ class Frame(Interface):
         except AssertionError:
             raise InterfaceValidationError("Invalid value for 'in_app'")
 
-        instruction_offset = data.get('instruction_offset')
-        if instruction_offset is not None and \
-           not isinstance(instruction_offset, (int, long)):
-            raise InterfaceValidationError("Invalid value for 'instruction_offset'")
-
         kwargs = {
-            'abs_path': trim(abs_path, 256),
+            'abs_path': trim(abs_path, 2048),
             'filename': trim(filename, 256),
             'platform': platform,
             'module': trim(module, 256),
             'function': trim(function, 256),
-            'package': trim(data.get('package'), 256),
-            'image_addr': to_hex_addr(trim(data.get('image_addr'), 16)),
-            'symbol_addr': to_hex_addr(trim(data.get('symbol_addr'), 16)),
-            'instruction_addr': to_hex_addr(trim(data.get('instruction_addr'), 16)),
-            'instruction_offset': instruction_offset,
+            'package': package,
+            'image_addr': to_hex_addr(data.get('image_addr')),
+            'symbol': trim(symbol, 256),
+            'symbol_addr': to_hex_addr(data.get('symbol_addr')),
+            'instruction_addr': to_hex_addr(data.get('instruction_addr')),
             'in_app': in_app,
             'context_line': context_line,
             # TODO(dcramer): trim pre/post_context
@@ -341,6 +368,12 @@ class Frame(Interface):
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
         output = []
+        # Safari throws [native code] frames in for calls like ``forEach``
+        # whereas Chrome ignores these. Let's remove it from the hashing algo
+        # so that they're more likely to group together
+        if self.filename == '[native code]':
+            return output
+
         if self.module:
             if self.is_unhashable_module():
                 output.append('<module>')
@@ -371,6 +404,8 @@ class Frame(Interface):
             # (likely due to a bad JavaScript error) we should just
             # bail on recording this frame
             return output
+        elif self.symbol:
+            output.append(self.symbol)
         elif self.function:
             if self.is_unhashable_function():
                 output.append('<function>')
@@ -380,17 +415,17 @@ class Frame(Interface):
             output.append(self.lineno)
         return output
 
-    def get_api_context(self, is_public=False):
+    def get_api_context(self, is_public=False, pad_addr=None):
         data = {
             'filename': self.filename,
             'absPath': self.abs_path,
             'module': self.module,
             'package': self.package,
             'platform': self.platform,
-            'instructionAddr': self.instruction_addr,
-            'instructionOffset': self.instruction_offset,
-            'symbolAddr': self.symbol_addr,
+            'instructionAddr': pad_hex_addr(self.instruction_addr, pad_addr),
+            'symbolAddr': pad_hex_addr(self.symbol_addr, pad_addr),
             'function': self.function,
+            'symbol': self.symbol,
             'context': get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
@@ -473,15 +508,14 @@ class Frame(Interface):
         if self.platform is not None:
             platform = self.platform
         if platform in ('objc', 'cocoa'):
-            return '%s (%s)' % (
-                self.function or '?',
-                trim_package(self.package),
-            )
+            return self.function or '?'
         fileloc = self.module or self.filename
         if not fileloc:
             return ''
         elif platform == 'javascript':
-            return '{}({})'.format(self.function or '?', fileloc)
+            # function and fileloc might be unicode here, so let it coerce
+            # to a unicode string if needed.
+            return '%s(%s)' % (self.function or '?', fileloc)
         return '%s in %s' % (
             fileloc,
             self.function or '?',
@@ -593,31 +627,36 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True):
+    def to_python(cls, data, has_system_frames=None, slim_frames=True,
+                  raw=False):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
         if not isinstance(data['frames'], list):
             raise InterfaceValidationError("Invalid value for 'frames'")
 
-        if has_system_frames is None:
-            has_system_frames = cls.data_has_system_frames(data)
-
         frame_list = [
             # XXX(dcramer): handle PHP sending an empty array for a frame
-            Frame.to_python(f or {})
+            Frame.to_python(f or {}, raw=raw)
             for f in data['frames']
         ]
 
-        for frame in frame_list:
-            if not has_system_frames:
-                frame.in_app = False
-            elif frame.in_app is None:
-                frame.in_app = False
+        if not raw:
+            if has_system_frames is None:
+                has_system_frames = cls.data_has_system_frames(data)
+            for frame in frame_list:
+                if not has_system_frames:
+                    frame.in_app = False
+                elif frame.in_app is None:
+                    frame.in_app = False
 
         kwargs = {
             'frames': frame_list,
         }
+
+        kwargs['registers'] = None
+        if data.get('registers') and isinstance(data['registers'], dict):
+            kwargs['registers'] = data.get('registers')
 
         if data.get('frames_omitted'):
             if len(data['frames_omitted']) != 2:
@@ -647,15 +686,25 @@ class Stacktrace(Interface):
             return False
         return bool(system_frames)
 
+    def get_longest_address(self):
+        rv = None
+        for frame in self.frames:
+            rv = max_addr(rv, frame.instruction_addr)
+            rv = max_addr(rv, frame.symbol_addr)
+        return rv
+
     def get_api_context(self, is_public=False):
+        longest_addr = self.get_longest_address()
+
         frame_list = [
-            f.get_api_context(is_public=is_public)
+            f.get_api_context(is_public=is_public, pad_addr=longest_addr)
             for f in self.frames
         ]
 
         return {
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
+            'registers': self.registers,
             'hasSystemFrames': self.has_system_frames,
         }
 
@@ -663,6 +712,7 @@ class Stacktrace(Interface):
         return {
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
+            'registers': self.registers,
             'has_system_frames': self.has_system_frames,
         }
 
@@ -683,14 +733,14 @@ class Stacktrace(Interface):
     def get_hash(self, system_frames=True):
         frames = self.frames
 
-        # TODO(dcramer): this should apply only to JS
-        # In a common case (I believe from window.onerror) we can end up with
-        # a stacktrace which includes a single frame and a reference that isnt
-        # valuable. It would generally point to the loading page, so it's possible
-        # we could improve this check using that information.
+        # TODO(dcramer): this should apply only to platform=javascript
+        # Browser JS will often throw errors (from inlined code in an HTML page)
+        # which contain only a single frame, no function name, and have the HTML
+        # document as the filename. In this case the hash is often not usable as
+        # the context cannot be trusted and the URL is dynamic (this also means
+        # the line number cannot be trusted).
         stack_invalid = (
-            len(frames) == 1 and frames[0].lineno == 1
-            and not frames[0].function and frames[0].is_url()
+            len(frames) == 1 and not frames[0].function and frames[0].is_url()
         )
 
         if stack_invalid:
@@ -773,7 +823,9 @@ class Stacktrace(Interface):
         default = None
         for frame in reversed(self.frames):
             if frame.in_app:
-                return frame.get_culprit_string(platform=platform)
+                culprit = frame.get_culprit_string(platform=platform)
+                if culprit:
+                    return culprit
             elif default is None:
                 default = frame.get_culprit_string(platform=platform)
         return default

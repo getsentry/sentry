@@ -1,7 +1,7 @@
 import jQuery from 'jquery';
 import Reflux from 'reflux';
 import GroupActions from '../actions/groupActions';
-import IndicatorStore from '../stores/indicatorStore';
+import IndicatorStore from './indicatorStore';
 import utils from '../utils';
 import {t} from '../locale';
 import _ from 'underscore';
@@ -337,6 +337,7 @@ const GroupStore = Reflux.createStore({
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   }
+
 });
 
 export default GroupStore;

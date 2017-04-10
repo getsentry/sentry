@@ -7,6 +7,8 @@ sentry.plugins.bases.issue
 """
 from __future__ import absolute_import
 
+import six
+
 from django import forms
 from django.conf import settings
 from django.utils.html import format_html
@@ -41,9 +43,12 @@ class IssueTrackingPlugin(Plugin):
     can_unlink_issues = False
     can_link_existing_issues = False
 
+    def get_plugin_type(self):
+        return 'issue-tracking'
+
     def _get_group_body(self, request, group, event, **kwargs):
         result = []
-        for interface in event.interfaces.itervalues():
+        for interface in six.itervalues(event.interfaces):
             output = safe_execute(interface.to_string, event, _with_transaction=False)
             if output:
                 result.append(output)

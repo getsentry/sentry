@@ -1,6 +1,6 @@
 import jQuery from 'jquery';
 import React from 'react';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
@@ -17,10 +17,7 @@ const ProjectReleases = React.createClass({
     setProjectNavSection: React.PropTypes.func
   },
 
-  mixins: [
-    ApiMixin,
-    History
-  ],
+  mixins: [ApiMixin],
 
   getDefaultProps() {
     return {
@@ -60,7 +57,7 @@ const ProjectReleases = React.createClass({
       targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/releases/`, targetQueryParams);
   },
 
   fetchData() {
@@ -91,7 +88,7 @@ const ProjectReleases = React.createClass({
     let params = this.props.params;
     let queryParams = {
       ...this.props.location.query,
-      limit: 50,
+      per_page: 20,
       query: this.state.query
     };
 
@@ -167,18 +164,20 @@ const ProjectReleases = React.createClass({
             />
           </div>
         </div>
-        <div className="release-group-header">
-          <div className="row">
-            <div className="col-sm-8 col-xs-6">{t('Version')}</div>
-            <div className="col-sm-2 col-xs-3 release-stats align-right">
-              {t('New Events')}
-            </div>
-            <div className="col-sm-2 col-xs-3 release-stats align-right">
-              {t('Last Event')}
+        <div className="panel panel-default">
+          <div className="panel-heading panel-heading-bold">
+            <div className="row">
+              <div className="col-sm-8 col-xs-7">{t('Version')}</div>
+              <div className="col-sm-2 col-xs-3">
+                {t('New Issues')}
+              </div>
+              <div className="col-sm-2 col-xs-2">
+                {t('Last Event')}
+              </div>
             </div>
           </div>
+          {this.renderStreamBody()}
         </div>
-        {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );

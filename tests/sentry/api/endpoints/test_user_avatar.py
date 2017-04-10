@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+
+from base64 import b64encode
 from django.core.urlresolvers import reverse
 
 from sentry.models import UserAvatar
@@ -18,11 +21,11 @@ class UserAvatarTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(user.id)
+        assert response.data['id'] == six.text_type(user.id)
         assert response.data['avatar']['avatarType'] == 'letter_avatar'
         assert response.data['avatar']['avatarUuid'] is None
 
-    def test_put(self):
+    def test_gravatar(self):
         user = self.create_user(email='a@example.com')
 
         self.login_as(user=user)
@@ -36,8 +39,27 @@ class UserAvatarTest(APITestCase):
         assert response.status_code == 200, response.content
         assert avatar.get_avatar_type_display() == 'gravatar'
 
+    def test_upload(self):
+        user = self.create_user(email='a@example.com')
+
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-user-avatar', kwargs={
+            'user_id': 'me',
+        })
+        response = self.client.put(url, data={
+            'avatar_type': 'upload',
+            'avatar_photo': b64encode(self.load_fixture('avatar.jpg')),
+        }, format='json')
+
+        avatar = UserAvatar.objects.get(user=user)
+        assert response.status_code == 200, response.content
+        assert avatar.get_avatar_type_display() == 'upload'
+        assert avatar.file
+
     def test_put_bad(self):
         user = self.create_user(email='a@example.com')
+        UserAvatar.objects.create(user=user)
 
         self.login_as(user=user)
 

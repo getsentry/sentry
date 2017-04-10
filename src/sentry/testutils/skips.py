@@ -37,16 +37,3 @@ def cassandra_is_available():
 requires_cassandra = pytest.mark.skipif(
     not cassandra_is_available(),
     reason="requires cassandra server running")
-
-
-def has_llvm_symbolizer():
-    from symsynd.driver import find_llvm_symbolizer
-
-    try:
-        return find_llvm_symbolizer() is not None
-    except EnvironmentError:
-        return False
-
-requires_llvm_symbolizer = pytest.mark.skipif(
-    not has_llvm_symbolizer(),
-    reason="requires llvm symbolizer")

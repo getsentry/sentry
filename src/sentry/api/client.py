@@ -6,21 +6,20 @@ from django.core.urlresolvers import resolve
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.utils import json
+from sentry.utils.compat import implements_to_string
 
 
+@implements_to_string
 class ApiError(Exception):
     def __init__(self, status_code, body):
         self.status_code = status_code
         self.body = body
 
-    def __unicode__(self):
+    def __str__(self):
         return u'status={} body={}'.format(self.status_code, self.body)
 
-    def __str__(self):
-        return self.__unicode__().encode('utf-8')
-
     def __repr__(self):
-        return u'<ApiError: {}>'.format(self.__unicode__())
+        return u'<ApiError: {}>'.format(self)
 
 
 class ApiClient(object):
@@ -45,6 +44,8 @@ class ApiClient(object):
 
         rf = APIRequestFactory()
         mock_request = getattr(rf, method.lower())(full_path, data or {})
+        # Flag to our API class that we should trust this auth passed through
+        mock_request.__from_api_client__ = True
 
         if request:
             mock_request.auth = getattr(request, 'auth', None)
@@ -59,11 +60,13 @@ class ApiClient(object):
                 mock_request.is_superuser = lambda: request.is_superuser()
             else:
                 mock_request.is_superuser = lambda: is_superuser
+            mock_request.session = request.session
         else:
             mock_request.auth = auth
             mock_request.user = user
             mock_request.is_sudo = lambda: is_sudo
             mock_request.is_superuser = lambda: is_superuser
+            mock_request.session = {}
 
         if request:
             # superuser checks require access to IP

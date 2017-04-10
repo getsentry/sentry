@@ -9,9 +9,9 @@ from __future__ import absolute_import, print_function
 
 import petname
 import six
+import re
 
 from bitfield import BitField
-from urlparse import urlparse
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,12 +19,15 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from six.moves.urllib.parse import urlparse
 
 from sentry import options
 from sentry.db.models import (
     Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
     sane_repr
 )
+
+_uuid4_re = re.compile(r'^[a-f0-9]{32}$')
 
 
 # TODO(dcramer): pull in enum library
@@ -62,11 +65,11 @@ class ProjectKey(Model):
     scopes = (
         'project:read',
         'project:write',
-        'project:delete',
+        'project:admin',
         'project:releases',
         'event:read',
         'event:write',
-        'event:delete',
+        'event:admin',
     )
 
     class Meta:
@@ -81,6 +84,10 @@ class ProjectKey(Model):
     @classmethod
     def generate_api_key(cls):
         return uuid4().hex
+
+    @classmethod
+    def looks_like_api_key(cls, key):
+        return bool(_uuid4_re.match(key))
 
     @classmethod
     def from_dsn(cls, dsn):

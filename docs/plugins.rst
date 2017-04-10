@@ -44,6 +44,7 @@ The following plugins are fully supported and maintained by the Sentry team.
 * `JIRA <https://github.com/getsentry/sentry-jira>`_
 * `Hipchat <https://github.com/getsentry/sentry-hipchat-ac>`_
 * `Slack <https://github.com/getsentry/sentry-slack>`_
+* `GitLab <https://github.com/getsentry/sentry-gitlab>`_
 * `Phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `Pivotal Tracker <https://github.com/getsentry/sentry-pivotal>`_
 * `Pushover <https://github.com/getsentry/sentry-pushover>`_
@@ -68,12 +69,14 @@ The following plugins are available and maintained by members of the Sentry comm
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
 * `sentry-statsd <https://github.com/dreadatour/sentry-statsd>`_
 * `sentry-teamwork <https://github.com/getsentry/sentry-teamwork>`_
+* `sentry-telegram <https://github.com/butorov/sentry-telegram>`_
 * `sentry-top <https://github.com/getsentry/sentry-top>`_
 * `sentry-unfuddle <https://github.com/rkeilty/sentry-unfuddle>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
 * `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
 * `sentry-zabbix <https://github.com/m0n5t3r/sentry-zabbix>`_
+* `sentry-zendesk <https://github.com/ESSS/sentry-zendesk>`_
 
 Have an extension that should be listed here? Submit a `pull request
 <https://github.com/getsentry/sentry/edit/master/docs/plugins.rst>`_ and we'll get it added.

@@ -18,7 +18,8 @@ import base64
 import os
 import os.path
 import pytest
-import urllib
+import six
+import types
 
 from click.testing import CliRunner
 from contextlib import contextmanager
@@ -30,7 +31,9 @@ from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.utils.importlib import import_module
 from exam import before, fixture, Exam
+from pkg_resources import iter_entry_points
 from rest_framework.test import APITestCase as BaseAPITestCase
+from six.moves.urllib.parse import urlencode
 
 from sentry import auth
 from sentry.auth.providers.dummy import DummyProvider
@@ -39,9 +42,12 @@ from sentry.models import GroupMeta, ProjectOption
 from sentry.plugins import plugins
 from sentry.rules import EventState
 from sentry.utils import json
+from sentry.utils.auth import SSO_SESSION_KEY
 
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, get_auth_header, TaskRunner, override_options
+
+DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36'
 
 
 class BaseTestCase(Fixtures, Exam):
@@ -98,7 +104,7 @@ class BaseTestCase(Fixtures, Exam):
         self.client.cookies[session_cookie] = self.session.session_key
         self.client.cookies[session_cookie].update(cookie_data)
 
-    def login_as(self, user):
+    def login_as(self, user, organization_id=None):
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = HttpRequest()
@@ -106,6 +112,8 @@ class BaseTestCase(Fixtures, Exam):
 
         login(request, user)
         request.user = user
+        if organization_id:
+            request.session[SSO_SESSION_KEY] = six.text_type(organization_id)
 
         # Save the session values.
         self.save_session()
@@ -113,6 +121,8 @@ class BaseTestCase(Fixtures, Exam):
     def load_fixture(self, filepath):
         filepath = os.path.join(
             MODULE_ROOT,
+            os.pardir,
+            os.pardir,
             'tests',
             'fixtures',
             filepath,
@@ -131,7 +141,7 @@ class BaseTestCase(Fixtures, Exam):
         super(BaseTestCase, self)._post_teardown()
 
     def _makeMessage(self, data):
-        return json.dumps(data)
+        return json.dumps(data).encode('utf-8')
 
     def _makePostMessage(self, data):
         return base64.b64encode(self._makeMessage(data))
@@ -158,7 +168,7 @@ class BaseTestCase(Fixtures, Exam):
     def _postCspWithHeader(self, data, key=None, **extra):
         if isinstance(data, dict):
             body = json.dumps({'csp-report': data})
-        elif isinstance(data, basestring):
+        elif isinstance(data, six.string_types):
             body = data
         path = reverse('sentry-api-csp-report', kwargs={'project_id': self.project.id})
         path += '?sentry_key=%s' % self.projectkey.public_key
@@ -166,11 +176,11 @@ class BaseTestCase(Fixtures, Exam):
             return self.client.post(
                 path, data=body,
                 content_type='application/csp-report',
-                HTTP_USER_AGENT='awesome',
+                HTTP_USER_AGENT=DEFAULT_USER_AGENT,
                 **extra
             )
 
-    def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+    def _getWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 
@@ -187,12 +197,12 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.get(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
                 **headers
             )
         return resp
 
-    def _postWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
+    def _postWithReferer(self, data, key=None, referer='sentry.io', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 
@@ -208,7 +218,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         with self.tasks():
             resp = self.client.post(
-                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+                '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urlencode(qs)),
                 data=message,
                 content_type='application/json',
                 **headers
@@ -279,8 +289,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault('is_new', True)
         kwargs.setdefault('is_regression', True)
         kwargs.setdefault('is_sample', True)
-        kwargs.setdefault('rule_is_active', False)
-        kwargs.setdefault('rule_last_active', None)
         return EventState(**kwargs)
 
     def assertPasses(self, rule, event=None, **kwargs):
@@ -317,13 +325,7 @@ class PermissionTestCase(TestCase):
         assert resp.status_code >= 300
 
     def assert_member_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='member', teams=[self.team],
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'member')
 
     def assert_teamless_member_can_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -335,13 +337,10 @@ class PermissionTestCase(TestCase):
         self.assert_can_access(user, path)
 
     def assert_member_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='member', teams=[self.team],
-        )
+        return self.assert_role_cannot_access(path, 'member')
 
-        self.assert_cannot_access(user, path)
+    def assert_manager_cannot_access(self, path):
+        return self.assert_role_cannot_access(path, 'manager')
 
     def assert_teamless_member_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -353,13 +352,7 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path)
 
     def assert_team_admin_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            teams=[self.team], role='admin',
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'owner')
 
     def assert_teamless_admin_can_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -371,13 +364,7 @@ class PermissionTestCase(TestCase):
         self.assert_can_access(user, path)
 
     def assert_team_admin_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            teams=[self.team], role='admin',
-        )
-
-        self.assert_cannot_access(user, path)
+        return self.assert_role_cannot_access(path, 'admin')
 
     def assert_teamless_admin_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
@@ -389,34 +376,34 @@ class PermissionTestCase(TestCase):
         self.assert_cannot_access(user, path)
 
     def assert_team_owner_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            teams=[self.team], role='owner',
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'owner')
 
     def assert_owner_can_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='owner', teams=[self.team],
-        )
-
-        self.assert_can_access(user, path)
+        return self.assert_role_can_access(path, 'owner')
 
     def assert_owner_cannot_access(self, path):
-        user = self.create_user(is_superuser=False)
-        self.create_member(
-            user=user, organization=self.organization,
-            role='owner', teams=[self.team],
-        )
-
-        self.assert_cannot_access(user, path)
+        return self.assert_role_cannot_access(path, 'owner')
 
     def assert_non_member_cannot_access(self, path):
         user = self.create_user(is_superuser=False)
+        self.assert_cannot_access(user, path)
+
+    def assert_role_can_access(self, path, role):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization,
+            role=role, teams=[self.team],
+        )
+
+        self.assert_can_access(user, path)
+
+    def assert_role_cannot_access(self, path, role):
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user, organization=self.organization,
+            role=role, teams=[self.team],
+        )
+
         self.assert_cannot_access(user, path)
 
 
@@ -425,8 +412,31 @@ class PluginTestCase(TestCase):
 
     def setUp(self):
         super(PluginTestCase, self).setUp()
-        plugins.register(self.plugin)
-        self.addCleanup(plugins.unregister, self.plugin)
+
+        # Old plugins, plugin is a class, new plugins, it's an instance
+        # New plugins don't need to be registered
+        if isinstance(self.plugin, (type, types.ClassType)):
+            plugins.register(self.plugin)
+            self.addCleanup(plugins.unregister, self.plugin)
+
+    def assertAppInstalled(self, name, path):
+        for ep in iter_entry_points('sentry.apps'):
+            if ep.name == name:
+                ep_path = ep.module_name
+                if ep_path == path:
+                    return
+                self.fail('Found app in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+        self.fail('Missing app from entry_points: %r' % (name,))
+
+    def assertPluginInstalled(self, name, plugin):
+        path = type(plugin).__module__ + ':' + type(plugin).__name__
+        for ep in iter_entry_points('sentry.plugins'):
+            if ep.name == name:
+                ep_path = ep.module_name + ':' + '.'.join(ep.attrs)
+                if ep_path == path:
+                    return
+                self.fail('Found plugin in entry_points, but wrong class. Got %r, expected %r' % (ep_path, path))
+        self.fail('Missing plugin from entry_points: %r' % (name,))
 
 
 class CliTestCase(TestCase):

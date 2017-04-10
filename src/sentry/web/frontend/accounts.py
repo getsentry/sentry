@@ -7,32 +7,46 @@ sentry.web.frontend.accounts
 """
 from __future__ import absolute_import
 
+import logging
+
+import six
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
-from django.http import HttpResponseRedirect, Http404
+from django.db.models import Q
+from django.http import HttpResponseRedirect, Http404, HttpResponse
+from django.views.decorators.http import require_http_methods
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 from django.utils.translation import ugettext as _
+from social_auth.backends import get_backend
+from social_auth.models import UserSocialAuth
 from sudo.decorators import sudo_required
 
+from sentry import newsletter
 from sentry.models import (
-    UserEmail, LostPasswordHash, Project, UserOption, Authenticator
+    User, UserEmail, LostPasswordHash, Project, UserOption, Authenticator
 )
+from sentry.security import capture_security_activity
 from sentry.signals import email_verified
 from sentry.web.decorators import login_required, signed_auth_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, AppearanceSettingsForm,
     RecoverPasswordForm, ChangePasswordRecoverForm,
+    EmailForm
 )
 from sentry.web.helpers import render_to_response
-from sentry.utils.auth import get_auth_providers, get_login_redirect
+from sentry.utils import auth
+
+logger = logging.getLogger('sentry.accounts')
 
 
-def send_password_recovery_mail(user):
+def send_password_recovery_mail(request, user):
     password_hash, created = LostPasswordHash.objects.get_or_create(
         user=user
     )
@@ -40,38 +54,43 @@ def send_password_recovery_mail(user):
         password_hash.date_added = timezone.now()
         password_hash.set_hash()
         password_hash.save()
-    password_hash.send_recover_mail()
+    password_hash.send_recover_mail(request)
     return password_hash
 
 
 @login_required
 def login_redirect(request):
-    login_url = get_login_redirect(request)
+    login_url = auth.get_login_redirect(request)
     return HttpResponseRedirect(login_url)
 
 
 def expired(request, user):
-    password_hash = send_password_recovery_mail(user)
+    password_hash = send_password_recovery_mail(request, user)
     return render_to_response('sentry/account/recover/expired.html', {
         'email': password_hash.user.email,
     }, request)
 
 
 def recover(request):
-    form = RecoverPasswordForm(request.POST or None,
-                               captcha=bool(request.session.get('needs_captcha')))
+    from sentry.app import ratelimiter
+
+    if request.method == 'POST' and ratelimiter.is_limited(
+        'accounts:recover:{}'.format(request.META['REMOTE_ADDR']),
+        limit=5, window=60,  # 5 per minute should be enough for anyone
+    ):
+        return HttpResponse(
+            'You have made too many password recovery attempts. Please try again later.',
+            content_type='text/plain',
+            status=429,
+        )
+
+    form = RecoverPasswordForm(request.POST or None)
     if form.is_valid():
-        password_hash = send_password_recovery_mail(form.cleaned_data['user'])
-        request.session.pop('needs_captcha', None)
+        password_hash = send_password_recovery_mail(request, form.cleaned_data['user'])
 
         return render_to_response('sentry/account/recover/sent.html', {
             'email': password_hash.user.email,
         }, request)
-
-    elif request.POST and not request.session.get('needs_captcha'):
-        request.session['needs_captcha'] = 1
-        form = RecoverPasswordForm(request.POST or None, captcha=True)
-        form.errors.pop('captcha', None)
 
     context = {
         'form': form,
@@ -97,18 +116,28 @@ def recover_confirm(request, user_id, hash):
         if request.method == 'POST':
             form = ChangePasswordRecoverForm(request.POST)
             if form.is_valid():
-                user.set_password(form.cleaned_data['password'])
-                user.save()
+                with transaction.atomic():
+                    user.set_password(form.cleaned_data['password'])
+                    user.refresh_session_nonce(request)
+                    user.save()
 
-                # Ugly way of doing this, but Django requires the backend be set
-                user = authenticate(
-                    username=user.username,
-                    password=form.cleaned_data['password'],
-                )
+                    # Ugly way of doing this, but Django requires the backend be set
+                    user = authenticate(
+                        username=user.username,
+                        password=form.cleaned_data['password'],
+                    )
 
-                login_user(request, user)
+                    login_user(request, user)
 
-                password_hash.delete()
+                    password_hash.delete()
+
+                    capture_security_activity(
+                        account=user,
+                        type='password-changed',
+                        actor=request.user,
+                        ip_address=request.META['REMOTE_ADDR'],
+                        send_email=True,
+                    )
 
                 return login_redirect(request)
         else:
@@ -122,15 +151,47 @@ def recover_confirm(request, user_id, hash):
 
 
 @login_required
+@require_http_methods(["POST"])
 def start_confirm_email(request):
-    has_unverified_emails = request.user.has_unverified_emails()
-    if has_unverified_emails:
+    from sentry.app import ratelimiter
+
+    if ratelimiter.is_limited(
+        'auth:confirm-email:{}'.format(request.user.id),
+        limit=10, window=60,  # 10 per minute should be enough for anyone
+    ):
+        return HttpResponse(
+            'You have made too many email confirmation requests. Please try again later.',
+            content_type='text/plain',
+            status=429,
+        )
+
+    if 'primary-email' in request.POST:
+        email = request.POST.get('email')
+        try:
+            email_to_send = UserEmail.objects.get(user=request.user, email=email)
+        except UserEmail.DoesNotExist:
+            msg = _('There was an error confirming your email.')
+            level = messages.ERROR
+        else:
+            request.user.send_confirm_email_singular(email_to_send)
+            msg = _('A verification email has been sent to %s.') % (email)
+            level = messages.SUCCESS
+        messages.add_message(request, level, msg)
+        return HttpResponseRedirect(reverse('sentry-account-settings'))
+    elif request.user.has_unverified_emails():
         request.user.send_confirm_emails()
-        msg = _('A verification email has been sent to %s.') % request.user.email
+        unverified_emails = [e.email for e in request.user.get_unverified_emails()]
+        msg = _('A verification email has been sent to %s.') % (', ').join(unverified_emails)
+        for email in unverified_emails:
+            logger.info('user.email.start_confirm', extra={
+                'user_id': request.user.id,
+                'ip_address': request.META['REMOTE_ADDR'],
+                'email': email,
+            })
     else:
         msg = _('Your email (%s) has already been verified.') % request.user.email
     messages.add_message(request, messages.SUCCESS, msg)
-    return HttpResponseRedirect(reverse('sentry-account-settings'))
+    return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
 
 def confirm_email(request, user_id, hash):
@@ -150,21 +211,26 @@ def confirm_email(request, user_id, hash):
         email.validation_hash = ''
         email.save()
         email_verified.send(email=email.email, sender=email)
+        logger.info('user.email.confirm', extra={
+            'user_id': user_id,
+            'ip_address': request.META['REMOTE_ADDR'],
+            'email': email.email,
+        })
     messages.add_message(request, level, msg)
-    return HttpResponseRedirect(reverse('sentry-account-settings'))
+    return HttpResponseRedirect(reverse('sentry-account-settings-emails'))
 
 
 @csrf_protect
 @never_cache
 @login_required
 @transaction.atomic
-def settings(request):
+def account_settings(request):
     user = request.user
 
     form = AccountSettingsForm(
-        user, request.POST or None,
+        user, request, request.POST or None,
         initial={
-            'email': user.email,
+            'email': UserEmail.get_primary_email(user).email,
             'username': user.username,
             'name': user.name,
         },
@@ -175,11 +241,21 @@ def settings(request):
 
         form.save()
 
-        # remove previously valid email address
+        # update notification settings for those set to primary email with new primary email
+        alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+
+        if alert_email == old_email:
+            UserOption.objects.set_value(user=user, project=None, key='alert_email', value=user.email)
+        options = UserOption.objects.filter(user=user, key='mail:email')
+        for option in options:
+            if option.value != old_email:
+                continue
+            option.value = user.email
+            option.save()
+
         # TODO(dcramer): we should maintain validation here when we support
         # multiple email addresses
         if request.user.email != old_email:
-            UserEmail.objects.filter(user=user, email=old_email).delete()
             try:
                 with transaction.atomic():
                     user_email = UserEmail.objects.create(
@@ -191,10 +267,15 @@ def settings(request):
             else:
                 user_email.set_hash()
                 user_email.save()
-            user.send_confirm_emails()
+                user.send_confirm_email_singular(user_email)
+                msg = _('A confirmation email has been sent to %s.') % user_email.email
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    msg)
 
         messages.add_message(
-            request, messages.SUCCESS, 'Your settings were saved.')
+            request, messages.SUCCESS, _('Your settings were saved.'))
         return HttpResponseRedirect(request.path)
 
     context = csrf(request)
@@ -202,7 +283,9 @@ def settings(request):
         'form': form,
         'page': 'settings',
         'has_2fa': Authenticator.objects.user_has_2fa(request.user),
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'email': UserEmail.get_primary_email(user),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/settings.html', context, request)
 
@@ -224,6 +307,7 @@ def twofactor_settings(request):
         'page': 'security',
         'has_2fa': any(x.is_enrolled and not x.is_backup_interface for x in interfaces),
         'interfaces': interfaces,
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/twofactor.html', context, request)
 
@@ -236,7 +320,8 @@ def avatar_settings(request):
     context = csrf(request)
     context.update({
         'page': 'avatar',
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/avatar.html', context, request)
 
@@ -265,7 +350,8 @@ def appearance_settings(request):
     context.update({
         'form': form,
         'page': 'appearance',
-        'AUTH_PROVIDERS': get_auth_providers(),
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/appearance.html', context, request)
 
@@ -287,7 +373,7 @@ def email_unsubscribe_project(request, project_id):
         if 'cancel' not in request.POST:
             UserOption.objects.set_value(
                 request.user, project, 'mail:alert', 0)
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(auth.get_login_url())
 
     context = csrf(request)
     context['project'] = project
@@ -299,16 +385,217 @@ def email_unsubscribe_project(request, project_id):
 @never_cache
 @login_required
 def list_identities(request):
-    from social_auth.models import UserSocialAuth
-
     identity_list = list(UserSocialAuth.objects.filter(user=request.user))
 
-    AUTH_PROVIDERS = get_auth_providers()
+    AUTH_PROVIDERS = auth.get_auth_providers()
 
     context = csrf(request)
     context.update({
         'identity_list': identity_list,
         'page': 'identities',
         'AUTH_PROVIDERS': AUTH_PROVIDERS,
+        'has_newsletters': newsletter.is_enabled,
     })
     return render_to_response('sentry/account/identities.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+def disconnect_identity(request, identity_id):
+    if request.method != 'POST':
+        raise NotImplementedError
+
+    try:
+        auth = UserSocialAuth.objects.get(id=identity_id)
+    except UserSocialAuth.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
+
+    backend = get_backend(auth.provider, request, '/')
+    if backend is None:
+        raise Exception('Backend was not found for request: {}'.format(auth.provider))
+
+    # stop this from bubbling up errors to social-auth's middleware
+    # XXX(dcramer): IM SO MAD ABOUT THIS
+    try:
+        backend.disconnect(request.user, identity_id)
+    except Exception as exc:
+        import sys
+        exc_tb = sys.exc_info()[2]
+        six.reraise(Exception, exc, exc_tb)
+        del exc_tb
+
+    # XXX(dcramer): we experienced an issue where the identity still existed,
+    # and given that this is a cheap query, lets error hard in that case
+    assert not UserSocialAuth.objects.filter(
+        user=request.user,
+        id=identity_id,
+    ).exists()
+
+    backend_name = backend.AUTH_BACKEND.name
+
+    messages.add_message(
+        request, messages.SUCCESS,
+        'Your {} identity has been disconnected.'.format(
+            settings.AUTH_PROVIDER_LABELS.get(backend_name, backend_name),
+        )
+    )
+    logger.info('user.identity.disconnect', extra={
+        'user_id': request.user.id,
+        'ip_address': request.META['REMOTE_ADDR'],
+        'usersocialauth_id': identity_id,
+    })
+    return HttpResponseRedirect(reverse('sentry-account-settings-identities'))
+
+
+@csrf_protect
+@never_cache
+@login_required
+def show_emails(request):
+    user = request.user
+    emails = user.emails.all()
+    email_form = EmailForm(user, request.POST or None)
+    primary_email = UserEmail.get_primary_email(user)
+    alt_emails = emails.exclude(email=primary_email.email)
+
+    if 'remove' in request.POST:
+        email = request.POST.get('email')
+        del_email = UserEmail.objects.filter(user=user, email=email)
+        del_email.delete()
+        logger.info('user.email.remove', extra={
+            'user_id': user.id,
+            'ip_address': request.META['REMOTE_ADDR'],
+            'email': email,
+        })
+
+        return HttpResponseRedirect(request.path)
+
+    if 'primary' in request.POST:
+        new_primary = request.POST['new_primary_email'].lower()
+
+        if User.objects.filter(Q(email__iexact=new_primary) | Q(username__iexact=new_primary)).exclude(id=user.id).exists():
+            messages.add_message(request,
+                messages.ERROR,
+                _("That email is already in use for another user")
+            )
+
+        elif new_primary != user.email:
+
+            # update notification settings for those set to primary email with new primary email
+            alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+
+            if alert_email == user.email:
+                UserOption.objects.set_value(user=user, project=None, key='alert_email', value=new_primary)
+            options = UserOption.objects.filter(user=user, key='mail:email')
+            for option in options:
+                if option.value != user.email:
+                    continue
+                option.value = new_primary
+                option.save()
+
+            has_new_username = user.email == user.username
+
+            user.email = new_primary
+
+            msg = _('Your settings were saved')
+            messages.add_message(
+                request,
+                messages.SUCCESS,
+                msg)
+
+            if has_new_username and not User.objects.filter(username__iexact=new_primary).exists():
+                user.username = user.email
+            user.save()
+        return HttpResponseRedirect(request.path)
+
+    if email_form.is_valid():
+
+        alternative_email = email_form.cleaned_data['alt_email'].lower()
+
+        # check if this alternative email already exists for user
+        if alternative_email and not UserEmail.objects.filter(user=user, email__iexact=alternative_email):
+            # create alternative email for user
+            try:
+                with transaction.atomic():
+                    new_email = UserEmail.objects.create(
+                        user=user,
+                        email=alternative_email
+                    )
+            except IntegrityError:
+                pass
+            else:
+                new_email.set_hash()
+                new_email.save()
+                user.send_confirm_email_singular(new_email)
+                # Update newsletter subscription and mark as unverified
+                newsletter.update_subscription(
+                    user=user,
+                    verified=False,
+                )
+
+                logger.info('user.email.add', extra={
+                    'user_id': user.id,
+                    'ip_address': request.META['REMOTE_ADDR'],
+                    'email': new_email.email,
+                })
+                msg = _('A confirmation email has been sent to %s.') % new_email.email
+                messages.add_message(
+                    request,
+                    messages.SUCCESS,
+                    msg)
+
+        messages.add_message(
+            request, messages.SUCCESS, _('Your settings were saved.'))
+        return HttpResponseRedirect(request.path)
+
+    context = csrf(request)
+    context.update({
+        'email_form': email_form,
+        'primary_email': primary_email,
+        'alt_emails': alt_emails,
+        'page': 'emails',
+        'AUTH_PROVIDERS': auth.get_auth_providers(),
+        'has_newsletters': newsletter.is_enabled,
+    })
+    return render_to_response('sentry/account/emails.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@login_required
+def manage_subscriptions(request):
+    user = request.user
+    email = UserEmail.get_primary_email(user)
+
+    if request.method == 'GET':
+        context = csrf(request)
+        context.update({
+            'page': 'subscriptions',
+            'email': email,
+            'AUTH_PROVIDERS': auth.get_auth_providers(),
+            'has_newsletters': newsletter.is_enabled,
+            'subscriptions': newsletter.get_subscriptions(user),
+        })
+        return render_to_response('sentry/account/subscriptions.html', context, request)
+
+    subscribed = request.POST.get('subscribed') == '1'
+    try:
+        list_id = int(request.POST.get('listId', ''))
+    except ValueError:
+        return HttpResponse('bad request', status=400)
+
+    kwargs = {
+        'list_id': list_id,
+        'subscribed': subscribed,
+        'verified': email.is_verified,
+    }
+    if not subscribed:
+        kwargs['unsubscribed_date'] = timezone.now()
+    else:
+        kwargs['subscribed_date'] = timezone.now()
+
+    newsletter.create_or_update_subscription(
+        user,
+        **kwargs
+    )
+    return HttpResponse()

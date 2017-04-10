@@ -81,20 +81,26 @@ const ActivityItem = React.createClass({
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
+      case 'set_resolved_in_commit':
+        return tct('[author] marked [link:an issue] as fixed in [version]', {
+          author: author,
+          version: data.commit.id.substr(0, 12),
+          link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
+        });
       case 'set_unresolved':
         return tct('[author] marked [link:an issue] as unresolved', {
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
-      case 'set_muted':
-        if (data.snoozeDuration) {
-          return tct('[author] snoozed [link:an issue] for [duration]', {
+      case 'set_ignored':
+        if (data.ignoreDuration) {
+          return tct('[author] ignored [link:an issue] for [duration]', {
             author: author,
-            duration: <Duration seconds={data.snoozeDuration * 60} />,
+            duration: <Duration seconds={data.ignoreDuration * 60} />,
             link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
           });
         }
-        return tct('[author] muted [link:an issue]', {
+        return tct('[author] ignored [link:an issue]', {
           author: author,
           link: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`} />
         });
@@ -174,6 +180,12 @@ const ActivityItem = React.createClass({
         return tct('[author] released version [version]', {
           author: author,
           version: <Version version={data.version} orgId={orgId} projectId={project.slug} />
+        });
+      case 'deploy':
+        return tct('[author] deployed version [version] to [environment].', {
+          author: author,
+          version: <Version version={data.version} orgId={orgId} projectId={project.slug} />,
+          environment: data.environment || 'Default Environment'
         });
       default:
         return ''; // should never hit (?)

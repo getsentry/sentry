@@ -108,6 +108,8 @@ class ContextsTest(TestCase):
             'whatever': {
                 'foo': 'bar',
                 'blub': 'blah',
+                'biz': [1, 2, 3],
+                'baz': {'foo': 'bar'},
             },
         })
         assert sorted(ctx.iter_tags()) == []
@@ -116,8 +118,28 @@ class ContextsTest(TestCase):
                 'type': 'default',
                 'foo': 'bar',
                 'blub': 'blah',
+                'biz': [1, 2, 3],
+                'baz': {'foo': 'bar'},
             }
         }
 
     def test_path(self):
         assert Contexts().get_path() == 'contexts'
+
+    def test_app(self):
+        ctx = Contexts.to_python({
+            'app': {
+                'app_id': '1234',
+                'device_app_hash': '5678',
+            },
+        })
+        assert sorted(ctx.iter_tags()) == [
+            ('app.device', '5678'),
+        ]
+        assert ctx.to_json() == {
+            'app': {
+                'type': 'app',
+                'app_id': '1234',
+                'device_app_hash': '5678',
+            }
+        }

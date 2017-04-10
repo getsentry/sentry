@@ -1,7 +1,12 @@
 from __future__ import absolute_import
 
 import collections
+import six
 import warnings
+
+
+class UnsupportedBackend(RuntimeWarning):
+    pass
 
 
 class DeprecatedSettingWarning(DeprecationWarning):
@@ -78,12 +83,12 @@ class WarningSet(collections.Set):
         return len(self.__warnings)
 
     def __iter__(self):
-        return self.__warnings.itervalues()
+        return six.itervalues(self.__warnings)
 
     def __get_key(self, warning):
         return (
             type(warning),
-            warning.args if hasattr(warning, 'args') else str(warning),
+            warning.args if hasattr(warning, 'args') else six.text_type(warning),
         )
 
     def add(self, warning, stacklevel=None):

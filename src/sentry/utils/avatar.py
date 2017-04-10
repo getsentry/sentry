@@ -10,15 +10,16 @@ selected, the svg, etc) will also need to be changed there.
 """
 from __future__ import absolute_import
 
-import urllib
+import six
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.utils.encoding import force_text
 from django.utils.html import escape
+from six.moves.urllib.parse import urlencode
 
-from sentry.utils.hashlib import md5
+from sentry.utils.hashlib import md5_text
 from sentry.http import safe_urlopen
 
 
@@ -26,32 +27,32 @@ def get_gravatar_url(email, size=None, default='mm'):
     if email is None:
         email = ''
     gravatar_url = "%s/avatar/%s" % (settings.SENTRY_GRAVATAR_BASE_URL,
-                                     md5(email.lower()).hexdigest())
+                                     md5_text(email.lower()).hexdigest())
 
     properties = {}
     if size:
-        properties['s'] = str(size)
+        properties['s'] = six.text_type(size)
     if default:
         properties['d'] = default
     if properties:
-        gravatar_url += "?" + urllib.urlencode(properties)
+        gravatar_url += "?" + urlencode(properties)
 
     return gravatar_url
 
 
 LETTER_AVATAR_COLORS = [
-    '#25A6F7',  # blue
-    '#1D87CE',  # blue_dark
-    '#6FBA57',  # green
-    '#4F923C',  # green_dark
-    '#F8A509',  # yellow_orange
-    '#E35141',  # red
-    '#B64236',  # red_dark
-    '#E56AA6',  # pink
-    '#836CC2',  # purple
-    '#6958A2',  # purple_dark
-    '#44ADA0',  # teal
-    '#6F7E94'   # gray
+    '#4674ca',  # blue
+    '#315cac',  # blue_dark
+    '#57be8c',  # green
+    '#3fa372',  # green_dark
+    '#f9a66d',  # yellow_orange
+    '#ec5e44',  # red
+    '#e63717',  # red_dark
+    '#f868bc',  # pink
+    '#6c5fc7',  # purple
+    '#4e3fb4',  # purple_dark
+    '#57b1be',  # teal
+    '#847a8c'   # gray
 ]
 
 

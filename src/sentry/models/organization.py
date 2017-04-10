@@ -7,8 +7,11 @@ sentry.models.organization
 """
 from __future__ import absolute_import, print_function
 
+from datetime import timedelta
+
 from bitfield import BitField
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -21,6 +24,7 @@ from sentry.db.models import (
     BaseManager, BoundedPositiveIntegerField, Model, sane_repr
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -35,7 +39,7 @@ class OrganizationManager(BaseManager):
     # def get_by_natural_key(self, slug):
     #     return self.get(slug=slug)
 
-    def get_for_user(self, user, scope=None):
+    def get_for_user(self, user, scope=None, only_visible=True):
         """
         Returns a set of all organizations a user has access to.
         """
@@ -45,17 +49,21 @@ class OrganizationManager(BaseManager):
             return []
 
         if settings.SENTRY_PUBLIC and scope is None:
-            return list(self.filter(status=OrganizationStatus.VISIBLE))
+            if only_visible:
+                return list(self.filter(status=OrganizationStatus.VISIBLE))
+            else:
+                return list(self.filter())
 
-        results = list(OrganizationMember.objects.filter(
-            user=user,
-            organization__status=OrganizationStatus.VISIBLE,
-        ).select_related('organization'))
+        qs = OrganizationMember.objects.filter(user=user).select_related('organization')
+        if only_visible:
+            qs = qs.filter(organization__status=OrganizationStatus.VISIBLE)
+
+        results = list(qs)
 
         if scope is not None:
             return [
                 r.organization for r in results
-                if scope not in r.get_scopes()
+                if scope in r.get_scopes()
             ]
         return [r.organization for r in results]
 
@@ -150,32 +158,38 @@ class Organization(Model):
             'default_role': self.default_role,
         }
 
+    def get_owners(self):
+        from sentry.models import User
+        return User.objects.filter(
+            sentry_orgmember_set__role=roles.get_top_dog().id,
+            sentry_orgmember_set__organization=self,
+            is_active=True,
+        )
+
     def get_default_owner(self):
         if not hasattr(self, '_default_owner'):
-            from sentry.models import User
-
-            self._default_owner = User.objects.filter(
-                sentry_orgmember_set__role=roles.get_top_dog().id,
-                sentry_orgmember_set__organization=self,
-            )[0]
+            self._default_owner = self.get_owners()[0]
         return self._default_owner
 
     def has_single_owner(self):
         from sentry.models import OrganizationMember
         count = OrganizationMember.objects.filter(
             organization=self,
-            role='owner',
+            role=roles.get_top_dog().id,
             user__isnull=False,
-        ).count()
+            user__is_active=True,
+        )[:2].count()
         return count == 1
 
     def merge_to(from_org, to_org):
         from sentry.models import (
-            ApiKey, AuditLogEntry, OrganizationMember, OrganizationMemberTeam,
-            Project, Team
+            ApiKey, AuditLogEntry, Commit, OrganizationMember,
+            OrganizationMemberTeam, Project, Release, ReleaseCommit,
+            ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit,
+            Repository, Team, Environment,
         )
 
-        for from_member in OrganizationMember.objects.filter(organization=from_org):
+        for from_member in OrganizationMember.objects.filter(organization=from_org, user__isnull=False):
             try:
                 to_member = OrganizationMember.objects.get(
                     organization=to_org,
@@ -220,10 +234,31 @@ class Organization(Model):
                     slug=project.slug,
                 )
 
-        for model in (ApiKey, AuditLogEntry):
+        # TODO(jess): update this when adding unique constraint
+        # on version, organization for releases
+        for release in Release.objects.filter(organization=from_org):
+            try:
+                to_release = Release.objects.get(
+                    version=release.version,
+                    organization=to_org
+                )
+            except Release.DoesNotExist:
+                Release.objects.filter(
+                    id=release.id
+                ).update(organization=to_org)
+            else:
+                Release.merge(to_release, [release])
+
+        for model in (ApiKey, AuditLogEntry, ReleaseFile):
             model.objects.filter(
                 organization=from_org,
             ).update(organization=to_org)
+
+        for model in (Commit, ReleaseCommit, ReleaseEnvironment,
+                      ReleaseHeadCommit, Repository, Environment):
+            model.objects.filter(
+                organization_id=from_org.id,
+            ).update(organization_id=to_org.id)
 
     # TODO: Make these a mixin
     def update_option(self, *args, **kwargs):
@@ -240,3 +275,27 @@ class Organization(Model):
         from sentry.models import OrganizationOption
 
         return OrganizationOption.objects.unset_value(self, *args, **kwargs)
+
+    def send_delete_confirmation(self, audit_log_entry, countdown):
+        from sentry import options
+        from sentry.utils.email import MessageBuilder
+
+        owners = self.get_owners()
+
+        context = {
+            'organization': self,
+            'audit_log_entry': audit_log_entry,
+            'eta': timezone.now() + timedelta(seconds=countdown),
+            'url': absolute_uri(reverse(
+                'sentry-restore-organization',
+                args=[self.slug],
+            )),
+        }
+
+        MessageBuilder(
+            subject='%sOrganization Queued for Deletion' % (options.get('mail.subject-prefix'),),
+            template='sentry/emails/org_delete_confirm.txt',
+            html_template='sentry/emails/org_delete_confirm.html',
+            type='org.confirm_delete',
+            context=context,
+        ).send_async([o.email for o in owners])

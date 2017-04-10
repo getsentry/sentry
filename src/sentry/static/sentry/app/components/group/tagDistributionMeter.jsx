@@ -3,7 +3,7 @@ import {Link} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import PropTypes from '../../proptypes';
 import TooltipMixin from '../../mixins/tooltip';
-import {escape, percent} from '../../utils';
+import {escape, percent, deviceNameMapper} from '../../utils';
 import {t} from '../../locale';
 
 const TagDistributionMeter = React.createClass({
@@ -103,10 +103,10 @@ const TagDistributionMeter = React.createClass({
                 key={value.id}
                 className={className} style={{width: pct + '%'}}
                 to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
-                title={'<div class="truncate">' + escape(value.name) + '</div>' + pctLabel + '%'}>
+                title={'<div class="truncate">' + escape(deviceNameMapper(value.name)) + '</div>' + pctLabel + '%'}>
               <span className="tag-description">
                 <span className="tag-percentage">{pctLabel}%</span>
-                <span className="tag-label">{value.name}</span>
+                <span className="tag-label">{deviceNameMapper(value.name)}</span>
               </span>
             </Link>
           );
@@ -114,7 +114,7 @@ const TagDistributionMeter = React.createClass({
         {hasOther &&
           <Link
               key="other"
-              className="segment" style={{width: otherPct + '%'}}
+              className="segment segment-9" style={{width: otherPct + '%'}}
               to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
               title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">

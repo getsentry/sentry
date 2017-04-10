@@ -7,20 +7,20 @@ sentry.runner.commands.exec
 """
 from __future__ import absolute_import, print_function
 
+import six
 import sys
 import click
 
 # If this changes, make sure to also update in the `__doc__`
 SCRIPT_TEMPLATE = u"""\
-from sentry.runner import configure; configure()
-from django.conf import settings
-from sentry.models import *
+%(header)s
 
 try:
-    %(script)s
+    %(body)s
 except Exception:
     import traceback
     traceback.print_exc()
+    raise ScriptError('Failed to execute script {!r}'.format(%(filename)r))
 """
 
 
@@ -71,13 +71,44 @@ def exec_(c, file):
                 with open(file, 'rb') as fp:
                     c = fp.read().decode('utf8')
             except (IOError, OSError) as e:
-                raise click.ClickException(unicode(e))
+                raise click.ClickException(six.text_type(e))
     else:
         file = '<string>'
 
+    header = []
+
+    if 'from __future__' in c:
+        body = []
+        state = 0
+
+        for line in c.splitlines():
+            if line.startswith('from __future__'):
+                state = 1
+            elif line and not line.startswith('#', '"', "'") and state == 1:
+                state = 2
+            if state == 2:
+                body.append(line)
+            else:
+                header.append(line)
+        body = '\n'.join(body)
+    else:
+        header = []
+        body = c
+
+    if 'from sentry.runner import configure' not in c:
+        header.extend([
+            'from sentry.runner import configure; configure()',
+            'from django.conf import settings',
+            'from sentry.models import *',
+        ])
+
+    header.append('class ScriptError(Exception): pass')
+
     script = SCRIPT_TEMPLATE % {
         # Need to reindent the code to fit inside the `try` block
-        'script': c.replace('\n', '\n' + (' ' * 4)),
+        'body': body.replace('\n', '\n' + (' ' * 4)),
+        'header': '\n'.join(header),
+        'filename': file,
     }
 
     # Chop off `exec` from `sys.argv` so scripts can handle
@@ -88,7 +119,8 @@ def exec_(c, file):
     g = {
         # Inject `__name__ = '__main__' for scripts
         '__name__': '__main__',
+        '__file__': '<script>',
     }
-    # locals context
-    l = {}
-    exec compile(script, file, 'exec') in g, l
+    # we use globals as locals due to:
+    # http://stackoverflow.com/a/2906198/154651
+    six.exec_(compile(script, file, 'exec'), g, g)

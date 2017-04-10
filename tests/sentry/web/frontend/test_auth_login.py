@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from django.utils.http import urlquote
+
 from django.core.urlresolvers import reverse
 from exam import fixture
 
@@ -76,3 +78,49 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 200
         assert resp.context['op'] == 'register'
         self.assertTemplateUsed('sentry/login.html')
+
+    def test_already_logged_in(self):
+        self.login_as(self.user)
+        with self.feature('organizations:create'):
+            resp = self.client.get(self.path)
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
+
+    def test_register_prefills_invite_email(self):
+        self.session['invite_email'] = 'foo@example.com'
+        self.session['can_register'] = True
+        self.save_session()
+
+        register_path = reverse('sentry-register')
+        resp = self.client.get(register_path)
+
+        assert resp.status_code == 200
+        assert resp.context['op'] == 'register'
+        assert resp.context['register_form'].initial['username'] == 'foo@example.com'
+        self.assertTemplateUsed('sentry/login.html')
+
+    def test_redirects_to_relative_next_url(self):
+        next = '/welcome'
+        self.client.get(self.path + '?next=' + next)
+
+        resp = self.client.post(self.path, {
+            'username': self.user.username,
+            'password': 'admin',
+            'op': 'login',
+        })
+        assert resp.status_code == 302
+        assert resp.get('Location', '').endswith(next)
+
+    def test_doesnt_redirect_to_external_next_url(self):
+        next = "http://example.com"
+        self.client.get(self.path + '?next=' + urlquote(next))
+
+        resp = self.client.post(self.path, {
+            'username': self.user.username,
+            'password': 'admin',
+            'op': 'login',
+        })
+        assert resp.status_code == 302
+        assert next not in resp['Location']
+        assert resp['Location'] == 'http://testserver/auth/login/'

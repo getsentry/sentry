@@ -1,14 +1,15 @@
-{% extends "sentry/emails/base.html" %}
+{% extends "sentry/emails/activity/generic.html" %}
 
+{% load sentry_avatars %}
 {% load sentry_helpers %}
 {% load sentry_assets %}
 
-{% block header %}
+{% block action %}
   <a href="{{ activity_link }}" class="btn">View on Sentry</a>
-  {{ block.super }}
 {% endblock %}
 
-{% block main %}
+{% block activity %}
+
   <h3>New comment by {{ author.get_display_name }}</h3>
 
   <table class="note">
@@ -31,5 +32,4 @@
     </tr>
   </table>
 
-  {% include "sentry/emails/group_header.html" %}
 {% endblock %}

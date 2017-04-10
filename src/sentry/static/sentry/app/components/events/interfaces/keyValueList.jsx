@@ -2,6 +2,7 @@ import React from 'react';
 import _ from 'underscore';
 
 import ContextData from '../../contextData';
+import {deviceNameMapper} from '../../../utils';
 
 const KeyValueList = React.createClass({
   propTypes: {
@@ -47,13 +48,7 @@ const KeyValueList = React.createClass({
             return [
               <tr key={key}>
                 <td className="key">{key}</td>
-                <td className="value">
-                  <pre>{React.isValidElement(value)
-                    ? value
-                    : '' + value || ''
-                  }
-                  </pre>
-                </td>
+                <td className="value"><pre>{deviceNameMapper('' + value || ' ')}</pre></td>
               </tr>
             ];
           }

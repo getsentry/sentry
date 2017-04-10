@@ -43,6 +43,7 @@ const ExceptionInterface = React.createClass({
     let title = (
       <CrashHeader
         group={group}
+        platform={event.platform}
         exception={data}
         stackView={stackView}
         newestFirst={newestFirst}

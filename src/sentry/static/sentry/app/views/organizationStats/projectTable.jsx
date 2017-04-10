@@ -40,13 +40,13 @@ const ProjectTable = React.createClass({
     });
 
     return (
-      <table className="table simple-list project-list">
+      <table className="table m-b-0">
         <thead>
           <tr>
             <th>{t('Project')}</th>
             <th className="align-right">{t('Accepted')}</th>
             <th className="align-right">{t('Dropped')}<br/>{t('(Rate Limit)')}</th>
-            <th className="align-right">{t('Dropped')}<br/>{t('(Blacklist)')}</th>
+            <th className="align-right">{t('Dropped')}<br/>{t('(Filters)')}</th>
             <th className="align-right">{t('Total')}</th>
           </tr>
         </thead>

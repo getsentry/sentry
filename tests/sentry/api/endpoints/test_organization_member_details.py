@@ -41,7 +41,11 @@ class UpdateOrganizationMemberTest(APITestCase):
             user=member,
             role='member',
         )
-        AuthProvider.objects.create(organization=organization, provider='dummy')
+        AuthProvider.objects.create(
+            organization=organization,
+            provider='dummy',
+            flags=1,
+        )
 
         path = reverse('sentry-api-0-organization-member-details', args=[organization.slug, member_om.id])
 

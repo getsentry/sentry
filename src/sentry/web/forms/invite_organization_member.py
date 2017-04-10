@@ -9,19 +9,21 @@ from sentry.models import (
     OrganizationMember,
 )
 from sentry.signals import member_invited
+from sentry.web.forms.base_organization_member import BaseOrganizationMemberForm
 
 
-class InviteOrganizationMemberForm(forms.ModelForm):
+class InviteOrganizationMemberForm(BaseOrganizationMemberForm):
     # override this to ensure the field is required
     email = forms.EmailField()
 
     class Meta:
-        fields = ('email',)
+        fields = ('email', 'role')
         model = OrganizationMember
 
     def save(self, actor, organization, ip_address):
         om = super(InviteOrganizationMemberForm, self).save(commit=False)
         om.organization = organization
+        om.token = om.generate_token()
 
         try:
             existing = OrganizationMember.objects.filter(
@@ -37,7 +39,6 @@ class InviteOrganizationMemberForm(forms.ModelForm):
         sid = transaction.savepoint(using='default')
         try:
             om.save()
-
         except IntegrityError:
             transaction.savepoint_rollback(sid, using='default')
             return OrganizationMember.objects.get(
@@ -45,6 +46,8 @@ class InviteOrganizationMemberForm(forms.ModelForm):
                 organization=organization,
             ), False
         transaction.savepoint_commit(sid, using='default')
+
+        self.save_team_assignments(om)
 
         AuditLogEntry.objects.create(
             organization=organization,

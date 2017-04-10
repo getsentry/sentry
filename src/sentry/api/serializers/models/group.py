@@ -1,46 +1,95 @@
 from __future__ import absolute_import, print_function
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import timedelta
+
+import six
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.utils import timezone
 
+from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.app import tsdb
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupSubscription,
-    GroupStatus, GroupTagKey, UserOption, UserOptionValue
+    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus,
+    GroupSubscription, GroupSubscriptionReason, GroupTagKey, UserOption,
+    UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
+SUBSCRIPTION_REASON_MAP = {
+    GroupSubscriptionReason.comment: 'commented',
+    GroupSubscriptionReason.assigned: 'assigned',
+    GroupSubscriptionReason.bookmark: 'bookmarked',
+    GroupSubscriptionReason.status_change: 'changed_status',
+}
+
 
 @register(Group)
 class GroupSerializer(Serializer):
     def _get_subscriptions(self, item_list, user):
-        default_subscribed = UserOption.objects.get_value(
+        """
+        Returns a mapping of group IDs to a two-tuple of (subscribed: bool,
+        subscription: GroupSubscription or None) for the provided user and
+        groups.
+        """
+        results = {group.id: None for group in item_list}
+
+        # First, the easy part -- if there is a subscription record associated
+        # with the group, we can just use that to know if a user is subscribed
+        # or not.
+        subscriptions = GroupSubscription.objects.filter(
+            group__in=results.keys(),
             user=user,
-            project=None,
-            key='workflow:notifications',
         )
-        if default_subscribed == UserOptionValue.participating_only:
-            subscriptions = set(GroupSubscription.objects.filter(
-                group__in=item_list,
-                user=user,
-                is_active=True,
-            ).values_list('group_id', flat=True))
-        else:
-            subscriptions = set([i.id for i in item_list]).difference(
-                GroupSubscription.objects.filter(
-                    group__in=item_list,
+
+        for subscription in subscriptions:
+            results[subscription.group_id] = (subscription.is_active, subscription)
+
+        # For any group that doesn't have a subscription associated with it,
+        # we'll need to fall back to the project's option value, so here we
+        # collect all of the projects to look up, and keep a set of groups that
+        # are part of that project. (Note that the common -- but not only --
+        # case here is that all groups are part of the same project.)
+        projects = defaultdict(set)
+        for group in item_list:
+            if results[group.id] is None:
+                projects[group.project].add(group.id)
+
+        if projects:
+            # NOTE: This doesn't use `values_list` because that bypasses field
+            # value decoding, so the `value` field would not be unpickled.
+            options = {
+                option.project_id: option.value
+                for option in
+                UserOption.objects.filter(
+                    Q(project__in=projects.keys()) | Q(project__isnull=True),
                     user=user,
-                    is_active=False,
-                ).values_list('group_id', flat=True),
-            )
-        return subscriptions
+                    key='workflow:notifications',
+                )
+            }
+
+            # This is the user's default value for any projects that don't have
+            # the option value specifically recorded. (The default "all
+            # conversations" value is convention.)
+            default = options.get(None, UserOptionValue.all_conversations)
+
+            # If you're subscribed to all notifications for the project, that
+            # means you're subscribed to all of the groups. Otherwise you're
+            # not subscribed to any of these leftover groups.
+            for project, group_ids in projects.items():
+                is_subscribed = options.get(
+                    project.id,
+                    default,
+                ) == UserOptionValue.all_conversations
+                for group_id in group_ids:
+                    results[group_id] = (is_subscribed, None)
+
+        return results
 
     def get_attrs(self, item_list, user):
         from sentry.plugins import plugins
@@ -62,7 +111,7 @@ class GroupSerializer(Serializer):
         else:
             bookmarks = set()
             seen_groups = {}
-            subscriptions = set()
+            subscriptions = defaultdict(lambda: (False, None))
 
         assignees = dict(
             (a.group_id, a.user)
@@ -78,7 +127,7 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'values_seen')
         )
 
-        snoozes = dict(
+        ignore_durations = dict(
             GroupSnooze.objects.filter(
                 group__in=item_list,
             ).values_list('group', 'until')
@@ -93,7 +142,7 @@ class GroupSerializer(Serializer):
 
         result = {}
         for item in item_list:
-            active_date = item.active_at or item.last_seen
+            active_date = item.active_at or item.first_seen
 
             annotations = []
             for plugin in plugins.for_project(project=item.project, version=1):
@@ -106,11 +155,11 @@ class GroupSerializer(Serializer):
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
-                'is_subscribed': item.id in subscriptions,
+                'subscription': subscriptions[item.id],
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
-                'snooze': snoozes.get(item.id),
+                'ignore_duration': ignore_durations.get(item.id),
                 'pending_resolution': pending_resolutions.get(item.id),
             }
         return result
@@ -118,11 +167,11 @@ class GroupSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         status = obj.status
         status_details = {}
-        if attrs['snooze']:
-            if attrs['snooze'] < timezone.now() and status == GroupStatus.MUTED:
+        if attrs['ignore_duration']:
+            if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
                 status = GroupStatus.UNRESOLVED
             else:
-                status_details['snoozeUntil'] = attrs['snooze']
+                status_details['ignoreUntil'] = attrs['ignore_duration']
         elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             status = GroupStatus.RESOLVED
             status_details['autoResolved'] = True
@@ -130,8 +179,8 @@ class GroupSerializer(Serializer):
             status_label = 'resolved'
             if attrs['pending_resolution']:
                 status_details['inNextRelease'] = True
-        elif status == GroupStatus.MUTED:
-            status_label = 'muted'
+        elif status == GroupStatus.IGNORED:
+            status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
             status_label = 'pending_deletion'
         elif status == GroupStatus.PENDING_MERGE:
@@ -139,27 +188,23 @@ class GroupSerializer(Serializer):
         else:
             status_label = 'unresolved'
 
-        permalink = absolute_uri(reverse('sentry-group', args=[
-            obj.organization.slug, obj.project.slug, obj.id]))
+        # If user is not logged in and member of the organization,
+        # do not return the permalink which contains private information i.e. org name.
+        if user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists():
+            permalink = absolute_uri(reverse('sentry-group', args=[
+                obj.organization.slug, obj.project.slug, obj.id]))
+        else:
+            permalink = None
 
-        event_type = obj.data.get('type', 'default')
-        metadata = obj.data.get('metadata') or {
-            'title': obj.message_short,
-        }
-        # TODO(dcramer): remove in 8.6+
-        if event_type == 'error':
-            if 'value' in metadata:
-                metadata['value'] = unicode(metadata['value'])
-            if 'type' in metadata:
-                metadata['type'] = unicode(metadata['type'])
+        is_subscribed, subscription = attrs['subscription']
 
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'shareId': obj.get_share_id(),
             'shortId': obj.qualified_short_id,
-            'count': str(obj.times_seen),
+            'count': six.text_type(obj.times_seen),
             'userCount': attrs['user_count'],
-            'title': obj.message_short,
+            'title': obj.title,
             'culprit': obj.culprit,
             'permalink': permalink,
             'firstSeen': obj.first_seen,
@@ -173,12 +218,18 @@ class GroupSerializer(Serializer):
                 'name': obj.project.name,
                 'slug': obj.project.slug,
             },
-            'type': event_type,
-            'metadata': metadata,
+            'type': obj.get_event_type(),
+            'metadata': obj.get_event_metadata(),
             'numComments': obj.num_comments,
             'assignedTo': attrs['assigned_to'],
             'isBookmarked': attrs['is_bookmarked'],
-            'isSubscribed': attrs['is_subscribed'],
+            'isSubscribed': is_subscribed,
+            'subscriptionDetails': {
+                'reason': SUBSCRIPTION_REASON_MAP.get(
+                    subscription.reason,
+                    'unknown',
+                ),
+            } if is_subscribed and subscription is not None else None,
             'hasSeen': attrs['has_seen'],
             'annotations': attrs['annotations'],
         }
@@ -193,11 +244,12 @@ class StreamGroupSerializer(GroupSerializer):
         '24h': StatsPeriod(24, timedelta(hours=1)),
     }
 
-    def __init__(self, stats_period=None):
+    def __init__(self, stats_period=None, matching_event_id=None):
         if stats_period is not None:
             assert stats_period in self.STATS_PERIOD_CHOICES
 
         self.stats_period = stats_period
+        self.matching_event_id = matching_event_id
 
     def get_attrs(self, item_list, user):
         attrs = super(StreamGroupSerializer, self).get_attrs(item_list, user)
@@ -230,6 +282,9 @@ class StreamGroupSerializer(GroupSerializer):
             result['stats'] = {
                 self.stats_period: attrs['stats'],
             }
+
+        if self.matching_event_id:
+            result['matchingEventId'] = self.matching_event_id
 
         return result
 

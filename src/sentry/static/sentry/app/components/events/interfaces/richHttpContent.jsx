@@ -50,7 +50,7 @@ const RichHttpContent = React.createClass({
     if (contentType === 'application/x-www-form-urlencoded') {
       return this.getQueryStringOrRaw(data.data);
     } else {
-      return <pre>{data.data}</pre>;
+      return <pre>{JSON.stringify(data.data, null, 2)}</pre>;
     }
   },
 

@@ -208,7 +208,7 @@ const OrganizationStats = React.createClass({
         received: pReceived,
         rejected: pRejected,
         blacklisted: pBlacklisted,
-        accepted: pReceived - pRejected - pBlacklisted
+        accepted: Math.max(0, pReceived - pRejected - pBlacklisted)
       });
     });
     this.setState({
@@ -226,7 +226,7 @@ const OrganizationStats = React.createClass({
       value += `<br>${intcomma(rejected)} rate limited`;
     }
     if (blacklisted) {
-      value += `<br>${intcomma(blacklisted)} blacklisted`;
+      value += `<br>${intcomma(blacklisted)} filtered`;
     }
 
     return (
@@ -245,10 +245,10 @@ const OrganizationStats = React.createClass({
           <div className="col-md-9">
             <p>{t(`The chart below reflects events the system has received
             across your entire organization. Events are broken down into
-            three categories: Accepted, Rate Limited, and Blacklisted. Rate
+            three categories: Accepted, Rate Limited, and Filtered. Rate
             Limited events are entries that the system threw away due to quotas
-            being hit, and Blacklisted events are events that were blocked
-            due to your Blacklisted IPs setting.`)}</p>
+            being hit, and Filtered events are events that were blocked
+            due to your inbound data filter rules.`)}</p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">

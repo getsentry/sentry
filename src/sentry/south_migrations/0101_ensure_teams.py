@@ -7,7 +7,6 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.constants import RESERVED_TEAM_SLUGS
         from sentry.models import slugify_instance
         try:
             superuser = orm['sentry.User'].objects.filter(is_superuser=True)[0]
@@ -21,7 +20,7 @@ class Migration(DataMigration):
                 name=project.name,
                 owner=project.owner,
             )
-            slugify_instance(project.team, project.team.name, reserved=RESERVED_TEAM_SLUGS)
+            slugify_instance(project.team, project.team.name)
             project.team.save()
             project.save()
 

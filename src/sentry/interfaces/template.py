@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 __all__ = ('Template',)
 
-from sentry.interfaces.base import Interface
+from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.interfaces.stacktrace import get_context
 from sentry.utils.safe import trim
 
@@ -42,9 +42,12 @@ class Template(Interface):
 
     @classmethod
     def to_python(cls, data):
-        assert data.get('filename')
-        assert data.get('context_line')
-        assert data.get('lineno')
+        if not data.get('filename'):
+            raise InterfaceValidationError("Missing 'filename'")
+        if not data.get('context_line'):
+            raise InterfaceValidationError("Missing 'context_line'")
+        if not data.get('lineno'):
+            raise InterfaceValidationError("Missing 'lineno'")
 
         kwargs = {
             'abs_path': trim(data.get('abs_path', None), 256),

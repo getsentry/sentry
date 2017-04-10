@@ -10,18 +10,18 @@ from __future__ import absolute_import, print_function
 import logging
 import math
 import re
+import six
 import time
 import warnings
+
 from base64 import b16decode, b16encode
 from datetime import timedelta
-
-import six
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.app import buffer
+from sentry import buffer, eventtypes
 from sentry.constants import (
     DEFAULT_LOGGER_NAME, EVENT_ORDERING_KEY, LOG_LEVELS, MAX_CULPRIT_LENGTH
 )
@@ -36,7 +36,7 @@ from sentry.utils.strings import strip, truncatechars
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9-._]+)$')
+_short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
 
 
 def looks_like_short_id(value):
@@ -47,10 +47,13 @@ def looks_like_short_id(value):
 class GroupStatus(object):
     UNRESOLVED = 0
     RESOLVED = 1
-    MUTED = 2
+    IGNORED = 2
     PENDING_DELETION = 3
     DELETION_IN_PROGRESS = 4
     PENDING_MERGE = 5
+
+    # TODO(dcramer): remove in 9.0
+    MUTED = IGNORED
 
 
 def get_group_with_redirect(id, queryset=None):
@@ -79,7 +82,7 @@ def get_group_with_redirect(id, queryset=None):
 class GroupManager(BaseManager):
     use_for_related_fields = True
 
-    def by_qualified_short_id(self, org, short_id):
+    def by_qualified_short_id(self, organization_id, short_id):
         match = _short_id_re.match(short_id.strip())
         if match is None:
             raise Group.DoesNotExist()
@@ -95,7 +98,7 @@ class GroupManager(BaseManager):
         except ValueError:
             raise Group.DoesNotExist()
         return Group.objects.get(
-            project__organization=org,
+            project__organization=organization_id,
             project__slug=callsign,
             short_id=short_id,
         )
@@ -134,10 +137,10 @@ class GroupManager(BaseManager):
                 'times_seen': 1,
             }, {
                 'group_id': group.id,
-                'project_id': project_id,
                 'key': key,
                 'value': value,
             }, {
+                'project': project_id,
                 'last_seen': date,
             })
 
@@ -163,7 +166,7 @@ class Group(Model):
     status = BoundedPositiveIntegerField(default=0, choices=(
         (GroupStatus.UNRESOLVED, _('Unresolved')),
         (GroupStatus.RESOLVED, _('Resolved')),
-        (GroupStatus.MUTED, _('Muted')),
+        (GroupStatus.IGNORED, _('Ignored')),
     ), db_index=True)
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -238,8 +241,11 @@ class Group(Model):
             return False
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
 
-    def is_muted(self):
-        return self.get_status() == GroupStatus.MUTED
+    def is_ignored(self):
+        return self.get_status() == GroupStatus.IGNORED
+
+    # TODO(dcramer): remove in 9.0 / after plugins no long ref
+    is_muted = is_ignored
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
@@ -248,7 +254,7 @@ class Group(Model):
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
-        if self.status == GroupStatus.MUTED:
+        if self.status == GroupStatus.IGNORED:
             try:
                 snooze = GroupSnooze.objects.get(group=self)
             except GroupSnooze.DoesNotExist:
@@ -257,7 +263,7 @@ class Group(Model):
                 # XXX(dcramer): if the snooze row exists then we need
                 # to confirm its still valid
                 if snooze.until > timezone.now():
-                    return GroupStatus.MUTED
+                    return GroupStatus.IGNORED
                 else:
                     return GroupStatus.UNRESOLVED
 
@@ -266,14 +272,16 @@ class Group(Model):
         return self.status
 
     def get_share_id(self):
-        return b16encode('{}.{}'.format(self.project_id, self.id)).lower()
+        return b16encode(
+            ('{}.{}'.format(self.project_id, self.id)).encode('utf-8')
+        ).lower().decode('utf-8')
 
     @classmethod
     def from_share_id(cls, share_id):
         if not share_id:
             raise cls.DoesNotExist
         try:
-            project_id, group_id = b16decode(share_id.upper()).split('.')
+            project_id, group_id = b16decode(share_id.upper()).decode('utf-8').split('.')
         except (ValueError, TypeError):
             raise cls.DoesNotExist
         if not (project_id.isdigit() and group_id.isdigit()):
@@ -371,29 +379,77 @@ class Group(Model):
 
         return self._tag_cache
 
-    def error(self):
-        return self.message
-    error.short_description = _('error')
+    def get_first_release(self):
+        from sentry.models import GroupTagValue
+        if self.first_release_id is None:
+            try:
+                first_release = GroupTagValue.objects.filter(
+                    group=self,
+                    key__in=('sentry:release', 'release'),
+                ).order_by('first_seen')[0]
+            except IndexError:
+                return None
+            else:
+                return first_release.value
 
-    def has_two_part_message(self):
-        message = strip(self.message)
-        return '\n' in message or len(message) > 100
+        return self.first_release.version
+
+    def get_last_release(self):
+        from sentry.models import GroupTagValue
+        try:
+            last_release = GroupTagValue.objects.filter(
+                group=self,
+                key__in=('sentry:release', 'release'),
+            ).order_by('-last_seen')[0]
+        except IndexError:
+            return None
+
+        return last_release.value
+
+    def get_event_type(self):
+        """
+        Return the type of this issue.
+
+        See ``sentry.eventtypes``.
+        """
+        return self.data.get('type', 'default')
+
+    def get_event_metadata(self):
+        """
+        Return the metadata of this issue.
+
+        See ``sentry.eventtypes``.
+        """
+        etype = self.data.get('type')
+        if etype is None:
+            etype = 'default'
+        if 'metadata' not in self.data:
+            data = self.data.copy() if self.data else {}
+            data['message'] = self.message
+            return eventtypes.get(etype)(data).get_metadata()
+        return self.data['metadata']
 
     @property
     def title(self):
-        culprit = strip(self.culprit)
-        if culprit:
-            return culprit
-        return self.message
+        et = eventtypes.get(self.get_event_type())(self.data)
+        return et.to_string(self.get_event_metadata())
+
+    def error(self):
+        warnings.warn('Group.error is deprecated, use Group.title',
+                      DeprecationWarning)
+        return self.title
+    error.short_description = _('error')
 
     @property
     def message_short(self):
-        message = strip(self.message)
-        if not message:
-            message = '<unlabeled message>'
-        else:
-            message = truncatechars(message.splitlines()[0], 100)
-        return message
+        warnings.warn('Group.message_short is deprecated, use Group.title',
+                      DeprecationWarning)
+        return self.title
+
+    def has_two_part_message(self):
+        warnings.warn('Group.has_two_part_message is no longer used',
+                      DeprecationWarning)
+        return False
 
     @property
     def organization(self):
@@ -412,5 +468,5 @@ class Group(Model):
         return '[%s] %s: %s' % (
             self.project.get_full_name().encode('utf-8'),
             six.text_type(self.get_level_display()).upper().encode('utf-8'),
-            self.message_short.encode('utf-8')
+            self.title.encode('utf-8')
         )

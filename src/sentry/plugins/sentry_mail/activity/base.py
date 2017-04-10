@@ -4,7 +4,11 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape, mark_safe
 
 from sentry import options
-from sentry.models import GroupSubscription, ProjectOption, UserAvatar
+from sentry.models import (
+    GroupSubscription, GroupSubscriptionReason, ProjectOption, UserAvatar,
+    UserOption
+)
+from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.http import absolute_uri
@@ -21,7 +25,7 @@ class ActivityEmail(object):
     def _get_subject_prefix(self):
         prefix = ProjectOption.objects.get_value(
             project=self.project,
-            key='subject_prefix',
+            key='mail:subject_prefix',
         )
         if not prefix:
             prefix = options.get('mail.subject-prefix')
@@ -34,13 +38,21 @@ class ActivityEmail(object):
         # TODO(dcramer): not used yet today except by Release's
         if not self.group:
             return []
-        return [
-            u for u in
-            GroupSubscription.objects.get_participants(
-                group=self.group,
-            )
-            if u != self.activity.user
-        ]
+
+        participants = GroupSubscription.objects.get_participants(group=self.group)
+
+        if self.activity.user is not None and self.activity.user in participants:
+            receive_own_activity = UserOption.objects.get_value(
+                user=self.activity.user,
+                project=None,
+                key='self_notifications',
+                default='0'
+            ) == '1'
+
+            if not receive_own_activity:
+                del participants[self.activity.user]
+
+        return participants
 
     def get_template(self):
         return 'sentry/emails/activity/generic.txt'
@@ -94,9 +106,15 @@ class ActivityEmail(object):
 
         return u'[%s] %s: %s' % (
             self.project.get_full_name(),
-            group.get_level_display().upper(),
-            group.message_short
+            group.get_level_display(),
+            group.title
         )
+
+    def get_subject_with_prefix(self):
+        return u'{}{}'.format(
+            self._get_subject_prefix(),
+            self.get_subject(),
+        ).encode('utf-8')
 
     def get_context(self):
         description = self.get_description()
@@ -116,6 +134,10 @@ class ActivityEmail(object):
             'html_description': self.description_as_html(
                 description, html_params),
         }
+
+    def get_user_context(self, user):
+        # use in case context of email changes depending on user
+        return {}
 
     def get_headers(self):
         project = self.project
@@ -141,7 +163,9 @@ class ActivityEmail(object):
     def avatar_as_html(self):
         user = self.activity.user
         if not user:
-            return '<span class="avatar sentry"></span>'
+            return '<img class="avatar" src="{}" width="20px" height="20px" />'.format(
+                escape(self._get_sentry_avatar_url())
+            )
         avatar_type = user.get_avatar_type()
         if avatar_type == 'upload':
             return '<img class="avatar" src="{}" />'.format(
@@ -153,6 +177,10 @@ class ActivityEmail(object):
         else:
             return get_email_avatar(
                 user.get_display_name(), user.get_label(), 20, True)
+
+    def _get_sentry_avatar_url(self):
+        url = '/images/sentry-email-avatar.png'
+        return get_asset_url('sentry', url)
 
     def _get_user_avatar_url(self, user, size=20):
         try:
@@ -210,8 +238,8 @@ class ActivityEmail(object):
         if not self.should_email():
             return
 
-        users = self.get_participants()
-        if not users:
+        participants = self.get_participants()
+        if not participants:
             return
 
         activity = self.activity
@@ -221,32 +249,37 @@ class ActivityEmail(object):
         context = self.get_base_context()
         context.update(self.get_context())
 
-        subject_prefix = self._get_subject_prefix()
-
-        subject = (u'{}{}'.format(
-            subject_prefix,
-            self.get_subject(),
-        )).encode('utf-8')
         template = self.get_template()
         html_template = self.get_html_template()
         email_type = self.get_email_type()
         headers = self.get_headers()
 
-        for user in users:
+        for user, reason in participants.items():
             if group:
-                context['unsubscribe_link'] = generate_signed_link(
-                    user.id,
-                    'sentry-account-email-unsubscribe-issue',
-                    kwargs={'issue_id': group.id},
-                )
+                context.update({
+                    'reason': GroupSubscriptionReason.descriptions.get(
+                        reason,
+                        "are subscribed to this issue",
+                    ),
+                    'unsubscribe_link': generate_signed_link(
+                        user.id,
+                        'sentry-account-email-unsubscribe-issue',
+                        kwargs={'issue_id': group.id},
+                    ),
+                })
+            user_context = self.get_user_context(user)
+            if user_context:
+                user_context.update(context)
+            else:
+                user_context = context
 
             msg = MessageBuilder(
-                subject=subject,
+                subject=self.get_subject_with_prefix(),
                 template=template,
                 html_template=html_template,
                 headers=headers,
                 type=email_type,
-                context=context,
+                context=user_context,
                 reference=activity,
                 reply_reference=group,
             )

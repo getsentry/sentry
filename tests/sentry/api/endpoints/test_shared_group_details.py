@@ -1,5 +1,7 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from sentry.testutils import APITestCase
 
 
@@ -14,8 +16,8 @@ class SharedGroupDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(group.id)
-        assert response.data['latestEvent']['id'] == str(event.id)
+        assert response.data['id'] == six.text_type(group.id)
+        assert response.data['latestEvent']['id'] == six.text_type(event.id)
         assert response.data['project']['slug'] == group.project.slug
         assert response.data['project']['organization']['slug'] == group.organization.slug
 
@@ -31,3 +33,18 @@ class SharedGroupDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 404
+
+    def test_permalink(self):
+        group = self.create_group()
+
+        url = '/api/0/shared/issues/{}/'.format(group.get_share_id())
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert not response.data['permalink']  # not show permalink when not logged in
+
+        self.login_as(user=self.user)
+        response = self.client.get(url, format='json')
+
+        assert response.status_code == 200, response.content
+        assert response.data['permalink']  # show permalink when logged in

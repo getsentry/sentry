@@ -1,57 +1,61 @@
 from __future__ import absolute_import
 
-from sentry.auth import access
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import ScopedPermission
+from sentry.app import raven
 from sentry.models import Project, ProjectStatus
-from sentry.models.apikey import ROOT_KEY
+
+from .team import TeamPermission
 
 
-class ProjectPermission(ScopedPermission):
+class ProjectPermission(TeamPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete'],
-        'POST': ['project:write', 'project:delete'],
-        'PUT': ['project:write', 'project:delete'],
-        'DELETE': ['project:delete'],
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
     }
 
     def has_object_permission(self, request, view, project):
-        if request.user and request.user.is_authenticated() and request.auth:
-            request.access = access.from_request(
-                request, project.organization, scopes=request.auth.get_scopes(),
-            )
-
-        elif request.auth:
-            if request.auth is ROOT_KEY:
-                return True
-            return request.auth.organization_id == project.organization_id
-
-        else:
-            request.access = access.from_request(request, project.organization)
-
-        allowed_scopes = set(self.scope_map.get(request.method, []))
-        return any(
-            request.access.has_team_scope(project.team, s)
-            for s in allowed_scopes
-        )
+        return super(ProjectPermission, self).has_object_permission(
+            request, view, project.team)
 
 
 class ProjectReleasePermission(ProjectPermission):
     scope_map = {
-        'GET': ['project:read', 'project:write', 'project:delete', 'project:releases'],
-        'POST': ['project:write', 'project:delete', 'project:releases'],
-        'PUT': ['project:write', 'project:delete', 'project:releases'],
-        'DELETE': ['project:delete', 'project:releases'],
+        'GET': ['project:read', 'project:write', 'project:admin', 'project:releases'],
+        'POST': ['project:write', 'project:admin', 'project:releases'],
+        'PUT': ['project:write', 'project:admin', 'project:releases'],
+        'DELETE': ['project:admin', 'project:releases'],
     }
 
 
 class ProjectEventPermission(ProjectPermission):
     scope_map = {
-        'GET': ['event:read', 'event:write', 'event:delete'],
-        'POST': ['event:write', 'event:delete'],
-        'PUT': ['event:write', 'event:delete'],
-        'DELETE': ['event:delete'],
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
+    }
+
+
+class ProjectSettingPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:write', 'project:admin'],
+
+    }
+
+
+class RelaxedSearchPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:read', 'project:write', 'project:admin'],
+        # members can do writes
+        'POST': ['project:write', 'project:admin', 'project:read'],
+        'PUT': ['project:write', 'project:admin', 'project:read'],
+        'DELETE': ['project:admin'],
     }
 
 
@@ -60,17 +64,24 @@ class ProjectEndpoint(Endpoint):
 
     def convert_args(self, request, organization_slug, project_slug, *args, **kwargs):
         try:
-            project = Project.objects.get_from_cache(
+            project = Project.objects.filter(
                 organization__slug=organization_slug,
                 slug=project_slug,
-            )
+            ).select_related('organization', 'team').get()
         except Project.DoesNotExist:
             raise ResourceDoesNotExist
 
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
+        project.team.organization = project.organization
+
         self.check_object_permissions(request, project)
+
+        raven.tags_context({
+            'project': project.id,
+            'organization': project.organization_id,
+        })
 
         kwargs['project'] = project
         return (args, kwargs)

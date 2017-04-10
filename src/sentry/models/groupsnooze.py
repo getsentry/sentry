@@ -5,6 +5,9 @@ from sentry.db.models import Model, FlexibleForeignKey, sane_repr
 
 
 class GroupSnooze(Model):
+    """
+    A snooze marks an issue as ignored for a duration (specified by ``until``).
+    """
     __core__ = False
 
     group = FlexibleForeignKey('sentry.Group', unique=True)

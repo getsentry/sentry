@@ -19,7 +19,7 @@ const ExceptionContent = React.createClass({
     let children = this.props.values.map((exc, excIdx) => {
       return (
         <div key={excIdx} className="exception">
-          <h5 style={{marginBottom: 5}}>
+          <h5 className="break-word" style={{marginBottom: 5}}>
             <span>{exc.type}</span>
           </h5>
           {exc.value &&
@@ -32,7 +32,9 @@ const ExceptionContent = React.createClass({
           }
           {defined(exc.stacktrace) &&
             <StacktraceContent
-                data={this.props.type === 'original' ? exc.stacktrace : exc.rawStacktrace}
+                data={this.props.type === 'original'
+                  ? exc.stacktrace
+                  : (exc.rawStacktrace || exc.stacktrace)}
                 expandFirstFrame={excIdx === 0}
                 includeSystemFrames={stackView === 'full'}
                 platform={this.props.platform}

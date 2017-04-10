@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register
 from sentry.models import SavedSearch, SavedSearchUserDefault
 
@@ -24,10 +26,11 @@ class SavedSearchSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            'id': str(obj.id),
+            'id': six.text_type(obj.id),
             'name': obj.name,
             'query': obj.query,
             'isDefault': obj.is_default,
             'isUserDefault': attrs['isUserDefault'],
             'dateCreated': obj.date_added,
+            'isPrivate': bool(obj.owner),
         }

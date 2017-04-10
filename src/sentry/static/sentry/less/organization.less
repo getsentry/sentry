@@ -72,7 +72,7 @@
         }
 
         &.blacklisted {
-          background: @gray-light;
+          background: @gray;
         }
       }
     }
@@ -201,6 +201,10 @@
     font-size: 14px;
     color: @gray-light;
   }
+
+  .sparkline {
+    width: 100px;
+  }
 }
 
 .btn-sidebar-header {
@@ -209,6 +213,14 @@
   color: @gray;
   font-weight: bold;
   line-height: 1em;
+}
+
+.org-sidebar {
+  .nav-stacked {
+    li.active a:after {
+      left: -30px;
+    }
+  }
 }
 
 /**
@@ -370,12 +382,8 @@
 
     li {
       position: relative;
-      border-bottom: 1px solid #f6f7f8;
-      padding: 20px 20px 0 80px;
-
-      &:last-child {
-        border: 0;
-      }
+      border-top: 1px solid @trim;
+      padding: 18px 0 0 60px;
 
       button {
         margin-top: 3px;
@@ -383,7 +391,7 @@
 
       .provider-logo {
         position: absolute;
-        left: 20px;
+        left: 0;
         top: 20px;
         .square(48px);
         border-radius: 3px;
@@ -484,7 +492,23 @@ table.project-list {
   .status {
     font-size: 13px;
   }
+
+  .icon-exit {
+    font-size: 14px;
+    position: relative;
+    top: 2px;
+    margin-right: -2px;
+    margin-left: -2px;
+  }
+
+  .member-role-highlight {
+
+    td {
+      background-color: @alert-info-bg-color;
+    }
+  }
 }
+
 
 /**
 * Stats Column
@@ -543,40 +567,35 @@ table.project-list {
  */
 
  .onboarding-wrapper {
-   .box;
-   padding: 15px 20px 0;
-
-   .close {
-     float: right;
-     color: @gray-lightest;
-
-     &:hover {
-       color: @gray-lighter;
-     }
-   }
-
-   h3 {
-     font-size: 20px;
-     border-bottom: 2px solid rgba(0,0,0, .05);
-     margin: 0 -15px 15px;
-     padding: 0 15px 15px;
-     text-align: center;
-   }
-
-   h4 {
-     font-size: 17px;
-     margin: 0 0 3px;
-   }
-
-   p {
-     color: @gray;
-     line-height: 1.25;
-   }
-
    ul {
      li {
        position: relative;
-       padding-left: 60px;
+       padding: 15px 20px 15px 75px;
+       line-height: 1.2;
+       cursor: pointer;
+       border-bottom: 1px solid @trim;
+       background: #fff;
+       box-shadow: 0 1px 2px rgba(0,0,0, .06);
+       font-size: 14px;
+
+       h4 {
+         font-size: 16px;
+         margin-bottom: 5px;
+         .culprit {
+           font-weight: normal;
+         }
+       }
+       a {
+         color: @link-color;
+
+         &:hover {
+           color: @link-color-hover;
+         }
+       }
+
+       p {
+         margin: 0;
+       }
 
        .todo-content {
          position: relative;
@@ -584,7 +603,7 @@ table.project-list {
 
        &.checked {
          .ob-checkbox {
-           border-color: #48D887;
+           border-color: @green;
          }
        }
 
@@ -597,19 +616,16 @@ table.project-list {
 
        &.pending {
          position: relative;
-         margin-top: 4px;
-         margin-bottom: 4px;
 
          .pending-bar {
            position: absolute;
-           top: -12px;
-           right: -15px;
-           left:  -15px;
-           bottom: -10px;
+           top: 0;
+           right: 0;
+           left:  0;
+           bottom: 0;
            background-size: 30px 30px;
            background-image: linear-gradient(135deg, rgba(0, 0, 0, .03) 25%, transparent 25%,transparent 50%, rgba(0, 0, 0, .03) 50%, rgba(0, 0, 0, .03) 75%,transparent 75%, transparent);
            animation: animate-stripes 3s linear infinite;
-           box-shadow: inset 0 2px 0 rgba(0,0,0, .05), inset 0 -2px 0 rgba(0,0,0, .05);
           }
        }
 
@@ -631,33 +647,35 @@ table.project-list {
    }
 
   .ob-checkbox {
-    .square(46px);
+    .square(44px);
       background: #fff;
-      border: 3px solid @white-darkest;
+      border: 3px solid @20;
       border-radius: 46px;
       position: absolute;
       top: -5px;
-      left: -61px;
+      left: -58px;
 
     .icon-checkmark {
-      color: #32D077;
-      font-size: 26px;
-      left: 8px;
       position: relative;
-      top: 7px;
+      color: @green;
+      font-size: 20px;
+      left: 10px;
+      top: 9px;
     }
 
-    .icon-x, .icon-ellipsis {
-      color: @gray-lightest;
-      font-size: 26px;
-      left: 7px;
+    .icon-x {
       position: relative;
-      top: 8px;
+      color: @50;
+      font-size: 20px;
+      left: 9px;
+      top: 9px;
     }
 
     .icon-ellipsis {
-      color: @gray-light;
-      top: 7px;
+      position: relative;
+      font-size: 24px;
+      color: @50;
+      top: 8px;
       left: 7px;
     }
   }
@@ -670,6 +688,8 @@ table.project-list {
     .transition(opacity .1s);
     opacity: 0;
     visibility: hidden;
+    background: #fff;
+    color: @70;
 
     &:active {
       position: absolute;
@@ -699,8 +719,6 @@ table.project-list {
     display: block;
     text-align: center;
     border: 0;
-    border-top: 1px solid @gray-lightest;
-    margin: -5px -15px 0;
     border-radius: 0;
     background: @white-dark;
     padding: 10px;
@@ -713,39 +731,42 @@ table.project-list {
 
 .onboarding-progress-bar {
   background: rgba(255,255,255, .15);
-  width: 150px;
+  width: 16px;
+  height: 150px;
   float: right;
   margin-right: 20px;
   margin-top: 16px;
   border-radius: 2px;
   position: relative;
   cursor: pointer;
+  z-index: 200;
 
   .slider {
-    background: #6AFFAB;
-    height: 10px;
-    width: 20%;
+    background: @green-light;
     padding-right: 0;
     border-radius: inherit;
-    box-shadow: 0 2px 0 rgba(0,0,0, .08);
+    box-shadow: 0 2px 1px rgba(0,0,0, .08);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 16px;
   }
 
   .dropdown-menu {
     display: block;
     width: 375px;
     padding: 0;
-    left: -110px;
-    top: 22px;
+    left: 30px;
+    top: auto;
+    bottom: 0;
     cursor: auto;
 
     &:before {
-      left: 50%;
-      margin-left: -8px;
+      display: none;
     }
 
     &:after {
-      left: 50%;
-      margin-left: -7px;
+      display: none;
     }
 
     .onboarding-wrapper {
@@ -776,12 +797,21 @@ table.project-list {
   }
 }
 
-.onboarding-progress-bar:hover {
-  background: rgba(255,255,255, .25);
-  .slider {
-    box-shadow: 0 0 10px rgba(200, 255, 224, 0.35), 0 2px 0 rgba(0,0,0, .08);
-  }
+.onboarding-progress-bar:hover, .active .onboarding-progress-bar, .onboarding-progress-bar.active {
+  background: rgba(255,255,255, .3);
 }
+
+/**
+* Member settings / invitations
+* ============================================================================
+*/
+
+.team-choices .team-slug {
+  display: block;
+  font-weight: normal;
+  color: @gray-light;
+}
+
 
 /**
 * Medium to small screens

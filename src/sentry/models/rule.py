@@ -29,6 +29,9 @@ class RuleStatus(object):
 class Rule(Model):
     __core__ = True
 
+    DEFAULT_ACTION_MATCH = 'all'  # any, all
+    DEFAULT_FREQUENCY = 30  # minutes
+
     project = FlexibleForeignKey('sentry.Project')
     label = models.CharField(max_length=64)
     data = GzippedDictField()
@@ -72,3 +75,10 @@ class Rule(Model):
         cache_key = 'project:{}:rules'.format(self.project_id)
         cache.delete(cache_key)
         return rv
+
+    def get_audit_log_data(self):
+        return {
+            'label': self.label,
+            'data': self.data,
+            'status': self.status,
+        }

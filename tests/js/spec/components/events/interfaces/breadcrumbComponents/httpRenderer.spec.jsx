@@ -1,5 +1,5 @@
 import React from 'react';
-import {shallow} from 'enzyme';
+import {shallow, mount} from 'enzyme';
 import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRenderer';
 
 describe('HttpRenderer', function() {
@@ -20,6 +20,15 @@ describe('HttpRenderer', function() {
       expect(summaryLineWrapper.find('strong').text()).to.eql('POST ');
       expect(summaryLineWrapper.find('a').text().trim()).to.eql('http://example.com/foo');
       expect(summaryLineWrapper.find('span').text()).to.eql(' [0]');
+    });
+
+    it('shouldn\'t blow up if crumb.data is missing', function () {
+      let httpRendererWrapper = mount(<HttpRenderer crumb={{
+        category: 'xhr',
+        type: 'http'
+      }}/>);
+
+      expect(httpRendererWrapper.find('.crumb-category').text()).to.eql('xhr');
     });
   });
 });

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 from six.moves import range
 
-from sentry.app import tsdb
+from sentry import tsdb
 from sentry.api.base import DocSection, StatsMixin
 from sentry.api.bases.team import TeamEndpoint
 from sentry.models import Project
@@ -60,11 +60,11 @@ class TeamStatsEndpoint(TeamEndpoint, StatsMixin):
         if not projects:
             return Response([])
 
-        data = tsdb.get_range(
+        data = list(tsdb.get_range(
             model=tsdb.models.project,
             keys=[p.id for p in projects],
             **self._parse_args(request)
-        ).values()
+        ).values())
 
         summarized = []
         for n in range(len(data[0])):

@@ -8,6 +8,7 @@ sentry.interfaces.contexts
 
 from __future__ import absolute_import
 
+import six
 import string
 
 from django.utils.encoding import force_text
@@ -17,8 +18,6 @@ from sentry.interfaces.base import Interface
 
 
 __all__ = ('Contexts',)
-
-EMPTY_VALUES = frozenset(('', None))
 
 context_types = {}
 
@@ -32,26 +31,26 @@ class _IndexFormatter(string.Formatter):
 
 
 def format_index_expr(format_string, data):
-    return unicode(_IndexFormatter().vformat(
-        unicode(format_string), (), data).strip())
+    return six.text_type(_IndexFormatter().vformat(
+        six.text_type(format_string), (), data).strip())
 
 
-def contexttype(name):
-    def decorator(cls):
-        cls.type = name
-        context_types[name] = cls
-        return cls
-    return decorator
+def contexttype(cls):
+    context_types[cls.type] = cls
+    return cls
 
 
 class ContextType(object):
     indexed_fields = None
+    type = None
 
     def __init__(self, alias, data):
         self.alias = alias
         ctx_data = {}
-        for key, value in trim(data).iteritems():
-            if value not in EMPTY_VALUES:
+        for key, value in six.iteritems(trim(data)):
+            # we use simple checks here, rathern than ' in set()' to avoid
+            # issues with maps/lists
+            if value is not None and value != '':
                 ctx_data[force_text(key)] = value
         self.data = ctx_data
 
@@ -60,9 +59,28 @@ class ContextType(object):
         rv['type'] = self.type
         return rv
 
+    @classmethod
+    def values_for_data(cls, data):
+        contexts = data.get('contexts') or {}
+        rv = []
+        for context in six.itervalues(contexts):
+            if context.get('type') == cls.type:
+                rv.append(context)
+        return rv
+
+    @classmethod
+    def primary_value_for_data(cls, data):
+        contexts = data.get('contexts') or {}
+        val = contexts.get(cls.type)
+        if val and val.get('type') == cls.type:
+            return val
+        rv = cls.values_for_data(data)
+        if len(rv) == 1:
+            return rv[0]
+
     def iter_tags(self):
         if self.indexed_fields:
-            for field, f_string in self.indexed_fields.iteritems():
+            for field, f_string in six.iteritems(self.indexed_fields):
                 try:
                     value = format_index_expr(f_string, self.data)
                 except KeyError:
@@ -75,13 +93,22 @@ class ContextType(object):
 
 
 # TODO(dcramer): contexts need to document/describe expected (optional) fields
-@contexttype('default')
+@contexttype
 class DefaultContextType(ContextType):
-    pass
+    type = 'default'
 
 
-@contexttype('device')
+@contexttype
+class AppContextType(ContextType):
+    type = 'app'
+    indexed_fields = {
+        'device': u'{device_app_hash}',
+    }
+
+
+@contexttype
 class DeviceContextType(ContextType):
+    type = 'device'
     indexed_fields = {
         '': u'{model}',
         'family': u'{family}',
@@ -89,16 +116,18 @@ class DeviceContextType(ContextType):
     # model_id, arch
 
 
-@contexttype('runtime')
+@contexttype
 class RuntimeContextType(ContextType):
+    type = 'runtime'
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',
     }
 
 
-@contexttype('browser')
+@contexttype
 class BrowserContextType(ContextType):
+    type = 'browser'
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',
@@ -106,8 +135,9 @@ class BrowserContextType(ContextType):
     # viewport
 
 
-@contexttype('os')
+@contexttype
 class OsContextType(ContextType):
+    type = 'os'
     indexed_fields = {
         '': u'{name} {version}',
         'name': u'{name}',
@@ -126,7 +156,7 @@ class Contexts(Interface):
     @classmethod
     def to_python(cls, data):
         rv = {}
-        for alias, value in data.iteritems():
+        for alias, value in six.iteritems(data):
             rv[alias] = cls.normalize_context(alias, value)
         return cls(**rv)
 
@@ -137,11 +167,11 @@ class Contexts(Interface):
         return ctx_cls(alias, data)
 
     def iter_contexts(self):
-        return self._data.itervalues()
+        return six.itervalues(self._data)
 
     def to_json(self):
         rv = {}
-        for alias, inst in self._data.iteritems():
+        for alias, inst in six.iteritems(self._data):
             rv[alias] = inst.to_json()
         return rv
 

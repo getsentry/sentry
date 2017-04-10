@@ -42,6 +42,7 @@ ATTR_CHOICES = [
     'message',
     'platform',
     'environment',
+    'type',
     'exception.type',
     'exception.value',
     'user.id',
@@ -93,7 +94,7 @@ class EventAttributeCondition(EventCondition):
     # TODO(dcramer): add support for stacktrace.vars.[name]
 
     form_cls = EventAttributeForm
-    label = u'An events {attribute} value {match} {value}'
+    label = u'An event\'s {attribute} value {match} {value}'
 
     def _get_attribute_values(self, event, attr):
         # TODO(dcramer): we should validate attributes (when we can) before
@@ -107,6 +108,9 @@ class EventAttributeCondition(EventCondition):
 
         elif path[0] == 'environment':
             return [event.get_tag('environment')]
+
+        elif path[0] == 'type':
+            return [event.data['type']]
 
         elif len(path) == 1:
             return []

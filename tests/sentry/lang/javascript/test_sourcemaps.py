@@ -2,9 +2,7 @@
 
 from __future__ import absolute_import
 
-from sentry.lang.javascript.sourcemaps import (
-    SourceMap, parse_vlq, parse_sourcemap, sourcemap_to_index, find_source, get_inline_content_sources
-)
+from libsourcemap import from_json as view_from_json, Token
 from sentry.testutils import TestCase
 
 from sentry.utils import json
@@ -74,98 +72,100 @@ indexed_sourcemap_example = json.dumps({
 })
 
 
-class ParseVlqTest(TestCase):
-    def test_simple(self):
-        assert parse_vlq('gqjG') == [100000]
-        assert parse_vlq('hqjG') == [-100000]
-        assert parse_vlq('DFLx+BhqjG') == [-1, -2, -5, -1000, -100000]
-        assert parse_vlq('CEKw+BgqjG') == [1, 2, 5, 1000, 100000]
-        assert parse_vlq('/+Z') == [-13295]
-
-
 class FindSourceTest(TestCase):
     def test_simple(self):
-        indexed_sourcemap = sourcemap_to_index(sourcemap)
+        smap_view = view_from_json(sourcemap)
 
-        result = find_source(indexed_sourcemap, 1, 56)
-        assert result == SourceMap(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, name='multiply')
+        result = smap_view.lookup_token(0, 56)
+        assert result == Token(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, src_id=1, name='multiply')
 
         # Start of minified file (exact match first line/col tuple)
-        result = find_source(indexed_sourcemap, 1, 0)
-        assert result == SourceMap(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, name=None)
+        result = smap_view.lookup_token(0, 0)
+        assert result == Token(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, src_id=0, name=None)
 
         # Last character in mapping
-        result = find_source(indexed_sourcemap, 1, 36)
-        assert result == SourceMap(dst_line=0, dst_col=30, src='foo/file1.js', src_line=2, src_col=1, name=None)
+        result = smap_view.lookup_token(0, 36)
+        assert result == Token(dst_line=0, dst_col=30, src='foo/file1.js', src_line=2, src_col=1, src_id=0, name=None)
 
         # First character in mapping (exact match line/col tuple)
-        result = find_source(indexed_sourcemap, 1, 37)
-        assert result == SourceMap(dst_line=0, dst_col=37, src='foo/file1.js', src_line=2, src_col=8, name='a')
+        result = smap_view.lookup_token(0, 37)
+        assert result == Token(dst_line=0, dst_col=37, src='foo/file1.js', src_line=2, src_col=8, src_id=0, name='a')
 
         # End of minified file (character *beyond* last line/col tuple)
-        result = find_source(indexed_sourcemap, 1, 192)
-        assert result == SourceMap(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, name='e')
+        result = smap_view.lookup_token(0, 192)
+        assert result == Token(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, src_id=1, name='e')
 
 
-class GetInlineContentSourcesTest(TestCase):
+class IterSourcesTest(TestCase):
+    def test_basic(self):
+        smap_view = view_from_json(sourcemap)
+        assert list(smap_view.iter_sources()) == [
+            (0, 'foo/file1.js'),
+            (1, 'foo/file2.js'),
+        ]
+
+
+class GetSourceContentsTest(TestCase):
     def test_no_inline(self):
-        # basic sourcemap fixture has no inlined sources, so expect an empty list
-        indexed_sourcemap = sourcemap_to_index(sourcemap)
+        # basic sourcemap fixture has no inlined sources, so expect None
+        smap_view = view_from_json(sourcemap)
 
-        sources = get_inline_content_sources(indexed_sourcemap, 'https://example.com/static/')
-        assert sources == []
+        source = smap_view.get_source_contents(0)
+        assert source is None
 
     def test_indexed_inline(self):
-        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+        smap_view = view_from_json(indexed_sourcemap_example)
 
-        sources = get_inline_content_sources(indexed_sourcemap, 'https://example.com/static/')
-        assert sources == [
-            ('https://example.com/the/root/one.js', [' ONE.foo = function (bar) {', '   return baz(bar);', ' };']),
-            ('https://example.com/the/root/two.js', [' TWO.inc = function (n) {', '   return n + 1;', ' };'])
-        ]
+        assert smap_view.get_source_contents(0) == (
+            ' ONE.foo = function (bar) {\n' +
+            '   return baz(bar);\n' +
+            ' };')
+        assert smap_view.get_source_contents(1) == (
+            ' TWO.inc = function (n) {\n' +
+            '   return n + 1;\n' +
+            ' };')
 
 
 class ParseSourcemapTest(TestCase):
     def test_basic(self):
-        smap = json.loads(sourcemap)
-        states = list(parse_sourcemap(smap))
+        index = view_from_json(sourcemap)
 
-        assert states == [
-            SourceMap(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, name=None),
-            SourceMap(dst_line=0, dst_col=8, src='foo/file1.js', src_line=0, src_col=9, name='add'),
-            SourceMap(dst_line=0, dst_col=13, src='foo/file1.js', src_line=0, src_col=13, name='a'),
-            SourceMap(dst_line=0, dst_col=15, src='foo/file1.js', src_line=0, src_col=16, name='b'),
-            SourceMap(dst_line=0, dst_col=18, src='foo/file1.js', src_line=1, src_col=1, name=None),
-            SourceMap(dst_line=0, dst_col=30, src='foo/file1.js', src_line=2, src_col=1, name=None),
-            SourceMap(dst_line=0, dst_col=37, src='foo/file1.js', src_line=2, src_col=8, name='a'),
-            SourceMap(dst_line=0, dst_col=40, src='foo/file1.js', src_line=2, src_col=12, name='b'),
-            SourceMap(dst_line=0, dst_col=42, src='foo/file2.js', src_line=0, src_col=0, name=None),
-            SourceMap(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, name='multiply'),
-            SourceMap(dst_line=0, dst_col=60, src='foo/file2.js', src_line=0, src_col=18, name='a'),
-            SourceMap(dst_line=0, dst_col=62, src='foo/file2.js', src_line=0, src_col=21, name='b'),
-            SourceMap(dst_line=0, dst_col=65, src='foo/file2.js', src_line=1, src_col=1, name=None),
-            SourceMap(dst_line=0, dst_col=77, src='foo/file2.js', src_line=2, src_col=1, name=None),
-            SourceMap(dst_line=0, dst_col=84, src='foo/file2.js', src_line=2, src_col=8, name='a'),
-            SourceMap(dst_line=0, dst_col=87, src='foo/file2.js', src_line=2, src_col=12, name='b'),
-            SourceMap(dst_line=0, dst_col=89, src='foo/file2.js', src_line=4, src_col=0, name=None),
-            SourceMap(dst_line=0, dst_col=97, src='foo/file2.js', src_line=4, src_col=9, name='divide'),
-            SourceMap(dst_line=0, dst_col=105, src='foo/file2.js', src_line=4, src_col=16, name='a'),
-            SourceMap(dst_line=0, dst_col=107, src='foo/file2.js', src_line=4, src_col=19, name='b'),
-            SourceMap(dst_line=0, dst_col=110, src='foo/file2.js', src_line=5, src_col=1, name=None),
-            SourceMap(dst_line=0, dst_col=122, src='foo/file2.js', src_line=6, src_col=1, name=None),
-            SourceMap(dst_line=0, dst_col=127, src='foo/file2.js', src_line=7, src_col=2, name=None),
-            SourceMap(dst_line=0, dst_col=133, src='foo/file2.js', src_line=7, src_col=9, name='multiply'),
-            SourceMap(dst_line=0, dst_col=143, src='foo/file2.js', src_line=7, src_col=18, name='add'),
-            SourceMap(dst_line=0, dst_col=147, src='foo/file2.js', src_line=7, src_col=22, name='a'),
-            SourceMap(dst_line=0, dst_col=149, src='foo/file2.js', src_line=7, src_col=25, name='b'),
-            SourceMap(dst_line=0, dst_col=152, src='foo/file2.js', src_line=7, src_col=29, name='a'),
-            SourceMap(dst_line=0, dst_col=154, src='foo/file2.js', src_line=7, src_col=32, name='b'),
-            SourceMap(dst_line=0, dst_col=157, src='foo/file2.js', src_line=7, src_col=37, name='c'),
-            SourceMap(dst_line=0, dst_col=159, src='foo/file2.js', src_line=8, src_col=3, name=None),
-            SourceMap(dst_line=0, dst_col=165, src='foo/file2.js', src_line=8, src_col=10, name='e'),
-            SourceMap(dst_line=0, dst_col=168, src='foo/file2.js', src_line=9, src_col=2, name='Raven'),
-            SourceMap(dst_line=0, dst_col=174, src='foo/file2.js', src_line=9, src_col=8, name='captureException'),
-            SourceMap(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, name='e'),
+        assert list(index) == [
+            Token(dst_line=0, dst_col=0, src='foo/file1.js', src_line=0, src_col=0, src_id=0, name=None),
+            Token(dst_line=0, dst_col=8, src='foo/file1.js', src_line=0, src_col=9, src_id=0, name='add'),
+            Token(dst_line=0, dst_col=13, src='foo/file1.js', src_line=0, src_col=13, src_id=0, name='a'),
+            Token(dst_line=0, dst_col=15, src='foo/file1.js', src_line=0, src_col=16, src_id=0, name='b'),
+            Token(dst_line=0, dst_col=18, src='foo/file1.js', src_line=1, src_col=1, src_id=0, name=None),
+            Token(dst_line=0, dst_col=30, src='foo/file1.js', src_line=2, src_col=1, src_id=0, name=None),
+            Token(dst_line=0, dst_col=37, src='foo/file1.js', src_line=2, src_col=8, src_id=0, name='a'),
+            Token(dst_line=0, dst_col=40, src='foo/file1.js', src_line=2, src_col=12, src_id=0, name='b'),
+            Token(dst_line=0, dst_col=42, src='foo/file2.js', src_line=0, src_col=0, src_id=1, name=None),
+            Token(dst_line=0, dst_col=50, src='foo/file2.js', src_line=0, src_col=9, src_id=1, name='multiply'),
+            Token(dst_line=0, dst_col=60, src='foo/file2.js', src_line=0, src_col=18, src_id=1, name='a'),
+            Token(dst_line=0, dst_col=62, src='foo/file2.js', src_line=0, src_col=21, src_id=1, name='b'),
+            Token(dst_line=0, dst_col=65, src='foo/file2.js', src_line=1, src_col=1, src_id=1, name=None),
+            Token(dst_line=0, dst_col=77, src='foo/file2.js', src_line=2, src_col=1, src_id=1, name=None),
+            Token(dst_line=0, dst_col=84, src='foo/file2.js', src_line=2, src_col=8, src_id=1, name='a'),
+            Token(dst_line=0, dst_col=87, src='foo/file2.js', src_line=2, src_col=12, src_id=1, name='b'),
+            Token(dst_line=0, dst_col=89, src='foo/file2.js', src_line=4, src_col=0, src_id=1, name=None),
+            Token(dst_line=0, dst_col=97, src='foo/file2.js', src_line=4, src_col=9, src_id=1, name='divide'),
+            Token(dst_line=0, dst_col=105, src='foo/file2.js', src_line=4, src_col=16, src_id=1, name='a'),
+            Token(dst_line=0, dst_col=107, src='foo/file2.js', src_line=4, src_col=19, src_id=1, name='b'),
+            Token(dst_line=0, dst_col=110, src='foo/file2.js', src_line=5, src_col=1, src_id=1, name=None),
+            Token(dst_line=0, dst_col=122, src='foo/file2.js', src_line=6, src_col=1, src_id=1, name=None),
+            Token(dst_line=0, dst_col=127, src='foo/file2.js', src_line=7, src_col=2, src_id=1, name=None),
+            Token(dst_line=0, dst_col=133, src='foo/file2.js', src_line=7, src_col=9, src_id=1, name='multiply'),
+            Token(dst_line=0, dst_col=143, src='foo/file2.js', src_line=7, src_col=18, src_id=1, name='add'),
+            Token(dst_line=0, dst_col=147, src='foo/file2.js', src_line=7, src_col=22, src_id=1, name='a'),
+            Token(dst_line=0, dst_col=149, src='foo/file2.js', src_line=7, src_col=25, src_id=1, name='b'),
+            Token(dst_line=0, dst_col=152, src='foo/file2.js', src_line=7, src_col=29, src_id=1, name='a'),
+            Token(dst_line=0, dst_col=154, src='foo/file2.js', src_line=7, src_col=32, src_id=1, name='b'),
+            Token(dst_line=0, dst_col=157, src='foo/file2.js', src_line=7, src_col=37, src_id=1, name='c'),
+            Token(dst_line=0, dst_col=159, src='foo/file2.js', src_line=8, src_col=3, src_id=1, name=None),
+            Token(dst_line=0, dst_col=165, src='foo/file2.js', src_line=8, src_col=10, src_id=1, name='e'),
+            Token(dst_line=0, dst_col=168, src='foo/file2.js', src_line=9, src_col=2, src_id=1, name='Raven'),
+            Token(dst_line=0, dst_col=174, src='foo/file2.js', src_line=9, src_col=8, src_id=1, name='captureException'),
+            Token(dst_line=0, dst_col=191, src='foo/file2.js', src_line=9, src_col=25, src_id=1, name='e'),
         ]
 
 
@@ -173,33 +173,33 @@ class ParseIndexedSourcemapTest(TestCase):
     # Tests lookups that fall exactly on source map token boundaries
     # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#138
     def test_exact_mappings(self):
-        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+        smap_view = view_from_json(indexed_sourcemap_example)
 
         # one.js
-        assert find_source(indexed_sourcemap, 1, 1) == \
-            SourceMap(dst_line=0, dst_col=1, src='/the/root/one.js', src_line=0, src_col=1, name=None)
-        assert find_source(indexed_sourcemap, 1, 18) == \
-            SourceMap(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, name='bar')
-        assert find_source(indexed_sourcemap, 1, 28) == \
-            SourceMap(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, name='baz')
+        assert smap_view.lookup_token(0, 1) == \
+            Token(dst_line=0, dst_col=1, src='/the/root/one.js', src_line=0, src_col=1, src_id=0, name=None)
+        assert smap_view.lookup_token(0, 18) == \
+            Token(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, src_id=0, name='bar')
+        assert smap_view.lookup_token(0, 28) == \
+            Token(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, src_id=0, name='baz')
 
         # two.js
-        assert find_source(indexed_sourcemap, 2, 18) == \
-            SourceMap(dst_line=1, dst_col=18, src='/the/root/two.js', src_line=0, src_col=21, name='n')
-        assert find_source(indexed_sourcemap, 2, 21) == \
-            SourceMap(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, name=None)
-        assert find_source(indexed_sourcemap, 2, 21) == \
-            SourceMap(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, name=None)
+        assert smap_view.lookup_token(1, 18) == \
+            Token(dst_line=1, dst_col=18, src='/the/root/two.js', src_line=0, src_col=21, src_id=1, name='n')
+        assert smap_view.lookup_token(1, 21) == \
+            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=1, name=None)
+        assert smap_view.lookup_token(1, 21) == \
+            Token(dst_line=1, dst_col=21, src='/the/root/two.js', src_line=1, src_col=3, src_id=1, name=None)
 
     # Tests lookups that fall inside source map token boundaries
     # https://github.com/mozilla/source-map/blob/master/test/test-source-map-consumer.js#181
     def test_fuzzy_mapping(self):
-        indexed_sourcemap = sourcemap_to_index(indexed_sourcemap_example)
+        smap_view = view_from_json(indexed_sourcemap_example)
 
         # one.js
-        assert find_source(indexed_sourcemap, 1, 20) == \
-            SourceMap(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, name='bar')
-        assert find_source(indexed_sourcemap, 1, 30) == \
-            SourceMap(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, name='baz')
-        assert find_source(indexed_sourcemap, 2, 12) == \
-            SourceMap(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, name=None)
+        assert smap_view.lookup_token(0, 20) == \
+            Token(dst_line=0, dst_col=18, src='/the/root/one.js', src_line=0, src_col=21, src_id=0, name='bar')
+        assert smap_view.lookup_token(0, 30) == \
+            Token(dst_line=0, dst_col=28, src='/the/root/one.js', src_line=1, src_col=10, src_id=0, name='baz')
+        assert smap_view.lookup_token(1, 12) == \
+            Token(dst_line=1, dst_col=9, src='/the/root/two.js', src_line=0, src_col=11, src_id=1, name=None)

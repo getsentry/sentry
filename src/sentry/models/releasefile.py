@@ -10,8 +10,8 @@ from __future__ import absolute_import
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
-from sentry.utils.hashlib import sha1
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.utils.hashlib import sha1_text
 
 
 class ReleaseFile(Model):
@@ -22,7 +22,8 @@ class ReleaseFile(Model):
     """
     __core__ = False
 
-    project = FlexibleForeignKey('sentry.Project')
+    organization = FlexibleForeignKey('sentry.Organization')
+    project_id = BoundedPositiveIntegerField(null=True)
     release = FlexibleForeignKey('sentry.Release')
     file = FlexibleForeignKey('sentry.File')
     ident = models.CharField(max_length=40)
@@ -48,4 +49,4 @@ class ReleaseFile(Model):
 
     @classmethod
     def get_ident(cls, name):
-        return sha1(name).hexdigest()
+        return sha1_text(name).hexdigest()

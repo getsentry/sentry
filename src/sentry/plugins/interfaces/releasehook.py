@@ -10,6 +10,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ReleaseHook']
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from sentry.models import Activity, Release
@@ -21,19 +22,65 @@ class ReleaseHook(object):
 
     def start_release(self, version, **values):
         values.setdefault('date_started', timezone.now())
-        Release.objects.create_or_update(
-            version=version,
-            project=self.project,
-            values=values,
-        )
+        try:
+            with transaction.atomic():
+                release = Release.objects.create(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                    **values
+                )
+        except IntegrityError:
+            release = Release.objects.get(
+                version=version,
+                organization_id=self.project.organization_id,
+            )
+            release.update(**values)
+
+        release.add_project(self.project)
+
+    # TODO(dcramer): this is being used by the release details endpoint, but
+    # it'd be ideal if most if not all of this logic lived there, and this
+    # hook simply called out to the endpoint
+    def set_commits(self, version, commit_list):
+        """
+        Commits should be ordered oldest to newest.
+
+        Calling this method will remove all existing commit history.
+        """
+        project = self.project
+        try:
+            with transaction.atomic():
+                release = Release.objects.create(
+                    organization_id=project.organization_id,
+                    version=version
+                )
+        except IntegrityError:
+            release = Release.objects.get(
+                organization_id=project.organization_id,
+                version=version
+            )
+        release.add_project(project)
+
+        release.set_commits(commit_list)
 
     def finish_release(self, version, **values):
         values.setdefault('date_released', timezone.now())
-        Release.objects.create_or_update(
-            version=version,
-            project=self.project,
-            values=values,
-        )
+        try:
+            with transaction.atomic():
+                release = Release.objects.create(
+                    version=version,
+                    organization_id=self.project.organization_id,
+                    **values
+                )
+        except IntegrityError:
+            release = Release.objects.get(
+                version=version,
+                organization_id=self.project.organization_id,
+            )
+            release.update(**values)
+
+        release.add_project(self.project)
+
         Activity.objects.create(
             type=Activity.RELEASE,
             project=self.project,
@@ -41,8 +88,6 @@ class ReleaseHook(object):
             data={'version': version},
             datetime=values['date_released'],
         )
-        # TODO(dcramer): enable these when they're optional and useful
-        # activity.send_notification()
 
     def handle(self, request):
         raise NotImplementedError

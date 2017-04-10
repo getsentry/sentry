@@ -9,9 +9,12 @@ sentry.search.base
 from __future__ import absolute_import
 
 ANY = object()
+EMPTY = object()
 
 
 class SearchBackend(object):
+    __all__ = ('query', 'validate')
+
     def __init__(self, **options):
         pass
 
@@ -26,8 +29,8 @@ class SearchBackend(object):
     def query(self, project, query=None, status=None, tags=None,
               bookmarked_by=None, assigned_to=None, first_release=None,
               sort_by='date', age_from=None, age_to=None,
-              unassigned=None, date_from=None, date_to=None, cursor=None,
-              limit=100):
+              unassigned=None, date_from=None, date_to=None,
+              cursor=None, limit=100):
         """
         The return value should be a CursorResult.
 

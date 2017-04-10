@@ -6,17 +6,30 @@ from django.db.models import Q
 from django.utils import timezone
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, BaseManager,
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
 
 
 class GroupSubscriptionReason(object):
+    committed = -2  # not for use as a persisted field value
+    implicit = -1   # not for use as a persisted field value
+
     unknown = 0
     comment = 1
     assigned = 2
     bookmark = 3
     status_change = 4
+
+    descriptions = {
+        implicit: u"have opted to receive updates for all issues within "
+                  "projects that you are a member of",
+        committed: u"were involved in a commit that is part of this release",
+        comment: u"have commented on this issue",
+        assigned: u"have been assigned to this issue",
+        bookmark: u"have bookmarked this issue",
+        status_change: u"have changed the resolution status of this issue",
+    }
 
 
 class GroupSubscriptionManager(BaseManager):
@@ -43,14 +56,16 @@ class GroupSubscriptionManager(BaseManager):
         """
         from sentry.models import User, UserOption, UserOptionValue
 
-        # identify all members of a project
+        # Identify all members of a project -- we'll use this to start figuring
+        # out who could possibly be associated with this group due to implied
+        # subscriptions.
         users = User.objects.filter(
             sentry_orgmember_set__teams=group.project.team,
             is_active=True,
         )
 
-        # TODO(dcramer): allow members to change from default particpating to
-        # explicit
+        # Obviously, users who have explicitly unsubscribed from this issue
+        # aren't considered participants.
         users = users.exclude(
             id__in=GroupSubscription.objects.filter(
                 group=group,
@@ -59,36 +74,51 @@ class GroupSubscriptionManager(BaseManager):
             ).values('user')
         )
 
-        # find users which by default do not subscribe
-        participating_only = set(UserOption.objects.filter(
-            Q(project__isnull=True) | Q(project=group.project),
-            user__in=users,
-            key='workflow:notifications',
-            value=UserOptionValue.participating_only,
-        ).exclude(
-            user__in=UserOption.objects.filter(
+        # Fetch all of the users that have been explicitly associated with this
+        # issue.
+        participants = {
+            subscription.user: subscription.reason
+            for subscription in
+            GroupSubscription.objects.filter(
+                group=group,
+                is_active=True,
+                user__in=users,
+            ).select_related('user')
+        }
+
+        # Find users which by default do not subscribe.
+        participating_only = set(
+            uo.user_id for uo in UserOption.objects.filter(
+                Q(project__isnull=True) | Q(project=group.project),
                 user__in=users,
                 key='workflow:notifications',
-                project=group.project,
-                value=UserOptionValue.all_conversations,
+            ).exclude(
+                user__in=[
+                    uo.user_id for uo in UserOption.objects.filter(
+                        project=group.project,
+                        user__in=users,
+                        key='workflow:notifications',
+                    )
+                    if uo.value == UserOptionValue.all_conversations
+                ]
             )
-        ).values_list('user', flat=True))
+            if uo.value == UserOptionValue.participating_only
+        )
 
         if participating_only:
-            excluded = participating_only.difference(
-                GroupSubscription.objects.filter(
-                    group=group,
-                    is_active=True,
-                    user__in=participating_only,
-                ).values_list('user', flat=True)
-            )
-
+            excluded = participating_only.difference(participants.keys())
             if excluded:
-                users = users.exclude(
-                    id__in=excluded,
-                )
+                users = users.exclude(id__in=excluded)
 
-        return list(users)
+        results = {}
+
+        for user in users:
+            results[user] = GroupSubscriptionReason.implicit
+
+        for user, reason in participants.items():
+            results[user] = reason
+
+        return results
 
 
 class GroupSubscription(Model):

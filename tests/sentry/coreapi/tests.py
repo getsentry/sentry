@@ -2,9 +2,12 @@
 
 from __future__ import absolute_import
 
+import six
 import mock
+import pytest
 
 from datetime import datetime
+from django.core.exceptions import SuspiciousOperation
 from uuid import UUID
 
 from sentry.coreapi import (
@@ -29,18 +32,21 @@ class AuthFromRequestTest(BaseAPITest):
     def test_valid(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value, biz=baz'}
+        request.GET = {}
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
     def test_valid_missing_space(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,biz=baz'}
+        request.GET = {}
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
     def test_valid_ignore_case(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'SeNtRy sentry_key=value, biz=baz'}
+        request.GET = {}
         result = self.helper.auth_from_request(request)
         assert result.public_key == 'value'
 
@@ -68,32 +74,45 @@ class AuthFromRequestTest(BaseAPITest):
     def test_invalid_header_missing_pair(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry foo'}
+        request.GET = {}
         with self.assertRaises(APIUnauthorized):
             self.helper.auth_from_request(request)
 
     def test_invalid_malformed_value(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value,,biz=baz'}
+        request.GET = {}
         with self.assertRaises(APIUnauthorized):
             self.helper.auth_from_request(request)
 
+    def test_multiple_auth_suspicious(self):
+        request = mock.Mock()
+        request.GET = {'sentry_version': '1', 'foo': 'bar'}
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry sentry_key=value, biz=baz'}
+        with pytest.raises(SuspiciousOperation):
+            self.helper.auth_from_request(request)
 
-class ProjectFromAuthTest(BaseAPITest):
+
+class ProjectIdFromAuthTest(BaseAPITest):
     def test_invalid_if_missing_key(self):
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, Auth({}))
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, Auth({}))
 
     def test_valid_with_key(self):
         auth = Auth({'sentry_key': self.pk.public_key})
-        result = self.helper.project_from_auth(auth)
-        self.assertEquals(result, self.project)
+        result = self.helper.project_id_from_auth(auth)
+        self.assertEquals(result, self.project.id)
 
     def test_invalid_key(self):
         auth = Auth({'sentry_key': 'z'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
     def test_invalid_secret(self):
         auth = Auth({'sentry_key': self.pk.public_key, 'sentry_secret': 'z'})
-        self.assertRaises(APIUnauthorized, self.helper.project_from_auth, auth)
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
+
+    def test_nonascii_key(self):
+        auth = Auth({'sentry_key': '\xc3\xbc'})
+        self.assertRaises(APIUnauthorized, self.helper.project_id_from_auth, auth)
 
 
 class ProcessFingerprintTest(BaseAPITest):
@@ -117,7 +136,7 @@ class ProcessFingerprintTest(BaseAPITest):
 
 class ProcessDataTimestampTest(BaseAPITest):
     def test_iso_timestamp(self):
-        d = datetime(2012, 01, 01, 10, 30, 45)
+        d = datetime(2012, 1, 1, 10, 30, 45)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45'
         }, current_datetime=d)
@@ -125,7 +144,7 @@ class ProcessDataTimestampTest(BaseAPITest):
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_iso_timestamp_with_ms(self):
-        d = datetime(2012, 01, 01, 10, 30, 45, 434000)
+        d = datetime(2012, 1, 1, 10, 30, 45, 434000)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45.434'
         }, current_datetime=d)
@@ -133,7 +152,7 @@ class ProcessDataTimestampTest(BaseAPITest):
         self.assertEquals(data['timestamp'], 1325413845.0)
 
     def test_timestamp_iso_timestamp_with_Z(self):
-        d = datetime(2012, 01, 01, 10, 30, 45)
+        d = datetime(2012, 1, 1, 10, 30, 45)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45Z'
         }, current_datetime=d)
@@ -156,7 +175,7 @@ class ProcessDataTimestampTest(BaseAPITest):
         })
 
     def test_long_microseconds_value(self):
-        d = datetime(2012, 01, 01, 10, 30, 45)
+        d = datetime(2012, 1, 1, 10, 30, 45)
         data = self.helper._process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45.341324Z'
         }, current_datetime=d)
@@ -366,6 +385,48 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data.get('platform') == 'other'
 
+    def test_environment_too_long(self):
+        data = self.helper.validate_data(self.project, {
+            'environment': 'a' * 65,
+        })
+        assert not data.get('environment')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'environment'
+        assert data['errors'][0]['value'] == 'a' * 65
+
+    def test_environment_as_non_string(self):
+        data = self.helper.validate_data(self.project, {
+            'environment': 42,
+        })
+        assert data.get('environment') == '42'
+
+    def test_time_spent_too_large(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': 2147483647 + 1,
+        })
+        assert not data.get('time_spent')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'time_spent'
+        assert data['errors'][0]['value'] == 2147483647 + 1
+
+    def test_time_spent_invalid(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': 'lol',
+        })
+        assert not data.get('time_spent')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'time_spent'
+        assert data['errors'][0]['value'] == 'lol'
+
+    def test_time_spent_non_int(self):
+        data = self.helper.validate_data(self.project, {
+            'time_spent': '123',
+        })
+        assert data['time_spent'] == 123
+
 
 class SafelyLoadJSONStringTest(BaseAPITest):
     def test_valid_payload(self):
@@ -379,6 +440,17 @@ class SafelyLoadJSONStringTest(BaseAPITest):
     def test_unexpected_type(self):
         with self.assertRaises(APIError):
             self.helper.safely_load_json_string('1')
+
+
+class DecodeDataTest(BaseAPITest):
+    def test_valid_data(self):
+        data = self.helper.decode_data('foo')
+        assert data == u'foo'
+        assert type(data) == six.text_type
+
+    def test_invalid_data(self):
+        with self.assertRaises(APIError):
+            self.helper.decode_data('\x99')
 
 
 class GetInterfaceTest(TestCase):
@@ -492,7 +564,10 @@ class CspApiHelperTest(BaseAPITest):
         assert result['errors'] == []
         assert 'message' in result
         assert 'culprit' in result
-        assert 'tags' in result
+        assert result['tags'] == [
+            ('effective-directive', 'img-src'),
+            ('blocked-uri', 'http://google.com'),
+        ]
         assert result['sentry.interfaces.User'] == {'ip_address': '69.69.69.69'}
         assert result['sentry.interfaces.Http'] == {
             'url': 'http://45.55.25.245:8123/csp',
@@ -506,3 +581,58 @@ class CspApiHelperTest(BaseAPITest):
     def test_validate_raises_invalid_interface(self):
         with self.assertRaises(APIForbidden):
             self.helper.validate_data(self.project, {})
+
+    def test_tags_out_of_bounds(self):
+        report = {
+            "document-uri": "http://45.55.25.245:8123/csp",
+            "referrer": "http://example.com",
+            "violated-directive": "img-src https://45.55.25.245:8123/",
+            "effective-directive": "img-src",
+            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri": "v" * 201,
+            "status-code": 200,
+            "_meta": {
+                "release": "abc123",
+            }
+        }
+        result = self.helper.validate_data(self.project, report)
+        assert result['tags'] == [
+            ('effective-directive', 'img-src'),
+        ]
+        assert len(result['errors']) == 1
+
+    def test_tag_value(self):
+        report = {
+            "document-uri": "http://45.55.25.245:8123/csp",
+            "referrer": "http://example.com",
+            "violated-directive": "img-src https://45.55.25.245:8123/",
+            "effective-directive": "img-src",
+            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri": "http://google.com\n",
+            "status-code": 200,
+            "_meta": {
+                "release": "abc123",
+            }
+        }
+        result = self.helper.validate_data(self.project, report)
+        assert result['tags'] == [
+            ('effective-directive', 'img-src'),
+        ]
+        assert len(result['errors']) == 1
+
+    def test_no_tags(self):
+        report = {
+            "document-uri": "http://45.55.25.245:8123/csp",
+            "referrer": "http://example.com",
+            "violated-directive": "img-src https://45.55.25.245:8123/",
+            "effective-directive": "v" * 201,
+            "original-policy": "default-src  https://45.55.25.245:8123/; child-src  https://45.55.25.245:8123/; connect-src  https://45.55.25.245:8123/; font-src  https://45.55.25.245:8123/; img-src  https://45.55.25.245:8123/; media-src  https://45.55.25.245:8123/; object-src  https://45.55.25.245:8123/; script-src  https://45.55.25.245:8123/; style-src  https://45.55.25.245:8123/; form-action  https://45.55.25.245:8123/; frame-ancestors 'none'; plugin-types 'none'; report-uri http://45.55.25.245:8123/csp-report?os=OS%20X&device=&browser_version=43.0&browser=chrome&os_version=Lion",
+            "blocked-uri": "http://google.com\n",
+            "status-code": 200,
+            "_meta": {
+                "release": "abc123",
+            }
+        }
+        result = self.helper.validate_data(self.project, report)
+        assert 'tags' not in result
+        assert len(result['errors']) == 2

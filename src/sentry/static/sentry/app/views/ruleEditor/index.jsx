@@ -4,7 +4,7 @@ import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
 import IndicatorStore from '../../stores/indicatorStore';
 import SelectInput from '../../components/selectInput';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
 
 import RuleNodeList from './ruleNodeList';
 
@@ -56,17 +56,19 @@ const RuleEditor = React.createClass({
       actions.push(this.serializeNode(el));
     });
     let actionMatch = $(ReactDOM.findDOMNode(this.refs.actionMatch)).val();
+    let frequency = $(ReactDOM.findDOMNode(this.refs.frequency)).val();
     let name = $(ReactDOM.findDOMNode(this.refs.name)).val();
     let data = {
       actionMatch: actionMatch,
       actions: actions,
       conditions: conditions,
+      frequency: frequency,
       name: name
     };
     let rule = this.props.rule;
     let project = this.props.project;
     let org = this.props.organization;
-    let endpoint = '/projects/' + org.slug + '/' + project.slug + '/rules/';
+    let endpoint = `/projects/${org.slug}/${project.slug}/rules/`;
     if (rule.id) {
       endpoint += rule.id + '/';
     }
@@ -76,7 +78,7 @@ const RuleEditor = React.createClass({
       method: (rule.id ? 'PUT' : 'POST'),
       data: data,
       success: () => {
-        window.location.href = (rule.id ? '../../' : '../');
+        window.location.href = '../';
       },
       error: (response) => {
         this.setState({
@@ -99,14 +101,14 @@ const RuleEditor = React.createClass({
   render() {
     let rule = this.props.rule;
     let {loading, error} = this.state;
-    let {actionMatch, actions, conditions, name} = rule;
+    let {actionMatch, actions, conditions, frequency, name} = rule;
 
     return (
       <form onSubmit={this.onSubmit} ref="form">
         <div className="box rule-detail">
           <div className="box-header">
             <h3>
-              {rule.id ? 'Edit Rule' : 'New Rule'}
+              {rule.id ? 'Edit Alert Rule' : 'New Alert Rule'}
             </h3>
           </div>
           <div className="box-content with-padding">
@@ -116,12 +118,15 @@ const RuleEditor = React.createClass({
               </div>
             }
             <h6>{t('Rule name')}:</h6>
-            <input ref="name"
-                   type="text" className="form-control"
-                   defaultValue={name}
-                   required={true}
-                   placeholder={t('My Rule Name')} />
-            <hr/>
+            <div className="control-group">
+              <input ref="name"
+                     type="text" className="form-control"
+                     defaultValue={name}
+                     required={true}
+                     placeholder={t('My Rule Name')} />
+            </div>
+
+            <hr />
 
             <div className="node-match-selector">
               <h6>
@@ -148,16 +153,44 @@ const RuleEditor = React.createClass({
               className="rule-condition-list"
               onChange={this.onConditionsChange} />
 
+            <hr />
+
             <h6>{t('Take these actions:')}</h6>
 
             {this.hasError('actions') &&
-              <p className="error">{t('Ensure at least one condition is enabled and all required fields are filled in.')}</p>
+              <p className="error">{t('Ensure at least one action is enabled and all required fields are filled in.')}</p>
             }
 
             <RuleNodeList nodes={this.props.actions}
               initialItems={actions}
               className="rule-action-list"
               onChange={this.onActionsChange} />
+
+            <hr />
+
+            <div className="node-frequency-selector">
+              <h6>
+                {tct('Perform these actions at most once every [frequency] for an issue.', {
+                  frequency: (
+                    <SelectInput ref="frequency"
+                          className={(this.hasError('frequency') ? ' error' : '')}
+                          value={frequency}
+                          style={{width:150}}
+                          required={true}>
+                      <option value="5">{t('5 minutes')}</option>
+                      <option value="10">{t('10 minutes')}</option>
+                      <option value="30">{t('30 minutes')}</option>
+                      <option value="60">{t('60 minutes')}</option>
+                      <option value="180">{t('3 hours')}</option>
+                      <option value="720">{t('12 hours')}</option>
+                      <option value="1440">{t('24 hours')}</option>
+                      <option value="10080">{t('one week')}</option>
+                      <option value="43200">{t('30 days')}</option>
+                    </SelectInput>
+                  )
+                })}
+              </h6>
+            </div>
 
             <div className="actions">
               <button className="btn btn-primary btn-lg"

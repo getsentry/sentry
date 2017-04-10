@@ -8,11 +8,15 @@ sentry.db.models.query
 
 from __future__ import absolute_import
 
-from django.db import IntegrityError, router, transaction
-from django.db.models.expressions import ExpressionNode
-from django.db.models.signals import post_save
+import itertools
+import six
 
-from .utils import resolve_expression_node
+from django.db import IntegrityError, router, transaction
+from django.db.models import Model, Q
+from django.db.models.signals import post_save
+from six.moves import reduce
+
+from .utils import ExpressionNode, resolve_expression_node
 
 __all__ = ('update', 'create_or_update')
 
@@ -30,7 +34,7 @@ def update(self, using=None, **kwargs):
             kwargs[field.name] = field.pre_save(self, False)
 
     affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
-    for k, v in kwargs.iteritems():
+    for k, v in six.iteritems(kwargs):
         if isinstance(v, ExpressionNode):
             v = resolve_expression_node(self, v)
         setattr(self, k, v)
@@ -68,19 +72,17 @@ def create_or_update(model, using=None, **kwargs):
 
     objects = model.objects.using(using)
 
-    # TODO(dcramer): support _id shortcut on filter kwargs
     affected = objects.filter(**kwargs).update(**values)
     if affected:
         return affected, False
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
-    for k, v in values.iteritems():
-        if isinstance(v, ExpressionNode):
-            create_kwargs[k] = resolve_expression_node(inst, v)
-        else:
-            create_kwargs[k] = v
-    for k, v in defaults.iteritems():
+    for k, v in itertools.chain(six.iteritems(values), six.iteritems(defaults)):
+        # XXX(dcramer): we want to support column shortcut on create so
+        # we can do create_or_update(..., {'project': 1})
+        if not isinstance(v, Model):
+            k = model._meta.get_field(k).attname
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
@@ -93,3 +95,11 @@ def create_or_update(model, using=None, **kwargs):
         affected = objects.filter(**kwargs).update(**values)
 
     return affected, False
+
+
+def in_iexact(column, values):
+    from operator import or_
+
+    query = '{}__iexact'.format(column)
+
+    return reduce(or_, [Q(**{query: v}) for v in values])

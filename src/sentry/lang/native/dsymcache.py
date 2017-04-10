@@ -1,7 +1,10 @@
+from __future__ import absolute_import
+
 import os
 import uuid
 import time
 import errno
+import six
 import shutil
 
 from sentry import options
@@ -19,19 +22,19 @@ class DSymCache(object):
         return options.get('dsym.cache-path')
 
     def get_project_path(self, project):
-        return os.path.join(self.dsym_cache_path, str(project.id))
+        return os.path.join(self.dsym_cache_path, six.text_type(project.id))
 
     def get_global_path(self):
         return os.path.join(self.dsym_cache_path, 'global')
 
-    def fetch_dsyms(self, project, uuids):
+    def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
         bases = set()
-        loaded = []
+        loaded = set()
         for image_uuid in uuids:
-            rv = self.fetch_dsym(project, image_uuid)
-            if rv is not None:
-                base, dsym = rv
-                loaded.append(dsym)
+            base = self.fetch_dsym(project, image_uuid,
+                on_dsym_file_referenced=on_dsym_file_referenced)
+            if base is not None:
+                loaded.add(image_uuid)
                 bases.add(base)
         return list(bases), loaded
 
@@ -41,18 +44,18 @@ class DSymCache(object):
             os.utime(path, (now, now))
         return path
 
-    def fetch_dsym(self, project, image_uuid):
+    def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
         image_uuid = image_uuid.lower()
         for path in self.get_project_path(project), self.get_global_path():
             base = self.get_project_path(project)
             dsym = os.path.join(base, image_uuid)
             try:
-                stat = os.stat(dsym)
+                os.stat(dsym)
             except OSError as e:
                 if e.errno != errno.ENOENT:
                     raise
             else:
-                return base, self.try_bump_timestamp(dsym, stat)
+                return base
 
         dsf = find_dsym_file(project, image_uuid)
         if dsf is None:
@@ -61,6 +64,8 @@ class DSymCache(object):
         if dsf.is_global:
             base = self.get_global_path()
         else:
+            if on_dsym_file_referenced is not None:
+                on_dsym_file_referenced(dsf)
             base = self.get_project_path(project)
         dsym = os.path.join(base, image_uuid)
 
@@ -86,7 +91,7 @@ class DSymCache(object):
                     except Exception:
                         pass
 
-        return base, dsym
+        return base
 
     def clear_old_entries(self):
         try:

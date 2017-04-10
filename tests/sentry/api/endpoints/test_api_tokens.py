@@ -8,8 +8,8 @@ from sentry.testutils import APITestCase
 
 class ApiTokensListTest(APITestCase):
     def test_simple(self):
-        ApiToken.objects.create(user=self.user, scopes=getattr(ApiToken.scopes, 'event:read'))
-        ApiToken.objects.create(user=self.user, scopes=getattr(ApiToken.scopes, 'event:read'))
+        ApiToken.objects.create(user=self.user)
+        ApiToken.objects.create(user=self.user)
 
         self.login_as(self.user)
         url = reverse('sentry-api-0-api-tokens')
@@ -33,8 +33,9 @@ class ApiTokensCreateTest(APITestCase):
         token = ApiToken.objects.get(
             user=self.user,
         )
-        scopes = [k for k, v in token.scopes.iteritems() if v]
-        assert scopes == ['event:read']
+        assert not token.expires_at
+        assert not token.refresh_token
+        assert token.get_scopes() == ['event:read']
 
 
 class ApiTokensDeleteTest(APITestCase):

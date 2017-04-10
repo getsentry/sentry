@@ -34,6 +34,24 @@ const definitions = [
     defaultValue: () => ConfigStore.get('user').email,
   },
   {
+    key: 'system.support-email',
+    label: t('Support Email'),
+    placeholder: 'support@example.com',
+    help: t('The support contact for this Sentry installation.'),
+    // TODO(dcramer): this should not be hardcoded to a component
+    component: EmailField,
+    defaultValue: () => ConfigStore.get('user').email,
+  },
+  {
+    key: 'system.security-email',
+    label: t('Security Email'),
+    placeholder: 'security@example.com',
+    help: t('The security contact for this Sentry installation.'),
+    // TODO(dcramer): this should not be hardcoded to a component
+    component: EmailField,
+    defaultValue: () => ConfigStore.get('user').email,
+  },
+  {
     key: 'system.rate-limit',
     label: t('Rate Limit'),
     placeholder: 'e.g. 500',
@@ -50,6 +68,12 @@ const definitions = [
     label: t('User Rate Limit'),
     placeholder: 'e.g. 10',
     help: t('The maximum number of times an authentication attempt may be made against a single account in a 60 second window.'),
+  },
+  {
+    key: 'api.rate-limit.org-create',
+    label: 'Organization Creation Rate Limit',
+    placeholder: 'e.g. 5',
+    help: t('The maximum number of organizations which may be created by a single account in a one hour window.'),
   },
   {
     key: 'mail.from',
@@ -119,7 +143,7 @@ export function getOptionField(option, onChange, value, field) {
         placeholder={meta.placeholder}
         help={meta.help}
         onChange={onChange}
-        required={meta.required}
+        required={meta.required && !meta.allowEmpty}
         value={value}
         disabled={meta.disabled}
         disabledReason={meta.disabledReason && disabledReasons[meta.disabledReason]} />

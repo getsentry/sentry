@@ -19,7 +19,8 @@ const StreamActions = React.createClass({
     onSelectStatsPeriod: React.PropTypes.func.isRequired,
     realtimeActive: React.PropTypes.bool.isRequired,
     statsPeriod: React.PropTypes.string.isRequired,
-    query: React.PropTypes.string.isRequired
+    query: React.PropTypes.string.isRequired,
+    hasReleases: React.PropTypes.bool,
   },
 
   mixins: [
@@ -143,6 +144,8 @@ const StreamActions = React.createClass({
   render() {
     // TODO(mitsuhiko): very unclear how to translate this
     let numIssues = SelectedGroupStore.getSelectedIds().size;
+    let hasRelease = this.props.hasReleases;
+    let releaseTrackingUrl = `/${this.props.orgId}/${this.props.projectId}/settings/release-tracking/`;
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = (this.props.query ? (
@@ -190,8 +193,54 @@ const StreamActions = React.createClass({
                  tooltip={t('Set Status to Resolved')}
                  onlyIfBulk={true}
                  selectAllActive={this.state.pageSelected}>
-                <i aria-hidden="true" className="icon-checkmark"></i>
+                <span className="icon-checkmark" style={{marginRight: 5}} />
+                {t('Resolve')}
               </ActionLink>
+              <DropdownLink
+                caret={true}
+                className="btn btn-default btn-sm action-resolve"
+                topLevelClasses="resolve-dropdown"
+                disabled={!this.state.anySelected}
+                title="">
+                <MenuItem noAnchor={true}>
+                  {hasRelease ?
+                    <ActionLink
+                        disabled={!this.state.anySelected}
+                        onAction={this.onUpdate.bind(this, {status: 'resolvedInNextRelease'})}
+                        buttonTitle={t('Resolve')}
+                        tooltip=""
+                        extraDescription={extraDescription}
+                        confirmationQuestion={
+                          this.state.allInQuerySelected
+                            ? t('Are you sure you want to resolve all issues matching this search query?')
+                            : (count) =>
+                                tn('Are you sure you want to resolve this %d issue?',
+                                   'Are you sure you want to resolve these %d issues?',
+                                   count)
+                        }
+                        confirmLabel={
+                          this.state.allInQuerySelected
+                            ? t('Resolve all issues')
+                            : (count) =>
+                                tn('Resolve %d selected issue',
+                                   'Resolve %d selected issues',
+                                   count)
+                        }
+                        onlyIfBulk={true}
+                        selectAllActive={this.state.pageSelected}>
+                      <strong>{t('Resolved in next release')}</strong>
+                      <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
+                    </ActionLink>
+                  :
+                    <a href={releaseTrackingUrl} className="disabled tip" title={t('Set up release tracking in order to use this feature.')}>
+                      <strong>{t('Resolved in next release.')}</strong>
+                      <div className="help-text">{t('Snooze notifications until this issue reoccurs in a future release.')}</div>
+                    </a>
+                  }
+                </MenuItem>
+              </DropdownLink>
+            </div>
+            <div className="btn-group">
               <ActionLink
                  className="btn btn-default btn-sm action-bookmark"
                  disabled={!this.state.anySelected}
@@ -219,7 +268,8 @@ const StreamActions = React.createClass({
                  selectAllActive={this.state.pageSelected}>
                 <i aria-hidden="true" className="icon-star-solid"></i>
               </ActionLink>
-
+            </div>
+            <div className="btn-group">
               <DropdownLink
                 key="actions"
                 btnGroup={true}
@@ -310,29 +360,29 @@ const StreamActions = React.createClass({
                 </MenuItem>
                 <MenuItem noAnchor={true}>
                   <ActionLink
-                    className="action-mute"
+                    className="action-ignore"
                     disabled={!this.state.anySelected}
-                    onAction={this.onUpdate.bind(this, {status: 'muted'})}
+                    onAction={this.onUpdate.bind(this, {status: 'ignored'})}
                     extraDescription={extraDescription}
                     confirmationQuestion={
                       this.state.allInQuerySelected
-                        ? t('Are you sure you want to mute all issues matching this search query?')
+                        ? t('Are you sure you want to ignore all issues matching this search query?')
                         : (count) =>
-                             tn('Are you sure you want to mute this %d issue?',
-                                'Are you sure you want to mute these %d issues?',
+                             tn('Are you sure you want to ignore this %d issue?',
+                                'Are you sure you want to ignore these %d issues?',
                                 count)
                     }
                     confirmLabel={
                       this.state.allInQuerySelected
-                        ? t('Mute all issues')
+                        ? t('Ignore all issues')
                         : (count) =>
-                            tn('Mute %d selected issue',
-                               'Mute %d selected issues',
+                            tn('Ignore %d selected issue',
+                               'Ignore %d selected issues',
                                count)
                     }
                     onlyIfBulk={true}
                     selectAllActive={this.state.pageSelected}>
-                   {t('Set status to: Muted')}
+                   {t('Set status to: Ignored')}
                   </ActionLink>
                 </MenuItem>
                 <MenuItem divider={true} />

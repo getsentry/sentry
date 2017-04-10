@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -11,25 +11,23 @@ import {t, tct} from '../locale';
 const SCOPES = new Set([
   'project:read',
   'project:write',
-  'project:delete',
+  'project:admin',
   'project:releases',
   'team:read',
   'team:write',
-  'team:delete',
+  'team:admin',
   'event:read',
-  'event:write',
-  'event:delete',
+  'event:admin',
   'org:read',
   'org:write',
-  'org:delete',
+  'org:admin',
   'member:read',
-  'member:write',
-  'member:delete'
+  'member:admin'
 ]);
 
 const DEFAULT_SCOPES = new Set([
   'event:read',
-  'event:write',
+  'event:admin',
   'project:read',
   'project:releases',
   'org:read',
@@ -126,7 +124,7 @@ const TokenForm = React.createClass({
 });
 
 const ApiNewToken = React.createClass({
-  mixins: [ApiMixin, History],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -140,11 +138,11 @@ const ApiNewToken = React.createClass({
   },
 
   onCancel() {
-    this.history.pushState(null, '/api/');
+    browserHistory.pushState(null, '/api/');
   },
 
   onSave() {
-    this.history.pushState(null, '/api/');
+    browserHistory.pushState(null, '/api/');
   },
 
   render() {
@@ -160,7 +158,7 @@ const ApiNewToken = React.createClass({
 
           <p>{t('Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.')}</p>
           <p>{tct('For more information on how to use the web API, see our [link:documentation].', {
-            link: <a href="https://docs.getsentry.com/hosted/api/" />
+            link: <a href="https://docs.sentry.io/hosted/api/" />
           })}</p>
 
           <TokenForm

@@ -17,4 +17,5 @@ Options
 - ``--concurrency INTEGER``: The number of concurrent workers to run.
   [default: 1]
 - ``-q, --silent``: Run quietly. No output on success.
+
 - ``--help``: print this help page.

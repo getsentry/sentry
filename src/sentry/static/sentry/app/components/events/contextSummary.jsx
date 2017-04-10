@@ -3,7 +3,7 @@ import React from 'react';
 import Avatar from '../../components/avatar';
 import PropTypes from '../../proptypes';
 import {t} from '../../locale';
-import {objectIsEmpty} from '../../utils';
+import {objectIsEmpty, deviceNameMapper} from '../../utils';
 
 const generateClassName = function(name) {
   return name.split(/\d/)[0].toLowerCase().replace(/[^a-z0-9\-]+/g, '-').replace(/\-+$/, '');
@@ -106,7 +106,7 @@ const DeviceSummary = React.createClass({
     return (
       <div className={`context-item ${className}`}>
         <span className="context-item-icon" />
-        <h3>{data.model}</h3>
+        <h3>{deviceNameMapper(data.model)}</h3>
         <p>{data.arch || data.model_id || ''}</p>
       </div>
     );
@@ -137,6 +137,21 @@ const EventContextSummary = React.createClass({
             data={contexts.os}
             unknownTitle={t('Unknown OS')} />
         ));
+        break;
+      case 'java':
+        if (contexts.os && contexts.os.name === 'Android') {
+          children.push((
+            <DeviceSummary
+              key="device"
+              data={contexts.device} />
+          ));
+          children.push((
+            <GenericSummary
+              key="os"
+              data={contexts.os}
+              unknownTitle={t('Unknown OS')} />
+          ));
+        }
         break;
       case 'javascript':
         children.push((

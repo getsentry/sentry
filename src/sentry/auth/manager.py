@@ -2,6 +2,8 @@ from __future__ import absolute_import, print_function
 
 __all__ = ['ProviderManager']
 
+import six
+
 from .exceptions import ProviderNotRegistered
 
 
@@ -12,7 +14,7 @@ class ProviderManager(object):
         self.__values = {}
 
     def __iter__(self):
-        return self.__values.iteritems()
+        return six.iteritems(self.__values)
 
     def get(self, key, **kwargs):
         try:

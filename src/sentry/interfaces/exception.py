@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 __all__ = ('Exception',)
 
+import six
+
 from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -58,6 +60,7 @@ class SingleException(Interface):
                 data['raw_stacktrace'],
                 has_system_frames=has_system_frames,
                 slim_frames=slim_frames,
+                raw=True
             )
         else:
             raw_stacktrace = None
@@ -69,7 +72,7 @@ class SingleException(Interface):
             # in case of TypeError: foo (no space)
             value = value.strip()
 
-        if value is not None and not isinstance(value, basestring):
+        if value is not None and not isinstance(value, six.string_types):
             value = json.dumps(value)
         value = trim(value, 4096)
 
@@ -126,7 +129,7 @@ class SingleException(Interface):
 
         return {
             'type': self.type,
-            'value': unicode(self.value) if self.value else None,
+            'value': six.text_type(self.value) if self.value else None,
             'mechanism': self.mechanism or None,
             'threadId': self.thread_id,
             'module': self.module,
@@ -147,7 +150,7 @@ class SingleException(Interface):
             if output and self.type:
                 output.append(self.type)
         if not output:
-            output = filter(bool, [self.type, self.value])
+            output = [s for s in [self.type, self.value] if s]
         return output
 
 
@@ -200,6 +203,9 @@ class Exception(Interface):
 
         if not data['values']:
             raise InterfaceValidationError("No 'values' present")
+
+        if not isinstance(data['values'], list):
+            raise InterfaceValidationError("Invalid value for 'values'")
 
         has_system_frames = cls.data_has_system_frames(data)
 

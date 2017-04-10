@@ -33,7 +33,7 @@ need to setup a fairly complex cluster of machines, and utilize all of
 Sentry's advanced configuration options.  This means you'll need Postgres,
 Riak, Redis, Memcached, and RabbitMQ.  It's very rare you'd need this
 complex of a cluster, and the primary usecase for this is for the
-Hosted Sentry on `getsentry.com <https://getsentry.com/>`_.
+Hosted Sentry on `sentry.io <https://sentry.io/>`_.
 
 For more typical, but still fairly high throughput setups, you can run off
 of a single machine as long as it has reasonable IO (ideally SSDs), and a
@@ -45,7 +45,7 @@ The main things you need to consider are:
 - Average event throughput
 - How many events get grouped together (which means they get sampled)
 
-At a point, getsentry.com was processing approximately 4 million events a
+At a point, sentry.io was processing approximately 4 million events a
 day. A majority of this data is stored for 90 days, which accounted for
 around 1.5TB of SSDs. Web and worker nodes were commodity (8GB-12GB RAM,
 cheap SATA drives, 8 cores), the only two additional nodes were a

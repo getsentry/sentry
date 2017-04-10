@@ -1,82 +1,59 @@
 from __future__ import absolute_import
 
-from uuid import uuid4
-
-from PIL import Image
-
-from django.conf import settings
-
 from rest_framework import status
+from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
+from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
-from sentry.models import UserAvatar, File
-from sentry.utils.compat import StringIO
+from sentry.models import UserAvatar
 
 
-MIN_DIMENSION = 256
+class UserAvatarSerializer(serializers.Serializer):
+    avatar_photo = AvatarField(required=False)
+    avatar_type = serializers.ChoiceField(choices=(
+        ('upload', 'upload'),
+        ('gravatar', 'gravatar'),
+        ('letter_avatar', 'letter_avatar'),
+    ))
 
-MAX_DIMENSION = 1024
+    def validate(self, attrs):
+        attrs = super(UserAvatarSerializer, self).validate(attrs)
+        if attrs.get('avatar_type') == 'upload':
+            has_existing_file = UserAvatar.objects.filter(
+                user=self.context['user'],
+                file__isnull=False,
+            ).exists()
+            if not has_existing_file and not attrs.get('avatar_photo'):
+                raise serializers.ValidationError({
+                    'avatar_type': 'Cannot set avatar_type to upload without avatar_photo',
+                })
+        return attrs
 
 
 class UserAvatarEndpoint(UserEndpoint):
-    FILE_TYPE = 'avatar.file'
-
     def get(self, request, user):
         return Response(serialize(user, request.user))
-
-    def is_valid_size(self, width, height):
-        if width != height:
-            return False
-        if width < MIN_DIMENSION:
-            return False
-        if width > MAX_DIMENSION:
-            return False
-        return True
 
     def put(self, request, user):
         if user != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
 
-        photo_string = request.DATA.get('avatar_photo')
-        photo = None
-        if photo_string:
-            photo_string = photo_string.decode('base64')
-            if len(photo_string) > settings.SENTRY_MAX_AVATAR_SIZE:
-                return Response({'error': 'Image too large.'},
-                                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
-            try:
-                with Image.open(StringIO(photo_string)) as img:
-                    width, height = img.size
-                    if not self.is_valid_size(width, height):
-                        return Response({'error': 'Image invalid size.'},
-                                        status=status.HTTP_400_BAD_REQUEST)
-            except IOError:
-                return Response({'error': 'Invalid image format.'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            file_name = '%s.png' % user.id
-            photo = File.objects.create(name=file_name, type=self.FILE_TYPE)
-            photo.putfile(StringIO(photo_string))
+        serializer = UserAvatarSerializer(
+            data=request.DATA,
+            context={'user': user},
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        avatar, _ = UserAvatar.objects.get_or_create(user=user)
-        if avatar.file and photo:
-            avatar.file.delete()
-            avatar.clear_cached_photos()
-        if photo:
-            avatar.file = photo
-            avatar.ident = uuid4().hex
+        result = serializer.object
 
-        avatar_type = request.DATA.get('avatar_type')
+        UserAvatar.save_avatar(
+            relation={'user': user},
+            type=result['avatar_type'],
+            avatar=result.get('avatar_photo'),
+            filename='{}.png'.format(user.id),
+        )
 
-        if not avatar.file and avatar_type == 'upload':
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if avatar_type:
-            try:
-                avatar.avatar_type = [i for i, n in UserAvatar.AVATAR_TYPES if n == avatar_type][0]
-            except IndexError:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        avatar.save()
         return Response(serialize(user, request.user))

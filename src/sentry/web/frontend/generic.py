@@ -27,7 +27,12 @@ def resolve(path):
     # Mostly yanked from Django core and changed to return the path:
     # See: https://github.com/django/django/blob/1.6.11/django/contrib/staticfiles/views.py
     normalized_path = posixpath.normpath(unquote(path)).lstrip('/')
-    absolute_path = finders.find(normalized_path)
+    try:
+        absolute_path = finders.find(normalized_path)
+    except Exception:
+        # trying to access bad paths like, `../../etc/passwd`, etc that
+        # Django rejects, but respond nicely instead of erroring.
+        absolute_path = None
     if not absolute_path:
         raise Http404("'%s' could not be found" % path)
     if path[-1] == '/' or os.path.isdir(absolute_path):
@@ -48,10 +53,10 @@ def static_media(request, **kwargs):
 
     try:
         document_root, path = resolve(path)
-    except Http404 as e:
+    except Http404:
         # Return back a simpler plain-text 404 response, more suitable
         # for static files, rather than our full blown HTML.
-        return HttpResponseNotFound(e.message + '\n', content_type='text/plain')
+        return HttpResponseNotFound('', content_type='text/plain')
 
     if 'gzip' in request.META.get('HTTP_ACCEPT_ENCODING', '') and not path.endswith('.gz') and not settings.DEBUG:
         paths = (path + '.gz', path)

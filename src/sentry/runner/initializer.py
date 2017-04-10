@@ -7,30 +7,19 @@ sentry.runner.initializer
 """
 from __future__ import absolute_import, print_function
 
-import os
-
 import click
+import os
+import six
+
+from django.conf import settings
 
 from sentry.utils import warnings
 from sentry.utils.warnings import DeprecatedSettingWarning
 
 
-def install_plugin_apps(settings):
-    # entry_points={
-    #    'sentry.apps': [
-    #         'phabricator = sentry_phabricator'
-    #     ],
-    # },
-    from pkg_resources import iter_entry_points
-    installed_apps = list(settings.INSTALLED_APPS)
-    for ep in iter_entry_points('sentry.apps'):
-        installed_apps.append(ep.module_name)
-    settings.INSTALLED_APPS = tuple(installed_apps)
-
-
 def register_plugins(settings):
     from pkg_resources import iter_entry_points
-    from sentry.plugins import register
+    from sentry.plugins import plugins
     # entry_points={
     #    'sentry.plugins': [
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
@@ -44,7 +33,42 @@ def register_plugins(settings):
             import traceback
             click.echo("Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc()), err=True)
         else:
-            register(plugin)
+            plugins.register(plugin)
+
+    for plugin in plugins.all(version=None):
+        init_plugin(plugin)
+
+
+def init_plugin(plugin):
+    from sentry.plugins import bindings
+    plugin.setup(bindings)
+
+    # Register contexts from plugins if necessary
+    if hasattr(plugin, 'get_custom_contexts'):
+        from sentry.interfaces.contexts import contexttype
+        for cls in plugin.get_custom_contexts() or ():
+            contexttype(cls)
+
+    if (hasattr(plugin, 'get_cron_schedule') and plugin.is_enabled()):
+        schedules = plugin.get_cron_schedule()
+        if schedules:
+            settings.CELERYBEAT_SCHEDULE.update(schedules)
+
+    if (hasattr(plugin, 'get_worker_imports') and plugin.is_enabled()):
+        imports = plugin.get_worker_imports()
+        if imports:
+            settings.CELERY_IMPORTS += tuple(imports)
+
+    if (hasattr(plugin, 'get_worker_queues') and plugin.is_enabled()):
+        from kombu import Queue
+        for queue in plugin.get_worker_queues():
+            try:
+                name, routing_key = queue
+            except ValueError:
+                name = routing_key = queue
+            q = Queue(name, routing_key=routing_key)
+            q.durable = False
+            settings.CELERY_QUEUES.append(q)
 
 
 def initialize_receivers():
@@ -106,7 +130,7 @@ def bootstrap_options(settings, config=None):
             pass
         except (AttributeError, ParserError, ScannerError) as e:
             from .importer import ConfigurationError
-            raise ConfigurationError('Malformed config.yml file: %s' % unicode(e))
+            raise ConfigurationError('Malformed config.yml file: %s' % six.text_type(e))
 
         # Empty options file, so fail gracefully
         if options is None:
@@ -119,7 +143,7 @@ def bootstrap_options(settings, config=None):
     from sentry.conf.server import DEAD
 
     # First move options from settings into options
-    for k, v in options_mapper.iteritems():
+    for k, v in six.iteritems(options_mapper):
         if getattr(settings, v, DEAD) is not DEAD and k not in options:
             warnings.warn(
                 DeprecatedSettingWarning(
@@ -131,14 +155,14 @@ def bootstrap_options(settings, config=None):
 
     # Stuff everything else into SENTRY_OPTIONS
     # these will be validated later after bootstrapping
-    for k, v in options.iteritems():
+    for k, v in six.iteritems(options):
         settings.SENTRY_OPTIONS[k] = v
 
     # Now go back through all of SENTRY_OPTIONS and promote
     # back into settings. This catches the case when values are defined
     # only in SENTRY_OPTIONS and no config.yml file
     for o in (settings.SENTRY_DEFAULT_OPTIONS, settings.SENTRY_OPTIONS):
-        for k, v in o.iteritems():
+        for k, v in six.iteritems(o):
             if k in options_mapper:
                 # Map the mail.backend aliases to something Django understands
                 if k == 'mail.backend':
@@ -218,31 +242,36 @@ def initialize_app(config, skip_backend_validation=False):
 
     configure_structlog()
 
-    fix_south(settings)
+    if 'south' in settings.INSTALLED_APPS:
+        fix_south(settings)
 
     apply_legacy_settings(settings)
 
     bind_cache_to_option_store()
-
-    install_plugin_apps(settings)
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
     if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
         warnings.warn('Sentry is configured to run asynchronous tasks in-process. '
                       'This is not recommended within production environments. '
-                      'See https://docs.getsentry.com/on-premise/server/queue/ for more information.')
+                      'See https://docs.sentry.io/on-premise/server/queue/ for more information.')
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         settings.SENTRY_FEATURES['organizations:create'] = False
 
-    settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
-    settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
-    settings.SUDO_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
+    if not hasattr(settings, 'SUDO_COOKIE_SECURE'):
+        settings.SUDO_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    if not hasattr(settings, 'SUDO_COOKIE_DOMAIN'):
+        settings.SUDO_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+    if not hasattr(settings, 'SUDO_COOKIE_PATH'):
+        settings.SUDO_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
 
-    settings.CSRF_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
-    settings.CSRF_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
-    settings.CSRF_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
+    if not hasattr(settings, 'CSRF_COOKIE_SECURE'):
+        settings.CSRF_COOKIE_SECURE = getattr(settings, 'SESSION_COOKIE_SECURE', False)
+    if not hasattr(settings, 'CSRF_COOKIE_DOMAIN'):
+        settings.CSRF_COOKIE_DOMAIN = getattr(settings, 'SESSION_COOKIE_DOMAIN', None)
+    if not hasattr(settings, 'CSRF_COOKIE_PATH'):
+        settings.CSRF_COOKIE_PATH = getattr(settings, 'SESSION_COOKIE_PATH', '/')
 
     settings.CACHES['default']['VERSION'] = settings.CACHE_VERSION
 
@@ -268,20 +297,32 @@ def initialize_app(config, skip_backend_validation=False):
 
 
 def validate_backends():
-    from sentry import app
+    from sentry import (
+        buffer, digests, nodestore, quotas, ratelimits, search, tsdb
+    )
 
     backends = (
-        app.buffer,
-        app.digests,
-        app.nodestore,
-        app.quotas,
-        app.ratelimiter,
-        app.search,
-        app.tsdb,
+        buffer,
+        digests,
+        nodestore,
+        quotas,
+        ratelimits,
+        search,
+        tsdb,
     )
 
     for backend in backends:
-        backend.validate()
+        try:
+            backend.validate()
+        except AttributeError as exc:
+            from .importer import ConfigurationError
+            from sentry.utils.settings import reraise_as
+            reraise_as(ConfigurationError(
+                '{} service failed to call validate()\n{}'.format(
+                    backend.__name__,
+                    six.text_type(exc),
+                )
+            ))
 
 
 def validate_options(settings):
@@ -293,7 +334,7 @@ def fix_south(settings):
     settings.SOUTH_DATABASE_ADAPTERS = {}
 
     # South needs an adapter defined conditionally
-    for key, value in settings.DATABASES.iteritems():
+    for key, value in six.iteritems(settings.DATABASES):
         if value['ENGINE'] != 'sentry.db.postgres':
             continue
         settings.SOUTH_DATABASE_ADAPTERS[key] = 'south.db.postgresql_psycopg2'
@@ -314,7 +355,7 @@ def bind_cache_to_option_store():
 
 
 def show_big_error(message):
-    if isinstance(message, basestring):
+    if isinstance(message, six.string_types):
         lines = message.splitlines()
     else:
         lines = message
@@ -336,7 +377,7 @@ def apply_legacy_settings(settings):
             DeprecatedSettingWarning(
                 'SENTRY_USE_QUEUE',
                 'CELERY_ALWAYS_EAGER',
-                'https://docs.getsentry.com/on-premise/server/queue/',
+                'https://docs.sentry.io/on-premise/server/queue/',
             )
         )
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
@@ -348,6 +389,8 @@ def apply_legacy_settings(settings):
         ('SENTRY_ENABLE_EMAIL_REPLIES', 'mail.enable-replies'),
         ('SENTRY_SMTP_HOSTNAME', 'mail.reply-hostname'),
         ('MAILGUN_API_KEY', 'mail.mailgun-api-key'),
+        ('SENTRY_FILESTORE', 'filestore.backend'),
+        ('SENTRY_FILESTORE_OPTIONS', 'filestore.options'),
     ):
         if new not in settings.SENTRY_OPTIONS and hasattr(settings, old):
             warnings.warn(
@@ -441,5 +484,6 @@ def on_configure(config):
     """
     settings = config['settings']
 
-    skip_migration_if_applied(
-        settings, 'social_auth', 'social_auth_association')
+    if 'south' in settings.INSTALLED_APPS:
+        skip_migration_if_applied(
+            settings, 'social_auth', 'social_auth_association')

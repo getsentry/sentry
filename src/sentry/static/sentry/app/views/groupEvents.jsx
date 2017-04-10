@@ -1,5 +1,5 @@
 import React from 'react';
-import {History, Link} from 'react-router';
+import {browserHistory, Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import DateTime from '../components/dateTime';
@@ -10,12 +10,12 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import SearchBar from '../components/searchBar.jsx';
 import {t} from '../locale';
+import {deviceNameMapper} from '../utils';
 
 const GroupEvents = React.createClass({
   mixins: [
     ApiMixin,
-    GroupState,
-    History
+    GroupState
   ],
 
   getInitialState() {
@@ -49,7 +49,7 @@ const GroupEvents = React.createClass({
       targetQueryParams.query = query;
 
     let {groupId, orgId, projectId} = this.props.params;
-    this.history.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
   },
 
   getEndpoint() {
@@ -82,9 +82,11 @@ const GroupEvents = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (error) => {
+      error: (err) => {
+        let error = err.responseJSON || true;
+        error = error.detail || true;
         this.setState({
-          error: true,
+          error,
           loading: false
         });
       }
@@ -94,9 +96,11 @@ const GroupEvents = React.createClass({
   getEventTitle(event) {
     switch (event.type) {
       case 'error':
-        return `${event.metadata.type}: ${event.metadata.value}`;
+        if (event.metadata.type && event.metadata.value)
+          return `${event.metadata.type}: ${event.metadata.value}`;
+        return event.metadata.type || event.metadata.value || event.metadata.title;
       case 'csp':
-        return `${event.metadata.directive}: ${event.metadata.uri}`;
+        return event.metadata.message;
       case 'default':
         return event.metadata.title;
       default:
@@ -151,13 +155,13 @@ const GroupEvents = React.createClass({
               <Link to={`/${orgId}/${projectId}/issues/${groupId}/events/${event.id}/`}>
                 <DateTime date={event.dateCreated} />
               </Link>
-              <small>{this.getEventTitle(event).substr(0, 100)}</small>
+              <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
             </h5>
           </td>
           {tagList.map((tag) => {
             return (
               <td key={tag.key}>
-                {tagMap[tag.key]}
+                {tag.key === 'device' ? deviceNameMapper(tagMap[tag.key]) : tagMap[tag.key]}
               </td>
             );
           })}
@@ -213,7 +217,7 @@ const GroupEvents = React.createClass({
     if (this.state.loading)
       body = <LoadingIndicator />;
     else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
+      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     else if (this.state.eventList.length > 0)
       body = this.renderResults();
     else if (this.state.query && this.state.query !== '')

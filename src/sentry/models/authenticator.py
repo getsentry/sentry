@@ -12,6 +12,7 @@ import hmac
 import time
 import base64
 import hashlib
+import six
 
 from u2flib_server import u2f
 from u2flib_server import jsapi as u2f_jsapi
@@ -26,8 +27,10 @@ from django.utils.functional import cached_property
 from django.core.urlresolvers import reverse
 
 from sentry import options
-from sentry.db.models import BaseManager, BaseModel, BoundedAutoField, \
-    FlexibleForeignKey, BoundedPositiveIntegerField, UnicodePickledObjectField
+from sentry.db.models import (
+    BaseManager, BaseModel, BoundedAutoField, BoundedPositiveIntegerField,
+    EncryptedPickledObjectField, FlexibleForeignKey
+)
 from sentry.utils.decorators import classproperty
 from sentry.utils.otp import generate_secret_key, TOTP
 from sentry.utils.sms import send_sms, sms_available
@@ -75,7 +78,7 @@ class AuthenticatorManager(BaseManager):
             rvm = dict(AUTHENTICATOR_INTERFACES)
             for iface in ifaces:
                 rvm.pop(iface.interface_id, None)
-            for iface_cls in rvm.itervalues():
+            for iface_cls in six.itervalues(rvm):
                 if iface_cls.is_available:
                     ifaces.append(iface_cls())
 
@@ -154,7 +157,7 @@ def register_authenticator(cls):
 
 
 def available_authenticators(ignore_backup=False):
-    interfaces = AUTHENTICATOR_INTERFACES.itervalues()
+    interfaces = six.itervalues(AUTHENTICATOR_INTERFACES)
     if not ignore_backup:
         return [v for v in interfaces if v.is_available]
     return [v for v in interfaces if not v.is_backup_interface and v.is_available]
@@ -283,15 +286,24 @@ class RecoveryCodeInterface(AuthenticatorInterface):
     def get_codes(self):
         rv = []
         if self.is_enrolled:
-            h = hmac.new(self.config['salt'], None, hashlib.sha1)
-            for x in xrange(10):
+            h = hmac.new(
+                key=self.config['salt'].encode('utf-8'),
+                msg=None,
+                digestmod=hashlib.sha1,
+            )
+            for x in range(10):
                 h.update('%s|' % x)
                 rv.append(base64.b32encode(h.digest())[:8])
         return rv
 
     def generate_new_config(self):
+        if six.PY3:
+            salt = int(os.urandom(16).decode('utf-8'), 16)
+        else:
+            salt = os.urandom(16).encode('hex')
+
         return {
-            'salt': os.urandom(16).encode('hex'),
+            'salt': salt,
             'used': 0,
         }
 
@@ -550,7 +562,7 @@ class Authenticator(BaseModel):
     created_at = models.DateTimeField(_('created at'), default=timezone.now)
     last_used_at = models.DateTimeField(_('last used at'), null=True)
     type = BoundedPositiveIntegerField(choices=AUTHENTICATOR_CHOICES)
-    config = UnicodePickledObjectField()
+    config = EncryptedPickledObjectField()
 
     objects = AuthenticatorManager()
 
@@ -562,6 +574,7 @@ class Authenticator(BaseModel):
         db_table = 'auth_authenticator'
         verbose_name = _('authenticator')
         verbose_name_plural = _('authenticators')
+        unique_together = (('user', 'type'),)
 
     @cached_property
     def interface(self):

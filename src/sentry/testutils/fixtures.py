@@ -17,10 +17,14 @@ import warnings
 from django.utils.text import slugify
 from exam import fixture
 from uuid import uuid4
+import os
+from django.utils import timezone
+
 
 from sentry.models import (
     Activity, Event, EventError, EventMapping, Group, Organization,
-    OrganizationMember, OrganizationMemberTeam, Project, Team, User
+    OrganizationMember, OrganizationMemberTeam, Project, Team, User,
+    Release, Commit, ReleaseCommit, CommitAuthor, Repository, CommitFileChange
 )
 
 DEFAULT_EVENT_DATA = {
@@ -29,7 +33,7 @@ DEFAULT_EVENT_DATA = {
         'sys.argv': [
             '/Users/dcramer/.virtualenvs/sentry/bin/raven',
             'test',
-            'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@app.getsentry.com/1'
+            'https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1'
         ],
         'user': 'dcramer'
     },
@@ -45,6 +49,43 @@ DEFAULT_EVENT_DATA = {
     },
     'sentry.interfaces.Stacktrace': {
         'frames': [
+            {
+                'abs_path': 'www/src/sentry/models/foo.py',
+                'context_line': '                        string_max_length=self.string_max_length)',
+                'filename': 'raven/base.py',
+                'function': 'build_msg',
+                'in_app': True,
+                'lineno': 29,
+                'module': 'raven.base',
+                'post_context': [
+                    '                },',
+                    '            })',
+                    '',
+                    "        if 'sentry.interfaces.Stacktrace' in data:",
+                    '            if self.include_paths:'
+                ],
+                'pre_context': [
+                    '',
+                    '            data.update({',
+                    "                'sentry.interfaces.Stacktrace': {",
+                    "                    'frames': get_stack_info(frames,",
+                    '                        list_max_length=self.list_max_length,'],
+                'vars': {
+                    'culprit': 'raven.scripts.runner',
+                    'date': 'datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)',
+                    'event_id': '598fb19363e745ec8be665e6ba88b1b2',
+                    'event_type': 'raven.events.Message',
+                    'frames': '<generator object iter_stack_frames at 0x103fef050>',
+                    'handler': '<raven.events.Message object at 0x103feb710>',
+                    'k': 'sentry.interfaces.Message',
+                    'public_key': None,
+                    'result': {'sentry.interfaces.Message': "{'message': 'This is a test message generated using ``raven test``', 'params': []}"},
+                    'self': '<raven.base.Client object at 0x104397f10>',
+                    'stack': True,
+                    'tags': None,
+                    'time_spent': None,
+                },
+            },
             {
                 'abs_path': '/Users/dcramer/.virtualenvs/sentry/lib/python2.7/site-packages/raven/base.py',
                 'context_line': '                        string_max_length=self.string_max_length)',
@@ -157,16 +198,17 @@ class Fixtures(object):
         if not kwargs.get('name'):
             kwargs['name'] = petname.Generate(2, ' ').title()
 
-        owner = kwargs.pop('owner', None)
-        if not owner:
+        owner = kwargs.pop('owner', -1)
+        if owner is -1:
             owner = self.user
 
         org = Organization.objects.create(**kwargs)
-        self.create_member(
-            organization=org,
-            user=owner,
-            role='owner',
-        )
+        if owner:
+            self.create_member(
+                organization=org,
+                user=owner,
+                role='owner',
+            )
         return org
 
     def create_member(self, teams=None, **kwargs):
@@ -207,6 +249,88 @@ class Fixtures(object):
     def create_project_key(self, project):
         return project.key_set.get_or_create()[0]
 
+    # TODO(maxbittker) make new fixtures less hardcoded
+    def create_release(self, project, user, version=None):
+        if version is None:
+            version = os.urandom(20).encode('hex')
+
+        release = Release.objects.create(
+            version=version,
+            organization_id=project.organization_id,
+        )
+
+        release.add_project(project)
+
+        Activity.objects.create(
+            type=Activity.RELEASE,
+            project=project,
+            ident=version,
+            user=user,
+            data={'version': version},
+        )
+        # add commits
+
+        author = self.create_commit_author(project, user)
+
+        repo = self.create_repo(project)
+
+        self.create_commit(project, repo, author, release)
+
+        return release
+
+    def create_repo(self, project):
+        repo = Repository.objects.create(
+            organization_id=project.organization_id,
+            name='organization-{}'.format(project.name),
+        )
+        return repo
+
+    def create_commit(self, project, repo, author, release):
+        commit = Commit.objects.get_or_create(
+            organization_id=project.organization_id,
+            repository_id=repo.id,
+            key='deadbeef',
+            defaults={
+                'message': 'placeholder commit message',
+                'author': author,
+                'date_added': timezone.now(),
+            }
+        )[0]
+
+        # add it to release
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+
+        self.create_commit_file_change(commit, release, project, '/models/foo.py')
+        self.create_commit_file_change(commit, release, project, '/worsematch/foo.py')
+        self.create_commit_file_change(commit, release, project, '/models/other.py')
+
+        return commit
+
+    def create_commit_author(self, project, user):
+        commit_author = CommitAuthor.objects.get_or_create(
+            organization_id=project.organization_id,
+            email=user,
+            defaults={
+                'name': user,
+            }
+        )[0]
+        return commit_author
+
+    def create_commit_file_change(self, commit, release, project, filename):
+        commit_file_change = CommitFileChange.objects.get_or_create(
+            organization_id=project.organization_id,
+            commit=commit,
+            filename=filename,
+            type='M',
+        )
+        return commit_file_change
+
     def create_user(self, email=None, **kwargs):
         if not email:
             email = uuid4().hex + '@example.com'
@@ -232,13 +356,28 @@ class Fixtures(object):
         if kwargs.get('tags'):
             tags = kwargs.pop('tags')
             if isinstance(tags, dict):
-                tags = tags.items()
+                tags = list(tags.items())
             kwargs['data']['tags'] = tags
 
         kwargs['data'].setdefault('errors', [{
             'type': EventError.INVALID_DATA,
             'name': 'foobar',
         }])
+
+        # maintain simple event fixtures by supporting the legacy message
+        # parameter just like our API would
+        if 'sentry.interfaces.Message' not in kwargs['data']:
+            kwargs['data']['sentry.interfaces.Message'] = {
+                'message': kwargs.get('message') or '<unlabeled event>',
+            }
+
+        if 'type' not in kwargs['data']:
+            kwargs['data'].update({
+                'type': 'default',
+                'metadata': {
+                    'title': kwargs['data']['sentry.interfaces.Message']['message'],
+                },
+            })
 
         event = Event(
             event_id=event_id,
@@ -272,7 +411,7 @@ class Fixtures(object):
                     ["browser", "Chrome 48.0"],
                     ["device", "Other"],
                     ["os", "Windows 10"],
-                    ["url", "https://app.getsentry.com/katon-direct/localhost/issues/112734598/"],
+                    ["url", "https://sentry.io/katon-direct/localhost/issues/112734598/"],
                     ["sentry:user", "id:41656"]
                 ],
                 "errors": [{
@@ -298,8 +437,8 @@ class Fixtures(object):
                                 "in_app": false,
                                 "data": {
                                     "orig_filename": "/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "orig_abs_path": "https://media.getsentry.com/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
-                                    "sourcemap": "https://media.getsentry.com/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
+                                    "orig_abs_path": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js",
+                                    "sourcemap": "https://media.sentry.io/_static/29e365f8b0d923bc123e8afa38d890c3/sentry/dist/vendor.js.map",
                                     "orig_lineno": 37,
                                     "orig_function": "Object.s [as enqueueUpdate]",
                                     "orig_colno": 16101
@@ -315,9 +454,9 @@ class Fixtures(object):
                     }]
                 },
                 "sentry.interfaces.Http": {
-                    "url": "https://app.getsentry.com/katon-direct/localhost/issues/112734598/",
+                    "url": "https://sentry.io/katon-direct/localhost/issues/112734598/",
                     "headers": [
-                        ["Referer", "https://getsentry.com/welcome/"],
+                        ["Referer", "https://sentry.io/welcome/"],
                         ["User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"]
                     ]
                 },
@@ -333,8 +472,20 @@ class Fixtures(object):
     def create_group(self, project=None, checksum=None, **kwargs):
         if checksum:
             warnings.warn('Checksum passed to create_group', DeprecationWarning)
+        if project is None:
+            project = self.project
         kwargs.setdefault('message', 'Hello world')
+        kwargs.setdefault('data', {})
+        if 'type' not in kwargs['data']:
+            kwargs['data'].update({
+                'type': 'default',
+                'metadata': {
+                    'title': kwargs['message'],
+                },
+            })
+        if 'short_id' not in kwargs:
+            kwargs['short_id'] = project.next_short_id()
         return Group.objects.create(
-            project=project or self.project,
+            project=project,
             **kwargs
         )

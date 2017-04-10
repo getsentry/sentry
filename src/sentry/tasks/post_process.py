@@ -9,6 +9,7 @@ sentry.tasks.post_process
 from __future__ import absolute_import, print_function
 
 import logging
+import six
 
 from django.db import IntegrityError, router, transaction
 from raven.contrib.django.models import client as Raven
@@ -36,7 +37,7 @@ def _capture_stats(event, is_new):
     metrics.incr('events.processed')
     metrics.incr('events.processed.{platform}'.format(
         platform=platform))
-    metrics.timing('events.size.data', len(unicode(event.data)))
+    metrics.timing('events.size.data', len(six.text_type(event.data)))
 
 
 @instrumented_task(
@@ -108,6 +109,9 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     """
     Fires post processing hooks for a group.
     """
+    Raven.tags_context({
+        'project': event.project_id,
+    })
     plugin = plugins.get(plugin_slug)
     safe_execute(plugin.post_process, event=event, group=event.group, **kwargs)
 
@@ -116,6 +120,10 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     name='sentry.tasks.post_process.record_affected_user')
 def record_affected_user(event, **kwargs):
     from sentry.models import EventUser, Group
+
+    Raven.tags_context({
+        'project': event.project_id,
+    })
 
     user_data = event.data.get('sentry.interfaces.User', event.data.get('user'))
     if not user_data:
@@ -150,8 +158,13 @@ def record_affected_user(event, **kwargs):
 @instrumented_task(
     name='sentry.tasks.index_event_tags',
     default_retry_delay=60 * 5, max_retries=None)
-def index_event_tags(project_id, event_id, tags, group_id=None, **kwargs):
+def index_event_tags(organization_id, project_id, event_id, tags, group_id=None,
+                     **kwargs):
     from sentry.models import EventTag, Project, TagKey, TagValue
+
+    Raven.tags_context({
+        'project': project_id,
+    })
 
     for key, value in tags:
         tagkey, _ = TagKey.objects.get_or_create(
@@ -160,7 +173,7 @@ def index_event_tags(project_id, event_id, tags, group_id=None, **kwargs):
         )
 
         tagvalue, _ = TagValue.objects.get_or_create(
-            project=Project(id=project_id),
+            project=Project(id=project_id, organization_id=organization_id),
             key=key,
             value=value,
         )

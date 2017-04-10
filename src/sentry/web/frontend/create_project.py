@@ -4,6 +4,7 @@ from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 
+from sentry.api import client
 from sentry.models import Project, Team
 from sentry.web.forms.add_project import AddProjectForm
 from sentry.web.frontend.base import OrganizationView
@@ -50,10 +51,13 @@ class AddProjectWithTeamForm(AddProjectForm):
 
 
 class CreateProjectView(OrganizationView):
-    # TODO(dcramer): I'm 95% certain the access is incorrect here as it would
-    # be probably validating against global org access, and all we care about is
-    # team admin
-    required_scope = 'team:write'
+    # While currently the UI suggests teams are a parent of a project, in reality
+    # the project is the core component, and which team it is on is simply an
+    # attribute. Because you can already change the team of a project via mutating
+    # it, and because Sentry intends to remove teams as a hierarchy item, we
+    # allow you to view a teams projects, as well as create a new project as long
+    # as you are a member of that team and have project scoped permissions.
+    required_scope = 'project:write'
 
     def get_form(self, request, organization, team_list):
         data = {
@@ -76,11 +80,18 @@ class CreateProjectView(OrganizationView):
 
         form = self.get_form(request, organization, team_list)
         if form.is_valid():
-            project = form.save(request.user, request.META['REMOTE_ADDR'])
+            team = form.cleaned_data.get('team', team_list[0])
 
-            install_uri = absolute_uri('/{}/{}/settings/install/'.format(
+            response = client.post('/teams/{}/{}/projects/'.format(
                 organization.slug,
-                project.slug,
+                team.slug,
+            ), data={
+                'name': form.cleaned_data['name'],
+            }, request=request)
+
+            install_uri = absolute_uri('/{}/{}/getting-started/'.format(
+                organization.slug,
+                response.data['slug'],
             ))
 
             if 'signup' in request.GET:

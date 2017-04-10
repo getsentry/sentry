@@ -8,6 +8,7 @@ const CrashHeader = React.createClass({
     title: React.PropTypes.string,
     beforeTitle: React.PropTypes.any,
     group: PropTypes.Group.isRequired,
+    platform: React.PropTypes.string,
     thread: React.PropTypes.object,
     exception: React.PropTypes.object,
     stacktrace: React.PropTypes.object,
@@ -36,8 +37,27 @@ const CrashHeader = React.createClass({
     if (!this.props.stackType) {
       return false;
     }
-    const {exception} = this.props;
-    return exception && !!exception.values.find(x => x.rawStacktrace);
+    const {exception, thread} = this.props;
+    return (
+      (exception && !!exception.values.find(x => x.rawStacktrace)) ||
+      (thread && !!thread.rawStacktrace)
+    );
+  },
+
+  getOriginalButtonLabel() {
+    if (this.props.platform === 'javascript' || this.props.platform === 'node') {
+      return t('Original');
+    } else {
+      return t('Symbolicated');
+    }
+  },
+
+  getMinifiedButtonLabel() {
+    if (this.props.platform === 'javascript' || this.props.platform === 'node') {
+      return t('Minified');
+    } else {
+      return t('Unsymbolicated');
+    }
   },
 
   toggleOrder() {
@@ -92,8 +112,8 @@ const CrashHeader = React.createClass({
         <div className="btn-group">
           {this.hasMinified() &&
             [
-              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('original')}>{t('Original')}</a>,
-              <a key="minified" className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('minified')}>{t('Minified')}</a>
+              <a key="original" className={(stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('original')}>{this.getOriginalButtonLabel()}</a>,
+              <a key="minified" className={(stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'} onClick={() => this.setStackType('minified')}>{this.getMinifiedButtonLabel()}</a>
             ]
           }
         </div>

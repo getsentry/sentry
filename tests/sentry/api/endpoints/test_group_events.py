@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.models import EventTag, TagKey, TagValue
 from sentry.testutils import APITestCase
 
@@ -18,8 +20,8 @@ class GroupEventsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            str(event_1.id),
-            str(event_2.id),
+            six.text_type(event_1.id),
+            six.text_type(event_2.id),
         ])
 
     def test_tags(self):
@@ -62,13 +64,13 @@ class GroupEventsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(event_1.id)
+        assert response.data[0]['id'] == six.text_type(event_1.id)
 
         response = self.client.get(url + '?query=bar:biz', format='json')
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(event_2.id)
+        assert response.data[0]['id'] == six.text_type(event_2.id)
 
         response = self.client.get(url + '?query=bar:biz%20foo:baz', format='json')
 
@@ -79,7 +81,7 @@ class GroupEventsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
-        assert response.data[0]['id'] == str(event_1.id)
+        assert response.data[0]['id'] == six.text_type(event_1.id)
 
         response = self.client.get(url + '?query=bar:baz', format='json')
 

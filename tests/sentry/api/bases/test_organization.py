@@ -47,34 +47,33 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
     def test_api_key_with_org_access(self):
         key = ApiKey.objects.create(
             organization=self.org,
-            scopes=getattr(ApiKey.scopes, 'org:read'),
+            scope_list=['org:read'],
         )
         assert self.has_object_perm('GET', self.org, auth=key)
 
     def test_api_key_without_org_access(self):
         key = ApiKey.objects.create(
             organization=self.create_organization(),
-            scopes=getattr(ApiKey.scopes, 'org:read')
+            scope_list=['org:read'],
         )
         assert not self.has_object_perm('GET', self.org, auth=key)
 
     def test_api_key_without_access(self):
         key = ApiKey.objects.create(
             organization=self.org,
-            scopes=0,
         )
         assert not self.has_object_perm('GET', self.org, auth=key)
 
     def test_api_key_with_wrong_access(self):
         key = ApiKey.objects.create(
             organization=self.org,
-            scopes=getattr(ApiKey.scopes, 'team:read'),
+            scope_list=['team:read'],
         )
         assert not self.has_object_perm('GET', self.org, auth=key)
 
     def test_api_key_with_wrong_access_for_method(self):
         key = ApiKey.objects.create(
             organization=self.org,
-            scopes=getattr(ApiKey.scopes, 'org:read'),
+            scope_list=['org:read'],
         )
         assert not self.has_object_perm('PUT', self.org, auth=key)

@@ -16,39 +16,38 @@ from sentry.constants import LOG_LEVELS, LOG_LEVELS_MAP
 from sentry.rules.conditions.base import EventCondition
 
 LEVEL_CHOICES = OrderedDict([
-    ("{0}".format(k), "{0}".format(v.capitalize()))
+    ("{0}".format(k), v)
     for k, v in sorted(LOG_LEVELS.items(), key=lambda x: x[0], reverse=True)
 ])
 
 
-class LevelMatchType(object):
+class MatchType(object):
     EQUAL = 'eq'
     LESS_OR_EQUAL = 'lte'
     GREATER_OR_EQUAL = 'gte'
 
 
+MATCH_CHOICES = OrderedDict([
+    (MatchType.EQUAL, 'equal to'),
+    (MatchType.LESS_OR_EQUAL, 'less than or equal to'),
+    (MatchType.GREATER_OR_EQUAL, 'greater than or equal to')
+])
+
+
 class LevelEventForm(forms.Form):
     level = forms.ChoiceField(
         choices=LEVEL_CHOICES.items(),
-        initial=30)
+        initial=30,
+    )
     match = forms.ChoiceField(
-        choices=(
-            (LevelMatchType.EQUAL, 'equal'),
-            (LevelMatchType.LESS_OR_EQUAL, 'less than or equal to'),
-            (LevelMatchType.GREATER_OR_EQUAL, 'greater than or equal to')),
-        initial=LevelMatchType.GREATER_OR_EQUAL)
+        choices=MATCH_CHOICES.items(),
+        initial=MatchType.GREATER_OR_EQUAL,
+    )
 
 
 class LevelCondition(EventCondition):
     form_cls = LevelEventForm
     label = 'An event\'s level is {match} {level}'
-
-    def render_label(self):
-        data = {
-            'match': self.data['match'],
-            'level': LEVEL_CHOICES[self.data['level']],
-        }
-        return self.label.format(**data)
 
     def passes(self, event, state, **kwargs):
         desired_level = self.get_option('level')
@@ -65,10 +64,17 @@ class LevelCondition(EventCondition):
         except KeyError:
             return False
 
-        if desired_match == LevelMatchType.EQUAL:
+        if desired_match == MatchType.EQUAL:
             return level == desired_level
-        elif desired_match == LevelMatchType.GREATER_OR_EQUAL:
+        elif desired_match == MatchType.GREATER_OR_EQUAL:
             return level >= desired_level
-        elif desired_match == LevelMatchType.LESS_OR_EQUAL:
+        elif desired_match == MatchType.LESS_OR_EQUAL:
             return level <= desired_level
         return False
+
+    def render_label(self):
+        data = {
+            'level': LEVEL_CHOICES[self.data['level']],
+            'match': MATCH_CHOICES[self.data['match']],
+        }
+        return self.label.format(**data)

@@ -88,6 +88,11 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 404, response
 
+    def test_bad_access(self):
+        url = '/_static/sentry/images/../../../../../etc/passwd'
+        response = self.client.get(url)
+        assert response.status_code == 404, response
+
     def test_directory(self):
         url = '/_static/sentry/images/'
         response = self.client.get(url)

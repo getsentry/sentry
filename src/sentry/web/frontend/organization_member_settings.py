@@ -6,16 +6,19 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, ugettext
 
 from sentry import roles
-from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
+from sentry.models import OrganizationMember, OrganizationMemberTeam, \
+    Team, TeamStatus
+from sentry.utils import auth
 from sentry.web.frontend.base import OrganizationView
 from sentry.web.forms.edit_organization_member import EditOrganizationMemberForm
 
 
 class OrganizationMemberSettingsView(OrganizationView):
-    def get_form(self, request, member, allowed_roles):
+    def get_form(self, request, member, all_teams, allowed_roles):
         return EditOrganizationMemberForm(
             data=request.POST or None,
             instance=member,
+            all_teams=all_teams,
             allowed_roles=allowed_roles,
             initial={
                 'role': member.role,
@@ -24,14 +27,21 @@ class OrganizationMemberSettingsView(OrganizationView):
                         organizationmember=member,
                     ).values('team'),
                 ),
-            }
+            },
         )
 
-    def resend_invite(self, request, organization, member):
-        messages.success(request, ugettext('An invitation to join %(organization)s has been sent to %(email)s') % {
-            'organization': organization.name,
-            'email': member.email,
-        })
+    def resend_invite(self, request, organization, member, regen=False):
+        if regen:
+            member.update(token=member.generate_token())
+            messages.success(request, ugettext('A new invitation has been generated and sent to %(email)s') % {
+                'organization': organization.name,
+                'email': member.email,
+            })
+        else:
+            messages.success(request, ugettext('An invitation to join %(organization)s has been sent to %(email)s') % {
+                'organization': organization.name,
+                'email': member.email,
+            })
 
         member.send_invite_email()
 
@@ -40,13 +50,11 @@ class OrganizationMemberSettingsView(OrganizationView):
 
         return self.redirect(redirect)
 
-    def view_member(self, request, organization, member):
+    def view_member(self, request, organization, member, all_teams):
         context = {
             'member': member,
             'enabled_teams': set(member.teams.all()),
-            'all_teams': Team.objects.filter(
-                organization=organization,
-            ),
+            'all_teams': all_teams,
             'role_list': roles.get_all(),
         }
 
@@ -60,30 +68,24 @@ class OrganizationMemberSettingsView(OrganizationView):
                 id=member_id,
             )
         except OrganizationMember.DoesNotExist:
-            return self.redirect(reverse('sentry'))
+            return self.redirect(auth.get_login_url())
 
         if request.POST.get('op') == 'reinvite' and member.is_pending:
             return self.resend_invite(request, organization, member)
+        elif request.POST.get('op') == 'regenerate' and member.is_pending:
+            return self.resend_invite(request, organization, member, regen=True)
 
-        can_admin = request.access.has_scope('member:delete')
+        can_admin, allowed_roles = self.get_allowed_roles(request, organization, member)
 
-        if can_admin and not request.is_superuser():
-            acting_member = OrganizationMember.objects.get(
-                user=request.user,
-                organization=organization,
-            )
-            allowed_roles = [
-                r for r in roles.get_all()
-                if r.priority <= roles.get(acting_member.role).priority
-            ]
-            can_admin = bool(allowed_roles)
-        elif request.is_superuser():
-            allowed_roles = roles.get_all()
+        all_teams = Team.objects.filter(
+            organization=organization,
+            status=TeamStatus.VISIBLE
+        )
 
         if member.user == request.user or not can_admin:
-            return self.view_member(request, organization, member)
+            return self.view_member(request, organization, member, all_teams)
 
-        form = self.get_form(request, member, allowed_roles)
+        form = self.get_form(request, member, all_teams, allowed_roles)
         if form.is_valid():
             member = form.save(request.user, organization, request.META['REMOTE_ADDR'])
 
@@ -98,10 +100,12 @@ class OrganizationMemberSettingsView(OrganizationView):
         context = {
             'member': member,
             'form': form,
+            'invite_link': member.get_invite_link(),
             'role_list': [
                 (r, r in allowed_roles)
                 for r in roles.get_all()
-            ]
+            ],
+            'all_teams': all_teams
         }
 
         return self.respond('sentry/organization-member-settings.html', context)

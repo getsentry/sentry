@@ -13,7 +13,10 @@ import operator
 from uuid import uuid4
 
 from django.db.models import F
-from django.db.models.expressions import ExpressionNode
+try:
+    from django.db.models.expressions import ExpressionNode
+except ImportError:
+    from django.db.models.expressions import Combinable as ExpressionNode
 from django.utils.crypto import get_random_string
 from django.template.defaultfilters import slugify
 
@@ -24,7 +27,7 @@ EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.ADD: operator.add,
     ExpressionNode.SUB: operator.sub,
     ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: operator.div,
+    ExpressionNode.DIV: getattr(operator, 'floordiv', None) or operator.div,
     ExpressionNode.MOD: operator.mod,
 }
 try:
@@ -57,10 +60,10 @@ def resolve_expression_node(instance, node):
 def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
     base_slug = slugify(label)[:max_length]
 
-    if base_slug in reserved:
-        base_slug = None
-    elif base_slug is not None:
+    if base_slug is not None:
         base_slug = base_slug.strip()
+        if base_slug in reserved:
+            base_slug = None
 
     if not base_slug:
         base_slug = uuid4().hex[:12]
@@ -88,7 +91,7 @@ def slugify_instance(inst, label, reserved=(), max_length=30, *args, **kwargs):
         (1, 12),  # (36^12) possibilities, 1 final attempt
     )
     for attempts, size in sizes:
-        for i in xrange(attempts):
+        for i in range(attempts):
             end = get_random_string(size, allowed_chars='abcdefghijklmnopqrstuvwxyz0123456790')
             inst.slug = base_slug[:max_length - size - 1] + '-' + end
             if not base_qs.filter(slug__iexact=inst.slug).exists():

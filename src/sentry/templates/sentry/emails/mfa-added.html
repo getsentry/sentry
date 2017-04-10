@@ -1,0 +1,12 @@
+{% extends "sentry/emails/security_base.html" %}
+
+{% block security_body %}
+  <p>An authenticator has been added to your Sentry account.</p>
+{% endblock %}
+
+{% block security_metadata %}
+    <tr>
+      <td></td>
+      <td><strong>{{ authenticator.interface.name }}</strong></td>
+    </tr>
+{% endblock %}

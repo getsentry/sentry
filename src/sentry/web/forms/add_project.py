@@ -12,7 +12,7 @@ BLANK_CHOICE = [("", "")]
 
 
 class AddProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Name'), max_length=200,
+    name = forms.CharField(label=_('Name'), max_length=64,
         widget=forms.TextInput(attrs={
             'placeholder': _('i.e. API, Frontend, My Application Name'),
         }),

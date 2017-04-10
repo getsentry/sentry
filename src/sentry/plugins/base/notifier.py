@@ -10,7 +10,7 @@ from __future__ import absolute_import, print_function
 
 __all__ = ('Notifier',)
 
-from sentry.app import ratelimiter
+from sentry import ratelimits
 
 
 class Notifier(object):
@@ -25,12 +25,12 @@ class Notifier(object):
         """
 
     def should_notify(self, group, event):
-        if group.is_muted():
+        if group.is_ignored():
             return False
 
         project = group.project
 
-        rate_limited = ratelimiter.is_limited(
+        rate_limited = ratelimits.is_limited(
             project=project,
             key=self.get_conf_key(),
             limit=10,

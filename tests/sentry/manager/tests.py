@@ -54,6 +54,13 @@ class TeamManagerTest(TestCase):
 
         result = Team.objects.get_for_user(
             organization=org,
+            user=user,
+            scope='idontexist',
+        )
+        assert result == []
+
+        result = Team.objects.get_for_user(
+            organization=org,
             user=user2,
         )
         assert result == []

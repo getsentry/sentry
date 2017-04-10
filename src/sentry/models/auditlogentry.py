@@ -28,6 +28,7 @@ class AuditLogEntryEvent(object):
     ORG_ADD = 10
     ORG_EDIT = 11
     ORG_REMOVE = 12
+    ORG_RESTORE = 13
 
     TEAM_ADD = 20
     TEAM_EDIT = 21
@@ -55,6 +56,10 @@ class AuditLogEntryEvent(object):
     APIKEY_ADD = 70
     APIKEY_EDIT = 71
     APIKEY_REMOVE = 72
+
+    RULE_ADD = 80
+    RULE_EDIT = 81
+    RULE_REMOVE = 82
 
 
 class AuditLogEntry(Model):
@@ -94,6 +99,7 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.ORG_ADD, 'org.create'),
         (AuditLogEntryEvent.ORG_EDIT, 'org.edit'),
         (AuditLogEntryEvent.ORG_REMOVE, 'org.remove'),
+        (AuditLogEntryEvent.ORG_RESTORE, 'org.restore'),
 
         (AuditLogEntryEvent.TAGKEY_REMOVE, 'tagkey.remove'),
 
@@ -111,6 +117,10 @@ class AuditLogEntry(Model):
         (AuditLogEntryEvent.APIKEY_ADD, 'api-key.create'),
         (AuditLogEntryEvent.APIKEY_EDIT, 'api-key.edit'),
         (AuditLogEntryEvent.APIKEY_REMOVE, 'api-key.remove'),
+
+        (AuditLogEntryEvent.RULE_ADD, 'rule.create'),
+        (AuditLogEntryEvent.RULE_EDIT, 'rule.edit'),
+        (AuditLogEntryEvent.RULE_REMOVE, 'rule.remove'),
     ))
     ip_address = models.GenericIPAddressField(null=True, unpack_ipv4=True)
     data = GzippedDictField()
@@ -172,6 +182,10 @@ class AuditLogEntry(Model):
             return 'created the organization'
         elif self.event == AuditLogEntryEvent.ORG_EDIT:
             return 'edited the organization'
+        elif self.event == AuditLogEntryEvent.ORG_REMOVE:
+            return 'removed the organization'
+        elif self.event == AuditLogEntryEvent.ORG_RESTORE:
+            return 'restored the organization'
 
         elif self.event == AuditLogEntryEvent.TEAM_ADD:
             return 'created team %s' % (self.data['slug'],)
@@ -216,5 +230,12 @@ class AuditLogEntry(Model):
             return 'edited api key %s' % (self.data['label'],)
         elif self.event == AuditLogEntryEvent.APIKEY_REMOVE:
             return 'removed api key %s' % (self.data['label'],)
+
+        elif self.event == AuditLogEntryEvent.RULE_ADD:
+            return 'added rule "%s"' % (self.data['label'],)
+        elif self.event == AuditLogEntryEvent.RULE_EDIT:
+            return 'edited rule "%s"' % (self.data['label'],)
+        elif self.event == AuditLogEntryEvent.RULE_REMOVE:
+            return 'removed rule "%s"' % (self.data['label'],)
 
         return ''

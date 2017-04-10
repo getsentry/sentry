@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import mock
+import six
 
 from django.core.urlresolvers import reverse
 
@@ -28,7 +29,7 @@ class ProjectTagKeyDetailsTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200
-        assert response.data['id'] == str(tagkey.id)
+        assert response.data['id'] == six.text_type(tagkey.id)
         assert response.data['uniqueValues'] == tagkey.values_seen
 
 

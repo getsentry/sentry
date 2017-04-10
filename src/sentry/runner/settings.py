@@ -18,7 +18,7 @@ DEFAULT_SETTINGS_OVERRIDE = 'sentry.conf.py'
 
 def generate_secret_key():
     from django.utils.crypto import get_random_string
-    chars = u'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+    chars = u'abcdefghijklmnopqrstuvwxyz0123456789!@#%^&*(-_=+)'
     return get_random_string(50, chars)
 
 
@@ -52,7 +52,7 @@ def get_sentry_conf():
     try:
         ctx = click.get_current_context()
         return ctx.obj['config']
-    except (RuntimeError, KeyError):
+    except (RuntimeError, KeyError, TypeError):
         try:
             return os.environ['SENTRY_CONF']
         except KeyError:
@@ -132,15 +132,9 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
         raise ValueError("Configuration file does not exist at '%s'" % click.format_filename(yaml))
 
     # Add autoreload for config.yml file if needed
-    if 'UWSGI_PY_AUTORELOAD' in os.environ:
-        if yaml is not None and os.path.exists(yaml):
-            try:
-                import uwsgi
-                from uwsgidecorators import filemon
-            except ImportError:
-                pass
-            else:
-                filemon(yaml)(uwsgi.reload)
+    if yaml is not None and os.path.exists(yaml):
+        from sentry.utils.uwsgi import reload_on_change
+        reload_on_change(yaml)
 
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry_config'
 

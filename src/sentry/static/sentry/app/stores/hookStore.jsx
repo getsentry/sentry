@@ -4,7 +4,10 @@ import _ from 'underscore';
 let validHookNames = new Set([
   'footer',
   'organization:header',
-  'organization:sidebar'
+  'organization:sidebar',
+  'routes',
+  'routes:admin',
+  'routes:organization'
 ]);
 
 const HookStore = Reflux.createStore({

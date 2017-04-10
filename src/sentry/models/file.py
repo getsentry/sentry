@@ -8,6 +8,8 @@ sentry.models.file
 
 from __future__ import absolute_import
 
+import six
+
 from hashlib import sha1
 from uuid import uuid4
 
@@ -29,6 +31,20 @@ from sentry.utils.retries import TimedRetryPolicy
 ONE_DAY = 60 * 60 * 24
 
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
+
+
+def get_storage():
+    from sentry import options
+    backend = options.get('filestore.backend')
+    options = options.get('filestore.options')
+
+    try:
+        backend = settings.SENTRY_FILESTORE_ALIASES[backend]
+    except KeyError:
+        pass
+
+    storage = get_storage_class(backend)
+    return storage(**options)
 
 
 class FileBlob(Model):
@@ -54,7 +70,7 @@ class FileBlob(Model):
         """
         size = 0
 
-        checksum = sha1('')
+        checksum = sha1(b'')
         for chunk in fileobj:
             size += len(chunk)
             checksum.update(chunk)
@@ -79,7 +95,7 @@ class FileBlob(Model):
 
             blob.path = cls.generate_unique_path(blob.timestamp)
 
-            storage = blob.get_storage()
+            storage = get_storage()
             storage.save(blob.path, fileobj)
             blob.save()
 
@@ -88,9 +104,12 @@ class FileBlob(Model):
 
     @classmethod
     def generate_unique_path(cls, timestamp):
-        pieces = map(str, divmod(int(timestamp.strftime('%s')), ONE_DAY))
-        pieces.append('%s' % (uuid4().hex,))
-        return '/'.join(pieces)
+        pieces = [
+            six.text_type(x)
+            for x in divmod(int(timestamp.strftime('%s')), ONE_DAY)
+        ]
+        pieces.append(uuid4().hex)
+        return u'/'.join(pieces)
 
     def delete(self, *args, **kwargs):
         lock = locks.get('fileblob:upload:{}'.format(self.checksum), duration=60 * 10)
@@ -99,17 +118,10 @@ class FileBlob(Model):
                 self.deletefile(commit=False)
             super(FileBlob, self).delete(*args, **kwargs)
 
-    def get_storage(self):
-        backend = settings.SENTRY_FILESTORE
-        options = settings.SENTRY_FILESTORE_OPTIONS
-
-        storage = get_storage_class(backend)
-        return storage(**options)
-
     def deletefile(self, commit=False):
         assert self.path
 
-        storage = self.get_storage()
+        storage = get_storage()
         storage.delete(self.path)
 
         self.path = None
@@ -127,7 +139,7 @@ class FileBlob(Model):
         """
         assert self.path
 
-        storage = self.get_storage()
+        storage = get_storage()
         return storage.open(self.path)
 
 
@@ -170,7 +182,7 @@ class File(Model):
         """
         results = []
         offset = 0
-        checksum = sha1('')
+        checksum = sha1(b'')
 
         while True:
             contents = fileobj.read(blob_size)
@@ -227,7 +239,7 @@ class ChunkedFileBlobIndexWrapper(object):
 
     def _nextidx(self):
         try:
-            self._curidx = self._idxiter.next()
+            self._curidx = six.next(self._idxiter)
             self._curfile = self._curidx.blob.getfile()
         except StopIteration:
             self._curidx = None

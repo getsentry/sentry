@@ -16,8 +16,8 @@ import warnings
 from django.conf import settings
 from django.db import models
 from django.db.models.signals import post_delete
-from south.modelsinspector import add_introspection_rules
 
+from sentry import nodestore
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress, compress
@@ -76,10 +76,11 @@ class NodeData(collections.MutableMapping):
             return
         return ref_func(instance)
 
+    def copy(self):
+        return self.data.copy()
+
     @memoize
     def data(self):
-        from sentry.app import nodestore
-
         if self._node_data is not None:
             return self._node_data
 
@@ -114,8 +115,6 @@ class NodeField(GzippedDictField):
     Similar to the gzippedictfield except that it stores a reference
     to an external node.
     """
-    __metaclass__ = models.SubfieldBase
-
     def __init__(self, *args, **kwargs):
         self.ref_func = kwargs.pop('ref_func', None)
         self.ref_version = kwargs.pop('ref_version', None)
@@ -129,8 +128,6 @@ class NodeField(GzippedDictField):
             weak=False)
 
     def on_delete(self, instance, **kwargs):
-        from sentry.app import nodestore
-
         value = getattr(instance, self.name)
         if not value.id:
             return
@@ -157,8 +154,6 @@ class NodeField(GzippedDictField):
         return NodeData(self, node_id, data)
 
     def get_prep_value(self, value):
-        from sentry.app import nodestore
-
         if not value and self.null:
             # save ourselves some storage
             return None
@@ -174,5 +169,10 @@ class NodeField(GzippedDictField):
             'node_id': value.id
         }))
 
+if hasattr(models, 'SubfieldBase'):
+    NodeField = six.add_metaclass(models.SubfieldBase)(NodeField)
 
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])
+if 'south' in settings.INSTALLED_APPS:
+    from south.modelsinspector import add_introspection_rules
+
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.node\.NodeField"])

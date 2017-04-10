@@ -8,6 +8,8 @@ sentry.rules.registry
 
 from __future__ import absolute_import
 
+import six
+
 from collections import defaultdict
 
 
@@ -20,7 +22,7 @@ class RuleRegistry(object):
         return rule_id in self._map
 
     def __iter__(self):
-        for rule_type, rule_list in self._rules.iteritems():
+        for rule_type, rule_list in six.iteritems(self._rules):
             for rule in rule_list:
                 yield rule_type, rule
 

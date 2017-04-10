@@ -31,7 +31,6 @@ Subcommands
  plugins <plugins/index>
  devserver <devserver/index>
  django <django/index>
- celery <celery/index>
  start <start/index>
  init <init/index>
  cleanup <cleanup/index>

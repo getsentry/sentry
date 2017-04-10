@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime
 from django.utils import timezone
 
@@ -17,7 +19,7 @@ class EventSerializer(Serializer):
     def _get_entries(self, event, user, is_public=False):
         # XXX(dcramer): These are called entries for future-proofing
         interface_list = []
-        for key, interface in event.interfaces.iteritems():
+        for key, interface in six.iteritems(event.interfaces):
             # we treat user as a special contextual item
             if key in self._reserved_keys:
                 continue
@@ -57,6 +59,11 @@ class EventSerializer(Serializer):
             sdk_interface = item.interfaces.get('sdk')
             if sdk_interface:
                 sdk_data = sdk_interface.get_api_context()
+                # we restrict SDK information to superusers due to the nature of
+                # privacy laws and IP sensitivity
+                # TODO(dcramer): make this respect 'enhanced privacy' org flag
+                if not user.is_superuser:
+                    sdk_data.pop('clientIP', None)
             else:
                 sdk_data = None
 
@@ -80,7 +87,7 @@ class EventSerializer(Serializer):
                 'type': error['type'],
                 'message': message,
                 'data': {
-                    k: v for k, v in error.iteritems()
+                    k: v for k, v in six.iteritems(error)
                     if k != 'type'
                 },
             }
@@ -104,16 +111,11 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
-        event_type = obj.data.get('type', 'default')
-        metadata = obj.data.get('metadata') or {
-            'title': obj.message_short,
-        }
-
         # TODO(dcramer): move release serialization here
         d = {
-            'id': str(obj.id),
-            'groupID': obj.group.id,
-            'eventID': str(obj.event_id),
+            'id': six.text_type(obj.id),
+            'groupID': six.text_type(obj.group_id),
+            'eventID': six.text_type(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],
             # See GH-3248
@@ -124,8 +126,8 @@ class EventSerializer(Serializer):
             # TODO(dcramer): move into contexts['extra']
             'context': obj.data.get('extra', {}),
             'packages': obj.data.get('modules', {}),
-            'type': event_type,
-            'metadata': metadata,
+            'type': obj.get_event_type(),
+            'metadata': obj.get_event_metadata(),
             'tags': tags,
             'platform': obj.platform,
             'dateCreated': obj.datetime,
@@ -147,4 +149,10 @@ class SharedEventSerializer(EventSerializer):
         del result['contexts']
         del result['user']
         del result['tags']
+        del result['sdk']
+        del result['errors']
+        result['entries'] = [
+            e for e in result['entries']
+            if e['type'] != 'breadcrumbs'
+        ]
         return result

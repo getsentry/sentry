@@ -7,6 +7,10 @@ sentry.tsdb.base
 """
 from __future__ import absolute_import
 
+import six
+
+from collections import OrderedDict
+from datetime import timedelta
 from django.conf import settings
 from django.utils import timezone
 from enum import Enum
@@ -28,6 +32,7 @@ class TSDBModel(Enum):
     group = 4
     group_tag_key = 5
     group_tag_value = 6
+    release = 7
 
     # the number of events sent to the server
     project_total_received = 100
@@ -70,10 +75,27 @@ class TSDBModel(Enum):
 
 
 class BaseTSDB(object):
+    __all__ = (
+        'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums',
+        'rollup', 'validate',
+    )
+
     models = TSDBModel
 
-    def __init__(self, rollups=settings.SENTRY_TSDB_ROLLUPS):
-        self.rollups = rollups
+    def __init__(self, rollups=None, legacy_rollups=None):
+        if rollups is None:
+            rollups = settings.SENTRY_TSDB_ROLLUPS
+
+        self.rollups = OrderedDict(rollups)
+
+        # The ``SENTRY_TSDB_LEGACY_ROLLUPS`` setting should be used to store
+        # previous rollup configuration values after they are modified in
+        # ``SENTRY_TSDB_ROLLUPS``. The values can be removed after the new
+        # rollup period is full of new data.
+        if legacy_rollups is None:
+            legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
+
+        self.__legacy_rollups = legacy_rollups
 
     def validate(self):
         """
@@ -82,6 +104,9 @@ class BaseTSDB(object):
 
         Raise ``InvalidConfiguration`` if there is a configuration error.
         """
+
+    def get_rollups(self):
+        return self.rollups
 
     def normalize_to_epoch(self, timestamp, seconds):
         """
@@ -119,27 +144,42 @@ class BaseTSDB(object):
         """
         num_seconds = int(to_timestamp(end_timestamp)) - int(to_timestamp(start_timestamp))
 
-        # calculate the highest rollup within time range
-        for rollup, samples in self.rollups:
+        # This loop attempts to find the smallest possible rollup that will
+        # contain both the start and end timestamps. ``self.rollups`` is
+        # ordered from the highest resolution (smallest interval) to lowest
+        # resolution (largest interval.)
+        # XXX: There is a bug here, since this function assumes that the end
+        # timestamp is always equal to or greater than the current time. If the
+        # time range is shifted far enough into the past (e.g. a 30 second
+        # window, retrieved several days after it's occurrence), this can
+        # return a rollup that has already been evicted due to TTL, even if a
+        # lower resolution representation of the range exists.
+        for rollup, samples in six.iteritems(self.rollups):
             if rollup * samples >= num_seconds:
                 return rollup
-        return self.rollups[-1][0]
+
+        # If nothing actually matches the requested range, just return the
+        # lowest resolution interval.
+        return list(self.rollups)[-1]
 
     def get_optimal_rollup_series(self, start, end=None, rollup=None):
         if end is None:
             end = timezone.now()
 
-        # NOTE: "optimal" here means "able to most closely reflect the upper
-        # and lower bounds", not "able to construct the most efficient query"
         if rollup is None:
             rollup = self.get_optimal_rollup(start, end)
 
-        series = [self.normalize_to_epoch(start, rollup)]
-        end_ts = int(to_timestamp(end))
-        while series[-1] + rollup < end_ts:
-            series.append(series[-1] + rollup)
+        # This attempts to create a range with a duration as close as possible
+        # to the requested interval using the requested (or inferred) rollup
+        # resolution. This result always includes the ``end`` timestamp, but
+        # may not include the ``start`` timestamp.
+        series = []
+        timestamp = end
+        while timestamp >= start:
+            series.append(self.normalize_to_epoch(timestamp, rollup))
+            timestamp = timestamp - timedelta(seconds=rollup)
 
-        return rollup, series
+        return rollup, sorted(series)
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """
@@ -151,6 +191,23 @@ class BaseTSDB(object):
         """
         epoch = self.normalize_to_epoch(timestamp, rollup)
         return epoch + (rollup * samples)
+
+    def get_earliest_timestamp(self, rollup, timestamp=None):
+        """
+        Calculate the earliest available timestamp for a rollup.
+        """
+        if timestamp is None:
+            timestamp = timezone.now()
+
+        samples = self.__legacy_rollups.get(rollup)
+        if samples is None:
+            samples = self.rollups[rollup]
+
+        lifespan = timedelta(seconds=rollup * (samples - 1))
+        return self.normalize_to_epoch(
+            timestamp - lifespan,
+            rollup,
+        )
 
     def incr(self, model, key, timestamp=None, count=1):
         """
@@ -169,11 +226,15 @@ class BaseTSDB(object):
         for model, key in items:
             self.incr(model, key, timestamp, count)
 
+    def merge(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all counters from the source keys to the destination key.
+        """
+        raise NotImplementedError
+
     def get_range(self, model, keys, start, end, rollup=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
-
-        Both ``start`` and ``end`` are inclusive.
 
         Returns a mapping of key => [(timestamp, count), ...].
 
@@ -188,7 +249,7 @@ class BaseTSDB(object):
         range_set = self.get_range(model, keys, start, end, rollup)
         sum_set = dict(
             (key, sum(p for _, p in points))
-            for (key, points) in range_set.iteritems()
+            for (key, points) in six.iteritems(range_set)
         )
         return sum_set
 
@@ -199,7 +260,7 @@ class BaseTSDB(object):
         """
         normalize_ts_to_epoch = self.normalize_ts_to_epoch
         result = {}
-        for key, points in values.iteritems():
+        for key, points in six.iteritems(values):
             result[key] = []
             last_new_ts = None
             for (ts, count) in points:
@@ -240,6 +301,13 @@ class BaseTSDB(object):
         """
         Count the total number of distinct items across multiple counters
         during a time range.
+        """
+        raise NotImplementedError
+
+    def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all distinct counters from the source keys to the
+        destination key.
         """
         raise NotImplementedError
 
@@ -303,5 +371,12 @@ class BaseTSDB(object):
         Results are returned as a mapping, where the key is the key requested
         and the value is a mapping of ``{item: score, ...}`` containing the
         total score of items over the interval.
+        """
+        raise NotImplementedError
+
+    def merge_frequencies(self, model, destination, sources, timestamp=None):
+        """
+        Transfer all frequency tables from the source keys to the destination
+        key.
         """
         raise NotImplementedError

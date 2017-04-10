@@ -15,15 +15,13 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-var babelQuery = {
-  plugins: [],
-  extra: {}
-};
+var babelConfig = JSON.parse(
+  fs.readFileSync(path.join(__dirname, '.babelrc'))
+);
 
 // only extract po files if we need to
 if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
-  babelQuery.plugins.push('babel-gettext-extractor');
-  babelQuery.extra.gettext = {
+  babelConfig.plugins.push('babel-gettext-extractor', {
     fileName: 'build/javascript.po',
     baseDirectory: path.join(__dirname, 'src/sentry'),
     functionNames: {
@@ -34,14 +32,14 @@ if (process.env.SENTRY_EXTRACT_TRANSLATIONS === '1') {
       tn: ['msgid', 'msgid_plural', 'count'],
       tct: ['msgid']
     },
-  };
+  });
 }
 
 var entry = {
   // js
   'app': 'app',
   'vendor': [
-    'babel-core/polyfill',
+    'babel-polyfill',
     'bootstrap/js/dropdown',
     'bootstrap/js/tab',
     'bootstrap/js/tooltip',
@@ -66,7 +64,9 @@ var entry = {
     'flot/jquery.flot.stack',
     'flot/jquery.flot.time',
     'flot-tooltip/jquery.flot.tooltip',
-    'vendor/simple-slider/simple-slider'
+    'vendor/simple-slider/simple-slider',
+    'underscore',
+    'ios-device-list'
   ],
 
   // css
@@ -98,13 +98,13 @@ var config = {
   entry: entry,
   context: path.join(__dirname, staticPrefix),
   module: {
-    loaders: [
+    rules: [
       {
         test: /\.jsx?$/,
         loader: 'babel-loader',
         include: path.join(__dirname, staticPrefix),
         exclude: /(vendor|node_modules|dist)/,
-        query: babelQuery
+        query: babelConfig
       },
       {
         test: /\.po$/,
@@ -121,7 +121,10 @@ var config = {
       {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
-        loader: ExtractTextPlugin.extract('style-loader', 'css-loader!less-loader')
+        loader: ExtractTextPlugin.extract({
+          fallbackLoader: 'style-loader',
+          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
+        })
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
@@ -130,22 +133,23 @@ var config = {
     ],
     noParse: [
       // don't parse known, pre-built javascript files (improves webpack perf)
-      path.join(__dirname, 'node_modules', 'jquery', 'dist', 'jquery.js'),
-      path.join(__dirname, 'node_modules', 'jed', 'jed.js'),
-      path.join(__dirname, 'node_modules', 'marked', 'lib', 'marked.js')
+      /dist\/jquery\.js/,
+      /jed\/jed\.js/,
+      /marked\/lib\/marked\.js/
     ],
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
     }),
-    new webpack.optimize.DedupePlugin(),
     new webpack.ProvidePlugin({
       $: 'jquery',
       jQuery: 'jquery',
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
-      Raven: 'raven-js'
+      Raven: 'raven-js',
+      underscore: 'underscore',
+      _: 'underscore'
     }),
     new ExtractTextPlugin('[name].css'),
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), // ignore moment.js locale files
@@ -169,8 +173,8 @@ var config = {
       'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
     },
-    modulesDirectories: [path.join(__dirname, staticPrefix), 'node_modules'],
-    extensions: ['', '.jsx', '.js', '.json']
+    modules: [path.join(__dirname, staticPrefix), 'node_modules'],
+    extensions: ['*', '.jsx', '.js', '.json']
   },
   output: {
     path: distPath,
@@ -181,18 +185,28 @@ var config = {
   },
   devtool: IS_PRODUCTION ?
     '#source-map' :
-    '#cheap-module-eval-source-map'
+    '#cheap-source-map'
 };
 
-// This compression-webpack-plugin generates pre-compressed files
-// ending in .gz, to be picked up and served by our internal static media
-// server as well as nginx when paired with the gzip_static module.
 if (IS_PRODUCTION) {
+  // This compression-webpack-plugin generates pre-compressed files
+  // ending in .gz, to be picked up and served by our internal static media
+  // server as well as nginx when paired with the gzip_static module.
   config.plugins.push(new (require('compression-webpack-plugin'))({
-    // zopfli gives us a better gzip compression
-    // See: http://googledevelopers.blogspot.com/2013/02/compress-data-more-densely-with-zopfli.html
-    algorithm: 'zopfli',
+    algorithm: function(buffer, options, callback) {
+      require('zlib').gzip(buffer, callback);
+    },
     regExp: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+  }));
+
+  // Disable annoying UglifyJS warnings that pollute Travis log output
+  // NOTE: This breaks -p in webpack 2. Must call webpack w/ NODE_ENV=production for minification.
+  config.plugins.push(new webpack.optimize.UglifyJsPlugin({
+    compress: {
+      warnings: false
+    },
+    // https://github.com/webpack/webpack/blob/951a7603d279c93c936e4b8b801a355dc3e26292/bin/convert-argv.js#L442
+    sourceMap: config.devtool && (config.devtool.indexOf('sourcemap') >= 0 || config.devtool.indexOf('source-map') >= 0)
   }));
 }
 

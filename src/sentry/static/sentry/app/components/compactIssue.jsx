@@ -1,6 +1,5 @@
 import React from 'react';
 import Reflux from 'reflux';
-import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
@@ -8,6 +7,7 @@ import DropdownLink from './dropdownLink';
 import SnoozeAction from './issues/snoozeAction';
 import GroupChart from './stream/groupChart';
 import GroupStore from '../stores/groupStore';
+import Link from './link';
 import {t} from '../locale';
 
 const CompactIssueHeader = React.createClass({
@@ -25,14 +25,14 @@ const CompactIssueHeader = React.createClass({
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.type}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{data.culprit}</em><br/>
+            <em>{data.culprit}</em><br/>
           </span>
         );
       case 'csp':
         return (
           <span>
             <span style={{marginRight: 10}}>{metadata.directive}</span>
-            <em style={{fontSize: '80%', color: '#6F7E94', fontWeight: 'normal'}}>{metadata.uri}</em><br/>
+            <em>{metadata.uri}</em><br/>
           </span>
         );
       case 'default':
@@ -91,7 +91,8 @@ const CompactIssue = React.createClass({
     data: React.PropTypes.object,
     id: React.PropTypes.string,
     orgId: React.PropTypes.string,
-    statsPeriod: React.PropTypes.string
+    statsPeriod: React.PropTypes.string,
+    showActions: React.PropTypes.bool
   },
 
   mixins: [
@@ -126,11 +127,11 @@ const CompactIssue = React.createClass({
 
   onSnooze(duration) {
     let data = {
-      status: 'muted'
+      status: 'ignored'
     };
 
     if (duration)
-      data.snoozeDuration = duration;
+      data.ignoreDuration = duration;
 
     this.onUpdate(data);
   },
@@ -164,8 +165,8 @@ const CompactIssue = React.createClass({
     if (issue.status === 'resolved') {
       className += ' isResolved';
     }
-    if (issue.status === 'muted') {
-      className += ' isMuted';
+    if (issue.status === 'ignored') {
+      className += ' isIgnored';
     }
 
     className += ' level-' + issue.level;
@@ -183,37 +184,39 @@ const CompactIssue = React.createClass({
         <CompactIssueHeader data={issue} orgId={orgId} projectId={projectId} />
         {this.props.statsPeriod &&
           <div className="event-graph">
-            <GroupChart id={id} statsPeriod={this.props.statsPeriod} />
+            <GroupChart id={id} statsPeriod={this.props.statsPeriod} data={this.props.data}/>
           </div>
         }
-        <div className="more-menu-container align-right">
-          <DropdownLink
-            topLevelClasses="more-menu"
-            className="more-menu-toggle"
-            caret={false}
-            title={title}>
-            <li>
-              <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
-                <span className="icon-checkmark" />
-              </a>
-            </li>
-            <li>
-              <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
-                <span className="icon-star-solid" />
-              </a>
-            </li>
-            <li>
-              <SnoozeAction
-                orgId={orgId}
-                projectId={projectId}
-                groupId={id}
-                onSnooze={this.onSnooze} />
-            </li>
-            {false &&
-              <li><a href="#"><span className="icon-user" /></a></li>
-            }
-          </DropdownLink>
-        </div>
+        {this.props.showActions &&
+          <div className="more-menu-container align-right">
+            <DropdownLink
+              topLevelClasses="more-menu"
+              className="more-menu-toggle"
+              caret={false}
+              title={title}>
+              <li>
+                <a onClick={this.onUpdate.bind(this, {status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'})}>
+                  <span className="icon-checkmark"/>
+                </a>
+              </li>
+              <li>
+                <a onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
+                  <span className="icon-star-solid"/>
+                </a>
+              </li>
+              <li>
+                <SnoozeAction
+                  orgId={orgId}
+                  projectId={projectId}
+                  groupId={id}
+                  onSnooze={this.onSnooze}/>
+              </li>
+              {false &&
+              <li><a href="#"><span className="icon-user"/></a></li>
+              }
+            </DropdownLink>
+          </div>
+        }
         {this.props.children}
       </li>
     );

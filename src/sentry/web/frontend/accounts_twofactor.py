@@ -4,7 +4,6 @@ from django import forms
 from django.db import transaction
 from django.http import HttpResponseRedirect, Http404
 from django.core.urlresolvers import reverse
-from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.cache import never_cache
 from django.utils.decorators import method_decorator
 from django.core.context_processors import csrf
@@ -14,10 +13,11 @@ import petname
 from sudo.decorators import sudo_required
 
 from sentry.models import Authenticator
+from sentry.security import capture_security_activity
 from sentry.web.frontend.base import BaseView
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
-from sentry.web.forms.accounts import TwoFactorForm
+from sentry.web.forms.accounts import TwoFactorForm, ConfirmPasswordForm
 from sentry.utils import json
 
 
@@ -37,7 +37,6 @@ class U2fForm(forms.Form):
 class TwoFactorSettingsView(BaseView):
     interface_id = None
 
-    @method_decorator(csrf_protect)
     @method_decorator(never_cache)
     @method_decorator(login_required)
     @method_decorator(sudo_required)
@@ -56,34 +55,68 @@ class TwoFactorSettingsView(BaseView):
         context['page'] = 'security'
         return context
 
-    def delete_authenticator(self, interface):
+    def delete_authenticator(self, request, interface):
         if interface.authenticator is None:
             return
 
-        user = interface.authenticator.user
-        interface.authenticator.delete()
+        with transaction.atomic():
+            user = interface.authenticator.user
 
-        # If this was an authenticator that was a backup interface we just
-        # deleted, then nothing happens.
-        if interface.is_backup_interface:
-            return
+            capture_security_activity(
+                account=request.user,
+                type='mfa-removed',
+                actor=request.user,
+                ip_address=request.META['REMOTE_ADDR'],
+                context={
+                    'authenticator': interface.authenticator,
+                },
+                send_email=True,
+            )
 
-        # If however if we delete an actual authenticator and all that
-        # remainds are backup interfaces, then we kill them in the
-        # process.
-        interfaces = Authenticator.objects.all_interfaces_for_user(user)
-        backup_interfaces = [x for x in interfaces if x.is_backup_interface]
-        if len(backup_interfaces) == len(interfaces):
-            for iface in backup_interfaces:
-                iface.authenticator.delete()
+            interface.authenticator.delete()
+
+            # If this was an authenticator that was a backup interface we just
+            # deleted, then nothing happens.
+            if interface.is_backup_interface:
+                return
+
+            # If however if we delete an actual authenticator and all that
+            # remainds are backup interfaces, then we kill them in the
+            # process.
+            interfaces = Authenticator.objects.all_interfaces_for_user(user)
+            backup_interfaces = [x for x in interfaces if x.is_backup_interface]
+            if len(backup_interfaces) == len(interfaces):
+                for iface in backup_interfaces:
+                    iface.authenticator.delete()
+
+                    capture_security_activity(
+                        account=request.user,
+                        type='mfa-removed',
+                        actor=request.user,
+                        ip_address=request.META['REMOTE_ADDR'],
+                        context={
+                            'authenticator': iface.authenticator,
+                        },
+                        send_email=False,
+                    )
 
     def remove(self, request, interface):
+        form = ConfirmPasswordForm(request.user)
+
         if 'no' in request.POST or \
            not interface.is_enrolled:
             return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
         elif 'yes' in request.POST:
-            self.delete_authenticator(interface)
-            return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+            form = ConfirmPasswordForm(request.user, request.POST)
+            if 'password' in form.fields:
+                if form.is_valid():
+                    self.delete_authenticator(request, interface)
+                    return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+                else:
+                    form.errors['__all__'] = ['Invalid password.']
+            else:
+                self.delete_authenticator(request, interface)
+                return HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
 
         all_interfaces = Authenticator.objects.all_interfaces_for_user(
             request.user)
@@ -94,6 +127,7 @@ class TwoFactorSettingsView(BaseView):
             len(backup_interfaces) == len(other_interfaces)
 
         context = self.make_context(request, interface)
+        context['password_form'] = form
         context['removes_backups'] = removes_backups
         return render_to_response('sentry/account/twofactor/remove.html',
                                   context, request)
@@ -113,6 +147,19 @@ class TwoFactorSettingsView(BaseView):
                 # that case just go to the overview page of 2fa
                 next = reverse('sentry-account-settings-2fa')
             else:
+                capture_security_activity(
+                    account=request.user,
+                    type='mfa-added',
+                    actor=request.user,
+                    ip_address=request.META['REMOTE_ADDR'],
+                    context={
+                        'authenticator': interface.authenticator,
+                    },
+                    send_email=False,
+                )
+
+                request.user.refresh_session_nonce(self.request)
+                request.user.save()
                 if Authenticator.objects.auto_add_recovery_codes(request.user):
                     next = reverse('sentry-account-settings-2fa-recovery')
         return HttpResponseRedirect(next)
@@ -151,16 +198,30 @@ class TotpSettingsView(TwoFactorSettingsView):
 
         if 'otp' in request.POST:
             form = TwoFactorForm(request.POST)
-            if form.is_valid() and interface.validate_otp(
-                    form.cleaned_data['otp']):
-                return TwoFactorSettingsView.enroll(self, request, interface)
+            password_form = ConfirmPasswordForm(request.user, request.POST)
+            if 'password' in password_form.fields:
+                if password_form.is_valid():
+                    if form.is_valid() and interface.validate_otp(
+                            form.cleaned_data['otp']):
+                        return TwoFactorSettingsView.enroll(self, request, interface)
+                    else:
+                        form.errors['__all__'] = ['Invalid confirmation code.']
+                else:
+                    form.errors['__all__'] = ['Invalid password.']
             else:
-                form.errors['__all__'] = ['Invalid confirmation code.']
+                if form.is_valid() and interface.validate_otp(
+                        form.cleaned_data['otp']):
+                    return TwoFactorSettingsView.enroll(self, request, interface)
+                else:
+                    form.errors['__all__'] = ['Invalid confirmation code.']
+
         else:
             form = TwoFactorForm()
+            password_form = ConfirmPasswordForm(request.user)
 
         context = self.make_context(request, interface)
         context['otp_form'] = form
+        context['password_form'] = password_form
         context['provision_qrcode'] = interface.get_provision_qrcode(
             request.user.email)
         return render_to_response('sentry/account/twofactor/enroll_totp.html',

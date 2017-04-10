@@ -13,12 +13,13 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import (
     AuditLogEntryEvent, AuthIdentity, AuthProvider, OrganizationMember
 )
+from sentry.signals import sso_enabled
 
 ERR_NO_AUTH = 'You cannot remove this member with an unauthenticated API request.'
 
 ERR_INSUFFICIENT_ROLE = 'You cannot remove a member who has more access than you.'
 
-ERR_INSUFFICIENT_SCOPE = 'You are missing the member:delete scope.'
+ERR_INSUFFICIENT_SCOPE = 'You are missing the member:admin scope.'
 
 ERR_ONLY_OWNER = 'You cannot remove the only remaining owner of the organization.'
 
@@ -31,13 +32,13 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
 class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
-        'GET': ['member:read', 'member:write', 'member:delete'],
-        'POST': ['member:write', 'member:delete'],
-        'PUT': ['member:write', 'member:delete'],
+        'GET': ['member:read', 'member:write', 'member:admin'],
+        'POST': ['member:write', 'member:admin'],
+        'PUT': ['member:write', 'member:admin'],
 
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        'DELETE': ['member:read', 'member:write', 'member:delete'],
+        'DELETE': ['member:read', 'member:write', 'member:admin'],
     }
 
 
@@ -99,6 +100,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             else:
                 # TODO(dcramer): proper error message
                 return Response({'detail': ERR_UNINVITABLE}, status=400)
+        if has_sso:
+            sso_enabled.send(organization=organization, sender=request.user)
+
         return Response(status=204)
 
     def delete(self, request, organization, member_id):
@@ -117,13 +121,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
             else:
                 if acting_member != om:
-                    if not request.access.has_scope('member:delete'):
+                    if not request.access.has_scope('member:admin'):
                         return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
                     elif not roles.can_manage(acting_member.role, om.role):
                         return Response({'detail': ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
-        elif not request.access.has_scope('member:delete'):
+        elif not request.access.has_scope('member:admin'):
             return Response({'detail': ERR_INSUFFICIENT_SCOPE}, status=400)
 
         if self._is_only_owner(om):

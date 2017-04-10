@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
 
 from sentry.models import Project
@@ -21,8 +23,8 @@ class TeamProjectIndexTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            str(project_1.id),
-            str(project_2.id),
+            six.text_type(project_1.id),
+            six.text_type(project_2.id),
         ])
 
 

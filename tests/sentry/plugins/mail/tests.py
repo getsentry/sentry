@@ -2,27 +2,24 @@
 
 from __future__ import absolute_import
 
-import mock
+from datetime import datetime
 
+import mock
+import pytz
+import six
 from django.core import mail
 from django.utils import timezone
 from exam import fixture
 from mock import Mock
 
-from sentry.digests.notifications import (
-    build_digest,
-    event_to_record,
-)
+from sentry.digests.notifications import build_digest, event_to_record
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import (
-    Activity,
-    Event,
-    Group,
-    OrganizationMember,
-    OrganizationMemberTeam,
-    Rule,
+    Activity, Event, Group, GroupSubscription, OrganizationMember,
+    OrganizationMemberTeam, Rule, UserOption
 )
 from sentry.plugins import Notification
+from sentry.plugins.sentry_mail.activity.base import ActivityEmail
 from sentry.plugins.sentry_mail.models import MailPlugin
 from sentry.testutils import TestCase
 from sentry.utils.email import MessageBuilder
@@ -50,7 +47,7 @@ class MailPluginTest(TestCase):
             self.plugin.notify(notification)
 
         msg = mail.outbox[0]
-        assert msg.subject == '[Sentry] [foo Bar] ERROR: Hello world'
+        assert msg.subject == '[Sentry] [foo Bar] error: Hello world'
         assert 'my rule' in msg.alternatives[0][0]
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
@@ -139,7 +136,7 @@ class MailPluginTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('project'), self.project)
         self.assertEquals(kwargs.get('reference'), group)
-        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+        assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
             self.team.name, self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
@@ -172,7 +169,7 @@ class MailPluginTest(TestCase):
 
         assert _send_mail.call_count is 1
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{0} {1}] ERROR: hello world".format(
+        assert kwargs.get('subject') == u"[{0} {1}] error: hello world".format(
             self.team.name, self.project.name)
 
     def test_get_sendable_users(self):
@@ -239,7 +236,14 @@ class MailPluginTest(TestCase):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
-        assert msg.subject == u'[Sentry] [foo Bar] ERROR: רונית מגן'
+        assert msg.subject == u'[Sentry] [foo Bar] error: רונית מגן'
+
+    def test_get_digest_subject(self):
+        assert self.plugin.get_digest_subject(
+            mock.Mock(get_full_name=lambda: 'Rick & Morty'),
+            {mock.sentinel.group: 3},
+            datetime(2016, 9, 19, 1, 2, 3, tzinfo=pytz.utc),
+        ) == '[Rick & Morty] 1 new alert since Sept. 19, 2016, 1:02 a.m. UTC'
 
     @mock.patch.object(MailPlugin, 'notify', side_effect=MailPlugin.notify, autospec=True)
     @mock.patch.object(MessageBuilder, 'send_async', autospec=True)
@@ -303,7 +307,7 @@ class MailPluginTest(TestCase):
             type=Activity.ASSIGNED,
             user=self.create_user('foo@example.com'),
             data={
-                'assignee': str(self.user.id),
+                'assignee': six.text_type(self.user.id),
             },
         )
 
@@ -314,7 +318,7 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
 
     def test_note(self):
@@ -339,5 +343,70 @@ class MailPluginTest(TestCase):
 
         msg = mail.outbox[0]
 
-        assert msg.subject == 'Re: [Sentry] [foo Bar] ERROR: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
+        assert msg.subject == 'Re: [Sentry] [foo Bar] error: \xe3\x81\x93\xe3\x82\x93\xe3\x81\xab\xe3\x81\xa1\xe3\x81\xaf'
         assert msg.to == [self.user.email]
+
+
+class ActivityEmailTestCase(TestCase):
+    def get_fixture_data(self, users):
+        organization = self.create_organization(owner=self.create_user())
+        team = self.create_team(organization=organization)
+        project = self.create_project(organization=organization, team=team)
+        group = self.create_group(project=project)
+
+        users = [self.create_user() for _ in range(users)]
+
+        for user in users:
+            self.create_member([team], user=user, organization=organization)
+            GroupSubscription.objects.subscribe(group, user)
+
+        return group, users
+
+    def test_get_participants(self):
+        group, (actor, other) = self.get_fixture_data(2)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+                user=actor,
+            )
+        )
+
+        assert set(email.get_participants()) == set([other])
+
+        UserOption.objects.set_value(
+            user=actor,
+            project=None,
+            key='self_notifications',
+            value='1'
+        )
+
+        assert set(email.get_participants()) == set([actor, other])
+
+    def test_get_participants_without_actor(self):
+        group, (user,) = self.get_fixture_data(1)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+            )
+        )
+
+        assert set(email.get_participants()) == set([user])
+
+    def test_get_subject(self):
+        group, (user,) = self.get_fixture_data(1)
+
+        email = ActivityEmail(
+            Activity(
+                project=group.project,
+                group=group,
+            )
+        )
+
+        with mock.patch('sentry.models.ProjectOption.objects.get_value') as get_value:
+            get_value.side_effect = lambda project, key, default=None: \
+                "[Example prefix] " if key == "mail:subject_prefix" else default
+            assert email.get_subject_with_prefix().startswith('[Example prefix] ')

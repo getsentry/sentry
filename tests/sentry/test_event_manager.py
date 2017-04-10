@@ -15,7 +15,7 @@ from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
     EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
-    generate_culprit,
+    generate_culprit, md5_from_hash
 )
 from sentry.models import (
     Activity, Event, Group, GroupRelease, GroupResolution, GroupStatus,
@@ -73,6 +73,20 @@ class EventManagerTest(TransactionTestCase):
             group_id=event.group_id,
             event_id=event_id,
         ).exists()
+
+    @patch('sentry.event_manager.should_sample')
+    def test_sample_feature_flag(self, should_sample):
+        should_sample.return_value = True
+
+        manager = EventManager(self.make_event())
+        with self.feature('projects:sample-events'):
+            event = manager.save(1)
+        assert event.id
+
+        manager = EventManager(self.make_event())
+        with self.feature('projects:sample-events', False):
+            event = manager.save(1)
+        assert not event.id
 
     def test_tags_as_list(self):
         manager = EventManager(self.make_event(tags=[('foo', 'bar')]))
@@ -283,15 +297,18 @@ class EventManagerTest(TransactionTestCase):
         group = Group.objects.get(id=group.id)
         assert group.is_resolved()
 
+    @patch('sentry.tasks.activity.send_activity_notifications.delay')
     @patch('sentry.event_manager.plugin_is_regression')
-    def test_marks_as_unresolved_only_with_new_release(self, plugin_is_regression):
+    def test_marks_as_unresolved_with_new_release(self, plugin_is_regression,
+                                                  mock_send_activity_notifications_delay):
         plugin_is_regression.return_value = True
 
         old_release = Release.objects.create(
             version='a',
-            project=self.project,
+            organization_id=self.project.organization_id,
             date_added=timezone.now() - timedelta(minutes=30),
         )
+        old_release.add_project(self.project)
 
         manager = EventManager(self.make_event(
             event_id='a' * 32,
@@ -351,10 +368,14 @@ class EventManagerTest(TransactionTestCase):
 
         assert not GroupResolution.objects.filter(group=group).exists()
 
-        assert Activity.objects.filter(
+        activity = Activity.objects.get(
             group=group,
             type=Activity.SET_REGRESSION,
-        ).exists()
+        )
+
+        mock_send_activity_notifications_delay.assert_called_once_with(
+            activity.id
+        )
 
     @patch('sentry.models.Group.is_resolved')
     def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
@@ -416,11 +437,49 @@ class EventManagerTest(TransactionTestCase):
         group = event.group
         assert group.first_release.version == '1.0'
 
+    def test_release_project_slug(self):
+        project = self.create_project(name='foo')
+        release = Release.objects.create(
+            version='foo-1.0',
+            organization=project.organization
+        )
+        release.add_project(project)
+
+        manager = EventManager(self.make_event(release='1.0'))
+        event = manager.save(project.id)
+
+        group = event.group
+        assert group.first_release.version == 'foo-1.0'
+        release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
+        assert release_tag == 'foo-1.0'
+
+        manager = EventManager(self.make_event(release='2.0'))
+        event = manager.save(project.id)
+
+        group = event.group
+        assert group.first_release.version == 'foo-1.0'
+
+    def test_release_project_slug_long(self):
+        project = self.create_project(name='foo')
+        release = Release.objects.create(
+            version='foo-%s' % ('a' * 60,),
+            organization=project.organization
+        )
+        release.add_project(project)
+
+        manager = EventManager(self.make_event(release=('a' * 61)))
+        event = manager.save(project.id)
+
+        group = event.group
+        assert group.first_release.version == 'foo-%s' % ('a' * 60,)
+        release_tag = [v for k, v in event.tags if k == 'sentry:release'][0]
+        assert release_tag == 'foo-%s' % ('a' * 60,)
+
     def test_group_release_no_env(self):
         manager = EventManager(self.make_event(release='1.0'))
         event = manager.save(1)
 
-        release = Release.objects.get(version='1.0', project=event.project_id)
+        release = Release.objects.get(version='1.0', projects=event.project_id)
 
         assert GroupRelease.objects.filter(
             release_id=release.id,
@@ -438,7 +497,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='a' * 32))
         event = manager.save(1)
 
-        release = Release.objects.get(version='1.0', project=event.project_id)
+        release = Release.objects.get(version='1.0', projects=event.project_id)
 
         assert GroupRelease.objects.filter(
             release_id=release.id,
@@ -451,7 +510,7 @@ class EventManagerTest(TransactionTestCase):
             event_id='b' * 32))
         event = manager.save(1)
 
-        release = Release.objects.get(version='1.0', project=event.project_id)
+        release = Release.objects.get(version='1.0', projects=event.project_id)
 
         assert GroupRelease.objects.filter(
             release_id=release.id,
@@ -831,6 +890,15 @@ class GenerateCulpritTest(TestCase):
         }
         assert generate_culprit(data) == 'PLZNOTME.py in ?'
 
+    def test_with_empty_stacktrace(self):
+        data = {
+            'sentry.interfaces.Stacktrace': None,
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com'
+            },
+        }
+        assert generate_culprit(data) == 'http://example.com'
+
     def test_with_only_http_interface(self):
         data = {
             'sentry.interfaces.Http': {
@@ -876,3 +944,7 @@ class GenerateCulpritTest(TestCase):
             }
         }
         assert len(generate_culprit(data)) == MAX_CULPRIT_LENGTH
+
+    def test_md5_from_hash(self):
+        result = md5_from_hash(['foo', 'bar', u'foô'])
+        assert result == '6d81588029ed4190110b2779ba952a00'

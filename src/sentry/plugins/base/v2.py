@@ -10,15 +10,17 @@ from __future__ import absolute_import, print_function
 __all__ = ('Plugin2',)
 
 import logging
+import six
 
 from django.http import HttpResponseRedirect
 from threading import local
-from hashlib import md5
 
+from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.base.response import Response
 from sentry.plugins.base.configuration import (
     default_plugin_config, default_plugin_options,
 )
+from sentry.utils.hashlib import md5_text
 
 
 class PluginMount(type):
@@ -35,7 +37,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin2(local):
+class IPlugin2(local, PluginConfigMixin):
     """
     Plugin interface. Should not be inherited from directly.
 
@@ -77,6 +79,9 @@ class IPlugin2(local):
 
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
+
+    def get_plugin_type(self):
+        return 'default'
 
     def is_enabled(self, project=None):
         """
@@ -192,8 +197,8 @@ class IPlugin2(local):
         >>> plugin.get_conf_version(project)
         """
         options = self.get_conf_options(project)
-        return md5(
-            '&'.join(sorted('%s=%s' % o for o in options.iteritems()))
+        return md5_text(
+            '&'.join(sorted('%s=%s' % o for o in six.iteritems(options)))
         ).hexdigest()[:3]
 
     def get_conf_title(self):
@@ -272,7 +277,7 @@ class IPlugin2(local):
 
         >>> def get_resource_links(self):
         >>>     return [
-        >>>         ('Documentation', 'https://docs.getsentry.com'),
+        >>>         ('Documentation', 'https://docs.sentry.io'),
         >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
         >>>         ('Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
@@ -344,7 +349,7 @@ class IPlugin2(local):
         """
         return []
 
-    def get_event_preprocessors(self, **kwargs):
+    def get_event_preprocessors(self, data, **kwargs):
         """
         Return a list of preprocessors to apply to the given event.
 
@@ -352,10 +357,31 @@ class IPlugin2(local):
         input and returns modified data as output. If no changes to the data are
         made it is safe to return ``None``.
 
-        >>> def get_event_preprocessors(self, **kwargs):
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        >>> def get_event_preprocessors(self, data, **kwargs):
         >>>     return [lambda x: x]
         """
         return []
+
+    def get_stacktrace_processors(self, data, stacktrace_infos,
+                                  platforms, **kwargs):
+        """
+        This works similarly to `get_event_preprocessors` but returns a
+        function that is invoked for all encountered stacktraces in an
+        event.
+
+        Preprocessors should not be returned if there is nothing to
+        do with the event data.
+
+        :::
+
+            def get_stacktrace_processors(self, data, stacktrace_infos,
+                                          platforms, **kwargs):
+                if 'cocoa' in platforms:
+                    return [CocoaProcessor(data, stacktrace_infos)]
+        """
 
     def get_feature_hooks(self, **kwargs):
         """
@@ -389,6 +415,18 @@ class IPlugin2(local):
         """
         return []
 
+    def get_custom_contexts(self):
+        """Return a list of of context types.
+
+        from sentry.interfaces.contexts import ContextType
+
+        class MyContextType(ContextType):
+            type = 'my_type'
+
+        def get_custom_contexts(self):
+            return [MyContextType]
+        """
+
     def configure(self, project, request):
         """Configures the plugin."""
         return default_plugin_config(self, project, request)
@@ -397,6 +435,7 @@ class IPlugin2(local):
         """Allows a plugin to return the import path to a URL module."""
 
 
+@six.add_metaclass(PluginMount)
 class Plugin2(IPlugin2):
     """
     A plugin should be treated as if it were a singleton. The owner does not
@@ -404,4 +443,3 @@ class Plugin2(IPlugin2):
     it will happen, or happen more than once.
     """
     __version__ = 2
-    __metaclass__ = PluginMount

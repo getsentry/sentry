@@ -38,6 +38,7 @@ const EventErrors = React.createClass({
           event={this.props.event}
           type="errors"
           className="errors">
+          <span className="icon icon-alert" />
         <p>
           <a className="pull-right" onClick={this.toggle}>{isOpen ? t('Hide') : t('Show')}</a>
           {

@@ -12,9 +12,12 @@ import {Form} from '../components/forms';
 const optionsAvailable = [
   'system.url-prefix',
   'system.admin-email',
+  'system.support-email',
+  'system.security-email',
   'system.rate-limit',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
+  'api.rate-limit.org-create',
 ];
 
 const SettingsList = React.createClass({
@@ -73,11 +76,14 @@ const SettingsList = React.createClass({
         <h4>General</h4>
         {fields['system.url-prefix']}
         {fields['system.admin-email']}
+        {fields['system.support-email']}
+        {fields['system.security-email']}
         {fields['system.rate-limit']}
 
-        <h4>Authentication</h4>
+        <h4>Security &amp; Abuse</h4>
         {fields['auth.ip-rate-limit']}
         {fields['auth.user-rate-limit']}
+        {fields['api.rate-limit.org-create']}
       </Form>
     );
   }

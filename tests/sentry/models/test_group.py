@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from datetime import datetime, timedelta
 
 import pytest
@@ -8,7 +10,7 @@ from django.utils import timezone
 
 from sentry.models import (
     Group, GroupRedirect, GroupSnooze, GroupStatus, Release,
-    get_group_with_redirect
+    get_group_with_redirect, GroupTagValue
 )
 from sentry.testutils import TestCase
 
@@ -18,7 +20,7 @@ class GroupTest(TestCase):
         group = self.create_group(status=GroupStatus.RESOLVED)
         assert group.is_resolved()
 
-        group.status = GroupStatus.MUTED
+        group.status = GroupStatus.IGNORED
         assert not group.is_resolved()
 
         group.status = GroupStatus.UNRESOLVED
@@ -41,9 +43,9 @@ class GroupTest(TestCase):
 
     def test_get_oldest_latest_events(self):
         group = self.create_group()
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, i),
             )
@@ -53,9 +55,9 @@ class GroupTest(TestCase):
 
     def test_get_oldest_latest_identical_timestamps(self):
         group = self.create_group()
-        for i in xrange(0, 3):
+        for i in range(0, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, 50),
             )
@@ -70,9 +72,9 @@ class GroupTest(TestCase):
             group=group,
             datetime=datetime(2013, 8, 13, 3, 8, 0),  # earliest
         )
-        for i in xrange(1, 3):
+        for i in range(1, 3):
             self.create_event(
-                event_id=str(i),
+                event_id=six.text_type(i),
                 group=group,
                 datetime=datetime(2013, 8, 13, 3, 8, 30),  # all in the middle
             )
@@ -85,19 +87,19 @@ class GroupTest(TestCase):
         assert group.get_latest_event().event_id == '3'
         assert group.get_oldest_event().event_id == '0'
 
-    def test_is_muted_with_expired_snooze(self):
+    def test_is_ignored_with_expired_snooze(self):
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,
             until=timezone.now() - timedelta(minutes=1),
         )
-        assert not group.is_muted()
+        assert not group.is_ignored()
 
     def test_status_with_expired_snooze(self):
         group = self.create_group(
-            status=GroupStatus.MUTED,
+            status=GroupStatus.IGNORED,
         )
         GroupSnooze.objects.create(
             group=group,
@@ -109,8 +111,9 @@ class GroupTest(TestCase):
         project = self.create_project()
         release = Release.objects.create(
             version='a',
-            project=project,
+            organization_id=project.organization_id,
         )
+        release.add_project(project)
         group = self.create_group(
             project=project,
             first_release=release,
@@ -151,3 +154,77 @@ class GroupTest(TestCase):
     def test_invalid_shared_id(self):
         with pytest.raises(Group.DoesNotExist):
             Group.from_share_id('adc7a5b902184ce3818046302e94f8ec')
+
+    def test_qualified_share_id(self):
+        project = self.create_project(name='foo bar')
+        group = self.create_group(project=project, short_id=project.next_short_id())
+        short_id = group.qualified_short_id
+
+        assert short_id.startswith('FOO-BAR-')
+
+        group2 = Group.objects.by_qualified_short_id(group.organization.id, short_id)
+
+        assert group2 == group
+
+    def test_first_last_release(self):
+        project = self.create_project()
+        release = Release.objects.create(
+            version='a',
+            organization_id=project.organization_id,
+        )
+        release.add_project(project)
+
+        group = self.create_group(
+            project=project,
+            first_release=release,
+        )
+
+        GroupTagValue.objects.create(
+            project=project,
+            group=group,
+            key='sentry:release',
+            value=release.version
+        )
+
+        assert group.first_release == release
+        assert group.get_first_release() == release.version
+        assert group.get_last_release() == release.version
+
+    def test_first_release_from_tag(self):
+        project = self.create_project()
+        release = Release.objects.create(
+            version='a',
+            organization_id=project.organization_id,
+        )
+        release.add_project(project)
+
+        group = self.create_group(
+            project=project,
+        )
+
+        GroupTagValue.objects.create(
+            project=project,
+            group=group,
+            key='sentry:release',
+            value=release.version
+        )
+
+        assert group.first_release is None
+        assert group.get_first_release() == release.version
+        assert group.get_last_release() == release.version
+
+    def test_first_last_release_miss(self):
+        project = self.create_project()
+        release = Release.objects.create(
+            version='a',
+            organization_id=project.organization_id,
+        )
+        release.add_project(project)
+
+        group = self.create_group(
+            project=project,
+        )
+
+        assert group.first_release is None
+        assert group.get_first_release() is None
+        assert group.get_last_release() is None

@@ -1,6 +1,6 @@
 import React from 'react';
 import Reflux from 'reflux';
-import {History} from 'react-router';
+import {browserHistory} from 'react-router';
 import {Link} from 'react-router';
 import Cookies from 'js-cookie';
 import {StickyContainer, Sticky} from 'react-sticky';
@@ -19,10 +19,11 @@ import StreamTagActions from '../actions/streamTagActions';
 import StreamTagStore from '../stores/streamTagStore';
 import StreamFilters from './stream/filters';
 import StreamSidebar from './stream/sidebar';
+import TimeSince from '../components/timeSince';
 import utils from '../utils';
 import {logAjaxError} from '../utils/logging';
 import parseLinkHeader from '../utils/parseLinkHeader';
-import {t, tct} from '../locale';
+import {t, tn, tct} from '../locale';
 
 const Stream = React.createClass({
   propTypes: {
@@ -36,7 +37,6 @@ const Stream = React.createClass({
   mixins: [
     Reflux.listenTo(GroupStore, 'onGroupChange'),
     Reflux.listenTo(StreamTagStore, 'onStreamTagChange'),
-    History,
     ApiMixin,
     ProjectState
   ],
@@ -74,6 +74,7 @@ const Stream = React.createClass({
       tagsLoading: true,
       isSidebarVisible: false,
       isStickyHeader: false,
+      processingIssues: null,
       ...this.getQueryState()
     };
   },
@@ -87,6 +88,7 @@ const Stream = React.createClass({
     });
 
     this.fetchSavedSearches();
+    this.fetchProcessingIssues();
     this.fetchTags();
     if (!this.state.loading) {
       this.fetchData();
@@ -191,6 +193,25 @@ const Stream = React.createClass({
     });
   },
 
+  fetchProcessingIssues() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
+      success: (data) => {
+        if (data.hasIssues
+          || data.resolveableIssues > 0
+          || data.issuesProcessing > 0) {
+          this.setState({
+            processingIssues: data,
+          });
+        }
+      },
+      error: (error) => {
+        logAjaxError(error);
+        // this is okay. it's just a ui hint
+      }
+    });
+  },
+
   fetchTags() {
     StreamTagStore.reset();
     StreamTagActions.loadTags();
@@ -212,6 +233,10 @@ const Stream = React.createClass({
     });
   },
 
+  showingProcessingIssues() {
+    return this.state.query && this.state.query.trim() == 'is:unprocessed';
+  },
+
   onSavedSearchCreate(data) {
     let {orgId, projectId} = this.props.params;
     let savedSearchList = this.state.savedSearchList;
@@ -220,7 +245,7 @@ const Stream = React.createClass({
     this.setState({
       savedSearchList: savedSearchList,
     });
-    this.history.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
   },
 
   getQueryState(props) {
@@ -331,7 +356,11 @@ const Stream = React.createClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-          return void this.history.pushState(null,
+           if (data[0].matchingEventId){
+            return void browserHistory.pushState(null,
+              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/events/${data[0].matchingEventId}/`);
+          }
+          return void browserHistory.pushState(null,
             `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
         }
 
@@ -343,9 +372,11 @@ const Stream = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link'),
         });
       },
-      error: () => {
+      error: (err) => {
+        let error = err.responseJSON || true;
+        error = error.detail || true;
         this.setState({
-          error: true,
+          error,
           dataLoading: false
         });
       },
@@ -479,7 +510,71 @@ const Stream = React.createClass({
       `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/` :
       `/${params.orgId}/${params.projectId}/`);
 
-    this.history.pushState(null, path, queryParams);
+    browserHistory.pushState(null, path, queryParams);
+  },
+
+  renderProcessingIssuesHint() {
+    let pi = this.state.processingIssues;
+    if (!pi || this.showingProcessingIssues()) {
+      return null;
+    }
+
+    let {orgId, projectId} = this.props.params;
+    let link = `/${orgId}/${projectId}/settings/processing-issues/`;
+    let showButton = false;
+    let className = {
+      'processing-issues': true,
+      'alert': true
+    };
+    let issues = null;
+    let lastEvent = null;
+    let icon = null;
+
+    if (pi.numIssues > 0) {
+      icon = <span className="icon icon-alert" />;
+      issues = tn('There is %d issue blocking event processing',
+                  'There are %d issues blocking event processing',
+                  pi.numIssues);
+      lastEvent = (
+        <span className="last-seen">({tct('last event from [ago]', {
+          ago: <TimeSince date={pi.lastSeen}/>
+        })})
+        </span>
+      );
+      className['alert-error'] = true;
+      showButton = true;
+    } else if (pi.issuesProcessing > 0) {
+      icon = <span className="icon icon-processing play" />;
+      className['alert-info'] = true;
+      issues = tn('Reprocessing %d event …',
+        'Reprocessing %d events …',
+        pi.issuesProcessing);
+    } else if (pi.resolveableIssues > 0) {
+      icon = <span className="icon icon-processing" />;
+      className['alert-warning'] = true;
+      issues = tn('There is %d event pending reprocessing.',
+        'There are %d events pending reprocessing.',
+        pi.resolveableIssues);
+      showButton = true;
+    } else {
+      /* we should not go here but what do we know */
+      return null;
+    }
+
+    return (
+      <div className={classNames(className)}>
+        {showButton &&
+          <Link to={link} className="btn btn-default btn-sm pull-right">{
+            t('Show details')}</Link>
+        }
+        {icon}
+        {' '}
+        <strong>{issues}</strong>
+        {' '}
+        {lastEvent}
+        {' '}
+      </div>
+    );
   },
 
   renderGroupNodes(ids, statsPeriod) {
@@ -514,7 +609,7 @@ const Stream = React.createClass({
           <div className="robot"><span className="eye" /></div>
           <h3>{t('Waiting for events…')}</h3>
           <p>{tct('Our error robot is waiting to [cross:devour] receive your first event.', {cross: <span className="strikethrough"/>})}</p>
-          <p><Link to={`/${org.slug}/${project.slug}/settings/install/?onboarding=1`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
+          <p><Link to={`/${org.slug}/${project.slug}/getting-started/`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
           {sampleLink}
         </div>
       </div>
@@ -542,11 +637,12 @@ const Stream = React.createClass({
     let body;
 
     let project = this.getProject();
-
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
-      body = (<LoadingError onRetry={this.fetchData} />);
+      body = (<LoadingError
+        message={this.state.error}
+        onRetry={this.fetchData} />);
     } else if (!project.firstEvent) {
       body = this.renderAwaitingEvents();
     } else if (this.state.groupIds.length > 0) {
@@ -573,6 +669,7 @@ const Stream = React.createClass({
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
     let access = this.getAccess();
+    let projectFeatures = this.getProjectFeatures();
 
     return (
       <StickyContainer>
@@ -600,6 +697,7 @@ const Stream = React.createClass({
                   <StreamActions
                     orgId={params.orgId}
                     projectId={params.projectId}
+                    hasReleases={projectFeatures.has('releases')}
                     query={this.state.query}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}
@@ -610,6 +708,7 @@ const Stream = React.createClass({
                 </div>
               </div>
             </Sticky>
+            {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}
             <Pagination pageLinks={this.state.pageLinks}/>
           </div>

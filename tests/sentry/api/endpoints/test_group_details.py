@@ -1,11 +1,14 @@
 from __future__ import absolute_import, print_function
 
+import six
+
 from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import (
-    Activity, Group, GroupAssignee, GroupBookmark, GroupSeen, GroupSnooze,
-    GroupSubscription, GroupStatus, GroupTagValue, Release
+    Activity, Group, GroupHash, GroupAssignee, GroupBookmark, GroupResolution,
+    GroupSeen, GroupSnooze, GroupSubscription, GroupStatus, GroupTagValue,
+    Release
 )
 from sentry.testutils import APITestCase
 
@@ -20,7 +23,7 @@ class GroupDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(group.id)
+        assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease'] is None
 
     def test_with_first_release(self):
@@ -28,9 +31,10 @@ class GroupDetailsTest(APITestCase):
 
         group = self.create_group()
         release = Release.objects.create(
-            project=group.project,
+            organization_id=group.project.organization_id,
             version='1.0',
         )
+        release.add_project(group.project)
         GroupTagValue.objects.create(
             group=group,
             project=group.project,
@@ -43,7 +47,7 @@ class GroupDetailsTest(APITestCase):
         response = self.client.get(url, format='json')
 
         assert response.status_code == 200, response.content
-        assert response.data['id'] == str(group.id)
+        assert response.data['id'] == six.text_type(group.id)
         assert response.data['firstRelease']['version'] == release.version
 
 
@@ -72,6 +76,35 @@ class GroupUpdateTest(APITestCase):
             is_active=True,
         ).exists()
 
+    def test_resolved_in_next_release(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        project.flags.has_releases = True
+        project.save()
+        group = self.create_group(project=project)
+        Release.get_or_create(
+            version='abcd',
+            project=project,
+        )
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        response = self.client.put(url, data={
+            'status': 'resolvedInNextRelease',
+        })
+        assert response.status_code == 200, response.content
+
+        group = Group.objects.get(
+            id=group.id,
+            project=group.project.id,
+        )
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+        ).exists()
+
     def test_snooze_duration(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
 
@@ -80,8 +113,8 @@ class GroupUpdateTest(APITestCase):
         url = '/api/0/issues/{}/'.format(group.id)
 
         response = self.client.put(url, data={
-            'status': 'muted',
-            'snoozeDuration': 30,
+            'status': 'ignored',
+            'ignoreDuration': 30,
         }, format='json')
 
         assert response.status_code == 200
@@ -91,10 +124,10 @@ class GroupUpdateTest(APITestCase):
         assert snooze.until > timezone.now() + timedelta(minutes=29)
         assert snooze.until < timezone.now() + timedelta(minutes=31)
 
-        assert response.data['statusDetails']['snoozeUntil'] == snooze.until
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
 
         group = Group.objects.get(id=group.id)
-        assert group.get_status() == GroupStatus.MUTED
+        assert group.get_status() == GroupStatus.IGNORED
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -244,6 +277,24 @@ class GroupDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         group = self.create_group()
+        GroupHash.objects.create(
+            project=group.project,
+            hash='x' * 32,
+            group=group,
+        )
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        response = self.client.delete(url, format='json')
+
+        assert response.status_code == 202, response.content
+
+        # Deletion was deferred, so it should still exist
+        assert Group.objects.get(id=group.id).status == GroupStatus.PENDING_DELETION
+        # BUT the hash should be gone
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+        Group.objects.filter(id=group.id).update(status=GroupStatus.UNRESOLVED)
 
         url = '/api/0/issues/{}/'.format(group.id)
 
@@ -252,5 +303,6 @@ class GroupDeleteTest(APITestCase):
 
         assert response.status_code == 202, response.content
 
-        group = Group.objects.filter(id=group.id).exists()
-        assert not group
+        # Now we killed everything with fire
+        assert not Group.objects.filter(id=group.id).exists()
+        assert not GroupHash.objects.filter(group_id=group.id).exists()

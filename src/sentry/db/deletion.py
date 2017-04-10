@@ -69,12 +69,38 @@ class BulkDeleteQuery(object):
             else:
                 qs = qs.filter(project_id=self.project_id)
 
+        return self._continuous_generic_query(qs, chunk_size)
+
+    def execute_sharded(self, total_shards, shard_id, chunk_size=100):
+        assert total_shards > 1
+        assert shard_id < total_shards
+        qs = self.model.objects.all().extra(where=[
+            'id %% {total_shards} = {shard_id}'.format(
+                total_shards=total_shards,
+                shard_id=shard_id,
+            )
+        ])
+
+        if self.days:
+            cutoff = timezone.now() - timedelta(days=self.days)
+            qs = qs.filter(
+                **{'{}__lte'.format(self.dtfield): cutoff}
+            )
+        if self.project_id:
+            if 'project' in self.model._meta.get_all_field_names():
+                qs = qs.filter(project=self.project_id)
+            else:
+                qs = qs.filter(project_id=self.project_id)
+
+        return self._continuous_generic_query(qs, chunk_size)
+
+    def _continuous_generic_query(self, query, chunk_size):
         # XXX: we step through because the deletion collector will pull all
         # relations into memory
         exists = True
         while exists:
             exists = False
-            for item in qs[:chunk_size].iterator():
+            for item in query[:chunk_size].iterator():
                 item.delete()
                 exists = True
 

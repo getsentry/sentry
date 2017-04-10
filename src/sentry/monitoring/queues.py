@@ -7,9 +7,9 @@ sentry.monitoring.queues
 """
 from __future__ import absolute_import, print_function
 
-from urlparse import urlparse
 from django.conf import settings
 from django.utils.functional import cached_property
+from six.moves.urllib.parse import urlparse
 
 
 class RedisBackend(object):

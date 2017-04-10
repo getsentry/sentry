@@ -3,7 +3,7 @@ import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
-import {FormState, CheckboxField} from '../components/forms';
+import {FormState, BooleanField} from '../components/forms';
 import {t} from '../locale';
 
 const ProjectFeedbackSettingsForm = React.createClass({
@@ -81,7 +81,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
           </div>
         }
         <fieldset>
-          <CheckboxField
+          <BooleanField
             key="branding"
             name="branding"
             label={t('Show Sentry Branding')}

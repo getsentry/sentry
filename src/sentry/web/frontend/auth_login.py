@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
@@ -10,6 +11,7 @@ from django.views.decorators.cache import never_cache
 
 from sentry import features
 from sentry.constants import WARN_SESSION_EXPIRED
+from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
@@ -43,14 +45,13 @@ class AuthLoginView(BaseView):
         op = request.POST.get('op')
         return AuthenticationForm(
             request, request.POST if op == 'login' else None,
-            captcha=bool(request.session.get('needs_captcha')),
         )
 
-    def get_register_form(self, request):
+    def get_register_form(self, request, initial=None):
         op = request.POST.get('op')
         return RegistrationForm(
             request.POST if op == 'register' else None,
-            captcha=bool(request.session.get('needs_captcha')),
+            initial=initial,
         )
 
     def handle_basic_auth(self, request):
@@ -65,7 +66,9 @@ class AuthLoginView(BaseView):
 
         login_form = self.get_login_form(request)
         if can_register:
-            register_form = self.get_register_form(request)
+            register_form = self.get_register_form(request, initial={
+                'username': request.session.get('invite_email', '')
+            })
         else:
             register_form = None
 
@@ -80,43 +83,34 @@ class AuthLoginView(BaseView):
 
             # can_register should only allow a single registration
             request.session.pop('can_register', None)
-
-            request.session.pop('needs_captcha', None)
-
-            return self.redirect(auth.get_login_redirect(request))
-
-        elif login_form.is_valid():
-            user = login_form.get_user()
-
-            auth.login(request, user)
-
-            request.session.pop('needs_captcha', None)
-
-            if not user.is_active:
-                return self.redirect(reverse('sentry-reactivate-account'))
+            request.session.pop('invite_email', None)
 
             return self.redirect(auth.get_login_redirect(request))
 
-        elif request.POST and not request.session.get('needs_captcha'):
-            auth.log_auth_failure(request, request.POST.get('username'))
-            request.session['needs_captcha'] = 1
-            login_form = self.get_login_form(request)
-            login_form.errors.pop('captcha', None)
-            if can_register:
-                register_form = self.get_register_form(request)
-                register_form.errors.pop('captcha', None)
+        elif request.method == 'POST':
+            from sentry.app import ratelimiter
+            from sentry.utils.hashlib import md5_text
 
-        # When the captcha fails, hide any other errors
-        # to prevent brute force attempts.
-        if 'captcha' in login_form.errors:
-            for k in login_form.errors.keys():
-                if k != 'captcha':
-                    login_form.errors.pop(k)
+            login_attempt = op == 'login' and request.POST.get('username') and request.POST.get('password')
 
-        request.session.set_test_cookie()
+            if login_attempt and ratelimiter.is_limited(
+                u'auth:login:username:{}'.format(md5_text(request.POST['username'].lower()).hexdigest()),
+                limit=10, window=60,  # 10 per minute should be enough for anyone
+            ):
+                login_form.errors['__all__'] = [u'You have made too many login attempts. Please try again later.']
+            elif login_form.is_valid():
+                user = login_form.get_user()
+
+                auth.login(request, user)
+
+                if not user.is_active:
+                    return self.redirect(reverse('sentry-reactivate-account'))
+
+                return self.redirect(auth.get_login_redirect(request))
 
         context = {
             'op': op or 'login',
+            'server_hostname': get_server_hostname(),
             'login_form': login_form,
             'register_form': register_form,
             'CAN_REGISTER': can_register,
@@ -141,6 +135,17 @@ class AuthLoginView(BaseView):
     @never_cache
     @transaction.atomic
     def handle(self, request):
+        next_uri = request.GET.get(REDIRECT_FIELD_NAME, None)
+        if request.user.is_authenticated():
+            if auth.is_valid_redirect(next_uri, host=request.get_host()):
+                return self.redirect(next_uri)
+            return self.redirect_to_org(request)
+
+        request.session.set_test_cookie()
+
+        if next_uri:
+            auth.initiate_login(request, next_uri)
+
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
             org = Organization.get_default()

@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
+import six
+
 from django.core.urlresolvers import reverse
+
 from sentry.testutils import APITestCase
 
 
@@ -22,6 +25,6 @@ class ProjectEventsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         assert sorted(map(lambda x: x['id'], response.data)) == sorted([
-            str(event_1.id),
-            str(event_2.id),
+            six.text_type(event_1.id),
+            six.text_type(event_2.id),
         ])

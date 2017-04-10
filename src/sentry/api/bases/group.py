@@ -5,6 +5,7 @@ import logging
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.app import raven
 from sentry.models import Group, get_group_with_redirect
 
 logger = logging.getLogger(__name__)
@@ -12,10 +13,10 @@ logger = logging.getLogger(__name__)
 
 class GroupPermission(ProjectPermission):
     scope_map = {
-        'GET': ['event:read', 'event:write', 'event:delete'],
-        'POST': ['event:write', 'event:delete'],
-        'PUT': ['event:write', 'event:delete'],
-        'DELETE': ['event:delete'],
+        'GET': ['event:read', 'event:write', 'event:admin'],
+        'POST': ['event:write', 'event:admin'],
+        'PUT': ['event:write', 'event:admin'],
+        'DELETE': ['event:admin'],
     }
 
     def has_object_permission(self, request, view, group):
@@ -46,5 +47,12 @@ class GroupEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, group)
+
+        raven.tags_context({
+            'project': group.project_id,
+            'organization': group.project.organization_id,
+        })
+
         kwargs['group'] = group
+
         return (args, kwargs)

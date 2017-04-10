@@ -1,12 +1,15 @@
+from __future__ import absolute_import
+
 import re
 import json
 import time
 import logging
 import random
+import six
 
-from urlparse import parse_qsl
 from django.conf import settings
 from django.core.cache import cache
+from six.moves.urllib.parse import parse_qsl
 
 from sentry import http
 from sentry.utils.strings import count_sprintf_parameters
@@ -55,6 +58,8 @@ class Processor(object):
                 allow_redirects=True,
                 timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
             )
+            # Make sure we only get a 2xx to prevent caching bad data
+            response.raise_for_status()
             data = response.json()
             cache.set(key, json.dumps([time.time(), data]), HARD_TIMEOUT)
         except Exception:
@@ -64,6 +69,8 @@ class Processor(object):
         return data
 
     def try_process(self, exc):
+        if not exc['value']:
+            return False
         match = self.regex.search(exc['value'])
         if match is None:
             return False
@@ -92,12 +99,12 @@ def process_react_exception(exc, match, mapping):
     args = []
     for k, v in parse_qsl(qs, keep_blank_values=True):
         if k == 'args[]':
-            args.append(v)
+            args.append(v.decode('utf-8', 'replace'))
 
     # Due to truncated error messages we sometimes might not be able to
     # get all arguments.  In that case we fill up missing parameters for
     # the format string with <redacted>.
-    args = tuple(args + ['<redacted>'] * (arg_count - len(args)))[:arg_count]
+    args = tuple(args + [u'<redacted>'] * (arg_count - len(args)))[:arg_count]
     exc['value'] = msg_format % args
 
     return True
@@ -114,7 +121,7 @@ def rewrite_exception(data):
 
     rv = False
     for exc in exc_data['values']:
-        for processor in error_processors.itervalues():
+        for processor in six.itervalues(error_processors):
             try:
                 if processor.try_process(exc):
                     rv = True

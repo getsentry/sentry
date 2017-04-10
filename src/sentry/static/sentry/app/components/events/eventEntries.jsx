@@ -5,6 +5,7 @@ import EventContexts from './contexts';
 import EventContextSummary from './contextSummary';
 import EventDataSection from './eventDataSection';
 import EventErrors from './errors';
+import ReprocessingHint from './reprocessingHint';
 import EventExtraData from './extraData';
 import EventPackageData from './packageData';
 import EventTags from './eventTags';
@@ -23,6 +24,7 @@ import TemplateInterface from './interfaces/template';
 import CspInterface from './interfaces/csp';
 import BreadcrumbsInterface from './interfaces/breadcrumbs';
 import ThreadsInterface from './interfaces/threads';
+import DebugMetaInterface from './interfaces/debugmeta';
 
 export const INTERFACES = {
   exception: ExceptionInterface,
@@ -33,6 +35,7 @@ export const INTERFACES = {
   csp: CspInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
+  debugmeta: DebugMetaInterface,
 };
 
 const EventEntries = React.createClass({
@@ -100,7 +103,7 @@ const EventEntries = React.createClass({
     );
 
     let hasContextSummary = (
-      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript')
+      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript' || evt.platform === 'java')
     );
 
     return (
@@ -111,16 +114,24 @@ const EventEntries = React.createClass({
             event={evt} />
         }
         {!utils.objectIsEmpty(evt.errors) &&
+          <ReprocessingHint
+            group={group}
+            event={evt}
+            orgId={this.props.orgId}
+            projectId={project.slug} />
+        }
+        {!utils.objectIsEmpty(evt.errors) &&
           <EventErrors
             group={group}
             event={evt} />
         }
         {!utils.objectIsEmpty(evt.sdk) && evt.sdk.upstream.isNewer &&
-          <div className="alert-block alert-info box" style={{padding: '5px 20px'}}>
+          <div className="alert-block alert-info box">
+            <span className="icon-exclamation"/>
             {t('This event was reported with an old version of the %s SDK.', evt.platform)}
             {evt.sdk.upstream.url &&
               <a href={evt.sdk.upstream.url}
-                 style={{marginLeft: 10}}>{t('Learn More')}</a>
+                 className="btn btn-sm btn-default">{t('Learn More')}</a>
             }
           </div>
         }

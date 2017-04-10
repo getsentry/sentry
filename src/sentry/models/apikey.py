@@ -10,13 +10,14 @@ from __future__ import absolute_import, print_function
 import six
 
 from bitfield import BitField
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from uuid import uuid4
 
 from sentry.db.models import (
-    Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
+    ArrayField, Model, BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey,
     sane_repr
 )
 
@@ -36,21 +37,22 @@ class ApiKey(Model):
     scopes = BitField(flags=(
         ('project:read', 'project:read'),
         ('project:write', 'project:write'),
-        ('project:delete', 'project:delete'),
+        ('project:admin', 'project:admin'),
         ('project:releases', 'project:releases'),
         ('team:read', 'team:read'),
         ('team:write', 'team:write'),
-        ('team:delete', 'team:delete'),
+        ('team:admin', 'team:admin'),
         ('event:read', 'event:read'),
         ('event:write', 'event:write'),
-        ('event:delete', 'event:delete'),
+        ('event:admin', 'event:admin'),
         ('org:read', 'org:read'),
         ('org:write', 'org:write'),
-        ('org:delete', 'org:delete'),
+        ('org:admin', 'org:admin'),
         ('member:read', 'member:read'),
         ('member:write', 'member:write'),
-        ('member:delete', 'member:delete'),
+        ('member:admin', 'member:admin'),
     ))
+    scope_list = ArrayField(of=models.TextField)
     status = BoundedPositiveIntegerField(default=0, choices=(
         (ApiKeyStatus.ACTIVE, _('Active')),
         (ApiKeyStatus.INACTIVE, _('Inactive')),
@@ -93,15 +95,17 @@ class ApiKey(Model):
         return {
             'label': self.label,
             'key': self.key,
-            'scopes': int(self.scopes),
+            'scopes': self.get_scopes(),
             'status': self.status,
         }
 
     def get_scopes(self):
-        return [k for k, v in self.scopes.iteritems() if v]
+        if self.scope_list:
+            return self.scope_list
+        return [k for k, v in six.iteritems(self.scopes) if v]
 
     def has_scope(self, scope):
-        return scope in self.scopes
+        return scope in self.get_scopes()
 
 
 class SystemKey(object):
@@ -121,7 +125,7 @@ class SystemKey(object):
 
     def get_scopes(self):
         # All scopes!
-        return ApiKey.scopes
+        return list(settings.SENTRY_SCOPES)
 
     def has_scope(self, scope):
         return True

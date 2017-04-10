@@ -117,8 +117,10 @@ const ProjectDashboard = React.createClass({
           <div className="pull-right">
             <div className="btn-group">
               <Link
-                to={url}
-                query={{...routeQuery, statsPeriod: PERIOD_HOUR}}
+                to={{
+                  pathname: url,
+                  query: {...routeQuery, statsPeriod: PERIOD_HOUR}
+                }}
                 active={statsPeriod === PERIOD_HOUR}
                 className={
                   'btn btn-sm btn-default' + (
@@ -126,8 +128,10 @@ const ProjectDashboard = React.createClass({
                 {t('1 hour')}
               </Link>
               <Link
-                to={url}
-                query={{...routeQuery, statsPeriod: PERIOD_DAY}}
+                to={{
+                  pathname: url,
+                  query: {...routeQuery, statsPeriod: PERIOD_DAY}
+                }}
                 active={statsPeriod === PERIOD_DAY}
                 className={
                   'btn btn-sm btn-default' + (
@@ -135,8 +139,10 @@ const ProjectDashboard = React.createClass({
                 {t('1 day')}
               </Link>
               <Link
-                to={url}
-                query={{...routeQuery, statsPeriod: PERIOD_WEEK}}
+                to={{
+                  pathname: url,
+                  query: {...routeQuery, statsPeriod: PERIOD_WEEK}
+                }}
                 className={
                   'btn btn-sm btn-default' + (
                     statsPeriod === PERIOD_WEEK ? ' active' : '')}>

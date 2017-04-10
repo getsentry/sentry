@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 registry = {}
 
 
-def serialize(objects, user=None, serializer=None):
+def serialize(objects, user=None, serializer=None, *args, **kwargs):
     if user is None:
         user = AnonymousUser()
 
@@ -15,10 +15,10 @@ def serialize(objects, user=None, serializer=None):
     # sets aren't predictable, so generally you should use a list, but it's
     # supported out of convenience
     elif not isinstance(objects, (list, tuple, set, frozenset)):
-        return serialize([objects], user=user, serializer=serializer)[0]
+        return serialize([objects], user=user, serializer=serializer, *args, **kwargs)[0]
 
     # elif isinstance(obj, dict):
-    #     return dict((k, serialize(v, request=request)) for k, v in obj.iteritems())
+    #     return dict((k, serialize(v, request=request)) for k, v in six.iteritems(obj))
 
     if serializer is None:
         # find the first object that is in the registry
@@ -36,9 +36,11 @@ def serialize(objects, user=None, serializer=None):
         # filtered out of serialize()
         item_list=[o for o in objects if o is not None],
         user=user,
+        *args,
+        **kwargs
     )
 
-    return [serializer(o, attrs=attrs.get(o, {}), user=user) for o in objects]
+    return [serializer(o, attrs=attrs.get(o, {}), user=user, *args, **kwargs) for o in objects]
 
 
 def register(type):
@@ -49,13 +51,13 @@ def register(type):
 
 
 class Serializer(object):
-    def __call__(self, obj, attrs, user):
+    def __call__(self, obj, attrs, user, *args, **kwargs):
         if obj is None:
             return
-        return self.serialize(obj, attrs, user)
+        return self.serialize(obj, attrs, user, *args, **kwargs)
 
-    def get_attrs(self, item_list, user):
+    def get_attrs(self, item_list, user, *args, **kwargs):
         return {}
 
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, *args, **kwargs):
         return {}

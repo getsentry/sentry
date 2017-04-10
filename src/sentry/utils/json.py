@@ -9,9 +9,10 @@ sentry.utils.json
 # Avoid shadowing the standard library json module
 from __future__ import absolute_import
 
-from simplejson import JSONEncoder, JSONEncoderForHTML, _default_decoder
+from simplejson import JSONEncoder, _default_decoder
 import datetime
 import uuid
+import six
 import decimal
 
 from django.utils.timezone import is_aware
@@ -35,8 +36,30 @@ def better_default_encoder(o):
     elif isinstance(o, (set, frozenset)):
         return list(o)
     elif isinstance(o, decimal.Decimal):
-        return str(o)
+        return six.text_type(o)
     raise TypeError(repr(o) + ' is not JSON serializable')
+
+
+class JSONEncoderForHTML(JSONEncoder):
+    # Our variant of JSONEncoderForHTML that also accounts for apostrophes
+    # See: https://github.com/simplejson/simplejson/blob/master/simplejson/encoder.py#L380-L386
+    def encode(self, o):
+        # Override JSONEncoder.encode because it has hacks for
+        # performance that make things more complicated.
+        chunks = self.iterencode(o, True)
+        if self.ensure_ascii:
+            return ''.join(chunks)
+        else:
+            return u''.join(chunks)
+
+    def iterencode(self, o, _one_shot=False):
+        chunks = super(JSONEncoderForHTML, self).iterencode(o, _one_shot)
+        for chunk in chunks:
+            chunk = chunk.replace('&', '\\u0026')
+            chunk = chunk.replace('<', '\\u003c')
+            chunk = chunk.replace('>', '\\u003e')
+            chunk = chunk.replace("'", '\\u0027')
+            yield chunk
 
 
 _default_encoder = JSONEncoder(

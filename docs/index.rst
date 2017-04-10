@@ -14,8 +14,10 @@ running on your own infrastructure.
    config
    nginx
    nodestore
+   filestore
    queue
    buffer
+   filestore
    sso
    throttling
    tsdb
@@ -30,10 +32,4 @@ running on your own infrastructure.
    warnings
    dsym
    faq
-
-.. sentry:edition:: self, on-premise
-
-    .. toctree::
-       :maxdepth: 1
-
-       changelog
+   changelog

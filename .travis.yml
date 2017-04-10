@@ -1,43 +1,91 @@
 sudo: false
 language: python
-addons:
-  firefox: "39.0"
-services:
-  - memcached
-  - mysql
-  - riak
-  - postgresql
-  - redis-server
-  - cassandra
-python:
-  - "2.7"
+rvm:
+  - 2.2
 cache:
+  yarn: true
   directories:
     - node_modules
     - $HOME/.cache/pip/wheels
-    - "$HOME/virtualenv/python2.7.9"
 branches:
   only:
   - master
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
 env:
-  matrix:
-    - TEST_SUITE=sqlite DB=sqlite
-    - TEST_SUITE=postgres DB=postgres
-    - TEST_SUITE=mysql DB=mysql
-    - TEST_SUITE=acceptance
-    - TEST_SUITE=js
-    - TEST_SUITE=cli
-    - TEST_SUITE=dist
   global:
+    - NODE_ENV=production
     - PIP_DISABLE_PIP_VERSION_CHECK=on
     - SENTRY_LIGHT_BUILD=1
     - SENTRY_SKIP_BACKEND_VALIDATION=1
-    - SELENIUM_DRIVER=firefox
+    - TRAVIS_NODE_VERSION=4
+    - CXX=g++-4.8
 install:
+  - nvm install $TRAVIS_NODE_VERSION
   - make travis-install-$TEST_SUITE
+before_script:
   - pip freeze
 script:
   - make travis-lint-$TEST_SUITE
   - make travis-test-$TEST_SUITE
 after_success:
   - codecov -e TEST_SUITE
+after_failure:
+  - dmesg | tail -n 100
+# each attribute in the matrix will override the global attribute
+matrix:
+  fast_finish: true
+  allow_failures:
+    - python: 2.7
+      env: TEST_SUITE=django-18
+  include:
+    - language: ruby
+      rvm: 2.2
+      env: TEST_SUITE=danger
+    # only the sqlite suite runs cassandra/riak tests
+    - python: 2.7
+      env: TEST_SUITE=sqlite DB=sqlite
+      services:
+        - memcached
+        - riak
+        - redis-server
+        - cassandra
+      before_script:
+        - make travis-setup-cassandra
+        - pip freeze
+    - python: 2.7
+      env: TEST_SUITE=postgres DB=postgres
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=mysql DB=mysql
+      services:
+        - memcached
+        - mysql
+        - redis-server
+    - python: 2.7
+      env: TEST_SUITE=acceptance
+      services:
+        - memcached
+        - redis-server
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=js
+    - python: 2.7
+      env: TEST_SUITE=cli
+      services:
+        - postgresql
+    - python: 2.7
+      env: TEST_SUITE=dist
+    - python: 2.7
+      env: TEST_SUITE=django-18
+      services:
+        - memcached
+        - redis-server
+        - postgresql

@@ -8,21 +8,24 @@
 
 {% block wrapperclass %} {{ block.super }} show-rightbar settings white-bg{% endblock %}
 
-{% block header_action %}
+{% block header_nav %}
   <ul class="nav nav-tabs">
-    <li>
-      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">Dashboard</a>
-    </li>
     <li>
       <a href="{% absolute_uri '/{}/{}/' project.organization.slug project.slug %}">Issues</a>
     </li>
     <li>
+      <a href="{% absolute_uri '/{}/{}/dashboard/' project.organization.slug project.slug %}">Overview</a>
+    </li>
+    <li>
       <a href="{% absolute_uri '/{}/{}/releases/' project.organization.slug project.slug %}">Releases</a>
     </li>
-    <li class="active">
-      <a href="{% absolute_uri '/{}/{}/settings/' project.organization.slug project.slug %}">Settings</a>
-    </li>
   </ul>
+{% endblock %}
+
+{% block header_action %}
+  <a class="btn btn-sm btn-default active" href="{% absolute_uri '/{}/{}/settings/' project.organization.slug project.slug %}">
+    <span class="icon icon-settings"></span> Project Settings
+  </a>
 {% endblock %}
 
 {% block main %}
@@ -45,6 +48,15 @@
 
     <div class="box">
       <div class="box-header">
+        <h3>{% trans "Email" %}</h3>
+      </div>
+      <div class="box-content with-padding">
+        {{ form.mail_subject_prefix|as_crispy_field }}
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="box-header">
         <h3>{% trans "Event Settings" %}</h3>
       </div>
       <div class="box-content with-padding">
@@ -54,6 +66,7 @@
         {{ form.scrub_data|as_crispy_field }}
         {{ form.scrub_defaults|as_crispy_field }}
         {{ form.sensitive_fields|as_crispy_field }}
+        {{ form.safe_fields|as_crispy_field }}
         {{ form.scrub_ip_address|as_crispy_field }}
       </div>
     </div>
@@ -71,7 +84,8 @@
         {% endwith %}
         {{ form.scrape_javascript|as_crispy_field }}
         {{ form.token|as_crispy_field }}
-        {{ form.blacklisted_ips|as_crispy_field }}
+        {{ form.token_header|as_crispy_field }}
+        {{ form.verify_ssl|as_crispy_field }}
       </div>
     </div>
 
@@ -80,7 +94,7 @@
         <h3>{% trans "Remove Project" %}</h3>
       </div>
       <div class="box-content with-padding">
-        {% if not ACCESS.project_delete %}
+        {% if not ACCESS.project_admin %}
         <p>{% trans "You do not have the required permission to remove this project." %}</p>
         {% elif project.is_internal_project %}
         <p>{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
@@ -170,16 +184,8 @@
     <li{% if page == 'details' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project' project.organization.slug project.slug %}">{% trans "General" %}</a>
     </li>
-    <li{% if page == 'notifications' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-project-notifications' project.organization.slug project.slug %}">{% trans "Notifications" %}</a>
-    </li>
-    {% feature projects:quotas project %}
-    <li{% if page == 'quotas' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-manage-project-quotas' project.organization.slug project.slug %}">{% trans "Rate Limits" %}</a>
-    </li>
-    {% endfeature %}
-    <li{% if page == 'rules' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-project-rules' project.organization.slug project.slug %}">{% trans "Rules" %}</a>
+    <li{% if page == 'alerts' %} class="active"{% endif %}>
+        <a href="{% absolute_uri '/{}/{}/settings/alerts/' project.organization.slug project.slug %}">{% trans "Alerts" %}</a>
     </li>
     <li{% if page == 'tags' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-tags' project.organization.slug project.slug %}">{% trans "Tags" %}</a>
@@ -196,6 +202,19 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/debug-symbols/' project.organization.slug project.slug %}">{% trans "Debug Symbols" %}</a>
     </li>
+    <li>
+        <a class="badged" href="{% absolute_uri '/{}/{}/settings/processing-issues/' project.organization.slug project.slug %}">{% trans "Processing Issues" %}
+        <span id="processing-badge"></span>
+        </a>
+        {% if processing_issues > 0 %}
+        <script>
+          ReactDOM.render(React.createElement(Sentry.Badge, {
+            text: '{{ processing_issues|safe }}',
+            isNew: true,
+          }), document.getElementById('processing-badge'));
+        </script>
+        {% endif %}
+    </li>
   </ul>
   <h6 class="nav-header">{% trans "Data" %}</h6>
   <ul class="nav nav-stacked">
@@ -209,6 +228,9 @@
     {% endif %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
+    </li>
+    <li>
+        <a href="{% absolute_uri '/{}/{}/settings/filters/' project.organization.slug project.slug %}">{% trans "Inbound Filters" %}</a>
     </li>
     <li{% if page == 'keys' %} class="active"{% endif %}>
         <a href="{% url 'sentry-manage-project-keys' project.organization.slug project.slug %}">{% trans "Client Keys (DSN)" %}</a>

@@ -11,20 +11,53 @@ from __future__ import absolute_import
 
 from django.conf.global_settings import *  # NOQA
 
-from datetime import timedelta
-
 import os
 import os.path
 import socket
 import sys
 import tempfile
-import urlparse
 
 import sentry
+from sentry.utils.types import type_from_value
+
+from datetime import timedelta
+from six.moves.urllib.parse import urlparse
 
 gettext_noop = lambda s: s
 
 socket.setdefaulttimeout(5)
+
+
+def env(key, default='', type=None):
+    "Extract an environment variable for use in configuration"
+
+    # First check an internal cache, so we can `pop` multiple times
+    # without actually losing the value.
+    try:
+        rv = env._cache[key]
+    except KeyError:
+        if 'SENTRY_RUNNING_UWSGI' in os.environ:
+            # We do this so when the process forks off into uwsgi
+            # we want to actually be popping off values. This is so that
+            # at runtime, the variables aren't actually available.
+            fn = os.environ.pop
+        else:
+            fn = os.environ.__getitem__
+
+        try:
+            rv = fn(key)
+            env._cache[key] = rv
+        except KeyError:
+            rv = default
+
+    if type is None:
+        type = type_from_value(default)
+
+    return type(rv)
+
+
+env._cache = {}
+
 
 DEBUG = False
 TEMPLATE_DEBUG = True
@@ -66,7 +99,7 @@ DATABASES = {
 
 
 if 'DATABASE_URL' in os.environ:
-    url = urlparse.urlparse(os.environ['DATABASE_URL'])
+    url = urlparse(os.environ['DATABASE_URL'])
 
     # Ensure default database exists.
     DATABASES['default'] = DATABASES.get('default', {})
@@ -210,7 +243,8 @@ MIDDLEWARE_CLASSES = (
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
-    'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
+    # TODO(dcramer): kill this once we verify its safe
+    # 'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'sentry.debug.middleware.DebugMiddleware',
 )
@@ -244,7 +278,6 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
-    'captcha',
     'crispy_forms',
     'debug_toolbar',
     'raven.contrib.django.raven_compat',
@@ -260,9 +293,12 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks',
     'social_auth',
-    'south',
     'sudo',
 )
+
+import django
+if django.VERSION < (1, 7):
+    INSTALLED_APPS += ('south',)
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
@@ -282,7 +318,7 @@ LOCALE_PATHS = (
 )
 
 CSRF_FAILURE_VIEW = 'sentry.web.frontend.csrf_failure.view'
-CSRF_COOKIE_NAME = 'csrf'
+CSRF_COOKIE_NAME = 'sc'
 
 # Auth configuration
 
@@ -296,28 +332,41 @@ else:
     LOGIN_URL = reverse_lazy('sentry-login')
 
 AUTHENTICATION_BACKENDS = (
-    'social_auth.backends.twitter.TwitterBackend',
-    'social_auth.backends.facebook.FacebookBackend',
-    # TODO: migrate to GoogleOAuth2Backend
-    'social_auth.backends.google.GoogleBackend',
-    'social_auth.backends.contrib.github.GithubBackend',
-    'social_auth.backends.contrib.bitbucket.BitbucketBackend',
-    'social_auth.backends.contrib.trello.TrelloBackend',
     'sentry.utils.auth.EmailAuthBackend',
+    # TODO(dcramer): we can't remove these until we rewrite more of social auth
+    'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend',
+    'social_auth.backends.asana.AsanaBackend',
 )
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        'NAME': 'sentry.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 6,
+        },
+    },
+    {
+        'NAME': 'sentry.auth.password_validation.MaximumLengthValidator',
+        'OPTIONS': {
+            'max_length': 256,
+        },
+    },
+]
+
 SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
+
+SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
+    'social_auth.backends.github.GithubBackend',
+    'social_auth.backends.bitbucket.BitbucketBackend',
+    'social_auth.backends.trello.TrelloBackend',
+    'social_auth.backends.asana.AsanaBackend',
+)
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 SESSION_COOKIE_NAME = "sentrysid"
 SESSION_SERIALIZER = "django.contrib.sessions.serializers.PickleSerializer"
-
-TWITTER_CONSUMER_KEY = ''
-TWITTER_CONSUMER_SECRET = ''
-
-FACEBOOK_APP_ID = ''
-FACEBOOK_API_SECRET = ''
-FACEBOOK_EXTENDED_PERMISSIONS = ['email']
 
 GOOGLE_OAUTH2_CLIENT_ID = ''
 GOOGLE_OAUTH2_CLIENT_SECRET = ''
@@ -341,6 +390,9 @@ SOCIAL_AUTH_PIPELINE = (
     'social_auth.backends.pipeline.user.update_user_details',
     'social_auth.backends.pipeline.misc.save_status_to_session',
 )
+SOCIAL_AUTH_REVOKE_TOKENS_ON_DISCONNECT = True
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/account/settings/identities/'
+SOCIAL_AUTH_ASSOCIATE_ERROR_URL = SOCIAL_AUTH_LOGIN_REDIRECT_URL
 
 INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
 
@@ -349,6 +401,14 @@ AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
+    'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
+}
+
+AUTH_PROVIDER_LABELS = {
+    'github': 'GitHub',
+    'trello': 'Trello',
+    'bitbucket': 'Bitbucket',
+    'asana': 'Asana'
 }
 
 import random
@@ -385,34 +445,45 @@ CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
-    'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.check_auth',
+    'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.dsymcache',
+    'sentry.tasks.reprocessing',
     'sentry.tasks.email',
     'sentry.tasks.merge',
-    'sentry.tasks.store',
     'sentry.tasks.options',
     'sentry.tasks.ping',
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
+    'sentry.tasks.reports',
+    'sentry.tasks.store',
 )
 CELERY_QUEUES = [
-    Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
     Queue('cleanup', routing_key='cleanup'),
-    Queue('merge', routing_key='merge'),
-    Queue('search', routing_key='search'),
-    Queue('events', routing_key='events'),
-    Queue('update', routing_key='update'),
-    Queue('email', routing_key='email'),
-    Queue('options', routing_key='options'),
+    Queue('default', routing_key='default'),
     Queue('digests.delivery', routing_key='digests.delivery'),
     Queue('digests.scheduling', routing_key='digests.scheduling'),
+    Queue('email', routing_key='email'),
+    Queue('events.preprocess_event', routing_key='events.preprocess_event'),
+    Queue('events.reprocessing.preprocess_event',
+          routing_key='events.reprocessing.preprocess_event'),
+    Queue('events.process_event', routing_key='events.process_event'),
+    Queue('events.reprocessing.process_event',
+          routing_key='events.reprocessing.process_event'),
+    Queue('events.reprocess_events', routing_key='events.reprocess_events'),
+    Queue('events.save_event', routing_key='events.save_event'),
+    Queue('merge', routing_key='merge'),
+    Queue('options', routing_key='options'),
+    Queue('reports.deliver', routing_key='reports.deliver'),
+    Queue('reports.prepare', routing_key='reports.prepare'),
+    Queue('search', routing_key='search'),
     Queue('stats', routing_key='stats'),
+    Queue('update', routing_key='update'),
 ]
 
 for queue in CELERY_QUEUES:
@@ -431,6 +502,8 @@ def create_partitioned_queues(name):
 
 create_partitioned_queues('counters')
 create_partitioned_queues('triggers')
+
+from celery.schedules import crontab
 
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), 'sentry-celerybeat')
 CELERYBEAT_SCHEDULE = {
@@ -486,6 +559,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 300,
         },
     },
+    'clear-expired-raw-events': {
+        'task': 'sentry.tasks.clear_expired_raw_events',
+        'schedule': timedelta(minutes=15),
+        'options': {
+            'expires': 300,
+        },
+    },
     # Disabled for the time being:
     # 'clear-old-cached-dsyms': {
     #     'task': 'sentry.tasks.clear_old_cached_dsyms',
@@ -508,6 +588,17 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 25,
         },
     },
+    'schedule-weekly-organization-reports': {
+        'task': 'sentry.tasks.reports.prepare_reports',
+        'schedule': crontab(
+            minute=0,
+            hour=12,  # 05:00 PDT, 09:00 EDT, 12:00 UTC
+            day_of_week='monday',
+        ),
+        'options': {
+            'expires': 60 * 60 * 3,
+        },
+    },
 }
 
 # Sentry logs to two major places: stdout, and it's internal project.
@@ -524,7 +615,7 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'null': {
-            'class': 'django.utils.log.NullHandler',
+            'class': 'logging.NullHandler',
         },
         'console': {
             'class': 'sentry.logging.handlers.StructLogHandler',
@@ -553,6 +644,11 @@ LOGGING = {
         },
         'sentry': {
             'level': 'INFO',
+        },
+        # This only needs to go to Sentry for now.
+        'sentry.similarity': {
+            'handlers': ['internal'],
+            'propagate': False,
         },
         'sentry.errors': {
             'handlers': ['console'],
@@ -592,6 +688,16 @@ LOGGING = {
             'handlers': ['console'],
             'propagate': False,
         },
+        'boto3': {
+            'level': 'WARNING',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+        'botocore': {
+            'level': 'WARNING',
+            'handlers': ['console'],
+            'propagate': False,
+        },
     }
 }
 
@@ -605,14 +711,6 @@ REST_FRAMEWORK = {
 }
 
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
-
-# django-recaptcha
-
-RECAPTCHA_PUBLIC_KEY = None
-RECAPTCHA_PRIVATE_KEY = None
-NOCAPTCHA = True
-
-CAPTCHA_WIDGET_TEMPLATE = "sentry/partial/form_captcha.html"
 
 # Percy config for visual regression testing.
 
@@ -638,15 +736,16 @@ SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
     'auth:register': True,
-    'organizations:api-keys': True,
+    'organizations:api-keys': False,
     'organizations:create': True,
+    'organizations:repos': False,
     'organizations:sso': True,
-    'organizations:callsigns': False,
-    'organizations:geo': False,
+    'organizations:callsigns': True,
+    'organizations:release-commits': False,
     'projects:global-events': False,
-    'projects:quotas': True,
     'projects:plugins': True,
     'projects:dsym': False,
+    'projects:sample-events': True,
 }
 
 # Default time zone for localization in the UI.
@@ -715,6 +814,7 @@ SENTRY_INTERFACES = {
     'exception': 'sentry.interfaces.exception.Exception',
     'logentry': 'sentry.interfaces.message.Message',
     'query': 'sentry.interfaces.query.Query',
+    'repos': 'sentry.interfaces.repos.Repos',
     'request': 'sentry.interfaces.http.Http',
     'sdk': 'sentry.interfaces.sdk.Sdk',
     'stacktrace': 'sentry.interfaces.stacktrace.Stacktrace',
@@ -744,6 +844,11 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     'smtp': 'django.core.mail.backends.smtp.EmailBackend',
     'dummy': 'django.core.mail.backends.dummy.EmailBackend',
     'console': 'django.core.mail.backends.console.EmailBackend',
+}
+
+SENTRY_FILESTORE_ALIASES = {
+    'filesystem': 'django.core.files.storage.FileSystemStorage',
+    's3': 'sentry.filestore.s3.S3Boto3Storage',
 }
 
 # set of backends that do not support needing SMTP mail.* settings
@@ -825,18 +930,16 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_TSDB = 'sentry.tsdb.dummy.DummyTSDB'
 SENTRY_TSDB_OPTIONS = {}
 
+SENTRY_NEWSLETTER = 'sentry.newsletter.base.Newsletter'
+SENTRY_NEWSLETTER_OPTIONS = {}
+
 # rollups must be ordered from highest granularity to lowest
 SENTRY_TSDB_ROLLUPS = (
     # (time in seconds, samples to keep)
     (10, 360),  # 60 minutes at 10 seconds
     (3600, 24 * 7),  # 7 days at 1 hour
-    (3600 * 24, 60),  # 60 days at 1 day
+    (3600 * 24, 90),  # 90 days at 1 day
 )
-
-
-# File storage
-SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
-SENTRY_FILESTORE_OPTIONS = {'location': '/tmp/sentry-files'}
 
 # Internal metrics
 SENTRY_METRICS_BACKEND = 'sentry.metrics.dummy.DummyMetricsBackend'
@@ -875,6 +978,12 @@ SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
 SENTRY_SOURCE_FETCH_TIMEOUT = 5
 
+# Timeout (in seconds) for socket operations when fetching remote source files
+SENTRY_SOURCE_FETCH_SOCKET_TIMEOUT = 2
+
+# Maximum content length for source files before we abort fetching
+SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
+
 # List of IP subnets which should not be accessible
 SENTRY_DISALLOWED_IPS = ()
 
@@ -886,21 +995,52 @@ SENTRY_MANAGED_USER_FIELDS = ()
 SENTRY_SCOPES = set([
     'org:read',
     'org:write',
-    'org:delete',
+    'org:admin',
     'member:read',
     'member:write',
-    'member:delete',
+    'member:admin',
     'team:read',
     'team:write',
-    'team:delete',
+    'team:admin',
     'project:read',
     'project:write',
-    'project:delete',
+    'project:admin',
     'project:releases',
     'event:read',
     'event:write',
-    'event:delete',
+    'event:admin',
 ])
+
+SENTRY_SCOPE_SETS = (
+    (
+        ('org:admin', 'Read, write, and admin access to organization details.'),
+        ('org:write', 'Read and write access to organization details.'),
+        ('org:read', 'Read access to organization details.'),
+    ),
+    (
+        ('member:admin', 'Read, write, and admin access to organization members.'),
+        ('member:write', 'Read and write access to organization members.'),
+        ('member:read', 'Read access to organization members.'),
+    ),
+    (
+        ('team:admin', 'Read, write, and admin access to teams.'),
+        ('team:write', 'Read and write access to teams.'),
+        ('team:read', 'Read access to teams.'),
+    ),
+    (
+        ('project:admin', 'Read, write, and admin access to projects.'),
+        ('project:write', 'Read and write access to projects.'),
+        ('project:read', 'Read access to projects.'),
+    ),
+    (
+        ('project:releases', 'Read, write, and admin access to project releases.'),
+    ),
+    (
+        ('event:admin', 'Read, write, and admin access to events.'),
+        ('event:write', 'Read and write access to events.'),
+        ('event:read', 'Read access to events.'),
+    ),
+)
 
 SENTRY_DEFAULT_ROLE = 'member'
 
@@ -914,7 +1054,7 @@ SENTRY_ROLES = (
         'name': 'Member',
         'desc': 'Members can view and act on events, as well as view most other data within the organization.',
         'scopes': set([
-            'event:read', 'event:write', 'event:delete', 'project:releases',
+            'event:read', 'event:write', 'event:admin', 'project:releases',
             'project:read', 'org:read', 'member:read', 'team:read',
         ]),
     },
@@ -923,10 +1063,10 @@ SENTRY_ROLES = (
         'name': 'Admin',
         'desc': 'Admin privileges on any teams of which they\'re a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on.',
         'scopes': set([
-            'event:read', 'event:write', 'event:delete',
+            'event:read', 'event:write', 'event:admin',
             'org:read', 'member:read',
-            'project:read', 'project:write', 'project:delete', 'project:releases',
-            'team:read', 'team:write', 'team:delete',
+            'project:read', 'project:write', 'project:admin', 'project:releases',
+            'team:read', 'team:write', 'team:admin',
         ]),
     },
     {
@@ -935,10 +1075,10 @@ SENTRY_ROLES = (
         'desc': 'Gains admin access on all teams as well as the ability to add and remove members.',
         'is_global': True,
         'scopes': set([
-            'event:read', 'event:write', 'event:delete',
-            'member:read', 'member:write', 'member:delete',
-            'project:read', 'project:write', 'project:delete', 'project:releases',
-            'team:read', 'team:write', 'team:delete',
+            'event:read', 'event:write', 'event:admin',
+            'member:read', 'member:write', 'member:admin',
+            'project:read', 'project:write', 'project:admin', 'project:releases',
+            'team:read', 'team:write', 'team:admin',
             'org:read', 'org:write',
         ]),
     },
@@ -948,11 +1088,11 @@ SENTRY_ROLES = (
         'desc': 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
         'is_global': True,
         'scopes': set([
-            'org:read', 'org:write', 'org:delete',
-            'member:read', 'member:write', 'member:delete',
-            'team:read', 'team:write', 'team:delete',
-            'project:read', 'project:write', 'project:delete', 'project:releases',
-            'event:read', 'event:write', 'event:delete',
+            'org:read', 'org:write', 'org:admin',
+            'member:read', 'member:write', 'member:admin',
+            'team:read', 'team:write', 'team:admin',
+            'project:read', 'project:write', 'project:admin', 'project:releases',
+            'event:read', 'event:write', 'event:admin',
         ]),
     },
 )
@@ -964,6 +1104,15 @@ SENTRY_DEFAULT_OPTIONS = {}
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
 SENTRY_USE_BIG_INTS = False
+
+# Encryption schemes available to Sentry. You should *never* remove from this
+# list until the key is no longer used in the database. The first listed
+# implementation is considered the default and will be used to encrypt all
+# values (as well as re-encrypt data when it's re-saved).
+SENTRY_ENCRYPTION_SCHEMES = (
+    # identifier: implementation
+    # ('0', Fernet(b'super secret key probably from Fernet.generate_key()')),
+)
 
 # Delay (in ms) to induce on API responses
 SENTRY_API_RESPONSE_DELAY = 0
@@ -979,11 +1128,18 @@ SENTRY_WATCHERS = (
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
+# The maximum age of raw events before they are deleted
+SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
+
 # statuspage.io support
 STATUS_PAGE_ID = None
 STATUS_PAGE_API_HOST = 'statuspage.io'
 
 SENTRY_ONPREMISE = True
+
+# Whether we should look at X-Forwarded-For header or not
+# when checking REMOTE_ADDR ip addresses
+SENTRY_USE_X_FORWARDED_FOR = True
 
 
 def get_raven_config():
@@ -1014,19 +1170,39 @@ EMAIL_SUBJECT_PREFIX = DEAD
 
 SUDO_URL = 'sentry-sudo'
 
-# TODO(dcramer): move this to getsentry.com so it can be automated
+# TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-js': '3.3.0',
-    'raven-python': '5.23.0',
+    'raven-java': '8.0.0',
+    'raven-js': '3.12.0',
+    'raven-node': '1.1.4',
+    'raven-python': '6.0.0',
+    'raven-ruby': '2.4.0',
+    'sentry-laravel': '0.6.1',
+    'sentry-php': '1.6.2',
+    'sentry-swift': '2.1.2',
 }
 
 SDK_URLS = {
-    'raven-js': 'https://docs.getsentry.com/hosted/clients/javascript/',
-    'raven-python': 'https://docs.getsentry.com/hosted/clients/python/',
-    'raven-swift': 'https://docs.getsentry.com/hosted/clients/cocoa/',
+    'raven-java': 'https://docs.sentry.io/clients/java/',
+    'raven-java:android': 'https://docs.sentry.io/clients/java/modules/android/',
+    'raven-java:log4j': 'https://docs.sentry.io/clients/java/modules/log4j/',
+    'raven-java:log4j2': 'https://docs.sentry.io/clients/java/modules/log4j2/',
+    'raven-java:logback': 'https://docs.sentry.io/clients/java/modules/logback/',
+    'raven-js': 'https://docs.sentry.io/clients/javascript/',
+    'raven-node': 'https://docs.sentry.io/clients/node/',
+    'raven-python': 'https://docs.sentry.io/clients/python/',
+    'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
+    'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-php': 'https://docs.sentry.io/clients/php/',
+    'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
+    'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
 }
 
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
+    'raven-php': 'sentry-php',
+    'sentry-android': 'raven-java',
+    # The Ruby SDK used to go by the name 'sentry-raven'...
+    'sentry-raven': 'raven-ruby',
 }

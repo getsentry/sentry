@@ -56,6 +56,7 @@ const StacktraceInterface = React.createClass({
       <CrashHeader
         title={t('Stacktrace')}
         group={group}
+        platform={evt.platform}
         stacktrace={data}
         stackView={stackView}
         newestFirst={newestFirst}

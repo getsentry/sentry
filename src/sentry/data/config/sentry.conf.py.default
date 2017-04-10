@@ -61,7 +61,7 @@ SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 # Queue #
 #########
 
-# See https://docs.getsentry.com/on-premise/server/queue/ for more
+# See https://docs.sentry.io/on-premise/server/queue/ for more
 # information on configuring your queue broker and workers. Sentry relies
 # on a Python framework called Celery to manage queues.
 
@@ -112,18 +112,6 @@ SENTRY_TSDB = 'sentry.tsdb.redis.RedisTSDB'
 # The digest backend powers notification summaries.
 
 SENTRY_DIGESTS = 'sentry.digests.backends.redis.RedisBackend'
-
-################
-# File storage #
-################
-
-# Any Django storage backend is compatible with Sentry. For more solutions see
-# the django-storages package: https://django-storages.readthedocs.io/en/latest/
-
-SENTRY_FILESTORE = 'django.core.files.storage.FileSystemStorage'
-SENTRY_FILESTORE_OPTIONS = {
-    'location': '/tmp/sentry-files',
-}
 
 ##############
 # Web Server #

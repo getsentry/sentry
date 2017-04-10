@@ -37,6 +37,6 @@ class Command(BaseCommand):
         platform = options['platform']
         event = create_sample_event(project, platform)
         if not event:
-            raise CommandError('Unable to create an event for platform %r' % (str(platform),))
+            raise CommandError('Unable to create an event for platform %r' % (platform,))
 
         self.stdout.write('Event created: %s' % (event.group.get_absolute_url(),))

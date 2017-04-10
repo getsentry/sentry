@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from urllib import urlencode
+from six.moves.urllib.parse import urlencode
 
 from sentry.testutils import AcceptanceTestCase
 
@@ -70,6 +70,16 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.wait_until('#preview')
         self.browser.snapshot('regression_with_version email txt')
 
+    def test_release_html(self):
+        self.browser.get(self.build_url('/debug/mail/new-release/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('release email html')
+
+    def test_release_txt(self):
+        self.browser.get(self.build_url('/debug/mail/new-release/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('release email txt')
+
     def test_resolved_html(self):
         self.browser.get(self.build_url('/debug/mail/resolved/'))
         self.browser.wait_until('#preview')
@@ -111,12 +121,12 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.snapshot('unassigned email txt')
 
     def test_new_event_html(self):
-        self.browser.get(self.build_url('/debug/mail/new-event/'))
+        self.browser.get(self.build_url('/debug/mail/alert/'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email html')
 
     def test_new_event_txt(self):
-        self.browser.get(self.build_url('/debug/mail/new-event/', 'txt'))
+        self.browser.get(self.build_url('/debug/mail/alert/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('new event email txt')
 
@@ -129,3 +139,38 @@ class EmailTestCase(AcceptanceTestCase):
         self.browser.get(self.build_url('/debug/mail/digest/', 'txt'))
         self.browser.wait_until('#preview')
         self.browser.snapshot('digest email txt')
+
+    def test_report_html(self):
+        self.browser.get(self.build_url('/debug/mail/report/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('report email html')
+
+    def test_mfa_added_html(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-added/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa added email html')
+
+    def test_mfa_added_txt(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-added/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa added email txt')
+
+    def test_mfa_removed_html(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-removed/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa removed email html')
+
+    def test_mfa_removed_text(self):
+        self.browser.get(self.build_url('/debug/mail/mfa-removed/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('mfa removed email txt')
+
+    def test_password_changed_html(self):
+        self.browser.get(self.build_url('/debug/mail/password-changed/'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('password changed email html')
+
+    def test_password_changed_text(self):
+        self.browser.get(self.build_url('/debug/mail/password-changed/', 'txt'))
+        self.browser.wait_until('#preview')
+        self.browser.snapshot('password changed email txt')

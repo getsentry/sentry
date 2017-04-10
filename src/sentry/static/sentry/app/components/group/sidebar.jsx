@@ -1,16 +1,18 @@
 import React from 'react';
 
 import ApiMixin from '../../mixins/apiMixin';
+import SuggestedOwners from './suggestedOwners';
 import GroupParticipants from './participants';
 import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
-import {t} from '../../locale';
+import {t, tct} from '../../locale';
 
 const GroupSidebar = React.createClass({
   propTypes: {
     group: React.PropTypes.object,
+    event: React.PropTypes.object,
   },
 
   contextTypes: {
@@ -21,6 +23,13 @@ const GroupSidebar = React.createClass({
     ApiMixin,
     GroupState
   ],
+
+  subscriptionReasons: {
+    commented: t('You\'re receiving updates because you have commented on this issue.'),
+    assigned: t('You\'re receiving updates because you were assigned to this issue.'),
+    bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
+    changed_status: t('You\'re receiving updates because you have changed the status of this issue.'),
+  },
 
   toggleSubscription() {
     let group = this.props.group;
@@ -47,6 +56,49 @@ const GroupSidebar = React.createClass({
     });
   },
 
+  renderPluginIssue() {
+    let issues = [];
+    (this.props.group.pluginIssues || []).forEach((plugin) => {
+      let issue = plugin.issue;
+      if (issue) {
+        issues.push(
+          <dl key={plugin.slug}>
+            <dt>{plugin.title + ': '}</dt><dd><a href={issue.url}>{issue.label}</a></dd>
+          </dl>
+        );
+      }
+    });
+    if (issues.length) {
+      return (
+        <div>
+          <h6><span>{t('External Issues')}</span></h6>
+          {issues}
+        </div>
+      );
+    }
+  },
+
+  getNotificationText() {
+    let group = this.getGroup();
+
+    if (group.isSubscribed) {
+      let result = t('You\'re receiving updates because you are subscribed to this issue.');
+      if (group.subscriptionDetails) {
+        let reason = group.subscriptionDetails.reason;
+        if (this.subscriptionReasons.hasOwnProperty(reason)) {
+          result = this.subscriptionReasons[reason];
+        }
+      } else {
+        result = tct('You\'re receiving updates because you are [link:subscribed to workflow notifications] for this project.', {
+          link: <a href="/account/settings/notifications/" />,
+        });
+      }
+      return result;
+    } else {
+      return t('You\'re not subscribed to this issue.');
+    }
+  },
+
   render() {
     let project = this.getProject();
     let projectId = project.slug;
@@ -57,10 +109,16 @@ const GroupSidebar = React.createClass({
 
     return (
       <div className="group-stats">
+        {(new Set(this.context.organization.features)).has('release-commits') &&
+         <SuggestedOwners event={this.props.event}/>
+        }
+
         <GroupReleaseStats
             group={group}
             location={this.context.location}
             defaultEnvironment={defaultEnvironment} />
+
+        {this.renderPluginIssue()}
 
         <h6><span>{t('Tags')}</span></h6>
         {group.tags.map((data) => {
@@ -79,11 +137,7 @@ const GroupSidebar = React.createClass({
         }
 
         <h6><span>{t('Notifications')}</span></h6>
-        {group.isSubscribed ?
-          <p className="help-block">{t('You\'re subscribed to this issue and will get notified when updates happen.')}</p>
-        :
-          <p className="help-block">{t('You\'re not subscribed in this issue.')}</p>
-        }
+        <p className="help-block">{this.getNotificationText()}</p>
         <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
            onClick={this.toggleSubscription}>
           <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}

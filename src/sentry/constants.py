@@ -12,11 +12,12 @@ from __future__ import absolute_import, print_function
 
 import logging
 import os.path
-from operator import attrgetter
-from collections import OrderedDict
+import six
 
+from collections import OrderedDict
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from operator import attrgetter
 
 
 def get_all_languages():
@@ -49,17 +50,16 @@ SEARCH_SORT_OPTIONS = OrderedDict((
 # XXX: Deprecated: use GroupStatus instead
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
-STATUS_MUTED = 2
+STATUS_IGNORED = 2
 
 STATUS_CHOICES = {
     'resolved': STATUS_RESOLVED,
     'unresolved': STATUS_UNRESOLVED,
-    'muted': STATUS_MUTED,
-}
+    'ignored': STATUS_IGNORED,
 
-# A list of values which represent an unset or empty password on
-# a User instance.
-EMPTY_PASSWORD_VALUES = ('!', '', '$')
+    # TODO(dcramer): remove in 9.0
+    'muted': STATUS_IGNORED,
+}
 
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A
 # value of 0 would store counts for every minute, and is the lowest level of
@@ -69,16 +69,21 @@ MINUTE_NORMALIZATION = 15
 MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
+MAX_EMAIL_FIELD_LENGTH = 75
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.
-RESERVED_ORGANIZATION_SLUGS = (
+RESERVED_ORGANIZATION_SLUGS = frozenset((
     'admin', 'manage', 'login', 'account', 'register', 'api',
     'accept', 'organizations', 'teams', 'projects', 'help',
-    'docs', 'logout', '404', '500', '_static', 'out',
-)
-
-RESERVED_TEAM_SLUGS = RESERVED_ORGANIZATION_SLUGS
+    'docs', 'logout', '404', '500', '_static', 'out', 'debug',
+    'remote', 'get-cli', 'blog', 'welcome', 'features',
+    'customers', 'integrations', 'signup', 'pricing',
+    'subscribe', 'enterprise', 'about', 'jobs', 'thanks', 'guide',
+    'privacy', 'security', 'terms', 'from', 'sponsorship', 'for',
+    'at', 'platforms', 'branding', 'vs', 'answers', '_admin',
+    'support',
+))
 
 LOG_LEVELS = {
     logging.DEBUG: 'debug',
@@ -89,7 +94,7 @@ LOG_LEVELS = {
 }
 DEFAULT_LOG_LEVEL = 'error'
 DEFAULT_LOGGER_NAME = ''
-LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.iteritems()}
+LOG_LEVELS_MAP = {v: k for k, v in six.iteritems(LOG_LEVELS)}
 
 
 # Default alerting threshold values
@@ -127,6 +132,7 @@ SENTRY_RULES = (
     'sentry.rules.conditions.regression_event.RegressionEventCondition',
     'sentry.rules.conditions.tagged_event.TaggedEventCondition',
     'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
+    'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
     'sentry.rules.conditions.event_attribute.EventAttributeCondition',
     'sentry.rules.conditions.level.LevelCondition',
 )
@@ -165,6 +171,9 @@ DEFAULT_SCRUBBED_FIELDS = (
     'api_key',
     'apikey',
     'access_token',
+    'auth',
+    'credentials',
+    'mysql_pwd',
 )
 
 VALID_PLATFORMS = set([
@@ -208,3 +217,21 @@ MAX_SYM = 256
 KNOWN_DSYM_TYPES = {
     'application/x-mach-binary': 'macho'
 }
+
+NATIVE_UNKNOWN_STRING = '<unknown>'
+
+
+class ObjectStatus(object):
+    VISIBLE = 0
+    HIDDEN = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (cls.VISIBLE, 'visible'),
+            (cls.HIDDEN, 'hidden'),
+            (cls.PENDING_DELETION, 'pending_deletion'),
+            (cls.DELETION_IN_PROGRESS, 'deletion_in_progress'),
+        )

@@ -11,7 +11,6 @@ from __future__ import absolute_import
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
-from south.modelsinspector import add_introspection_rules
 
 __all__ = (
     'BoundedAutoField', 'BoundedBigAutoField', 'BoundedIntegerField',
@@ -60,7 +59,7 @@ if settings.SENTRY_USE_BIG_INTS:
 
         def get_prep_value(self, value):
             if value:
-                value = long(value)
+                value = int(value)
                 assert value <= self.MAX_VALUE
             return super(BoundedBigIntegerField, self).get_prep_value(value)
 
@@ -91,7 +90,7 @@ if settings.SENTRY_USE_BIG_INTS:
 
         def get_prep_value(self, value):
             if value:
-                value = long(value)
+                value = int(value)
                 assert value <= self.MAX_VALUE
             return super(BoundedBigAutoField, self).get_prep_value(value)
 
@@ -104,9 +103,11 @@ else:
         pass
 
 
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedAutoField"])
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigAutoField"])
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedIntegerField"])
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"])
-add_introspection_rules([], ["^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField"])
+if 'south' in settings.INSTALLED_APPS:
+    from south.modelsinspector import add_introspection_rules
+
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedAutoField"])
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigAutoField"])
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedIntegerField"])
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedBigIntegerField"])
+    add_introspection_rules([], ["^sentry\.db\.models\.fields\.bounded\.BoundedPositiveIntegerField"])

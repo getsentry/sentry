@@ -66,29 +66,45 @@ const StacktraceContent = React.createClass({
 
     let expandFirstFrame = this.props.expandFirstFrame;
     let frames = [];
+    let nRepeats = 0;
     data.frames.forEach((frame, frameIdx) => {
+      let prevFrame = data.frames[frameIdx - 1];
       let nextFrame = data.frames[frameIdx + 1];
-      if (this.frameIsVisible(frame, nextFrame)) {
+      let repeatedFrame = nextFrame &&
+       frame.lineNo === nextFrame.lineNo &&
+       frame.function === nextFrame.function;
+
+      if (repeatedFrame) {
+        nRepeats++;
+      }
+
+      if (this.frameIsVisible(frame, nextFrame) && !repeatedFrame ){
         frames.push(
           <Frame
             key={frameIdx}
             data={frame}
             isExpanded={expandFirstFrame && lastFrameIdx === frameIdx}
             emptySourceNotation={lastFrameIdx === frameIdx && frameIdx === 0}
-            nextFrameInApp={nextFrame && nextFrame.inApp}
-            platform={this.props.platform} />
+            isOnlyFrame={this.props.data.frames.length === 1}
+            nextFrame={nextFrame}
+            prevFrame={prevFrame}
+            platform={this.props.platform}
+            timesRepeated={nRepeats}/>
         );
       }
+
+      if(!repeatedFrame){
+        nRepeats = 0;
+      }
+
       if (frameIdx === firstFrameOmitted) {
         frames.push(this.renderOmittedFrames(
           firstFrameOmitted, lastFrameOmitted));
       }
     });
-
     if (this.props.newestFirst) {
       frames.reverse();
     }
-
     let className = this.props.className || '';
     className += ' traceback';
 

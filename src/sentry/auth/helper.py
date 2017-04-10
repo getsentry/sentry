@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 import logging
-from hashlib import md5
+
 from uuid import uuid4
 
 from django.conf import settings
@@ -19,6 +19,7 @@ from sentry.models import (
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
+from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.web.forms.accounts import AuthenticationForm
@@ -113,7 +114,7 @@ class AuthHelper(object):
         # we serialize the pipeline to be [AuthView().get_ident(), ...] which
         # allows us to determine if the pipeline has changed during the auth
         # flow or if the user is somehow circumventing a chunk of it
-        self.signature = md5(
+        self.signature = md5_text(
             ' '.join(av.get_ident() for av in self.pipeline)
         ).hexdigest()
 
@@ -382,7 +383,6 @@ class AuthHelper(object):
             initial={
                 'username': existing_user.username if existing_user else None,
             },
-            captcha=bool(request.session.get('needs_captcha')),
         )
 
     def _get_display_name(self, identity):
@@ -430,7 +430,8 @@ class AuthHelper(object):
                 ).exists()
                 if has_membership:
                     if not auth.login(request, existing_user,
-                                      after_2fa=request.build_absolute_uri()):
+                                      after_2fa=request.build_absolute_uri(),
+                                      organization_id=self.organization.id):
                         return HttpResponseRedirect(auth.get_login_redirect(
                             self.request))
                     # assume they've confirmed they want to attach the identity
@@ -467,13 +468,12 @@ class AuthHelper(object):
                 # If there is no 2fa we don't need to do this and can just
                 # go on.
                 if not auth.login(request, login_form.get_user(),
-                                  after_2fa=request.build_absolute_uri()):
+                                  after_2fa=request.build_absolute_uri(),
+                                  organization_id=self.organization.id):
                     return HttpResponseRedirect(auth.get_login_redirect(
                         self.request))
-                request.session.pop('needs_captcha', None)
             else:
                 auth.log_auth_failure(request, request.POST.get('username'))
-                request.session['needs_captcha'] = 1
         else:
             op = None
 
@@ -497,7 +497,11 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user)
+        # XXX(dcramer): this is repeated from above
+        if not auth.login(request, user,
+                          after_2fa=request.build_absolute_uri(),
+                          organization_id=self.organization.id):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
 
@@ -533,7 +537,10 @@ class AuthHelper(object):
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        auth.login(self.request, user)
+        if not auth.login(self.request, user,
+                          after_2fa=self.request.build_absolute_uri(),
+                          organization_id=self.organization.id):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         self.clear_session()
 
@@ -558,7 +565,7 @@ class AuthHelper(object):
         lock = locks.get(
             'sso:auth:{}:{}'.format(
                 auth_provider.id,
-                md5(unicode(identity['id'])).hexdigest(),
+                md5_text(identity['id']).hexdigest(),
             ),
             duration=5,
         )
@@ -616,6 +623,8 @@ class AuthHelper(object):
         )
 
         self._handle_attach_identity(identity, om)
+
+        auth.mark_sso_complete(request, self.organization.id)
 
         AuditLogEntry.objects.create(
             organization=self.organization,

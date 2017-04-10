@@ -1,3 +1,5 @@
+{% load i18n %}
+
 <style>
 /** Wrapper class name is provided by JS **/
 .sentry-error-embed-wrapper {
@@ -230,7 +232,8 @@
   .sentry-error-embed header p {
     font-size: 13px;
   }
-  .sentry-error-embed .hide-tiny {
+  .sentry-error-embed header h2 > span,
+  .sentry-error-embed header p > span {
     display: none;
   }
   .sentry-error-embed .form-submit {
@@ -252,31 +255,31 @@
 
 <div class="sentry-error-embed clearfix">
   <header>
-    <h2>It looks like we're having <span class="hide-tiny">some internal</span> issues.</h2>
-    <p><span class="hide-tiny">Our team has been notified.</span> If you'd like to help, tell us what happened below.</p>
+    <h2>{% blocktrans %}It looks like we're having <span>some internal</span> issues.{% endblocktrans %}</h2>
+    <p><span>{% trans "Our team has been notified." %}</span> {% trans "If you'd like to help, tell us what happened below." %}</p>
   </header>
   <form>
     <div class="error-wrapper"></div>
     <div class="form-content">
       <div class="form-field clearfix">
-        <label>Name</label>
+        <label>{% trans "Name" %}</label>
         {{ form.name }}
       </div>
       <div class="form-field clearfix">
-        <label>Email</label>
+        <label>{% trans "Email" %}</label>
         {{ form.email }}
       </div>
       <div class="form-field clearfix">
-        <label>What happened?</label>
+        <label>{% trans "What happened?" %}</label>
         {{ form.comments }}
       </div>
     </div>
     <div class="form-submit clearfix">
-      <button type="submit" class="btn">Submit Crash Report</button>
-      <a class="close">Close</a>
+      <button type="submit" class="btn">{% trans "Submit Crash Report" %}</button>
+      <a class="close">{% trans "Close" %}</a>
       {% if show_branding %}
       <p class="powered-by">
-        Crash reports powered by <a href="https://getsentry.com">Sentry</a>
+        {% trans "Crash reports powered by <a href=\"https://sentry.io\">Sentry</a>" %}
       </p>
       {% endif %}
     </div>

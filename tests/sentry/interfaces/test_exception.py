@@ -64,7 +64,6 @@ class ExceptionTest(TestCase):
 
     def test_to_string(self):
         result = self.interface.to_string(self.event)
-        print result
         assert result == """ValueError: hello world
   File "foo/baz.py", line 1
 
@@ -103,6 +102,27 @@ ValueError: hello world
         })
         context = inst.get_api_context()
         assert context['hasSystemFrames']
+
+    def test_context_with_symbols(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foo.bar',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'function': 'myfunc',
+                'symbol': 'Class.myfunc',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+        }]))
+
+        self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_api_context()
+        assert context['values'][0]['stacktrace']['frames'][
+            0]['symbol'] == 'Class.myfunc'
 
     def test_context_with_only_system_frames(self):
         inst = Exception.to_python(dict(values=[{
@@ -157,6 +177,32 @@ ValueError: hello world
         })
         context = inst.get_api_context()
         assert not context['hasSystemFrames']
+
+    def test_context_with_raw_stacks(self):
+        inst = Exception.to_python(dict(values=[{
+            'type': 'ValueError',
+            'value': 'hello world',
+            'module': 'foobar',
+            'raw_stacktrace': {'frames': [{
+                'filename': None,
+                'lineno': 1,
+                'function': '<redacted>',
+                'in_app': True,
+            }]},
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.c',
+                'lineno': 1,
+                'function': 'main',
+                'in_app': True,
+            }]},
+        }]))
+
+        self.create_event(data={
+            'sentry.interfaces.Exception': inst.to_json(),
+        })
+        context = inst.get_api_context()
+        assert context['values'][0]['stacktrace']['frames'][0]['function'] == 'main'
+        assert context['values'][0]['rawStacktrace']['frames'][0]['function'] == '<redacted>'
 
 
 class SingleExceptionTest(TestCase):
@@ -250,10 +296,10 @@ class SlimExceptionDataTest(TestCase):
 
     def test_over_max(self):
         values = []
-        for x in xrange(5):
+        for x in range(5):
             exc = {'value': 'exc %d' % x, 'stacktrace': {'frames': []}}
             values.append(exc)
-            for y in xrange(5):
+            for y in range(5):
                 exc['stacktrace']['frames'].append({
                     'filename': 'exc %d frame %d' % (x, y),
                     'vars': {'foo': 'bar'},
@@ -273,7 +319,6 @@ class SlimExceptionDataTest(TestCase):
             assert len(value.stacktrace.frames) == 5
             for f_num, frame in enumerate(value.stacktrace.frames):
                 assert frame.filename == 'exc %d frame %d' % (e_num, f_num)
-                print(frame.filename)
                 if e_num in (0, 4):
                     assert frame.vars is not None
                     assert frame.pre_context is not None

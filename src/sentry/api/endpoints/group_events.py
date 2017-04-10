@@ -1,7 +1,10 @@
 from __future__ import absolute_import
 
+import six
+
 from django.db.models import Q
 from operator import or_
+from six.moves import reduce
 
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
@@ -10,6 +13,8 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.models import Event, EventTag, Group, TagKey, TagValue
 from sentry.search.utils import parse_query
 from sentry.utils.apidocs import scenario, attach_scenarios
+from rest_framework.response import Response
+from sentry.search.utils import InvalidQuery
 
 
 @scenario('ListAvailableSamples')
@@ -34,7 +39,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         tagvalues = {
             (t[1], t[2]): t[0]
             for t in TagValue.objects.filter(
-                reduce(or_, (Q(key=k, value=v) for k, v in tags.iteritems())),
+                reduce(or_, (Q(key=k, value=v) for k, v in six.iteritems(tags))),
                 project=project,
             ).values_list('id', 'key', 'value')
         }
@@ -42,7 +47,7 @@ class GroupEventsEndpoint(GroupEndpoint):
         try:
             tag_lookups = [
                 (tagkeys[k], tagvalues[(k, v)])
-                for k, v in tags.iteritems()
+                for k, v in six.iteritems(tags)
             ]
         except KeyError:
             # one or more tags were invalid, thus the result should be an empty
@@ -91,7 +96,10 @@ class GroupEventsEndpoint(GroupEndpoint):
 
         query = request.GET.get('query')
         if query:
-            query_kwargs = parse_query(group.project, query, request.user)
+            try:
+                query_kwargs = parse_query(group.project, query, request.user)
+            except InvalidQuery as exc:
+                return Response({'detail': six.text_type(exc)}, status=400)
 
             if query_kwargs['query']:
                 events = events.filter(

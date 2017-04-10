@@ -5,6 +5,7 @@ import DocumentTitle from 'react-document-title';
 import ListLink from '../components/listLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import ReleaseStats from '../components/releaseStats';
 import ProjectState from '../mixins/projectState';
 import TimeSince from '../components/timeSince';
 import Version from '../components/version';
@@ -91,18 +92,22 @@ const ReleaseDetails = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     let release = this.state.release;
-
     let {orgId, projectId} = this.props.params;
+    let hasReleases = (new Set(this.context.organization.features)).has('release-commits');
+    let basePath = `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`;
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
           <div className="release-details">
             <div className="row">
-              <div className="col-sm-6 col-xs-12">
+              <div className="col-sm-4 col-xs-12">
                 <h3>{t('Release')} <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
                 <div className="release-meta">
                   <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                 </div>
+              </div>
+              <div className="col-sm-2 hidden-xs">
+                <ReleaseStats release={release}/>
               </div>
               <div className="col-sm-2 hidden-xs">
                 <div className="release-stats">
@@ -132,13 +137,28 @@ const ReleaseDetails = React.createClass({
               </div>
             </div>
             <ul className="nav nav-tabs">
-              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`} isActive={(to)=> {
+              {hasReleases &&
+                <ListLink
+                    to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/overview/`} isActive={(loc) => {
                 // react-router isActive will return true for any route that is part of the active route
                 // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
-                return to === this.context.location.pathname;
+                return (hasReleases && this.props.location.pathname === basePath) ||
+                       (loc.pathname === this.props.location.pathname);
+              }}>{t('Overview')}</ListLink>
+              }
+              <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`} isActive={(loc) => {
+                // react-router isActive will return true for any route that is part of the active route
+                // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
+                return (!hasReleases && this.props.location.pathname === basePath) ||
+                       (loc.pathname === this.props.location.pathname);
               }}>{t('New Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>{t('All Issues')}</ListLink>
               <ListLink to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>{t('Artifacts')}</ListLink>
+
+              {(new Set(this.context.organization.features)).has('release-commits') &&
+                <ListLink
+                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>{t('Commits')}</ListLink>
+              }
             </ul>
           </div>
           {React.cloneElement(this.props.children, {

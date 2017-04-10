@@ -7,6 +7,8 @@ sentry.models.groupassignee
 """
 from __future__ import absolute_import
 
+import six
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -14,6 +16,7 @@ from django.utils import timezone
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr, \
     BaseManager
 from sentry.models.activity import Activity
+from sentry.signals import issue_assigned
 
 
 class GroupAssigneeManager(BaseManager):
@@ -40,6 +43,7 @@ class GroupAssigneeManager(BaseManager):
             )
         else:
             affected = True
+            issue_assigned.send(project=group.project, group=group, sender=acting_user)
 
         if affected:
             activity = Activity.objects.create(
@@ -48,7 +52,7 @@ class GroupAssigneeManager(BaseManager):
                 type=Activity.ASSIGNED,
                 user=acting_user,
                 data={
-                    'assignee': str(assigned_to.id),
+                    'assignee': six.text_type(assigned_to.id),
                     'assigneeEmail': assigned_to.email,
                 }
             )

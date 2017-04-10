@@ -8,13 +8,13 @@ import inspect
 import requests
 import mimetypes
 
-from StringIO import StringIO
-from pytz import utc
-from datetime import datetime, timedelta
-from random import randint
 from contextlib import contextmanager
-
+from datetime import datetime, timedelta
 from django.conf import settings
+from django.db import transaction
+from pytz import utc
+from random import randint
+from six import StringIO
 
 # Do not import from sentry here!  Bad things will happen
 
@@ -204,7 +204,7 @@ def create_sample_time_series(event):
 
     now = datetime.utcnow().replace(tzinfo=utc)
 
-    for _ in xrange(60):
+    for _ in range(60):
         count = randint(1, 10)
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),
@@ -222,7 +222,7 @@ def create_sample_time_series(event):
         ), now, int(count * 0.1))
         now = now - timedelta(seconds=1)
 
-    for _ in xrange(24 * 30):
+    for _ in range(24 * 30):
         count = randint(100, 1000)
         tsdb.incr_multi((
             (tsdb.models.project, group.project.id),
@@ -309,10 +309,23 @@ class MockUtils(object):
         from sentry.models import Release, Activity
         if version is None:
             version = os.urandom(20).encode('hex')
-        release = Release.objects.get_or_create(
-            version=version,
-            project=project,
-        )[0]
+        with transaction.atomic():
+            release = Release.objects.filter(
+                version=version,
+                organization_id=project.organization_id,
+                projects=project
+            ).first()
+            if not release:
+                release = Release.objects.filter(
+                    version=version,
+                    organization_id=project.organization_id,
+                ).first()
+                if not release:
+                    release = Release.objects.create(
+                        version=version,
+                        organization_id=project.organization_id,
+                    )
+                release.add_project(project)
         Activity.objects.create(
             type=Activity.RELEASE,
             project=project,
@@ -338,7 +351,7 @@ class MockUtils(object):
         )
         f.putfile(StringIO(contents or ''))
         return ReleaseFile.objects.create(
-            project=project,
+            organization_id=project.organization_id,
             release=release,
             file=f,
             name=path
@@ -457,7 +470,7 @@ class Runner(object):
                 body = data
 
         req_headers = dict(headers)
-        req_headers['Host'] = 'app.getsentry.com'
+        req_headers['Host'] = 'sentry.io'
         req_headers['Authorization'] = 'Basic %s' % base64.b64encode('%s:' % (
             api_key.key.encode('utf-8')))
 

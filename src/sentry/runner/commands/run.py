@@ -35,15 +35,37 @@ class AddressParamType(click.ParamType):
 Address = AddressParamType()
 
 
-class SetType(click.ParamType):
+class QueueSetType(click.ParamType):
     name = 'text'
 
     def convert(self, value, param, ctx):
         if value is None:
             return None
-        return frozenset(value.split(','))
+        # Providing a compatibility with splitting
+        # the `events` queue until multiple queues
+        # without the need to explicitly add them.
+        queues = set()
+        for queue in value.split(','):
+            if queue == 'events':
+                queues.add('events.preprocess_event')
+                queues.add('events.process_event')
+                queues.add('events.save_event')
 
-Set = SetType()
+                from sentry.runner.initializer import show_big_error
+                show_big_error([
+                    'DEPRECATED',
+                    '`events` queue no longer exists.',
+                    'Switch to using:',
+                    '- events.preprocess_event',
+                    '- events.process_event',
+                    '- events.save_event',
+                ])
+            else:
+                queues.add(queue)
+        return frozenset(queues)
+
+
+QueueSet = QueueSetType()
 
 
 @click.group()
@@ -109,11 +131,11 @@ def smtp(bind, upgrade, noinput):
 @click.option('--hostname', '-n', help=(
     'Set custom hostname, e.g. \'w1.%h\'. Expands: %h'
     '(hostname), %n (name) and %d, (domain).'))
-@click.option('--queues', '-Q', type=Set, help=(
+@click.option('--queues', '-Q', type=QueueSet, help=(
     'List of queues to enable for this worker, separated by '
     'comma. By default all configured queues are enabled. '
     'Example: -Q video,image'))
-@click.option('--exclude-queues', '-X', type=Set)
+@click.option('--exclude-queues', '-X', type=QueueSet)
 @click.option('--concurrency', '-c', default=cpu_count(), help=(
     'Number of child processes processing the queue. The '
     'default is the number of CPUs available on your '
@@ -123,6 +145,10 @@ def smtp(bind, upgrade, noinput):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@click.option('--without-gossip', is_flag=True, default=False)
+@click.option('--without-mingle', is_flag=True, default=False)
+@click.option('--without-heartbeat', is_flag=True, default=False)
+@click.option('--max-tasks-per-child', default=10000)
 @log_options()
 @configuration
 def worker(**options):
@@ -159,6 +185,9 @@ def worker(**options):
 @click.option('--quiet', '-q', is_flag=True, default=False)
 @click.option('--no-color', is_flag=True, default=False)
 @click.option('--autoreload', is_flag=True, default=False, help='Enable autoreloading.')
+@click.option('--without-gossip', is_flag=True, default=False)
+@click.option('--without-mingle', is_flag=True, default=False)
+@click.option('--without-heartbeat', is_flag=True, default=False)
 @log_options()
 @configuration
 def cron(**options):

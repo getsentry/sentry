@@ -11,7 +11,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import Model, sane_repr
-from sentry.db.models.fields import UnicodePickledObjectField
+from sentry.db.models.fields import EncryptedPickledObjectField
 
 
 class Option(Model):
@@ -25,7 +25,7 @@ class Option(Model):
     __core__ = True
 
     key = models.CharField(max_length=64, unique=True)
-    value = UnicodePickledObjectField()
+    value = EncryptedPickledObjectField()
     last_updated = models.DateTimeField(default=timezone.now)
 
     class Meta:

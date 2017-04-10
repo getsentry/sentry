@@ -12,14 +12,14 @@ import six
 import sys
 import socket
 from random import shuffle
+from six.moves.queue import Queue
 from time import time
 from threading import Lock, Thread, Event
-from Queue import Queue
 
 # utilize the ca_certs path from requests since we already depend on it
 # and they bundle a ca cert.
 from requests.certs import where as ca_certs
-from urllib import urlencode, quote_plus
+from six.moves.urllib.parse import urlencode, quote_plus
 from urllib3 import HTTPConnectionPool, HTTPSConnectionPool
 from urllib3.connection import HTTPConnection
 from urllib3.exceptions import HTTPError
@@ -45,7 +45,7 @@ class RiakClient(object):
 
     def _start(self, size):
         assert size > 0
-        for _ in xrange(size):
+        for _ in range(size):
             t = Thread(target=self._target)
             t.setDaemon(True)
             t.start()
@@ -86,6 +86,10 @@ class RiakClient(object):
         )
 
     def get(self, bucket, key, headers=None, **kwargs):
+        if headers is None:
+            headers = {}
+        headers['accept-encoding'] = 'gzip'  # urllib3 will automatically decompress
+
         return self.manager.urlopen(
             'GET', self.build_url(bucket, key, kwargs),
             headers=headers,
@@ -135,6 +139,11 @@ class RoundRobinStrategy(object):
         return connections[self.i % len(connections)]
 
 
+class FirstStrategy(object):
+    def next(self, connections):
+        return connections[0]
+
+
 class ConnectionManager(object):
     """
     A thread-safe multi-host http connection manager.
@@ -142,7 +151,6 @@ class ConnectionManager(object):
     def __init__(self, hosts=DEFAULT_NODES, strategy=RoundRobinStrategy, randomize=True,
                  timeout=3, cooldown=5, max_retries=None, tcp_keepalive=True):
         assert hosts
-        self.strategy = strategy()
         self.dead_connections = []
         self.timeout = timeout
         self.cooldown = cooldown
@@ -159,6 +167,16 @@ class ConnectionManager(object):
         if randomize:
             shuffle(self.connections)
 
+        # If we have a single connection, we can short-circuit some logic
+        self.single_connection = len(hosts) == 1
+
+        # If we only have one connection, let's override and use a more optimized
+        # strategy
+        if self.single_connection:
+            strategy = FirstStrategy
+
+        self.strategy = strategy()
+
         # Lock needed when mutating the alive/dead list of connections
         self._lock = Lock()
 
@@ -169,12 +187,12 @@ class ConnectionManager(object):
         options = {
             'timeout': self.timeout,
             'strict': True,
-            'retries': 2,
+            'retries': host.get('retries', 2),
             # Max of 5 connections open per host
             # this is arbitrary. The # of connections can burst
             # above 5 if needed becuase we're also setting
             # block=False
-            'maxsize': 5,
+            'maxsize': host.get('maxsize', 5),
             'block': False,
         }
         if self.tcp_keepalive:
@@ -222,14 +240,14 @@ class ConnectionManager(object):
         last_error = None
 
         try:
-            for _ in xrange(self.max_retries + 1):
+            for _ in range(self.max_retries + 1):
                 # If we're trying to initiate a new connection, and
                 # all connections are already dead, then we should flail
                 # and attempt to connect to one of them
                 if len(self.connections) == 0:
                     self.force_revive()
 
-                conn = self.strategy.next(self.connections)
+                conn = self.strategy.next(self.connections)  # NOQA
                 try:
                     return conn.urlopen(method, path, **kwargs)
                 except HTTPError:
@@ -247,6 +265,15 @@ class ConnectionManager(object):
         """
         Mark a connection as dead.
         """
+
+        # If we are operating with only a single connection,
+        # it's futile to mark the connection as dead since it'll
+        # just flap between active and dead with no value. In the
+        # event of one connection, we just want to keep retrying
+        # in hopes that it'll eventually work.
+        if self.single_connection:
+            return
+
         timeout = time() + self.cooldown
         with self._lock:
             self.dead_connections.append((conn, timeout))
@@ -277,8 +304,18 @@ class ConnectionManager(object):
 
             # timeout has expired, so move from dead to alive pool
             with self._lock:
-                self.connections.append(conn)
-                self.dead_connections.remove((conn, timeout))
+                try:
+                    # Attempt to remove the connection from dead_connections
+                    # pool, but it's possible that it was already removed in
+                    # another thread.
+                    self.dead_connections.remove((conn, timeout))
+                except ValueError:
+                    # In which case, we don't care and we just carry on.
+                    pass
+                else:
+                    # Only add the connection back into the live pool
+                    # if we've successfully removed from dead pool.
+                    self.connections.append(conn)
 
     def close(self):
         """

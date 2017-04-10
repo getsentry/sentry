@@ -8,12 +8,17 @@ sentry.nodestore.base
 
 from __future__ import absolute_import
 
+import six
+
 from base64 import b64encode
 from threading import local
 from uuid import uuid4
 
 
 class NodeStorage(local):
+    __all__ = ('create', 'delete', 'delete_multi', 'get', 'get_multi', 'set',
+               'set_multi', 'generate_id', 'cleanup', 'validate')
+
     def validate(self):
         """
         Validates the settings for this backend (i.e. such as proper connection
@@ -79,7 +84,7 @@ class NodeStorage(local):
         >>>     'key2': {'foo': 'baz'},
         >>> })
         """
-        for id, data in values.iteritems():
+        for id, data in six.iteritems(values):
             self.set(id=id, data=data)
 
     def generate_id(self):

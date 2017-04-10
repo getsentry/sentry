@@ -44,8 +44,10 @@ function findThreadException(thread, event) {
   return null;
 }
 
-function findThreadStacktrace(thread, event) {
-  if (thread.stacktrace) {
+function findThreadStacktrace(thread, event, raw) {
+  if (raw && thread.rawStacktrace) {
+    return thread.rawStacktrace;
+  } else if (thread.stacktrace) {
     return thread.stacktrace;
   }
   let exc = findThreadException(thread, event);
@@ -53,7 +55,7 @@ function findThreadStacktrace(thread, event) {
     let rv = null;
     for (let singleExc of exc.values) {
       if (singleExc.threadId === thread.id) {
-        rv = singleExc.stacktrace;
+        rv = (raw && singleExc.rawStacktrace) || singleExc.stacktrace;
       }
     }
     return rv;
@@ -62,7 +64,7 @@ function findThreadStacktrace(thread, event) {
 }
 
 function getThreadTitle(thread, event, simplified) {
-  let stacktrace = findThreadStacktrace(thread, event);
+  let stacktrace = findThreadStacktrace(thread, event, false);
   let bits = ['Thread'];
   if (defined(thread.name)) {
     bits.push(` "${thread.name}"`);
@@ -99,7 +101,7 @@ function getThreadTitle(thread, event, simplified) {
 }
 
 function getIntendedStackView(thread, event) {
-  const stacktrace = findThreadStacktrace(thread, event);
+  const stacktrace = findThreadStacktrace(thread, event, false);
   return (stacktrace && stacktrace.hasSystemFrames) ? 'app' : 'full';
 }
 
@@ -206,7 +208,8 @@ const ThreadsInterface = React.createClass({
   },
 
   getStacktrace() {
-    return findThreadStacktrace(this.state.activeThread, this.props.event);
+    return findThreadStacktrace(this.state.activeThread, this.props.event,
+      this.state.stackType !== 'original');
   },
 
   getException() {
@@ -256,6 +259,7 @@ const ThreadsInterface = React.createClass({
         title={null}
         beforeTitle={threadSelector}
         group={group}
+        platform={evt.platform}
         thread={activeThread}
         stacktrace={stacktrace}
         exception={exception}
