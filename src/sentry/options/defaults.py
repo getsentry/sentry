@@ -31,6 +31,8 @@ register('system.url-prefix', ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRI
 register('system.root-api-key', flags=FLAG_PRIORITIZE_DISK)
 register('system.logging-format', default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 
+register('system.geoip-path', default='/usr/local/share/GeoIP/GeoIPCity.dat')
+
 # Redis
 register(
     'redis.clusters',

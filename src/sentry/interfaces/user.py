@@ -9,11 +9,11 @@ from __future__ import absolute_import
 
 __all__ = ('User',)
 
+import logging
 import pygeoip
 import six
 
-from django.conf import settings
-
+from sentry import options
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
@@ -21,8 +21,10 @@ from sentry.utils.validators import validate_ip
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
 
 try:
-    gi = pygeoip.GeoIP(settings.GEOIP_PATH)
-except AttributeError:
+    gi = pygeoip.GeoIP(options.get('system.geoip-path'))
+except Exception:
+    logging.warn('Unable to load libgeoip at %s', options.get('system.geoip-path'),
+                 exc_info=True)
     gi = None
 
 

@@ -104,9 +104,7 @@ const ContextChunk = React.createClass({
       return null;
     }
 
-    let group = this.props.group;
-    let evt = this.props.event;
-    let {type, alias, value} = this.props;
+    let {group, event, orgId, projectId, type, alias, value} = this.props;
     let Component = getContextComponent(type);
 
     // this can happen if the component does not exist
@@ -117,11 +115,16 @@ const ContextChunk = React.createClass({
     return (
       <GroupEventDataSection
           group={group}
-          event={evt}
+          event={event}
           key={`context-${alias}`}
-          type={`context-${alias}`}
-          title={this.renderTitle(Component)}>
-        <Component alias={alias} data={value} />
+          type={`context-${alias}`}>
+        <Component
+          alias={alias}
+          data={value}
+          groupId={group.id}
+          orgId={orgId}
+          projectId={projectId}
+          title={this.renderTitle(Component)} />
       </GroupEventDataSection>
     );
   },
@@ -136,30 +139,32 @@ const ContextsInterface = React.createClass({
   },
 
   render() {
-    let evt = this.props.event;
+    let event = this.props.event;
     let children = [];
 
     let passedProps = _.pick(this.props, 'group', 'event', 'orgId', 'projectId');
 
-    if (!objectIsEmpty(evt.user)) {
+    if (!objectIsEmpty(event.user)) {
       children.push((
-        <ContextChunk {...passedProps}
+        <ContextChunk
           type="user"
           alias="user"
-          value={evt.user}
-          key="user" />
+          value={event.user}
+          key="user"
+          {...passedProps} />
       ));
     }
 
     let value;
-    for (let key in evt.contexts) {
-      value = evt.contexts[key];
+    for (let key in event.contexts) {
+      value = event.contexts[key];
       children.push((
         <ContextChunk
           type={value.type}
           alias={key}
           value={value}
-          key={key} />
+          key={key}
+          {...passedProps} />
       ));
     }
 
