@@ -90,6 +90,7 @@ from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_locations import ProjectUserLocationsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
+from .endpoints.project_user_stats import ProjectUserStatsEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
@@ -399,6 +400,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
         name='sentry-api-0-project-user-reports'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/user-stats/$',
+        ProjectUserStatsEndpoint.as_view(),
+        name='sentry-api-0-project-userstats'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/$',
         ProjectProcessingIssuesEndpoint.as_view(),
         name='sentry-api-0-project-processing-issues'),

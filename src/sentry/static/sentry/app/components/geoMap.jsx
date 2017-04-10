@@ -7,7 +7,7 @@ const HIGHLIGHT_COLOR = '#E35141';
 export default React.createClass({
   propTypes: {
     series: React.PropTypes.array.isRequired, // [COUNTRY_CODE, COUNT]
-    highlightCountryCode: React.PropTypes.string
+    highlightCountryCode: React.PropTypes.string,
   },
 
   componentDidMount() {
@@ -53,29 +53,29 @@ export default React.createClass({
       }
     }
     let map = new Datamap({
-      element: this.refs['locations-container'],
+      element: this.refs.map,
       responsive: true,
       fills: {
         defaultFill: '#F5F5F5'
       },
       data: dataset,
       geographyConfig: {
-          hideAntarctica: false,
-          borderColor: '#DEDEDE',
-          highlightBorderWidth: 2,
-          highlightFillColor: function(geo) {
-              return geo.fillColor || '#F5F5F5';
-          },
-          // only change border
-          highlightBorderColor: '#6958A2',
-          popupTemplate: function(geo, data) {
-              // don't show tooltip if country not present in dataset
-              if (!data) { return null; }
-              // tooltip content
-              return ['<div class="hoverinfo">',
-                  '<strong>', geo.properties.name, '</strong>',
-                  '<br>Events: <strong>', data.numberOfThings, '</strong>',
-                  '</div>'].join('');
+        hideAntarctica: false,
+        borderColor: '#DEDEDE',
+        highlightBorderWidth: 2,
+        highlightFillColor: function(geo) {
+            return geo.fillColor || '#F5F5F5';
+        },
+        // only change border
+        highlightBorderColor: '#6958A2',
+        popupTemplate: function(geo, data) {
+            // don't show tooltip if country not present in dataset
+            if (!data) { return null; }
+            // tooltip content
+            return ['<div class="hoverinfo">',
+                '<strong>', geo.properties.name, '</strong>',
+                '<br>Events: <strong>', data.numberOfThings, '</strong>',
+                '</div>'].join('');
           }
       }
     });
@@ -91,9 +91,7 @@ export default React.createClass({
 
   render() {
     return (
-      <div className="locations-wrapper" style={{border: '1px solid #D6DBE4', borderRadius: 4, overflow: 'hidden'}}>
-        <div style={{marginTop: '-5%'}} ref="locations-container"></div>
-      </div>
+      <div style={{position: 'relative'}} ref="map"></div>
     );
   }
 });
