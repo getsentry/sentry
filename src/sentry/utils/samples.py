@@ -47,7 +47,7 @@ def random_ip():
 
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None:
-        username = random.choice(loremipsum.words).lower()
+        username = random.choice(loremipsum.words[:10]).lower()
     return UserInterface.to_python({
         'id': id,
         'username': username,

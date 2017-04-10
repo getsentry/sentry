@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import GeoMap from '../components/geoMap';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import IssueList from '../components/issueList';
@@ -18,6 +19,26 @@ const UserActivity = React.createClass({
         <IssueList
           endpoint={this.getEndpoint()}
           {...this.props} />
+      </div>
+    );
+  },
+});
+
+const UserLocation = React.createClass({
+  propTypes: {
+    user: React.PropTypes.object.isRequired,
+  },
+
+  render() {
+    let {user} = this.props;
+    if (!user.location)
+      return null;
+
+    let series = [[user.location, 1]];
+    return (
+      <div>
+        <h4>Where am I?</h4>
+        <GeoMap highlightCountryCode={user.location} series={series}/>
       </div>
     );
   },
@@ -103,7 +124,8 @@ export default React.createClass({
           <dt>IP Address:</dt>
           <dd>{data.ipAddress || <em>n/a</em>}</dd>
         </dl>
-        <UserActivity {...this.props} />
+        <UserLocation {...this.props} user={data} />
+        <UserActivity {...this.props} user={data} />
       </div>
     );
   },
