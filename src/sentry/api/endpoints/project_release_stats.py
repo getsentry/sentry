@@ -41,7 +41,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 sum_deltas += (next_date - date_added)
 
         return Response({
-            'avg_num_authors': avg_num_authors,
-            'avg_time_to_release': (sum_deltas / len(release_dates)).total_seconds(),
-            'count_releases': len(release_dates),
+            'AvgNumAuthors': avg_num_authors,
+            'AvgTimeToRelease': (sum_deltas / len(release_dates)).total_seconds() * 1000,
+            'CountReleases': len(release_dates),
         })

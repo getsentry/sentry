@@ -10,6 +10,7 @@ import SearchBar from '../../components/searchBar.jsx';
 import {t} from '../../locale';
 
 import ReleaseList from './releaseList';
+import ReleaseOverviewStats from './releaseOverviewStats';
 
 const ProjectReleases = React.createClass({
   propTypes: {
@@ -150,8 +151,10 @@ const ProjectReleases = React.createClass({
   },
 
   render() {
+    let params = this.props.params;
     return (
       <div>
+        <ReleaseOverviewStats orgId={params.orgId} projectId={params.projectId} />
         <div className="row release-list-header">
           <div className="col-sm-7">
             <h3>{t('Releases')}</h3>
