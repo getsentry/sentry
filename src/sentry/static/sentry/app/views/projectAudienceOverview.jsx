@@ -265,7 +265,6 @@ export default React.createClass({
   render() {
     return (
       <div style={{
-          margin: '-20px -30px 0',
           overflow: 'hidden',
       }}>
         <div style={{marginTop: -110, position: 'relative'}}>
