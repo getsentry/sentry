@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link, browserHistory} from 'react-router';
+
 import ApiMixin from '../../mixins/apiMixin';
 import AssigneeSelector from '../../components/assigneeSelector';
 import Count from '../../components/count';
@@ -201,6 +202,9 @@ const GroupHeader = React.createClass({
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             {t('Tags')}
+          </ListLink>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/geo/`}>
+            {t('Geo')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Related Events')}

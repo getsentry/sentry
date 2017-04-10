@@ -59,7 +59,8 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
     data['sentry.interfaces.User'] = {
         "username": "getsentry",
         "id": "1671",
-        "email": "foo@example.com"
+        "email": "foo@example.com",
+        "ip_address": "71.201.48.227"
     }
     data['extra'] = {
         'session': {

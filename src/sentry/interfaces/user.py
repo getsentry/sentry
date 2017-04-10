@@ -9,13 +9,21 @@ from __future__ import absolute_import
 
 __all__ = ('User',)
 
+import pygeoip
 import six
+
+from django.conf import settings
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
 from sentry.utils.safe import trim, trim_dict
 from sentry.web.helpers import render_to_string
 from sentry.utils.validators import validate_ip
 from sentry.constants import MAX_EMAIL_FIELD_LENGTH
+
+try:
+    gi = pygeoip.GeoIP(settings.GEOIP_PATH)
+except AttributeError:
+    gi = None
 
 
 def validate_email(value, required=True):
@@ -72,6 +80,11 @@ class User(Interface):
         except ValueError:
             raise InterfaceValidationError("Invalid value for 'ip_address'")
 
+        location = None
+        if gi and ip_address:
+            # GeoIP returns empty string ('') for localhost, bad input values
+            location = gi.country_code_by_addr(ip_address)
+
         # TODO(dcramer): patch in fix to deal w/ old data but not allow new
         # if not (ident or email or username or ip_address):
         #     raise ValueError('No identifying value')
@@ -82,6 +95,9 @@ class User(Interface):
             'username': username,
             'ip_address': ip_address,
         }
+
+        if location and location != '':
+            kwargs['location'] = location
 
         kwargs['data'] = trim_dict(extra_data)
         return cls(**kwargs)

@@ -1,4 +1,5 @@
 import React from 'react';
+import _ from 'underscore';
 
 import GroupEventDataSection from './eventDataSection';
 import plugins from '../../plugins';
@@ -36,6 +37,8 @@ const ContextChunk = React.createClass({
     type: React.PropTypes.string.isRequired,
     alias: React.PropTypes.string.isRequired,
     value: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string,
+    projectId: React.PropTypes.string
   },
 
   getInitialState() {
@@ -127,18 +130,20 @@ const ContextChunk = React.createClass({
 const ContextsInterface = React.createClass({
   propTypes: {
     event: React.PropTypes.object.isRequired,
-    group: React.PropTypes.object.isRequired
+    group: React.PropTypes.object.isRequired,
+    orgId: React.PropTypes.string,
+    projectId: React.PropTypes.string
   },
 
   render() {
-    let group = this.props.group;
     let evt = this.props.event;
     let children = [];
+
+    let passedProps = _.pick(this.props, 'group', 'event', 'orgId', 'projectId');
+
     if (!objectIsEmpty(evt.user)) {
       children.push((
-        <ContextChunk
-          group={group}
-          event={evt}
+        <ContextChunk {...passedProps}
           type="user"
           alias="user"
           value={evt.user}
@@ -146,13 +151,11 @@ const ContextsInterface = React.createClass({
       ));
     }
 
-    let value = null;
+    let value;
     for (let key in evt.contexts) {
       value = evt.contexts[key];
       children.push((
         <ContextChunk
-          group={group}
-          event={evt}
           type={value.type}
           alias={key}
           value={value}
