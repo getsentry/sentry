@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 from sentry.constants import DATA_ROOT
 from sentry.event_manager import EventManager
+from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
 
 
@@ -21,6 +22,14 @@ epoch = datetime.utcfromtimestamp(0)
 def milliseconds_ago(now, milliseconds):
     ago = (now - timedelta(milliseconds=milliseconds))
     return (ago - epoch).total_seconds()
+
+
+def random_ip():
+    from ipaddress import ip_address, ip_network
+    from random import randrange
+
+    network = ip_network('59.185.23.0/24')
+    return ip_address(randrange(int(network.network) + 1, int(network.broadcast) - 1))
 
 
 def load_data(platform, default=None, timestamp=None, sample_name=None):
@@ -56,12 +65,12 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
 
     data['platform'] = platform
     data['message'] = 'This is an example %s exception' % (sample_name,)
-    data['sentry.interfaces.User'] = {
+    data['sentry.interfaces.User'] = UserInterface.to_python({
         "username": "getsentry",
         "id": "1671",
         "email": "foo@example.com",
-        "ip_address": "71.201.48.227"
-    }
+        "ip_address": "127.0.0.1"
+    })
     data['extra'] = {
         'session': {
             'foo': 'bar',

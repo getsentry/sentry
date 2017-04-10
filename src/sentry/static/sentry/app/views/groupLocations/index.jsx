@@ -4,7 +4,7 @@ import {History} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import countryCodes from '../../utils/countryCodes';
 
-import GeoMap from './geoMap';
+import GeoMap from '../../components/geoMap';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 

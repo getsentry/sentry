@@ -126,7 +126,7 @@ install_requires = [
     'pytest-html>=1.9.0,<1.10.0',
     'python-dateutil>=2.0.0,<3.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'python-geoip-geolite2==1.2'
+    'pygeoip==0.3.1',
     'python-openid>=2.2',
     'PyYAML>=3.11,<3.12',
     'raven>=5.29.0,<6.0.0',

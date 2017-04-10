@@ -16,6 +16,7 @@ from random import randint
 from uuid import uuid4
 
 from sentry import buffer, roles
+from sentry.interfaces.user import User as UserInterface
 from sentry.tsdb import backend as tsdb
 from sentry.models import (
     Activity, Broadcast, Deploy, File, GroupMeta, Organization, OrganizationAccessRequest,
@@ -26,7 +27,10 @@ from sentry.models import (
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
 from sentry.utils.hashlib import md5_text
-from sentry.utils.samples import create_sample_event as _create_sample_event
+from sentry.utils.samples import (
+    create_sample_event as _create_sample_event,
+    random_ip,
+)
 
 
 def create_sample_event(*args, **kwargs):
@@ -431,6 +435,9 @@ def main(num_events=1, extra_events=False):
                         environment=ENVIRONMENTS.next(),
                         message='This is a mostly useless example %s exception' % platform,
                         checksum=md5_text(platform + six.text_type(_)).hexdigest(),
+                        user=UserInterface.to_python({
+                            'ip_address': random_ip(),
+                        }),
                     )
 
             for _ in range(num_events):

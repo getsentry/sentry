@@ -2,11 +2,9 @@ import React from 'react';
 import {scaleLinear} from 'd3';
 import Datamap from 'datamaps';
 
-
 const HIGHLIGHT_COLOR = '#E35141';
 
-
-const GeoMap = React.createClass({
+export default React.createClass({
   propTypes: {
     series: React.PropTypes.array.isRequired, // [COUNTRY_CODE, COUNT]
     highlightCountryCode: React.PropTypes.string
@@ -99,5 +97,3 @@ const GeoMap = React.createClass({
     );
   }
 });
-
-export default GeoMap;
