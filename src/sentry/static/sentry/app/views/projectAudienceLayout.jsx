@@ -21,12 +21,8 @@ export default React.createClass({
   render() {
     return (
       <div>
-        <div className="release-list-header">
-          <h3>{t('Audience')}</h3>
-        </div>
-        <div className="panel panel-default">
-          {this.props.children}
-        </div>
+        <h3>{t('Audience')}</h3>
+        {this.props.children}
       </div>
     );
   },
