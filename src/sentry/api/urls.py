@@ -25,7 +25,7 @@ from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
-from .endpoints.group_user_locations import GroupUserLocationsEndpoint
+from .endpoints.group_userlocations import GroupUserLocationsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
@@ -83,6 +83,7 @@ from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
+from .endpoints.project_userlocations import ProjectUserLocationsEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint
@@ -349,7 +350,10 @@ urlpatterns = patterns(
         name='sentry-api-0-unknown-dsym-files'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/dsyms/associate/$',
         AssociateDSymFilesEndpoint.as_view(),
-        name='sentry-api-0-associate-dsym-files'),
+        name='sentry-api-0-associate-dsym-files'),\
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/locations/$',
+        ProjectUserLocationsEndpoint.as_view(),
+        name='sentry-api-0-project-userlocations'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$',
         ProjectRulesEndpoint.as_view(),
         name='sentry-api-0-project-rules'),
@@ -430,7 +434,7 @@ urlpatterns = patterns(
         name='sentry-api-0-group-environment-details'),
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/locations/$',
         GroupUserLocationsEndpoint.as_view(),
-        name='sentry-api-0-group-user-locations'),
+        name='sentry-api-0-group-userlocations'),
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'),
