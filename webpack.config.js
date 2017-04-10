@@ -50,6 +50,8 @@ var entry = {
     'jed',
     'jquery',
     'marked',
+    'mapbox-gl.js',
+    'mapbox-gl.css',
     'moment',
     'moment-timezone',
     'raven-js',

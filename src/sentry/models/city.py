@@ -12,6 +12,8 @@ class City(Model):
     country = models.CharField(max_length=2)
     region = models.CharField(max_length=128, default='')
     name = models.CharField(max_length=128)
+    lat = models.FloatField()
+    lng = models.FloatField()
 
     class Meta:
         app_label = 'sentry'
@@ -29,4 +31,8 @@ class City(Model):
             country=location['country'],
             region=location['region'],
             name=location['city'],
+            defaults={
+                'lat': location['lat'],
+                'lng': location['lng'],
+            }
         )[0]

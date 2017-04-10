@@ -63,7 +63,7 @@ const LocationsMap = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    let series = this.state.data.map(tag => [countryCodes[tag.value], tag.count]);
+    let series = this.state.data;
     let {highlight} = this.props.location.query;
     if (highlight) {
       highlight = countryCodes[highlight];

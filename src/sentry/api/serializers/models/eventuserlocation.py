@@ -31,11 +31,15 @@ class EventUserLocationSerializer(Serializer):
                 'city': city.name,
                 'country': city.country,
                 'region': city.region,
+                'lat': city.lat,
+                'lng': city.lng,
             })
         else:
             data.update({
                 'city': None,
                 'country': None,
                 'region': None,
+                'lat': None,
+                'lng': None,
             })
         return data

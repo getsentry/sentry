@@ -33,6 +33,7 @@
     "json-loader": "0.5.3",
     "less": "2.5.3",
     "less-loader": "2.2.1",
+    "mapbox-gl": "^0.35.0",
     "marked": "0.3.5",
     "moment": "2.10.6",
     "moment-timezone": "0.4.1",
