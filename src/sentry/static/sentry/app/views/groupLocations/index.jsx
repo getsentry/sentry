@@ -27,7 +27,7 @@ const GroupLocations = React.createClass({
   },
 
   fetchData() {
-    let url = '/issues/' + this.props.params.groupId + '/tags/user.location/values/';
+    let url = `/issues/${this.props.params.groupId}/locations/`;
     this.setState({
       loading: true,
       error: false

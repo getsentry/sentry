@@ -25,6 +25,7 @@ from .endpoints.group_stats import GroupStatsEndpoint
 from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
+from .endpoints.group_user_locations import GroupUserLocationsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
@@ -427,6 +428,9 @@ urlpatterns = patterns(
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/environments/(?P<environment>[^/]+)/$',
         GroupEnvironmentDetailsEndpoint.as_view(),
         name='sentry-api-0-group-environment-details'),
+    url(r'^(?:issues|groups)/(?P<issue_id>\d+)/locations/$',
+        GroupUserLocationsEndpoint.as_view(),
+        name='sentry-api-0-group-user-locations'),
     url(r'^(?:issues|groups)/(?P<issue_id>\d+)/tags/$',
         GroupTagsEndpoint.as_view(),
         name='sentry-api-0-group-tags'),
