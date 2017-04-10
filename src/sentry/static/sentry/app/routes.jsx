@@ -40,6 +40,7 @@ import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
+import ProjectAudience from './views/projectAudience';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
@@ -159,6 +160,7 @@ function routes() {
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
           <IndexRoute component={errorHandler(Stream)} />
+          <Route path="audience/" component={errorHandler(ProjectAudience)} />
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
