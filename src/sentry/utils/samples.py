@@ -8,13 +8,19 @@ sentry.utils.samples
 from __future__ import absolute_import
 
 import os.path
+import random
+import six
+
 from datetime import datetime, timedelta
+from loremipsum import Generator
 
 from sentry.constants import DATA_ROOT
 from sentry.event_manager import EventManager
 from sentry.interfaces.user import User as UserInterface
 from sentry.utils import json
 
+
+loremipsum = Generator()
 
 epoch = datetime.utcfromtimestamp(0)
 
@@ -25,11 +31,29 @@ def milliseconds_ago(now, milliseconds):
 
 
 def random_ip():
-    from ipaddress import ip_address, ip_network
-    from random import randrange
+    not_valid = [10, 127, 169, 172, 192]
 
-    network = ip_network('59.185.23.0/24')
-    return ip_address(randrange(int(network.network) + 1, int(network.broadcast) - 1))
+    first = random.randrange(1, 256)
+    while first in not_valid:
+        first = random.randrange(1, 256)
+
+    return '.'.join((
+        six.text_type(first),
+        six.text_type(random.randrange(1, 256)),
+        six.text_type(random.randrange(1, 256)),
+        six.text_type(random.randrange(1, 256))
+    ))
+
+
+def generate_user(username=None, email=None, ip_address=None, id=None):
+    if username is None:
+        username = random.choice(loremipsum.words).lower()
+    return UserInterface.to_python({
+        'id': id,
+        'username': username,
+        'email': email or '{}@example.com'.format(username),
+        'ip_address': ip_address or random_ip(),
+    }).to_json()
 
 
 def load_data(platform, default=None, timestamp=None, sample_name=None):
@@ -65,12 +89,12 @@ def load_data(platform, default=None, timestamp=None, sample_name=None):
 
     data['platform'] = platform
     data['message'] = 'This is an example %s exception' % (sample_name,)
-    data['sentry.interfaces.User'] = UserInterface.to_python({
-        "username": "getsentry",
-        "id": "1671",
-        "email": "foo@example.com",
-        "ip_address": "127.0.0.1"
-    })
+    data['sentry.interfaces.User'] = generate_user(
+        ip_address='127.0.0.1',
+        username='sentry',
+        id=1,
+        email='sentry@example.com',
+    )
     data['extra'] = {
         'session': {
             'foo': 'bar',

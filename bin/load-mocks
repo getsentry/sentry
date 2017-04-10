@@ -29,7 +29,7 @@ from sentry.similarity import features
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import (
     create_sample_event as _create_sample_event,
-    random_ip,
+    generate_user,
 )
 
 
@@ -435,9 +435,6 @@ def main(num_events=1, extra_events=False):
                         environment=ENVIRONMENTS.next(),
                         message='This is a mostly useless example %s exception' % platform,
                         checksum=md5_text(platform + six.text_type(_)).hexdigest(),
-                        user=UserInterface.to_python({
-                            'ip_address': random_ip(),
-                        }),
                     )
 
             for _ in range(num_events):
@@ -446,6 +443,7 @@ def main(num_events=1, extra_events=False):
                     platform='python',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
                 event2 = create_sample_event(
@@ -457,6 +455,7 @@ def main(num_events=1, extra_events=False):
                         'name': 'raven-js',
                         'version': '2.1.0',
                     },
+                    user=generate_user(),
                 )
 
                 event3 = create_sample_event(project, 'java')
@@ -466,6 +465,7 @@ def main(num_events=1, extra_events=False):
                     platform='ruby',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
                 event5 = create_sample_event(
@@ -473,6 +473,7 @@ def main(num_events=1, extra_events=False):
                     platform='cocoa',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
                 create_sample_event(
@@ -481,6 +482,7 @@ def main(num_events=1, extra_events=False):
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
+                    user=generate_user(),
                 )
 
                 create_sample_event(
@@ -489,6 +491,7 @@ def main(num_events=1, extra_events=False):
                     sample_name='react-native',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
             Commit.objects.get_or_create(
