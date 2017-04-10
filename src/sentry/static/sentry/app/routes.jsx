@@ -40,7 +40,8 @@ import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
-import ProjectAudience from './views/projectAudience';
+import ProjectAudienceLayout from './views/projectAudienceLayout';
+import ProjectAudienceOverview from './views/projectAudienceOverview';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
@@ -56,6 +57,7 @@ import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectDebugSymbols from './views/projectDebugSymbols';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
 import ProjectSettings from './views/projectSettings';
+import ProjectUserDetails from './views/projectUserDetails';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
 import ReleaseAllEvents from './views/releaseAllEvents';
@@ -160,7 +162,10 @@ function routes() {
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
           <IndexRoute component={errorHandler(Stream)} />
-          <Route path="audience/" component={errorHandler(ProjectAudience)} />
+          <Route path="audience/" component={errorHandler(ProjectAudienceLayout)}>
+            <IndexRoute component={errorHandler(ProjectAudienceOverview)} />
+            <Route path="users/:userId/" component={errorHandler(ProjectUserDetails)}/>
+          </Route>
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
