@@ -1,11 +1,8 @@
-import jQuery from 'jquery';
 import React from 'react';
-import {browserHistory} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
 
 export default React.createClass({
   mixins: [ApiMixin],
@@ -67,8 +64,6 @@ export default React.createClass({
   },
 
   render() {
-    let params = this.props.params;
-
     if (this.state.loading)
       return this.renderLoading();
     else if (this.state.error)
@@ -77,7 +72,19 @@ export default React.createClass({
     let {data} = this.state;
 
     return (
-      <h4>{this.getDisplayName(data)}</h4>
+      <div>
+        <h4>{this.getDisplayName(data)}</h4>
+        <dl>
+          <dt>ID:</dt>
+          <dd>{data.id || <em>n/a</em>}</dd>
+          <dt>Username:</dt>
+          <dd>{data.username || <em>n/a</em>}</dd>
+          <dt>Email:</dt>
+          <dd>{data.email || <em>n/a</em>}</dd>
+          <dt>IP Address:</dt>
+          <dd>{data.ipAddress || <em>n/a</em>}</dd>
+        </dl>
+      </div>
     );
   },
 });
