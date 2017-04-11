@@ -19,12 +19,62 @@
 }
 
 .user-details-header {
-    text-align: center;
-    margin-top: -85px;
+  text-align: center;
+  margin-top: -85px;
+
+  .avatar {
+    display: inline-block;
+    .square(128px);
+    margin-bottom: 10px;
+  }
+}
+
+.audience-feedback {
+  .audience-feedback-item {
+    position: relative;
+    padding-left: 48px;
+    font-size: 15px;
+    margin-bottom: 20px;
 
     .avatar {
-        display: inline-block;
-        .square(128px);
-        margin-bottom: 10px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      .square(36px);
     }
+
+    .pull-right{
+      line-height: 1;
+      margin-top: -1px;
+    }
+
+    .audience-feedback-name, time {
+      font-size: 13px;
+    }
+
+    .audience-feedback-name {
+      line-height: 1.1;
+      margin-bottom: 2px;
+    }
+
+    time {
+      line-height: 1;
+      color: @60;
+    }
+    // Todo(ckj): we should eventually handle this at the ShortId component level
+    .audience-feedback-short-id {
+      font-family: @font-family-monospace;
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: bold;
+      margin-top: -1px;
+
+      a {
+        color: @70;
+        &:hover {
+          color: @90;
+        }
+      }
+    }
+  }
 }

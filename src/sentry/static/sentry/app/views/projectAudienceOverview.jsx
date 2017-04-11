@@ -254,22 +254,33 @@ const Feedback = React.createClass({
 
     let {orgId, projectId} = this.props.params;
     return (
-      <ul>
+      <div className="audience-feedback">
         {this.state.data.map((feedback) => {
           return (
-            <li key={feedback.id}>
-              <Avatar user={feedback.user || feedback} />
-              {feedback.user ?
-                <Link to={`/${orgId}/${projectId}/audience/users/${feedback.user.hash}/`}>{this.getDisplayName(feedback)}</Link>
-              :
-                <strong>{this.getDisplayName(feedback)}</strong>
-              }
-              {feedback.comments}
-              <TimeSince date={feedback.dateCreated} />
-            </li>
+            <div className="audience-feedback-item" key={feedback.id}>
+              <Avatar user={feedback.user || feedback} size={36} />
+              <div className="pull-right">
+                <TimeSince date={feedback.dateCreated} />
+              </div>
+              <div className="audience-feedback-name">
+                {feedback.user ?
+                  <Link to={`/${orgId}/${projectId}/audience/users/${feedback.user.hash}/`}>{this.getDisplayName(feedback)}</Link>
+                :
+                  <strong>{this.getDisplayName(feedback)}</strong>
+                }
+              </div>
+              <div className="audience-feedback-body">
+                {feedback.comments}
+              </div>
+              <div className="audience-feedback-short-id">
+                <div className="audience-feedback-short-id">
+                  <Link to="">heart-4tt4ck</Link>
+                </div>
+              </div>
+            </div>
           );
         })}
-      </ul>
+      </div>
     );
   }
 });
