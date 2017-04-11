@@ -52,6 +52,7 @@ def random_username():
 def name_for_username(username):
     return {
         'ben': 'Ben Vinegar',
+        'chris': 'Chris Jennings',
         'david': 'David Cramer',
         'matt': 'Matt Robenolt',
         'jess': 'Jess MacQueen',
@@ -60,6 +61,7 @@ def name_for_username(username):
         'max': 'Max Bittker',
         'meredith': 'Meredith Heller',
         'eric': 'Derrick Feng',
+        'armin': 'Armon Ronacher',
     }.get(username, username.replace('_', ' ').title())
 
 
