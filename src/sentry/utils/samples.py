@@ -68,10 +68,11 @@ def name_for_username(username):
 def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
+        email = '{}@example.com'.format(username)
     return UserInterface.to_python({
         'id': id,
         'username': username,
-        'email': email or '{}@example.com'.format(username),
+        'email': email,
         'ip_address': ip_address or random_ip(),
         'name': name_for_username(username),
     }).to_json()
