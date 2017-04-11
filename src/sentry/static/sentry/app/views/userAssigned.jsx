@@ -12,7 +12,6 @@ const UserAssigned = React.createClass({
           title={t('Assigned')}
           endpoint={`/organizations/${params.orgId}/members/${params.userId}/issues/assigned/`}
           params={{orgId: params.orgId}} />
-        {this.state.data}
       </div>
     );
   }

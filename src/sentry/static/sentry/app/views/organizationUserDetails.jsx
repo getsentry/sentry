@@ -3,6 +3,7 @@ import React from 'react';
 import Avatar from '../components/avatar';
 import ApiMixin from '../mixins/apiMixin';
 import ListLink from '../components/listLink';
+import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import {t} from '../locale';
 
 
@@ -49,7 +50,7 @@ const OrganizationUserDetails = React.createClass({
     let user = this.state.user;
     let basePath = `/organizations/${params.orgId}/users/${params.userId}/`;
     return (
-      <div>
+      <OrganizationHomeContainer>
         <Avatar user={user} />
         <h3>{user.name}</h3>
         <ul className="nav nav-tabs">
@@ -64,7 +65,8 @@ const OrganizationUserDetails = React.createClass({
           </ListLink>
           <ListLink to={`/organizations/${params.orgId}/users/${params.userId}/resolved/`}>{t('Issues Resolved')}</ListLink>
         </ul>
-      </div>
+        {this.props.children}
+      </OrganizationHomeContainer>
     );
   }
 });

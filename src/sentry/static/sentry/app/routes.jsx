@@ -154,7 +154,7 @@ function routes() {
 
         <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
         <Route path="/organizations/:orgId/users/" component={errorHandler(OrganizationUsers)} />
-        <Route name="userDetails" path="/organizations/:orgId/users/:userId/" component={errorHandler(OrganizationUserDetails)}>
+        <Route path="/organizations/:orgId/users/:userId/" component={errorHandler(OrganizationUserDetails)}>
           <IndexRoute component={errorHandler(UserAssigned)} />
           <Route path="resolved/" component={errorHandler(UserResolved)} />
         </Route>
