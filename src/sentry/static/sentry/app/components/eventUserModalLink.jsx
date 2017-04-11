@@ -117,7 +117,7 @@ export default React.createClass({
     this.setState({isModalOpen: true});
   },
 
-  onCancel() {
+  onClose() {
     this.setState({isModalOpen: false});
   },
 
@@ -132,7 +132,7 @@ export default React.createClass({
 
   renderModal() {
     return (
-      <Modal show={this.state.isModalOpen} animation={false}>
+      <Modal show={this.state.isModalOpen} onHide={this.onClose} animation={false}>
         <div className="modal-body">
           {this.renderModalBody()}
         </div>
