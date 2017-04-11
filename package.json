@@ -50,6 +50,7 @@
     "react-dom": "15.3.2",
     "react-icon-base": "^2.0.4",
     "react-lazy-load": "3.0.10",
+    "react-mentions": "^1.0.0",
     "react-router": "2.8.1",
     "react-sparklines": "1.6.0",
     "react-sticky": "5.0.4",

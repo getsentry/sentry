@@ -4,9 +4,12 @@ import marked from 'marked';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
+import MemberListStore from '../../stores/memberListStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
+
+import {MentionsInput, Mention} from 'react-mentions'
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
@@ -51,7 +54,9 @@ const NoteInput = React.createClass({
       expanded: false,
       preview: false,
       updating: updating,
-      value: defaultText
+      value: defaultText,
+      memberList: MemberListStore.getAll(),
+      mentions: []
     };
   },
 
@@ -207,8 +212,18 @@ const NoteInput = React.createClass({
     }
   },
 
+  getMemberData() {
+    return this.state.memberList.map((member) => {
+      return {
+        id: member.id,
+        display: member.name,
+        email: member.email
+      };
+    });
+  },
+
   render() {
-    let {error, errorJSON, loading, preview, updating, value} = this.state;
+    let {error, errorJSON, loading, preview, updating, value, memberList} = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -218,6 +233,72 @@ const NoteInput = React.createClass({
     }
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
+    let styles = {
+        control: {
+          backgroundColor: '#fff',
+
+          fontSize: 12,
+          fontWeight: 'normal',
+        },
+
+        input: {
+          margin: 0,
+        },
+
+        '&singleLine': {
+          control: {
+            display: 'inline-block',
+
+            width: 130,
+          },
+
+          highlighter: {
+            padding: 1,
+            border: '2px inset transparent',
+          },
+
+          input: {
+            padding: 1,
+
+            border: '2px inset',
+          },
+        },
+
+        '&multiLine': {
+          control: {
+            fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif',
+
+          },
+
+          highlighter: {
+            padding: 9,
+          },
+
+          input: {
+            padding: 9,
+            minHeight: 63,
+            outline: 0,
+            border: 0,
+          },
+        },
+
+        suggestions: {
+          list: {
+            backgroundColor: 'white',
+            border: '1px solid rgba(0,0,0,0.15)',
+            fontSize: 12,
+          },
+
+          item: {
+            padding: '5px 15px',
+            borderBottom: '1px solid rgba(0,0,0,0.15)',
+
+            '&focused': {
+              backgroundColor: '#b9b2d0',
+            },
+          },
+        },
+      };
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
@@ -239,13 +320,14 @@ const NoteInput = React.createClass({
             <div className="note-preview"
                  dangerouslySetInnerHTML={{__html: marked(value)}} />
           :
-            <textarea placeholder={t('Add details or updates to this event')}
+            <MentionsInput style={styles} placeholder={t('Add details or updates to this event')}
                       onChange={this.onChange}
-                      onKeyDown={this.onKeyDown}
-                      onFocus={this.expand} onBlur={this.maybeCollapse}
-                      required={true}
-                      autoFocus={true}
-                      value={value} />
+                      value={value}
+                      displayTransform={ (display) => `@${display}` }
+                      markup="**__display__**" >
+                      <Mention trigger="@"
+                          data={this.getMemberData()} />
+            </MentionsInput>
           }
           <div className="activity-actions">
             {errorJSON && errorJSON.detail &&
