@@ -316,11 +316,14 @@ const Feedback = React.createClass({
     return (
       <ul>
         {this.state.data.map((feedback) => {
-          let link = `/${orgId}/${projectId}/audience/users/${feedback.hash}/`;
           return (
             <li key={feedback.id}>
               <Avatar user={feedback.user} />
-              <Link to={link}>{this.getDisplayName(feedback)}</Link>
+              {feedback.user ?
+                <Link to={`/${orgId}/${projectId}/audience/users/${feedback.user.hash}/`}>{this.getDisplayName(feedback)}</Link>
+              :
+                <strong>{this.getDisplayName(feedback)}</strong>
+              }
               {feedback.comments}
               <TimeSince date={feedback.dateCreated} />
             </li>
