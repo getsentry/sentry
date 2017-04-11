@@ -258,7 +258,7 @@ const Feedback = React.createClass({
         {this.state.data.map((feedback) => {
           return (
             <li key={feedback.id}>
-              <Avatar user={feedback.user} />
+              <Avatar user={feedback.user || feedback} />
               {feedback.user ?
                 <Link to={`/${orgId}/${projectId}/audience/users/${feedback.user.hash}/`}>{this.getDisplayName(feedback)}</Link>
               :
