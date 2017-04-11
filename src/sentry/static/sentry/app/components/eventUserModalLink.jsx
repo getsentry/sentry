@@ -189,8 +189,6 @@ export default React.createClass({
                 <dd>{user.id || <em>n/a</em>}</dd>
                 <dt>Username:</dt>
                 <dd>{user.username || <em>n/a</em>}</dd>
-                <dt>IP Address:</dt>
-                <dd>{user.ipAddress || <em>n/a</em>}</dd>
               </dl>
             </div>
           </div>
