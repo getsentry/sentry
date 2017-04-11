@@ -113,7 +113,7 @@ export default React.createClass({
 
   render() {
     return (
-      <div style={{position: 'relative', height: this.props.height}} ref="map" />
+      <div className="map-container" style={{height: this.props.height}} ref="map" />
     );
   }
 });
