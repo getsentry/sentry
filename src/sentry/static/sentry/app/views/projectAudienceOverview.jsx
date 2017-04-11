@@ -5,32 +5,12 @@ import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import GeoMap from '../components/geoMap_MapBox';
+import Location from '../components/location';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
 
 import {BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip} from 'recharts';
-
-const Location = React.createClass({
-  render() {
-    let {location} = this.props;
-    if (!location)
-      return null;
-    if (location.city && location.region)
-      return (
-        <div>
-          <div>{location.city}, {location.region}</div>
-          <small>{location.country}</small>
-        </div>
-      );
-    return (
-      <div>
-        <div>{location.city}</div>
-        <small>{location.country}</small>
-      </div>
-    );
-  }
-});
 
 const UsersAffectedList = React.createClass({
   mixins: [ApiMixin],
