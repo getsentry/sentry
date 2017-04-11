@@ -8,8 +8,30 @@ import countryCodes from '../utils/countryCodes';
 import GeoMap from '../components/geoMap';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import TimeSince from '../components/timeSince';
 
 import {BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip} from 'recharts';
+
+const Location = React.createClass({
+  render() {
+    let {location} = this.props;
+    if (!location)
+      return null;
+    if (location.city && location.region)
+      return (
+        <div>
+          <div>{location.city}, {location.region}</div>
+          <small>{location.country}</small>
+        </div>
+      );
+    return (
+      <div>
+        <div>{location.city}</div>
+        <small>{location.country}</small>
+      </div>
+    );
+  }
+});
 
 const UsersAffectedList = React.createClass({
   mixins: [ApiMixin],
@@ -86,10 +108,10 @@ const UsersAffectedList = React.createClass({
                 <td>
                   <Avatar user={user} size={36} />
                   <Link to={link}>{this.getDisplayName(user)}</Link><br />
-                  <small>First seen 1 year ago</small>
+                  <small>First seen <TimeSince date={user.dateCreated} /></small>
                 </td>
-                <td>San Francisco, CA<br/><small>United States</small></td>
-                <td>Just now<br /><small>Sentry Frontend</small></td>
+                <td><Location location={user.lastLocation} /></td>
+                <td><TimeSince date={user.lastIssue.lastSeen} /><br /><small>{user.lastIssue.project.name}</small></td>
               </tr>
             );
           })}
