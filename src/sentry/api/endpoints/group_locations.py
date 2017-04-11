@@ -1,39 +1,44 @@
 from __future__ import absolute_import
 
-from sentry.api.base import DocSection
+from datetime import timedelta
+from django.db.models import Count
+from django.utils import timezone
+from rest_framework.response import Response
+
 from sentry.api.bases.group import GroupEndpoint
-from sentry.api.paginator import DateTimePaginator, OffsetPaginator, Paginator
-from sentry.api.serializers import serialize
-from sentry.models import GroupTagValue
+from sentry.models import City, GroupLocation
 
 
 class GroupLocationsEndpoint(GroupEndpoint):
-    doc_section = DocSection.EVENTS
-
     def get(self, request, group):
-        queryset = GroupTagValue.objects.filter(
-            group=group,
-            key='location.country',
-        )
+        queryset = GroupLocation.objects.filter(
+            project_id=group.project_id,
+            date_added__gte=timezone.now() - timedelta(days=30),
+        ).values(
+            'city_id',
+        ).annotate(
+            count=Count('city_id'),
+        ).values_list('city_id', 'count')
 
-        sort = request.GET.get('sort')
-        if sort == 'date':
-            order_by = '-last_seen'
-            paginator_cls = DateTimePaginator
-        elif sort == 'age':
-            order_by = '-first_seen'
-            paginator_cls = DateTimePaginator
-        elif sort == 'freq':
-            order_by = '-times_seen'
-            paginator_cls = OffsetPaginator
-        else:
-            order_by = '-id'
-            paginator_cls = Paginator
+        cities = {
+            c.id: c for c in City.objects.filter(
+                id__in=[q[0] for q in queryset],
+            )
+        }
 
-        return self.paginate(
-            request=request,
-            queryset=queryset,
-            order_by=order_by,
-            paginator_cls=paginator_cls,
-            on_results=lambda x: serialize(x, request.user),
-        )
+        result = []
+        for city_id, count in queryset:
+            try:
+                city = cities[city_id]
+            except KeyError:
+                continue
+            result.append({
+                'city': city.name,
+                'region': city.region,
+                'country': city.country,
+                'lat': city.lat,
+                'lng': city.lng,
+                'count': count
+            })
+
+        return Response(result)

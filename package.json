@@ -20,8 +20,6 @@
     "compression-webpack-plugin": "^0.3.0",
     "crypto-js": "3.1.5",
     "css-loader": "0.18.0",
-    "d3": "^4.2.1",
-    "datamaps": "^0.5.7",
     "extract-text-webpack-plugin": "2.0.0-beta.5",
     "file-loader": "0.8.4",
     "gettext-parser": "1.1.1",

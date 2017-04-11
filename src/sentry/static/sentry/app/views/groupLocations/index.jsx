@@ -1,17 +1,14 @@
 import React from 'react';
-import {History} from 'react-router';
 
 import ApiMixin from '../../mixins/apiMixin';
-import countryCodes from '../../utils/countryCodes';
 
-import GeoMap from '../../components/geoMap';
+import GeoMap from '../../components/geoMap_MapBox';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
-const GroupLocations = React.createClass({
+export default React.createClass({
   mixins: [
     ApiMixin,
-    History
   ],
 
   getInitialState() {
@@ -56,13 +53,6 @@ const GroupLocations = React.createClass({
     if (this.state.error)
       return <LoadingError/>;
 
-    let series = this.state.data.map(tag => [countryCodes[tag.value], tag.count]);
-    let {highlight} = this.props.location.query;
-    if (highlight) {
-      highlight = countryCodes[highlight];
-    }
-    return <GeoMap highlightCountryCode={highlight} series={series}/>;
+    return <GeoMap series={this.state.data}/>;
   }
 });
-
-export default GroupLocations;

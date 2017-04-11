@@ -45,8 +45,6 @@ var entry = {
     'bootstrap/js/tooltip',
     'bootstrap/js/alert',
     'crypto-js/md5',
-    'datamaps',
-    'd3',
     'jed',
     'jquery',
     'marked',
