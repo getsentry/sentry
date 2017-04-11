@@ -72,6 +72,8 @@ class TSDBModel(Enum):
     frequent_releases_by_group = 407
     # number of events seen for an environment, by issue
     frequent_environments_by_group = 408
+    # number of events seen for a release, by project
+    frequent_releases_by_project = 409
 
 
 class BaseTSDB(object):

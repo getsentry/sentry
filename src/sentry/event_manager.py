@@ -667,6 +667,13 @@ class EventManager(object):
                     },
                 })
             )
+            frequencies.append(
+                (tsdb.models.frequent_releases_by_project, {
+                    project.id: {
+                        release.id: 1,
+                    },
+                })
+            )
 
         tsdb.record_frequency_multi(frequencies, timestamp=event.datetime)
 

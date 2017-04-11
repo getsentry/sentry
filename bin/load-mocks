@@ -161,6 +161,13 @@ def create_sample_time_series(event, release=None):
                     },
                 })
             )
+            frequencies.append(
+                (tsdb.models.frequent_releases_by_project, {
+                    project.id: {
+                        release.id: 1,
+                    },
+                })
+            )
 
         tsdb.record_frequency_multi(frequencies, now)
 
@@ -203,6 +210,13 @@ def create_sample_time_series(event, release=None):
                 (tsdb.models.frequent_releases_by_group, {
                     group.id: {
                         grouprelease.id: count,
+                    },
+                })
+            )
+            frequencies.append(
+                (tsdb.models.frequent_releases_by_project, {
+                    project.id: {
+                        release.id: 1,
                     },
                 })
             )
