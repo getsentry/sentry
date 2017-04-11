@@ -16,16 +16,17 @@ class EventUserSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         # TODO(dcramer): these are slow, and would have to be replaced in prod
         # find last location
-        try:
-            last_location = EventUserLocation.objects.filter(
-                event_user_id=obj.id,
-            ).order_by('-last_seen')[0]
-        except IndexError:
-            last_location = None
 
         # find last issue
         other_eusers = obj.find_similar_users(user)
         event_users = [obj] + list(other_eusers)
+
+        try:
+            last_location = EventUserLocation.objects.filter(
+                event_user_id__in=[e.id for e in event_users],
+            ).order_by('-last_seen')[0]
+        except IndexError:
+            last_location = None
 
         tag_filters = [
             Q(value=eu.tag_value, project_id=eu.project_id)

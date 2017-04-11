@@ -191,7 +191,7 @@ export default React.createClass({
                 ]}
                 {user.username && [
                   <dt key="dt-username">Username:</dt>,
-                  <dd key="dt-username">{user.username}</dd>
+                  <dd key="dd-username">{user.username}</dd>
                 ]}
               </dl>
             </div>
