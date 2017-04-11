@@ -1,6 +1,6 @@
 import React from 'react';
 import moment from 'moment';
-import {AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip} from 'recharts';
+import {AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, YAxis, XAxis} from 'recharts';
 
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
@@ -69,19 +69,20 @@ const ReleaseOverviewStats = React.createClass({
       return point;
     });
     return (
-      <AreaChart width={730} height={250} data={data}
-        margin={{top: 10, right: 30, left: 0, bottom: 0}}>
-        <XAxis dataKey="name" />
-        <YAxis />
-        <CartesianGrid strokeDasharray="3 3" />
-        <Tooltip />
-        {Array.from(releases).map((stat, i) => {
-          return (
-            <Area key={stat} type="monotone" dataKey={stat} fill={colors[i % 3]}
-                  stroke={colors[i % 3]} fillOpacity={1} stackId="1" />
-          );
-        })}
-      </AreaChart>
+      <ResponsiveContainer minHeight={150}>
+        <AreaChart data={data}>
+          <XAxis dataKey="name" />
+          <YAxis />
+          <CartesianGrid strokeDasharray="3 3" />
+          <Tooltip />
+          {Array.from(releases).map((stat, i) => {
+            return (
+              <Area key={stat} type="monotone" dataKey={stat} fill={colors[i % 3]}
+                    stroke={colors[i % 3]} fillOpacity={1} stackId="1" />
+            );
+          })}
+        </AreaChart>
+      </ResponsiveContainer>
     );
   },
 
@@ -95,30 +96,45 @@ const ReleaseOverviewStats = React.createClass({
     } else {
       let data = this.state.data;
       body = (
-        <div className="row">
-          <div className="col-sm-4 hidden-xs">
-            <div className="release-stats">
-              <h6 className="nav-header">Average Number of Authors</h6>
-              <span className="stream-count">
-                {Math.round(data.AvgNumAuthors * 100) / 100}
-              </span>
+        <div>
+          <div className="row">
+            <div className="col-sm-3 hidden-xs">
+              <div className="release-stats">
+                <h6 className="nav-header">Average New Groups Per Release</h6>
+                <span className="stream-count">
+                  {Math.round(data.AvgNewGroups * 100) / 100}
+                </span>
+              </div>
+            </div>
+            <div className="col-sm-3 hidden-xs">
+              <div className="release-stats">
+                <h6 className="nav-header">Average Number of Authors Per Release</h6>
+                <span className="stream-count">
+                  {Math.round(data.AvgNumAuthors * 100) / 100}
+                </span>
+              </div>
+            </div>
+            <div className="col-sm-3 hidden-xs">
+              <div className="release-stats">
+                <h6 className="nav-header">Time Between Releases</h6>
+                <span className="stream-count">
+                  {moment.duration(data.AvgTimeToRelease).humanize()}
+                </span>
+              </div>
+            </div>
+            <div className="col-sm-3 hidden-xs">
+              <div className="release-stats">
+                <h6 className="nav-header">Total Releases</h6>
+                <span className="stream-count">{data.CountReleases}</span>
+              </div>
             </div>
           </div>
-          <div className="col-sm-4 hidden-xs">
-            <div className="release-stats">
-              <h6 className="nav-header">Time Between Releases</h6>
-              <span className="stream-count">
-                {moment.duration(data.AvgTimeToRelease).humanize()}
-              </span>
+          <div className="row">
+            <div className="col-md-12">
+              <h5>Events Per Release</h5>
+              {this.renderChart()}
             </div>
           </div>
-          <div className="col-sm-4 hidden-xs">
-            <div className="release-stats">
-              <h6 className="nav-header">Total Releases</h6>
-              <span className="stream-count">{data.CountReleases}</span>
-            </div>
-          </div>
-          <div>{this.renderChart()}</div>
         </div>
       );
     }

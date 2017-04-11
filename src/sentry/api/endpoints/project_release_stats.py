@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.app import tsdb
-from sentry.models import Release
+from sentry.models import Release, ReleaseProject
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
@@ -25,9 +25,6 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
     }
 
     def get(self, request, project):
-        # avg num events per release
-        # TODO(jess)
-
         # avg num authors per release
         avg_num_authors = Release.objects.filter(
             projects=project,
@@ -51,13 +48,18 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             else:
                 sum_deltas += (next_date - date_added)
 
-        release_ids = list(Release.objects.filter(
+        release_ids = dict(Release.objects.filter(
             projects=project,
             organization_id=project.organization_id,
-        ).values_list('id', flat=True))
+        ).values_list('id', 'version'))
+
+        # avg new groups per release
+        avg_new_groups = ReleaseProject.objects.filter(
+            project=project,
+        ).aggregate(Avg('new_groups'))['new_groups__avg']
 
         items = {
-            project.id: release_ids,
+            project.id: release_ids.keys(),
         }
 
         until = timezone.now()
@@ -72,10 +74,13 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 end=until,
                 rollup=int(interval.total_seconds()),
             )
-            stats[key] = _stats.get(project.id, [])
+            stats[key] = [
+                (item[0], {release_ids[r_id]: count for r_id, count in item[1].items()})
+                for item in _stats.get(project.id, [])]
 
         return Response({
             'AvgNumAuthors': avg_num_authors,
+            'AvgNewGroups': avg_new_groups,
             'AvgTimeToRelease': (sum_deltas / len(release_dates)).total_seconds() * 1000,
             'CountReleases': len(release_dates),
             'stats': stats,
