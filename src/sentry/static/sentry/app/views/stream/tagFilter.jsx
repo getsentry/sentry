@@ -115,7 +115,7 @@ const StreamTagFilter = React.createClass({
         {this.props.tag.predefined ?
 
           <select ref="select" onChange={function(){}}>
-            <option key="empty"></option>
+            <option key="empty"/>
             {this.props.tag.values.map((val) => {
               return (
                 <option key={val}>{val}</option>

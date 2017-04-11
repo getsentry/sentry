@@ -110,7 +110,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="icon-star-solid bookmark "></span>}
+        {project.isBookmarked && <span className="icon-star-solid bookmark "/>}
         {label}
       </MenuItem>
     );

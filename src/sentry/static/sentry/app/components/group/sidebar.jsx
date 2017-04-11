@@ -76,6 +76,7 @@ const GroupSidebar = React.createClass({
         </div>
       );
     }
+    return null;
   },
 
   getNotificationText() {

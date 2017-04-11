@@ -102,10 +102,6 @@ const GroupActivity = React.createClass({
             return t('%s assigned this event to an unknown user', author);
           }
         }
-        return t('%(author)s assigned this event to %(assignee)s', {
-          author: author,
-          assignee: assignee.email
-        });
       case 'unassigned':
         return t('%s unassigned this issue', author);
       case 'merge':
@@ -150,7 +146,7 @@ const GroupActivity = React.createClass({
     let children = group.activity.map((item, itemIdx) => {
       let avatar = (item.user ?
         <Avatar user={item.user} size={64} className="avatar" /> :
-        <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
+        <div className="avatar sentry"><span className="icon-sentry-logo"/></div>);
 
       let author = {
         name: item.user ? item.user.name : 'Sentry',

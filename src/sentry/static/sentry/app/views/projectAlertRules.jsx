@@ -76,9 +76,9 @@ const RuleRow = React.createClass({
                 <div>
                   <h6>When <strong>{data.actionMatch}</strong> of these conditions are met:</h6>
                   <table className="conditions-list table">
-                  {data.conditions.map((condition) => {
+                  {data.conditions.map((condition, i) => {
                     return (
-                      <tr>
+                      <tr key={i}>
                         <td>{condition.name}</td>
                       </tr>
                     );
@@ -92,9 +92,9 @@ const RuleRow = React.createClass({
                 <div>
                   <h6>Take these actions at most <strong>once every <Duration seconds={data.frequency * 60} /></strong> for an issue:</h6>
                   <table className="actions-list table">
-                  {data.actions.map((action) => {
+                  {data.actions.map((action, i) => {
                     return (
-                      <tr>
+                      <tr key={i}>
                         <td>{action.name}</td>
                       </tr>
                     );

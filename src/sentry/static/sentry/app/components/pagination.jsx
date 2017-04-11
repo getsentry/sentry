@@ -41,7 +41,7 @@ const Pagination = React.createClass({
             }}
             className={previousPageClassName}
             disabled={links.previous.results === false}>
-            <span title={t('Previous')} className="icon-arrow-left"></span>
+            <span title={t('Previous')} className="icon-arrow-left"/>
           </Link>
           <Link to={{
               pathname: this.props.to || location.pathname,
@@ -49,7 +49,7 @@ const Pagination = React.createClass({
             }}
             className={nextPageClassName}
             disabled={links.next.results === false}>
-            <span title={t('Next')} className="icon-arrow-right"></span>
+            <span title={t('Next')} className="icon-arrow-right"/>
           </Link>
         </div>
       </div>

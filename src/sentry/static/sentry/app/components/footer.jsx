@@ -32,7 +32,7 @@ const Footer = React.createClass({
           <div className="version pull-left">
             {'Sentry'} {config.version.current}
           </div>
-          <a href="/" className="icon-sentry-logo"></a>
+          <a href="/" className="icon-sentry-logo"/>
           {this.state.hooks}
         </div>
       </footer>

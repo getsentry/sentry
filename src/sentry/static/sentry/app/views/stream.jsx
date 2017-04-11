@@ -176,7 +176,7 @@ const Stream = React.createClass({
             newState.isDefaultSearch = true;
           }
         }
-        this.setState(newState, needsData ? this.fetchData : null);
+        return void this.setState(newState, needsData ? this.fetchData : null);
       },
       error: (error) => {
         // XXX(dcramer): fail gracefully by still loading the stream
@@ -204,6 +204,7 @@ const Stream = React.createClass({
             processingIssues: data,
           });
         }
+        return undefined;
       },
       error: (error) => {
         logAjaxError(error);
@@ -366,7 +367,7 @@ const Stream = React.createClass({
 
         this._streamManager.push(data);
 
-        this.setState({
+        return void this.setState({
           error: false,
           dataLoading: false,
           pageLinks: jqXHR.getResponseHeader('Link'),
@@ -619,7 +620,7 @@ const Stream = React.createClass({
   renderEmpty() {
     return (
       <div className="box empty-stream">
-        <span className="icon icon-exclamation"></span>
+        <span className="icon icon-exclamation"/>
         <p>{t('Sorry, no events match your filters.')}</p>
       </div>
     );

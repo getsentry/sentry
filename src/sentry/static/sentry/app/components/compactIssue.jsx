@@ -177,7 +177,7 @@ const CompactIssue = React.createClass({
 
     let {id, orgId} = this.props;
     let projectId = issue.project.slug;
-    let title = <span className="icon-more"></span>;
+    let title = <span className="icon-more"/>;
 
     return (
       <li className={className} onClick={this.toggleSelect}>

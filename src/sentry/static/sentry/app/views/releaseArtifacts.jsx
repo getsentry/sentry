@@ -114,7 +114,7 @@ const ReleaseArtifacts = React.createClass({
     else if (this.state.fileList.length === 0)
       return (
         <div className="box empty-stream">
-          <span className="icon icon-exclamation"></span>
+          <span className="icon icon-exclamation"/>
           <p>{t('There are no artifacts uploaded for this release.')}</p>
         </div>
       );
@@ -129,7 +129,7 @@ const ReleaseArtifacts = React.createClass({
             <div className="row">
               <div className="col-sm-8 col-xs-7">{'Name'}</div>
               <div className="col-sm-2 col-xs-2">{'Size'}</div>
-              <div className="col-sm-2 col-xs-3 align-right"></div>
+              <div className="col-sm-2 col-xs-3 align-right"/>
             </div>
           </div>
           <ul className="list-group">

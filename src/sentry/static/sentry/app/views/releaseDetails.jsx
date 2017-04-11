@@ -103,7 +103,7 @@ const ReleaseDetails = React.createClass({
               <div className="col-sm-4 col-xs-12">
                 <h3>{t('Release')} <strong><Version orgId={orgId} projectId={projectId} version={release.version} anchor={false} /></strong></h3>
                 <div className="release-meta">
-                  <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
+                  <span className="icon icon-clock"/> <TimeSince date={release.dateCreated} />
                 </div>
               </div>
               <div className="col-sm-2 hidden-xs">

@@ -32,8 +32,7 @@ describe('Frame', function () {
       let frame = TestUtils.renderIntoDocument(<Frame data={this.data} />);
 
       // NOTE: indentation/whitespace intentional to match output string
-      expect(frame.renderOriginalSourceInfo()).to.eql(`\n    <div>\n      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>`);
+      expect(frame.renderOriginalSourceInfo()).to.eql('\n    <div>\n      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>');
     });
   });
 });
-

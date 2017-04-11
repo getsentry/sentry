@@ -266,7 +266,7 @@ const StreamActions = React.createClass({
                  tooltip={t('Add to Bookmarks')}
                  onlyIfBulk={true}
                  selectAllActive={this.state.pageSelected}>
-                <i aria-hidden="true" className="icon-star-solid"></i>
+                <i aria-hidden="true" className="icon-star-solid"/>
               </ActionLink>
             </div>
             <div className="btn-group">
@@ -275,7 +275,7 @@ const StreamActions = React.createClass({
                 btnGroup={true}
                 caret={false}
                 className="btn btn-sm btn-default hidden-xs action-more"
-                title={<span className="icon-ellipsis"></span>}>
+                title={<span className="icon-ellipsis"/>}>
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
@@ -415,15 +415,15 @@ const StreamActions = React.createClass({
               <a className="btn btn-default btn-sm hidden-xs realtime-control"
                  onClick={this.onRealtimeChange}>
                 {(this.props.realtimeActive ?
-                  <span className="icon icon-pause"></span>
+                  <span className="icon icon-pause"/>
                   :
-                  <span className="icon icon-play"></span>
+                  <span className="icon icon-play"/>
                 )}
               </a>
             </div>
           </div>
-          <div className="hidden-sm stream-actions-assignee col-md-1"></div>
-          <div className="stream-actions-level col-md-1 hidden-xs"></div>
+          <div className="hidden-sm stream-actions-assignee col-md-1"/>
+          <div className="stream-actions-level col-md-1 hidden-xs"/>
           <div className="hidden-sm hidden-xs stream-actions-graph col-md-2">
             <span className="stream-actions-graph-label">{t('Graph:')}</span>
             <ul className="toggle-graph">

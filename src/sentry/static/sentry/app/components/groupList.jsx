@@ -121,7 +121,7 @@ const GroupList = React.createClass({
     else if (this.state.groupIds.length === 0)
       return (
         <div className="box empty-stream">
-          <span className="icon icon-exclamation"></span>
+          <span className="icon icon-exclamation"/>
           <p>{t('There doesn\'t seem to be any events fitting the query.')}</p>
         </div>
       );
