@@ -10,11 +10,13 @@ export default React.createClass({
       lat: React.PropTypes.number.isRequired,
     })).isRequired,
     height: React.PropTypes.number,
+    defaultZoom: React.PropTypes.number,
   },
 
   getDefaultProps() {
     return {
       height: 600,
+      defaultZoom: 1,
     };
   },
 
@@ -23,7 +25,7 @@ export default React.createClass({
       container: this.refs.map,
       style: 'mapbox://styles/mapbox/light-v9',
       maxZoom: 14,
-      zoom: 1,
+      zoom: this.props.defaultZoom,
       interactive: false,
     });
     this.map.on('load', () => {

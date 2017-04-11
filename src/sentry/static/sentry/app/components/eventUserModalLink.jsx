@@ -60,7 +60,7 @@ const LocationsMap = React.createClass({
       return <div className="box"><LoadingIndicator /></div>;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
-    return <GeoMap series={this.state.data} height={500} />;
+    return <GeoMap defaultZoom={0} series={this.state.data} height={500} />;
   },
 });
 
