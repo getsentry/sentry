@@ -37,6 +37,8 @@ import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import OrganizationUsers from './views/organizationUsers';
+import OrganizationUserDetails from './views/organizationUserDetails';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
@@ -69,6 +71,8 @@ import Stream from './views/stream';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
+import UserAssigned from './views/userAssigned';
+import UserResolved from './views/userResolved';
 
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 
@@ -149,6 +153,11 @@ function routes() {
         <Route path="/organizations/:orgId/stats/" component={errorHandler(OrganizationStats)} />
 
         <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
+        <Route path="/organizations/:orgId/users/" component={errorHandler(OrganizationUsers)} />
+        <Route name="userDetails" path="/organizations/:orgId/users/:userId/" component={errorHandler(OrganizationUserDetails)}>
+          <IndexRoute component={errorHandler(UserAssigned)} />
+          <Route path="resolved/" component={errorHandler(UserResolved)} />
+        </Route>
 
         {hooksOrgRoutes}
 
