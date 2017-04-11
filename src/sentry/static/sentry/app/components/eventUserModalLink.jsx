@@ -185,10 +185,14 @@ export default React.createClass({
             <div className="col-md-5">
               <h6 className="nav-header">Other Info</h6>
               <dl className="flat">
-                <dt>ID:</dt>
-                <dd>{user.id || <em>n/a</em>}</dd>
-                <dt>Username:</dt>
-                <dd>{user.username || <em>n/a</em>}</dd>
+                {user.id && [
+                  <dt key="dt-id">ID:</dt>,
+                  <dd key="dd-id">{user.id}</dd>
+                ]}
+                {user.username && [
+                  <dt key="dt-username">Username:</dt>,
+                  <dd key="dt-username">{user.username}</dd>
+                ]}
               </dl>
             </div>
           </div>
