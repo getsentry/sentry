@@ -40,7 +40,7 @@ def _sampled_value(value):
     return value
 
 
-def _incr_internal(key, instance=None, tags=None, amount=1):
+def incr_internal(key, instance=None, tags=None, amount=1):
     from sentry import tsdb
 
     if _should_sample():
@@ -59,7 +59,7 @@ def _incr_internal(key, instance=None, tags=None, amount=1):
 
 def incr(key, amount=1, instance=None, tags=None):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    _incr_internal(key, instance, tags, amount)
+    incr_internal(key, instance, tags, amount)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
     except Exception:
