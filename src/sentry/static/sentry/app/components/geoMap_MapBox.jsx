@@ -21,7 +21,10 @@ export default React.createClass({
   componentDidMount() {
     this.map = new mapboxgl.Map({
       container: this.refs.map,
-      style: 'mapbox://styles/mapbox/light-v9'
+      style: 'mapbox://styles/mapbox/light-v9',
+      maxZoom: 14,
+      zoom: 1,
+      interactive: false,
     });
     this.map.on('load', () => {
       this.map.addSource('locations', {
