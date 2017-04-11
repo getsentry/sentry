@@ -310,7 +310,7 @@ export default React.createClass({
         <div style={{marginTop: -110, position: 'relative'}}>
           <LocationsMap {...this.props} />
         </div>
-        <div style={{padding: '20px 30px 0', borderTop: '1px solid #ccc',  marginTop: -180, background: '#fff', opacity: 0.8}}>
+        <div style={{padding: '20px 30px 0', borderTop: '1px solid #ccc',  marginTop: -180, background: '#fff', opacity: 0.9}}>
           <div className="row">
             <div className="col-md-8">
               <h5>Users Affected</h5>

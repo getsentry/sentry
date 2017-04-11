@@ -19,7 +19,7 @@ const LocationsMap = React.createClass({
 
   getDefaultProps() {
     return {
-      height: 500,
+      height: 450,
     };
   },
 
@@ -162,29 +162,36 @@ export default React.createClass({
           overflow: 'hidden',
           margin: '-20px -30px 0',
       }}>
-        <div style={{marginTop: -110, position: 'relative'}}>
+        <div style={{marginTop: -130, position: 'relative'}}>
           <LocationsMap {...this.props} />
         </div>
-        <div style={{padding: '20px 30px 0', borderTop: '1px solid #ccc',  marginTop: -180, background: '#fff', opacity: 0.8}}>
+        <div style={{padding: '20px 30px 0', borderTop: '1px solid #ccc',  marginTop: -160, background: '#fff', opacity: 0.9}}>
           <div className="user-details-header">
             <Avatar user={user} size={128} />
-            <h4>{this.getDisplayName(user)}</h4>
+            <div className="user-name">
+              <h5>{this.getDisplayName(user)}</h5>
+              <small>{user.email || user.ipAddress || ''}</small>
+            </div>
+            <div className="user-action">
+              {user.email &&
+                <a href={`mailto:${user.email}`} className="btn btn-default">Send an email</a>
+              }
+            </div>
+            <div className="clearfix" />
           </div>
           <div className="row">
-            <div className="col-md-4">
-              <dl>
+            <div className="col-md-5">
+            </div>
+            <div className="col-md-7">
+              <h6 className="nav-header">Other Info</h6>
+              <dl className="flat">
                 <dt>ID:</dt>
                 <dd>{user.id || <em>n/a</em>}</dd>
                 <dt>Username:</dt>
                 <dd>{user.username || <em>n/a</em>}</dd>
-                <dt>Email:</dt>
-                <dd>{user.email || <em>n/a</em>}</dd>
                 <dt>IP Address:</dt>
                 <dd>{user.ipAddress || <em>n/a</em>}</dd>
               </dl>
-            </div>
-            <div className="col-md-8">
-
             </div>
           </div>
         </div>

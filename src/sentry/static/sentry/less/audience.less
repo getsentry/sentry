@@ -20,12 +20,31 @@
 
 .user-details-header {
   text-align: center;
-  margin-top: -85px;
+  position: relative;
+  border-bottom: 1px solid @trim;
+  margin: 0 -30px 20px;
+  padding: 0 0 15px;
 
   .avatar {
     display: inline-block;
-    .square(128px);
-    margin-bottom: 10px;
+    .square(96px);
+    margin: -55px auto 10px;
+  }
+
+  .user-name {
+    text-align: left;
+    float: left;
+    padding: 0 0 0 30px;
+
+    h5 {
+      margin-bottom: 0;
+    }
+  }
+
+  .user-action {
+    padding: 0 30px 0 0;
+    text-align: left;
+    float: right;
   }
 }
 
