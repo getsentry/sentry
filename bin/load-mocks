@@ -18,7 +18,7 @@ from uuid import uuid4
 from sentry import buffer, roles
 from sentry.tsdb import backend as tsdb
 from sentry.models import (
-    Activity, Broadcast, Deploy, File, GroupMeta, Organization, OrganizationAccessRequest,
+    Activity, Broadcast, Deploy, EventUser, File, GroupMeta, Organization, OrganizationAccessRequest,
     OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
     GroupRelease, Environment, ReleaseEnvironment, ReleaseCommit, Commit, Repository,
     CommitAuthor, CommitFileChange,
@@ -537,8 +537,14 @@ def main(num_events=1, extra_events=False):
                 except IntegrityError:
                     pass
 
+            event_user = EventUser.for_tags(
+                project_id=project.id,
+                values=[event3.get_tag('sentry:user')],
+            )[event3.get_tag('sentry:user')]
+
             UserReport.objects.create(
                 project=project,
+                event_user_id=event_user.id,
                 event_id=event3.event_id,
                 group=event3.group,
                 name='Jane Doe',
