@@ -32,7 +32,7 @@ export default React.createClass({
         <div className="list-group">
           {data.map((user) => {
             return (
-              <div className="list-group-item">
+              <div className="list-group-item" key={user.id}>
                 <div className="row">
                   <div className="list-group-avatar col-sm-4">
                     <Avatar user={user} size={36} />
