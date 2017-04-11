@@ -180,9 +180,9 @@ export default React.createClass({
             <div className="clearfix" />
           </div>
           <div className="row">
-            <div className="col-md-5">
-            </div>
             <div className="col-md-7">
+            </div>
+            <div className="col-md-5">
               <h6 className="nav-header">Other Info</h6>
               <dl className="flat">
                 <dt>ID:</dt>
