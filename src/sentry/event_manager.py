@@ -679,7 +679,10 @@ class EventManager(object):
 
         UserReport.objects.filter(
             project=project, event_id=event_id,
-        ).update(group=group)
+        ).update(
+            group=group,
+            event_user_id=event_user.id if event_user else None,
+        )
 
         # save the event unless its been sampled
         if not is_sample:
