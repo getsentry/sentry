@@ -119,17 +119,21 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 project=report.project,
                 event_id=report.event_id,
             )
+            euser = self.find_event_user(report)
+            if euser and not euser.uname and report.name:
+                euser.update(report.name)
+
             report.update(
                 name=report.name,
                 email=report.email,
                 comments=report.comments,
                 date_added=timezone.now(),
-                event_user_id=self.find_event_user_id(report),
+                event_user_id=euser.id if euser else None,
             )
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer()))
 
-    def find_event_user_id(self, report):
+    def find_event_user(self, report):
         try:
             event = Event.objects.get(
                 group=report.group,
@@ -142,7 +146,7 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 return EventUser.objects.filter(
                     project=report.project_id,
                     email__iexact=report.email,
-                )[0].id
+                )[0]
             except IndexError:
                 return None
 
@@ -154,6 +158,6 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             return EventUser.for_tags(
                 project_id=report.project_id,
                 values=[tag],
-            )[tag].id
+            )[tag]
         except KeyError:
             pass
