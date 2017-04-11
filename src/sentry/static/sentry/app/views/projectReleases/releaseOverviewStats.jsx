@@ -7,10 +7,6 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 
 const ReleaseOverviewStats = React.createClass({
-  propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
-  },
 
   mixins: [ApiMixin],
 
@@ -45,7 +41,7 @@ const ReleaseOverviewStats = React.createClass({
   },
 
   getProjectReleaseStatsEndpoint() {
-    let {orgId, projectId} = this.props;
+    let {orgId, projectId} = this.props.params;
     return '/projects/' + orgId + '/' + projectId + '/releases/stats/';
   },
 
@@ -81,7 +77,7 @@ const ReleaseOverviewStats = React.createClass({
         <Tooltip />
         {Array.from(releases).map((stat, i) => {
           return (
-            <Area type="monotone" dataKey={stat} fill={colors[i % 3]}
+            <Area key={stat} type="monotone" dataKey={stat} fill={colors[i % 3]}
                   stroke={colors[i % 3]} fillOpacity={1} stackId="1" />
           );
         })}

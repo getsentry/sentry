@@ -54,6 +54,8 @@ import ProjectDocsContext from './views/projectInstall/docsContext';
 import ProjectInstallOverview from './views/projectInstall/overview';
 import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
+import ReleaseOverviewStats from './views/projectReleases/releaseOverviewStats';
+import ProjectReleaseList from './views/projectReleases/releaseList';
 import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectDebugSymbols from './views/projectDebugSymbols';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
@@ -173,7 +175,10 @@ function routes() {
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
-          <Route path="releases/" component={errorHandler(ProjectReleases)} />
+          <Route path="releases/" component={errorHandler(ProjectReleases)}>
+            <IndexRoute component={errorHandler(ReleaseOverviewStats)} />
+            <Route path="versions/" component={errorHandler(ProjectReleaseList)} />
+          </Route>
           {/* TODO(jess): take this out when we release releases to everyone */}
           <Route name="releaseDetails" path="releases/:version/" component={errorHandler(ReleaseDetails)}
                  getIndexRoute={(partialNextState, cb) => {
