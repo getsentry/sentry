@@ -56,6 +56,7 @@
     "react-router": "2.8.1",
     "react-sparklines": "1.6.0",
     "react-sticky": "5.0.4",
+    "recharts": "^0.22.0",
     "reflux": "0.4.1",
     "select2": "3.5.1",
     "sprintf-js": "^1.0.3",

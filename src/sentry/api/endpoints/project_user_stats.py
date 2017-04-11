@@ -11,13 +11,13 @@ from sentry.api.bases.project import ProjectEndpoint
 class ProjectUserStatsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         now = timezone.now()
-        then = now - timedelta(days=3)
+        then = now - timedelta(days=30)
 
-        results = tsdb.get_distinct_counts_series(
+        results = tsdb.rollup(tsdb.get_distinct_counts_series(
             tsdb.models.users_affected_by_project,
             (project.id,),
             then,
             now,
-        )[project.id]
+        ), 3600 * 24)[project.id]
 
         return Response(results)

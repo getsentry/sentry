@@ -1,3 +1,4 @@
+import moment from 'moment';
 import React from 'react';
 import {Link} from 'react-router';
 
@@ -7,6 +8,8 @@ import countryCodes from '../utils/countryCodes';
 import GeoMap from '../components/geoMap';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+
+import {BarChart, Bar, XAxis, YAxis, Tooltip} from 'recharts';
 
 const UsersAffectedList = React.createClass({
   mixins: [ApiMixin],
@@ -124,15 +127,31 @@ const UsersAffectedChart = React.createClass({
     return `/projects/${orgId}/${projectId}/user-stats/`;
   },
 
+  xTick() {
+    return <span style={{fontSize: 12}} />;
+  },
+
   render() {
     if (this.state.loading)
       return <div className="box"><LoadingIndicator /></div>;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
+    let series = this.state.data.map((p) => {
+      return {
+        name: moment(p[0] * 1000).format('ll'),
+        count: p[1],
+      };
+    });
+
     return (
-      <div>
-        STATS
+      <div style={{border: '1px solid #ddd'}}>
+        <BarChart width={600} height={150} data={series}>
+         <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
+         <YAxis tickLine={false} stroke="#ccc" />
+         <Tooltip/>
+         <Bar type="monotone" dataKey="count" fill="red" />
+        </BarChart>
       </div>
     );
   },
