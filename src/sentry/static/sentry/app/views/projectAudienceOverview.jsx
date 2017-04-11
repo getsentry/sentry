@@ -2,6 +2,7 @@ import React from 'react';
 import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
+import Avatar from '../components/avatar';
 import countryCodes from '../utils/countryCodes';
 import GeoMap from '../components/geoMap';
 import LoadingError from '../components/loadingError';
@@ -71,7 +72,7 @@ const UsersAffectedList = React.createClass({
           let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
           return (
             <li key={user.id}>
-              <img src={user.avatarUrl} />
+              <Avatar user={user} />
               <Link to={link}>{this.getDisplayName(user)}</Link>
             </li>
           );
@@ -251,7 +252,7 @@ const Feedback = React.createClass({
           let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
           return (
             <li key={user.id}>
-              avatar
+              <Avatar user={user} />
               <Link to={link}>{user.name || user.email || <em>Anonymous</em>}</Link>
             </li>
           );
@@ -266,6 +267,7 @@ export default React.createClass({
     return (
       <div style={{
           overflow: 'hidden',
+          margin: '-20px -30px 0',
       }}>
         <div style={{marginTop: -110, position: 'relative'}}>
           <LocationsMap {...this.props} />

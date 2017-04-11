@@ -16,7 +16,6 @@ const ProjectUserReports = React.createClass({
   propTypes: {
     defaultQuery: React.PropTypes.string,
     defaultStatus: React.PropTypes.string,
-    setProjectNavSection: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -41,7 +40,6 @@ const ProjectUserReports = React.createClass({
   },
 
   componentWillMount() {
-    this.props.setProjectNavSection('user-feedback');
     this.fetchData();
   },
 

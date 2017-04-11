@@ -34,12 +34,17 @@ export default React.createClass({
           </div>
           <h4 style={{float: 'left', paddingRight: 20, marginRight: 20, borderRight: '1px solid #ddd'}}>Audience</h4>
           <ul className="nav nav-tabs" style={{float: 'left'}}>
-            <ListLink to={`/${orgId}/${projectId}/audience/`}>Overview</ListLink>
+            <ListLink index={true} to={`/${orgId}/${projectId}/audience/`}>Overview</ListLink>
             <ListLink to={`/${orgId}/${projectId}/audience/users/`}>Users Affected</ListLink>
+            <ListLink to={`/${orgId}/${projectId}/audience/feedback/`}>Feedback</ListLink>
           </ul>
           <div className="clearfix" />
         </div>
-        {this.props.children}
+        <div style={{
+          padding: '20px 30px 0',
+        }}>
+          {this.props.children}
+        </div>
       </div>
     );
   },

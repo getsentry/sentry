@@ -58,6 +58,7 @@ import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectDebugSymbols from './views/projectDebugSymbols';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
 import ProjectSettings from './views/projectSettings';
+import ProjectUsers from './views/projectUsers';
 import ProjectUserDetails from './views/projectUserDetails';
 import ProjectUserReports from './views/projectUserReports';
 import ProjectUserReportSettings from './views/projectUserReportSettings';
@@ -165,6 +166,8 @@ function routes() {
           <IndexRoute component={errorHandler(Stream)} />
           <Route path="audience/" component={errorHandler(ProjectAudienceLayout)}>
             <IndexRoute component={errorHandler(ProjectAudienceOverview)} />
+            <Route path="feedback/" component={errorHandler(ProjectUserReports)} />
+            <Route path="users/" component={errorHandler(ProjectUsers)}/>
             <Route path="users/:userId/" component={errorHandler(ProjectUserDetails)}/>
           </Route>
           <Route path="searches/:searchId/" component={errorHandler(Stream)} />
@@ -193,7 +196,6 @@ function routes() {
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
             <Route path="commits/" component={errorHandler(ReleaseCommits)}/>
           </Route>
-          <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Route path="alerts/" component={errorHandler(ProjectAlertSettings)} />
             <Route path="alerts/rules/" component={errorHandler(ProjectAlertRules)} />
