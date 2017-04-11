@@ -765,10 +765,10 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
-                euser = EventUser.objects.get(
-                    project=project,
-                    hash=euser.hash,
-                )
+                euser = EventUser.objects.filter(
+                    Q(project=project, hash=euser.hash) |
+                    Q(project=project, ident=euser.ident)
+                )[0]
                 euser_id = euser.id
             default_cache.set(cache_key, euser.id, 3600)
 
