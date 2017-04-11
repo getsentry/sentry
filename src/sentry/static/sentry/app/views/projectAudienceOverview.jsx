@@ -205,7 +205,7 @@ const LocationsMap = React.createClass({
   },
 
   render() {
-    return <div style={{height: this.props.height}}>{this.renderBody()}</div>;
+    return <div style={{height: this.props.height}} className="map-container">{this.renderBody()}</div>;
   },
 });
 
