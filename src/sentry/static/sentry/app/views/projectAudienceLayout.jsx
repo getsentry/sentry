@@ -21,8 +21,10 @@ export default React.createClass({
           overflow: 'hidden',
       }}>
         <div style={{
-          padding: '20px 30px 0',
-          borderBottom: '1px solid #ddd',
+          padding: '10px 30px 0',
+          boxShadow: '0 1px 0 rgba(0,0,0, .1)',
+          position: 'relative',
+          zIndex: '5'
         }}>
           <div style={{float: 'right'}}>
             <label>
@@ -32,8 +34,8 @@ export default React.createClass({
               </DropdownLink>
             </label>
           </div>
-          <h4 style={{float: 'left', paddingRight: 20, marginRight: 20, borderRight: '1px solid #ddd'}}>Audience</h4>
-          <ul className="nav nav-tabs" style={{float: 'left'}}>
+          <h5 style={{float: 'left', paddingRight: 20, marginTop: 3, marginRight: 20, marginBottom: 0, borderRight: '1px solid #ddd'}}>Audience</h5>
+          <ul className="nav nav-tabs" style={{float: 'left', marginBottom: '0'}}>
             <ListLink index={true} to={`/${orgId}/${projectId}/audience/`}>Overview</ListLink>
             <ListLink to={`/${orgId}/${projectId}/audience/users/`}>Users Affected</ListLink>
             <ListLink to={`/${orgId}/${projectId}/audience/feedback/`}>Feedback</ListLink>
