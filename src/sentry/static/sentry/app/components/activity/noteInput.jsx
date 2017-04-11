@@ -9,7 +9,7 @@ import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
 
-import {MentionsInput, Mention} from 'react-mentions'
+import {MentionsInput, Mention} from 'react-mentions';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
@@ -223,7 +223,7 @@ const NoteInput = React.createClass({
   },
 
   render() {
-    let {error, errorJSON, loading, preview, updating, value, memberList} = this.state;
+    let {error, errorJSON, loading, preview, updating, value} = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
