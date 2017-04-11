@@ -5,8 +5,17 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZGNyYW1lciIsImEiOiJjajFjb2kwaXMwMDV3MndwZHoyd
 
 export default React.createClass({
   propTypes: {
-    series: React.PropTypes.array.isRequired, // [COUNTRY_CODE, COUNT]
-    highlightCountryCode: React.PropTypes.string
+    series: React.PropTypes.arrayOf(React.PropTypes.shape({
+      lng: React.PropTypes.number.isRequired,
+      lat: React.PropTypes.number.isRequired,
+    })).isRequired,
+    height: React.PropTypes.number,
+  },
+
+  getDefaultProps() {
+    return {
+      height: 600,
+    };
   },
 
   componentDidMount() {
@@ -24,7 +33,7 @@ export default React.createClass({
               type: 'Feature',
               geometry: {
                 type: 'Point',
-                coordinates: [p.lat, p.lng],
+                coordinates: [p.lng, p.lat],
               },
               properties: {
                 'Primary ID': `${p.city}, ${p.region} ${p.country}`,
@@ -98,10 +107,7 @@ export default React.createClass({
 
   render() {
     return (
-      <div className="locations-wrapper clearfix"
-           style={{border: '1px solid #D6DBE4', borderRadius: 4}}>
-        <div ref="map" />
-      </div>
+      <div style={{position: 'relative', height: this.props.height}} ref="map" />
     );
   }
 });

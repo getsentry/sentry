@@ -91,7 +91,7 @@ export default React.createClass({
 
   render() {
     return (
-      <div style={{position: 'relative'}} ref="map"></div>
+      <div style={{position: 'relative'}} ref="map" />
     );
   }
 });

@@ -1,8 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
-import countryCodes from '../utils/countryCodes';
-import GeoMap from '../components/geoMap';
+import GeoMap from '../components/geoMap_MapBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import IssueList from '../components/issueList';
@@ -85,8 +84,7 @@ const LocationsMap = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    let series = this.state.data.map(i => [countryCodes[i.country], i.count]);
-    return <GeoMap series={series}/>;
+    return <GeoMap series={this.state.data} height={600} />;
   },
 });
 

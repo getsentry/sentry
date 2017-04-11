@@ -4,8 +4,7 @@ import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
-import countryCodes from '../utils/countryCodes';
-import GeoMap from '../components/geoMap';
+import GeoMap from '../components/geoMap_MapBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
@@ -243,13 +242,8 @@ const LocationsMap = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    let series = this.state.data.map(t => [countryCodes[t.value], t.count]);
-    let {highlight} = this.props.location.query;
-    if (highlight) {
-      highlight = countryCodes[highlight];
-    }
     return (
-      <GeoMap highlightCountryCode={highlight} series={series} height={200} />
+      <GeoMap series={this.state.data} height={600} />
     );
   },
 });
