@@ -12,9 +12,16 @@ const LocationsMap = React.createClass({
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     user: React.PropTypes.object.isRequired,
+    height: React.PropTypes.number,
   },
 
   mixins: [ApiMixin],
+
+  getDefaultProps() {
+    return {
+      height: 500,
+    };
+  },
 
   getInitialState() {
     return {
@@ -55,12 +62,16 @@ const LocationsMap = React.createClass({
     return `/projects/${orgId}/${projectId}/users/${user.hash}/locations/`;
   },
 
-  render() {
+  renderBody() {
     if (this.state.loading)
-      return <div className="box"><LoadingIndicator /></div>;
+      return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
-    return <GeoMap defaultZoom={0} series={this.state.data} height={500} />;
+    return <GeoMap defaultZoom={0} series={this.state.data} height={this.props.height} />;
+  },
+
+  render() {
+    return <div style={{height: this.props.height}}>{this.renderBody()}</div>;
   },
 });
 

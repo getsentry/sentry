@@ -142,7 +142,18 @@ const UsersAffectedChart = React.createClass({
 });
 
 const LocationsMap = React.createClass({
+  propTypes: {
+    params: React.PropTypes.object.isRequired,
+    height: React.PropTypes.number,
+  },
+
   mixins: [ApiMixin],
+
+  getDefaultProps() {
+    return {
+      height: 600,
+    };
+  },
 
   getInitialState() {
     return {
@@ -183,15 +194,16 @@ const LocationsMap = React.createClass({
     return `/projects/${orgId}/${projectId}/locations/`;
   },
 
-  render() {
+  renderBody() {
     if (this.state.loading)
-      return <div className="box"><LoadingIndicator /></div>;
+      return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
+    return <GeoMap  series={this.state.data} height={this.props.height} />;
+  },
 
-    return (
-      <GeoMap series={this.state.data} height={600} />
-    );
+  render() {
+    return <div style={{height: this.props.height}}>{this.renderBody()}</div>;
   },
 });
 
