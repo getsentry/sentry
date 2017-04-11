@@ -2,12 +2,10 @@ import jQuery from 'jquery';
 import React from 'react';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
-import Avatar from '../components/avatar';
+import EventUserList from '../components/eventUserList';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
-import TimeSince from '../components/timeSince';
-import utils from '../utils';
 import {t} from '../locale';
 
 export default React.createClass({
@@ -88,14 +86,14 @@ export default React.createClass({
   },
 
   getEndpoint() {
-    let params = this.props.params;
+    let {orgId, projectId} = this.props.params;
     let queryParams = {
       ...this.props.location.query,
       limit: 50,
       query: this.state.query,
     };
 
-    return `/projects/${params.orgId}/${params.projectId}/users/?${jQuery.param(queryParams)}`;
+    return `/projects/${orgId}/${projectId}/users/?${jQuery.param(queryParams)}`;
   },
 
   getDisplayName(user) {
@@ -136,19 +134,7 @@ export default React.createClass({
 
   renderResults() {
     let {orgId, projectId} = this.props.params;
-    return (
-      <ul>
-        {this.state.userList.map((user) => {
-          let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
-          return (
-            <li key={user.id}>
-              <Avatar user={user} size={64} className="avatar" />
-              <Link to={link}>{this.getDisplayName(user)}</Link>
-            </li>
-          );
-        })}
-      </ul>
-    );
+    return <EventUserList data={this.state.userList} orgId={orgId} projectId={projectId} />;
   },
 
   renderBody() {

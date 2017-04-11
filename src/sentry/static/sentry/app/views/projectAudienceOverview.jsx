@@ -4,8 +4,8 @@ import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
+import EventUserList from '../components/eventUserList';
 import GeoMap from '../components/geoMap_MapBox';
-import Location from '../components/location';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
@@ -54,15 +54,6 @@ const UsersAffectedList = React.createClass({
     return `/projects/${orgId}/${projectId}/users/?per_page=10`;
   },
 
-  getDisplayName(user) {
-    return (
-      user.username ||
-      user.email ||
-      user.identifier ||
-      `${user.ipAddress} (anonymous)`
-    );
-  },
-
   render() {
     if (this.state.loading)
       return <div className="box"><LoadingIndicator /></div>;
@@ -70,33 +61,8 @@ const UsersAffectedList = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
 
     let {orgId, projectId} = this.props.params;
-    return (
-      <table className="table table-bordered user-list">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Location</th>
-            <th>Last Hit an Issue</th>
-          </tr>
-        </thead>
-        <tbody>
-          {this.state.data.map((user) => {
-            let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
-            return (
-              <tr key={user.id}>
-                <td>
-                  <Avatar user={user} size={36} />
-                  <Link to={link}>{this.getDisplayName(user)}</Link><br />
-                  <small>First seen <TimeSince date={user.dateCreated} /></small>
-                </td>
-                <td><Location location={user.lastLocation} /></td>
-                <td><TimeSince date={user.lastIssue.lastSeen} /><br /><small>{user.lastIssue.project.name}</small></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    );
+    return <EventUserList data={this.state.data} orgId={orgId} projectId={projectId} />;
+
   }
 });
 
