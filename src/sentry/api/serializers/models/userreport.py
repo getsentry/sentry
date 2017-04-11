@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import six
 
 from sentry.api.serializers import register, serialize, Serializer
-from sentry.models import UserReport
+from sentry.models import EventUser, UserReport
 
 
 @register(UserReport)
@@ -11,6 +11,15 @@ class UserReportSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         # TODO(dcramer): add in various context from the event
         # context == user / http / extra interfaces
+        # TODO(dcramer): we should pair up EventUser with UserReport
+        try:
+            event_user = EventUser.objects.get(
+                email__iexact=obj.email,
+                project=obj.project_id,
+            )
+        except EventUser.DoesNotExist:
+            event_user = None
+
         return {
             'id': six.text_type(obj.id),
             'eventID': obj.event_id,
@@ -18,6 +27,7 @@ class UserReportSerializer(Serializer):
             'email': obj.email,
             'comments': obj.comments,
             'dateCreated': obj.date_added,
+            'user': serialize(event_user, user),
         }
 
 

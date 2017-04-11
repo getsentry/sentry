@@ -296,6 +296,16 @@ const Feedback = React.createClass({
     return `/projects/${orgId}/${projectId}/user-feedback/?per_page=10`;
   },
 
+  getDisplayName(feedback) {
+    if (feedback.name)
+      return feedback.name;
+    else if (feedback.email)
+      return feedback.email;
+    else if (feedback.user)
+      return feedback.user.username || feedback.user.email || <em>Anonymous</em>;
+    return <em>Anonymous</em>;
+  },
+
   render() {
     if (this.state.loading)
       return <div className="box"><LoadingIndicator /></div>;
@@ -305,12 +315,14 @@ const Feedback = React.createClass({
     let {orgId, projectId} = this.props.params;
     return (
       <ul>
-        {this.state.data.map((user) => {
-          let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
+        {this.state.data.map((feedback) => {
+          let link = `/${orgId}/${projectId}/audience/users/${feedback.hash}/`;
           return (
-            <li key={user.id}>
-              <Avatar user={user} />
-              <Link to={link}>{user.name || user.email || <em>Anonymous</em>}</Link>
+            <li key={feedback.id}>
+              <Avatar user={feedback.user} />
+              <Link to={link}>{this.getDisplayName(feedback)}</Link>
+              {feedback.comments}
+              <TimeSince date={feedback.dateCreated} />
             </li>
           );
         })}
