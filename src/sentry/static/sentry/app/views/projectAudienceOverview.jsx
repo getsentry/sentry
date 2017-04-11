@@ -4,6 +4,7 @@ import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
+import EventUserModalLink from '../components/eventUserModalLink';
 import EventUserList from '../components/eventUserList';
 import GeoMap from '../components/geoMap_MapBox';
 import LoadingError from '../components/loadingError';
@@ -264,7 +265,7 @@ const Feedback = React.createClass({
               </div>
               <div className="audience-feedback-name">
                 {feedback.user ?
-                  <Link to={`/${orgId}/${projectId}/audience/users/${feedback.user.hash}/`}>{this.getDisplayName(feedback)}</Link>
+                  <EventUserModalLink orgId={orgId} projectId={projectId} user={feedback.user} />
                 :
                   <strong>{this.getDisplayName(feedback)}</strong>
                 }
@@ -272,11 +273,13 @@ const Feedback = React.createClass({
               <div className="audience-feedback-body">
                 {feedback.comments}
               </div>
-              <div className="audience-feedback-short-id">
+              {feedback.issue &&
                 <div className="audience-feedback-short-id">
-                  <Link to="">heart-4tt4ck</Link>
+                  <div className="audience-feedback-short-id">
+                    <Link to={`/${orgId}/${projectId}/issues/${feedback.issue.id}/`}>{feedback.issue.shortId}</Link>
+                  </div>
                 </div>
-              </div>
+              }
             </div>
           );
         })}
