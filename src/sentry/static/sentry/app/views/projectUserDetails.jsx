@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import Avatar from '../components/avatar';
 import GeoMap from '../components/geoMap_MapBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -84,7 +85,7 @@ const LocationsMap = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    return <GeoMap series={this.state.data} height={600} />;
+    return <GeoMap series={this.state.data} height={500} />;
   },
 });
 
@@ -156,26 +157,37 @@ export default React.createClass({
     let {data} = this.state;
 
     return (
-      <div>
-        <h4>{this.getDisplayName(data)}</h4>
-        <div className="row">
-          <div className="col-md-4">
-            <dl>
-              <dt>ID:</dt>
-              <dd>{data.id || <em>n/a</em>}</dd>
-              <dt>Username:</dt>
-              <dd>{data.username || <em>n/a</em>}</dd>
-              <dt>Email:</dt>
-              <dd>{data.email || <em>n/a</em>}</dd>
-              <dt>IP Address:</dt>
-              <dd>{data.ipAddress || <em>n/a</em>}</dd>
-            </dl>
-          </div>
-          <div className="col-md-8">
-            <LocationsMap {...this.props} />
-          </div>
+      <div style={{
+          overflow: 'hidden',
+          margin: '-20px -30px 0',
+      }}>
+        <div style={{marginTop: -110, position: 'relative'}}>
+          <LocationsMap {...this.props} />
         </div>
-        <UserActivity {...this.props} user={data} />
+        <div style={{padding: '20px 30px 0', borderTop: '1px solid #ccc',  marginTop: -180, background: '#fff', opacity: 0.8}}>
+          <div className="user-details-header">
+            <Avatar user={data} size={128} />
+            <h4>{this.getDisplayName(data)}</h4>
+          </div>
+          <div className="row">
+            <div className="col-md-4">
+              <dl>
+                <dt>ID:</dt>
+                <dd>{data.id || <em>n/a</em>}</dd>
+                <dt>Username:</dt>
+                <dd>{data.username || <em>n/a</em>}</dd>
+                <dt>Email:</dt>
+                <dd>{data.email || <em>n/a</em>}</dd>
+                <dt>IP Address:</dt>
+                <dd>{data.ipAddress || <em>n/a</em>}</dd>
+              </dl>
+            </div>
+            <div className="col-md-8">
+
+            </div>
+          </div>
+          <UserActivity {...this.props} user={data} />
+        </div>
       </div>
     );
   },
