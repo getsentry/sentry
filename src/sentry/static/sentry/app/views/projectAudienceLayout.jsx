@@ -27,8 +27,8 @@ export default React.createClass({
           <div style={{float: 'right'}}>
             <label>
               <span>Show me activity: </span>
-              <DropdownLink>
-                <MenuItem isActive={true} title="In the past month" />
+              <DropdownLink title="In the past month">
+                <MenuItem isActive={true}>In the past month</MenuItem>
               </DropdownLink>
             </label>
           </div>
