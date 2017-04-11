@@ -9,7 +9,7 @@ import GeoMap from '../components/geoMap';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 
-import {BarChart, Bar, XAxis, YAxis, Tooltip} from 'recharts';
+import {BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip} from 'recharts';
 
 const UsersAffectedList = React.createClass({
   mixins: [ApiMixin],
@@ -70,17 +70,31 @@ const UsersAffectedList = React.createClass({
 
     let {orgId, projectId} = this.props.params;
     return (
-      <ul>
-        {this.state.data.map((user) => {
-          let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
-          return (
-            <li key={user.id}>
-              <Avatar user={user} />
-              <Link to={link}>{this.getDisplayName(user)}</Link>
-            </li>
-          );
-        })}
-      </ul>
+      <table className="table table-bordered user-list">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Last Hit an Issue</th>
+          </tr>
+        </thead>
+        <tbody>
+          {this.state.data.map((user) => {
+            let link = `/${orgId}/${projectId}/audience/users/${user.hash}/`;
+            return (
+              <tr key={user.id}>
+                <td>
+                  <Avatar user={user} size={36} />
+                  <Link to={link}>{this.getDisplayName(user)}</Link><br />
+                  <small>First seen 1 year ago</small>
+                </td>
+                <td>San Francisco, CA<br/><small>United States</small></td>
+                <td>Just now<br /><small>Sentry Frontend</small></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     );
   }
 });
@@ -145,13 +159,15 @@ const UsersAffectedChart = React.createClass({
     });
 
     return (
-      <div style={{border: '1px solid #ddd'}}>
-        <BarChart width={600} height={150} data={series}>
-         <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
-         <YAxis tickLine={false} stroke="#ccc" />
-         <Tooltip/>
-         <Bar type="monotone" dataKey="count" fill="red" />
-        </BarChart>
+      <div className="panel panel-default">
+        <ResponsiveContainer minHeight={150}>
+          <BarChart data={series} barGap={10}>
+           <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
+           <YAxis tickLine={false} stroke="#ccc" />
+           <Tooltip/>
+           <Bar type="monotone" dataKey="count" fill="#ef8675" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
     );
   },
