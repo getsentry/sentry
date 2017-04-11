@@ -26,6 +26,7 @@ export default React.createClass({
       style: 'mapbox://styles/mapbox/light-v9',
       maxZoom: 14,
       zoom: this.props.defaultZoom,
+      renderWorldCopies: false,
       interactive: false,
     });
     this.map.on('load', () => {
