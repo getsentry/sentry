@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
+import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
@@ -155,7 +156,7 @@ export default React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
-    let {user} = this.props;
+    let {orgId, projectId, user} = this.props;
 
     return (
       <div style={{
@@ -174,13 +175,18 @@ export default React.createClass({
             </div>
             <div className="user-action">
               {user.email &&
-                <a href={`mailto:${user.email}`} className="btn btn-default">Send an email</a>
+                <a href={`mailto:${user.email}`} className="btn btn-default">
+                  <span className="icon icon-envelope" style={{verticalAlign: 'middle', marginRight: 10}}/> Send an email
+                </a>
               }
             </div>
             <div className="clearfix" />
           </div>
           <div className="row">
             <div className="col-md-7">
+              <Link to={`/${orgId}/${projectId}/audience/users/${user.hash}/`} className="btn btn-default">
+                View more details
+              </Link>
             </div>
             <div className="col-md-5">
               <h6 className="nav-header">Other Info</h6>
