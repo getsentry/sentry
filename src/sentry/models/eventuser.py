@@ -25,6 +25,7 @@ class EventUser(Model):
     ident = models.CharField(max_length=128, null=True)
     email = models.EmailField(null=True, max_length=MAX_EMAIL_FIELD_LENGTH)
     username = models.CharField(max_length=128, null=True)
+    name = models.CharField(max_length=128, null=True)
     ip_address = models.GenericIPAddressField(null=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
@@ -92,7 +93,7 @@ class EventUser(Model):
         return self.email or self.username or self.ident or self.ip_address
 
     def get_display_name(self):
-        return self.email or self.username
+        return self.name or self.email or self.username
 
     def find_similar_users(self, user):
         from sentry.models import (

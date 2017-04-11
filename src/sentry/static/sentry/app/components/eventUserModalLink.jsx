@@ -134,9 +134,7 @@ export default React.createClass({
 
   getDisplayName(user) {
     return (
-      user.username ||
-      user.email ||
-      user.identifier ||
+      user.name ||
       `${user.ipAddress} (anonymous)`
     );
   },

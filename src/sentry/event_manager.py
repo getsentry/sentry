@@ -753,6 +753,7 @@ class EventManager(object):
             email=user_data.get('email'),
             username=user_data.get('username'),
             ip_address=user_data.get('ip_address'),
+            name=user_data.get('name'),
         )
 
         if not euser.tag_value:
@@ -772,6 +773,10 @@ class EventManager(object):
                     Q(project=project, hash=euser.hash) |
                     Q(project=project, ident=euser.ident)
                 )[0]
+                if euser.name != (user_data.get('name') or euser.name):
+                    euser.update(
+                        name=user_data['name'],
+                    )
                 euser_id = euser.id
             default_cache.set(cache_key, euser.id, 3600)
 

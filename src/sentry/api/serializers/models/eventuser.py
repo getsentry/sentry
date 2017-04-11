@@ -48,6 +48,7 @@ class EventUserSerializer(Serializer):
             'identifier': obj.ident,
             'username': obj.username,
             'email': obj.email,
+            'name': obj.get_display_name(),
             'ipAddress': obj.ip_address,
             'dateCreated': obj.date_added,
             'avatarUrl': get_gravatar_url(obj.email, size=32),

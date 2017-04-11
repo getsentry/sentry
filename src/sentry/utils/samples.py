@@ -44,9 +44,23 @@ def random_ip():
 
 def random_username():
     return random.choice([
-        'jess', 'david', 'chris', 'katie', 'ben', 'armin', 'saloni',
+        'jess', 'david', 'chris', 'eric', 'katie', 'ben', 'armin', 'saloni',
         'max', 'meredith', 'matt', 'sentry',
     ])
+
+
+def name_for_username(username):
+    return {
+        'ben': 'Ben Vinegar',
+        'david': 'David Cramer',
+        'matt': 'Matt Robenolt',
+        'jess': 'Jess MacQueen',
+        'katie': 'Katie Lundsgaard',
+        'saloni': 'Saloni Dudziak',
+        'max': 'Max Bittker',
+        'meredith': 'Meredith Heller',
+        'eric': 'Derrick Feng',
+    }.get(username, username.replace('_', ' ').title())
 
 
 def generate_user(username=None, email=None, ip_address=None, id=None):
@@ -57,6 +71,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
         'username': username,
         'email': email or '{}@example.com'.format(username),
         'ip_address': ip_address or random_ip(),
+        'name': name_for_username(username),
     }).to_json()
 
 
