@@ -127,15 +127,17 @@ const UsersAffectedChart = React.createClass({
     });
 
     return (
-      <div className="panel panel-default">
-        <ResponsiveContainer minHeight={150}>
-          <BarChart data={series} barGap={10}>
-           <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
-           <YAxis tickLine={false} stroke="#ccc" />
-           <Tooltip/>
-           <Bar type="monotone" dataKey="count" fill="#ef8675" />
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="panel panel-default" style={{overflow: 'hidden'}}>
+        <div style={{marginLeft: '-25'}}>
+          <ResponsiveContainer minHeight={150}>
+            <BarChart data={series} barGap={10} margin={{top: 25, right: 30, left: 0, bottom: 5}}>
+             <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
+             <YAxis tickLine={false} stroke="#ccc" />
+             <Tooltip/>
+             <Bar type="monotone" dataKey="count" fill="#ef8675" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     );
   },
