@@ -15,30 +15,43 @@ export default React.createClass({
   render() {
     let {data, orgId, projectId} = this.props;
     return (
-      <table className="table table-bordered user-list">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Location</th>
-            <th>Last Hit an Issue</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div className="panel panel-default">
+        <div className="panel-heading panel-heading-bold">
+          <div className="row">
+            <div className="col-sm-4">
+              Commit
+            </div>
+            <div className="col-sm-4">
+              Location
+            </div>
+            <div className="col-sm-4">
+              Last seen
+            </div>
+          </div>
+        </div>
+        <div className="list-group">
           {data.map((user) => {
             return (
-              <tr key={user.id}>
-                <td>
-                  <Avatar user={user} size={36} />
-                  <EventUserModalLink user={user} orgId={orgId} projectId={projectId} /><br />
-                  <small>First seen <TimeSince date={user.dateCreated} /></small>
-                </td>
-                <td>{location && <Location location={user.lastLocation} />}</td>
-                <td><TimeSince date={user.lastIssue.lastSeen} /><br /><small>{user.lastIssue.project.name}</small></td>
-              </tr>
+              <div className="list-group-item">
+                <div className="row">
+                  <div className="list-group-avatar col-sm-4">
+                    <Avatar user={user} size={36} />
+                    <h5><EventUserModalLink user={user} orgId={orgId} projectId={projectId} /></h5>
+                    <p className="text-muted">First seen <TimeSince date={user.dateCreated} /></p>
+                  </div>
+                  <div className="col-sm-4">
+                    {location && <Location location={user.lastLocation} />}
+                  </div>
+                  <div className="col-sm-4">
+                    <h5><TimeSince date={user.lastIssue.lastSeen} /></h5>
+                    <p className="text-muted">{user.lastIssue.project.name}</p>
+                  </div>
+                </div>
+              </div>
             );
           })}
-        </tbody>
-      </table>
+        </div>
+      </div>
     );
   }
 });

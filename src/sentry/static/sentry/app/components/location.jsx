@@ -12,14 +12,14 @@ export default React.createClass({
     if (location.city && location.region)
       return (
         <div>
-          <div>{location.city}, {location.region}</div>
-          <small>{location.country}</small>
+          <h5>{location.city}, {location.region}</h5>
+          <p className="text-muted">{location.country}</p>
         </div>
       );
     return (
       <div>
-        <div>{location.city}</div>
-        <small>{location.country}</small>
+        <h5>{location.city}</h5>
+        <p className="text-muted">{location.country}</p>
       </div>
     );
   },
