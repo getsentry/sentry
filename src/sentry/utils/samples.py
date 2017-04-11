@@ -66,7 +66,7 @@ def name_for_username(username):
 
 
 def generate_user(username=None, email=None, ip_address=None, id=None):
-    if username is None:
+    if username is None and email is None:
         username = random_username()
     return UserInterface.to_python({
         'id': id,
