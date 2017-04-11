@@ -2,7 +2,7 @@ import React from 'react';
 
 export default React.createClass({
   propTypes: {
-    location: React.PropTypes.object.isRequired,
+    location: React.PropTypes.object,
   },
 
   render() {
