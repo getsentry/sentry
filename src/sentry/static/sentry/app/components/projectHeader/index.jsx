@@ -1,6 +1,4 @@
 import React from 'react';
-import {Link} from 'react-router';
-
 
 import ProjectSelector from './projectSelector';
 import BookmarkToggle from '../projects/bookmarkToggle';
@@ -18,7 +16,6 @@ const ProjectHeader = React.createClass({
     let navSection = this.props.activeSection;
     let project = this.props.project;
     let org = this.props.organization;
-    let features = new Set(project.features);
     let access = new Set(org.access);
 
     return (
@@ -27,35 +24,6 @@ const ProjectHeader = React.createClass({
           <ProjectSelector
               organization={org}
               projectId={project.slug}/>
-          <ul className="nav nav-tabs">
-            <li className={navSection == 'dashboard' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/dashboard/`}>
-                {t('Overview')}
-              </Link>
-            </li>
-            <li className={navSection == 'stream' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/`}>
-                {t('Issues')}
-              </Link>
-            </li>
-            {features.has('global-events') &&
-              <li className={navSection == 'events' ? 'active' : ''}>
-                <Link to={`/${org.slug}/${project.slug}/events/`}>
-                  {t('Events')}
-                </Link>
-              </li>
-            }
-            <li className={navSection == 'releases' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/releases/`}>
-                {t('Releases')}
-              </Link>
-            </li>
-            <li className={navSection == 'audience' ? 'active' : ''}>
-              <Link to={`/${org.slug}/${project.slug}/audience/`}>
-                {t('Audience')}
-              </Link>
-            </li>
-          </ul>
         </div>
 
         <div className="align-right project-actions">

@@ -4,6 +4,7 @@ import $ from 'jquery';
 import ApiMixin from '../../mixins/apiMixin';
 import OrganizationState from '../../mixins/organizationState';
 import {load as loadIncidents} from '../../actionCreators/incidents';
+import ListLink from '../listLink';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
@@ -157,6 +158,8 @@ const Sidebar = React.createClass({
       );
     }
 
+    let {orgId, projectId} = this.props.params;
+
     return (<div>
       <OrganizationSelector
         organization={org}
@@ -164,6 +167,21 @@ const Sidebar = React.createClass({
         currentPanel={this.state.currentPanel}
         togglePanel={()=>this.togglePanel('org-selector')}
         hidePanel={()=>this.hidePanel()}/>
+
+      <ul className="navbar-nav divider-bottom">
+        <ListLink to={`/${orgId}/${projectId}/dashboard/`}>
+          <span className="icon icon-home"/>
+        </ListLink>
+        <ListLink to={`/${orgId}/${projectId}/`} index={true}>
+          <span className="icon icon-home"/>
+        </ListLink>
+        <ListLink to={`/${orgId}/${projectId}/releases/`}>
+          <span className="icon icon-home"/>
+        </ListLink>
+        <ListLink to={`/${orgId}/${projectId}/audience/`}>
+          <span className="icon icon-home"/>
+        </ListLink>
+      </ul>
 
       {/* Top nav links */}
       <ul className="navbar-nav divider-bottom">
@@ -195,7 +213,7 @@ const Sidebar = React.createClass({
           onShowPanel={()=>this.togglePanel('statusupdate')}
           hidePanel={()=>this.hidePanel()} />
         <li>
-          <a title="Support" href={!config.isOnPremise ? `/organizations/${org.slug}/support/` : 'https://forum.sentry.io/'}>
+          <a title="Support" href={!config.isOnPremise ? `/organizations/${orgId}/support/` : 'https://forum.sentry.io/'}>
             <span className="icon icon-support" />
           </a>
         </li>
@@ -206,7 +224,7 @@ const Sidebar = React.createClass({
         <SidebarPanel title={t('Assigned to me')}
                       hidePanel={()=>this.hidePanel()}>
           <IssueList
-            endpoint={`/organizations/${org.slug}/members/me/issues/assigned/`}
+            endpoint={`/organizations/${orgId}/members/me/issues/assigned/`}
             query={{
               statsPeriod: '24h',
               per_page: 10,
@@ -216,14 +234,14 @@ const Sidebar = React.createClass({
             renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No issues have been assigned to you.')}</div>}
             ref="issueList"
             showActions={false}
-            params={{orgId: org.slug}} />
+            params={{orgId: orgId}} />
         </SidebarPanel>
       }
       {this.state.showPanel && this.state.currentPanel == 'bookmarks' &&
         <SidebarPanel title={t('My Bookmarks')}
                       hidePanel={()=>this.hidePanel()}>
           <IssueList
-            endpoint={`/organizations/${org.slug}/members/me/issues/bookmarked/`}
+            endpoint={`/organizations/${orgId}/members/me/issues/bookmarked/`}
             query={{
               statsPeriod: '24h',
               per_page: 10,
@@ -233,14 +251,14 @@ const Sidebar = React.createClass({
             renderEmpty={() => <div className="sidebar-panel-empty" key="no">{t('You have no bookmarked issues.')}</div>}
             ref="issueList"
             showActions={false}
-            params={{orgId: org.slug}} />
+            params={{orgId: orgId}} />
         </SidebarPanel>
       }
       {this.state.showPanel && this.state.currentPanel == 'history' &&
         <SidebarPanel title={t('Recently Viewed')}
                       hidePanel={()=>this.hidePanel()}>
           <IssueList
-            endpoint={`/organizations/${org.slug}/members/me/issues/viewed/`}
+            endpoint={`/organizations/${orgId}/members/me/issues/viewed/`}
             query={{
               statsPeriod: '24h',
               per_page: 10,
@@ -250,7 +268,7 @@ const Sidebar = React.createClass({
             renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No recently viewed issues.')}</div>}
             ref="issueList"
             showActions={false}
-            params={{orgId: org.slug}} />
+            params={{orgId: orgId}} />
         </SidebarPanel>
       }
     </div>);

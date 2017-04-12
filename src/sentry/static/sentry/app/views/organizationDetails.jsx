@@ -153,7 +153,7 @@ const OrganizationDetails = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          <Sidebar/>
+          <Sidebar params={this.props.params} />
           {this.props.children}
           <Footer />
         </div>
