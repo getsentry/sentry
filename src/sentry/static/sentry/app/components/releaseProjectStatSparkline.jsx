@@ -51,7 +51,7 @@ const ReleaseProjectStatSparkline = React.createClass({
   getNewIssuesCount() {
     let {orgId, version} = this.props;
     let projectId = this.props.project.slug;
-    let issuesPath = `/projects/${orgId}/${projectId}/releases/${version}/`;
+    let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -84,7 +84,7 @@ const ReleaseProjectStatSparkline = React.createClass({
             <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
           </Sparklines>
         </div>
-        <Link to={`/${orgId}/${project.slug}/releases/${version}/overview/`}>
+        <Link to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/overview/`}>
           <h6 className="m-b-0">
             {project.name}
           </h6>
