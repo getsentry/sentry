@@ -77,7 +77,7 @@ const ReleaseCommits = React.createClass({
   componentDidMount() {
     let {orgId, projectId, version} = this.props.params;
 
-    let path = `/projects/${orgId}/${projectId}/releases/${version}/commits/`;
+    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/commits/`;
     this.api.request(path, {
       method: 'GET',
       data: this.props.location.query,

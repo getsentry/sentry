@@ -31,7 +31,7 @@ const ReleaseOverview = React.createClass({
   componentDidMount() {
     let {orgId, version} = this.props.params;
 
-    let path = `/organizations/${orgId}/releases/${version}/commitfiles/`;
+    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/commitfiles/`;
     this.api.request(path, {
       method: 'GET',
       data: this.props.location.query,
@@ -53,7 +53,7 @@ const ReleaseOverview = React.createClass({
 
   getReleaseProjects() {
     let {orgId, version} = this.props.params;
-    let path = `/organizations/${orgId}/releases/${version}/`;
+    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -71,7 +71,7 @@ const ReleaseOverview = React.createClass({
 
   getDeploys() {
     let {orgId, version} = this.props.params;
-    let path = `/organizations/${orgId}/releases/${version}/deploys/`;
+    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -148,7 +148,7 @@ const ReleaseOverview = React.createClass({
           <div className="col-sm-8">
             <h5>{t('Issues Resolved in this Release')}</h5>
             <IssueList
-              endpoint={`/projects/${orgId}/${projectId}/releases/${version}/resolved/`}
+              endpoint={`/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/resolved/`}
               pagination={false}
               renderEmpty={() => <div className="box empty m-b-2" key="none">{t('No issues resolved')}</div>}
               ref="issueList"

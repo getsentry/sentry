@@ -42,7 +42,7 @@ const VersionHoverCard = React.createClass({
     });
 
     // releases
-    let releasePath = `/projects/${orgId}/${projectId}/releases/${version}/`;
+    let releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(releasePath, {
       method: 'GET',
       success: (data) => {
