@@ -2,6 +2,7 @@ import React from 'react';
 import moment from 'moment';
 import {AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, YAxis, XAxis} from 'recharts';
 
+import ActivityFeed from '../../components/activity/feed';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
@@ -43,6 +44,11 @@ const ReleaseOverviewStats = React.createClass({
   getProjectReleaseStatsEndpoint() {
     let {orgId, projectId} = this.props.params;
     return '/projects/' + orgId + '/' + projectId + '/releases/stats/';
+  },
+
+  getActivityEndpoint() {
+    let {orgId, projectId} = this.props.params;
+    return '/projects/' + orgId + '/' + projectId + '/releases/activity/';
   },
 
   renderChart() {
@@ -133,6 +139,13 @@ const ReleaseOverviewStats = React.createClass({
             <div className="col-md-12">
               <h5>Events Per Release</h5>
               {this.renderChart()}
+            </div>
+          </div>
+          <div className="row">
+            <div className="col-md-6">
+              <ActivityFeed ref="activityFeed" endpoint={this.getActivityEndpoint()} query={{
+                per_page: 10,
+              }} pagination={false} {...this.props}/>
             </div>
           </div>
         </div>

@@ -76,6 +76,7 @@ from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
+from .endpoints.project_release_activity import ProjectReleaseActivityEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_searches import ProjectSearchesEndpoint
@@ -336,7 +337,10 @@ urlpatterns = patterns(
         name='sentry-api-0-project-releases'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/stats/$',
         ProjectReleaseStatsEndpoint.as_view(),
-        name='sentry-api-0-project-releases'),
+        name='sentry-api-0-project-release-stats'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/activity/$',
+        ProjectReleaseActivityEndpoint.as_view(),
+        name='sentry-api-0-project-release-activity'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
         ProjectReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-project-release-details'),
