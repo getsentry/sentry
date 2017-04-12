@@ -24,6 +24,24 @@ const GroupSidebar = React.createClass({
     GroupState
   ],
 
+
+  getInitialState() {
+    return {
+      participants: []
+    };
+  },
+
+  componentWillMount() {
+    let group = this.props.group;
+    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+    this.api.request(`/issues/${group.id}/participants/`, {
+      success: (data) => {
+        this.setState({participants: data});
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
   subscriptionReasons: {
     commented: t('You\'re receiving updates because you have commented on this issue.'),
     assigned: t('You\'re receiving updates because you were assigned to this issue.'),
