@@ -53,7 +53,7 @@ const OrganizationUsers = React.createClass({
           return (
             <div>
               <Link to={`/organizations/${params.orgId}/users/${user.id}/`}>
-                <Avatar user={user} className="avatar" size={48} />
+                <Avatar user={user} className="avatar" />
                 <span>{user.name} </span>
                 <span>{user.email}</span>
               </Link>

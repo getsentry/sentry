@@ -51,7 +51,7 @@ const OrganizationUserDetails = React.createClass({
     let basePath = `/organizations/${params.orgId}/users/${params.userId}/`;
     return (
       <OrganizationHomeContainer>
-        <Avatar user={user} />
+        <Avatar user={user} size={256} className="avatar" />
         <h3>{user.name}</h3>
         <ul className="nav nav-tabs">
           <ListLink to={`/organizations/${params.orgId}/users/${params.userId}/`}
@@ -63,7 +63,8 @@ const OrganizationUserDetails = React.createClass({
             }}>
             {t('Issues Assigned')}
           </ListLink>
-          <ListLink to={`/organizations/${params.orgId}/users/${params.userId}/resolved/`}>{t('Issues Resolved')}</ListLink>
+          <ListLink to={`/organizations/${params.orgId}/users/${params.userId}/viewed/`}>{t('Issues Viewed')}</ListLink>
+          <ListLink to={`/organizations/${params.orgId}/users/${params.userId}/activity/`}>{t('Activity')}</ListLink>
         </ul>
         {this.props.children}
       </OrganizationHomeContainer>

@@ -10,9 +10,9 @@ const UserResolved = React.createClass({
       <div>
         <IssueList
           title={t('Assigned')}
-          endpoint={`/organizations/${params.orgId}/members/${params.userId}/issues/assigned/`}
-          params={{orgId: params.orgId}} />
-        {this.state.data}
+          endpoint={`/organizations/${params.orgId}/members/${params.userId}/issues/viewed/`}
+          params={{orgId: params.orgId}}
+          pagination={true} />
       </div>
     );
   }
