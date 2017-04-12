@@ -1,6 +1,6 @@
 import React from 'react';
-import {Link} from 'react-router';
 
+import VersionModalLink from '../components/versionModalLink';
 import {getShortVersion} from '../utils';
 
 const Version = React.createClass({
@@ -23,11 +23,7 @@ const Version = React.createClass({
 
     if (this.props.anchor) {
       return (
-        // NOTE: version is encoded because it can contain slashes "/",
-        //       which can interfere with URL construction
-          <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
-            <span title={version}>{shortVersion}</span>
-          </Link>
+        <VersionModalLink orgId={orgId} projectId={projectId} version={version} />
       );
     }
     return <span title={version}>{shortVersion}</span>;

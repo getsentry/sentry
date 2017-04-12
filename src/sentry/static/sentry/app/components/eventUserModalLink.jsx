@@ -152,7 +152,7 @@ export default React.createClass({
 
   renderModalBody() {
     if (this.state.loading)
-      return <div className="box"><LoadingIndicator /></div>;
+      return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
