@@ -1,6 +1,7 @@
 import React from 'react';
 import moment from 'moment';
-import {AreaChart, Area, CartesianGrid, ResponsiveContainer, Tooltip, YAxis, XAxis} from 'recharts';
+import {AreaChart, Area, CartesianGrid, ReferenceLine,
+        ResponsiveContainer, Tooltip, YAxis, XAxis} from 'recharts';
 
 import ActivityFeed from '../../components/activity/feed';
 import ApiMixin from '../../mixins/apiMixin';
@@ -74,13 +75,21 @@ const ReleaseOverviewStats = React.createClass({
       });
       return point;
     });
+    let deploys = this.state.data.deploys;
     return (
-      <ResponsiveContainer minHeight={150}>
+      <ResponsiveContainer minHeight={250}>
         <AreaChart data={data}>
           <XAxis dataKey="name" />
           <YAxis />
           <CartesianGrid strokeDasharray="3 3" />
           <Tooltip />
+          {deploys.map(d => {
+            return (
+              <ReferenceLine x={moment(d.dateFinished * 1000).format('ll')}
+                             label={'Deployed ' + d.release + ' to ' + d.environment}
+                             stroke="red" alwaysShow={true}/>
+            );
+          })}
           {Array.from(releases).map((stat, i) => {
             return (
               <Area key={stat} type="monotone" dataKey={stat} fill={colors[i % 3]}

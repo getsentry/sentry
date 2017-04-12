@@ -101,6 +101,6 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             'deploys': [{
                 'environment': environments[d['environment_id']],
                 'release': release_ids[d['release_id']],
-                'date_finished': int(d['date_finished'].strftime('%s')),
+                'dateFinished': int(d['date_finished'].strftime('%s')),
             } for d in deploys],
         })
