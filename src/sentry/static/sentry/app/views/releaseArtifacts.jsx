@@ -47,7 +47,7 @@ const ReleaseArtifacts = React.createClass({
 
   getFilesEndpoint() {
     let params = this.props.params;
-    return `/projects/${params.orgId}/${params.projectId}/releases/${params.version}/files/`;
+    return `/projects/${params.orgId}/${params.projectId}/releases/${encodeURIComponent(params.version)}/files/`;
   },
 
   fetchData() {
