@@ -20,7 +20,7 @@ export default React.createClass({
           margin: '-20px -30px 0',
           overflow: 'hidden',
       }}>
-        <div className="audience-nav">
+        <div className="project-subsection-header">
           <div className="pull-right">
             <label className="dropdown-label">
               <span>Show me activity: </span>
@@ -29,8 +29,9 @@ export default React.createClass({
               </DropdownLink>
             </label>
           </div>
-          <h5 className="nav-title">Audience</h5>
-          <ul className="nav nav-tabs audience-tabs">
+
+          <h5>Audience</h5>
+          <ul className="nav nav-tabs">
             <ListLink index={true} to={`/${orgId}/${projectId}/audience/`}>Overview</ListLink>
             <ListLink to={`/${orgId}/${projectId}/audience/users/`}>Users Affected</ListLink>
             <ListLink to={`/${orgId}/${projectId}/audience/feedback/`}>Feedback</ListLink>

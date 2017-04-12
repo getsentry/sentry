@@ -223,6 +223,41 @@ body.auth {
   }
 }
 
+/**
+* Sub nav used in Audience and Releases subsections
+* ============================================================================
+*/
+
+.project-subsection-header {
+  padding: 15px 30px;
+  box-shadow: 0 1px 0 rgba(0,0,0, .1);
+  position: relative;
+  z-index: 5;
+
+  h5 {
+    float: left;
+    padding-right: 20px;
+    margin: 3px 20px 0 0;
+    border-right: 1px solid @trim;
+  }
+
+  .nav-tabs {
+    margin: 0;
+    li a {
+      padding: 0;
+    }
+    li.active a, li.active a:active, li.active a:focus {
+      font-weight: bold;
+      border-bottom-color: transparent;
+    }
+  }
+
+  .dropdown-label {
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
 
 /**
 * Content sidebar

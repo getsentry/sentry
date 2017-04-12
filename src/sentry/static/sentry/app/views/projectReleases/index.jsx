@@ -18,9 +18,9 @@ export default React.createClass({
           margin: '-20px -30px 0',
           overflow: 'hidden',
       }}>
-        <div className="release-nav">
-          <h5 className="nav-title">Releases</h5>
-          <ul className="nav nav-tabs release-tabs">
+        <div className="project-subsection-header">
+          <h5>Releases</h5>
+          <ul className="nav nav-tabs">
             <ListLink index={true} to={`/${orgId}/${projectId}/releases/`}>Overview</ListLink>
             <ListLink to={`/${orgId}/${projectId}/releases/versions/`}>Versions</ListLink>
           </ul>
