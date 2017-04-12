@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.app import tsdb
-from sentry.models import Release, ReleaseProject
+from sentry.models import Deploy, Environment, Release, ReleaseProject
 
 StatsPeriod = namedtuple('StatsPeriod', ('segments', 'interval'))
 
@@ -78,10 +78,29 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 (item[0], {release_ids[r_id]: count for r_id, count in item[1].items()})
                 for item in _stats.get(project.id, [])]
 
+        deploys = list(Deploy.objects.filter(
+            organization_id=project.organization_id,
+            release_id__in=release_ids.keys(),
+            date_finished__gt=until - datetime.timedelta(days=30),
+        ).values('date_finished', 'environment_id', 'release_id'))
+
+        environments = {
+            env.id: env.name
+            for env in Environment.objects.filter(
+                organization_id=project.organization_id,
+                id__in=[d['environment_id'] for d in deploys]
+            )
+        }
+
         return Response({
             'AvgNumAuthors': avg_num_authors,
             'AvgNewGroups': avg_new_groups,
             'AvgTimeToRelease': (sum_deltas / len(release_dates)).total_seconds() * 1000,
             'CountReleases': len(release_dates),
             'stats': stats,
+            'deploys': [{
+                'environment': environments[d['environment_id']],
+                'release': release_ids[d['release_id']],
+                'date_finished': int(d['date_finished'].strftime('%s')),
+            } for d in deploys],
         })
