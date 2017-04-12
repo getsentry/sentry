@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, MentionSerializer
-from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
+from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
 from sentry.utils.functional import extract_lazy_object
 
 
@@ -33,19 +33,30 @@ class GroupNotesEndpoint(GroupEndpoint):
     def post(self, request, group):
         serializer = NoteSerializer(data=request.DATA)
         serializer2 = MentionSerializer(data=request.DATA)
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        if not serializer2.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         data = dict(serializer.object)
-        # data2 = dict(serializer2.object)
-        #
-        # for item in data2.mentions:
-        #     user = User.object.get(id=item)
-        #     GroupSubscription.objects.subscribe(
-        #         group=group,
-        #         user=user,
-        #         reason=GroupSubscriptionReason.mentioned,
-        #     )
+        data2 = dict(serializer2.object)
+
+        if data2['mentions']:
+            for item in data2['mentions']:
+                user = User.objects.get(id=item)
+                GroupSubscription.objects.subscribe(
+                    group=group,
+                    user=user,
+                    reason=GroupSubscriptionReason.mentioned,
+                )
+
+        GroupSubscription.objects.subscribe(
+            group=group,
+            user=request.user,
+            reason=GroupSubscriptionReason.comment,
+        )
 
         if Activity.objects.filter(
             group=group,
@@ -56,12 +67,6 @@ class GroupNotesEndpoint(GroupEndpoint):
         ).exists():
             return Response('{"detail": "You have already posted that comment."}',
                             status=status.HTTP_400_BAD_REQUEST)
-
-        GroupSubscription.objects.subscribe(
-            group=group,
-            user=request.user,
-            reason=GroupSubscriptionReason.comment,
-        )
 
         activity = Activity.objects.create(
             group=group,

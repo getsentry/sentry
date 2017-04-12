@@ -114,7 +114,7 @@ const NoteInput = React.createClass({
       method: 'POST',
       data: {
         text: this.state.value,
-        mentions: this.state.mentions
+        mentions: this.state.mentions,
       },
       error: (error) => {
         this.setState({

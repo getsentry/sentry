@@ -29,6 +29,7 @@ const GroupSidebar = React.createClass({
     assigned: t('You\'re receiving updates because you were assigned to this issue.'),
     bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
     changed_status: t('You\'re receiving updates because you have changed the status of this issue.'),
+    mentioned: t('You\'re receiving updates because you have been mentioned in this issue.'),
   },
 
   toggleSubscription() {

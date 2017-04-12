@@ -8,9 +8,6 @@ from .list import ListField
 class NoteSerializer(serializers.Serializer):
     text = serializers.CharField()
 
+
 class MentionSerializer(serializers.Serializer):
-    import pdb; pdb.set_trace()
-    mentions = ListField(
-        child=serializers.CharField(),
-        required=False,
-    )
+    mentions = ListField(required=False)
