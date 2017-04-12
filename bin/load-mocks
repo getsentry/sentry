@@ -541,17 +541,17 @@ def main(num_events=1, extra_events=False):
             event_user = EventUser.for_tags(
                 project_id=project.id,
                 values=[event3.get_tag('sentry:user')],
-            )[event3.get_tag('sentry:user')]
-
-            UserReport.objects.create(
-                project=project,
-                event_user_id=event_user.id,
-                event_id=event3.event_id,
-                group=event3.group,
-                name='Jane Doe',
-                email='jane@example.com',
-                comments='I have no idea how I got here.',
-            )
+            ).get(event3.get_tag('sentry:user'))
+            if event_user:
+                UserReport.objects.create(
+                    project=project,
+                    event_user_id=event_user.id,
+                    event_id=event3.event_id,
+                    group=event3.group,
+                    name='Jane Doe',
+                    email='jane@example.com',
+                    comments='I have no idea how I got here.',
+                )
 
             print('    > Loading time series data'.format(project_name))
 
