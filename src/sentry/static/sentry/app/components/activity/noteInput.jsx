@@ -113,7 +113,8 @@ const NoteInput = React.createClass({
     this.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
-        text: this.state.value
+        text: this.state.value,
+        mentions: this.state.mentions
       },
       error: (error) => {
         this.setState({
@@ -185,6 +186,11 @@ const NoteInput = React.createClass({
   onCancel(e) {
     e.preventDefault();
     this.finish();
+  },
+
+  onAdd(id, display) {
+    let mentions = this.state.mentions;
+    this.setState({mentions: mentions.concat(id)});
   },
 
   finish() {
@@ -326,7 +332,8 @@ const NoteInput = React.createClass({
                       displayTransform={ (display) => `@${display}` }
                       markup="**__display__**" >
                       <Mention trigger="@"
-                          data={this.getMemberData()} />
+                          data={this.getMemberData()}
+                          onAdd={this.onAdd} />
             </MentionsInput>
           }
           <div className="activity-actions">

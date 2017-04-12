@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, MentionSerializer
 from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason
 from sentry.utils.functional import extract_lazy_object
 
@@ -32,10 +32,20 @@ class GroupNotesEndpoint(GroupEndpoint):
 
     def post(self, request, group):
         serializer = NoteSerializer(data=request.DATA)
+        serializer2 = MentionSerializer(data=request.DATA)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
+        # data2 = dict(serializer2.object)
+        #
+        # for item in data2.mentions:
+        #     user = User.object.get(id=item)
+        #     GroupSubscription.objects.subscribe(
+        #         group=group,
+        #         user=user,
+        #         reason=GroupSubscriptionReason.mentioned,
+        #     )
 
         if Activity.objects.filter(
             group=group,
