@@ -1,26 +1,48 @@
+.audience-nav {
+  padding: 12px 30px;
+  box-shadow: 0 1px 0 rgba(0,0,0, .1);
+  position: relative;
+  z-index: 5;
+
+  .dropdown-label {
+    margin: 0;
+    font-weight: 400;
+  }
+}
+
+.audience-tabs {
+  li a {
+    padding: 0;
+  }
+  li.active a {
+    font-weight: bold;
+    border-bottom-color: transparent;
+  }
+}
+
 .map-container {
   background: #cad2d3;
   position: relative;
 }
 
 .user-list {
-    .avatar {
-        .square(36px);
-        margin-right: 10px;
-        float: left;
-    }
-    small {
-        color: @gray;
-        font-size: 13px;
-    }
-    thead th {
-        background: @white-darker;
-        color: @gray-darkest;
-    }
-    thead > tr > th,
-    tbody > tr > td {
-        padding: 10px 15px;
-    }
+  .avatar {
+    .square(36px);
+    margin-right: 10px;
+    float: left;
+  }
+  small {
+    color: @gray;
+    font-size: 13px;
+  }
+  thead th {
+    background: @white-darker;
+    color: @gray-darkest;
+  }
+  thead > tr > th,
+  tbody > tr > td {
+    padding: 10px 15px;
+  }
 }
 
 .user-details-header {

@@ -20,7 +20,7 @@ const ProjectHeader = React.createClass({
 
     return (
       <div className="sub-header flex flex-container flex-vertically-centered">
-        <div className="p-t-1">
+        <div>
           <ProjectSelector
               organization={org}
               projectId={project.slug}/>
