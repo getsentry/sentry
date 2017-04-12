@@ -83,6 +83,32 @@ class GroupTagValue(Model):
         ).aggregate(t=Sum('times_seen'))['t']
 
     @classmethod
+    def get_value_count_project(cls, project_id, key):
+        if db.is_postgres():
+            # This doesnt guarantee percentage is accurate, but it does ensure
+            # that the query has a maximum cost
+            cursor = connections['default'].cursor()
+            cursor.execute("""
+                SELECT SUM(t)
+                FROM (
+                    SELECT times_seen as t
+                    FROM sentry_messagefiltervalue
+                    WHERE project_id = %s
+                    AND key = %s
+                    ORDER BY last_seen DESC
+                    LIMIT 10000
+                ) as a
+            """, [project_id, key])
+            return cursor.fetchone()[0] or 0
+
+        cutoff = timezone.now() - timedelta(days=7)
+        return cls.objects.filter(
+            project_id=project_id,
+            key=key,
+            last_seen__gte=cutoff,
+        ).aggregate(t=Sum('times_seen'))['t']
+
+    @classmethod
     def get_top_values(cls, group_id, key, limit=3):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure

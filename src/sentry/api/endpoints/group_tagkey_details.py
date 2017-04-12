@@ -64,8 +64,14 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
 
         total_values = GroupTagValue.get_value_count(group.id, lookup_key)
+        project_total_values = GroupTagValue.get_value_count_project(group.project_id, lookup_key)
 
         top_values = GroupTagValue.get_top_values(group.id, lookup_key, limit=9)
+
+        anomaly = False
+
+        if project_total_values > 3 and group.times_seen > 3:
+            anomaly = total_values < 3
 
         data = {
             'id': six.text_type(tag_key.id),
@@ -74,6 +80,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
             'uniqueValues': group_tag_key.values_seen,
             'totalValues': total_values,
             'topValues': serialize(top_values, request.user),
+            'anomaly': anomaly,
         }
 
         return Response(data)
