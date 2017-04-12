@@ -18,12 +18,9 @@ export default React.createClass({
           margin: '-20px -30px 0',
           overflow: 'hidden',
       }}>
-        <div style={{
-          padding: '20px 30px 0',
-          borderBottom: '1px solid #ddd',
-        }}>
-          <h4 style={{float: 'left', paddingRight: 20, marginRight: 20, borderRight: '1px solid #ddd'}}>Releases</h4>
-          <ul className="nav nav-tabs" style={{float: 'left'}}>
+        <div className="release-nav">
+          <h5 className="nav-title">Releases</h5>
+          <ul className="nav nav-tabs release-tabs">
             <ListLink index={true} to={`/${orgId}/${projectId}/releases/`}>Overview</ListLink>
             <ListLink to={`/${orgId}/${projectId}/releases/versions/`}>Versions</ListLink>
           </ul>

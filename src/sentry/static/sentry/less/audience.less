@@ -1,8 +1,17 @@
-.audience-nav {
+.audience-nav, .release-nav {
   padding: 12px 30px;
   box-shadow: 0 1px 0 rgba(0,0,0, .1);
   position: relative;
   z-index: 5;
+
+  .nav-title {
+    float: left;
+    padding-right: 20px;
+    margin-top: 3px;
+    margin-right: 20px;
+    margin-bottom: 0;
+    border-right: 1px solid #ddd;
+  }
 
   .dropdown-label {
     margin: 0;
@@ -10,11 +19,15 @@
   }
 }
 
-.audience-tabs {
+.audience-tabs, .release-tabs {
+  float: left;
+  margin-bottom: 0;
+
   li a {
     padding: 0;
   }
-  li.active a {
+  li.active a,
+  li.active a:hover {
     font-weight: bold;
     border-bottom-color: transparent;
   }
