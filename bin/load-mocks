@@ -426,13 +426,26 @@ def main(num_events=1, extra_events=False):
                 data={'version': release.version},
             )
 
-            Deploy.objects.create(
+            environment = Environment.get_or_create(
+                project=project,
+                name=ENVIRONMENTS.next()
+            )
+
+            deploy = Deploy.objects.create(
                 organization_id=project.organization_id,
                 release=release,
-                environment_id=Environment.get_or_create(
-                    project=project,
-                    name=ENVIRONMENTS.next()
-                ).id,
+                environment_id=environment.id,
+            )
+            Activity.objects.create(
+                type=Activity.DEPLOY,
+                project=project,
+                ident=release.version,
+                data={
+                    'version': release.version,
+                    'deploy_id': deploy.id,
+                    'environment': environment.name
+                },
+                datetime=deploy.date_finished,
             )
 
             # Add a bunch of additional dummy events to support pagination
