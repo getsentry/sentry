@@ -8,6 +8,7 @@ import ListLink from '../listLink';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
+import IconUsers from '../../icons/icon-users';
 import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
 import OrganizationSelector from './organizationSelector';
@@ -179,7 +180,7 @@ const Sidebar = React.createClass({
           <span className="icon icon-home"/>
         </ListLink>
         <ListLink to={`/${orgId}/${projectId}/audience/`}>
-          <span className="icon icon-home"/>
+          <IconUsers size="25px" />
         </ListLink>
       </ul>
 
