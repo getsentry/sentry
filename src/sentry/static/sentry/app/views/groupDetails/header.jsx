@@ -197,14 +197,14 @@ const GroupHeader = React.createClass({
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
             {t('Comments')} <span className="badge animated">{group.numComments}</span>
           </ListLink>
+          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/geo/`}>
+            {t('Audience')}
+          </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
             {t('User Feedback')} <span className="badge animated">{group.userReportCount}</span>
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             {t('Tags')}
-          </ListLink>
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/geo/`}>
-            {t('Geo')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/events/`}>
             {t('Related Events')}
