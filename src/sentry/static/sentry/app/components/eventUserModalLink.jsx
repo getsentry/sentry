@@ -74,7 +74,7 @@ const UserActivity = React.createClass({
               <li key={issue.id}>
                 <span className="issue-icon"><span className="icon icon-alert" /></span>
                 <h6><a href="">{issue.shortId}</a></h6>
-                <small><TimeSince date={issue.lastSeen} /></small>
+                <small><TimeSince date={issue.tagLastSeen} /></small>
               </li>
             );
           })}

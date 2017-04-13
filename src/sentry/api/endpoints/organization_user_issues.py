@@ -7,7 +7,7 @@ from six.moves import reduce
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import StreamGroupSerializer
+from sentry.api.serializers.models.group import TagBasedStreamGroupSerializer
 from sentry.models import (
     EventUser, Group, GroupTagValue
 )
@@ -33,19 +33,26 @@ class OrganizationUserIssuesEndpoint(OrganizationEndpoint):
             tags = GroupTagValue.objects.filter(
                 reduce(or_, tag_filters),
                 key='sentry:user',
-            )
+            ).order_by('-last_seen')[:limit]
         else:
             tags = GroupTagValue.objects.none()
 
-        group_ids = tags.values_list('group_id', flat=True)
-
-        groups = Group.objects.filter(
-            id__in=group_ids,
-        ).order_by('-last_seen')[:limit]
+        tags = {t.group_id: t for t in tags}
+        if tags:
+            groups = sorted(
+                Group.objects.filter(
+                    id__in=tags.keys(),
+                ).order_by('-last_seen')[:limit],
+                key=lambda x: tags[x.id].last_seen,
+                reverse=True,
+            )
+        else:
+            groups = []
 
         context = serialize(
-            list(groups), request.user, StreamGroupSerializer(
-                stats_period=None
+            groups, request.user, TagBasedStreamGroupSerializer(
+                stats_period=None,
+                tags=tags,
             )
         )
 
