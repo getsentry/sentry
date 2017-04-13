@@ -1,6 +1,8 @@
 import React from 'react';
 
+import DropdownLink from '../../components/dropdownLink';
 import ListLink from '../../components/listLink';
+import MenuItem from '../../components/menuItem';
 
 export default React.createClass({
   propTypes: {
@@ -19,6 +21,16 @@ export default React.createClass({
           overflow: 'hidden',
       }}>
         <div className="project-subsection-header">
+          <div className="pull-right">
+            <label className="dropdown-label">
+              <span>Show me activity: </span>
+              <DropdownLink title="In the past month">
+                <MenuItem isActive={true}>In the past month</MenuItem>
+                <MenuItem>In the past week</MenuItem>
+                <MenuItem>In the past day</MenuItem>
+              </DropdownLink>
+            </label>
+          </div>
           <h5>Releases</h5>
           <ul className="nav nav-tabs">
             <ListLink index={true} to={`/${orgId}/${projectId}/releases/`}>Overview</ListLink>

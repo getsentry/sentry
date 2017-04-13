@@ -26,6 +26,8 @@ export default React.createClass({
               <span>Show me activity: </span>
               <DropdownLink title="In the past month">
                 <MenuItem isActive={true}>In the past month</MenuItem>
+                <MenuItem>In the past week</MenuItem>
+                <MenuItem>In the past day</MenuItem>
               </DropdownLink>
             </label>
           </div>
