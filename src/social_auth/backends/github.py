@@ -26,14 +26,10 @@ from social_auth.backends import BaseOAuth2, OAuthBackend
 from social_auth.exceptions import AuthFailed
 import  os
 
-GITHUB_BASE_DOMAIN='github.com'
-if 'GITHUB_BASE_DOMAIN' in os.environ:
-    GITHUB_BASE_DOMAIN=os.environ['GITHUB_BASE_DOMAIN']
 
-GITHUB_API_DOMAIN='api.github.com'
-if 'GITHUB_API_DOMAIN' in os.environ:
-    GITHUB_API_DOMAIN=os.environ['GITHUB_API_DOMAIN']
+GITHUB_BASE_DOMAIN=getattr(settings, 'GITHUB_BASE_DOMAIN', 'github.com')
 
+GITHUB_API_DOMAIN=getattr(settings, 'GITHUB_API_DOMAIN','api.github.com')
 
 # GitHub configuration
 GITHUB_AUTHORIZATION_URL = 'https://{0}/login/oauth/authorize'.format(GITHUB_BASE_DOMAIN)
