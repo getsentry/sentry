@@ -8,9 +8,45 @@ import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ReleaseList from '../../components/releaseList';
+import Version from '../../components/version';
 
-const ReleaseOverviewStats = React.createClass({
+const CustomTooltip = React.createClass({
+  propTypes: {
+    active: React.PropTypes.boolean,
+    payload: React.PropTypes.array,
+    label: React.PropTypes.string,
+  },
 
+  render() {
+    const {active} = this.props;
+
+    if (active) {
+      const {payload, label} = this.props;
+      return (
+        <div className="tooltip-inner">
+          <div className="time-label">{label}</div>
+          <dl className="value-labelset">
+            {payload.map((item, idx) => {
+              return [
+                <dt key={`dt-${idx}`}>
+                  <span className="color">
+                    <span style={{background: item.fill, opacity: item.fillOpacity}} />
+                  </span>
+                  {item.value}
+                </dt>,
+                <dd key={`dd-${idx}`}><Version version={item.name} anchor={false} /></dd>,
+              ];
+          })}
+          </dl>
+        </div>
+      );
+    }
+
+    return null;
+  }
+});
+
+export default React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -105,7 +141,7 @@ const ReleaseOverviewStats = React.createClass({
           <XAxis dataKey="name" />
           <YAxis />
           <CartesianGrid strokeDasharray="3 3" />
-          <Tooltip isAnimationActive={false} />
+          <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
           {deploys.map(d => {
             return (
               <ReferenceLine x={moment(d.dateFinished * 1000).format('ll')}
@@ -213,5 +249,3 @@ const ReleaseOverviewStats = React.createClass({
     );
   }
 });
-
-export default ReleaseOverviewStats;

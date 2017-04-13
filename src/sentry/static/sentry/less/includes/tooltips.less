@@ -49,6 +49,45 @@
     }
   }
 
+  dl.value-labelset {
+    position: relative;
+    white-space: nowrap;
+    line-height: 12px;
+    padding: 0 5px !important;
+    text-align: left;
+
+    dt {
+      margin: 0;
+      position: absolute;
+      left: 5px;
+      width: 65px;
+      margin-right: 10px;
+    }
+    dd {
+      float: none;
+      text-align: right;
+      margin: 0 0 0 75px;
+    }
+
+    .color {
+      .square(10px);
+      margin-right: 5px;
+      display: inline-block;
+      background: #fff;
+      position: relative;
+
+      > span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        .square(10px);
+        display: inline-block;
+      }
+    }
+  }
+
   .value-label {
     padding: 3px 0;
   }

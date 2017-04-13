@@ -13,6 +13,30 @@ import TimeSince from '../components/timeSince';
 
 import {BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip} from 'recharts';
 
+const CustomTooltip = React.createClass({
+  propTypes: {
+    active: React.PropTypes.boolean,
+    payload: React.PropTypes.array,
+    label: React.PropTypes.string,
+  },
+
+  render() {
+    const {active} = this.props;
+
+    if (active) {
+      const {payload, label} = this.props;
+      return (
+        <div className="tooltip-inner">
+          <div className="time-label">{label}</div>
+          <div className="value-label">{payload[0].value} users</div>
+        </div>
+      );
+    }
+
+    return null;
+  }
+});
+
 const UsersAffectedList = React.createClass({
   mixins: [ApiMixin],
 
@@ -133,7 +157,7 @@ const UsersAffectedChart = React.createClass({
             <BarChart data={series} barGap={10} margin={{top: 25, right: 30, left: 0, bottom: 5}}>
              <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
              <YAxis tickLine={false} stroke="#ccc" />
-             <Tooltip isAnimationActive={false}/>
+             <Tooltip content={<CustomTooltip />} isAnimationActive={false}/>
              <Bar type="monotone" dataKey="count" fill="#ef8675"
                   isAnimationActive={false} />
             </BarChart>

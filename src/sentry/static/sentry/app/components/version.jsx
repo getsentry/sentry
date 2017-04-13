@@ -7,8 +7,8 @@ const Version = React.createClass({
   propTypes: {
     anchor: React.PropTypes.bool,
     version: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    orgId: React.PropTypes.string,
+    projectId: React.PropTypes.string,
   },
 
   getDefaultProps() {
