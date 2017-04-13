@@ -184,7 +184,7 @@ const ProjectUserReports = React.createClass({
                   <TimeSince date={item.dateCreated} />
                   <div className="activity-author">
                     <EventUserModalLink user={item.user} orgId={orgId} projectId={projectId} />
-                    <small>{item.email}</small>
+                    <small>{item.user.email || item.email}</small>
                   </div>
                   <p dangerouslySetInnerHTML={{__html: body}} />
                 </div>
