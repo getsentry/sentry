@@ -77,6 +77,45 @@ const Chart = React.createClass({
   },
 });
 
+const DeployList = React.createClass({
+  propTypes: {
+    deployList: React.PropTypes.array,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    version: React.PropTypes.string.isRequired,
+  },
+
+  render() {
+    let {deployList, orgId, projectId, version} = this.props;
+    if (deployList === null)
+      return <LoadingIndicator mini={true} />;
+
+    return (
+      <ul className="nav nav-stacked">
+        {deployList.map(deploy => {
+          let query = encodeURIComponent(`environment:${deploy.environment} release:${version}`);
+          return (
+            <li key={deploy.id}>
+              <a href={`/${orgId}/${projectId}/?query=${query}`} title="Find related issues">
+                <div className="row row-flex row-center-vertically">
+                  <div className="col-xs-6">
+                    <span className="repo-label" style={{verticalAlign: 'bottom'}}>
+                      {deploy.environment}
+                      <IconOpen className="icon-open" size={11} style={{marginLeft: 6}}/>
+                    </span>
+                  </div>
+                  <div className="col-xs-6 align-right">
+                    <small><TimeSince date={deploy.dateFinished}/></small>
+                  </div>
+                </div>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  },
+});
 
 export default React.createClass({
   propTypes: {
@@ -201,7 +240,7 @@ export default React.createClass({
   },
 
   renderModalBody() {
-    if (this.state.loading || this.state.deployList === null)
+    if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError />;
@@ -259,28 +298,11 @@ export default React.createClass({
             <div className="row">
               <div className="col-md-6">
                 <h6 className="nav-header">Recent Deploys</h6>
-                <ul className="nav nav-stacked">
-                  {deployList.map(deploy => {
-                    let query = encodeURIComponent(`environment:${deploy.environment} release:${version}`);
-                    return (
-                      <li key={deploy.id}>
-                        <a href={`/${orgId}/${projectId}/?query=${query}`} title="Find related issues">
-                          <div className="row row-flex row-center-vertically">
-                            <div className="col-xs-6">
-                              <span className="repo-label" style={{verticalAlign: 'bottom'}}>
-                                {deploy.environment}
-                                <IconOpen className="icon-open" size={11} style={{marginLeft: 6}}/>
-                              </span>
-                            </div>
-                            <div className="col-xs-6 align-right">
-                              <small><TimeSince date={deploy.dateFinished}/></small>
-                            </div>
-                          </div>
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <DeployList
+                  deployList={deployList}
+                  orgId={orgId}
+                  projectId={projectId}
+                  version={version} />
               </div>
               <div className="col-md-6">
                 <h6 className="nav-header">Projects Affected</h6>
