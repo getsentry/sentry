@@ -38,12 +38,21 @@ export default React.createClass({
       percentageBar.borderBottomLeftRadius = '3px';
       percentageBar.borderTopLeftRadius = '3px';
     }
+
+    let commitCount = Math.round(
+      (release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100;
+    let title;
+    if (commitCount === 0) {
+      title = 'This release has an average number of commits for this project';
+    } else if (commitCount > 0) {
+      title = ('This release has ' + commitCount +
+               ' more commits than average for this project');
+    } else {
+      title = ('This release has ' + Math.abs(commitCount) +
+               ' fewer commits than average for this project');
+    }
     return (
-      <div className="tip"
-            title={('This release has ' +
-                   (Math.round((release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100) +
-                   ' more commits than the average for this project.')}
-           style={fullBar}>
+      <div className="tip" title={title} style={fullBar}>
         <div style={percentageBar}></div>
       </div>
     );
