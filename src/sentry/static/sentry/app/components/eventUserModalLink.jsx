@@ -7,6 +7,71 @@ import Avatar from '../components/avatar';
 import GeoMap from '../components/geoMap_MapBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import TimeSince from '../components/timeSince';
+
+const UserActivity = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    user: React.PropTypes.object.isRequired,
+  },
+
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+    };
+  },
+
+  componentDidMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {orgId, user} = this.props;
+    let path = `/organizations/${orgId}/users/${user.id}/issues/?limit=3`;
+    this.api.request(path, {
+      success: (data) => {
+        this.setState({
+          loading: false,
+          error: false,
+          issueList: data,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false,
+        });
+      },
+    });
+  },
+
+  render() {
+    if (this.state.loading)
+      return null;
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
+
+    return (
+      <div>
+        <h5>Issues encountered</h5>
+        <ul className="activity-issue-list">
+          {this.state.issueList.map((issue) => {
+            return (
+              <li key={issue.id}>
+                <span className="issue-icon"><span className="icon icon-alert" /></span>
+                <h6><a href="">{issue.shortId}</a></h6>
+                <small><TimeSince date={issue.lastSeen} /></small>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  },
+});
 
 const LocationsMap = React.createClass({
   propTypes: {
@@ -162,7 +227,7 @@ export default React.createClass({
       <div style={{
           overflow: 'hidden',
           margin: '-20px -30px 0',
-      }}>
+      }} className="user-details-modal">
         <div style={{marginTop: -130, position: 'relative'}}>
           <LocationsMap {...this.props} />
         </div>
@@ -184,11 +249,9 @@ export default React.createClass({
           </div>
           <div className="row">
             <div className="col-md-7">
-              <Link to={`/${orgId}/${projectId}/audience/users/${user.hash}/`} className="btn btn-default">
-                View more details
-              </Link>
+              <UserActivity {...this.props} />
             </div>
-            <div className="col-md-5">
+            <div className="col-md-5 user-info">
               <h6 className="nav-header">Other Info</h6>
               <dl className="flat">
                 {user.id && [
@@ -200,6 +263,9 @@ export default React.createClass({
                   <dd key="dd-username">{user.username}</dd>
                 ]}
               </dl>
+              <Link to={`/${orgId}/${projectId}/audience/users/${user.hash}/`} className="btn btn-sm btn-default">
+                View more details
+              </Link>
             </div>
           </div>
         </div>

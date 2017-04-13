@@ -53,6 +53,74 @@
   }
 }
 
+.user-details-modal {
+  .user-info {
+    .nav-header {
+      margin-bottom: 20px;
+    }
+    dl.flat {
+      font-size: 12px;
+      margin-bottom: 20px;
+      dt {
+        color: @gray-lighter;
+      }
+    }
+  }
+  .activity-issue-list {
+    list-style: none;
+    position: relative;
+    padding-left: 10px;
+
+    li {
+      position: relative;
+      margin-left: 0;
+      padding: 2px 2px 20px 20px;
+      border-left: 1px solid @white-darkest;
+
+      .issue-icon {
+        position: absolute;
+        .square(18px);
+        font-size: 11px;
+        text-align: center;
+        display: inline-block;
+        border-radius: 18px;
+        background: #fff;
+        border: 1px solid @orange-light;
+        color: @orange-light;
+        left: -9px;
+        top: -2px;
+
+        .icon {
+          position: absolute;
+          top: 2px;
+          right: 2px;
+          bottom: 2px;
+        }
+      }
+
+      &:last-child {
+        padding-bottom: 0;
+      }
+    }
+
+    h6 {
+      font-family: @font-family-code;
+      margin-bottom: 0px;
+      font-size: 15px;
+      color: @gray;
+
+      a {
+        color: inherit;
+      }
+    }
+
+    small {
+      font-size: 12px;
+      color: @gray-lighter;
+    }
+  }
+}
+
 .audience-feedback {
   .audience-feedback-item {
     position: relative;
