@@ -87,7 +87,11 @@ const GroupUserReports = React.createClass({
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
             <div className="activity-author">
-              <EventUserModalLink user={item.user} orgId={orgId} projectId={projectId} />
+              {item.user ?
+                <EventUserModalLink user={item.user} orgId={orgId} projectId={projectId} />
+              :
+                <strong>{item.name || <em>anonymous</em>}</strong>
+              }
               <small>{item.user.email || item.email}</small>
             </div>
             <p dangerouslySetInnerHTML={{__html: body}} />

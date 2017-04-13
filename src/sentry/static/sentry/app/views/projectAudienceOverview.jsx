@@ -276,16 +276,6 @@ const Feedback = React.createClass({
     return `/projects/${orgId}/${projectId}/user-feedback/?per_page=10`;
   },
 
-  getDisplayName(feedback) {
-    if (feedback.name)
-      return feedback.name;
-    else if (feedback.email)
-      return feedback.email;
-    else if (feedback.user)
-      return feedback.user.username || feedback.user.email || <em>Anonymous</em>;
-    return <em>Anonymous</em>;
-  },
-
   render() {
     if (this.state.loading)
       return <div className="box"><LoadingIndicator /></div>;
@@ -306,7 +296,7 @@ const Feedback = React.createClass({
                 {feedback.user ?
                   <EventUserModalLink orgId={orgId} projectId={projectId} user={feedback.user} />
                 :
-                  <strong>{this.getDisplayName(feedback)}</strong>
+                  <strong>{feedback.name || <em>anonymous</em>}</strong>
                 }
               </div>
               <div className="audience-feedback-body">

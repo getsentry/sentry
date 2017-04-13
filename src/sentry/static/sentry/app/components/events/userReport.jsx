@@ -25,7 +25,11 @@ const EventUserReport = React.createClass({
               <div className="activity-bubble">
                 <TimeSince date={report.dateCreated} />
                 <div className="activity-author">
-                  <EventUserModalLink user={report.user} orgId={orgId} projectId={projectId} />
+                  {report.user ?
+                    <EventUserModalLink user={report.user} orgId={orgId} projectId={projectId} />
+                  :
+                    <strong>{report.name || <em>anonymous</em>}</strong>
+                  }
                   <small>{report.user.email || report.email}</small>
                 </div>
                 <p dangerouslySetInnerHTML={{__html: utils.nl2br(utils.urlize(utils.escape(report.comments)))}} />
