@@ -6,7 +6,6 @@ import hashlib
 from collections import namedtuple
 
 from sentry.models import Project
-from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.utils.cache import cache
 
@@ -280,20 +279,6 @@ def process_single_stacktrace(processing_task, stacktrace_info,
     )
 
 
-def get_metrics_key(stacktrace_infos):
-    platforms = set()
-    for info in stacktrace_infos:
-        platforms.update(info.platforms)
-
-    if len(platforms) == 1:
-        platform = next(iter(platforms))
-        if platform == 'javascript':
-            return 'sourcemaps.process'
-        if platform == 'cocoa':
-            return 'dsym.process'
-    return 'mixed.process'
-
-
 def lookup_frame_cache(keys):
     rv = {}
     for key in keys:
@@ -344,35 +329,33 @@ def process_stacktraces(data, make_processors=None):
 
     changed = False
 
-    mkey = get_metrics_key(infos)
-    with metrics.timer(mkey, instance=data['project']):
-        # Build a new processing task
-        processing_task = get_stacktrace_processing_task(infos, processors)
+    # Build a new processing task
+    processing_task = get_stacktrace_processing_task(infos, processors)
 
-        # Preprocess step
-        for processor in processing_task.iter_processors():
-            if processor.preprocess_step(processing_task):
-                changed = True
+    # Preprocess step
+    for processor in processing_task.iter_processors():
+        if processor.preprocess_step(processing_task):
+            changed = True
 
-        # Process all stacktraces
-        for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
-            new_frames, new_raw_frames, errors = process_single_stacktrace(
-                processing_task, stacktrace_info, processable_frames)
-            if new_frames is not None:
-                stacktrace_info.stacktrace['frames'] = new_frames
-                changed = True
-            if new_raw_frames is not None and \
-               stacktrace_info.container is not None:
-                stacktrace_info.container['raw_stacktrace'] = dict(
-                    stacktrace_info.stacktrace, frames=new_raw_frames)
-                changed = True
-            if errors:
-                data.setdefault('errors', []).extend(errors)
-                changed = True
+    # Process all stacktraces
+    for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
+        new_frames, new_raw_frames, errors = process_single_stacktrace(
+            processing_task, stacktrace_info, processable_frames)
+        if new_frames is not None:
+            stacktrace_info.stacktrace['frames'] = new_frames
+            changed = True
+        if new_raw_frames is not None and \
+           stacktrace_info.container is not None:
+            stacktrace_info.container['raw_stacktrace'] = dict(
+                stacktrace_info.stacktrace, frames=new_raw_frames)
+            changed = True
+        if errors:
+            data.setdefault('errors', []).extend(errors)
+            changed = True
 
-        # Close down everything
-        for processor in processors:
-            processor.close()
+    # Close down everything
+    for processor in processors:
+        processor.close()
 
     if changed:
         return data
