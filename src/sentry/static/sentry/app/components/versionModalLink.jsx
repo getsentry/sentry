@@ -23,6 +23,7 @@ export default React.createClass({
       isModalOpen: false,
       loading: true,
       error: false,
+      dataFetchSent: false,
       data: null,
       fileList: null,
     };
@@ -32,11 +33,11 @@ export default React.createClass({
     this.fetchData();
   },
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false
-    });
+  optimisticallyFetchData() {
+    if (this.state.dataFetchSent)
+      return;
+
+    this.setState({dataFetchSent: true});
 
     this.getDetails();
     this.getCommits();
@@ -81,7 +82,7 @@ export default React.createClass({
   },
 
   onOpen() {
-    this.setState({isModalOpen: true});
+    this.setState({isModalOpen: true}, this.optimisticallyFetchData);
   },
 
   onClose() {

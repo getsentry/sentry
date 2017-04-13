@@ -30,7 +30,7 @@ class AddRepositoryLink extends PluginComponentBase {
     });
 
     ['onOpen',
-     'onCancel',
+     'onClose',
      'formSubmit',
      'changeField'].map(method => this[method] = this[method].bind(this));
   }
@@ -39,7 +39,7 @@ class AddRepositoryLink extends PluginComponentBase {
     this.setState({isModalOpen: true});
   }
 
-  onCancel() {
+  onClose() {
     this.setState({isModalOpen: false});
   }
 
@@ -149,7 +149,7 @@ class AddRepositoryLink extends PluginComponentBase {
   renderModal() {
     let state = this.state.state;
     return (
-      <Modal show={this.state.isModalOpen} animation={false}>
+      <Modal show={this.state.isModalOpen} onHide={this.onClose} animation={false}>
         <div className="modal-header">
           <h4>{t('Add Repository')}</h4>
         </div>
@@ -158,7 +158,7 @@ class AddRepositoryLink extends PluginComponentBase {
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-default"
-                  onClick={this.onCancel}
+                  onClick={this.onClose}
                   disabled={state === FormState.SAVING}>{t('Cancel')}</button>
           <button type="button" className="btn btn-primary"
                   onClick={this.onSubmit}

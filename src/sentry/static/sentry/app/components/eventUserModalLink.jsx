@@ -90,18 +90,15 @@ export default React.createClass({
       isModalOpen: false,
       loading: true,
       error: false,
+      dataFetchSent: true,
     };
   },
 
-  componentWillMount() {
-    this.fetchData();
-  },
+  optimisticallyFetchData() {
+    if (this.state.dataFetchSent)
+      return;
 
-  fetchData() {
-    this.setState({
-      loading: true,
-      error: false
-    });
+    this.setState({dataFetchSent: true});
 
     this.api.request(this.getEndpoint(), {
       success: (data, _, jqXHR) => {
@@ -114,7 +111,7 @@ export default React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
         });
       }
     });
@@ -126,7 +123,9 @@ export default React.createClass({
   },
 
   onOpen() {
-    this.setState({isModalOpen: true});
+    this.setState({
+      isModalOpen: true,
+    }, this.optimisticallyFetchData);
   },
 
   onClose() {
