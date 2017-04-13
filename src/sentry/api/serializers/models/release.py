@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from django.db.models import Avg, Count, Sum
+from django.db.models import Avg, Count, Max, Min, Sum
 
 from collections import Counter, defaultdict
 
@@ -141,7 +141,11 @@ class ReleaseSerializer(Serializer):
             projects__id__in=project_ids,
         ).annotate(
             num_commits=Count('releasecommit__commit')
-        ).aggregate(Avg('num_commits'))['num_commits__avg']
+        ).aggregate(
+            Avg('num_commits'),
+            Max('num_commits'),
+            Min('num_commits'),
+        )
 
     def get_attrs(self, item_list, user, *args, **kwargs):
         project = kwargs.get('project')
@@ -196,7 +200,7 @@ class ReleaseSerializer(Serializer):
                 'name': pr['project__name'],
             })
 
-        avg_commit_count = self.get_stats(project_ids)
+        project_commit_stats = self.get_stats(project_ids)
         result = {}
         for item in item_list:
             result[item] = {
@@ -204,7 +208,7 @@ class ReleaseSerializer(Serializer):
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_groups': group_counts_by_release.get(item.id) or 0,
                 'commit_count': 0,
-                'avg_commit_count': avg_commit_count,
+                'project_commit_stats': project_commit_stats,
                 'authors': [],
                 'projects': release_projects.get(item.id, [])
             }
@@ -226,7 +230,11 @@ class ReleaseSerializer(Serializer):
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': attrs.get('commit_count', 0),
-            'avgCommitCount': attrs.get('avg_commit_count'),
+            'projectCommitStats': {
+                'avgCommits': attrs['project_commit_stats']['num_commits__avg'],
+                'maxCommits': attrs['project_commit_stats']['num_commits__max'],
+                'minCommits': attrs['project_commit_stats']['num_commits__min'],
+            },
             'lastCommit': attrs.get('last_commit'),
             'authors': attrs.get('authors', []),
             'projects': attrs.get('projects', [])

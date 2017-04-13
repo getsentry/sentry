@@ -19,6 +19,36 @@ export default React.createClass({
     }),
   ],
 
+  renderReleaseWeight(release) {
+    let width = release.commitCount / release.projectCommitStats.maxCommits * 100;
+    let fullBar = {
+      width: '100px',
+      backgroundColor: '#d3d3d3',
+      height: '20px',
+      borderRadius: '3px',
+    };
+    let percentageBar = {
+      width: width + 'px',
+      backgroundColor: '#8F85D4',
+      height: '20px',
+    };
+    if (width === 100) {
+      percentageBar.borderRadius = '3px';
+    } else {
+      percentageBar.borderBottomLeftRadius = '3px';
+      percentageBar.borderTopLeftRadius = '3px';
+    }
+    return (
+      <div className="tip"
+            title={('This release has ' +
+                   (Math.round((release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100) +
+                   ' more commits than the average for this project.')}
+           style={fullBar}>
+        <div style={percentageBar}></div>
+      </div>
+    );
+  },
+
   render() {
     let {orgId, projectId} = this.props;
 
@@ -32,12 +62,7 @@ export default React.createClass({
                     <h2>
                       <Version orgId={orgId} projectId={projectId} version={release.version} />
                         &nbsp;
-                        {release.commitCount > release.avgCommitCount ?
-                          (<span className="icon icon-exclamation tip"
-                                 title={('This release has ' +
-                                         (Math.round((release.commitCount - release.avgCommitCount) * 100) / 100) +
-                                         ' more commits than the average for this project.')}
-                                 style={{color: 'red'}}></span>) : null}
+                        {this.renderReleaseWeight(release)}
                     </h2>
                     <p className="m-b-0 text-light">
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
