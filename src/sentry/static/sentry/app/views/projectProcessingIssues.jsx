@@ -256,29 +256,41 @@ const ProjectProcessingIssues = React.createClass({
   },
 
   renderResults() {
+    const fixLink = this.state.processingIssues ? this.state.processingIssues.signedLink : '';
     return (
-      <table className="table processing-issues">
-        <thead>
-          <tr>
-            <th>{t('Problem')}</th>
-            <th>{t('Details')}</th>
-            <th>{t('Events')}</th>
-            <th>{t('Last seen')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {this.state.processingIssues.issues.map((item, idx) => {
-            return (
-              <tr key={idx}>
-                <td>{this.renderProblem(item)}</td>
-                <td>{this.renderDetails(item)}</td>
-                <td>{item.numEvents + ''}</td>
-                <td><TimeSince date={item.lastSeen}/></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div>
+        <div className="alert alert-block alert-info">
+        <strong>
+          {t('Paste this command into your shell.')}
+          <br/>
+          {t('It will try to upload missing symbols from your system.')}
+          <br/>
+        </strong>
+        <pre>curl -sL {fixLink} | bash</pre>
+        </div>
+        <table className="table processing-issues">
+          <thead>
+            <tr>
+              <th>{t('Problem')}</th>
+              <th>{t('Details')}</th>
+              <th>{t('Events')}</th>
+              <th>{t('Last seen')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {this.state.processingIssues.issues.map((item, idx) => {
+              return (
+                <tr key={idx}>
+                  <td>{this.renderProblem(item)}</td>
+                  <td>{this.renderDetails(item)}</td>
+                  <td>{item.numEvents + ''}</td>
+                  <td><TimeSince date={item.lastSeen}/></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     );
   },
 
