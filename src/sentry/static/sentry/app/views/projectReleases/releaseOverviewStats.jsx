@@ -1,5 +1,6 @@
 import React from 'react';
 import moment from 'moment';
+import _ from 'underscore';
 import {AreaChart, Area, CartesianGrid, ReferenceLine,
         ResponsiveContainer, Tooltip, YAxis, XAxis} from 'recharts';
 
@@ -9,6 +10,27 @@ import LoadingError from '../../components/loadingError';
 import LoadingIndicator from '../../components/loadingIndicator';
 import ReleaseList from '../../components/releaseList';
 import Version from '../../components/version';
+
+
+const CustomLabel = React.createClass({
+  propTypes: {
+    deploy: React.PropTypes.object,
+    idx: React.PropTypes.number,
+  },
+
+  render() {
+    let deploy = this.props.deploy;
+    let idx = this.props.idx;
+    let label = 'Deployed to ' + deploy.environment;
+    let props = _.omit(this.props, 'deploy', 'idx');
+    props.y = props.y + (idx % 3 * 20);
+    return (
+      <text {...props}>
+        <tspan>{label}</tspan>
+      </text>
+    );
+  }
+});
 
 const CustomTooltip = React.createClass({
   propTypes: {
@@ -131,7 +153,25 @@ export default React.createClass({
       });
       return point;
     });
-    let deploys = this.state.releaseStats.deploys;
+    let deploysByDate = {};
+    this.state.releaseStats.deploys.forEach(d => {
+      let date = moment(d.dateFinished * 1000).format('ll');
+      if (!deploysByDate[date]) {
+        deploysByDate[date] = {
+          count: 0,
+          environment: new Set(),
+          date: date,
+          timestamp: d.dateFinished,
+        };
+      }
+      deploysByDate[date].count += 1;
+      deploysByDate[date].environment.add(d.environment);
+    });
+    let deploys = _.sortBy(Object.values(deploysByDate), 'timestamp');
+    deploys.forEach(d => {
+      d.environment = Array.from(d.environment).join(', ');
+    });
+
     let releases = this.state.releaseStats.releases.filter(release => {
       return releasesWithEvents.has(release.version);
     });
@@ -142,11 +182,11 @@ export default React.createClass({
           <YAxis />
           <CartesianGrid strokeDasharray="3 3" />
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
-          {deploys.map(d => {
+          {deploys.map((d, i) => {
             return (
-              <ReferenceLine x={moment(d.dateFinished * 1000).format('ll')}
-                             key={d.id}
-                             label={d.environment}
+              <ReferenceLine x={d.date}
+                             key={d.date}
+                             label={<CustomLabel deploy={d} idx={i}/>}
                              stroke="#2a2a2a" alwaysShow={true}/>
             );
           })}
