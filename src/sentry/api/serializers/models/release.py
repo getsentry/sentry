@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from django.db.models import Sum
-
+from django.db.models import Avg, Count, Sum
 
 from collections import Counter, defaultdict
 
@@ -136,6 +135,14 @@ class ReleaseSerializer(Serializer):
             }
         return result
 
+    def get_stats(self, project_ids):
+        # TODO(jess) limit by time probably
+        return Release.objects.filter(
+            projects__id__in=project_ids,
+        ).annotate(
+            num_commits=Count('releasecommit__commit')
+        ).aggregate(Avg('num_commits'))['num_commits__avg']
+
     def get_attrs(self, item_list, user, *args, **kwargs):
         project = kwargs.get('project')
         if project:
@@ -188,6 +195,8 @@ class ReleaseSerializer(Serializer):
                 'slug': pr['project__slug'],
                 'name': pr['project__name'],
             })
+
+        avg_commit_count = self.get_stats(project_ids)
         result = {}
         for item in item_list:
             result[item] = {
@@ -195,6 +204,7 @@ class ReleaseSerializer(Serializer):
                 'owner': owners[six.text_type(item.owner_id)] if item.owner_id else None,
                 'new_groups': group_counts_by_release.get(item.id) or 0,
                 'commit_count': 0,
+                'avg_commit_count': avg_commit_count,
                 'authors': [],
                 'projects': release_projects.get(item.id, [])
             }
@@ -216,6 +226,7 @@ class ReleaseSerializer(Serializer):
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': attrs.get('commit_count', 0),
+            'avgCommitCount': attrs.get('avg_commit_count'),
             'lastCommit': attrs.get('last_commit'),
             'authors': attrs.get('authors', []),
             'projects': attrs.get('projects', [])
