@@ -92,7 +92,7 @@ const GroupUserReports = React.createClass({
               :
                 <strong>{item.name || <em>anonymous</em>}</strong>
               }
-              <small>{item.user.email || item.email}</small>
+              <small>{item.email}</small>
             </div>
             <p dangerouslySetInnerHTML={{__html: body}} />
           </div>

@@ -30,7 +30,7 @@ const EventUserReport = React.createClass({
                   :
                     <strong>{report.name || <em>anonymous</em>}</strong>
                   }
-                  <small>{report.user.email || report.email}</small>
+                  <small>{report.email}</small>
                 </div>
                 <p dangerouslySetInnerHTML={{__html: utils.nl2br(utils.urlize(utils.escape(report.comments)))}} />
               </div>

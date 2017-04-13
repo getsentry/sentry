@@ -298,6 +298,7 @@ const Feedback = React.createClass({
                 :
                   <strong>{feedback.name || <em>anonymous</em>}</strong>
                 }
+                <small>{feedback.email}</small>
               </div>
               <div className="audience-feedback-body">
                 {feedback.comments}
