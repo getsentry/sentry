@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.15.0.dev0'
+VERSION = '8.16.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -94,14 +94,13 @@ install_requires = [
     # 'cryptography>=1.3,<1.4',
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.6.0,<1.7',
-    'django-bitfield>=1.7.0,<1.8.0',
     'django-crispy-forms>=1.4.0,<1.5.0',
     'django-debug-toolbar>=1.3.2,<1.4.0',
     'django-jsonfield>=0.9.13,<0.9.14',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-sudo>=2.1.0,<3.0.0',
     'django-templatetag-sugar>=0.1.0',
-    'djangorestframework>=2.3.8,<2.4.0',
+    'djangorestframework>=2.4.8,<2.5.0',
     'email-reply-parser>=0.2.0,<0.3.0',
     'enum34>=0.9.18,<1.2.0',
     'exam>=0.5.1',
@@ -113,6 +112,7 @@ install_requires = [
 
     'ipaddress>=1.0.16,<1.1.0',
     'libsourcemap>=0.5.0,<0.6.0',
+    'loremipsum>=1.0.5,<1.1.0',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
@@ -215,6 +215,9 @@ setup(
         'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
         'Operating System :: POSIX :: Linux',
+        'Programming Language :: Python :: 2',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 2 :: Only',
         'Topic :: Software Development'
     ],
 )

@@ -114,7 +114,7 @@ const GroupTagValues = React.createClass({
               }
             </Link>
             {tagValue.email &&
-              <a href={`mailto:${tagValue.email}`} className="external-icon">
+              <a href={`mailto:${tagValue.email}`} target="_blank" className="external-icon">
                 <em className="icon-envelope" />
               </a>
             }

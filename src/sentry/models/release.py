@@ -7,7 +7,9 @@ sentry.models.release
 """
 from __future__ import absolute_import, print_function
 
+import logging
 import re
+import six
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
@@ -17,8 +19,11 @@ from jsonfield import JSONField
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
+from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
+
+logger = logging.getLogger(__name__)
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
@@ -214,8 +219,85 @@ class Release(Model):
         else:
             return True
 
+    def set_refs(self, refs, user, fetch_commits=False):
+        from sentry.models import Commit, ReleaseHeadCommit, Repository
+        from sentry.plugins import bindings
+
+        # TODO: this does the wrong thing unless you are on the most
+        # recent release.  Add a timestamp compare?
+        prev_release = type(self).objects.filter(
+            organization_id=self.organization_id,
+            projects__in=self.projects.all(),
+        ).exclude(version=self.version).order_by('-date_added').first()
+
+        commit_list = []
+
+        for ref in refs:
+            try:
+                repo = Repository.objects.get(
+                    organization_id=self.organization_id,
+                    name=ref['repository'],
+                )
+            except Repository.DoesNotExist:
+                continue
+
+            commit = Commit.objects.get_or_create(
+                organization_id=self.organization_id,
+                repository_id=repo.id,
+                key=ref['commit'],
+            )[0]
+            # update head commit for repo/release if exists
+            ReleaseHeadCommit.objects.create_or_update(
+                organization_id=self.organization_id,
+                repository_id=repo.id,
+                release=self,
+                values={
+                    'commit': commit,
+                }
+            )
+            if fetch_commits:
+                try:
+                    provider_cls = bindings.get('repository.provider').get(repo.provider)
+                except KeyError:
+                    continue
+
+                # if previous commit isn't provided, try to get from
+                # previous release otherwise, give up
+                if ref.get('previousCommit'):
+                    start_sha = ref['previousCommit']
+                elif prev_release:
+                    try:
+                        start_sha = Commit.objects.filter(
+                            organization_id=self.organization_id,
+                            releaseheadcommit__release=prev_release,
+                            repository_id=repo.id,
+                        ).values_list('key', flat=True)[0]
+                    except IndexError:
+                        continue
+                else:
+                    continue
+
+                end_sha = commit.key
+                provider = provider_cls(id=repo.provider)
+                try:
+                    repo_commits = provider.compare_commits(
+                        repo, start_sha, end_sha, actor=user
+                    )
+                except NotImplementedError:
+                    pass
+                except (PluginError, InvalidIdentity) as e:
+                    logger.exception(six.text_type(e))
+                else:
+                    commit_list.extend(repo_commits)
+
+            if commit_list:
+                self.set_commits(commit_list)
+
     def set_commits(self, commit_list):
-        from sentry.models import Commit, CommitAuthor, ReleaseCommit, Repository
+        from sentry.models import (
+            Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
+            GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
+        )
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
@@ -273,3 +355,21 @@ class Release(Model):
                     commit=commit,
                     order=idx,
                 )
+
+        group_ids = list(GroupCommitResolution.objects.filter(
+            commit_id__in=ReleaseCommit.objects.filter(
+                release=self
+            ).values_list('commit_id', flat=True),
+        ).values_list('group_id', flat=True))
+        for group_id in group_ids:
+            GroupResolution.objects.create_or_update(
+                group_id=group_id,
+                release=self,
+                values={
+                    'status': GroupResolutionStatus.RESOLVED,
+                },
+            )
+
+        Group.objects.filter(
+            id__in=group_ids,
+        ).update(status=GroupStatus.RESOLVED)

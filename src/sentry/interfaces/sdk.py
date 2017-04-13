@@ -18,12 +18,15 @@ def get_with_prefix(d, k, default=None, delimiter=":"):
     """
 
     prefix = k.split(delimiter, 1)[0]
-    if k in d:
-        return d[k]
-    elif prefix in d:
-        return d[prefix]
-    else:
-        return default
+    for key in [k, prefix]:
+        if key in d:
+            return d[key]
+
+        key = key.lower()
+        if key in d:
+            return d[key]
+
+    return default
 
 
 class Sdk(Interface):

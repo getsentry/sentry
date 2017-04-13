@@ -48,7 +48,7 @@ const CommitAuthorStats = React.createClass({
 
   componentDidMount() {
     let {orgId, projectId, version} = this.props;
-    let path = `/projects/${orgId}/${projectId}/releases/${version}/commits/`;
+    let path = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/commits/`;
     this.api.request(path, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -112,13 +112,13 @@ const CommitAuthorStats = React.createClass({
           let {author, commitCount} = commitAuthor;
           return (
             <li className="list-group-item list-group-item-sm list-group-avatar">
-              <div className="row">
+              <div className="row row-flex row-center-vertically">
                 <div className="col-sm-8">
                   <Avatar user={author} size={32} />
                   <CommitBar totalCommits={commitList.length} authorCommits={commitCount}/>
                 </div>
                 <div className="col-sm-4 align-right">
-                  <small>{commitCount}</small>
+                  {commitCount}
                 </div>
               </div>
             </li>

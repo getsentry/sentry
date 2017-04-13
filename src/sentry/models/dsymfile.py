@@ -13,20 +13,120 @@ import shutil
 import hashlib
 import six
 import tempfile
+from requests.exceptions import RequestException
 
+from jsonfield import JSONField
 from itertools import chain
 from django.db import models, router, transaction, connection, IntegrityError
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 
 from symsynd.macho.arch import get_macho_uuids
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
-    sane_repr, BaseManager
+    sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.utils.db import is_sqlite
 from sentry.utils.native import parse_addr
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
+
+
+class VersionDSymFile(Model):
+    __core__ = False
+
+    objects = BaseManager()
+    dsym_file = FlexibleForeignKey('sentry.ProjectDSymFile', null=True)
+    dsym_app = FlexibleForeignKey('sentry.DSymApp')
+    version = models.CharField(max_length=32)
+    build = models.CharField(max_length=32, null=True)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_versiondsymfile'
+        unique_together = (('dsym_file', 'version', 'build'),)
+
+
+# TODO(dcramer): pull in enum library
+class DSymPlatform(object):
+    GENERIC = 0
+    APPLE = 1
+    ANDROID = 2
+
+
+DSYM_PLATFORMS = {
+    'generic': DSymPlatform.GENERIC,
+    'apple': DSymPlatform.APPLE,
+    'android': DSymPlatform.ANDROID,
+}
+
+
+def _auto_enrich_data(data, app_id, platform):
+    # If we don't have an icon URL we can try to fetch one from iTunes
+    if 'icon_url' not in data and platform == DSymPlatform.APPLE:
+        from sentry.http import safe_urlopen
+        try:
+            rv = safe_urlopen('http://itunes.apple.com/lookup', params={
+                'bundleId': app_id,
+            })
+        except RequestException:
+            pass
+        else:
+            if rv.ok:
+                rv = rv.json()
+                if rv.get('results'):
+                    data['icon_url'] = rv['results'][0]['artworkUrl512']
+
+
+class DSymAppManager(BaseManager):
+
+    def create_or_update_app(self, sync_id, app_id, project, data=None,
+                             platform=DSymPlatform.GENERIC):
+        if data is None:
+            data = {}
+        _auto_enrich_data(data, app_id, platform)
+        existing_app = DSymApp.objects.filter(
+            app_id=app_id, project=project).first()
+        if existing_app is not None:
+            now = timezone.now()
+            existing_app.update(
+                sync_id=sync_id,
+                data=data,
+                last_synced=now,
+            )
+            return existing_app
+
+        return BaseManager.create(self,
+            sync_id=sync_id,
+            app_id=app_id,
+            data=data,
+            project=project,
+            platform=platform
+        )
+
+
+class DSymApp(Model):
+    __core__ = False
+
+    objects = DSymAppManager()
+    project = FlexibleForeignKey('sentry.Project')
+    app_id = models.CharField(max_length=64)
+    sync_id = models.CharField(max_length=64, null=True)
+    data = JSONField()
+    platform = BoundedPositiveIntegerField(default=0, choices=(
+        (DSymPlatform.GENERIC, _('Generic')),
+        (DSymPlatform.APPLE, _('Apple')),
+        (DSymPlatform.ANDROID, _('Android')),
+    ))
+    last_synced = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = 'sentry'
+        db_table = 'sentry_dsymapp'
+        unique_together = (('project', 'platform', 'app_id'),)
 
 
 class DSymSDKManager(BaseManager):
@@ -324,10 +424,40 @@ class CommonDSymFile(Model):
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
 
+class ProjectDSymFileManager(BaseManager):
+
+    def find_missing(self, checksums, project):
+        if not checksums:
+            return[]
+
+        checksums = [x.lower() for x in checksums]
+        missing = set(checksums)
+
+        found = ProjectDSymFile.objects.filter(
+            file__checksum__in=checksums,
+            project=project
+        ).values('file__checksum')
+
+        for values in found:
+            missing.discard(values.values()[0])
+
+        return sorted(missing)
+
+    def find_by_checksums(self, checksums, project):
+        if not checksums:
+            return []
+        checksums = [x.lower() for x in checksums]
+        return ProjectDSymFile.objects.filter(
+            file__checksum__in=checksums,
+            project=project
+        )
+
+
 class ProjectDSymFile(CommonDSymFile):
     project = FlexibleForeignKey('sentry.Project', null=True)
     uuid = models.CharField(max_length=36)
     is_global = False
+    objects = ProjectDSymFileManager()
 
     class Meta(CommonDSymFile.Meta):
         unique_together = (('project', 'uuid'),)
@@ -456,29 +586,3 @@ def find_dsym_file(project, image_uuid):
         ).select_related('file').get()
     except GlobalDSymFile.DoesNotExist:
         return None
-
-
-def find_missing_dsym_files(checksums, project=None):
-    checksums = [x.lower() for x in checksums]
-    missing = set(checksums)
-
-    if project is not None:
-        found = ProjectDSymFile.objects.filter(
-            file__checksum__in=checksums,
-            project=project
-        ).values('file__checksum')
-
-        for values in found:
-            missing.discard(values.values()[0])
-
-        if not missing:
-            return []
-
-    found = GlobalDSymFile.objects.filter(
-        file__checksum__in=list(missing),
-    ).values('file__checksum')
-
-    for values in found:
-        missing.discard(values.values()[0])
-
-    return list(missing)

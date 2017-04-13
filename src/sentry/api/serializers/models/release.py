@@ -96,22 +96,43 @@ class ReleaseSerializer(Serializer):
         users_by_email = get_users_for_commits([rc.commit for rc in release_commits])
         commit_count_by_release_id = Counter()
         authors_by_release_id = defaultdict(dict)
+        latest_commit_by_release_id = {}
+
+        # it's possible to have duplicate users in users_by_email
+        # when CommitAuthor objects are different
+        # but emails are associated to the same user, so
+        # this is to prevent duplicate users from being returned
+        authors_seen_in_release = defaultdict(set)
 
         for rc in release_commits:
             # Accumulate authors per release
             author = rc.commit.author
+
             if author:
-                authors_by_release_id[rc.release_id][author.id] = \
-                    users_by_email[author.id]
+                author_user = users_by_email[author.id]
+                if author_user.get('id') and author_user['id'] in authors_seen_in_release[rc.release_id]:
+                    pass
+                else:
+                    authors_by_release_id[rc.release_id][author.id] = \
+                        users_by_email[author.id]
+                author_user.get('id') and authors_seen_in_release[rc.release_id].add(author_user['id'])
 
             # Increment commit count per release
             commit_count_by_release_id[rc.release_id] += 1
 
+            # look for latest commit by release
+            # lower order means newer commit
+            if rc.release_id not in latest_commit_by_release_id \
+                    or latest_commit_by_release_id[rc.release_id].order > rc.order:
+                latest_commit_by_release_id[rc.release_id] = rc
+
         result = {}
         for item in item_list:
+            last_commit = latest_commit_by_release_id.get(item.id)
             result[item] = {
                 'commit_count': commit_count_by_release_id[item.id],
                 'authors': authors_by_release_id.get(item.id, {}).values(),
+                'last_commit': serialize(last_commit.commit) if last_commit is not None else None,
             }
         return result
 
@@ -159,9 +180,14 @@ class ReleaseSerializer(Serializer):
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
 
         release_projects = defaultdict(list)
-        project_releases = ReleaseProject.objects.filter(release__in=item_list).select_related('project')
+        project_releases = ReleaseProject.objects.filter(
+            release__in=item_list
+        ).values('release_id', 'project__slug', 'project__name')
         for pr in project_releases:
-            release_projects[pr.release_id].append(pr.project)
+            release_projects[pr['release_id']].append({
+                'slug': pr['project__slug'],
+                'name': pr['project__name'],
+            })
         result = {}
         for item in item_list:
             result[item] = {
@@ -170,7 +196,7 @@ class ReleaseSerializer(Serializer):
                 'new_groups': group_counts_by_release.get(item.id) or 0,
                 'commit_count': 0,
                 'authors': [],
-                'projects': serialize(release_projects.get(item.id, []), user)
+                'projects': release_projects.get(item.id, [])
             }
             if release_metadata_attrs:
                 result[item].update(release_metadata_attrs[item])
@@ -190,6 +216,7 @@ class ReleaseSerializer(Serializer):
             'newGroups': attrs['new_groups'],
             'owner': attrs['owner'],
             'commitCount': attrs.get('commit_count', 0),
+            'lastCommit': attrs.get('last_commit'),
             'authors': attrs.get('authors', []),
             'projects': attrs.get('projects', [])
         }

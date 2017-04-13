@@ -7,7 +7,7 @@ import LoadingError from '../components/loadingError';
 
 import ApiMixin from '../mixins/apiMixin';
 
-import {t} from '../locale';
+import {t, tn} from '../locale';
 
 const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
@@ -51,7 +51,7 @@ const ReleaseProjectStatSparkline = React.createClass({
   getNewIssuesCount() {
     let {orgId, version} = this.props;
     let projectId = this.props.project.slug;
-    let issuesPath = `/projects/${orgId}/${projectId}/releases/${version}/`;
+    let issuesPath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(issuesPath, {
       method: 'GET',
       success: (data, _, jqXHR) => {
@@ -84,12 +84,12 @@ const ReleaseProjectStatSparkline = React.createClass({
             <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
           </Sparklines>
         </div>
-        <Link to={`/${orgId}/${project.slug}/releases/${version}/overview`}>
+        <Link to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/overview/`}>
           <h6 className="m-b-0">
             {project.name}
           </h6>
-          <p className="m-b-0">
-            {newIssueCount} {newIssueCount !== 1 ? t('New Issues') : t('New Issue')}
+          <p className="m-b-0 text-muted">
+            <small>{newIssueCount > 0 ? tn('%d new issue', '%d new issues', newIssueCount) : t('No new issues')}</small>
           </p>
         </Link>
       </li>

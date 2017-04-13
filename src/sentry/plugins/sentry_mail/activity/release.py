@@ -4,7 +4,6 @@ from collections import defaultdict
 
 from django.db.models import Count
 
-from sentry import features
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     CommitFileChange, Deploy, Environment, Group,
@@ -59,18 +58,21 @@ class ReleaseActivityEmail(ActivityEmail):
                 c.author.email for c in self.commit_list
                 if c.author
             ])
-            users = {
-                ue.email: ue.user
-                for ue in UserEmail.objects.filter(
-                    in_iexact('email', self.email_list),
-                    is_verified=True,
-                    user__sentry_orgmember_set__organization=self.organization,
-                ).select_related('user')
-            }
+            if self.email_list:
+                users = {
+                    ue.email: ue.user
+                    for ue in UserEmail.objects.filter(
+                        in_iexact('email', self.email_list),
+                        is_verified=True,
+                        user__sentry_orgmember_set__organization=self.organization,
+                    ).select_related('user')
+                }
+            else:
+                users = {}
 
             for commit in self.commit_list:
                 repos[commit.repository_id]['commits'].append(
-                    (commit, users.get(commit.author.email))
+                    (commit, users.get(commit.author.email) if commit.author_id else None)
                 )
 
             self.repos = repos.values()
@@ -110,7 +112,6 @@ class ReleaseActivityEmail(ActivityEmail):
                 ),
                 is_active=True,
             ).distinct()
-            if features.has('workflow:release-emails', project=self.project, actor=user)
         }
 
     def get_users_by_teams(self):

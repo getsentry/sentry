@@ -826,9 +826,19 @@ table.integrations {
     }
   }
 
+  &.switch-changing {
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
   &.switch-disabled {
     cursor: not-allowed;
-    pointer-events: none
+    pointer-events: none;
+    background: @white-darker;
+
+    .switch-toggle {
+      opacity: .4;
+    }
   }
 }
 
@@ -2781,7 +2791,7 @@ ul.faces {
   .label;
   display: inline-block;
   vertical-align: text-bottom;
-  padding: 4px 8px 6px;
+  padding: 5px 8px;
   line-height: 1;
   background: @40;
 }
@@ -3650,6 +3660,32 @@ div.qrcode {
 }
 
 /**
+ * react-code-input
+ * ============================================================================
+ */
+.react-code-input {
+  text-align: center;
+  display: block !important;
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+  }
+  input[type='number'] {
+    -moz-appearance:textfield;
+  }
+  input {
+      text-align: center !important;
+      padding: 0 !important;
+      color: transparent !important;
+      text-shadow: 0 0 0 black !important;
+      &::selection { background: transparent; }
+      &::-moz-selection { background: transparent; }
+  }
+
+}
+
+/**
 * Responsive small screens
 * ============================================================================
 */
@@ -3683,6 +3719,12 @@ div.qrcode {
 
     &.modal-sm {
       margin-left: -200px;
+    }
+
+    &.modal-lg {
+      top: 10%;
+      margin-left: -450px;
+      margin-top: -55px;
     }
   }
 

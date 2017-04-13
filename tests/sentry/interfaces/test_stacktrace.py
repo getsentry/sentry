@@ -41,7 +41,7 @@ class StacktraceTest(TestCase):
         # objects
         event = self.event
         interface = Stacktrace.to_python(event.data['sentry.interfaces.Stacktrace'])
-        assert len(interface.frames) == 1
+        assert len(interface.frames) == 2
         assert interface == event.interfaces['sentry.interfaces.Stacktrace']
 
     def test_requires_filename(self):
@@ -375,6 +375,15 @@ class StacktraceTest(TestCase):
         })
         result = interface.get_hash()
         assert result == []
+
+    def test_get_hash_ignores_safari_native_code(self):
+        interface = Frame.to_python({
+            'abs_path': '[native code]',
+            'filename': '[native code]',
+            'function': 'forEach',
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [])
 
     def test_cocoa_culprit(self):
         stacktrace = Stacktrace.to_python(dict(frames=[

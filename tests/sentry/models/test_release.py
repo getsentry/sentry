@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, Group, GroupRelease, GroupResolution, Release,
-    ReleaseCommit, ReleaseEnvironment, ReleaseProject
+    Commit, Group, GroupCommitResolution, GroupRelease, GroupResolution,
+    GroupResolutionStatus, GroupStatus, Release, ReleaseCommit,
+    ReleaseEnvironment, ReleaseProject, Repository
 )
 
 from sentry.testutils import TestCase
@@ -139,3 +140,51 @@ class MergeReleasesTest(TestCase):
         assert Release.objects.filter(id=release.id).exists()
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
+
+
+class SetCommitsTestCase(TestCase):
+    def test_simple(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name='foo')
+        group = self.create_group(project=project)
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='fixes %s' % (group.qualified_short_id),
+            key='alksdflskdfjsldkfajsflkslk',
+        )
+        commit2 = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message='i fixed something',
+            key='lskfslknsdkcsnlkdflksfdkls',
+        )
+
+        assert GroupCommitResolution.objects.filter(
+            group_id=group.id,
+            commit_id=commit.id
+        ).exists()
+
+        release = Release.objects.create(version='abcdabc', organization=org)
+        release.add_project(project)
+        release.set_commits([{
+            'id': commit.key,
+            'repository': repo.name,
+        }, {
+            'id': commit2.key,
+            'repository': repo.name,
+        }])
+
+        assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
+        assert ReleaseCommit.objects.filter(commit=commit2, release=release).exists()
+        assert GroupResolution.objects.filter(group=group, release=release).exists()
+        assert GroupResolution.objects.get(
+            group=group,
+            release=release,
+        ).status == GroupResolutionStatus.RESOLVED
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED

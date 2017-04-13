@@ -116,7 +116,8 @@ def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
     )
 
 
-def make_symbolizer(project, image_lookup, referenced_images=None):
+def make_symbolizer(project, image_lookup, referenced_images=None,
+        on_dsym_file_referenced=None):
     """Creates a symbolizer for the given project and binary images.  If a
     list of referenced images is referenced (UUIDs) then only images
     needed by those frames are loaded.
@@ -127,7 +128,8 @@ def make_symbolizer(project, image_lookup, referenced_images=None):
     if to_load is None:
         to_load = image_lookup.get_uuids()
 
-    dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load)
+    dsym_paths, loaded = dsymcache.fetch_dsyms(project, to_load,
+        on_dsym_file_referenced=on_dsym_file_referenced)
 
     # We only want to pass the actually loaded symbols to the report
     # symbolizer to avoid the expensive FS operations that will otherwise
@@ -176,14 +178,15 @@ class Symbolizer(object):
     """
 
     def __init__(self, project, binary_images, referenced_images=None,
-                 cpu_name=None):
+                 cpu_name=None, on_dsym_file_referenced=None):
         if isinstance(binary_images, ImageLookup):
             self.image_lookup = binary_images
         else:
             self.image_lookup = ImageLookup(binary_images)
         self.symsynd_symbolizer = make_symbolizer(
             project, self.image_lookup,
-            referenced_images=referenced_images)
+            referenced_images=referenced_images,
+            on_dsym_file_referenced=on_dsym_file_referenced)
         self.cpu_name = cpu_name
 
     def resolve_missing_vmaddrs(self):
@@ -320,7 +323,7 @@ class Symbolizer(object):
             )
 
         if symbolize_inlined:
-            return [self._process_frame(nf, img) for nf in rv]
+            return [self._process_frame(nf, img) for nf in reversed(rv)]
         return self._process_frame(rv, img)
 
     def symbolize_system_frame(self, frame, img, sdk_info,

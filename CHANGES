@@ -1,12 +1,27 @@
-Version 8.15 (Unreleased)
+Version 8.16 (Unreleased)
 -------------------------
+- Added data migration to create UserEmail objects for users whose primary emails did not have them
+
+Version 8.15
+------------
+
+- Time series data (used by graphs and other features) is now updated when groups are merged.
+
+Version 8.15
+------------
 
 - Added overview for a release to view a breakdown of files changes, commit authors, new issues, and issues resolved
 - Refactor usage of ``sentry.app`` to use individual modules.
-- Implemented ``--concurrency` on `sentry cleanup`
+- Implemented ``--concurrency`` on ``sentry cleanup``
 - Added support for the new symbol server system to support native SDKs better.
 - Added deploy email
 - Added OAuth2 support to the web API.
+- Simplified management of secondary email addresses.
+- Fixed an issue where changing primary email address would remove the pre-existing verified email.
+- Disallow duplicating primary emails for users moving forward.
+- Resolve issues when commits with ``Fixes SHORTID`` are included in releases
+- Added support for associating debug symbols with iTunes applications and builds.
+- Added the ability to claim unassigned issues when resolving them.
 
 API Changes
 ~~~~~~~~~~~
@@ -15,6 +30,8 @@ API Changes
 - Added IssuesResolvedInReleaseEndpoint
 - Added ReleaseDeploysEndpoint
 - Added OrganizationReleaseCommitsEndpoint
+- Added EventFileCommittersEndpoint
+- Added ReleaseDeploysEndpoint
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -27,6 +44,9 @@ Schema Changes
 - Added ``ApiToken.application`` column
 - Added ``ApiToken.refresh_token`` column
 - Added ``ApiToken.expires_at`` column
+- Added ``ApiToken.scope_list`` column
+- Added ``ApiKey.scope_list`` column
+- Added ``ReleaseHeadCommit`` model
 
 Security
 ~~~~~~~~
@@ -67,6 +87,7 @@ Version 8.14
 - Added the ability to verify TLS connections when fetching artifacts.
 - Added data migration to merge environments across an organization
 - Added ``timesSeen`` keyword to issue search.
+- Added feature signals, such as first time release tracking is enabled.
 
 API Changes
 ~~~~~~~~~~~

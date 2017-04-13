@@ -4,7 +4,8 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 
 from sentry.models import (
-    Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
+    Activity, File, Release, ReleaseCommit,
+    ReleaseFile, ReleaseProject, Repository
 )
 from sentry.testutils import APITestCase
 
@@ -99,11 +100,129 @@ class UpdateReleaseDetailsTest(APITestCase):
         org.flags.allow_joinleave = False
         org.save()
 
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
+
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
 
         project = self.create_project(team=team1, organization=org)
         project2 = self.create_project(team=team2, organization=org)
+
+        base_release = Release.objects.create(
+            organization_id=org.id,
+            version='000000000',
+        )
+        base_release.add_project(project)
+        release = Release.objects.create(
+            organization_id=org.id,
+            version='abcabcabc',
+        )
+        release2 = Release.objects.create(
+            organization_id=org.id,
+            version='12345678',
+        )
+        release.add_project(project)
+        release2.add_project(project2)
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': base_release.version,
+        })
+        self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': release.version,
+        })
+        response = self.client.put(url, {
+            'ref': 'master',
+            'refs': [
+                {'commit': 'a' * 40, 'repository': repo.name},
+                {'commit': 'b' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        assert response.status_code == 200, response.content
+        assert response.data['version'] == release.version
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo.id,
+            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo.id,
+            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo2.id,
+            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo2.id,
+            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            release__version=response.data['version'],
+        ).exists()
+
+        release = Release.objects.get(id=release.id)
+        assert release.ref == 'master'
+
+        # no access
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
+            'version': release2.version,
+        })
+        response = self.client.put(url, {'ref': 'master'})
+        assert response.status_code == 403
+
+    def test_deprecated_head_commits(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example',
+            provider='dummy',
+        )
+        repo2 = Repository.objects.create(
+            organization_id=org.id,
+            name='example/example2',
+            provider='dummy',
+        )
+
+        team1 = self.create_team(organization=org)
+        team2 = self.create_team(organization=org)
+
+        project = self.create_project(team=team1, organization=org)
+        project2 = self.create_project(team=team2, organization=org)
+
+        base_release = Release.objects.create(
+            organization_id=org.id,
+            version='000000000',
+        )
+        base_release.add_project(project)
 
         release = Release.objects.create(
             organization_id=org.id,
@@ -122,12 +241,50 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         url = reverse('sentry-api-0-organization-release-details', kwargs={
             'organization_slug': org.slug,
+            'version': base_release.version,
+        })
+        self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': '0' * 40, 'repository': repo.name},
+                {'currentId': '0' * 40, 'repository': repo2.name},
+            ],
+        })
+
+        url = reverse('sentry-api-0-organization-release-details', kwargs={
+            'organization_slug': org.slug,
             'version': release.version,
         })
-        response = self.client.put(url, {'ref': 'master'})
+        response = self.client.put(url, {
+            'ref': 'master',
+            'headCommits': [
+                {'currentId': 'a' * 40, 'repository': repo.name},
+                {'currentId': 'b' * 40, 'repository': repo2.name},
+            ],
+        })
 
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo.id,
+            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo.id,
+            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo2.id,
+            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
+            release__version=response.data['version'],
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__repository_id=repo2.id,
+            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
+            release__version=response.data['version'],
+        ).exists()
 
         release = Release.objects.get(id=release.id)
         assert release.ref == 'master'

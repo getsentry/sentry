@@ -293,9 +293,12 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'sentry.plugins.sentry_webhooks',
     'social_auth',
-    'south',
     'sudo',
 )
+
+import django
+if django.VERSION < (1, 7):
+    INSTALLED_APPS += ('south',)
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/{version}/'
@@ -342,6 +345,12 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'sentry.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {
             'min_length': 6,
+        },
+    },
+    {
+        'NAME': 'sentry.auth.password_validation.MaximumLengthValidator',
+        'OPTIONS': {
+            'max_length': 256,
         },
     },
 ]
@@ -606,7 +615,7 @@ LOGGING = {
     'disable_existing_loggers': True,
     'handlers': {
         'null': {
-            'class': 'django.utils.log.NullHandler',
+            'class': 'logging.NullHandler',
         },
         'console': {
             'class': 'sentry.logging.handlers.StructLogHandler',
@@ -731,13 +740,12 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:repos': False,
     'organizations:sso': True,
-    'organizations:callsigns': False,
+    'organizations:callsigns': True,
     'organizations:release-commits': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
     'projects:sample-events': True,
-    'workflow:release-emails': False,
 }
 
 # Default time zone for localization in the UI.
@@ -1164,7 +1172,7 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-java': '7.8.3',
+    'raven-java': '8.0.0',
     'raven-js': '3.12.0',
     'raven-node': '1.1.4',
     'raven-python': '6.0.0',
@@ -1194,6 +1202,7 @@ DEPRECATED_SDKS = {
     # sdk name => new sdk name
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
+    'sentry-android': 'raven-java',
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }
