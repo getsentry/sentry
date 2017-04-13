@@ -47,7 +47,6 @@ class GroupNotesEndpoint(GroupEndpoint):
             user=request.user,
             reason=GroupSubscriptionReason.comment,
         )
-        
         data2 = dict(serializer2.object)
 
         if data2['mentions']:
@@ -58,7 +57,6 @@ class GroupNotesEndpoint(GroupEndpoint):
                     user=user,
                     reason=GroupSubscriptionReason.mentioned,
                 )
-
 
         if Activity.objects.filter(
             group=group,
