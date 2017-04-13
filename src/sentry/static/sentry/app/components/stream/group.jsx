@@ -149,6 +149,11 @@ const StreamGroup = React.createClass({
     className += ' level-' + data.level;
 
     let {id, orgId, projectId} = this.props;
+    
+    let styles = {};
+    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
+      styles = {color: '#57be8c'};
+    }
 
     return (
       <li className={className} onClick={this.toggleSelect}>
@@ -178,7 +183,7 @@ const StreamGroup = React.createClass({
               {data.numComments !== 0 &&
                 <li>
                   <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments"></span>
+                    <span className="icon icon-comments" style={styles}></span>
                     <span className="tag-count">{data.numComments}</span>
                   </Link>
                 </li>

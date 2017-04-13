@@ -342,6 +342,8 @@ const NoteInput = React.createClass({
                       onChange={this.onChange}
                       onBlur={this.onBlur}
                       value={value}
+                      required={true}
+                      autoFocus={true}
                       displayTransform={ (id, display) => `@${display}` }
                       markup="**__display__**" >
                       <Mention trigger="@"

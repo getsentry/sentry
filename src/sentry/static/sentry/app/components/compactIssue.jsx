@@ -57,6 +57,11 @@ const CompactIssueHeader = React.createClass({
 
   render() {
     let {orgId, projectId, data} = this.props;
+
+    let styles = {};
+    if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
+      styles = {color: '#57be8c'};
+    }
     return (
       <div>
         <span className="error-level truncate" title={data.level} />
@@ -74,7 +79,7 @@ const CompactIssueHeader = React.createClass({
           {data.numComments !== 0 &&
             <span>
               <Link to={`/${orgId}/${projectId}/issues/${data.id}/activity/`} className="comments">
-                <span className="icon icon-comments" />
+                <span className="icon icon-comments" style={styles}/>
                 <span className="tag-count">{data.numComments}</span>
               </Link>
             </span>
