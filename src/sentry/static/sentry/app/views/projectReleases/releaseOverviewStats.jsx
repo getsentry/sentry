@@ -53,7 +53,8 @@ const ReleaseOverviewStats = React.createClass({
   },
 
   renderChart() {
-    let colors = ['#8884d8', '#82ca9d', '#ffc658'];
+    let grays = ['#d3d3d3', '#a8a8a8', '#7e7e7e'];
+    let purple = '#8F85D4';
     // just use 30 days for now
     let stats = this.state.data.stats['30d'];
     // filter out releases that have 0 events ever so
@@ -87,13 +88,15 @@ const ReleaseOverviewStats = React.createClass({
             return (
               <ReferenceLine x={moment(d.dateFinished * 1000).format('ll')}
                              label={'Deployed ' + d.release + ' to ' + d.environment}
-                             stroke="red" alwaysShow={true}/>
+                             stroke="#2a2a2a" alwaysShow={true}/>
             );
           })}
           {Array.from(releases).map((stat, i) => {
+            let isLatest = stat === this.state.data.latestRelease;
+            let color = isLatest ? purple : grays[i % 3];
             return (
-              <Area key={stat} type="monotone" dataKey={stat} fill={colors[i % 3]}
-                    stroke={colors[i % 3]} fillOpacity={1} stackId="1" />
+              <Area key={stat} type="monotone" dataKey={stat} fill={color}
+                    stroke={color} fillOpacity={1} stackId="1" />
             );
           })}
         </AreaChart>

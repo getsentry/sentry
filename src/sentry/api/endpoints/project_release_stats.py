@@ -48,10 +48,15 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             else:
                 sum_deltas += (next_date - date_added)
 
-        release_ids = dict(Release.objects.filter(
+        releases = list(Release.objects.filter(
             projects=project,
             organization_id=project.organization_id,
-        ).values_list('id', 'version'))
+        ).order_by('-date_added').values('id', 'version'))
+        latest_release = releases[0]
+        versions_by_id = {
+            r['id']: r['version']
+            for r in releases
+        }
 
         # avg new groups per release
         avg_new_groups = ReleaseProject.objects.filter(
@@ -59,7 +64,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         ).aggregate(Avg('new_groups'))['new_groups__avg']
 
         items = {
-            project.id: release_ids.keys(),
+            project.id: versions_by_id.keys(),
         }
 
         until = timezone.now()
@@ -75,12 +80,12 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 rollup=int(interval.total_seconds()),
             )
             stats[key] = [
-                (item[0], {release_ids[r_id]: count for r_id, count in item[1].items()})
+                (item[0], {versions_by_id[r_id]: count for r_id, count in item[1].items()})
                 for item in _stats.get(project.id, [])]
 
         deploys = list(Deploy.objects.filter(
             organization_id=project.organization_id,
-            release_id__in=release_ids.keys(),
+            release_id__in=versions_by_id.keys(),
             date_finished__gt=until - datetime.timedelta(days=30),
         ).values('date_finished', 'environment_id', 'release_id'))
 
@@ -97,10 +102,11 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             'AvgNewGroups': avg_new_groups,
             'AvgTimeToRelease': (sum_deltas / len(release_dates)).total_seconds() * 1000,
             'CountReleases': len(release_dates),
+            'latestRelease': latest_release['version'],
             'stats': stats,
             'deploys': [{
                 'environment': environments[d['environment_id']],
-                'release': release_ids[d['release_id']],
+                'release': versions_by_id[d['release_id']],
                 'dateFinished': int(d['date_finished'].strftime('%s')),
             } for d in deploys],
         })
