@@ -12,6 +12,7 @@ from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
 
 from sentry import options
+from django.db import IntegrityError
 from sentry.models import Project, EventError, VersionDSymFile, DSymPlatform, \
     DSymApp
 from sentry.plugins import Plugin2
@@ -459,12 +460,18 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     data={'name': app_info.name},
                     platform=DSymPlatform.APPLE,
                 )
-                version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                    dsym_file=dsym_file,
-                    dsym_app=dsym_app,
-                    version=app_info.version,
-                    build=app_info.build,
-                )
+                try:
+                    version_dsym_file, created = VersionDSymFile.objects.get_or_create(
+                        dsym_file=dsym_file,
+                        dsym_app=dsym_app,
+                        version=app_info.version,
+                        build=app_info.build,
+                    )
+                except IntegrityError:
+                    # XXX: this can currently happen because we only
+                    # support one app per dsym file.  Since this can
+                    # happen in some cases anyways we ignore it.
+                    pass
 
         self.sym = Symbolizer(self.project, self.image_lookup,
                               cpu_name=self.cpu_name,
