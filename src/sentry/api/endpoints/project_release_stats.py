@@ -52,7 +52,6 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             projects=project,
             organization_id=project.organization_id,
         ).order_by('-date_added').values('id', 'version'))
-        latest_release = releases[0]
         versions_by_id = {
             r['id']: r['version']
             for r in releases
@@ -102,7 +101,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             'AvgNewGroups': avg_new_groups,
             'AvgTimeToRelease': (sum_deltas / len(release_dates)).total_seconds() * 1000,
             'CountReleases': len(release_dates),
-            'latestRelease': latest_release['version'],
+            'releases': releases,
             'stats': stats,
             'deploys': [{
                 'environment': environments[d['environment_id']],

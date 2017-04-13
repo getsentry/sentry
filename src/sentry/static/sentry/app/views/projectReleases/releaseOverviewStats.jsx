@@ -59,11 +59,11 @@ const ReleaseOverviewStats = React.createClass({
     let stats = this.state.data.stats['30d'];
     // filter out releases that have 0 events ever so
     // that tooltip doesn't get crazy
-    let releases = new Set();
+    let releasesWithEvents = new Set();
     stats.forEach(stat => {
       Object.keys(stat[1]).forEach(release => {
         if (stat[1][release] > 0) {
-          releases.add(release);
+          releasesWithEvents.add(release);
         }
       });
     });
@@ -71,12 +71,15 @@ const ReleaseOverviewStats = React.createClass({
       let point = {
         name: moment(stat[0] * 1000).format('ll'),
       };
-      releases.forEach(release => {
+      releasesWithEvents.forEach(release => {
         point[release] = stat[1][release];
       });
       return point;
     });
     let deploys = this.state.data.deploys;
+    let releases = this.state.data.releases.filter(release => {
+      return releasesWithEvents.has(release.version);
+    });
     return (
       <ResponsiveContainer minHeight={250}>
         <AreaChart data={data}>
@@ -91,11 +94,11 @@ const ReleaseOverviewStats = React.createClass({
                              stroke="#2a2a2a" alwaysShow={true}/>
             );
           })}
-          {Array.from(releases).map((stat, i) => {
-            let isLatest = stat === this.state.data.latestRelease;
-            let color = isLatest ? purple : grays[i % 3];
+          {releases.map((release, i) => {
+            let color = i === 0 ? purple : grays[i % 3];
             return (
-              <Area key={stat} type="monotone" dataKey={stat} fill={color}
+              <Area key={release.version} type="monotone"
+                    dataKey={release.version} fill={color}
                     stroke={color} fillOpacity={1} stackId="1" />
             );
           })}
