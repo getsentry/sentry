@@ -8,6 +8,9 @@ import ListLink from '../listLink';
 
 import Broadcasts from './broadcasts';
 import Incidents from './incidents';
+import IconChart from '../../icons/icon-chart';
+import IconRelease from '../../icons/icon-release';
+import IconStream from '../../icons/icon-stream';
 import IconUsers from '../../icons/icon-users';
 import UserNav from './userNav';
 import requiredAdminActions from '../requiredAdminActions';
@@ -171,13 +174,13 @@ const Sidebar = React.createClass({
 
       <ul className="navbar-nav divider-bottom">
         <ListLink to={`/${orgId}/${projectId}/dashboard/`}>
-          <span className="icon icon-home"/>
+          <IconChart size="21px" />
         </ListLink>
         <ListLink to={`/${orgId}/${projectId}/`} index={true}>
-          <span className="icon icon-home"/>
+          <IconStream size="23px" />
         </ListLink>
         <ListLink to={`/${orgId}/${projectId}/releases/`}>
-          <span className="icon icon-home"/>
+          <IconRelease size="23px" />
         </ListLink>
         <ListLink to={`/${orgId}/${projectId}/audience/`}>
           <IconUsers size="25px" />
