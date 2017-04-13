@@ -1,11 +1,22 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
+from django.http import HttpResponse
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProcessingIssue, ReprocessingReport
 from sentry.reprocessing import trigger_reprocessing
+from sentry.utils.linksign import generate_signed_link
+
+
+class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
+    def get(self, request, project):
+        rv = []
+        rv.append('#!/bin/bash')
+        rv.append('set -eu')
+        rv.append('echo "Thanks for helping us out, here is a"')
+        return HttpResponse('\n'.join(rv), mimetype="text/plain")
 
 
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
@@ -34,6 +45,14 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
             'resolveableIssues': len(resolveable_issues),
             'hasMoreResolveableIssues': has_more,
             'issuesProcessing': reprocessing_issues,
+            'signedLink': generate_signed_link(
+                request.user,
+                'sentry-api-0-project-fix-processing-issues',
+                kwargs={
+                    'project_slug': project.slug,
+                    'organization_slug': project.organization.slug,
+                }
+            )
         }
 
         if request.GET.get('detailed') == '1':
