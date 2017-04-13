@@ -73,10 +73,10 @@ const ReleaseProjectStatSparkline = React.createClass({
     let newIssueCount = this.state.newIssueCount;
     let values = this.state.stats.map(tuple => tuple[1]);
     if (this.state.loading)
-      return <LoadingIndicator/>;
+      return <LoadingIndicator mini={true} />;
 
     if (this.state.error)
-      return <LoadingError/>;
+      return <LoadingError />;
     return (
       <li className={this.props.className}>
         <div className="sparkline pull-right" style={{width: 96}}>
