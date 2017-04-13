@@ -12,7 +12,7 @@ import Version from '../../components/version';
 
 const CustomTooltip = React.createClass({
   propTypes: {
-    active: React.PropTypes.boolean,
+    active: React.PropTypes.bool,
     payload: React.PropTypes.array,
     label: React.PropTypes.string,
   },

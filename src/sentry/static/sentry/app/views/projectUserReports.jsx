@@ -3,6 +3,7 @@ import React from 'react';
 import {browserHistory, Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
+import EventUserModalLink from '../components/eventUserModalLink';
 import GroupStore from '../stores/groupStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -181,7 +182,10 @@ const ProjectUserReports = React.createClass({
                 <Avatar user={item} size={64} className="avatar" />
                 <div className="activity-bubble">
                   <TimeSince date={item.dateCreated} />
-                  <div className="activity-author">{item.name} <small>{item.email}</small></div>
+                  <div className="activity-author">
+                    <EventUserModalLink user={item.user} orgId={orgId} projectId={projectId} />
+                    <small>{item.email}</small>
+                  </div>
                   <p dangerouslySetInnerHTML={{__html: body}} />
                 </div>
               </li>

@@ -3,6 +3,7 @@ import React from 'react';
 import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
+import EventUserModalLink from '../components/eventUserModalLink';
 import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -44,7 +45,8 @@ const GroupUserReports = React.createClass({
       error: false
     });
 
-    this.api.request('/issues/' + this.getGroup().id + '/user-reports/?' + querystring, {
+    let path = `/issues/${this.getGroup().id}/user-reports/?${querystring}`;
+    this.api.request(path, {
       success: (data, _, jqXHR) => {
         this.setState({
           error: false,
@@ -75,6 +77,7 @@ const GroupUserReports = React.createClass({
       return <LoadingError onRetry={this.fetchData} />;
     }
 
+    let {orgId, projectId} = this.props.params;
     let children = this.state.reportList.map((item, itemIdx) => {
       let body = utils.nl2br(utils.urlize(utils.escape(item.comments)));
 
@@ -83,7 +86,10 @@ const GroupUserReports = React.createClass({
           <Avatar user={item} size={64} className="avatar" />
           <div className="activity-bubble">
             <TimeSince date={item.dateCreated} />
-            <div className="activity-author">{item.name} <small>{item.email}</small></div>
+            <div className="activity-author">
+              <EventUserModalLink user={item.user} orgId={orgId} projectId={projectId} />
+              <small>{item.email}</small>
+            </div>
             <p dangerouslySetInnerHTML={{__html: body}} />
           </div>
         </li>

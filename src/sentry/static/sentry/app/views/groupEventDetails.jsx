@@ -35,7 +35,6 @@ const GroupEventDetails = React.createClass({
     }
   },
 
-
   fetchData() {
     let eventId = this.props.params.eventId || 'latest';
 
@@ -124,7 +123,7 @@ const GroupEventDetails = React.createClass({
             )}
           </div>
           <div className="secondary">
-            <GroupSidebar group={group} event={evt} />
+            <GroupSidebar group={group} />
           </div>
         </div>
       </div>

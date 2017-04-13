@@ -15,7 +15,7 @@ import {BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip} from 'rechart
 
 const CustomTooltip = React.createClass({
   propTypes: {
-    active: React.PropTypes.boolean,
+    active: React.PropTypes.bool,
     payload: React.PropTypes.array,
     label: React.PropTypes.string,
   },
