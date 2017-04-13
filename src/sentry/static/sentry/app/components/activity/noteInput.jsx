@@ -107,6 +107,7 @@ const NoteInput = React.createClass({
 
   create() {
     let {group} = this.props;
+    let mentions = this.finalMentions();
 
     let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
@@ -114,7 +115,7 @@ const NoteInput = React.createClass({
       method: 'POST',
       data: {
         text: this.state.value,
-        mentions: this.state.mentions,
+        mentions: mentions,
       },
       error: (error) => {
         this.setState({
@@ -190,11 +191,22 @@ const NoteInput = React.createClass({
 
   onAdd(id, display) {
     let mentions = this.state.mentions;
-    this.setState({mentions: mentions.concat(id)});
+    mentions.push([id, display]);
+    this.setState({mentions: mentions});
   },
 
   finish() {
     this.props.onFinish && this.props.onFinish();
+  },
+
+  finalMentions() {
+    let results = [];
+    this.state.mentions.forEach((item) => {
+      if (this.state.value.indexOf(item[1]) !== -1){
+        results.push(item[0]);
+      }
+    });
+    return results;
   },
 
   expand(e) {
@@ -333,7 +345,8 @@ const NoteInput = React.createClass({
                       markup="**__display__**" >
                       <Mention trigger="@"
                           data={this.getMemberData()}
-                          onAdd={this.onAdd} />
+                          onAdd={this.onAdd}
+                          appendSpaceOnAdd={true} />
             </MentionsInput>
           }
           <div className="activity-actions">
