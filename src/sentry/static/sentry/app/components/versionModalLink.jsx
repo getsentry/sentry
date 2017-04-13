@@ -3,12 +3,13 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
+import Avatar from '../components/avatar';
 import BarChart from '../components/barChart';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import RepositoryFileSummary from '../components/repositoryFileSummary';
 import ReleaseProjectStatSparkline from '../components/releaseProjectStatSparkline';
 import TimeSince from '../components/timeSince';
+import TooltipMixin from '../mixins/tooltip';
 import {getShortVersion} from '../utils';
 
 const Chart = React.createClass({
@@ -83,7 +84,12 @@ export default React.createClass({
     version: React.PropTypes.string.isRequired,
   },
 
-  mixins: [ApiMixin],
+  mixins: [
+    ApiMixin,
+    TooltipMixin({
+      selector: '.tip'
+    }),
+  ],
 
   getInitialState() {
     return {
@@ -92,7 +98,6 @@ export default React.createClass({
       error: false,
       dataFetchSent: false,
       data: null,
-      fileList: null,
     };
   },
 
@@ -103,7 +108,6 @@ export default React.createClass({
     this.setState({dataFetchSent: true});
 
     this.getDetails();
-    this.getCommits();
   },
 
   getDetails() {
@@ -121,24 +125,6 @@ export default React.createClass({
         this.setState({
           error: true,
           loading: false
-        });
-      }
-    });
-  },
-
-  getCommits() {
-    let {orgId, version} = this.props;
-    let path = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/commitfiles/`;
-    this.api.request(path, {
-      method: 'GET',
-      success: (data, _, jqXHR) => {
-        this.setState({
-          fileList: data,
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
         });
       }
     });
@@ -166,32 +152,47 @@ export default React.createClass({
     return <div className="box empty">None</div>;
   },
 
+  renderReleaseWeight(release) {
+    let width = release.commitCount / release.projectCommitStats.maxCommits * 100;
+    let fullBar = {
+      width: '100px',
+      backgroundColor: '#d3d3d3',
+      height: '5px',
+      borderRadius: '3px',
+      position: 'relative',
+      display: 'inline-block',
+    };
+    let percentageBar = {
+      width: width + 'px',
+      backgroundColor: '#8F85D4',
+      height: '5px',
+    };
+    if (width === 100) {
+      percentageBar.borderRadius = '3px';
+    } else {
+      percentageBar.borderBottomLeftRadius = '3px';
+      percentageBar.borderTopLeftRadius = '3px';
+    }
+    return (
+      <div className="tip"
+           title={('This release has ' +
+                   (Math.round((release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100) +
+                   ' more commits than the average for this project.')}
+           style={fullBar}>
+        <div style={percentageBar}></div>
+      </div>
+    );
+  },
+
   renderModalBody() {
-    if (this.state.loading || this.state.fileList === null)
+    if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError />;
 
     let {orgId, projectId, version} = this.props;
     let shortVersion = getShortVersion(version);
-    let {data, fileList} = this.state;
-
-    let filesByRepository = fileList.reduce(function (fbr, file) {
-      let {filename, repoName, author, type} = file;
-      if (!fbr.hasOwnProperty(repoName)) {
-        fbr[repoName] = {};
-      }
-      if (!fbr[repoName].hasOwnProperty(filename)) {
-          fbr[repoName][filename] = {
-          authors: {}, types: new Set(), repos: new Set(),
-        };
-      }
-
-      fbr[repoName][filename].authors[author.email] = author;
-      fbr[repoName][filename].types.add(type);
-
-      return fbr;
-    }, {});
+    let {data} = this.state;
 
     return (
       <div className="release-details-modal">
@@ -211,32 +212,48 @@ export default React.createClass({
             </div>
             <div className="clearfix" />
           </div>
-          <div className="row">
-            <div className="col-md-7">
-              <div>
-                {Object.keys(filesByRepository).map(repository => {
-                  return (<RepositoryFileSummary
-                            key={repository.name}
-                            repository={repository}
-                            fileChangeSummary={filesByRepository[repository]}/>);
-                })}
-              </div>
+          <div className="row release-info">
+            <div className="col-md-6">
+              <h6 className="nav-header">Summary</h6>
+              <dl className="flat">
+                <dt>Weight:</dt>
+                <dd>
+                  {this.renderReleaseWeight(data)}<br />
+                  <small>{data.commitCount.toLocaleString()} commits</small>
+                </dd>
+                <dt>Authors:</dt>
+                <dd>{data.authors.map(author => {
+                  return <span style={{marginRight: 5}}><Avatar user={author} /></span>;
+                })}</dd>
+              </dl>
             </div>
-            <div className="col-md-5">
-              <h6 className="nav-header m-b-1">Projects Affected</h6>
-              <ul className="nav nav-stacked">
-                {data.projects.map((project) => {
-                  return (
-                    <ReleaseProjectStatSparkline
-                      key={project.id}
-                      orgId={orgId}
-                      project={project}
-                      version={version}
-                    />
-                  );
-                })}
-              </ul>
+            <div className="col-md-6">
+              <h6 className="nav-header">Impact</h6>
+              <dl className="flat">
+                <dt>New Issues:</dt>
+                <dd><a>{data.newGroups.toLocaleString()}</a></dd>
+                <dt>First Event:</dt>
+                <dd><TimeSince date={data.firstEvent} /></dd>
+                <dt>Last Event:</dt>
+                <dd><TimeSince date={data.lastEvent} /></dd>
+              </dl>
             </div>
+          </div>
+          <div className="release-info">
+            <h6 className="nav-header">Projects Affected</h6>
+            <ul className="nav nav-stacked row project-list">
+              {data.projects.map((project) => {
+                return (
+                  <ReleaseProjectStatSparkline
+                    className="col-md-6"
+                    key={project.id}
+                    orgId={orgId}
+                    project={project}
+                    version={version}
+                  />
+                );
+              })}
+            </ul>
           </div>
         </div>
       </div>

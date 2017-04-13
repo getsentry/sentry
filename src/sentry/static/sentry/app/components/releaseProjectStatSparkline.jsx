@@ -78,7 +78,7 @@ const ReleaseProjectStatSparkline = React.createClass({
     if (this.state.error)
       return <LoadingError/>;
     return (
-      <li>
+      <li className={this.props.className}>
         <div className="sparkline pull-right" style={{width: 96}}>
           <Sparklines data={values} width={100} height={32}>
             <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
