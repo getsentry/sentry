@@ -146,7 +146,7 @@ export default React.createClass({
             return (
               <ReferenceLine x={moment(d.dateFinished * 1000).format('ll')}
                              key={d.id}
-                             label={'Deployed ' + d.release + ' to ' + d.environment}
+                             label={d.environment}
                              stroke="#2a2a2a" alwaysShow={true}/>
             );
           })}
