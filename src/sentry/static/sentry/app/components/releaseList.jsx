@@ -24,13 +24,14 @@ export default React.createClass({
     let fullBar = {
       width: '100px',
       backgroundColor: '#d3d3d3',
-      height: '20px',
+      height: '4px',
       borderRadius: '3px',
+      display: 'inline-block',
     };
     let percentageBar = {
       width: width + 'px',
       backgroundColor: '#8F85D4',
-      height: '20px',
+      height: '4px',
     };
     if (width === 100) {
       percentageBar.borderRadius = '3px';
