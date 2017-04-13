@@ -153,7 +153,7 @@ export default React.createClass({
     if (this.state.loading)
       return <LoadingIndicator />;
     else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+      return <LoadingError />;
 
     let {orgId, projectId, user} = this.props;
 

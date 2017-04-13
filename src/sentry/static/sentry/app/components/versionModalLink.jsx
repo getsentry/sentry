@@ -29,10 +29,6 @@ export default React.createClass({
     };
   },
 
-  componentWillMount() {
-    this.fetchData();
-  },
-
   optimisticallyFetchData() {
     if (this.state.dataFetchSent)
       return;
@@ -107,7 +103,7 @@ export default React.createClass({
     if (this.state.loading || this.state.fileList === null)
       return <LoadingIndicator />;
     else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+      return <LoadingError />;
 
     let {orgId, projectId, version} = this.props;
     let shortVersion = getShortVersion(version);
@@ -148,6 +144,7 @@ export default React.createClass({
             <div>
               {Object.keys(filesByRepository).map(repository => {
                 return (<RepositoryFileSummary
+                          key={repository.name}
                           repository={repository}
                           fileChangeSummary={filesByRepository[repository]}/>);
               })}
