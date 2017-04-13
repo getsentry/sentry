@@ -198,7 +198,7 @@ const LocationsMap = React.createClass({
 
   renderBody() {
     if (this.state.loading)
-      return <LoadingIndicator />;
+      return null;
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
     return <GeoMap  series={this.state.data} height={this.props.height} />;
