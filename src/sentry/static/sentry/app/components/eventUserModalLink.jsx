@@ -54,9 +54,20 @@ const UserActivity = React.createClass({
     else if (this.state.error)
       return <LoadingError onRetry={this.fetchData} />;
 
+    let {user} = this.props;
+
+    if (!user.totalIssues) {
+      return (
+        <div>
+          <h5>No issues encountered</h5>
+          <p>Nice work!</p>
+        </div>
+      );
+    }
+
     return (
       <div>
-        <h5>Issues encountered</h5>
+        <h5>{user.totalIssues} issue{user.totalIssues !== 1 ? 's' : ''} encountered</h5>
         <ul className="activity-issue-list">
           {this.state.issueList.map((issue) => {
             return (

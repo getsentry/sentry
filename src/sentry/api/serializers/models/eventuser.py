@@ -42,6 +42,11 @@ class EventUserSerializer(Serializer):
         else:
             last_issue = Group.objects.get(id=group_id)
 
+        total_issues = GroupTagValue.objects.filter(
+            reduce(or_, tag_filters),
+            key='sentry:user',
+        ).count()
+
         return {
             'id': six.text_type(obj.id),
             'hash': obj.hash,
@@ -55,4 +60,5 @@ class EventUserSerializer(Serializer):
             'avatarUrl': get_gravatar_url(obj.email, size=32),
             'lastLocation': serialize(last_location, user),
             'lastIssue': serialize(last_issue, user),
+            'totalIssues': total_issues,
         }
