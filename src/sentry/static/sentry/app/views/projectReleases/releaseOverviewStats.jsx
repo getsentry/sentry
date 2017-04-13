@@ -99,7 +99,7 @@ const ReleaseOverviewStats = React.createClass({
             return (
               <Area key={release.version} type="monotone"
                     dataKey={release.version} fill={color}
-                    stroke={color} fillOpacity={1} stackId="1" />
+                    fillOpacity={0.5} stroke={color} stackId="1" />
             );
           })}
         </AreaChart>
