@@ -130,7 +130,8 @@ const NoteInput = React.createClass({
           value: '',
           preview: false,
           expanded: false,
-          loading: false
+          loading: false,
+          mentions: [],
         });
         GroupStore.addActivity(group.id, data);
         this.finish();
@@ -254,8 +255,7 @@ const NoteInput = React.createClass({
     let styles = {
         control: {
           backgroundColor: '#fff',
-
-          fontSize: 12,
+          fontSize: 15,
           fontWeight: 'normal',
         },
 
@@ -277,7 +277,6 @@ const NoteInput = React.createClass({
 
           input: {
             padding: 1,
-
             border: '2px inset',
           },
         },
@@ -289,12 +288,13 @@ const NoteInput = React.createClass({
           },
 
           highlighter: {
-            padding: 9,
+            padding: 20,
           },
 
           input: {
-            padding: 9,
-            minHeight: 63,
+            padding: '15px 20px 0',
+            minHeight: 140,
+            overflow: 'auto',
             outline: 0,
             border: 0,
           },
@@ -312,7 +312,7 @@ const NoteInput = React.createClass({
             borderBottom: '1px solid rgba(0,0,0,0.15)',
 
             '&focused': {
-              backgroundColor: '#b9b2d0',
+              backgroundColor: '#f8f6f9',
             },
           },
         },
@@ -340,8 +340,9 @@ const NoteInput = React.createClass({
           :
             <MentionsInput style={styles} placeholder={t('Add details or updates to this event')}
                       onChange={this.onChange}
+                      onBlur={this.onBlur}
                       value={value}
-                      displayTransform={ (display) => `@${display}` }
+                      displayTransform={ (id, display) => `@${display}` }
                       markup="**__display__**" >
                       <Mention trigger="@"
                           data={this.getMemberData()}

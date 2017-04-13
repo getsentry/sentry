@@ -41,6 +41,13 @@ class GroupNotesEndpoint(GroupEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         data = dict(serializer.object)
+
+        GroupSubscription.objects.subscribe(
+            group=group,
+            user=request.user,
+            reason=GroupSubscriptionReason.comment,
+        )
+        
         data2 = dict(serializer2.object)
 
         if data2['mentions']:
@@ -52,11 +59,6 @@ class GroupNotesEndpoint(GroupEndpoint):
                     reason=GroupSubscriptionReason.mentioned,
                 )
 
-        GroupSubscription.objects.subscribe(
-            group=group,
-            user=request.user,
-            reason=GroupSubscriptionReason.comment,
-        )
 
         if Activity.objects.filter(
             group=group,
