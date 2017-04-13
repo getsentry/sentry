@@ -5,6 +5,7 @@ import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import BarChart from '../components/barChart';
+import IconOpen from '../icons/icon-open';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ReleaseProjectStatSparkline from '../components/releaseProjectStatSparkline';
@@ -98,6 +99,7 @@ export default React.createClass({
       error: false,
       dataFetchSent: false,
       data: null,
+      deployList: null,
     };
   },
 
@@ -108,6 +110,7 @@ export default React.createClass({
     this.setState({dataFetchSent: true});
 
     this.getDetails();
+    this.getDeploys();
   },
 
   getDetails() {
@@ -127,6 +130,19 @@ export default React.createClass({
           loading: false
         });
       }
+    });
+  },
+
+  getDeploys() {
+    let {orgId, version} = this.props;
+    let path = `/organizations/${orgId}/releases/${version}/deploys/?per_page=3`;
+    this.api.request(path, {
+      method: 'GET',
+      success: (data, _, jqXHR) => {
+        this.setState({
+          deployList: data,
+        });
+      },
     });
   },
 
@@ -185,14 +201,14 @@ export default React.createClass({
   },
 
   renderModalBody() {
-    if (this.state.loading)
+    if (this.state.loading || this.state.deployList === null)
       return <LoadingIndicator />;
     else if (this.state.error)
       return <LoadingError />;
 
     let {orgId, projectId, version} = this.props;
     let shortVersion = getShortVersion(version);
-    let {data} = this.state;
+    let {data, deployList} = this.state;
 
     return (
       <div className="release-details-modal">
@@ -212,48 +228,76 @@ export default React.createClass({
             </div>
             <div className="clearfix" />
           </div>
-          <div className="row release-info">
-            <div className="col-md-6">
-              <h6 className="nav-header">Summary</h6>
-              <dl className="flat">
-                <dt>Weight:</dt>
-                <dd>
-                  {this.renderReleaseWeight(data)}<br />
-                  <small>{data.commitCount.toLocaleString()} commits</small>
-                </dd>
-                <dt>Authors:</dt>
-                <dd>{data.authors.map(author => {
-                  return <span style={{marginRight: 5}}><Avatar user={author} /></span>;
-                })}</dd>
-              </dl>
-            </div>
-            <div className="col-md-6">
-              <h6 className="nav-header">Impact</h6>
-              <dl className="flat">
-                <dt>New Issues:</dt>
-                <dd><a>{data.newGroups.toLocaleString()}</a></dd>
-                <dt>First Event:</dt>
-                <dd><TimeSince date={data.firstEvent} /></dd>
-                <dt>Last Event:</dt>
-                <dd><TimeSince date={data.lastEvent} /></dd>
-              </dl>
-            </div>
-          </div>
           <div className="release-info">
-            <h6 className="nav-header">Projects Affected</h6>
-            <ul className="nav nav-stacked row project-list">
-              {data.projects.map((project) => {
-                return (
-                  <ReleaseProjectStatSparkline
-                    className="col-md-6"
-                    key={project.id}
-                    orgId={orgId}
-                    project={project}
-                    version={version}
-                  />
-                );
-              })}
-            </ul>
+            <div className="row">
+              <div className="col-md-6">
+                <h6 className="nav-header">Summary</h6>
+                <dl className="flat">
+                  <dt>Weight:</dt>
+                  <dd>
+                    {this.renderReleaseWeight(data)}<br />
+                    <small>{data.commitCount.toLocaleString()} commits</small>
+                  </dd>
+                  <dt>Authors:</dt>
+                  <dd>{data.authors.map(author => {
+                    return <span style={{marginRight: 5}}><Avatar user={author} /></span>;
+                  })}</dd>
+                </dl>
+              </div>
+              <div className="col-md-6">
+                <h6 className="nav-header">Impact</h6>
+                <dl className="flat">
+                  <dt>New Issues:</dt>
+                  <dd><a>{data.newGroups.toLocaleString()}</a></dd>
+                  <dt>First Event:</dt>
+                  <dd><TimeSince date={data.firstEvent} /></dd>
+                  <dt>Last Event:</dt>
+                  <dd><TimeSince date={data.lastEvent} /></dd>
+                </dl>
+              </div>
+            </div>
+            <div className="row">
+              <div className="col-md-6">
+                <h6 className="nav-header">Recent Deploys</h6>
+                <ul className="nav nav-stacked">
+                  {deployList.map(deploy => {
+                    let query = encodeURIComponent(`environment:${deploy.environment} release:${version}`);
+                    return (
+                      <li key={deploy.id}>
+                        <a href={`/${orgId}/${projectId}/?query=${query}`} title="Find related issues">
+                          <div className="row row-flex row-center-vertically">
+                            <div className="col-xs-6">
+                              <span className="repo-label" style={{verticalAlign: 'bottom'}}>
+                                {deploy.environment}
+                                <IconOpen className="icon-open" size={11} style={{marginLeft: 6}}/>
+                              </span>
+                            </div>
+                            <div className="col-xs-6 align-right">
+                              <small><TimeSince date={deploy.dateFinished}/></small>
+                            </div>
+                          </div>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <div className="col-md-6">
+                <h6 className="nav-header">Projects Affected</h6>
+                <ul className="nav nav-stacked">
+                  {data.projects.map((project) => {
+                    return (
+                      <ReleaseProjectStatSparkline
+                        key={project.id}
+                        orgId={orgId}
+                        project={project}
+                        version={version}
+                      />
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
       </div>
