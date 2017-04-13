@@ -90,7 +90,7 @@ export default React.createClass({
       isModalOpen: false,
       loading: true,
       error: false,
-      dataFetchSent: true,
+      dataFetchSent: false,
     };
   },
 
@@ -112,6 +112,7 @@ export default React.createClass({
         this.setState({
           error: true,
           loading: false,
+          dataFetchSent: false,
         });
       }
     });
