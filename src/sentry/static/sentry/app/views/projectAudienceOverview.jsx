@@ -133,8 +133,9 @@ const UsersAffectedChart = React.createClass({
             <BarChart data={series} barGap={10} margin={{top: 25, right: 30, left: 0, bottom: 5}}>
              <XAxis dataKey="name" tickLine={false} stroke="#ccc" />
              <YAxis tickLine={false} stroke="#ccc" />
-             <Tooltip/>
-             <Bar type="monotone" dataKey="count" fill="#ef8675" />
+             <Tooltip isAnimationActive={false}/>
+             <Bar type="monotone" dataKey="count" fill="#ef8675"
+                  isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
