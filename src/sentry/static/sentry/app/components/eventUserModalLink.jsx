@@ -59,7 +59,7 @@ const UserActivity = React.createClass({
     if (!user.totalIssues) {
       return (
         <div>
-          <h5>No issues encountered</h5>
+          <h6 className="nav-header">No issues encountered</h6>
           <p>Nice work!</p>
         </div>
       );
@@ -67,7 +67,7 @@ const UserActivity = React.createClass({
 
     return (
       <div>
-        <h5>{user.totalIssues} issue{user.totalIssues !== 1 ? 's' : ''} encountered</h5>
+        <h6 className="nav-header">{user.totalIssues} issue{user.totalIssues !== 1 ? 's' : ''} encountered</h6>
         <ul className="activity-issue-list">
           {this.state.issueList.map((issue) => {
             return (
