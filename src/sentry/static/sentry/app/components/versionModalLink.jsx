@@ -166,7 +166,8 @@ export default React.createClass({
       error: () => {
         this.setState({
           error: true,
-          loading: false
+          loading: false,
+          dataFetchSent: false,
         });
       }
     });
