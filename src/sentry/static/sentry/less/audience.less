@@ -23,42 +23,88 @@
   }
 }
 
-.user-details-header {
-  text-align: center;
-  position: relative;
-  border-bottom: 1px solid @trim;
-  margin: 0 -30px 20px;
-  padding: 0 0 10px;
+.user-details-modal,
+.release-details-modal {
+  margin: -20px -30px 0;
 
-  .avatar {
-    display: inline-block;
-    .square(96px);
-    margin: -55px auto 10px;
+}
+
+.user-details-modal,
+.release-details-modal {
+  overflow: hidden;
+
+  .user-details-banner {
+    margin-top: -130px;
+    position: relative;
   }
 
-  .user-name {
-    text-align: left;
-    float: left;
-    padding: 0 0 0 30px;
+  .release-details-banner .sparkline {
+    position: relative;
+    height: 70px;
 
-    h5 {
-      margin-bottom: 0;
+    .chart-container,
+    .chart-column {
+      height: 70px;
     }
   }
 
-  .user-action {
-    padding: 0 30px 0 0;
-    text-align: left;
-    float: right;
+  .user-details-inner,
+  .release-details-inner {
+    padding: 20px 30px 0;
+    border-top: 1px solid #ccc;
+    background: #fff;
   }
-}
 
-.user-details-modal {
+  .release-details-inner {
+    margin-top: -70px;
+    padding-top: 15px;
+    opacity: 0.8;
+  }
+
+  .user-details-inner {
+    margin-top: -160px;
+    opacity: 0.9;
+  }
+
+  .user-details-header,
+  .release-details-header {
+    text-align: center;
+    position: relative;
+    border-bottom: 1px solid @trim;
+    margin: 0 -30px 20px;
+    padding: 0 0 10px;
+
+    .avatar {
+      display: inline-block;
+      .square(96px);
+      margin: -55px auto 10px;
+    }
+
+    .user-name,
+    .release-name {
+      text-align: left;
+      float: left;
+      padding: 0 0 0 30px;
+
+      h5 {
+        margin-bottom: 0;
+      }
+    }
+
+    .user-action,
+    .release-action {
+      padding: 0 30px 0 0;
+      text-align: left;
+      float: right;
+    }
+  }
+
   .nav-header {
     margin-bottom: 20px;
   }
 
-  .user-info {
+  .user-info,
+  .release-info {
     dl.flat {
       font-size: 12px;
       margin-bottom: 20px;

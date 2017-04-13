@@ -58,10 +58,10 @@ const RepositoryFileSummary = React.createClass({
         </h5>
         <ul className="list-group list-group-striped m-b-2">
         {files.map(filename => {
-          let {id, authors, types} = fileChangeSummary[filename];
+          let {authors, types} = fileChangeSummary[filename];
           return (
             <FileChange
-              key={id}
+              key={filename}
               filename={filename}
               authors={Object.values(authors)}
               types={types}

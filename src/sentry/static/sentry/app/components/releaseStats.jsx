@@ -35,7 +35,8 @@ const ReleaseStats = React.createClass({
           {release.authors.map(author => {
             return (
               <span className="avatar-grid-item tip"
-                   title={author.name + ' ' + author.email}>
+                    key={author.email}
+                    title={author.name + ' ' + author.email}>
                 <Avatar user={author}/>
               </span>
             );

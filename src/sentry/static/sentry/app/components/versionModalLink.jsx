@@ -3,11 +3,78 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
+import BarChart from '../components/barChart';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import RepositoryFileSummary from '../components/repositoryFileSummary';
 import ReleaseProjectStatSparkline from '../components/releaseProjectStatSparkline';
+import TimeSince from '../components/timeSince';
 import {getShortVersion} from '../utils';
+
+const Chart = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
+    version: React.PropTypes.string.isRequired,
+  },
+
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    return {
+      loading: true,
+      error: false,
+    };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {orgId, version} = this.props;
+    let path = `/organizations/${orgId}/releases/${version}/stats/`;
+    this.api.request(path, {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          error: false,
+          loading: false,
+          stats: data,
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+      }
+    });
+  },
+
+  renderBody() {
+    if (this.state.loading)
+      return null;
+    else if (this.state.error)
+      return <LoadingError onRetry={this.fetchData} />;
+
+    let points = this.state.stats.map((point) => {
+      return {x: point[0], y: point[1]};
+    });
+
+    return (
+      <div className="chart-wrapper">
+        <BarChart
+          points={points}
+          className="sparkline" />
+      </div>
+    );
+  },
+
+  render() {
+    return <div className="chart-container">{this.renderBody()}</div>;
+  },
+});
+
 
 export default React.createClass({
   propTypes: {
@@ -127,43 +194,49 @@ export default React.createClass({
     }, {});
 
     return (
-      <div>
-        <div className="user-details-header">
-          <div className="user-name">
-            <h5>{shortVersion}</h5>
-          </div>
-          <div className="user-action">
-            <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`} className="btn btn-default">
-              Details
-            </Link>
-          </div>
-          <div className="clearfix" />
+      <div className="release-details-modal">
+        <div className="release-details-banner">
+          <Chart {...this.props} />
         </div>
-        <div className="row">
-          <div className="col-md-7">
-            <div>
-              {Object.keys(filesByRepository).map(repository => {
-                return (<RepositoryFileSummary
-                          key={repository.name}
-                          repository={repository}
-                          fileChangeSummary={filesByRepository[repository]}/>);
-              })}
+        <div className="release-details-inner">
+          <div className="release-details-header">
+            <div className="release-name">
+              <h5>{shortVersion}</h5>
+              <small>Created <TimeSince date={data.dateCreated} /></small>
             </div>
+            <div className="release-action">
+              <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`} className="btn btn-default">
+                Details
+              </Link>
+            </div>
+            <div className="clearfix" />
           </div>
-          <div className="col-md-5">
-            <h6 className="nav-header m-b-1">Projects Affected</h6>
-            <ul className="nav nav-stacked">
-              {data.projects.map((project) => {
-                return (
-                  <ReleaseProjectStatSparkline
-                    key={project.id}
-                    orgId={orgId}
-                    project={project}
-                    version={version}
-                  />
-                );
-              })}
-            </ul>
+          <div className="row">
+            <div className="col-md-7">
+              <div>
+                {Object.keys(filesByRepository).map(repository => {
+                  return (<RepositoryFileSummary
+                            key={repository.name}
+                            repository={repository}
+                            fileChangeSummary={filesByRepository[repository]}/>);
+                })}
+              </div>
+            </div>
+            <div className="col-md-5">
+              <h6 className="nav-header m-b-1">Projects Affected</h6>
+              <ul className="nav nav-stacked">
+                {data.projects.map((project) => {
+                  return (
+                    <ReleaseProjectStatSparkline
+                      key={project.id}
+                      orgId={orgId}
+                      project={project}
+                      version={version}
+                    />
+                  );
+                })}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

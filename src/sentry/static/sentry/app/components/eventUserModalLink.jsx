@@ -235,14 +235,11 @@ export default React.createClass({
     let {orgId, projectId, user} = this.props;
 
     return (
-      <div style={{
-          overflow: 'hidden',
-          margin: '-20px -30px 0',
-      }} className="user-details-modal">
-        <div style={{marginTop: -130, position: 'relative'}}>
+      <div className="user-details-modal">
+        <div className="user-details-banner">
           <LocationsMap {...this.props} />
         </div>
-        <div style={{padding: '20px 30px 0', borderTop: '1px solid #ccc',  marginTop: -160, background: '#fff', opacity: 0.9}}>
+        <div className="user-details-inner">
           <div className="user-details-header">
             <Avatar user={user} size={128} />
             <div className="user-name">

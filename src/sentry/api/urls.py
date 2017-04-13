@@ -51,6 +51,7 @@ from .endpoints.organization_release_details import OrganizationReleaseDetailsEn
 from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoint
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
+from .endpoints.organization_release_stats import OrganizationReleaseStatsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
@@ -251,6 +252,8 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
         OrganizationReleaseCommitsEndpoint.as_view(),
         name='sentry-api-0-organization-release-commits'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/stats/$',
+        OrganizationReleaseStatsEndpoint.as_view()),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/stats/$',
         OrganizationStatsEndpoint.as_view(),
         name='sentry-api-0-organization-stats'),
