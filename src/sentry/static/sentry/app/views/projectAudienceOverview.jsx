@@ -1,12 +1,12 @@
 import moment from 'moment';
 import React from 'react';
-import {Link} from 'react-router';
 
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import EventUserModalLink from '../components/eventUserModalLink';
 import EventUserList from '../components/eventUserList';
 import GeoMap from '../components/geoMap_MapBox';
+import IssueLink from '../components/issueLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
@@ -306,7 +306,7 @@ const Feedback = React.createClass({
               {feedback.issue &&
                 <div className="audience-feedback-short-id">
                   <div className="audience-feedback-short-id">
-                    <Link to={`/${orgId}/${projectId}/issues/${feedback.issue.id}/`}>{feedback.issue.shortId}</Link>
+                    <IssueLink orgId={orgId} projectId={projectId} issue={feedback.issue}>{feedback.issue.shortId}</IssueLink>
                   </div>
                 </div>
               }

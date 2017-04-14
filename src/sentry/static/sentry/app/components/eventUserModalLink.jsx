@@ -5,6 +5,7 @@ import {Link} from 'react-router';
 import ApiMixin from '../mixins/apiMixin';
 import Avatar from '../components/avatar';
 import GeoMap from '../components/geoMap_MapBox';
+import IssueLink from '../components/issueLink';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import TimeSince from '../components/timeSince';
@@ -12,6 +13,7 @@ import TimeSince from '../components/timeSince';
 const UserActivity = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired,
     user: React.PropTypes.object.isRequired,
   },
 
@@ -65,6 +67,8 @@ const UserActivity = React.createClass({
       );
     }
 
+    let {orgId, projectId} = this.props;
+
     return (
       <div>
         <h6 className="nav-header">{user.totalIssues} issue{user.totalIssues !== 1 ? 's' : ''} encountered</h6>
@@ -73,7 +77,7 @@ const UserActivity = React.createClass({
             return (
               <li key={issue.id}>
                 <span className="issue-icon"><span className="icon icon-alert" /></span>
-                <h6><a href="">{issue.shortId}</a></h6>
+                <h6><IssueLink orgId={orgId} projectId={projectId} issue={issue}>{issue.shortId}</IssueLink></h6>
                 <small><TimeSince date={issue.tagLastSeen} /></small>
               </li>
             );
