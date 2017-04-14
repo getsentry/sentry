@@ -264,7 +264,7 @@ export default React.createClass({
         </div>
         <div className="row">
           <div className="col-md-12">
-            <h5>Events Per Release</h5>
+            <h5>Events per release</h5>
             <div className="panel panel-default m-b-2">
               <div className="release-graph-wrapper">
                 <div className="release-graph">
@@ -308,7 +308,7 @@ export default React.createClass({
 
   render() {
     return (
-      <div className="release-details">
+      <div>
         {this.renderBody()}
       </div>
     );
