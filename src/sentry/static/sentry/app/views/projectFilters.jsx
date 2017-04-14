@@ -91,6 +91,11 @@ const LEGACY_BROWSER_SUBFILTERS = {
     helpText: 'Version 14 and lower',
     title: 'Opera',
   },
+  'opera_mini': {
+    icon: 'opera',
+    helpText: 'All Versions',
+    title: 'Opera Mini'
+  },
   'safari_pre_6': {
     icon: 'safari',
     helpText: 'Version 5 and lower',
