@@ -18,9 +18,12 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
             user=request.user
         ).all() if 'project:releases' in x.get_scopes()]
         resp = render_to_response('sentry/reprocessing-script.sh', {
-            'issues': ProcessingIssue.objects.filter(
+            'issues': [{
+                'uuid': issue.data.get('image_uuid'),
+                'name': (issue.data.get('image_path') or '').split('/')[-1]
+            } for issue in ProcessingIssue.objects.filter(
                 project=project
-            ).all(),
+            )],
             'project': project,
             'token': tokens and tokens[0] or None,
             'server_url': absolute_uri('/'),
