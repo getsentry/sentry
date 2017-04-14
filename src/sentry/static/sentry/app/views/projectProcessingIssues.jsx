@@ -260,13 +260,11 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div>
         <div className="alert alert-block alert-info">
-        <strong>
-          {t('Paste this command into your shell.')}
-          <br/>
-          {t('It will try to upload missing symbols from your system.')}
-          <br/>
-        </strong>
-        <pre>curl -sL {fixLink} | bash</pre>
+          <div className="form-group" style={{marginBottom: 0}}>
+            <label>{t('Paste this command into your shell:')}</label>
+            <div className="form-control disabled auto-select" style={{marginBottom: 6}}>curl -sL {fixLink} | bash</div>
+            <i>{t('It will try to upload missing symbols from your system.')}</i>
+          </div>
         </div>
         <table className="table processing-issues">
           <thead>
