@@ -1,7 +1,7 @@
 import React from 'react';
 
 import ReleaseUserCommitList from '../components/releaseUserCommitList';
-
+import LoadingIndicator from '../components/loadingIndicator';
 import ApiMixin from '../mixins/apiMixin';
 
 
@@ -42,7 +42,12 @@ const UserReleaseActivity = React.createClass({
 
   render() {
     let {releaseList} = this.state;
-
+    if (this.state.loading) {
+      return(<LoadingIndicator/>);
+    }
+    if (!releaseList.length) {
+      return (<div>No release activity</div>);
+    }
     return (
       <div>
       {releaseList.map(release=>{

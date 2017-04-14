@@ -202,7 +202,7 @@ const ActivityItem = React.createClass({
     }
 
     let avatar = (item.user ?
-      <Avatar user={item.user} size={64} className="avatar" /> :
+      <a href={`/organizations/${orgId}/users/${item.user.id}/`}><Avatar user={item.user} size={64} className="avatar" /></a> :
       <div className="avatar sentry"><span className="icon-sentry-logo" /></div>);
 
     let author = {

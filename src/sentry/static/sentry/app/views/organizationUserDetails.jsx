@@ -61,7 +61,7 @@ const OrganizationUserDetails = React.createClass({
            href={`/organizations/${params.orgId}/members/${params.userId}/`}>
            <span className="icon icon-settings"/> Settings
          </a>
-         <span style={{display: 'flex'}}>
+         <span style={{display: 'flex', paddingBottom: '15px'}}>
           <Avatar user={user} size={170} className="avatar avatar-big"/>
           <div className="m-x-1">
             <h3 className="m-b-0">{user.name}</h3>

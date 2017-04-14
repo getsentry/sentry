@@ -85,10 +85,12 @@
         {% for member, needs_sso, has_2fa in member_list %}
           <tr {% if member.role == request.GET.role %}class="member-role-highlight"{% endif %}>
             <td class="table-user-info">
-              {% avatar member %}
-              <h5><a href="{% url 'sentry-organization-user-details' organization.slug member.id %}">
-                {{ member.get_display_name }}
-              </a></h5>
+              <a href="{% url 'sentry-organization-user-details' organization.slug member.id %}">
+                {% avatar member %}
+                <h5>
+                  {{ member.get_display_name }}
+                </h5>
+              </a>
               {{ member.get_email }}
               <br />
             </td>

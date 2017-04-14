@@ -41,7 +41,7 @@ const UserNav = React.createClass({
           caret={false}
           >
         <MenuItem to={`/organizations/${this.props.orgId}/users/${user.id}/`}>{t('Profile')}</MenuItem>
-        <MenuItem href="/account/settings/">{t('Settings')}</MenuItem>
+        <MenuItem href="/account/settings/">{t('Account')}</MenuItem>
         <MenuItem {...to('/api/')}>{t('API')}</MenuItem>
         {user.isSuperuser &&
           <MenuItem {...to('/manage/')}>{t('Admin')}</MenuItem>

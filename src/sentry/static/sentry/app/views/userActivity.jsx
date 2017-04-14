@@ -1,5 +1,6 @@
 import React from 'react';
 import ActivityFeed from '../components/activity/feed';
+import {t} from '../locale';
 
 const UserActivity = React.createClass({
 
@@ -8,7 +9,9 @@ const UserActivity = React.createClass({
     return (
       <ActivityFeed ref="activityFeed" endpoint={`/organizations/${params.orgId}/users/${params.userId}/activity/`} query={{
           per_page: 10,
-        }} pagination={false} {...this.props} />
+        }} pagination={false}
+        renderEmpty={() => <div className="sidebar-panel-empty" key="none">{t('No recent activity')}</div>}
+        {...this.props} />
     );
   }
 });
