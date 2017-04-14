@@ -107,19 +107,23 @@
   }
   .event-message, .event-meta {
     line-height: 1.2;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
   .error-level,
   .event-type {
     padding: 0;
     border-radius: 2px;
-    margin-right: 8px;
+    margin-right: 5px;
     display: inline-block;
     position: relative;
     top: 3px;
-    .square(13px);
+    .square(9px);
     text-indent: -9999em;
     display: inline-block;
-    border-radius: 15px;
+    border-radius: 9px;
   }
   .event-meta {
     font-size: 80%;
