@@ -133,7 +133,7 @@ class OAuthAuthorizeView(BaseView):
             matched_sets = set()
             for scope_set in settings.SENTRY_SCOPE_SETS:
                 for scope, description in scope_set:
-                    if scope_set in matched_sets:
+                    if scope_set in matched_sets and scope in pending_scopes:
                         pending_scopes.remove(scope)
                     elif scope in pending_scopes:
                         permissions.append(description)
