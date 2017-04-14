@@ -195,7 +195,7 @@ export default React.createClass({
         <AreaChart data={data}>
           <XAxis dataKey="name" tickLine={false} />
           <YAxis tick={false} tickLine={false} axisLine={false} />
-          <CartesianGrid strokeDasharray="3 3" />
+          <CartesianGrid strokeDasharray="1 5" />
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
           {deploys.map((d, i) => {
             return (
