@@ -230,42 +230,48 @@ export default React.createClass({
     let {releaseList, releaseStats} = this.state;
     return (
       <div>
-        <div className="row">
+        <div className="release-metrics row m-b-2">
           <div className="col-sm-3 hidden-xs">
-            <div className="release-stats">
+            <div className="release-metric">
               <h6 className="nav-header">Average New Issues</h6>
-              <span className="stream-count">
+              <span className="release-metric-count">
                 {Math.round(releaseStats.AvgNewGroups * 100) / 100}
               </span>
             </div>
           </div>
           <div className="col-sm-3 hidden-xs">
-            <div className="release-stats">
+            <div className="release-metric">
               <h6 className="nav-header">Average Number of Authors</h6>
-              <span className="stream-count">
+              <span className="release-metric-count">
                 {Math.round(releaseStats.AvgNumAuthors * 100) / 100}
               </span>
             </div>
           </div>
           <div className="col-sm-3 hidden-xs">
-            <div className="release-stats">
+            <div className="release-metric">
               <h6 className="nav-header">Time Between Releases</h6>
-              <span className="stream-count">
+              <span className="release-metric-count">
                 {moment.duration(releaseStats.AvgTimeToRelease).humanize()}
               </span>
             </div>
           </div>
           <div className="col-sm-3 hidden-xs">
-            <div className="release-stats">
+            <div className="release-metric">
               <h6 className="nav-header">Total Releases</h6>
-              <span className="stream-count">{releaseStats.CountReleases}</span>
+              <span className="release-metric-count">{releaseStats.CountReleases}</span>
             </div>
           </div>
         </div>
         <div className="row">
           <div className="col-md-12">
             <h5>Events Per Release</h5>
-            {this.renderChart()}
+            <div className="panel panel-default m-b-2">
+              <div className="release-graph-wrapper">
+                <div className="release-graph">
+                  {this.renderChart()}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div className="row">
