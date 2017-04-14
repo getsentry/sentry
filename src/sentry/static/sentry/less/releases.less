@@ -133,10 +133,42 @@
 }
 
 .release-metric {
-  padding: 15px 20px;
+  padding: 15px 15px 10px;
   border-radius: 3px;
 
   .release-metric-count {
     font-size: 24px;
+  }
+}
+
+.release-activity {
+  .avatar {
+    position: absolute !important;
+    left: 0;
+    width: 36px !important;
+    height: 36px !important;
+    top: 1px !important;
+
+    &.sentry {
+      border-radius: 4px;
+      font-size: 22px;
+      top: 0;
+      border: 1px solid @trim;
+      line-height: 36px;
+      text-align: center;
+    }
+  }
+
+  .activity-item {
+    position: relative;
+    padding-left: 48px;
+    font-size: 15px;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    line-height: 1.6;
+
+    &:before {
+      display: none !important;
+    }
   }
 }

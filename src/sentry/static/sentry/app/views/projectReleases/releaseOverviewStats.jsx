@@ -276,6 +276,7 @@ export default React.createClass({
         </div>
         <div className="row">
           <div className="col-md-8">
+            <h5>Recent releases</h5>
             <div className="panel panel-default">
               <div className="panel-heading panel-heading-bold">
                 <div className="row">
@@ -293,9 +294,12 @@ export default React.createClass({
             </div>
           </div>
           <div className="col-md-4">
-            <ActivityFeed ref="activityFeed" endpoint={this.getActivityEndpoint()} query={{
-              per_page: 10,
-            }} pagination={false} {...this.props}/>
+            <div className="release-activity">
+              <h5>Recent activity</h5>
+              <ActivityFeed ref="activityFeed" endpoint={this.getActivityEndpoint()} query={{
+                per_page: 10,
+              }} pagination={false} {...this.props}/>
+            </div>
           </div>
         </div>
       </div>
