@@ -32,7 +32,9 @@ class AddRepositoryLink extends PluginComponentBase {
     ['onOpen',
      'onCancel',
      'formSubmit',
-     'changeField'].map(method => this[method] = this[method].bind(this));
+     'changeField'].forEach(method => {
+       this[method] = this[method].bind(this);
+     });
   }
 
   onOpen() {
@@ -235,6 +237,7 @@ const OrganizationRepositories = React.createClass({
   },
 
   deleteRepo(repo) {
+    // eslint-disable-next-line no-alert
     if (!confirm(t('Are you sure you want to remove this repository?')))
       return;
 

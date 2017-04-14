@@ -5,8 +5,7 @@ import {t, tn} from '../locale';
 function Collapsed(props) {
   return (
     <li className="list-group-item list-group-item-sm align-center">
-      <span className="icon-container">
-      </span>
+      <span className="icon-container"/>
       <a onClick={props.onClick}>{tn(('Show %d collapsed file'), ('Show %d collapsed files'), props.count)}</a>
     </li>
   );
@@ -71,7 +70,7 @@ const RepositoryFileSummary = React.createClass({
         {numCollapsed > 0 && <Collapsed onClick={this.onCollapseToggle} count={numCollapsed}/>}
         {numCollapsed === 0 && canCollapse &&
           <li className="list-group-item list-group-item-sm align-center">
-            <span className="icon-container"></span>
+            <span className="icon-container"/>
             <a onClick={this.onCollapseToggle}>{t('Collapse')}</a>
           </li>
         }

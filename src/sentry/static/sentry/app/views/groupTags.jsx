@@ -86,7 +86,7 @@ const GroupTags = React.createClass({
                     pathname: `/${orgId}/${projectId}/`,
                     query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
                   }}>
-                <span className="tag-bar-background" style={{width: pct + '%'}}></span>
+                <span className="tag-bar-background" style={{width: pct + '%'}}/>
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
               </Link>

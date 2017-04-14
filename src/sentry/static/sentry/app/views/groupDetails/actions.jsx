@@ -221,7 +221,7 @@ const GroupActions = React.createClass({
                title={t('Delete')}
                message={t('Deleting this event is permanent. Are you sure you wish to continue?')}
                onConfirm={this.onDelete}>
-            <span className="icon-trash"></span>
+            <span className="icon-trash"/>
           </LinkWithConfirmation>
         </div>
         {group.pluginActions.length > 1 ?

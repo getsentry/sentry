@@ -13,7 +13,7 @@ const AccountLayout = React.createClass({
           <a href="/account/logout/">{t('Sign out')}</a>
         </div>
         <a href="/">
-          <span className="icon-sentry-logo"></span>
+          <span className="icon-sentry-logo"/>
           <span className="back-to">{t('Back to organization')}</span>
         </a>
       </div>
@@ -43,4 +43,3 @@ const AccountLayout = React.createClass({
 });
 
 export default AccountLayout;
-

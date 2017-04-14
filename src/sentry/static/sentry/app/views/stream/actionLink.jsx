@@ -49,7 +49,7 @@ const ActionLink = React.createClass({
       return void this.handleAction();
     }
 
-    this.handleToggle();
+    return void this.handleToggle();
   },
 
   handleToggle() {

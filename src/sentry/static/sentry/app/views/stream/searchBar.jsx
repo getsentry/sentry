@@ -284,6 +284,7 @@ const SearchBar = React.createClass({
 
       this.setState({searchTerm: matchValue});
       this.updateAutoCompleteState(autoCompleteItems, matchValue);
+      return undefined;
     } else {
       tagName = last.slice(0, index);
       query = last.slice(index + 1);

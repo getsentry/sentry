@@ -94,6 +94,7 @@ const GroupDetails = React.createClass({
         });
 
         GroupStore.loadInitialData([data]);
+        return undefined;
       }, error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {

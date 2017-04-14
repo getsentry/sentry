@@ -278,8 +278,8 @@ class IssueActions extends PluginComponentBase {
                   <p>{'Your server administrator will need to configure authentication with '}
                   <strong>{error.auth_provider}</strong>{' before you can use this plugin.'}</p>
                   <p>The following settings must be configured:</p>
-                  <ul>{error.required_auth_settings.map((setting) => {
-                    return <li><code>{setting}</code></li>;
+                  <ul>{error.required_auth_settings.map((setting, i) => {
+                    return <li key={i}><code>{setting}</code></li>;
                   })}</ul>
                 </div>
               :

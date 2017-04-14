@@ -108,10 +108,10 @@ const CommitAuthorStats = React.createClass({
         <h6 className="nav-header m-b-1">Commits by Author</h6>
         {!commitAuthorValues.length && this.renderEmpty()}
         <ul className="list-group">
-        {commitAuthorValues.map(commitAuthor => {
+        {commitAuthorValues.map((commitAuthor, i) => {
           let {author, commitCount} = commitAuthor;
           return (
-            <li className="list-group-item list-group-item-sm list-group-avatar">
+            <li className="list-group-item list-group-item-sm list-group-avatar" key={i}>
               <div className="row row-flex row-center-vertically">
                 <div className="col-sm-8">
                   <Avatar user={author} size={32} />

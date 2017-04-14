@@ -95,7 +95,7 @@ const TeamMembers = React.createClass({
           <tbody>
             {this.state.memberList.map((member) => {
               return (
-                <tr>
+                <tr key={member.id}>
                   <td className="table-user-info">
                     <Avatar user={member} size={80} />
                     <h5><a href={`${memberPrefix}/${member.id}/`}>{member.email}</a></h5>

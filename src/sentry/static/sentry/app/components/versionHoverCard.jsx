@@ -139,9 +139,9 @@ const VersionHoverCard = React.createClass({
                 <div className="col-xs-8">
                   <h6>{release.commitCount} {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')} {release.authors.length} {release.authors.length !== 1 ? t('authors') : t('author')} </h6>
                   <div className="avatar-grid">
-                    {release.authors.map(author => {
+                    {release.authors.map((author, i) => {
                       return (
-                        <span className="avatar-grid-item tip"
+                        <span className="avatar-grid-item tip" key={i}
                              title={author.name + ' ' + author.email}>
                           <Avatar user={author}/>
                         </span>

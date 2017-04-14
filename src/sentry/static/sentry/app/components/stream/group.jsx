@@ -170,7 +170,7 @@ const StreamGroup = React.createClass({
                 </li>
               }
               <li>
-                <span className="icon icon-clock"></span>
+                <span className="icon icon-clock"/>
                 <TimeSince date={data.lastSeen} />
                 &nbsp;&mdash;&nbsp;
                 <TimeSince date={data.firstSeen} suffix="old" />
@@ -178,7 +178,7 @@ const StreamGroup = React.createClass({
               {data.numComments !== 0 &&
                 <li>
                   <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments"></span>
+                    <span className="icon icon-comments"/>
                     <span className="tag-count">{data.numComments}</span>
                   </Link>
                 </li>

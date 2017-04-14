@@ -15,9 +15,9 @@ const GroupParticipants = React.createClass({
         <h6><span>{participants.length} {'Participant' +
                                          (participants.length === 1 ? '' : 's')}</span></h6>
         <ul className="faces">
-          {participants.map((user) => {
+          {participants.map((user, i) => {
             return (
-              <li>
+              <li key={i}>
                 <Avatar size={32} user={user} />
               </li>
             );

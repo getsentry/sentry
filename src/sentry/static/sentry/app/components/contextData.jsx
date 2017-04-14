@@ -95,7 +95,7 @@ const ContextData = React.createClass({
       }
       return (
         <span className="val-toggle">
-          <a href="#" className="val-toggle-link" onClick={toggle}></a>
+          <a href="#" className="val-toggle-link" onClick={toggle}/>
           {children}
         </span>
       );

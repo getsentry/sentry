@@ -314,10 +314,10 @@ const AvatarCropper = React.createClass({
                  onLoad={this.onLoad} onDragStart={this.onImgDrag}/>
           </div>
           <div className="cropper" style={style} onMouseDown={this.onMouseDown}>
-            <div onMouseDown={this.startResize.bind(this, 'nw')} className="resizer nw"></div>
-            <div onMouseDown={this.startResize.bind(this, 'ne')} className="resizer ne"></div>
-            <div onMouseDown={this.startResize.bind(this, 'se')} className="resizer se"></div>
-            <div onMouseDown={this.startResize.bind(this, 'sw')} className="resizer sw"></div>
+            <div onMouseDown={this.startResize.bind(this, 'nw')} className="resizer nw"/>
+            <div onMouseDown={this.startResize.bind(this, 'ne')} className="resizer ne"/>
+            <div onMouseDown={this.startResize.bind(this, 'se')} className="resizer se"/>
+            <div onMouseDown={this.startResize.bind(this, 'sw')} className="resizer sw"/>
           </div>
         </div>
       </div>
@@ -335,7 +335,7 @@ const AvatarCropper = React.createClass({
     }
     return (
       <div className="canvas-container">
-        <canvas ref="canvas"></canvas>
+        <canvas ref="canvas"/>
       </div>
     );
   },

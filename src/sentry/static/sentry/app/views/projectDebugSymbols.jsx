@@ -173,7 +173,7 @@ const ProjectDebugSymbols = React.createClass({
                             <div className="event-extra">
                               <ul>
                                 <li>
-                                  <span className="icon icon-clock"></span>
+                                  <span className="icon icon-clock"/>
                                   <TimeSince date={lastSeen} />
                                 </li>
                               </ul>
@@ -232,7 +232,7 @@ const ProjectDebugSymbols = React.createClass({
               <div className="event-extra">
                 <ul>
                   <li>
-                    <span className="icon icon-clock"></span>
+                    <span className="icon icon-clock"/>
                     <TimeSince date={dateAdded} />
                   </li>
                 </ul>

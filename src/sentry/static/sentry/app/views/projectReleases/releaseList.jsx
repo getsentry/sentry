@@ -23,7 +23,7 @@ const ReleaseList = React.createClass({
                   <div className="col-sm-4 col-xs-6">
                     <h2><Version orgId={orgId} projectId={projectId} version={release.version} /></h2>
                     <p className="m-b-0 text-light">
-                      <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
+                      <span className="icon icon-clock"/> <TimeSince date={release.dateCreated} />
                     </p>
                   </div>
                   <div className="col-sm-4 hidden-xs">
