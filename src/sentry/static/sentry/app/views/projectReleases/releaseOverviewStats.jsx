@@ -134,21 +134,36 @@ export default React.createClass({
     let purple = '#8F85D4';
     // just use 30 days for now
     let stats = this.state.releaseStats.stats['30d'];
-    // filter out releases that have 0 events ever so
-    // that tooltip doesn't get crazy
-    let releasesWithEvents = new Set();
+    // only include top 3 releases + latest
+    let totalsByRelease = {};
     stats.forEach(stat => {
       Object.keys(stat[1]).forEach(release => {
-        if (stat[1][release] > 0) {
-          releasesWithEvents.add(release);
+        if (!totalsByRelease[release]) {
+          totalsByRelease[release] = {
+            release: release,
+            count: 0,
+          };
         }
+        totalsByRelease[release].count += stat[1][release];
       });
     });
+    let latestRelease = this.state.releaseStats.releases[0];
+    let topReleases = _.sortBy(Object.values(totalsByRelease), 'count').reverse();
+    let latestReleaseIdx = _.findIndex(topReleases, r => {
+      return r.release === latestRelease.version;
+    });
+    if (latestReleaseIdx <= 3) {
+      topReleases = new Set(_.pluck(topReleases.slice(0, 4), 'release'));
+    } else {
+      topReleases = new Set(_.pluck(topReleases.slice(0, 3), 'release'));
+      topReleases.add(latestRelease.version);
+    }
+
     let data = this.state.releaseStats.stats['30d'].map(stat => {
       let point = {
         name: moment(stat[0] * 1000).format('ll'),
       };
-      releasesWithEvents.forEach(release => {
+      topReleases.forEach(release => {
         point[release] = stat[1][release];
       });
       return point;
@@ -172,8 +187,8 @@ export default React.createClass({
       d.environment = Array.from(d.environment).join(', ');
     });
 
-    let releases = this.state.releaseStats.releases.filter(release => {
-      return releasesWithEvents.has(release.version);
+    let releases = this.state.releaseStats.releases.filter((release, i) => {
+      return i === 0 || topReleases.has(release.version);
     });
     return (
       <ResponsiveContainer minHeight={250}>
