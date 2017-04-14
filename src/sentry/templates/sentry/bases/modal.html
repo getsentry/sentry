@@ -15,7 +15,10 @@
         {% block modal_header_signout %}
           {% if request.user.is_authenticated %}
             <div class="pull-right">
-              <a href="{% url 'sentry-logout' %}">{% trans "Sign out" %}</a>
+              <form id='form-logout' action="{% url 'sentry-logout' %}" method="post">
+                {% csrf_token %}
+                <a href="{% url 'sentry-logout' %}" onclick="return document.getElementById('form-logout').submit() || false">{% trans "Sign out" %}</a>
+              </form>
             </div>
           {% endif %}
         {% endblock %}

@@ -4,6 +4,7 @@ import DropdownLink from '../dropdownLink';
 import Avatar from '../avatar';
 import MenuItem from '../menuItem';
 import {t} from '../../locale';
+import auth from '../../utils/auth';
 
 const UserNav = React.createClass({
   contextTypes: {
@@ -41,7 +42,7 @@ const UserNav = React.createClass({
         {user.isSuperuser &&
           <MenuItem {...to('/manage/')}>{t('Admin')}</MenuItem>
         }
-        <MenuItem href="/auth/logout/">{t('Sign out')}</MenuItem>
+        <MenuItem onSelect={auth.signOut} href="/auth/logout/">{t('Sign out')}</MenuItem>
       </DropdownLink>
     );
   }
