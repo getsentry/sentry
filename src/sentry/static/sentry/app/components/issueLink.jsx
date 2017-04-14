@@ -125,8 +125,11 @@ export default React.createClass({
   },
 
   render() {
-    let {issue, orgId, projectId} = this.props;
+    let {card, issue, orgId, projectId} = this.props;
     let {visible} = this.state;
+    if (!card)
+      return <Link to={`/${orgId}/${projectId}/issues/${issue.id}/`}>{this.props.children}</Link>;
+
     return (
       <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}
             style={{position: 'relative'}}>
