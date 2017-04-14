@@ -21,17 +21,19 @@ export default React.createClass({
 
   renderReleaseWeight(release) {
     let width = release.commitCount / release.projectCommitStats.maxCommits * 100;
+    let commitCount = Math.round(
+      (release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100;
     let fullBar = {
-      width: '100px',
+      width: '100%',
       backgroundColor: '#d3d3d3',
       height: '4px',
       borderRadius: '3px',
-      display: 'inline-block',
     };
     let percentageBar = {
-      width: width + 'px',
-      backgroundColor: '#8F85D4',
+      width: width + '%',
+      backgroundColor: commitCount > 0 ? '#e5685f' : '#c1bbc7',
       height: '4px',
+      margin: '2px 0 6px'
     };
     if (width === 100) {
       percentageBar.borderRadius = '3px';
@@ -39,9 +41,6 @@ export default React.createClass({
       percentageBar.borderBottomLeftRadius = '3px';
       percentageBar.borderTopLeftRadius = '3px';
     }
-
-    let commitCount = Math.round(
-      (release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100;
     let title;
     if (commitCount === 0) {
       title = 'This release has an average number of commits for this project';
@@ -74,7 +73,7 @@ export default React.createClass({
                         &nbsp;
                         {this.renderReleaseWeight(release)}
                     </h2>
-                    <p className="m-b-0 text-light">
+                    <p className="m-b-0 text-light" style={{marginTop: 6}}>
                       <span className="icon icon-clock"></span> <TimeSince date={release.dateCreated} />
                     </p>
                   </div>
