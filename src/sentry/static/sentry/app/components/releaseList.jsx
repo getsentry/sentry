@@ -31,7 +31,7 @@ export default React.createClass({
     };
     let percentageBar = {
       width: width + '%',
-      backgroundColor: commitCount > 0 ? '#e5685f' : '#c1bbc7',
+      backgroundColor: commitCount > 5 ? '#e5685f' : '#c1bbc7',
       height: '4px',
       margin: '2px 0 6px'
     };
