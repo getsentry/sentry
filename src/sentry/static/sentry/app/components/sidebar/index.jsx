@@ -298,7 +298,7 @@ const Sidebar = React.createClass({
             }
 
             <li>
-              <UserNav className="user-settings" />
+              <UserNav className="user-settings" orgId={org.slug}/>
             </li>
           </ul>
         </div>

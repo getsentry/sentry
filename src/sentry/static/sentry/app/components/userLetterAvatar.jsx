@@ -3,7 +3,8 @@ import LetterAvatar from './letterAvatar';
 
 const UserLetterAvatar = React.createClass({
   propTypes: {
-    user: React.PropTypes.object.isRequired
+    user: React.PropTypes.object.isRequired,
+    size: React.PropTypes.number,
   },
 
   getIdentifier() {
@@ -20,7 +21,8 @@ const UserLetterAvatar = React.createClass({
     return (
       <LetterAvatar
         identifier={this.getIdentifier()}
-        displayName={this.getDisplayName()}/>
+        displayName={this.getDisplayName()}
+        size={this.props.size}/>
     );
   }
 });

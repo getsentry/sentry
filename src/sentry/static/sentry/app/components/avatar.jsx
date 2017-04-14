@@ -65,6 +65,7 @@ const Avatar = React.createClass({
     }
     let user = this.props.user;
     let avatarType = null;
+
     if (user.avatar) {
       avatarType = user.avatar.avatarType;
     } else {
@@ -83,7 +84,7 @@ const Avatar = React.createClass({
     } else if (avatarType === 'upload') {
       return <img src={this.buildProfileUrl()} {...props}/>;
     } else {
-      return <UserLetterAvatar user={user}/>;
+      return <UserLetterAvatar user={user} size={this.props.size}/>;
     }
   },
 
@@ -95,7 +96,7 @@ const Avatar = React.createClass({
 
     return (
       <span className={this.props.className}>
-        {this.state.showBackupAvatar && <UserLetterAvatar user={user}/>}
+        {this.state.showBackupAvatar && <UserLetterAvatar user={user} size={this.props.size}/>}
         {this.renderImg()}
       </span>
     );

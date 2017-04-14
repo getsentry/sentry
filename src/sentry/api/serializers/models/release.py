@@ -218,7 +218,8 @@ class ReleaseSerializer(Serializer):
             'commitCount': attrs.get('commit_count', 0),
             'lastCommit': attrs.get('last_commit'),
             'authors': attrs.get('authors', []),
-            'projects': attrs.get('projects', [])
+            'projects': attrs.get('projects', []),
+            'orgId': obj.organization.id,
         }
         if attrs['tag']:
             d.update({

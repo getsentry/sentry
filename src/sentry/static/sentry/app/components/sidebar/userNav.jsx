@@ -6,6 +6,10 @@ import MenuItem from '../menuItem';
 import {t} from '../../locale';
 
 const UserNav = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string
+  },
+
   contextTypes: {
     location: React.PropTypes.object
   },
@@ -36,7 +40,8 @@ const UserNav = React.createClass({
           title={title}
           caret={false}
           >
-        <MenuItem href="/account/settings/">{t('Account')}</MenuItem>
+        <MenuItem to={`/organizations/${this.props.orgId}/users/${user.id}/`}>{t('Profile')}</MenuItem>
+        <MenuItem href="/account/settings/">{t('Settings')}</MenuItem>
         <MenuItem {...to('/api/')}>{t('API')}</MenuItem>
         {user.isSuperuser &&
           <MenuItem {...to('/manage/')}>{t('Admin')}</MenuItem>

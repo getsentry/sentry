@@ -8,7 +8,14 @@ import React from 'react';
 const LetterAvatar = React.createClass({
   propTypes: {
     identifier: React.PropTypes.string.isRequired,
-    displayName: React.PropTypes.string.isRequired
+    displayName: React.PropTypes.string.isRequired,
+    size: React.PropTypes.number,
+  },
+
+  getDefaultProps() {
+    return {
+      size: 64,
+    };
   },
 
   COLORS: [
@@ -25,6 +32,7 @@ const LetterAvatar = React.createClass({
     '#57b1be', // teal
     '#847a8c'  // gray
   ],
+
 
   getColor() {
     let id = this.hashIdentifier(this.props.identifier);
@@ -49,8 +57,8 @@ const LetterAvatar = React.createClass({
 
   render() {
     return (
-      <svg viewBox="0 0 120 120" className={this.props.className}>
-        <rect x="0" y="0" width="120" height="120" rx="15" ry="15" fill={this.getColor()}/>
+      <svg viewBox={`0 0 ${this.props.size} ${this.props.size}`} className={this.props.className}>
+        <rect x="0" y="0" width={this.props.size} height={this.props.size} rx="15" ry="15" fill={this.getColor()}/>
         <text x="50%" y="50%" fontSize="65" style={{'dominantBaseline': 'central'}}
               textAnchor="middle" fill="#FFFFFF">{this.getInitials()}</text>
       </svg>

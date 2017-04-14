@@ -279,6 +279,8 @@ urlpatterns += patterns(
         name='sentry-create-organization-member'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$', OrganizationMemberSettingsView.as_view(),
         name='sentry-organization-member-settings'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/users/(?P<member_id>\d+)/$', react_page_view,
+        name='sentry-organization-user-details'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/stats/$', react_page_view,
         name='sentry-organization-stats'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),

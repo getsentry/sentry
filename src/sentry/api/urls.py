@@ -59,6 +59,8 @@ from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.organization_user_activity import OrganizationUserActivityEndpoint
 from .endpoints.organization_user_subscribed import OrganizationUserSubscribedEndpoint
+from .endpoints.organization_user_commits import OrganizationUserReleasesEndpoint
+from .endpoints.organization_user_commits import OrganizationUserCommitsEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
@@ -200,6 +202,12 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/subscribed/$',
         OrganizationUserSubscribedEndpoint.as_view(),
         name='sentry-api-0-organization-user-subscribed'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/releases/$',
+        OrganizationUserReleasesEndpoint.as_view(),
+        name='sentry-api-0-organization-user-releases'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/releases/(?P<version>[^/]+)/commits/$',
+        OrganizationUserCommitsEndpoint.as_view(),
+        name='sentry-api-0-organization-user-commits'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'),

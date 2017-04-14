@@ -72,8 +72,9 @@ import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
 import UserAssigned from './views/userAssigned';
-import UserResolved from './views/userResolved';
 import UserActivity from './views/userActivity';
+import UserSubscribed from './views/userSubscribed';
+import UserReleaseActivity from './views/userReleaseActivity';
 
 import SetCallsignsAction from './views/requiredAdminActions/setCallsigns';
 
@@ -156,9 +157,10 @@ function routes() {
         <Route path="/organizations/:orgId/actions/set-callsigns/" component={errorHandler(SetCallsignsAction)} />
         <Route path="/organizations/:orgId/users/" component={errorHandler(OrganizationUsers)} />
         <Route path="/organizations/:orgId/users/:userId/" component={errorHandler(OrganizationUserDetails)}>
-          <IndexRoute component={errorHandler(UserAssigned)} />
-          <Route path="viewed/" component={errorHandler(UserResolved)} />
-          <Route path="activity/" component={errorHandler(UserActivity)} />
+          <IndexRoute component={errorHandler(UserActivity)} />
+          <Route path="released/" component={errorHandler(UserReleaseActivity)} />
+          <Route path="assigned/" component={errorHandler(UserAssigned)} />
+          <Route path="subscribed/" component={errorHandler(UserSubscribed)} />
         </Route>
 
         {hooksOrgRoutes}

@@ -4,15 +4,18 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.models import GroupSubscription
+from sentry.models import Group, GroupSubscription
 
 
 class OrganizationUserSubscribedEndpoint(OrganizationEndpoint):
 
-    def get(self, request, organization, user):
+    def get(self, request, organization, user_id):
 
-        subscription_list = list(GroupSubscription.objects.filter(
-            user=user,
-        ).order_by('name', 'slug'))
+        group_list = list(Group.objects.filter(
+            id__in=GroupSubscription.objects.filter(
+                user=user_id,
+                is_active=True
+            ).values_list('group', flat=True)
+        ))
 
-        return Response(serialize(subscription_list, request.user))
+        return Response(serialize(group_list, request.user))

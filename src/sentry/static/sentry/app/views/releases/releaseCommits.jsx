@@ -155,4 +155,4 @@ const ReleaseCommits = React.createClass({
 });
 
 export default ReleaseCommits;
-export {ReleaseCommits, CommitLink};
+export {ReleaseCommit, ReleaseCommits, CommitLink};

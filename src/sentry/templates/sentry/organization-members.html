@@ -86,7 +86,7 @@
           <tr {% if member.role == request.GET.role %}class="member-role-highlight"{% endif %}>
             <td class="table-user-info">
               {% avatar member %}
-              <h5><a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}">
+              <h5><a href="{% url 'sentry-organization-user-details' organization.slug member.id %}">
                 {{ member.get_display_name }}
               </a></h5>
               {{ member.get_email }}
@@ -112,7 +112,7 @@
             <td class="align-right squash">
               <a href="{% url 'sentry-organization-member-settings' organization.slug member.id %}"
                  class="btn btn-default btn-sm">
-                {% trans "Details" %}
+                {% trans "Settings" %}
               </a>
               {% if member.user != request.user %}
                 {% if can_remove_members %}
