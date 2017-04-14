@@ -225,6 +225,25 @@ class OAuthAuthorizeCodeTest(TestCase):
         authorization = ApiAuthorization.objects.get(id=authorization.id)
         assert sorted(authorization.get_scopes()) == ['org:read', 'org:write']
 
+    def test_approve_flow_non_scope_set(self):
+        self.login_as(self.user)
+
+        ApiAuthorization.objects.create(
+            user=self.user,
+            application=self.application,
+        )
+
+        resp = self.client.get('{}?response_type=code&client_id={}&scope=member:read member:admin'.format(
+            self.path,
+            self.application.client_id,
+        ))
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/oauth-authorize.html')
+        assert resp.context['application'] == self.application
+        assert resp.context['scopes'] == ['member:read', 'member:admin']
+        assert resp.context['permissions'] == ['Read, write, and admin access to organization members.']
+
 
 class OAuthAuthorizeTokenTest(TestCase):
     @fixture
