@@ -9,6 +9,7 @@ from sentry.reprocessing import trigger_reprocessing
 from sentry.utils.linksign import generate_signed_link
 from sentry.web.helpers import render_to_response
 from sentry.models import ApiToken
+from sentry.utils.http import absolute_uri
 
 
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
@@ -22,6 +23,7 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
             ).all(),
             'project': project,
             'token': tokens and tokens[0] or None,
+            'server_url': absolute_uri('/'),
         })
         resp['Content-Type'] = 'text/plain'
         return resp
