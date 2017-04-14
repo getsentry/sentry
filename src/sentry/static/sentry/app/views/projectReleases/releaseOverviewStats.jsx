@@ -193,8 +193,8 @@ export default React.createClass({
     return (
       <ResponsiveContainer minHeight={250}>
         <AreaChart data={data}>
-          <XAxis dataKey="name" />
-          <YAxis />
+          <XAxis dataKey="name" tickLine={false} />
+          <YAxis tick={false} tickLine={false} axisLine={false} />
           <CartesianGrid strokeDasharray="3 3" />
           <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
           {deploys.map((d, i) => {
