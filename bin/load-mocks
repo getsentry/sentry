@@ -46,10 +46,18 @@ def generate_commits(user):
     commits = []
     for i in range(random.randint(0, 20)):
         filename = random.choice(loremipsum.words)
-        if random.randint(0, 3) == 1:
-            author = ('Jane Doe', 'janedoe@example.com')
-        else:
+        if random.randint(0, 5) == 1:
             author = (user.name, user.email)
+        else:
+            author = (
+                '{} {}'.format(
+                    random.choice(loremipsum.words),
+                    random.choice(loremipsum.words),
+                ),
+                '{}@example.com'.format(
+                    random.choice(loremipsum.words),
+                ),
+            )
 
         commits.append({
             'key': sha1(uuid4().hex).hexdigest(),
