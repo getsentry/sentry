@@ -210,8 +210,9 @@ export default React.createClass({
             return (
               <Area key={release.version} type="monotone"
                     dataKey={release.version} fill={color}
-                    fillOpacity={0.5} stroke={color} stackId="1"
-                    isAnimationActive={false} />
+                    fillOpacity={0.7} stroke={color} stackId="1"
+                    isAnimationActive={false}
+                  strokeWidth={3} />
             );
           })}
         </AreaChart>
