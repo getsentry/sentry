@@ -1,7 +1,7 @@
 {% autoescape off %}#!/bin/sh
 set -eu
 
-DOWNLOAD_URL="https://github.com/getsentry/sentry-cli/releases/download/1.4.1/sentry-cli-Darwin-x86_64"
+DOWNLOAD_URL="https://github.com/getsentry/sentry-cli/releases/download/1.5.0/sentry-cli-Darwin-x86_64"
 
 if hash sentry-cli 2> /dev/null; then
   CLI=sentry-cli
@@ -22,6 +22,7 @@ else
 fi
 
 {% if token %}export SENTRY_AUTH_TOKEN="{{ token }}"{% endif %}
+export SENTRY_URL="{{ server_url }}"
 export SENTRY_ORG="{{ project.organization.slug }}"
 export SENTRY_PROJECT="{{ project.slug }}"
 
