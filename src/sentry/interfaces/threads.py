@@ -78,3 +78,18 @@ class Threads(Interface):
 
     def get_path(self):
         return 'threads'
+
+    def get_hash(self):
+        if len(self.values) != 1:
+            return []
+        stacktrace = self.values[0].get('stacktrace')
+        if not stacktrace:
+            return []
+        system_hash = stacktrace.get_hash(system_frames=True)
+        if not system_hash:
+            return []
+        app_hash = stacktrace.get_hash(system_frames=False)
+        if system_hash == app_hash or not app_hash:
+            return [system_hash]
+
+        return [system_hash, app_hash]
