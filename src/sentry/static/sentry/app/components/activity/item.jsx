@@ -1,9 +1,10 @@
 import marked from 'marked';
 import React from 'react';
-
-import Duration from '../../components/duration';
-import Avatar from '../../components/avatar';
 import {Link} from 'react-router';
+
+import Avatar from '../../components/avatar';
+import Duration from '../../components/duration';
+import IssueLink from '../../components/issueLink';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
@@ -53,96 +54,98 @@ const ActivityItem = React.createClass({
     let project = item.project;
     let issue = item.issue;
 
+    let issueLink = issue && <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>{issue.shortId}</IssueLink>;
+
     switch(item.type) {
       case 'note':
         return tct('[author] commented on [issue]', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_resolved':
         return tct('[author] marked [issue] as resolved', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_resolved_by_age':
         return tct('[author] marked [issue] as resolved due to age', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_resolved_in_release':
         if (data.version) {
           return tct('[author] marked [issue] as resolved in [version]', {
             author: author,
             version: <Version version={data.version} orgId={orgId} projectId={project.slug} />,
-            issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+            issue: issueLink,
           });
         }
         return tct('[author] marked [issue] as resolved in the upcoming release', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_resolved_in_commit':
         return tct('[author] marked [issue] as fixed in [version]', {
           author: author,
           version: data.commit.id.substr(0, 12),
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_unresolved':
         return tct('[author] marked [issue] as unresolved', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_ignored':
         if (data.ignoreDuration) {
           return tct('[author] ignored [issue] for [duration]', {
             author: author,
             duration: <Duration seconds={data.ignoreDuration * 60} />,
-            issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+            issue: issueLink,
           });
         }
         return tct('[author] ignored [issue]', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_public':
         return tct('[author] made an [issue] public', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_private':
         return tct('[author] made an [issue] private', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'set_regression':
         if (data.version) {
           return tct('[author] marked [issue] as a regression in [version]', {
             author: author,
             version: <Version version={data.version} orgId={orgId} projectId={project.slug} />,
-            issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+            issue: issueLink,
           });
         }
         return tct('[author] marked [issue] as a regression', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'create_issue':
         return tct('[author] linked [issue] on [provider]', {
           author: author,
           provider: data.provider,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'first_seen':
         return tct('[author] saw [link:issue]', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'assigned':
         let assignee;
         if (item.user && data.assignee === item.user.id) {
           return tct('[author] assigned [issue] to themselves', {
             author: author,
-            issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+            issue: issueLink,
           });
         }
         assignee = MemberListStore.getById(data.assignee);
@@ -150,25 +153,25 @@ const ActivityItem = React.createClass({
           return tct('[author] assigned [ issue] to [assignee]', {
             author: author,
             assignee: <span title={assignee.email}>{assignee.name}</span>,
-            issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+            issue: issueLink,
           });
         }
         else if (data.assigneeEmail) {
           return tct('[author] assigned [issue] to [assignee]', {
             author: author,
             assignee: data.assigneeEmail,
-            issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+            issue: issueLink,
           });
         }
         return tct('[author] assigned [issue] to an [help:unknown user]', {
           author: author,
           help: <span title={data.assignee} />,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'unassigned':
         return tct('[author] unassigned [issue]', {
           author: author,
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
         });
       case 'merge':
         return tct('[author] merged [count] [link:issues]', {
@@ -189,7 +192,7 @@ const ActivityItem = React.createClass({
         });
       case 'reference':
         return tct('[issue] was referenced in [title]', {
-          issue: <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>,
+          issue: issueLink,
           title: <a href={data.url}>{data.title}</a>,
         });
       default:
