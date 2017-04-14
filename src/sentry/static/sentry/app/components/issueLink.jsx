@@ -110,7 +110,7 @@ export default React.createClass({
             </div>
             <div className="row row-flex">
               <div className="col-xs-6">
-                <h6>Occurances</h6>
+                <h6>Occurrences</h6>
                 <Count value={issue.count} />
               </div>
               <div className="col-xs-6">
