@@ -130,7 +130,7 @@ export default React.createClass({
   },
 
   renderChart() {
-    let grays = ['#d3d3d3', '#a8a8a8', '#7e7e7e'];
+    let grays = ['#c9c0d0', '#9587a4', '#625570'];
     let purple = '#8F85D4';
     // just use 30 days for now
     let stats = this.state.releaseStats.stats['30d'];
