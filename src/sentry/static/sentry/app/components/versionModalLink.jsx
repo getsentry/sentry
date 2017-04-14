@@ -9,8 +9,8 @@ import IconOpen from '../icons/icon-open';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import ReleaseProjectStatSparkline from '../components/releaseProjectStatSparkline';
+import ReleaseWeight from '../components/releaseWeight';
 import TimeSince from '../components/timeSince';
-import TooltipMixin from '../mixins/tooltip';
 import {getShortVersion} from '../utils';
 
 const Chart = React.createClass({
@@ -124,12 +124,7 @@ export default React.createClass({
     version: React.PropTypes.string.isRequired,
   },
 
-  mixins: [
-    ApiMixin,
-    TooltipMixin({
-      selector: '.tip'
-    }),
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -208,38 +203,6 @@ export default React.createClass({
     return <div className="box empty">None</div>;
   },
 
-  renderReleaseWeight(release) {
-    let width = release.commitCount / release.projectCommitStats.maxCommits * 100;
-    let fullBar = {
-      width: '100px',
-      backgroundColor: '#d3d3d3',
-      height: '5px',
-      borderRadius: '3px',
-      position: 'relative',
-      display: 'inline-block',
-    };
-    let percentageBar = {
-      width: width + 'px',
-      backgroundColor: '#8F85D4',
-      height: '5px',
-    };
-    if (width === 100) {
-      percentageBar.borderRadius = '3px';
-    } else {
-      percentageBar.borderBottomLeftRadius = '3px';
-      percentageBar.borderTopLeftRadius = '3px';
-    }
-    return (
-      <div className="tip"
-           title={('This release has ' +
-                   (Math.round((release.commitCount - release.projectCommitStats.avgCommits) * 100) / 100) +
-                   ' more commits than the average for this project.')}
-           style={fullBar}>
-        <div style={percentageBar}></div>
-      </div>
-    );
-  },
-
   renderModalBody() {
     if (this.state.loading)
       return <LoadingIndicator />;
@@ -275,7 +238,7 @@ export default React.createClass({
                 <dl className="flat">
                   <dt>Weight:</dt>
                   <dd>
-                    {this.renderReleaseWeight(data)}<br />
+                    {<ReleaseWeight release={data} />}<br />
                     <small>{data.commitCount.toLocaleString()} commits</small>
                   </dd>
                   <dt>Authors:</dt>
