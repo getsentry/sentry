@@ -47,19 +47,18 @@ const CustomTooltip = React.createClass({
       return (
         <div className="tooltip-inner">
           <div className="time-label">{label}</div>
-          <dl className="value-labelset">
+          <ul className="value-labelset">
             {payload.map((item, idx) => {
-              return [
-                <dt key={`dt-${idx}`}>
+              return (
+                <li key={idx}>
                   <span className="color">
                     <span style={{background: item.fill, opacity: item.fillOpacity}} />
                   </span>
-                  {item.value}
-                </dt>,
-                <dd key={`dd-${idx}`}><Version version={item.name} anchor={false} /></dd>,
-              ];
+                  <Version version={item.name} anchor={false} />
+                </li>
+              );
           })}
-          </dl>
+          </ul>
         </div>
       );
     }

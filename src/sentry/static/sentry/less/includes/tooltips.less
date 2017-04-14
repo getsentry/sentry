@@ -49,25 +49,21 @@
     }
   }
 
-  dl.value-labelset {
+  ul.value-labelset {
     position: relative;
     white-space: nowrap;
     line-height: 12px;
     margin-top: 10px !important;
     padding: 0 5px !important;
     text-align: left;
+    list-style: none;
+    margin-bottom: 10px;
 
-    dt {
-      margin: 0;
-      position: absolute;
-      left: 5px;
-      width: 65px;
-      margin-right: 10px;
-    }
-    dd {
-      float: none;
-      text-align: right;
-      margin: 0 0 0 75px;
+    li {
+      margin-bottom: 5px;
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
 
     .color {
