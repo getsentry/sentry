@@ -77,7 +77,8 @@ const UserActivity = React.createClass({
             return (
               <li key={issue.id}>
                 <span className="issue-icon"><span className="icon icon-alert" /></span>
-                <h6><IssueLink orgId={orgId} projectId={projectId} issue={issue}>{issue.shortId}</IssueLink></h6>
+                <h6><IssueLink orgId={orgId} projectId={projectId} issue={issue}
+                     card={false}>{issue.shortId}</IssueLink></h6>
                 <small><TimeSince date={issue.tagLastSeen} /></small>
               </li>
             );
