@@ -1,22 +1,30 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
-from django.http import HttpResponse
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ProcessingIssue, ReprocessingReport
 from sentry.reprocessing import trigger_reprocessing
 from sentry.utils.linksign import generate_signed_link
+from sentry.web.helpers import render_to_response
+from sentry.models import ApiToken
 
 
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
     def get(self, request, project):
-        rv = []
-        rv.append('#!/bin/bash')
-        rv.append('set -eu')
-        rv.append('echo "Thanks for helping us out, here is a"')
-        return HttpResponse('\n'.join(rv), mimetype="text/plain")
+        tokens = [x for x in ApiToken.objects.filter(
+            user=request.user
+        ).all() if 'project:releases' in x.get_scopes()]
+        resp = render_to_response('sentry/reprocessing-script.sh', {
+            'issues': ProcessingIssue.objects.filter(
+                project=project
+            ).all(),
+            'project': project,
+            'token': tokens and tokens[0] or None,
+        })
+        resp['Content-Type'] = 'text/plain'
+        return resp
 
 
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
