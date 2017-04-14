@@ -15,7 +15,7 @@ import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import MemberListStore from '../../stores/memberListStore';
 
-import {t, tn} from '../../locale';
+import {t, tct, tn} from '../../locale';
 
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
@@ -113,6 +113,10 @@ const GroupActivity = React.createClass({
                   '%2$s merged %1$d issues into this issue',
                   data.issues.length,
                   author);
+      case 'reference':
+        return tct('This issue was referenced in [title]', {
+          title: <a href={data.url}>{data.title}</a>,
+        });
       default:
         return ''; // should never hit (?)
     }
