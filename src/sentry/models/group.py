@@ -37,6 +37,8 @@ from sentry.utils.strings import strip, truncatechars
 logger = logging.getLogger(__name__)
 
 _short_id_re = re.compile(r'^(.*?)(?:[\s_-])([A-Za-z0-9]+)$')
+_fixes_re = re.compile(r'\bFixes\s+([A-Za-z0-9_\-\s\,]+)\b', re.I)
+_short_id_text_re = re.compile(r'\b([A-Z0-9_-]+-[A-Za-z0-9]+)\b', re.I)
 
 
 def looks_like_short_id(value):
@@ -470,3 +472,25 @@ class Group(Model):
             six.text_type(self.get_level_display()).upper().encode('utf-8'),
             self.title.encode('utf-8')
         )
+
+    @classmethod
+    def find_referenced_groups(cls, organization_id, text):
+        from sentry.models import Group
+
+        if not text:
+            return []
+
+        results = set()
+        for fmatch in _fixes_re.finditer(text):
+            for smatch in _short_id_text_re.finditer(fmatch.group(1)):
+                short_id = smatch.group(1)
+                try:
+                    group = Group.objects.by_qualified_short_id(
+                        organization_id=organization_id,
+                        short_id=short_id,
+                    )
+                except Group.DoesNotExist:
+                    continue
+                else:
+                    results.add(group)
+        return results

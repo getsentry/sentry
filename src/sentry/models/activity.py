@@ -41,6 +41,7 @@ class Activity(Model):
     SET_RESOLVED_BY_AGE = 15
     SET_RESOLVED_IN_COMMIT = 16
     DEPLOY = 17
+    REFERENCE = 18
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -61,6 +62,7 @@ class Activity(Model):
         (UNASSIGNED, 'unassigned'),
         (MERGE, 'merge'),
         (DEPLOY, 'deploy'),
+        (REFERENCE, 'reference'),
     )
 
     project = FlexibleForeignKey('sentry.Project')

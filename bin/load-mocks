@@ -521,6 +521,30 @@ def main(num_events=1, extra_events=False):
                     user=generate_user(),
                 )
 
+                Activity.objects.get_or_create(
+                    project=project,
+                    group=event1.group,
+                    type=Activity.REFERENCE,
+                    ident=randint(1, 1000),
+                    defaults={
+                        'data': {
+                            'title': 'getsentry/sentry#134: this is an example issue',
+                            'place': 'GitHub',
+                            'url': 'https://github.com/getsentry/sentry/issues/134',
+                        },
+                    },
+                )
+
+                with transaction.atomic():
+                    try:
+                        GroupMeta.objects.create(
+                            group=event1.group,
+                            key='github:tid',
+                            value='134',
+                        )
+                    except IntegrityError:
+                        pass
+
             Commit.objects.get_or_create(
                 organization_id=org.id,
                 repository_id=repo[0].id,
@@ -541,30 +565,20 @@ def main(num_events=1, extra_events=False):
                 platform='csp',
             )
 
-            with transaction.atomic():
-                try:
-                    GroupMeta.objects.create(
-                        group=event1.group,
-                        key='github:tid',
-                        value='134',
-                    )
-                except IntegrityError:
-                    pass
-
             event_user = EventUser.for_tags(
                 project_id=project.id,
                 values=[event3.get_tag('sentry:user')],
             ).get(event3.get_tag('sentry:user'))
-            if event_user:
-                UserReport.objects.create(
-                    project=project,
-                    event_user_id=event_user.id,
-                    event_id=event3.event_id,
-                    group=event3.group,
-                    name='Jane Doe',
-                    email='jane@example.com',
-                    comments='I have no idea how I got here.',
-                )
+
+            UserReport.objects.create(
+                project=project,
+                event_user_id=event_user.id if event_user else None,
+                event_id=event3.event_id,
+                group=event3.group,
+                name='Jane Doe',
+                email='jane@example.com',
+                comments='I have no idea how I got here.',
+            )
 
             print('    > Loading time series data'.format(project_name))
 

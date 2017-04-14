@@ -52,21 +52,4 @@ class Commit(Model):
 
     def find_referenced_groups(self):
         from sentry.models import Group
-
-        if not self.message:
-            return []
-
-        results = set()
-        for fmatch in _fixes_re.finditer(self.message):
-            for smatch in _short_id_re.finditer(fmatch.group(1)):
-                short_id = smatch.group(1)
-                try:
-                    group = Group.objects.by_qualified_short_id(
-                        organization_id=self.organization_id,
-                        short_id=short_id,
-                    )
-                except Group.DoesNotExist:
-                    continue
-                else:
-                    results.add(group)
-        return results
+        return Group.find_referenced_groups(self.organization_id, self.message)
