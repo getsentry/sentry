@@ -5,7 +5,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import AuditLogEntry, AuditLogEntryEvent, Project
 from sentry.signals import project_created
-from sentry.utils.samples import create_sample_event
 
 
 BLANK_CHOICE = [("", "")]
@@ -43,7 +42,5 @@ class AddProjectForm(forms.ModelForm):
         )
 
         project_created.send(project=project, user=actor, sender=self)
-
-        create_sample_event(project, platform='javascript')
 
         return project
