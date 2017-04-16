@@ -20,8 +20,7 @@ const IncidentStore = Reflux.createStore({
 
   getStatus() {
     return this.status;
-  },
+  }
 });
 
 export default IncidentStore;
-

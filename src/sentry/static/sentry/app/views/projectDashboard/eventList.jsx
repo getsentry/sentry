@@ -12,9 +12,7 @@ const EventList = React.createClass({
     endpoint: React.PropTypes.string.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -30,15 +28,18 @@ const EventList = React.createClass({
   },
 
   componentWillReceiveProps() {
-    this.setState({
-      loading: true,
-      error: false
-    }, this.fetchData);
+    this.setState(
+      {
+        loading: true,
+        error: false
+      },
+      this.fetchData
+    );
   },
 
   fetchData() {
     let minutes;
-    switch(this.state.statsPeriod) {
+    switch (this.state.statsPeriod) {
       case '15m':
         minutes = '15';
         break;
@@ -56,7 +57,7 @@ const EventList = React.createClass({
         limit: 5,
         minutes: minutes
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           groupList: data,
           loading: false,
@@ -79,7 +80,7 @@ const EventList = React.createClass({
   },
 
   render() {
-    let eventNodes = this.state.groupList.map((item) => {
+    let eventNodes = this.state.groupList.map(item => {
       return <EventNode group={item} key={item.id} />;
     });
 
@@ -96,17 +97,15 @@ const EventList = React.createClass({
         </div>
         <div className="box-content">
           <div className="tab-pane active">
-            {this.state.loading ?
-              <LoadingIndicator />
-            : (this.state.error ?
-              <LoadingError onRetry={this.fetchData} />
-            : (eventNodes.length ?
-              <ul className="group-list group-list-small">
-                {eventNodes}
-              </ul>
-            :
-              <div className="group-list-empty">{t('No data available.')}</div>
-            ))}
+            {this.state.loading
+              ? <LoadingIndicator />
+              : this.state.error
+                  ? <LoadingError onRetry={this.fetchData} />
+                  : eventNodes.length
+                      ? <ul className="group-list group-list-small">
+                          {eventNodes}
+                        </ul>
+                      : <div className="group-list-empty">{t('No data available.')}</div>}
           </div>
         </div>
       </div>

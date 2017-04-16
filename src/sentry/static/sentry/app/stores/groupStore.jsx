@@ -6,7 +6,6 @@ import utils from '../utils';
 import {t} from '../locale';
 import _ from 'underscore';
 
-
 function showAlert(msg, type) {
   IndicatorStore.add(msg, type, {
     duration: 4000
@@ -33,7 +32,7 @@ const GroupStore = Reflux.createStore({
     this.reset();
 
     let itemIds = new Set();
-    items.forEach((item) => {
+    items.forEach(item => {
       itemIds.add(item.id);
       this.items.push(item);
     });
@@ -48,7 +47,7 @@ const GroupStore = Reflux.createStore({
 
     let itemsById = {};
     let itemIds = new Set();
-    items.forEach((item) => {
+    items.forEach(item => {
       itemsById[item.id] = item;
       itemIds.add(item.id);
     });
@@ -122,8 +121,7 @@ const GroupStore = Reflux.createStore({
     } else {
       group.activity.splice(index, 0, data);
     }
-    if (data.type === 'note')
-      group.numComments++;
+    if (data.type === 'note') group.numComments++;
 
     this.trigger(new Set([id]));
   },
@@ -151,8 +149,7 @@ const GroupStore = Reflux.createStore({
 
     let activity = group.activity.splice(index, 1);
 
-    if (activity[0].type === 'note')
-      group.numComments--;
+    if (activity[0].type === 'note') group.numComments--;
 
     this.trigger(new Set([group.id]));
     return index;
@@ -183,7 +180,7 @@ const GroupStore = Reflux.createStore({
   },
 
   getAllItemIds() {
-    return this.items.map((item) => item.id);
+    return this.items.map(item => item.id);
   },
 
   getAllItems() {
@@ -251,7 +248,7 @@ const GroupStore = Reflux.createStore({
       delete this.statuses[itemId];
       this.clearStatus(itemId, 'delete');
     });
-    this.items = this.items.filter((item) => !itemIdSet.has(item.id));
+    this.items = this.items.filter(item => !itemIdSet.has(item.id));
     showAlert(t('The selected events have been scheduled for deletion.'), 'success');
     this.trigger(new Set(itemIds));
   },
@@ -285,7 +282,7 @@ const GroupStore = Reflux.createStore({
     // Remove all but parent id (items were merged into this one)
     let mergedIdSet = new Set(mergedIds);
     this.items = this.items.filter(
-      (item) => !mergedIdSet.has(item.id) || item.id === response.merge.parent
+      item => !mergedIdSet.has(item.id) || item.id === response.merge.parent
     );
 
     showAlert(t('The selected events have been scheduled for merge.'), 'success');
@@ -337,7 +334,6 @@ const GroupStore = Reflux.createStore({
     this.pendingChanges.remove(changeId);
     this.trigger(new Set(itemIds));
   }
-
 });
 
 export default GroupStore;

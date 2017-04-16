@@ -39,9 +39,7 @@ const OrganizationDetails = React.createClass({
     organization: PropTypes.Organization
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -63,8 +61,10 @@ const OrganizationDetails = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.orgId !== this.props.params.orgId ||
-        nextProps.location.state === 'refresh') {
+    if (
+      nextProps.params.orgId !== this.props.params.orgId ||
+      nextProps.location.state === 'refresh'
+    ) {
       this.remountComponent();
     }
   },
@@ -79,10 +79,10 @@ const OrganizationDetails = React.createClass({
 
   fetchData() {
     this.api.request(this.getOrganizationDetailsEndpoint(), {
-      success: (data) => {
+      success: data => {
         // Allow injection via getsentry et all
         let hooks = [];
-        HookStore.get('organization:header').forEach((cb) => {
+        HookStore.get('organization:header').forEach(cb => {
           hooks.push(cb(data));
         });
 
@@ -93,14 +93,17 @@ const OrganizationDetails = React.createClass({
           loading: false,
           error: false,
           errorType: null,
-          hooks: hooks,
+          hooks: hooks
         });
 
         TeamStore.loadInitialData(data.teams);
-        ProjectStore.loadInitialData(data.teams.reduce((out, team) => {
-          return out.concat(team.projects);
-        }, []));
-      }, error: (_, textStatus, errorThrown) => {
+        ProjectStore.loadInitialData(
+          data.teams.reduce((out, team) => {
+            return out.concat(team.projects);
+          }, [])
+        );
+      },
+      error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
           case 'NOT FOUND':
@@ -111,7 +114,7 @@ const OrganizationDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType,
+          errorType: errorType
         });
       }
     });
@@ -122,18 +125,17 @@ const OrganizationDetails = React.createClass({
   },
 
   getTitle() {
-    if (this.state.organization)
-      return this.state.organization.name;
+    if (this.state.organization) return this.state.organization.name;
     return 'Sentry';
   },
 
   render() {
     if (this.state.loading) {
-        return (
-          <LoadingIndicator triangle={true}>
-            {t('Loading data for your organization.')}
-          </LoadingIndicator>
-        );
+      return (
+        <LoadingIndicator triangle={true}>
+          {t('Loading data for your organization.')}
+        </LoadingIndicator>
+      );
     } else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.ORG_NOT_FOUND:
@@ -153,7 +155,7 @@ const OrganizationDetails = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          <Sidebar/>
+          <Sidebar />
           {this.props.children}
           <Footer />
         </div>

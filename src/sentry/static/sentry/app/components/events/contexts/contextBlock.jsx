@@ -8,7 +8,7 @@ const ContextBlock = React.createClass({
   propTypes: {
     alias: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
-    knownData: React.PropTypes.array,
+    knownData: React.PropTypes.array
   },
 
   render() {

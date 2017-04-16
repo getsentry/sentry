@@ -16,7 +16,7 @@ const SelectedGroupStore = Reflux.createStore({
 
   add(ids) {
     let allSelected = this.allSelected();
-    ids.forEach((id) => {
+    ids.forEach(id => {
       if (!this.records.hasOwnProperty(id)) {
         this.records[id] = allSelected;
       }
@@ -93,4 +93,3 @@ const SelectedGroupStore = Reflux.createStore({
 });
 
 export default SelectedGroupStore;
-

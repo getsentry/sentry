@@ -5,7 +5,6 @@ import GroupSeenBy from 'app/views/groupDetails/seenBy';
 import ConfigStore from 'app/stores/configStore';
 
 describe('OrganizationTeams', function() {
-
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
@@ -17,8 +16,8 @@ describe('OrganizationTeams', function() {
   });
 
   describe('render()', function() {
-    it('should return null if seenBy is falsy', function () {
-      let wrapper = shallow(<GroupSeenBy/>, {
+    it('should return null if seenBy is falsy', function() {
+      let wrapper = shallow(<GroupSeenBy />, {
         context: {
           group: {id: '1337'},
           project: {id: '2448'},
@@ -28,8 +27,8 @@ describe('OrganizationTeams', function() {
       expect(wrapper.children()).to.have.length(0);
     });
 
-    it('should return a list of each user that saw', function () {
-      let wrapper = shallow(<GroupSeenBy/>, {
+    it('should return a list of each user that saw', function() {
+      let wrapper = shallow(<GroupSeenBy />, {
         context: {
           group: {
             id: '1337',

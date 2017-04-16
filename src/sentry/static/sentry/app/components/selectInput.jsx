@@ -8,7 +8,7 @@ const SelectInput = React.createClass({
     required: React.PropTypes.bool,
     placeholder: React.PropTypes.string,
     value: React.PropTypes.string,
-    onChange: React.PropTypes.func,
+    onChange: React.PropTypes.func
   },
 
   getDefaultProps() {
@@ -35,11 +35,11 @@ const SelectInput = React.createClass({
     if (this.refs.select) {
       let selectedIndex = this.refs.select.selectedIndex;
       if (selectedIndex >= 0) {
-       let options = this.refs.select.options;
-       let tempIndex = (selectedIndex + 1) % options.length;
+        let options = this.refs.select.options;
+        let tempIndex = (selectedIndex + 1) % options.length;
 
-       options[tempIndex].selected = true;
-       options[selectedIndex].selected = true;
+        options[tempIndex].selected = true;
+        options[selectedIndex].selected = true;
       }
     }
   },
