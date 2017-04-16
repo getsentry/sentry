@@ -38,20 +38,35 @@ const DeviceInterface = React.createClass({
         wrapTitle={true}>
         <table className="table key-value">
           <tbody>
-            {data.name &&
+            {data.model &&
               <tr>
-                <td className="key">Name</td>
-                <td className="value"><pre>{data.name}</pre></td>
+                <td className="key">Model</td>
+                <td className="value"><pre>{data.model}</pre></td>
               </tr>}
-            {data.version && 
+            {data.model_id && 
               <tr>
-                <td className="key">Version</td>
-                <td className="value"><pre>{data.version}</pre></td>
+                <td className="key">Model ID</td>
+                <td className="value"><pre>{data.model_id}</pre></td>
               </tr>}
-            {data.build &&
+            {data.os &&
               <tr>
-                <td className="key">Build</td>
-                <td className="value"><pre>{data.build}</pre></td>
+                <td className="key">OS</td>
+                <td className="value"><pre>{data.os}</pre></td>
+              </tr>}
+            {data.os_version &&
+              <tr>
+                <td className="key">OS Version</td>
+                <td className="value"><pre>{data.os_version}</pre></td>
+              </tr>}
+            {data.os_build &&
+              <tr>
+                <td className="key">OS Build</td>
+                <td className="value"><pre>{data.os_build}</pre></td>
+              </tr>}
+            {data.arch &&
+              <tr>
+                <td className="key">CPU Architecture</td>
+                <td className="value"><pre>{data.arch}</pre></td>
               </tr>}
             {extras}
           </tbody>

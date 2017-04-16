@@ -11,45 +11,54 @@ class Device(Interface):
     An interface which describes the device.
 
     >>> {
-    >>>     "name": "Windows",
-    >>>     "version": "95",
-    >>>     "build": "95.0.134.1651",
-    >>>     "arbitrary": "data"
+    >>>     "model": "iPad7,1",
+    >>>     "model_id": "N102AP",
+    >>>     "os": "iOS",
+    >>>     "os_version": "9.3.2",
+    >>>     "os_build": "13F69",
+    >>>     "arch": "arm64"
+    >>> }
+
+    For computers:
+
+    >>> {
+    >>>     "model": "MacBookPro12,1",
+    >>>     "os": "macOS",
+    >>>     "os_version": "10.11.5",
+    >>>     "os_build": "15F34",
+    >>>     "arch": "x86_64"
     >>> }
     """
     @classmethod
     def to_python(cls, data):
-        data = data.copy()
-
-        extra_data = data.pop('data', data)
+        extra_data = data.get('data')
         if not isinstance(extra_data, dict):
             extra_data = {}
 
-        try:
-            name = trim(data.pop('name'), 64)
-        except KeyError:
-            raise InterfaceValidationError("Missing or invalid value for 'name'")
-
-        try:
-            version = trim(data.pop('version'), 64)
-        except KeyError:
-            raise InterfaceValidationError("Missing or invalid value for 'version'")
-
-        build = trim(data.pop('build', None), 64)
+        model = trim(data.get('model'), 64)
+        os = trim(data.get('os'), 64)
+        if not (model or os):
+            raise InterfaceValidationError("One of 'model' or 'os' is required.")
 
         kwargs = {
-            'name': name,
-            'version': version,
-            'build': build,
+            'model': model,
+            'model_id': trim(data.get('model_id'), 40),
+            'os': os,
+            'os_version': trim(data.get('os_version'), 40),
+            'os_build': trim(data.get('os_version'), 40),
+            'arch': trim(data.get('arch'), 40),
             'data': trim_dict(extra_data),
         }
         return cls(**kwargs)
 
     def get_api_context(self, is_public=False):
         return {
-            'name': self.name,
-            'version': self.version,
-            'build': self.build,
+            'model': self.model,
+            'model_id': self.model_id,
+            'os': self.os,
+            'os_version': self.os_version,
+            'os_build': self.os_build,
+            'arch': self.arch,
             'data': self.data,
         }
 
