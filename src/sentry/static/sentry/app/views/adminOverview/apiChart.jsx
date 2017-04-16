@@ -10,9 +10,7 @@ const ApiChart = React.createClass({
     since: React.PropTypes.number.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -22,14 +20,14 @@ const ApiChart = React.createClass({
         'client-api.all-versions.responses.2xx': null,
         'client-api.all-versions.responses.4xx': null,
         'client-api.all-versions.responses.5xx': null
-      },
+      }
     };
   },
 
   componentWillMount() {
     this.fetchData();
   },
-  
+
   fetchData() {
     let statNameList = [
       'client-api.all-versions.responses.2xx',
@@ -37,7 +35,7 @@ const ApiChart = React.createClass({
       'client-api.all-versions.responses.5xx'
     ];
 
-    statNameList.forEach((statName) => {
+    statNameList.forEach(statName => {
       this.api.request('/internal/stats/', {
         method: 'GET',
         data: {
@@ -45,13 +43,16 @@ const ApiChart = React.createClass({
           resolution: '1h',
           key: statName
         },
-        success: (data) => {
+        success: data => {
           this.state.rawData[statName] = data;
-          this.setState({
-            rawData: this.state.rawData,
-          }, this.requestFinished);
+          this.setState(
+            {
+              rawData: this.state.rawData
+            },
+            this.requestFinished
+          );
         },
-        error: (data) => {
+        error: data => {
           this.setState({
             error: true
           });
@@ -65,7 +66,11 @@ const ApiChart = React.createClass({
     if (rawData['events.total'] && rawData['events.dropped']) {
       this.processOrgData();
     }
-    if (rawData['client-api.all-versions.responses.2xx'] && rawData['client-api.all-versions.responses.4xx'] && rawData['client-api.all-versions.responses.5xx']) {
+    if (
+      rawData['client-api.all-versions.responses.2xx'] &&
+      rawData['client-api.all-versions.responses.4xx'] &&
+      rawData['client-api.all-versions.responses.5xx']
+    ) {
       this.setState({
         loading: false
       });
@@ -73,7 +78,7 @@ const ApiChart = React.createClass({
   },
 
   processRawSeries(series) {
-    return series.map((item) => {
+    return series.map(item => {
       return [item[0] * 1000, item[1]];
     });
   },
@@ -121,10 +126,8 @@ const ApiChart = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     return <FlotChart style={{height: 250}} plotData={this.getChartPoints()} />;
   }
 });

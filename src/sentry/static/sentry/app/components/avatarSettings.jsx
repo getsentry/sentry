@@ -8,7 +8,6 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
-
 const AvatarSettings = React.createClass({
   propTypes: {
     userId: React.PropTypes.number
@@ -75,7 +74,7 @@ const AvatarSettings = React.createClass({
         avatar_photo: avatarPhoto,
         avatar_type: this.state.user.avatar.avatarType
       },
-      success: (user) => {
+      success: user => {
         this.setState({savedDataUrl: this.state.dataUrl});
         this.handleSuccess(user);
       },
@@ -101,15 +100,21 @@ const AvatarSettings = React.createClass({
     return (
       <div>
         <form>
-          <AvatarRadio user={this.state.user} updateUser={this.updateUserState}/>
+          <AvatarRadio user={this.state.user} updateUser={this.updateUserState} />
 
           {this.state.user.avatar.avatarType === 'gravatar' && gravatarMessage}
 
           {this.state.user.avatar.avatarType === 'upload' &&
-            <AvatarCropper {...this.props} user={this.state.user} savedDataUrl={this.state.savedDataUrl}
-                           updateDataUrlState={this.updateDataUrlState}/>}
+            <AvatarCropper
+              {...this.props}
+              user={this.state.user}
+              savedDataUrl={this.state.savedDataUrl}
+              updateDataUrlState={this.updateDataUrlState}
+            />}
           <fieldset className="form-actions">
-            <button className="btn btn-primary" onClick={this.saveSettings}>{t('Done')}</button>
+            <button className="btn btn-primary" onClick={this.saveSettings}>
+              {t('Done')}
+            </button>
           </fieldset>
         </form>
       </div>

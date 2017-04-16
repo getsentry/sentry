@@ -5,9 +5,7 @@ import ProjectHeader from '../components/projectHeader';
 import ProjectState from '../mixins/projectState';
 
 const ProjectDetailsLayout = React.createClass({
-  mixins: [
-    ProjectState
-  ],
+  mixins: [ProjectState],
 
   getInitialState() {
     return {
@@ -27,15 +25,15 @@ const ProjectDetailsLayout = React.createClass({
   },
 
   render() {
-    if (!this.context.project)
-      return null;
+    if (!this.context.project) return null;
 
     return (
-     <div>
+      <div>
         <ProjectHeader
           activeSection={this.state.projectNavSection}
           project={this.context.project}
-          organization={this.getOrganization()} />
+          organization={this.getOrganization()}
+        />
         <div className="container">
           <div className="content">
             {React.cloneElement(this.props.children, {

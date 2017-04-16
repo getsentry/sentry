@@ -76,4 +76,3 @@ class CursorPoller {
 }
 
 export default CursorPoller;
-

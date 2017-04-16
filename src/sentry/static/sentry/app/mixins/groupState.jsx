@@ -5,7 +5,7 @@ let GroupState = {
   mixins: [ProjectState],
 
   contextTypes: {
-    group: PropTypes.Group.isRequired,
+    group: PropTypes.Group.isRequired
   },
 
   getGroup() {
@@ -14,4 +14,3 @@ let GroupState = {
 };
 
 export default GroupState;
-

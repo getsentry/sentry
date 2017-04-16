@@ -20,22 +20,25 @@ export default class RangeField extends InputField {
     if (this.props.disabled) {
       suffixClassNames += ' disabled';
     }
-    jQuery(ReactDOM.findDOMNode(this.refs.input)).on('slider:ready', (e, data) => {
-      let value = parseInt(data.value, 10);
-      $value.appendTo(data.el);
-      $value.html(this.props.formatLabel(value));
-    }).on('slider:changed', (e, data) => {
-      let value = parseInt(data.value, 10);
-      $value.html(this.props.formatLabel(value));
-      this.props.onChange(value);
-    }).simpleSlider({
-      value: this.props.defaultValue || this.props.value,
-      range: [this.props.min, this.props.max],
-      step: this.props.step,
-      snap: this.props.snap,
-      allowedValues: this.props.allowedValues,
-      classSuffix: suffixClassNames
-    });
+    jQuery(ReactDOM.findDOMNode(this.refs.input))
+      .on('slider:ready', (e, data) => {
+        let value = parseInt(data.value, 10);
+        $value.appendTo(data.el);
+        $value.html(this.props.formatLabel(value));
+      })
+      .on('slider:changed', (e, data) => {
+        let value = parseInt(data.value, 10);
+        $value.html(this.props.formatLabel(value));
+        this.props.onChange(value);
+      })
+      .simpleSlider({
+        value: this.props.defaultValue || this.props.value,
+        range: [this.props.min, this.props.max],
+        step: this.props.step,
+        snap: this.props.snap,
+        allowedValues: this.props.allowedValues,
+        classSuffix: suffixClassNames
+      });
   }
 
   removeSlider() {
@@ -47,7 +50,7 @@ export default class RangeField extends InputField {
     return {
       min: this.props.min,
       max: this.props.max,
-      step: this.props.step,
+      step: this.props.step
     };
   }
 
@@ -56,14 +59,14 @@ export default class RangeField extends InputField {
   }
 }
 
-RangeField.formatMinutes = (value) => {
+RangeField.formatMinutes = value => {
   value = value / 60;
-  return `${value} minute${(value != 1 ? 's' : '')}`;
+  return `${value} minute${value != 1 ? 's' : ''}`;
 };
 
 RangeField.defaultProps = {
-  onChange: (value) => {},
-  formatLabel: (value) => value,
+  onChange: value => {},
+  formatLabel: value => value,
   min: 0,
   max: 100,
   step: 1,

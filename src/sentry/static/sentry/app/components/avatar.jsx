@@ -10,14 +10,14 @@ const Avatar = React.createClass({
     size: React.PropTypes.number,
     default: React.PropTypes.string,
     title: React.PropTypes.string,
-    gravatar: React.PropTypes.bool,
+    gravatar: React.PropTypes.bool
   },
 
   getDefaultProps() {
     return {
       className: 'avatar',
       size: 64,
-      gravatar: true,
+      gravatar: true
     };
   },
 
@@ -68,22 +68,22 @@ const Avatar = React.createClass({
     if (user.avatar) {
       avatarType = user.avatar.avatarType;
     } else {
-      avatarType = (
-        (user.email && this.props.gravatar) ?
-          'gravatar' :
-          'letter_avatar'
-      );
+      avatarType = user.email && this.props.gravatar ? 'gravatar' : 'letter_avatar';
     }
-    let props = {title: this.props.title, onError: this.onError, onLoad: this.onLoad};
+    let props = {
+      title: this.props.title,
+      onError: this.onError,
+      onLoad: this.onLoad
+    };
     if (user.options && user.options.avatarType) {
       avatarType = user.options.avatarType;
     }
     if (avatarType === 'gravatar') {
-      return <img src={this.buildGravatarUrl()} {...props}/>;
+      return <img src={this.buildGravatarUrl()} {...props} />;
     } else if (avatarType === 'upload') {
-      return <img src={this.buildProfileUrl()} {...props}/>;
+      return <img src={this.buildProfileUrl()} {...props} />;
     } else {
-      return <UserLetterAvatar user={user}/>;
+      return <UserLetterAvatar user={user} />;
     }
   },
 
@@ -95,7 +95,7 @@ const Avatar = React.createClass({
 
     return (
       <span className={this.props.className}>
-        {this.state.showBackupAvatar && <UserLetterAvatar user={user}/>}
+        {this.state.showBackupAvatar && <UserLetterAvatar user={user} />}
         {this.renderImg()}
       </span>
     );

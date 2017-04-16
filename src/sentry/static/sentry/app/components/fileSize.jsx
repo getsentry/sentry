@@ -7,11 +7,8 @@ const FileSize = React.createClass({
   },
 
   render: function() {
-    return (
-      <span>{formatBytes(this.props.bytes)}</span>
-    );
+    return <span>{formatBytes(this.props.bytes)}</span>;
   }
 });
 
 export default FileSize;
-

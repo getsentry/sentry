@@ -7,8 +7,8 @@ export default class NumberField extends InputField {
 
   getAttributes() {
     return {
-        min: this.props.min || undefined,
-        max: this.props.max || undefined,
+      min: this.props.min || undefined,
+      max: this.props.max || undefined
     };
   }
 }

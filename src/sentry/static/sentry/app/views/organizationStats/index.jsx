@@ -12,10 +12,7 @@ import {t} from '../../locale';
 import {intcomma} from '../../utils';
 
 const OrganizationStats = React.createClass({
-  mixins: [
-    ApiMixin,
-    OrganizationState
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     let until = Math.floor(new Date().getTime() / 1000);
@@ -71,7 +68,7 @@ const OrganizationStats = React.createClass({
 
     let statEndpoint = this.getOrganizationStatsEndpoint();
 
-    $.each(this.state.rawOrgData, (statName) => {
+    $.each(this.state.rawOrgData, statName => {
       this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
@@ -79,7 +76,7 @@ const OrganizationStats = React.createClass({
           resolution: '1h',
           stat: statName
         },
-        success: (data) => {
+        success: data => {
           this.state.rawOrgData[statName] = data;
           this.state.statsRequestsPending -= 1;
           this.setState({
@@ -95,7 +92,7 @@ const OrganizationStats = React.createClass({
       });
     });
 
-    $.each(this.state.rawProjectData, (statName) => {
+    $.each(this.state.rawProjectData, statName => {
       this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
@@ -103,7 +100,7 @@ const OrganizationStats = React.createClass({
           stat: statName,
           group: 'project'
         },
-        success: (data) => {
+        success: data => {
           this.state.rawProjectData[statName] = data;
           this.state.projectsRequestsPending -= 1;
           this.setState({
@@ -120,9 +117,9 @@ const OrganizationStats = React.createClass({
     });
 
     this.api.request(this.getOrganizationProjectsEndpoint(), {
-      success: (data) => {
+      success: data => {
         let projectMap = {};
-        data.forEach((project) => {
+        data.forEach(project => {
           projectMap[project.id] = project;
         });
 
@@ -154,7 +151,7 @@ const OrganizationStats = React.createClass({
     let oReceived = 0;
     let oRejected = 0;
     let oBlacklisted = 0;
-    let orgPoints = [];  // accepted, rejected, blacklisted
+    let orgPoints = []; // accepted, rejected, blacklisted
     let aReceived = [0, 0]; // received, points
     let rawOrgData = this.state.rawOrgData;
     $.each(rawOrgData.received, (idx, point) => {
@@ -164,11 +161,7 @@ const OrganizationStats = React.createClass({
       let dAccepted = Math.max(0, dReceived - dRejected - dBlacklisted);
       orgPoints.push({
         x: point[0],
-        y: [
-          dAccepted,
-          dRejected,
-          dBlacklisted
-        ]
+        y: [dAccepted, dRejected, dBlacklisted]
       });
       oReceived += dReceived;
       oRejected += dRejected;
@@ -185,7 +178,7 @@ const OrganizationStats = React.createClass({
         rejected: oRejected,
         blacklisted: oBlacklisted,
         accepted: Math.max(0, oReceived - oRejected - oBlacklisted),
-        avgRate: (aReceived[1] ? parseInt((aReceived[0] / aReceived[1]) / 60, 10) : 0)
+        avgRate: aReceived[1] ? parseInt(aReceived[0] / aReceived[1] / 60, 10) : 0
       },
       statsLoading: false
     });
@@ -231,8 +224,8 @@ const OrganizationStats = React.createClass({
 
     return (
       '<div style="width:150px">' +
-        `<div class="time-label">${timeLabel}</div>` +
-        `<div class="value-label">${value}</div>` +
+      `<div class="time-label">${timeLabel}</div>` +
+      `<div class="value-label">${value}</div>` +
       '</div>'
     );
   },
@@ -243,35 +236,37 @@ const OrganizationStats = React.createClass({
         <h3>{t('Stats')}</h3>
         <div className="row">
           <div className="col-md-9">
-            <p>{t(`The chart below reflects events the system has received
+            <p>
+              {t(
+                `The chart below reflects events the system has received
             across your entire organization. Events are broken down into
             three categories: Accepted, Rate Limited, and Filtered. Rate
             Limited events are entries that the system threw away due to quotas
             being hit, and Filtered events are events that were blocked
-            due to your inbound data filter rules.`)}</p>
+            due to your inbound data filter rules.`
+              )}
+            </p>
           </div>
           {!this.state.statsLoading &&
             <div className="col-md-3 stats-column">
               <h6 className="nav-header">{t('Events per minute')}</h6>
               <p className="count">{this.state.orgTotal.avgRate}</p>
-            </div>
-          }
+            </div>}
         </div>
         <div className="organization-stats">
-            {this.state.statsLoading ?
-              <LoadingIndicator />
-            : (this.state.statsError ?
-              <LoadingError onRetry={this.fetchData} />
-            :
-              <div className="bar-chart">
-                <StackedBarChart
-                  points={this.state.orgStats}
-                  height={150}
-                  barClasses={['accepted', 'rate-limited', 'black-listed']}
-                  className="sparkline"
-                  tooltip={this.renderTooltip} />
-              </div>
-            )}
+          {this.state.statsLoading
+            ? <LoadingIndicator />
+            : this.state.statsError
+                ? <LoadingError onRetry={this.fetchData} />
+                : <div className="bar-chart">
+                    <StackedBarChart
+                      points={this.state.orgStats}
+                      height={150}
+                      barClasses={['accepted', 'rate-limited', 'black-listed']}
+                      className="sparkline"
+                      tooltip={this.renderTooltip}
+                    />
+                  </div>}
         </div>
 
         <div className="box">
@@ -279,17 +274,16 @@ const OrganizationStats = React.createClass({
             <h3>{t('Events by Project')}</h3>
           </div>
           <div className="box-content">
-            {this.state.statsLoading || this.state.projectsLoading ?
-              <LoadingIndicator />
-            : (this.state.projectsError ?
-              <LoadingError onRetry={this.fetchData} />
-            :
-              <ProjectTable
-                  projectTotals={this.state.projectTotals}
-                  orgTotal={this.state.orgTotal}
-                  organization={this.getOrganization()}
-                  projectMap={this.state.projectMap} />
-            )}
+            {this.state.statsLoading || this.state.projectsLoading
+              ? <LoadingIndicator />
+              : this.state.projectsError
+                  ? <LoadingError onRetry={this.fetchData} />
+                  : <ProjectTable
+                      projectTotals={this.state.projectTotals}
+                      orgTotal={this.state.orgTotal}
+                      organization={this.getOrganization()}
+                      projectMap={this.state.projectMap}
+                    />}
           </div>
         </div>
       </OrganizationHomeContainer>

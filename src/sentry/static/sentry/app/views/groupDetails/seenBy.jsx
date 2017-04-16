@@ -33,16 +33,21 @@ const GroupSeenBy = React.createClass({
       return null;
     }
 
-    let seenByNodes = seenBy.filter((user, userIdx) => {
-      return activeUser.id !== user.id;
-    }).map((user, userIdx) => {
-      let title = _.escape(userDisplayName(user)) + '<br/>' + _.escape(moment(user.lastSeen).format('LL'));
-      return (
-        <li key={userIdx} className="tip" data-title={title}>
-          <Avatar size={52} user={user} />
-        </li>
-      );
-    });
+    let seenByNodes = seenBy
+      .filter((user, userIdx) => {
+        return activeUser.id !== user.id;
+      })
+      .map((user, userIdx) => {
+        let title =
+          _.escape(userDisplayName(user)) +
+          '<br/>' +
+          _.escape(moment(user.lastSeen).format('LL'));
+        return (
+          <li key={userIdx} className="tip" data-title={title}>
+            <Avatar size={52} user={user} />
+          </li>
+        );
+      });
 
     return (
       <div className="seen-by">
@@ -56,4 +61,3 @@ const GroupSeenBy = React.createClass({
 });
 
 export default GroupSeenBy;
-

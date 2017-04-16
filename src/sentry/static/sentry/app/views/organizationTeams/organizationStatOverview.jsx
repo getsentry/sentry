@@ -17,10 +17,7 @@ const OrganizationStatOverview = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    OrganizationState
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -44,9 +41,9 @@ const OrganizationStatOverview = React.createClass({
         since: new Date().getTime() / 1000 - 3600 * 24,
         stat: 'rejected'
       },
-      success: (data) => {
+      success: data => {
         let totalRejected = 0;
-        data.forEach((point) => {
+        data.forEach(point => {
           totalRejected += point[1];
         });
         this.setState({totalRejected: totalRejected});
@@ -58,29 +55,27 @@ const OrganizationStatOverview = React.createClass({
         resolution: '1h',
         stat: 'received'
       },
-      success: (data) => {
+      success: data => {
         let received = [0, 0];
-        data.forEach((point) => {
+        data.forEach(point => {
           if (point[1] > 0) {
             received[0] += point[1];
             received[1] += 1;
           }
         });
-        let epm = (received[1] ? parseInt((received[0] / received[1]) / 60, 10) : 0);
+        let epm = received[1] ? parseInt(received[0] / received[1] / 60, 10) : 0;
         this.setState({epm: epm});
       }
     });
   },
 
   render() {
-    if (!defined(this.state.epm) || !defined(this.state.totalRejected))
-      return null;
+    if (!defined(this.state.epm) || !defined(this.state.totalRejected)) return null;
 
     let access = this.getAccess();
 
     let rejectedClasses = ['count'];
-    if (this.state.totalRejected > 0)
-      rejectedClasses.push('rejected');
+    if (this.state.totalRejected > 0) rejectedClasses.push('rejected');
 
     return (
       <div className={this.props.className}>
@@ -91,8 +86,7 @@ const OrganizationStatOverview = React.createClass({
         {access.has('org:read') &&
           <Link to={`/organizations/${this.props.orgId}/stats/`} className="stats-link">
             {t('View all stats')}
-          </Link>
-        }
+          </Link>}
       </div>
     );
   }

@@ -26,8 +26,7 @@ const TeamStore = Reflux.createStore({
   },
 
   onUpdateSuccess(changeId, itemId, response) {
-    if (!response)
-      return;
+    if (!response) return;
 
     let item = this.getBySlug(itemId);
     if (!item) {
@@ -63,7 +62,7 @@ const TeamStore = Reflux.createStore({
   },
 
   getActive() {
-    return this.items.filter((item) => item.isMember);
+    return this.items.filter(item => item.isMember);
   },
 
   getAll() {
@@ -74,4 +73,3 @@ const TeamStore = Reflux.createStore({
 window.TeamStore = TeamStore;
 
 export default TeamStore;
-

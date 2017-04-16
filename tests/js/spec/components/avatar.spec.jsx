@@ -9,11 +9,11 @@ describe('Avatar', function() {
     email: 'janedoe@example.com'
   };
 
-  beforeEach(function () {
+  beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
   });
 
-  afterEach(function () {
+  afterEach(function() {
     this.sandbox.restore();
   });
 
@@ -25,7 +25,7 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
         }
       });
-      let avatar = shallow(<Avatar user={user}/>).instance();
+      let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
@@ -40,7 +40,7 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
         }
       });
-      let avatar = shallow(<Avatar user={user}/>).instance();
+      let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
@@ -55,7 +55,7 @@ describe('Avatar', function() {
           avatarUuid: '2d641b5d-8c74-44de-9cb6-fbd54701b35e'
         }
       });
-      let avatar = shallow(<Avatar user={user}/>).instance();
+      let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
@@ -64,7 +64,7 @@ describe('Avatar', function() {
     });
 
     it('should show a gravatar when no avatar type is set and user has an email address', function() {
-      let avatar = shallow(<Avatar user={USER}/>).instance();
+      let avatar = shallow(<Avatar user={USER} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
@@ -75,7 +75,7 @@ describe('Avatar', function() {
     it('should not show a gravatar when no avatar type is set and user has no email address', function() {
       let user = Object.assign({}, USER);
       delete user.email;
-      let avatar = shallow(<Avatar user={user}/>).instance();
+      let avatar = shallow(<Avatar user={user} />).instance();
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();

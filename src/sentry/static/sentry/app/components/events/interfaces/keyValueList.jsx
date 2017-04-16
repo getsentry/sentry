@@ -27,32 +27,34 @@ const KeyValueList = React.createClass({
     if (data === undefined || data === null) {
       data = [];
     } else if (!(data instanceof Array)) {
-      data = Object.keys(data).map((key) => [key, data[key]]);
+      data = Object.keys(data).map(key => [key, data[key]]);
     }
 
     data = this.props.isSorted ? _.sortBy(data, (key, value) => key) : data;
 
-    const props = (this.props.onClick) ? {onClick: this.props.onClick} : {};
+    const props = this.props.onClick ? {onClick: this.props.onClick} : {};
     return (
       <table className="table key-value" {...props}>
         <tbody>
-        {data.map(([key, value]) => {
-          if (this.props.isContextData) {
-            return [
-              <tr key={key}>
-                <td className="key">{key}</td>
-                <td className="value"><ContextData data={value}/></td>
-              </tr>
-            ];
-          } else {
-            return [
-              <tr key={key}>
-                <td className="key">{key}</td>
-                <td className="value"><pre>{deviceNameMapper('' + value || ' ')}</pre></td>
-              </tr>
-            ];
-          }
-        })}
+          {data.map(([key, value]) => {
+            if (this.props.isContextData) {
+              return [
+                <tr key={key}>
+                  <td className="key">{key}</td>
+                  <td className="value"><ContextData data={value} /></td>
+                </tr>
+              ];
+            } else {
+              return [
+                <tr key={key}>
+                  <td className="key">{key}</td>
+                  <td className="value">
+                    <pre>{deviceNameMapper('' + value || ' ')}</pre>
+                  </td>
+                </tr>
+              ];
+            }
+          })}
         </tbody>
       </table>
     );

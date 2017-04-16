@@ -9,9 +9,7 @@ class PendingChangeQueue extends Array {
   }
 
   getForItem(itemId) {
-    return this.changes.filter(
-      (change) => (change[1] === itemId)
-    );
+    return this.changes.filter(change => change[1] === itemId);
   }
 
   push(changeId, itemId, data) {
@@ -20,10 +18,9 @@ class PendingChangeQueue extends Array {
 
   remove(changeId, itemId) {
     this.changes = this.changes.filter(
-      (change) => change[0] != changeId || change[1] != itemId
+      change => change[0] != changeId || change[1] != itemId
     );
   }
 }
 
 export default PendingChangeQueue;
-

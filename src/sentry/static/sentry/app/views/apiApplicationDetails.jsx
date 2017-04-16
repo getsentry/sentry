@@ -23,7 +23,7 @@ const ApiApplicationDetails = React.createClass({
       error: false,
       app: null,
       formData: null,
-      errors: {},
+      errors: {}
     };
   },
 
@@ -42,13 +42,13 @@ const ApiApplicationDetails = React.createClass({
       privacyUrl: app.privacyUrl,
       termsUrl: app.termsUrl,
       allowedOrigins: app.allowedOrigins.join('\n'),
-      redirectUris: app.redirectUris.join('\n'),
+      redirectUris: app.redirectUris.join('\n')
     };
   },
 
   fetchData() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.request(`/api-applications/${this.props.params.appId}/`, {
@@ -58,13 +58,13 @@ const ApiApplicationDetails = React.createClass({
           error: false,
           app: data,
           formData: {...this.getFormData(data)},
-          errors: {},
+          errors: {}
         });
       },
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
       }
     });
@@ -74,7 +74,7 @@ const ApiApplicationDetails = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -84,51 +84,50 @@ const ApiApplicationDetails = React.createClass({
     if (this.state.state == FormState.SAVING) {
       return;
     }
-    this.setState({
-      state: FormState.SAVING,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      let formData = this.state.formData;
-      this.api.request(`/api-applications/${this.props.params.appId}/`, {
-        method: 'PUT',
-        data: {
-          ...formData,
-          allowedOrigins: formData.allowedOrigins.split('\n').filter(v => v),
-          redirectUris: formData.redirectUris.split('\n').filter(v => v),
-        },
-        success: (data) => {
-          IndicatorStore.remove(loadingIndicator);
-          this.setState({
-            state: FormState.READY,
-            formData: {...this.getFormData(data)},
-            errors: {},
-          });
-          this.context.router.push('/api/applications/');
-        },
-        error: (error) => {
-          IndicatorStore.remove(loadingIndicator);
-          this.setState({
-            state: FormState.ERROR,
-            errors: error.responseJSON,
-          });
-        },
-      });
-    });
+    this.setState(
+      {
+        state: FormState.SAVING
+      },
+      () => {
+        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        let formData = this.state.formData;
+        this.api.request(`/api-applications/${this.props.params.appId}/`, {
+          method: 'PUT',
+          data: {
+            ...formData,
+            allowedOrigins: formData.allowedOrigins.split('\n').filter(v => v),
+            redirectUris: formData.redirectUris.split('\n').filter(v => v)
+          },
+          success: data => {
+            IndicatorStore.remove(loadingIndicator);
+            this.setState({
+              state: FormState.READY,
+              formData: {...this.getFormData(data)},
+              errors: {}
+            });
+            this.context.router.push('/api/applications/');
+          },
+          error: error => {
+            IndicatorStore.remove(loadingIndicator);
+            this.setState({
+              state: FormState.ERROR,
+              errors: error.responseJSON
+            });
+          }
+        });
+      }
+    );
   },
 
-  onRemoveApplication(app) {
-
-  },
+  onRemoveApplication(app) {},
 
   getTitle() {
     return 'Application Details - Sentry';
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let app = this.state.app;
     let isSaving = this.state.state === FormState.SAVING;
@@ -143,9 +142,10 @@ const ApiApplicationDetails = React.createClass({
             <h4>Application Details</h4>
             {this.state.state === FormState.ERROR &&
               <div className="alert alert-error alert-block">
-                {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
-              </div>
-            }
+                {t(
+                  'Unable to save your changes. Please ensure all fields are valid and try again.'
+                )}
+              </div>}
             <fieldset>
               <TextField
                 key="name"
@@ -155,7 +155,8 @@ const ApiApplicationDetails = React.createClass({
                 value={this.state.formData.name}
                 required={true}
                 error={errors.name}
-                onChange={this.onFieldChange.bind(this, 'name')} />
+                onChange={this.onFieldChange.bind(this, 'name')}
+              />
               <TextField
                 key="homepageUrl"
                 name="homepageUrl"
@@ -165,7 +166,8 @@ const ApiApplicationDetails = React.createClass({
                 help="An optional link to your website's homepage"
                 required={false}
                 error={errors.homepageUrl}
-                onChange={this.onFieldChange.bind(this, 'homepageUrl')} />
+                onChange={this.onFieldChange.bind(this, 'homepageUrl')}
+              />
               <TextField
                 key="privacyUrl"
                 name="privacyUrl"
@@ -175,7 +177,8 @@ const ApiApplicationDetails = React.createClass({
                 help="An optional link to your Privacy Policy"
                 required={false}
                 error={errors.privacyUrl}
-                onChange={this.onFieldChange.bind(this, 'privacyUrl')} />
+                onChange={this.onFieldChange.bind(this, 'privacyUrl')}
+              />
               <TextField
                 key="termsUrl"
                 name="termsUrl"
@@ -185,7 +188,8 @@ const ApiApplicationDetails = React.createClass({
                 help="An optional link to your Terms of Service"
                 required={false}
                 error={errors.termsUrl}
-                onChange={this.onFieldChange.bind(this, 'termsUrl')} />
+                onChange={this.onFieldChange.bind(this, 'termsUrl')}
+              />
             </fieldset>
             <fieldset>
               <legend>Credentials</legend>
@@ -198,11 +202,9 @@ const ApiApplicationDetails = React.createClass({
               <div className="control-group">
                 <label htmlFor="api-key">Client Secret</label>
                 <div className="form-control disabled">
-                  {app.clientSecret ?
-                    <AutoSelectText>{app.clientSecret}</AutoSelectText>
-                  :
-                    <em>hidden</em>
-                  }
+                  {app.clientSecret
+                    ? <AutoSelectText>{app.clientSecret}</AutoSelectText>
+                    : <em>hidden</em>}
                 </div>
                 <p className="help-block">
                   Your secret is only available briefly after application creation. Make sure to save this value!
@@ -234,7 +236,8 @@ const ApiApplicationDetails = React.createClass({
                 help={t('Separate multiple entries with a newline.')}
                 placeholder={t('e.g. https://example.com/oauth/complete')}
                 error={errors.redirectUris}
-                onChange={this.onFieldChange.bind(this, 'redirectUris')} />
+                onChange={this.onFieldChange.bind(this, 'redirectUris')}
+              />
               <TextareaField
                 key="allowedOrigins"
                 name="allowedOrigins"
@@ -244,11 +247,13 @@ const ApiApplicationDetails = React.createClass({
                 help={t('Separate multiple entries with a newline.')}
                 placeholder={t('e.g. example.com')}
                 error={errors.allowedOrigins}
-                onChange={this.onFieldChange.bind(this, 'allowedOrigins')} />
+                onChange={this.onFieldChange.bind(this, 'allowedOrigins')}
+              />
             </fieldset>
             <fieldset className="form-actions">
-              <button type="submit" className="btn btn-primary"
-                    disabled={isSaving}>{t('Save Changes')}</button>
+              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                {t('Save Changes')}
+              </button>
             </fieldset>
           </form>
         </div>

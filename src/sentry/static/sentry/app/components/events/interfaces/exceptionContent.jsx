@@ -23,23 +23,21 @@ const ExceptionContent = React.createClass({
             <span>{exc.type}</span>
           </h5>
           {exc.value &&
-            <pre className="exc-message" style={{marginTop: 0}}>{exc.value}</pre>
-          }
+            <pre className="exc-message" style={{marginTop: 0}}>{exc.value}</pre>}
           {exc.mechanism &&
-            <ExceptionMechanism
-              data={exc.mechanism}
-              platform={this.props.platform}/>
-          }
+            <ExceptionMechanism data={exc.mechanism} platform={this.props.platform} />}
           {defined(exc.stacktrace) &&
             <StacktraceContent
-                data={this.props.type === 'original'
+              data={
+                this.props.type === 'original'
                   ? exc.stacktrace
-                  : (exc.rawStacktrace || exc.stacktrace)}
-                expandFirstFrame={excIdx === 0}
-                includeSystemFrames={stackView === 'full'}
-                platform={this.props.platform}
-                newestFirst={newestFirst} />
-          }
+                  : exc.rawStacktrace || exc.stacktrace
+              }
+              expandFirstFrame={excIdx === 0}
+              includeSystemFrames={stackView === 'full'}
+              platform={this.props.platform}
+              newestFirst={newestFirst}
+            />}
         </div>
       );
     });

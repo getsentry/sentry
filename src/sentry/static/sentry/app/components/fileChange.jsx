@@ -9,19 +9,19 @@ const FileChange = React.createClass({
   propTypes: {
     filename: React.PropTypes.string.isRequired,
     authors: React.PropTypes.array.isRequired,
-    types: React.PropTypes.object.isRequired,
+    types: React.PropTypes.object.isRequired
   },
 
   mixins: [
     ApiMixin,
     TooltipMixin({
       selector: '.tip'
-    }),
+    })
   ],
 
   getInitialState() {
     return {
-      loading: true,
+      loading: true
     };
   },
 
@@ -32,17 +32,20 @@ const FileChange = React.createClass({
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">
           <div className="col-sm-9 truncate">
-            <IconFileGeneric className="icon-file-generic" size={15}/>
+            <IconFileGeneric className="icon-file-generic" size={15} />
             <span className="file-name">{filename}</span>
           </div>
           <div className="col-sm-3 avatar-grid align-right">
-          {authors.map(author => {
+            {authors.map(author => {
               return (
-                <span className="avatar-grid-item m-b-0 tip"
-                     title={author.name + ' ' + author.email}>
-                  <Avatar user={author}/>
-                </span>);
-          })}
+                <span
+                  className="avatar-grid-item m-b-0 tip"
+                  title={author.name + ' ' + author.email}
+                >
+                  <Avatar user={author} />
+                </span>
+              );
+            })}
           </div>
           {/* <div className="col-sm-3">
           {types.map(type => {

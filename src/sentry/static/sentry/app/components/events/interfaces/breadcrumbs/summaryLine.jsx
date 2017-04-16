@@ -1,6 +1,5 @@
 import React from 'react';
 
-
 function isOverflowing(el) {
   // XXX(mitsuhiko): subtract one because of reasons. Not sure which ones.
   return el.offsetHeight < el.scrollHeight - 1;
@@ -63,7 +62,8 @@ const SummaryLine = React.createClass({
       <div
         className={className}
         onClick={this.onToggle}
-        ref={this.makeSummariesGreatAgain}>
+        ref={this.makeSummariesGreatAgain}
+      >
         {this.props.children}
       </div>
     );

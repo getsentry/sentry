@@ -9,13 +9,13 @@ function getIncidentsFromIncidentResponse(incidents) {
 
   let isMajor = false;
   let log = [];
-  incidents.forEach((item) => {
+  incidents.forEach(item => {
     if (!isMajor && item.impact === 'major') {
       isMajor = true;
     }
     log.push({
       name: item.name,
-      updates: item.incident_updates.map((update) => {
+      updates: item.incident_updates.map(update => {
         return update.body;
       }),
       url: item.shortlink,
@@ -36,7 +36,7 @@ export function load() {
       url: 'https://' + cfg.id + '.' + cfg.api_host + '/api/v2/incidents/unresolved.json',
       crossDomain: true,
       cache: false,
-      success: (data) => {
+      success: data => {
         let [incidents, indicator] = getIncidentsFromIncidentResponse(data.incidents);
         IncidentActions.updateSuccess({
           status: {

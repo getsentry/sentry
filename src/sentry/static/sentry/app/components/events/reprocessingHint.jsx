@@ -15,16 +15,13 @@ const ReprocessingHint = React.createClass({
     projectId: React.PropTypes.string.isRequired
   },
 
-  mixins: [
-    ProjectState,
-    ApiMixin
-  ],
+  mixins: [ProjectState, ApiMixin],
 
-  getInitialState(){
+  getInitialState() {
     return {
       hideHint: false,
       loading: true,
-      projectSettings: null,
+      projectSettings: null
     };
   },
 
@@ -50,17 +47,17 @@ const ReprocessingHint = React.createClass({
       return;
     }
     this.setState({
-      loading: true,
+      loading: true
     });
     this.api.request(`/projects/${this.props.orgId}/${this.props.projectId}/`, {
       success: (data, _, jqXHR) => {
         this.setState({
-          projectSettings: data.options,
+          projectSettings: data.options
         });
       },
       complete: () => {
         this.setState({
-          loading: false,
+          loading: false
         });
       }
     });
@@ -78,22 +75,21 @@ const ReprocessingHint = React.createClass({
   renderHint() {
     let link = `/${this.props.orgId}/${this.props.projectId}/settings/processing-issues/`;
 
-    return(
+    return (
       <EventDataSection
-            group={this.props.group}
-            event={this.props.event}
-            type="hint"
-            className="errors hint">
-            <span className="icon icon-question event" />
-          <p>
-            <a className="pull-right" onClick={this.hide}>{t('Dismiss')}</a>
-            {
-              t('Errors like these can be fixed with reprocessing')
-            }
-            {' '}
-            <small><a style={{marginLeft: 10}} href={link}>{t('Show me')}</a></small>
-          </p>
-        </EventDataSection>
+        group={this.props.group}
+        event={this.props.event}
+        type="hint"
+        className="errors hint"
+      >
+        <span className="icon icon-question event" />
+        <p>
+          <a className="pull-right" onClick={this.hide}>{t('Dismiss')}</a>
+          {t('Errors like these can be fixed with reprocessing')}
+          {' '}
+          <small><a style={{marginLeft: 10}} href={link}>{t('Show me')}</a></small>
+        </p>
+      </EventDataSection>
     );
   },
 
@@ -106,14 +102,16 @@ const ReprocessingHint = React.createClass({
       shouldRender = false;
     }
 
-    if (this.state.projectSettings !== null &&
+    if (
+      this.state.projectSettings !== null &&
       (this.state.projectSettings['sentry:reprocessing_show_hint'] === false ||
-      this.state.projectSettings['sentry:reprocessing_active'] === true)) {
+        this.state.projectSettings['sentry:reprocessing_active'] === true)
+    ) {
       shouldRender = false;
     }
 
     let reprocessingFixable = false;
-    errors.map((error) => {
+    errors.map(error => {
       if (error.type == 'native_missing_dsym') {
         reprocessingFixable = true;
       }
@@ -122,7 +120,11 @@ const ReprocessingHint = React.createClass({
     shouldRender = shouldRender && reprocessingFixable;
 
     return (
-      <ReactCSSTransitionGroup transitionName="hint" transitionEnterTimeout={500} transitionLeaveTimeout={500}>
+      <ReactCSSTransitionGroup
+        transitionName="hint"
+        transitionEnterTimeout={500}
+        transitionLeaveTimeout={500}
+      >
         {shouldRender ? this.renderHint() : null}
       </ReactCSSTransitionGroup>
     );

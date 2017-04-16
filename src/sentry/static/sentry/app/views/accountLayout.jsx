@@ -13,7 +13,7 @@ const AccountLayout = React.createClass({
           <a href="/account/logout/">{t('Sign out')}</a>
         </div>
         <a href="/">
-          <span className="icon-sentry-logo"></span>
+          <span className="icon-sentry-logo" />
           <span className="back-to">{t('Back to organization')}</span>
         </a>
       </div>
@@ -23,7 +23,9 @@ const AccountLayout = React.createClass({
       <NarrowLayout header={header}>
         <h3>{t('My Settings')}</h3>
         <DropdownLink topLevelClasses="anchor-right pull-right" title={t('More')}>
-          <MenuItem to="/account/authorizations/">{t('Authorized Applications')}</MenuItem>
+          <MenuItem to="/account/authorizations/">
+            {t('Authorized Applications')}
+          </MenuItem>
           <MenuItem href="/account/settings/identities/">{t('Identities')}</MenuItem>
           <MenuItem href="/account/remove/">{t('Close Account')}</MenuItem>
         </DropdownLink>
@@ -43,4 +45,3 @@ const AccountLayout = React.createClass({
 });
 
 export default AccountLayout;
-

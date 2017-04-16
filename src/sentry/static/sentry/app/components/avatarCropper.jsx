@@ -3,7 +3,6 @@ import React from 'react';
 import AlertActions from '../actions/alertActions';
 import {t} from '../locale';
 
-
 const AvatarCropper = React.createClass({
   propTypes: {
     user: React.PropTypes.object.isRequired,
@@ -37,19 +36,21 @@ const AvatarCropper = React.createClass({
     /*eslint consistent-return:0*/
     let file = ev.target.files[0];
 
-    if (!file)
-      return; // No file selected (e.g. user clicked "cancel")
+    if (!file) return; // No file selected (e.g. user clicked "cancel")
 
     if (!/^image\//.test(file.type))
       return void this.handleError('That is not a supported file type.');
 
     this.revokeObjectUrl();
-    this.setState({
-      file: file,
-      objectURL: window.URL.createObjectURL(file)
-    }, () => {
-      this.props.updateDataUrlState({savedDataUrl: null});
-    });
+    this.setState(
+      {
+        file: file,
+        objectURL: window.URL.createObjectURL(file)
+      },
+      () => {
+        this.props.updateDataUrlState({savedDataUrl: null});
+      }
+    );
   },
 
   revokeObjectUrl() {
@@ -96,10 +97,12 @@ const AvatarCropper = React.createClass({
 
   onMouseDown(ev) {
     ev.preventDefault();
-    this.setState({mousePosition: {
-      pageY: ev.pageY,
-      pageX: ev.pageX
-    }});
+    this.setState({
+      mousePosition: {
+        pageY: ev.pageY,
+        pageX: ev.pageX
+      }
+    });
     this.startMove();
   },
 
@@ -145,15 +148,15 @@ const AvatarCropper = React.createClass({
   // are always making the cropper smaller and positive ones
   // are making the cropper larger
   getDiffNW(yDiff, xDiff) {
-    return ((yDiff - (yDiff * 2)) + (xDiff - (xDiff * 2))) / 2;
+    return (yDiff - yDiff * 2 + (xDiff - xDiff * 2)) / 2;
   },
 
   getDiffNE(yDiff, xDiff) {
-    return ((yDiff - (yDiff * 2)) + xDiff) / 2;
+    return (yDiff - yDiff * 2 + xDiff) / 2;
   },
 
   getDiffSW(yDiff, xDiff) {
-    return (yDiff + (xDiff - (xDiff * 2))) / 2;
+    return (yDiff + (xDiff - xDiff * 2)) / 2;
   },
 
   getDiffSE(yDiff, xDiff) {
@@ -232,15 +235,23 @@ const AvatarCropper = React.createClass({
 
   validateImage() {
     let img = this.refs.image;
-    if (img.naturalWidth < this.MIN_DIMENSION ||
-          img.naturalHeight < this.MIN_DIMENSION) {
-      return ('Please upload an image larger than ' +
-              (this.MIN_DIMENSION - 1) + 'px by ' + (this.MIN_DIMENSION - 1) + 'px.');
+    if (img.naturalWidth < this.MIN_DIMENSION || img.naturalHeight < this.MIN_DIMENSION) {
+      return (
+        'Please upload an image larger than ' +
+        (this.MIN_DIMENSION - 1) +
+        'px by ' +
+        (this.MIN_DIMENSION - 1) +
+        'px.'
+      );
     }
-    if (img.naturalWidth > this.MAX_DIMENSION ||
-          img.naturalHeight > this.MAX_DIMENSION) {
-      return ('Please upload an image smaller than ' +
-              this.MAX_DIMENSION + 'px by ' + this.MAX_DIMENSION + 'px.');
+    if (img.naturalWidth > this.MAX_DIMENSION || img.naturalHeight > this.MAX_DIMENSION) {
+      return (
+        'Please upload an image smaller than ' +
+        this.MAX_DIMENSION +
+        'px by ' +
+        this.MAX_DIMENSION +
+        'px.'
+      );
     }
   },
 
@@ -254,9 +265,12 @@ const AvatarCropper = React.createClass({
     }
     let $img = $(this.refs.image);
     let dimension = Math.min($img.height(), $img.width());
-    this.setState({
-      resizeDimensions: Object.assign({size: dimension, top: 0, left: 0})
-    }, this.drawToCanvas);
+    this.setState(
+      {
+        resizeDimensions: Object.assign({size: dimension, top: 0, left: 0})
+      },
+      this.drawToCanvas
+    );
   },
 
   drawToCanvas() {
@@ -264,18 +278,23 @@ const AvatarCropper = React.createClass({
     let resizeDimensions = this.state.resizeDimensions;
     let img = this.refs.image;
     // Calculate difference between natural dimensions and rendered dimensions
-    let imgRatio = (img.naturalHeight / $(img).height() +
-                    img.naturalWidth / $(img).width()) / 2;
+    let imgRatio =
+      (img.naturalHeight / $(img).height() + img.naturalWidth / $(img).width()) / 2;
     canvas.width = resizeDimensions.size * imgRatio;
     canvas.height = resizeDimensions.size * imgRatio;
-    canvas.getContext('2d').drawImage(img,
-                                      resizeDimensions.left * imgRatio,
-                                      resizeDimensions.top * imgRatio,
-                                      resizeDimensions.size * imgRatio,
-                                      resizeDimensions.size * imgRatio,
-                                      0, 0,
-                                      resizeDimensions.size * imgRatio,
-                                      resizeDimensions.size * imgRatio);
+    canvas
+      .getContext('2d')
+      .drawImage(
+        img,
+        resizeDimensions.left * imgRatio,
+        resizeDimensions.top * imgRatio,
+        resizeDimensions.size * imgRatio,
+        resizeDimensions.size * imgRatio,
+        0,
+        0,
+        resizeDimensions.size * imgRatio,
+        resizeDimensions.size * imgRatio
+      );
     this.finishCrop();
   },
 
@@ -310,14 +329,19 @@ const AvatarCropper = React.createClass({
       <div className="image-cropper">
         <div className="crop-container" ref="cropContainer">
           <div className="image-container">
-            <img className="preview" ref="image" src={src}
-                 onLoad={this.onLoad} onDragStart={this.onImgDrag}/>
+            <img
+              className="preview"
+              ref="image"
+              src={src}
+              onLoad={this.onLoad}
+              onDragStart={this.onImgDrag}
+            />
           </div>
           <div className="cropper" style={style} onMouseDown={this.onMouseDown}>
-            <div onMouseDown={this.startResize.bind(this, 'nw')} className="resizer nw"></div>
-            <div onMouseDown={this.startResize.bind(this, 'ne')} className="resizer ne"></div>
-            <div onMouseDown={this.startResize.bind(this, 'se')} className="resizer se"></div>
-            <div onMouseDown={this.startResize.bind(this, 'sw')} className="resizer sw"></div>
+            <div onMouseDown={this.startResize.bind(this, 'nw')} className="resizer nw" />
+            <div onMouseDown={this.startResize.bind(this, 'ne')} className="resizer ne" />
+            <div onMouseDown={this.startResize.bind(this, 'se')} className="resizer se" />
+            <div onMouseDown={this.startResize.bind(this, 'sw')} className="resizer sw" />
           </div>
         </div>
       </div>
@@ -335,7 +359,7 @@ const AvatarCropper = React.createClass({
     }
     return (
       <div className="canvas-container">
-        <canvas ref="canvas"></canvas>
+        <canvas ref="canvas" />
       </div>
     );
   },
@@ -343,20 +367,30 @@ const AvatarCropper = React.createClass({
   render() {
     let src = this.getImgSrc();
     let style = {
-        position : 'absolute'
+      position: 'absolute'
     };
 
     return (
       <div>
         {!src &&
-        <div className="image-well well blankslate">
-          <p><a onClick={this.uploadClick}><strong>Upload a photo</strong></a> to get started.</p>
-        </div>}
+          <div className="image-well well blankslate">
+            <p>
+              <a onClick={this.uploadClick}><strong>Upload a photo</strong></a>
+              {' '}
+              to get started.
+            </p>
+          </div>}
         {this.renderImageCrop()}
         {this.renderCanvas()}
         <div className="form-group">
           {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
-          <input ref="file" type="file" accept="image/gif,image/jpeg,image/png" onChange={this.onChange} style={style}/>
+          <input
+            ref="file"
+            type="file"
+            accept="image/gif,image/jpeg,image/png"
+            onChange={this.onChange}
+            style={style}
+          />
         </div>
       </div>
     );

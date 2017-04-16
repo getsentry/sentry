@@ -47,21 +47,21 @@ const ActionOverlay = React.createClass({
 
     return (
       <div className={className} {...other}>
-        <div className="pattern"/>
+        <div className="pattern" />
         <div className="container">
           <div className="dialog">
             <div className="dialog-contents">
               <div className="discard-bar">
-                <a href={orgUrl} onClick={this.onDoThisLater}>{
-                  t('Do this later …')}</a>
+                <a href={orgUrl} onClick={this.onDoThisLater}>{t('Do this later …')}</a>
               </div>
               <div className="content">
                 {children}
               </div>
-              {isLoading ?
-                <div className="loading-overlay">
-                  <LoadingIndicator/>
-                </div> : null}
+              {isLoading
+                ? <div className="loading-overlay">
+                    <LoadingIndicator />
+                  </div>
+                : null}
             </div>
           </div>
         </div>

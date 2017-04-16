@@ -5,12 +5,11 @@ import TestUtils from 'react-addons-test-utils';
 import ContextData from 'app/components/contextData';
 
 describe('ContextData', function() {
-
   describe('render()', function() {
-    describe('strings', function () {
-      it('should render urls w/ an additional <a> link', function () {
+    describe('strings', function() {
+      it('should render urls w/ an additional <a> link', function() {
         const URL = 'https://example.org/foo/bar/';
-        let ctxData = TestUtils.renderIntoDocument(<ContextData data={URL}/>);
+        let ctxData = TestUtils.renderIntoDocument(<ContextData data={URL} />);
 
         let node = ReactDOM.findDOMNode(ctxData);
 
@@ -19,6 +18,4 @@ describe('ContextData', function() {
       });
     });
   });
-
 });
-

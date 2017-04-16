@@ -21,12 +21,11 @@ const AdminOverview = React.createClass({
           <div className="box-header">
             <h4>
               Event Throughput
-              <span id="rate" className="pull-right"></span>
+              <span id="rate" className="pull-right" />
             </h4>
           </div>
           <div className="box-content with-padding">
-            <EventChart since={this.state.since}
-                        resolution={this.state.resolution} />
+            <EventChart since={this.state.since} resolution={this.state.resolution} />
           </div>
         </div>
 
@@ -35,8 +34,7 @@ const AdminOverview = React.createClass({
             <h4>API Responses</h4>
           </div>
           <div className="box-content with-padding">
-            <ApiChart since={this.state.since}
-                      resolution={this.state.resolution} />
+            <ApiChart since={this.state.since} resolution={this.state.resolution} />
           </div>
         </div>
       </div>
