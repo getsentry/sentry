@@ -3,11 +3,10 @@ import marked from 'marked';
 function isSafeHref(href, pattern) {
   try {
     return pattern.test(decodeURIComponent(unescape(href)));
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 }
-
 
 // We need to implement our own marked Renderer to not render
 // potentially malicious uris.
@@ -33,7 +32,6 @@ Renderer.prototype.link = function(href, title, text) {
   out += '>' + text + '</a>';
   return out;
 };
-
 
 // Only allow http(s) for image tags
 const safeImagePattern = /^https?:\/\/./i;

@@ -12,23 +12,22 @@ import {t, tct} from '../../locale';
 const GroupSidebar = React.createClass({
   propTypes: {
     group: React.PropTypes.object,
-    event: React.PropTypes.object,
+    event: React.PropTypes.object
   },
 
   contextTypes: {
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+  mixins: [ApiMixin, GroupState],
 
   subscriptionReasons: {
     commented: t('You\'re receiving updates because you have commented on this issue.'),
     assigned: t('You\'re receiving updates because you were assigned to this issue.'),
     bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
-    changed_status: t('You\'re receiving updates because you have changed the status of this issue.'),
+    changed_status: t(
+      'You\'re receiving updates because you have changed the status of this issue.'
+    )
   },
 
   toggleSubscription() {
@@ -37,28 +36,31 @@ const GroupSidebar = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        isSubscribed: !group.isSubscribed
+    this.api.bulkUpdate(
+      {
+        orgId: org.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data: {
+          isSubscribed: !group.isSubscribed
+        }
+      },
+      {
+        complete: () => {
+          this.api.request(`/issues/${group.id}/participants/`, {
+            success: data => {
+              this.setState({participants: data});
+              IndicatorStore.remove(loadingIndicator);
+            }
+          });
+        }
       }
-    }, {
-      complete: () => {
-        this.api.request(`/issues/${group.id}/participants/`, {
-          success: (data) => {
-            this.setState({participants: data});
-            IndicatorStore.remove(loadingIndicator);
-          }
-        });
-      }
-    });
+    );
   },
 
   renderPluginIssue() {
     let issues = [];
-    (this.props.group.pluginIssues || []).forEach((plugin) => {
+    (this.props.group.pluginIssues || []).forEach(plugin => {
       let issue = plugin.issue;
       if (issue) {
         issues.push(
@@ -82,16 +84,21 @@ const GroupSidebar = React.createClass({
     let group = this.getGroup();
 
     if (group.isSubscribed) {
-      let result = t('You\'re receiving updates because you are subscribed to this issue.');
+      let result = t(
+        'You\'re receiving updates because you are subscribed to this issue.'
+      );
       if (group.subscriptionDetails) {
         let reason = group.subscriptionDetails.reason;
         if (this.subscriptionReasons.hasOwnProperty(reason)) {
           result = this.subscriptionReasons[reason];
         }
       } else {
-        result = tct('You\'re receiving updates because you are [link:subscribed to workflow notifications] for this project.', {
-          link: <a href="/account/settings/notifications/" />,
-        });
+        result = tct(
+          'You\'re receiving updates because you are [link:subscribed to workflow notifications] for this project.',
+          {
+            link: <a href="/account/settings/notifications/" />
+          }
+        );
       }
       return result;
     } else {
@@ -109,19 +116,19 @@ const GroupSidebar = React.createClass({
 
     return (
       <div className="group-stats">
-        {(new Set(this.context.organization.features)).has('release-commits') &&
-         <SuggestedOwners event={this.props.event}/>
-        }
+        {new Set(this.context.organization.features).has('release-commits') &&
+          <SuggestedOwners event={this.props.event} />}
 
         <GroupReleaseStats
-            group={group}
-            location={this.context.location}
-            defaultEnvironment={defaultEnvironment} />
+          group={group}
+          location={this.context.location}
+          defaultEnvironment={defaultEnvironment}
+        />
 
         {this.renderPluginIssue()}
 
         <h6><span>{t('Tags')}</span></h6>
-        {group.tags.map((data) => {
+        {group.tags.map(data => {
           return (
             <TagDistributionMeter
               key={data.key}
@@ -129,18 +136,21 @@ const GroupSidebar = React.createClass({
               projectId={projectId}
               group={group}
               name={data.name}
-              tag={data.key} />
+              tag={data.key}
+            />
           );
         })}
-        {participants.length !== 0 &&
-          <GroupParticipants participants={participants} />
-        }
+        {participants.length !== 0 && <GroupParticipants participants={participants} />}
 
         <h6><span>{t('Notifications')}</span></h6>
         <p className="help-block">{this.getNotificationText()}</p>
-        <a className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
-           onClick={this.toggleSubscription}>
-          <span className="icon-signal" /> {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
+        <a
+          className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
+          onClick={this.toggleSubscription}
+        >
+          <span className="icon-signal" />
+          {' '}
+          {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
         </a>
       </div>
     );

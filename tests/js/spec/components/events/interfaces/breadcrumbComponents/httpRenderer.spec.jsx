@@ -4,15 +4,19 @@ import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/httpRende
 
 describe('HttpRenderer', function() {
   describe('render()', function() {
-    it('should work', function () {
-      let httpRendererWrapper = shallow(<HttpRenderer crumb={{
-        data: {
-          method: 'POST',
-          url: 'http://example.com/foo',
-          // status_code 0 is possible via broken client-side XHR; should still render as '[0]'
-          status_code: 0
-        }
-      }}/>);
+    it('should work', function() {
+      let httpRendererWrapper = shallow(
+        <HttpRenderer
+          crumb={{
+            data: {
+              method: 'POST',
+              url: 'http://example.com/foo',
+              // status_code 0 is possible via broken client-side XHR; should still render as '[0]'
+              status_code: 0
+            }
+          }}
+        />
+      );
 
       let summaryLine = httpRendererWrapper.prop('summary');
 
@@ -22,11 +26,15 @@ describe('HttpRenderer', function() {
       expect(summaryLineWrapper.find('span').text()).to.eql(' [0]');
     });
 
-    it('shouldn\'t blow up if crumb.data is missing', function () {
-      let httpRendererWrapper = mount(<HttpRenderer crumb={{
-        category: 'xhr',
-        type: 'http'
-      }}/>);
+    it('shouldn\'t blow up if crumb.data is missing', function() {
+      let httpRendererWrapper = mount(
+        <HttpRenderer
+          crumb={{
+            category: 'xhr',
+            type: 'http'
+          }}
+        />
+      );
 
       expect(httpRendererWrapper.find('.crumb-category').text()).to.eql('xhr');
     });

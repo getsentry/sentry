@@ -17,14 +17,14 @@ const optionsAvailable = [
   'system.rate-limit',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
-  'api.rate-limit.org-create',
+  'api.rate-limit.org-create'
 ];
 
 const SettingsList = React.createClass({
   propTypes: {
     formDisabled: React.PropTypes.bool,
     options: React.PropTypes.object.isRequired,
-    onSubmit: React.PropTypes.func.isRequired,
+    onSubmit: React.PropTypes.func.isRequired
   },
 
   getInitialState() {
@@ -44,13 +44,18 @@ const SettingsList = React.createClass({
       if (option.field.required) {
         required.push(key);
       }
-      fields[key] = getOptionField(key, this.onFieldChange.bind(this, key), formData[key], option.field);
+      fields[key] = getOptionField(
+        key,
+        this.onFieldChange.bind(this, key),
+        formData[key],
+        option.field
+      );
     }
 
     return {
       required: required,
       formData: formData,
-      fields: fields,
+      fields: fields
     };
   },
 
@@ -80,7 +85,7 @@ const SettingsList = React.createClass({
         {fields['system.security-email']}
         {fields['system.rate-limit']}
 
-        <h4>Security &amp; Abuse</h4>
+        <h4>Security & Abuse</h4>
         {fields['auth.ip-rate-limit']}
         {fields['auth.user-rate-limit']}
         {fields['api.rate-limit.org-create']}
@@ -90,9 +95,7 @@ const SettingsList = React.createClass({
 });
 
 const AdminSettings = React.createClass({
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -115,7 +118,7 @@ const AdminSettings = React.createClass({
   fetchData(callback) {
     this.api.request('/internal/options/', {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
           options: data,
           loading: false,
@@ -134,7 +137,7 @@ const AdminSettings = React.createClass({
   onSubmit(formData) {
     this.setState({
       submitInProgress: true,
-      submitError: false,
+      submitError: false
     });
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -147,17 +150,17 @@ const AdminSettings = React.createClass({
       data: formData,
       success: () => {
         this.setState({
-          submitInProgress: false,
+          submitInProgress: false
         });
         AlertActions.addAlert({
-            message: t('Your changes were saved, and will propagate to services shortly.'),
-            type: 'success'
+          message: t('Your changes were saved, and will propagate to services shortly.'),
+          type: 'success'
         });
       },
       error: () => {
         this.setState({
           submitInProgress: false,
-          submitError: true,
+          submitError: true
         });
       },
       complete: () => {
@@ -173,26 +176,30 @@ const AdminSettings = React.createClass({
       <div>
         <h3>{t('Settings')}</h3>
 
-        {loading ?
-          <LoadingIndicator>
-            {t('Please wait while we load configuration.')}
-          </LoadingIndicator>
-        : (error ?
-          <div className="loading-error">
-            <span className="icon" />
-            {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
-          </div>
-        :
-          <div>
-            {submitError &&
-              <div className="alert alert-block alert-error">{t('We were unable to submit your changes to the Sentry server. Please take a look at the service logs.')}</div>
-            }
-            <SettingsList
-                options={options}
-                onSubmit={this.onSubmit}
-                formDisabled={submitInProgress} />
-          </div>
-        )}
+        {loading
+          ? <LoadingIndicator>
+              {t('Please wait while we load configuration.')}
+            </LoadingIndicator>
+          : error
+              ? <div className="loading-error">
+                  <span className="icon" />
+                  {t(
+                    'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+                  )}
+                </div>
+              : <div>
+                  {submitError &&
+                    <div className="alert alert-block alert-error">
+                      {t(
+                        'We were unable to submit your changes to the Sentry server. Please take a look at the service logs.'
+                      )}
+                    </div>}
+                  <SettingsList
+                    options={options}
+                    onSubmit={this.onSubmit}
+                    formDisabled={submitInProgress}
+                  />
+                </div>}
       </div>
     );
   }

@@ -37,6 +37,7 @@
     "node-libs-browser": "0.5.3",
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
+    "prettier": "^1.1.0",
     "query-string": "2.4.2",
     "raven-js": "3.14.1",
     "react": "15.3.2",

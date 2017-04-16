@@ -19,14 +19,14 @@ export default class Select2FieldAutocomplete extends InputField {
         quietMillis: 100,
         url: url,
         dataType: 'json',
-        data: (q) => {
+        data: q => {
           return {autocomplete_query: q};
         },
-        results: (data) => {
+        results: data => {
           return {results: data[this.props.name]};
         }
       },
-      formatAjaxError: (error) => {
+      formatAjaxError: error => {
         let resp = error.responseJSON;
         if (resp && resp.error_type === 'validation') {
           let message = resp.errors[0] && resp.errors[0].__all__;

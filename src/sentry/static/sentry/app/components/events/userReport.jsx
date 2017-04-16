@@ -3,7 +3,6 @@ import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
 import utils from '../../utils';
 
-
 const EventUserReport = React.createClass({
   propTypes: {
     event: React.PropTypes.object.isRequired
@@ -20,8 +19,14 @@ const EventUserReport = React.createClass({
               <Avatar user={report} size={64} className="avatar" />
               <div className="activity-bubble">
                 <TimeSince date={report.dateCreated} />
-                <div className="activity-author">{report.name} <small>{report.email}</small></div>
-                <p dangerouslySetInnerHTML={{__html: utils.nl2br(utils.urlize(utils.escape(report.comments)))}} />
+                <div className="activity-author">
+                  {report.name} <small>{report.email}</small>
+                </div>
+                <p
+                  dangerouslySetInnerHTML={{
+                    __html: utils.nl2br(utils.urlize(utils.escape(report.comments)))
+                  }}
+                />
               </div>
             </li>
           </ul>

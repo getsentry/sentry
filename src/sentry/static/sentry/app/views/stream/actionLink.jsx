@@ -33,7 +33,7 @@ const ActionLink = React.createClass({
       buttonTitle: null, // title="..." (optional)
       onlyIfBulk: false,
       disabled: false,
-      extraDescription: null,
+      extraDescription: null
     };
   },
 
@@ -73,7 +73,10 @@ const ActionLink = React.createClass({
     let shouldConfirm = true;
 
     // Unless `onlyIfBulk` is true, then return false if all items are not selected
-    if (this.props.onlyIfBulk === true && (!this.props.selectAllActive || numSelectedItems === 1)) {
+    if (
+      this.props.onlyIfBulk === true &&
+      (!this.props.selectAllActive || numSelectedItems === 1)
+    ) {
       shouldConfirm = false;
     }
 
@@ -99,25 +102,31 @@ const ActionLink = React.createClass({
     let confirmationQuestion = resolveLabel(this.props.confirmationQuestion);
 
     return (
-      <a title={this.props.tooltip !== null ? this.props.tooltip : this.props.buttonTitle}
-         className={className}
-         disabled={this.props.disabled}
-         onClick={this.handleClick}
-         data-placement="bottom"
-         >
+      <a
+        title={this.props.tooltip !== null ? this.props.tooltip : this.props.buttonTitle}
+        className={className}
+        disabled={this.props.disabled}
+        onClick={this.handleClick}
+        data-placement="bottom"
+      >
         {this.props.children}
 
-        <Modal show={this.state.isModalOpen} title={t('Please confirm')} animation={false} onHide={this.handleToggle}>
+        <Modal
+          show={this.state.isModalOpen}
+          title={t('Please confirm')}
+          animation={false}
+          onHide={this.handleToggle}
+        >
           <div className="modal-body">
             <p><strong>{confirmationQuestion}</strong></p>
             {this.props.extraDescription}
             <p>{t('This action cannot be undone.')}</p>
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-default"
-                    onClick={this.handleToggle}>{t('Cancel')}</button>
-            <button type="button" className="btn btn-primary"
-                    onClick={this.handleAction}>
+            <button type="button" className="btn btn-default" onClick={this.handleToggle}>
+              {t('Cancel')}
+            </button>
+            <button type="button" className="btn btn-primary" onClick={this.handleAction}>
               {resolveLabel(this.props.confirmLabel)}
             </button>
           </div>

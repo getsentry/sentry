@@ -68,7 +68,40 @@ def py_lint(file_list):
     return report.total_errors != 0
 
 
+def get_js_file_list(file_list=None):
+    if file_list is None:
+        file_list = ['tests/js', 'src/sentry/static/sentry/app']
+    file_list = get_files_for_list(file_list)
+    file_list = [
+        x for x in file_list
+        if x.endswith(('.js', '.jsx'))
+    ]
+    return file_list
+
+
+def js_beautify(file_list=None):
+    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
+                                os.pardir)
+    prettier_path = os.path.join(project_root, 'node_modules', '.bin', 'prettier')
+
+    if not os.path.exists(prettier_path):
+        from click import echo
+        echo('!! Skipping JavaScript beautification because eslint is not installed.')
+        return False
+
+    file_list = get_js_file_list(file_list)
+
+    has_errors = False
+    if file_list:
+        status = Popen([prettier_path, '--write', '--single-quote', '--bracket-spacing=false', '--print-width=90']
+                       + file_list).wait()
+        has_errors = status != 0
+
+    return has_errors
+
+
 def js_lint(file_list=None):
+
     project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
                                 os.pardir)
     eslint_path = os.path.join(project_root, 'node_modules', '.bin', 'eslint')
@@ -78,20 +111,12 @@ def js_lint(file_list=None):
         echo('!! Skipping JavaScript linting because eslint is not installed.')
         return False
 
-    if file_list is None:
-        file_list = ['tests/js', 'src/sentry/static/sentry/app']
-    file_list = get_files_for_list(file_list)
-
     eslint_config = os.path.join(project_root, '.eslintrc')
+    file_list = get_js_file_list(file_list)
 
     has_errors = False
-    file_list = [
-        x for x in file_list
-        if x.endswith(('.js', '.jsx'))
-    ]
-
     if file_list:
-        status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx']
+        status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix']
                        + file_list).wait()
         has_errors = status != 0
 
@@ -109,6 +134,7 @@ def check_files(file_list=None, js=True, py=True):
     if py:
         linters.append(py_lint(file_list))
     if js:
+        linters.append(js_beautify(file_list))
         linters.append(js_lint(file_list))
 
     try:

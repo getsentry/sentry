@@ -44,19 +44,19 @@ const EventRow = React.createClass({
           <h5>
             <Router.Link to={eventLink}>{event.message}</Router.Link>
           </h5>
-          <small className="tagList">{tagList.map((tag) => {
-            return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;
-          })}</small>
+          <small className="tagList">
+            {tagList.map(tag => {
+              return <span key={tag[0]}>{tag[0]} = {tag[1]} </span>;
+            })}
+          </small>
         </td>
         <td className="event-user table-user-info">
-          {event.user ?
-            <div>
-              <Avatar user={event.user} size={64} className="avatar" />
-              {event.user.email}
-            </div>
-          :
-            <span>&mdash;</span>
-          }
+          {event.user
+            ? <div>
+                <Avatar user={event.user} size={64} className="avatar" />
+                {event.user.email}
+              </div>
+            : <span>—</span>}
         </td>
         <td className="align-right">
           <TimeSince date={event.dateCreated} />

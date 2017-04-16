@@ -12,9 +12,7 @@ const EventChart = React.createClass({
     resolution: React.PropTypes.string.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -22,7 +20,7 @@ const EventChart = React.createClass({
       loading: true,
       rawData: {
         'events.total': null,
-        'events.dropped': null,
+        'events.dropped': null
       },
       stats: {received: [], rejected: []},
       systemTotal: {received: 0, rejected: 0, accepted: 0}
@@ -34,12 +32,9 @@ const EventChart = React.createClass({
   },
 
   fetchData() {
-    let statNameList = [
-      'events.total',
-      'events.dropped',
-    ];
+    let statNameList = ['events.total', 'events.dropped'];
 
-    statNameList.forEach((statName) => {
+    statNameList.forEach(statName => {
       // query the organization stats via a separate call as its possible the project stats
       // are too heavy
       this.api.request('/internal/stats/', {
@@ -49,13 +44,16 @@ const EventChart = React.createClass({
           resolution: this.props.resolution,
           key: statName
         },
-        success: (data) => {
+        success: data => {
           this.state.rawData[statName] = data;
-          this.setState({
-            rawData: this.state.rawData,
-          }, this.requestFinished);
+          this.setState(
+            {
+              rawData: this.state.rawData
+            },
+            this.requestFinished
+          );
         },
-        error: (data) => {
+        error: data => {
           this.setState({
             error: true
           });
@@ -78,7 +76,7 @@ const EventChart = React.createClass({
     let sReceived = {};
     let sRejected = {};
     let aReceived = [0, 0]; // received, points
-    jQuery.each(rawData['events.total'], function(idx, point){
+    jQuery.each(rawData['events.total'], function(idx, point) {
       let dReceived = point[1];
       let dRejected = rawData['events.dropped'][idx][1];
       let ts = point[0] * 1000;
@@ -101,7 +99,7 @@ const EventChart = React.createClass({
         received: oReceived,
         rejected: oRejected,
         accepted: oReceived - oRejected,
-        avgRate: parseInt((aReceived[0] / aReceived[1]) / 60, 10)
+        avgRate: parseInt(aReceived[0] / aReceived[1] / 60, 10)
       },
       stats: {
         rejected: jQuery.map(sRejected, function(value, ts) {
@@ -148,10 +146,8 @@ const EventChart = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return <FlotChart style={{height: 250}} plotData={this.getChartPoints()} />;
   }

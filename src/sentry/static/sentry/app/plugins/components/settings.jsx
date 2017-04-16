@@ -1,14 +1,10 @@
 import React from 'react';
 import underscore from 'underscore';
 
-import {
-  Form,
-  FormState
-} from '../../components/forms';
+import {Form, FormState} from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {t, tct} from '../../locale';
-
 
 class PluginSettings extends PluginComponentBase {
   constructor(props) {
@@ -33,9 +29,7 @@ class PluginSettings extends PluginComponentBase {
   getPluginEndpoint() {
     let org = this.props.organization;
     let project = this.props.project;
-    return (
-      `/projects/${org.slug}/${project.slug}/plugins/${this.props.plugin.id}/`
-    );
+    return `/projects/${org.slug}/${project.slug}/plugins/${this.props.plugin.id}/`;
   }
 
   changeField(name, value) {
@@ -54,7 +48,7 @@ class PluginSettings extends PluginComponentBase {
       success: this.onSaveSuccess.bind(this, data => {
         let formData = {};
         let initialData = {};
-        data.config.forEach((field) => {
+        data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
         });
@@ -67,7 +61,7 @@ class PluginSettings extends PluginComponentBase {
       }),
       error: this.onSaveError.bind(this, error => {
         this.setState({
-          errors: (error.responseJSON || {}).errors || {},
+          errors: (error.responseJSON || {}).errors || {}
         });
       }),
       complete: this.onSaveComplete
@@ -78,24 +72,30 @@ class PluginSettings extends PluginComponentBase {
     this.api.request(this.getPluginEndpoint(), {
       success: data => {
         if (!data.config) {
-          this.setState({
-            rawData: data
-          }, this.onLoadSuccess);
+          this.setState(
+            {
+              rawData: data
+            },
+            this.onLoadSuccess
+          );
           return;
         }
         let formData = {};
         let initialData = {};
-        data.config.forEach((field) => {
+        data.config.forEach(field => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
         });
-        this.setState({
-          fieldList: data.config,
-          formData: formData,
-          initialData: initialData
-        // call this here to prevent FormState.READY from being
-        // set before fieldList is
-        }, this.onLoadSuccess);
+        this.setState(
+          {
+            fieldList: data.config,
+            formData: formData,
+            initialData: initialData
+            // call this here to prevent FormState.READY from being
+            // set before fieldList is
+          },
+          this.onLoadSuccess
+        );
       },
       error: this.onLoadError
     });
@@ -132,7 +132,7 @@ class PluginSettings extends PluginComponentBase {
       return (
         <div className="alert alert-error m-b-1">
           {tct('An unknown error occurred. Need help with this? [link:Contact support]', {
-            link: <a href="https://sentry.io/support/"/>
+            link: <a href="https://sentry.io/support/" />
           })}
         </div>
       );
@@ -144,8 +144,7 @@ class PluginSettings extends PluginComponentBase {
             <ul>
               <li>{this.state.errors.__all__}</li>
             </ul>
-          </div>
-        }
+          </div>}
         {this.state.fieldList.map(f => {
           return this.renderField({
             key: f.name,
@@ -163,7 +162,7 @@ class PluginSettings extends PluginComponentBase {
 PluginSettings.propTypes = {
   organization: React.PropTypes.object.isRequired,
   project: React.PropTypes.object.isRequired,
-  plugin: React.PropTypes.object.isRequired,
+  plugin: React.PropTypes.object.isRequired
 };
 
 export default PluginSettings;
