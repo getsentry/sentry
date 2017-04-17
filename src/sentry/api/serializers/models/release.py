@@ -46,7 +46,7 @@ def get_users_for_commits(item_list):
         sentry_orgmember_set__organization_id=org_id
     )
     users = serialize(list(users))
-    users_by_id = dict((user['id'], user) for user in users)
+    users_by_id = {user['id']: user for user in users}
 
     # Figure out which email address matches to a user
     users_by_email = {}
