@@ -86,7 +86,7 @@ def js_beautify(file_list=None):
 
     if not os.path.exists(prettier_path):
         from click import echo
-        echo('!! Skipping JavaScript beautification because eslint is not installed.')
+        echo('!! Skipping JavaScript beautification because prettier is not installed.')
         return False
 
     file_list = get_js_file_list(file_list)
