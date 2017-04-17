@@ -126,7 +126,7 @@ const VersionHoverCard = React.createClass({
     return (
       <div>
         <div className="hovercard-header">
-          <span>Release {shortVersion}</span>
+          <span className="truncate">Release {shortVersion}</span>
         </div>
         <div className="hovercard-body">
           {this.state.loading
@@ -173,7 +173,7 @@ const VersionHoverCard = React.createClass({
                           <div className="commit-avatar">
                             <Avatar user={commitAuthor || {username: '?'}} />
                           </div>
-                          <div className="commit-message">
+                          <div className="commit-message truncate">
                             {this.renderMessage(lastCommit.message)}
                           </div>
                           <div className="commit-meta">
