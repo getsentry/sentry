@@ -37,7 +37,7 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    __all__ = ('incr', 'process_incr', 'process_pending', 'validate', 'apply', 'process_cb')
+    __all__ = ('incr', 'process', 'process_incr', 'process_pending', 'validate', 'apply', 'process_cb')
 
     def __init__(self):
         self.registry = {}
@@ -108,3 +108,9 @@ class Buffer(object):
         except KeyError:
             raise NotImplementedError
         cb(value=value)
+
+    def process(self, model, columns, filters, extra=None):
+        import warnings
+        warnings.warn('buffer.process is deprecated, use buffer.process_incr',
+                      DeprecationWarning)
+        self.process_incr(model, columns, filters, extra)
