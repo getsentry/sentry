@@ -84,7 +84,9 @@ const ReleaseCommits = React.createClass({
     return {
       loading: true,
       error: false,
-      commitList: []
+      commitList: [],
+      activeRepo: null,
+      title: 'All Repositories'
     };
   },
 
@@ -122,11 +124,28 @@ const ReleaseCommits = React.createClass({
     );
   },
 
-  renderCommitsForRepo(repoCommits) {
-    let commitList = repoCommits;
+  setActiveRepo(repo) {
+    this.setState({
+      activeRepo: repo,
+      title: repo
+    });
+  },
+
+  renderCommitsForRepo() {
+    let {activeRepo, commitList} = this.state;
+    let commitsByRepository = commitList.reduce(function(cbr, commit) {
+      let {repository} = commit;
+      if (!cbr.hasOwnProperty(repository.name)) {
+        cbr[repository.name] = [];
+      }
+
+      cbr[repository.name].push(commit);
+      return cbr;
+    }, {});
+    let activeCommits = commitsByRepository[activeRepo];
     return (
       <ul className="list-group list-group-lg commit-list">
-        {commitList.map(commit => {
+        {activeCommits.map(commit => {
           return (
             <ReleaseCommit
               key={commit.id}
@@ -141,8 +160,6 @@ const ReleaseCommits = React.createClass({
       </ul>
     );
   },
-
-  // renderCommitsForRepo() {},
 
   render() {
     if (this.state.loading) return <LoadingIndicator />;
@@ -169,7 +186,7 @@ const ReleaseCommits = React.createClass({
           className="btn btn-default btn-sm"
           title={
             <span>
-              Repositories
+              {this.state.title}
               <span
                 className="icon-arrow-down"
                 style={{marginLeft: 3, marginRight: -3}}
@@ -178,24 +195,68 @@ const ReleaseCommits = React.createClass({
           }
         >
           <MenuItem key="all">
-            <a onClick={console.log('click')}>
+            <a
+              onClick={() => {
+                this.setActiveRepo(null);
+              }}
+            >
               All Repositories
             </a>
           </MenuItem>
           {Object.keys(commitsByRepository).map(repository => {
             return (
               <MenuItem key={commitsByRepository[repository].id} noAnchor={true}>
-                <a onClick={console.log('click')}>
+                <a
+                  onClick={() => {
+                    this.setActiveRepo(repository);
+                  }}
+                >
                   {repository}
                 </a>
               </MenuItem>
             );
           })}
         </DropdownLink>
-        {Object.keys(commitsByRepository).map(repository => {
-          return (
-            <div>
-              <span>{repository}</span>
+        {!this.state.activeRepo
+          ? Object.keys(commitsByRepository).map(repository => {
+              let activeCommits = commitsByRepository[repository];
+              return (
+                <div>
+                  <span>{repository}</span>
+                  <div className="panel panel-default">
+                    <div className="panel-heading panel-heading-bold">
+                      <div className="row">
+                        <div className="col-xs-8">
+                          Commit
+                        </div>
+                        <div className="col-xs-2">
+                          Repository
+                        </div>
+                        <div className="col-xs-2 align-right">
+                          SHA
+                        </div>
+                      </div>
+                    </div>
+                    <ul className="list-group list-group-lg commit-list">
+                      {activeCommits.map(commit => {
+                        return (
+                          <ReleaseCommit
+                            key={commit.id}
+                            commitId={commit.id}
+                            author={commit.author}
+                            commitMessage={commit.message}
+                            commitDateCreated={commit.dateCreated}
+                            repository={commit.repository}
+                          />
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              );
+            })
+          : <div>
+              <span>{this.state.activeRepo}</span>
               <div className="panel panel-default">
                 <div className="panel-heading panel-heading-bold">
                   <div className="row">
@@ -210,11 +271,9 @@ const ReleaseCommits = React.createClass({
                     </div>
                   </div>
                 </div>
-                {this.renderCommitsForRepo(commitsByRepository[repository])}
+                {this.renderCommitsForRepo()}
               </div>
-            </div>
-          );
-        })}
+            </div>}
       </div>
     );
   }
