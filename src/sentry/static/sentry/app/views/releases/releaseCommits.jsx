@@ -187,13 +187,13 @@ const ReleaseCommits = React.createClass({
     return (
       <div>
         <div className="heading">
-          <div className="row">
-            <div className="commits-header col-xs-1">
-              <h5>Commits</h5>
-            </div>
-            <div className="commits-dropdown col-xs-11 align-left">
-              {Object.keys(commitsByRepository).length > 1
-                ? <div className="commits-dropdown col-xs-2">
+          {Object.keys(commitsByRepository).length > 1
+            ? <div className="row">
+                <div className="commits-header col-xs-1">
+                  <h5>Commits</h5>
+                </div>
+                <div className="commits-dropdown col-xs-11 align-left">
+                  <div className="commits-dropdown col-xs-2">
                     <DropdownLink
                       caret={false}
                       title={
@@ -229,9 +229,9 @@ const ReleaseCommits = React.createClass({
                       })}
                     </DropdownLink>
                   </div>
-                : null}
-            </div>
-          </div>
+                </div>
+              </div>
+            : null}
         </div>
         {activeRepo
           ? this.renderCommitsForRepo(activeRepo)
