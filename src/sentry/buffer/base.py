@@ -39,7 +39,8 @@ class Buffer(object):
     """
     __all__ = ('incr', 'process_incr', 'process_pending', 'validate', 'apply', 'process_cb')
 
-    registry = {}
+    def __init__(self):
+        self.registry = {}
 
     def register_cb(self, name, cb):
         self.registry[name] = cb
