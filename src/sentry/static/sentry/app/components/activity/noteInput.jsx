@@ -22,10 +22,7 @@ const NoteInput = React.createClass({
     onFinish: React.PropTypes.func
   },
 
-  mixins: [
-    PureRenderMixin,
-    ApiMixin
-  ],
+  mixins: [PureRenderMixin, ApiMixin],
 
   getInitialState() {
     let {item, group} = this.props;
@@ -64,11 +61,14 @@ const NoteInput = React.createClass({
     if (this.state.value === nextState.value) return;
 
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify({
-        groupId: this.props.group.id,
-        value: nextState.value
-      }));
-    } catch(ex) {
+      localStorage.setItem(
+        localStorageKey,
+        JSON.stringify({
+          groupId: this.props.group.id,
+          value: nextState.value
+        })
+      );
+    } catch (ex) {
       logException(ex);
     }
   },
@@ -90,7 +90,7 @@ const NoteInput = React.createClass({
     this.setState({
       loading: true,
       error: false,
-      errorJSON: null,
+      errorJSON: null
     });
 
     if (this.state.updating) {
@@ -110,7 +110,7 @@ const NoteInput = React.createClass({
       data: {
         text: this.state.value
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           loading: false,
           preview: false,
@@ -118,7 +118,7 @@ const NoteInput = React.createClass({
           errorJSON: error.responseJSON || makeDefaultErrorJson()
         });
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           value: '',
           preview: false,
@@ -144,7 +144,7 @@ const NoteInput = React.createClass({
       data: {
         text: this.state.value
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           loading: false,
           preview: false,
@@ -153,7 +153,7 @@ const NoteInput = React.createClass({
         });
         IndicatorStore.remove(loadingIndicator);
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           preview: false,
           expanded: false,
@@ -198,7 +198,6 @@ const NoteInput = React.createClass({
       e.target.value = '';
       e.target.value = value;
     }
-
   },
 
   maybeCollapse() {
@@ -235,26 +234,32 @@ const NoteInput = React.createClass({
               </span>
             </li>
           </ul>
-          {preview ?
-            <div className="note-preview"
-                 dangerouslySetInnerHTML={{__html: marked(value)}} />
-          :
-            <textarea placeholder={t('Add details or updates to this event')}
-                      onChange={this.onChange}
-                      onKeyDown={this.onKeyDown}
-                      onFocus={this.expand} onBlur={this.maybeCollapse}
-                      required={true}
-                      autoFocus={true}
-                      value={value} />
-          }
+          {preview
+            ? <div
+                className="note-preview"
+                dangerouslySetInnerHTML={{__html: marked(value)}}
+              />
+            : <textarea
+                placeholder={t('Add details or updates to this event')}
+                onChange={this.onChange}
+                onKeyDown={this.onKeyDown}
+                onFocus={this.expand}
+                onBlur={this.maybeCollapse}
+                required={true}
+                autoFocus={true}
+                value={value}
+              />}
           <div className="activity-actions">
-            {errorJSON && errorJSON.detail &&
-              <small className="error">{errorJSON.detail}</small>
-            }
-            <button className="btn btn-default" type="submit"
-                    disabled={loading}>{btnText}</button>
+            {errorJSON &&
+              errorJSON.detail &&
+              <small className="error">{errorJSON.detail}</small>}
+            <button className="btn btn-default" type="submit" disabled={loading}>
+              {btnText}
+            </button>
             {updating &&
-              <button className="btn btn-danger" onClick={this.onCancel}>{t('Cancel')}</button>}
+              <button className="btn btn-danger" onClick={this.onCancel}>
+                {t('Cancel')}
+              </button>}
           </div>
         </div>
       </form>

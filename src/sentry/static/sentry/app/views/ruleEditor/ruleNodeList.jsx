@@ -24,7 +24,7 @@ const RuleNodeList = React.createClass({
   componentWillMount() {
     this._nodesById = {};
 
-    this.props.nodes.forEach((node) => {
+    this.props.nodes.forEach(node => {
       this._nodesById[node.id] = node;
     });
   },
@@ -67,10 +67,12 @@ const RuleNodeList = React.createClass({
           <tbody>
             {this.state.items.map((item, idx) => {
               return (
-                <RuleNode key={item.key_attr}
+                <RuleNode
+                  key={item.key_attr}
                   node={this.getNode(item.id)}
                   onDelete={this.onDeleteRow.bind(this, idx)}
-                  data={item} />
+                  data={item}
+                />
               );
             })}
           </tbody>
@@ -78,10 +80,8 @@ const RuleNodeList = React.createClass({
         <fieldset className="node-selector">
           <SelectInput onChange={this.onAddRow} style={{width: '100%'}}>
             <option key="blank" />
-            {this.props.nodes.map((node) => {
-              return (
-                <option value={node.id} key={node.id}>{node.label}</option>
-              );
+            {this.props.nodes.map(node => {
+              return <option value={node.id} key={node.id}>{node.label}</option>;
             })}
           </SelectInput>
         </fieldset>

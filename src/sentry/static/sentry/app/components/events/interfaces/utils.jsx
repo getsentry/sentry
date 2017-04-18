@@ -14,15 +14,16 @@ export function getCurlCommand(data) {
   }
 
   // TODO(benvinegar): just gzip? what about deflate?
-  let compressed = data.headers.find(h => h[0] === 'Accept-Encoding' && h[1].indexOf('gzip') !== -1);
+  let compressed = data.headers.find(
+    h => h[0] === 'Accept-Encoding' && h[1].indexOf('gzip') !== -1
+  );
   if (compressed) {
     result += ' \\\n --compressed';
   }
 
   // sort headers
-  let headers = data.headers.sort(function (a, b) {
-    return a[0] === b[0] ? 0 :
-      a[0] < b[0] ? -1 : 1;
+  let headers = data.headers.sort(function(a, b) {
+    return a[0] === b[0] ? 0 : a[0] < b[0] ? -1 : 1;
   });
 
   for (let header of headers) {

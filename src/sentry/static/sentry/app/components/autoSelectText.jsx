@@ -22,7 +22,9 @@ const AutoSelectText = React.createClass({
     } else if (window.getSelection) {
       let range = document.createRange();
       range.selectNode(node);
-      window.getSelection().addRange(range);
+      let selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
   },
 

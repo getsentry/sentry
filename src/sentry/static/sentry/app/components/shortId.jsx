@@ -10,10 +10,7 @@ const ShortId = React.createClass({
     project: React.PropTypes.object
   },
 
-  mixins: [
-    PureRenderMixin,
-    ProjectState
-  ],
+  mixins: [PureRenderMixin, ProjectState],
 
   preventPropagation(e) {
     // this is a hack for the stream so the click handler doesn't

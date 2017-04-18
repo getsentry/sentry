@@ -16,7 +16,7 @@ const VersionHoverCard = React.createClass({
   propTypes: {
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   mixins: [ApiMixin],
@@ -27,7 +27,7 @@ const VersionHoverCard = React.createClass({
       error: false,
       data: {},
       visible: false,
-      hasRepos: false,
+      hasRepos: false
     };
   },
 
@@ -45,14 +45,14 @@ const VersionHoverCard = React.createClass({
     let releasePath = `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`;
     this.api.request(releasePath, {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
-          release: data,
+          release: data
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       },
       complete: done
@@ -62,23 +62,23 @@ const VersionHoverCard = React.createClass({
     let repoPath = `/organizations/${orgId}/repos/`;
     this.api.request(repoPath, {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
-          hasRepos: data.length > 0,
+          hasRepos: data.length > 0
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       },
       complete: done
     });
   },
 
-  toggleHovercard () {
+  toggleHovercard() {
     this.setState({
-      visible: !this.state.visible,
+      visible: !this.state.visible
     });
   },
 
@@ -87,9 +87,10 @@ const VersionHoverCard = React.createClass({
     return (
       <div className="version-hovercard blankslate m-a-0 p-x-1 p-y-1 align-center">
         <h5>Releases are better with commit data!</h5>
-        <p>Connect a repository to see commit info, files changed, and authors involved in future releases.</p>
-        <a className="btn btn-primary"
-          href={`/organizations/${orgId}/repos/`}>
+        <p>
+          Connect a repository to see commit info, files changed, and authors involved in future releases.
+        </p>
+        <a className="btn btn-primary" href={`/organizations/${orgId}/repos/`}>
           Connect a repository
         </a>
       </div>
@@ -125,52 +126,67 @@ const VersionHoverCard = React.createClass({
     return (
       <div>
         <div className="hovercard-header">
-          <span>Release {shortVersion}</span>
+          <span className="truncate">Release {shortVersion}</span>
         </div>
         <div className="hovercard-body">
-          {this.state.loading ? <LoadingIndicator mini={true}/> :
-            (this.state.error ? <LoadingError /> :
-              <div>
-              <div className="row row-flex">
-                <div className="col-xs-4">
-                  <h6>New Issues</h6>
-                  <div className="count">{release.newGroups}</div>
-                </div>
-                <div className="col-xs-8">
-                  <h6>{release.commitCount} {release.commitCount !== 1 ? t('commits ') : t('commit ')} {t('by ')} {release.authors.length} {release.authors.length !== 1 ? t('authors') : t('author')} </h6>
-                  <div className="avatar-grid">
-                    {release.authors.map(author => {
-                      return (
-                        <span className="avatar-grid-item tip"
-                             title={author.name + ' ' + author.email}>
-                          <Avatar user={author}/>
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-              {lastCommit &&
-                <div>
-                  <h6 className="commit-heading">Last commit</h6>
-                  <div className="commit">
-                    <div className="commit-avatar">
-                      <Avatar user={commitAuthor || {'username': '?'}}/>
+          {this.state.loading
+            ? <LoadingIndicator mini={true} />
+            : this.state.error
+                ? <LoadingError />
+                : <div>
+                    <div className="row row-flex">
+                      <div className="col-xs-4">
+                        <h6>New Issues</h6>
+                        <div className="count">{release.newGroups}</div>
+                      </div>
+                      <div className="col-xs-8">
+                        <h6>
+                          {release.commitCount}
+                          {' '}
+                          {release.commitCount !== 1 ? t('commits ') : t('commit ')}
+                          {' '}
+                          {t('by ')}
+                          {' '}
+                          {release.authors.length}
+                          {' '}
+                          {release.authors.length !== 1 ? t('authors') : t('author')}
+                          {' '}
+                        </h6>
+                        <div className="avatar-grid">
+                          {release.authors.map(author => {
+                            return (
+                              <span
+                                className="avatar-grid-item tip"
+                                title={author.name + ' ' + author.email}
+                              >
+                                <Avatar user={author} />
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="commit-message">
-                      {this.renderMessage(lastCommit.message)}
-                    </div>
-                    <div className="commit-meta">
-                      <strong>{(commitAuthor && commitAuthor.name) || t('Unknown Author')}</strong>&nbsp;
-                      <TimeSince date={lastCommit.dateCreated} />
-                    </div>
-                  </div>
-                </div>}
-            </div>
-            )
-          }
+                    {lastCommit &&
+                      <div>
+                        <h6 className="commit-heading">Last commit</h6>
+                        <div className="commit">
+                          <div className="commit-avatar">
+                            <Avatar user={commitAuthor || {username: '?'}} />
+                          </div>
+                          <div className="commit-message truncate">
+                            {this.renderMessage(lastCommit.message)}
+                          </div>
+                          <div className="commit-meta">
+                            <strong>
+                              {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
+                            </strong>&nbsp;
+                            <TimeSince date={lastCommit.dateCreated} />
+                          </div>
+                        </div>
+                      </div>}
+                  </div>}
         </div>
-    </div>
+      </div>
     );
   },
 
@@ -180,11 +196,10 @@ const VersionHoverCard = React.createClass({
       <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}>
         {this.props.children}
         {visible &&
-          <div className="hovercard" >
+          <div className="hovercard">
             <div className="hovercard-hoverlap" />
             {this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
-          </div>
-        }
+          </div>}
       </span>
     );
   }

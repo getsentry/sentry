@@ -15,7 +15,7 @@ const ProjectIssueTracking = React.createClass({
 
     return (
       <div>
-        {this.props.dataList.map((data) => {
+        {this.props.dataList.map(data => {
           return <PluginConfig data={data} {...this.props} key={data.id} />;
         })}
       </div>

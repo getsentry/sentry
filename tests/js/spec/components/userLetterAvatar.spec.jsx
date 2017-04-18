@@ -25,47 +25,61 @@ describe('LetterAvatar', function() {
 
   describe('getDisplayName()', function() {
     it('should set displayName based on name', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_1}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_1} />
+      );
       expect(this.letterAvatar.getDisplayName()).to.eql('Jane Doe');
     });
 
     it('should set displayName based on email', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_2}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_2} />
+      );
       expect(this.letterAvatar.getDisplayName()).to.eql('johnsmith@example.com');
     });
 
     it('should set displayName based on username', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_3}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_3} />
+      );
       expect(this.letterAvatar.getDisplayName()).to.eql('foo@example.com');
     });
 
     it('should set displayName to empty string if nothing useful', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_4}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_4} />
+      );
       expect(this.letterAvatar.getDisplayName()).to.eql('');
     });
   });
 
-
   describe('getIdentifier()', function() {
     it('should use email', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_1}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_1} />
+      );
       expect(this.letterAvatar.getIdentifier()).to.eql('janedoe@example.com');
     });
 
     it('should use username', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_3}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_3} />
+      );
       expect(this.letterAvatar.getIdentifier()).to.eql('foo@example.com');
     });
 
     it('should use id', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_4}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_4} />
+      );
       expect(this.letterAvatar.getIdentifier()).to.eql(2);
     });
 
     it('should use ip address', function() {
-      this.letterAvatar = TestUtils.renderIntoDocument(<UserLetterAvatar user={USER_5}/>);
+      this.letterAvatar = TestUtils.renderIntoDocument(
+        <UserLetterAvatar user={USER_5} />
+      );
       expect(this.letterAvatar.getIdentifier()).to.eql('127.0.0.1');
     });
   });
-
 });

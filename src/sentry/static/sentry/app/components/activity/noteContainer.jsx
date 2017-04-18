@@ -36,18 +36,14 @@ const NoteContainer = React.createClass({
       <li className="activity-note">
         {author.avatar}
         <div className="activity-bubble">
-        {this.state.editing ?
-          <NoteInput
-            group={group}
-            item={item}
-            onFinish={this.onFinish} />
-        :
-          <Note
-            item={item}
-            author={author}
-            onEdit={this.onEdit}
-            onDelete={this.onDelete} />
-        }
+          {this.state.editing
+            ? <NoteInput group={group} item={item} onFinish={this.onFinish} />
+            : <Note
+                item={item}
+                author={author}
+                onEdit={this.onEdit}
+                onDelete={this.onDelete}
+              />}
         </div>
       </li>
     );
