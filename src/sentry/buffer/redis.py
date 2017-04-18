@@ -165,7 +165,7 @@ class RedisBuffer(Buffer):
     def process_pending_cb(self):
         client = self.cluster.get_routing_client()
 
-        for name in self.registry.iterkeys():
+        for name in six.iterkeys(self.registry):
             pending_key = self._make_cb_key(name)
             lock_key = self._make_lock_key(pending_key)
             # prevent a stampede due to celerybeat + periodic task
