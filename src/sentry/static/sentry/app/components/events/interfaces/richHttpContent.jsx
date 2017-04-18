@@ -28,7 +28,7 @@ const RichHttpContent = React.createClass({
         let val = obj[k];
         return out.concat(
           {}.toString.call(val) === '[object Array]'
-            ? val.sort().map(v => [k, v]) // key has multiple values (array)
+            ? val.map(v => [k, v]) // key has multiple values (array)
             : [[k, val]] // key has single value
         );
       }, [])
