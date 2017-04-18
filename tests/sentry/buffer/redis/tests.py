@@ -19,7 +19,7 @@ class RedisBufferTest(TestCase):
     def test_coerce_val_handles_unicode(self):
         assert self.buf._coerce_val(u'\u201d') == '”'
 
-    @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_incr_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr')
     def test_process_pending(self, process_incr):
         with self.buf.cluster.map() as client:
@@ -32,8 +32,8 @@ class RedisBufferTest(TestCase):
         client = self.buf.cluster.get_routing_client()
         assert client.zrange('b:p', 0, -1) == []
 
-    @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
-    @mock.patch('sentry.buffer.base.Buffer.process')
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_incr_key', mock.Mock(return_value='foo'))
+    @mock.patch('sentry.buffer.base.Buffer.process_incr')
     def test_process_does_bubble_up(self, process):
         client = self.buf.cluster.get_routing_client()
         client.hmset('foo', {
@@ -45,10 +45,10 @@ class RedisBufferTest(TestCase):
         columns = {'times_seen': 2}
         filters = {'pk': 1}
         extra = {'foo': 'bar'}
-        self.buf.process('foo')
+        self.buf.process_incr('foo')
         process.assert_called_once_with(Group, columns, filters, extra)
 
-    @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_incr_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.redis.process_incr', mock.Mock())
     def test_incr_saves_to_redis(self):
         client = self.buf.cluster.get_routing_client()
