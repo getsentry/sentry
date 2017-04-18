@@ -16,7 +16,10 @@ class CommitAuthor(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_commitauthor'
-        unique_together = (('organization_id', 'email'),)
+        unique_together = (
+            ('organization_id', 'email'),
+            ('organization_id', 'external_id'),
+        )
 
     __repr__ = sane_repr('organization_id', 'email', 'name')
 
