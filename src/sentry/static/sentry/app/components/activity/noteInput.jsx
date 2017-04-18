@@ -5,6 +5,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import MemberListStore from '../../stores/memberListStore';
+import ConfigStore from '../../stores/configStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
@@ -25,10 +26,7 @@ const NoteInput = React.createClass({
     onFinish: React.PropTypes.func
   },
 
-  mixins: [
-    PureRenderMixin,
-    ApiMixin
-  ],
+  mixins: [PureRenderMixin, ApiMixin],
 
   getInitialState() {
     let {item, group} = this.props;
@@ -69,11 +67,14 @@ const NoteInput = React.createClass({
     if (this.state.value === nextState.value) return;
 
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify({
-        groupId: this.props.group.id,
-        value: nextState.value
-      }));
-    } catch(ex) {
+      localStorage.setItem(
+        localStorageKey,
+        JSON.stringify({
+          groupId: this.props.group.id,
+          value: nextState.value
+        })
+      );
+    } catch (ex) {
       logException(ex);
     }
   },
@@ -95,7 +96,7 @@ const NoteInput = React.createClass({
     this.setState({
       loading: true,
       error: false,
-      errorJSON: null,
+      errorJSON: null
     });
 
     if (this.state.updating) {
@@ -115,9 +116,9 @@ const NoteInput = React.createClass({
       method: 'POST',
       data: {
         text: this.state.value,
-        mentions: mentions,
+        mentions: mentions
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           loading: false,
           preview: false,
@@ -125,13 +126,13 @@ const NoteInput = React.createClass({
           errorJSON: error.responseJSON || makeDefaultErrorJson()
         });
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           value: '',
           preview: false,
           expanded: false,
           loading: false,
-          mentions: [],
+          mentions: []
         });
         GroupStore.addActivity(group.id, data);
         this.finish();
@@ -152,7 +153,7 @@ const NoteInput = React.createClass({
       data: {
         text: this.state.value
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           loading: false,
           preview: false,
@@ -161,7 +162,7 @@ const NoteInput = React.createClass({
         });
         IndicatorStore.remove(loadingIndicator);
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           preview: false,
           expanded: false,
@@ -202,8 +203,8 @@ const NoteInput = React.createClass({
 
   finalMentions() {
     let results = [];
-    this.state.mentions.forEach((item) => {
-      if (this.state.value.indexOf(item[1]) !== -1){
+    this.state.mentions.forEach(item => {
+      if (this.state.value.indexOf(item[1]) !== -1) {
         results.push(item[0]);
       }
     });
@@ -222,7 +223,6 @@ const NoteInput = React.createClass({
       e.target.value = '';
       e.target.value = value;
     }
-
   },
 
   maybeCollapse() {
@@ -232,13 +232,18 @@ const NoteInput = React.createClass({
   },
 
   getMemberData() {
-    return this.state.memberList.map((member) => {
-      return {
-        id: member.id,
-        display: member.name,
-        email: member.email
-      };
+    let sessionUser = ConfigStore.get('user');
+    let results = [];
+    this.state.memberList.forEach(member => {
+      if (sessionUser.id !== member.id) {
+        results.push({
+          id: member.id,
+          display: member.name,
+          email: member.email
+        });
+      }
     });
+    return results;
   },
 
   render() {
@@ -253,77 +258,78 @@ const NoteInput = React.createClass({
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
     let styles = {
+      control: {
+        backgroundColor: '#fff',
+        fontSize: 15,
+        fontWeight: 'normal'
+      },
+
+      input: {
+        margin: 0
+      },
+
+      '&singleLine': {
         control: {
-          backgroundColor: '#fff',
-          fontSize: 15,
-          fontWeight: 'normal',
+          display: 'inline-block',
+
+          width: 130
+        },
+
+        highlighter: {
+          padding: 1,
+          border: '2px inset transparent'
         },
 
         input: {
-          margin: 0,
+          padding: 1,
+          border: '2px inset'
+        }
+      },
+
+      '&multiLine': {
+        control: {
+          fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif'
         },
 
-        '&singleLine': {
-          control: {
-            display: 'inline-block',
-
-            width: 130,
-          },
-
-          highlighter: {
-            padding: 1,
-            border: '2px inset transparent',
-          },
-
-          input: {
-            padding: 1,
-            border: '2px inset',
-          },
+        highlighter: {
+          padding: 20
         },
 
-        '&multiLine': {
-          control: {
-            fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif',
+        input: {
+          padding: '15px 20px 0',
+          minHeight: 140,
+          overflow: 'auto',
+          outline: 0,
+          border: 0
+        }
+      },
 
-          },
-
-          highlighter: {
-            padding: 20,
-          },
-
-          input: {
-            padding: '15px 20px 0',
-            minHeight: 140,
-            overflow: 'auto',
-            outline: 0,
-            border: 0,
-          },
+      suggestions: {
+        list: {
+          backgroundColor: 'white',
+          border: '1px solid rgba(0,0,0,0.15)',
+          fontSize: 12
         },
 
-        suggestions: {
-          list: {
-            backgroundColor: 'white',
-            border: '1px solid rgba(0,0,0,0.15)',
-            fontSize: 12,
-          },
+        item: {
+          padding: '5px 15px',
+          borderBottom: '1px solid rgba(0,0,0,0.15)',
 
-          item: {
-            padding: '5px 15px',
-            borderBottom: '1px solid rgba(0,0,0,0.15)',
-
-            '&focused': {
-              backgroundColor: '#f8f6f9',
-            },
-          },
-        },
-      };
+          '&focused': {
+            backgroundColor: '#f8f6f9'
+          }
+        }
+      }
+    };
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
-              <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
+              <a onClick={this.toggleEdit}>
+                {updating ? t('Edit') : t('Write')}
+              </a>
             </li>
             <li className={preview ? 'active' : ''}>
               <a onClick={this.togglePreview}>{t('Preview')}</a>
@@ -334,32 +340,40 @@ const NoteInput = React.createClass({
               </span>
             </li>
           </ul>
-          {preview ?
-            <div className="note-preview"
-                 dangerouslySetInnerHTML={{__html: marked(value)}} />
-          :
-            <MentionsInput style={styles} placeholder={t('Add details or updates to this event')}
-                      onChange={this.onChange}
-                      onBlur={this.onBlur}
-                      value={value}
-                      required={true}
-                      autoFocus={true}
-                      displayTransform={ (id, display) => `@${display}` }
-                      markup="**__display__**" >
-                      <Mention trigger="@"
-                          data={this.getMemberData()}
-                          onAdd={this.onAdd}
-                          appendSpaceOnAdd={true} />
-            </MentionsInput>
-          }
+          {preview
+            ? <div
+                className="note-preview"
+                dangerouslySetInnerHTML={{__html: marked(value)}}
+              />
+            : <MentionsInput
+                style={styles}
+                placeholder={t('Add details or updates to this event')}
+                onChange={this.onChange}
+                onBlur={this.onBlur}
+                value={value}
+                required={true}
+                autoFocus={true}
+                displayTransform={(id, display) => `@${display}`}
+                markup="**__display__**"
+              >
+                <Mention
+                  trigger="@"
+                  data={this.getMemberData()}
+                  onAdd={this.onAdd}
+                  appendSpaceOnAdd={true}
+                />
+              </MentionsInput>}
           <div className="activity-actions">
-            {errorJSON && errorJSON.detail &&
-              <small className="error">{errorJSON.detail}</small>
-            }
-            <button className="btn btn-default" type="submit"
-                    disabled={loading}>{btnText}</button>
+            {errorJSON &&
+              errorJSON.detail &&
+              <small className="error">{errorJSON.detail}</small>}
+            <button className="btn btn-default" type="submit" disabled={loading}>
+              {btnText}
+            </button>
             {updating &&
-              <button className="btn btn-danger" onClick={this.onCancel}>{t('Cancel')}</button>}
+              <button className="btn btn-danger" onClick={this.onCancel}>
+                {t('Cancel')}
+              </button>}
           </div>
         </div>
       </form>

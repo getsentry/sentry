@@ -278,6 +278,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
 
+    'email_extras',
     'crispy_forms',
     'debug_toolbar',
     'raven.contrib.django.raven_compat',
@@ -844,6 +845,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     'smtp': 'django.core.mail.backends.smtp.EmailBackend',
     'dummy': 'django.core.mail.backends.dummy.EmailBackend',
     'console': 'django.core.mail.backends.console.EmailBackend',
+    'browser': 'email_extras.backends.BrowsableEmailBackend',
 }
 
 SENTRY_FILESTORE_ALIASES = {
