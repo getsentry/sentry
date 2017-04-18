@@ -35,8 +35,7 @@ const RichHttpContent = React.createClass({
       .sort(function([keyA, valA], [keyB, valB]) {
         // if keys are identical, sort on value
         if (keyA === keyB) {
-          keyA = valA;
-          keyB = valB;
+          return valA < valB ? -1 : 1;
         }
 
         return keyA < keyB ? -1 : 1;
