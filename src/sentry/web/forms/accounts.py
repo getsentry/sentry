@@ -22,7 +22,7 @@ from sentry.auth import password_validation
 from sentry.app import ratelimiter, newsletter
 from sentry.constants import LANGUAGES
 from sentry.models import (
-    Organization, OrganizationStatus, User, UserOption, UserOptionValue
+    Organization, OrganizationStatus, User, UserOption, UserOrgOption, UserOptionValue
 )
 from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
@@ -486,6 +486,41 @@ class NotificationReportSettingsForm(forms.Form):
             project=None,
             key='reports:disabled-organizations',
             value=list(all_orgs.difference(enabled_orgs)),
+        )
+
+
+class NotificationDeploySettingsForm(forms.Form):
+    CHOICES = [
+        ('all', 'All deploys'),
+        ('mine', 'Deploys with your commits'),
+        ('none', 'Never')]
+
+    notifications = forms.ChoiceField(
+        choices=CHOICES,
+        required=False,
+        widget=forms.RadioSelect(),
+    )
+
+    def __init__(self, user, organization, *args, **kwargs):
+        self.user = user
+        self.organization = organization
+        super(NotificationDeploySettingsForm, self).__init__(*args, **kwargs)
+        deploy_setting = UserOrgOption.objects.get_value(
+            user=user,
+            organization=self.organization,
+            key='deploy-emails',
+            default='mine'
+        )
+
+        self.fields['notifications'].initial = deploy_setting
+        self.fields['notifications'].label = ""
+
+    def save(self):
+        UserOrgOption.objects.set_value(
+            user=self.user,
+            organization=self.organization,
+            key='deploy-emails',
+            value=self.data['{}-notifications'.format(self.prefix)],
         )
 
 
