@@ -5,6 +5,7 @@ import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import MemberListStore from '../../stores/memberListStore';
+import ConfigStore from '../../stores/configStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
@@ -231,13 +232,18 @@ const NoteInput = React.createClass({
   },
 
   getMemberData() {
-    return this.state.memberList.map(member => {
-      return {
-        id: member.id,
-        display: member.name,
-        email: member.email
-      };
+    let sessionUser = ConfigStore.get('user');
+    let results = [];
+    this.state.memberList.forEach(member => {
+      if (sessionUser.id !== member.id) {
+        results.push({
+          id: member.id,
+          display: member.name,
+          email: member.email
+        });
+      }
     });
+    return results;
   },
 
   render() {
@@ -321,7 +327,9 @@ const NoteInput = React.createClass({
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
-              <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
+              <a onClick={this.toggleEdit}>
+                {updating ? t('Edit') : t('Write')}
+              </a>
             </li>
             <li className={preview ? 'active' : ''}>
               <a onClick={this.togglePreview}>{t('Preview')}</a>
