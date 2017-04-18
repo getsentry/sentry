@@ -19,20 +19,23 @@ export function queryToObj(queryStr) {
   let text = [];
 
   let queryItems = queryStr.match(/\S+:"[^"]*"?|\S+/g);
-  let queryObj = _.inject(queryItems, (obj, item) => {
-    let index = item.indexOf(':');
-    if (index === -1) {
-      text.push(item);
-    } else {
-      let tagKey = item.slice(0, index);
-      let value = item.slice(index + 1).replace(/^"|"$/g, '');
-      obj[tagKey] = value;
-    }
-    return obj;
-  }, {});
+  let queryObj = _.inject(
+    queryItems,
+    (obj, item) => {
+      let index = item.indexOf(':');
+      if (index === -1) {
+        text.push(item);
+      } else {
+        let tagKey = item.slice(0, index);
+        let value = item.slice(index + 1).replace(/^"|"$/g, '');
+        obj[tagKey] = value;
+      }
+      return obj;
+    },
+    {}
+  );
 
-  if (text.length)
-    queryObj.__text = text.join(' ');
+  if (text.length) queryObj.__text = text.join(' ');
 
   return queryObj;
 }
@@ -45,14 +48,12 @@ export function objToQuery(queryObj) {
   let tags = _.omit(queryObj, '__text');
 
   let parts = _.map(tags, (value, tagKey) => {
-      if (value.indexOf(' ') > -1)
-        value = `"${value}"`;
+    if (value.indexOf(' ') > -1) value = `"${value}"`;
 
-      return `${tagKey}:${value}`;
-    });
+    return `${tagKey}:${value}`;
+  });
 
-  if (queryObj.__text)
-    parts.push(queryObj.__text);
+  if (queryObj.__text) parts.push(queryObj.__text);
 
   return parts.join(' ');
 }

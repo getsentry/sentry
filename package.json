@@ -38,7 +38,7 @@
     "platformicons": "0.1.1",
     "po-catalog-loader": "^1.2.0",
     "query-string": "2.4.2",
-    "raven-js": "3.13.0",
+    "raven-js": "3.14.1",
     "react": "15.3.2",
     "react-addons-css-transition-group": "15.3.2",
     "react-addons-pure-render-mixin": "15.3.2",
@@ -87,6 +87,7 @@
     "karma-webpack": "2.0.1",
     "mocha": "2.3.4",
     "phantomjs-prebuilt": "2.1.14",
+    "prettier": "1.1.0",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0"
   }

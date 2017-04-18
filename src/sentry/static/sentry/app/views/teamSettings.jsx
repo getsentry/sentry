@@ -18,7 +18,7 @@ const TeamSettingsForm = React.createClass({
   getInitialState() {
     return {
       formData: Object.assign({}, this.props.initialData),
-      errors: {},
+      errors: {}
     };
   },
 
@@ -26,7 +26,7 @@ const TeamSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -36,32 +36,35 @@ const TeamSettingsForm = React.createClass({
     if (this.state.state == FormState.SAVING) {
       return;
     }
-    this.setState({
-      state: FormState.SAVING,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      let {orgId, teamId} = this.props;
-      this.api.request(`/teams/${orgId}/${teamId}/`, {
-        method: 'PUT',
-        data: this.state.formData,
-        success: (data) => {
-          this.props.onSave(data);
-          this.setState({
-            state: FormState.READY,
-            errors: {},
-          });
-        },
-        error: (error) => {
-          this.setState({
-            state: FormState.ERROR,
-            errors: error.responseJSON,
-          });
-        },
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      });
-    });
+    this.setState(
+      {
+        state: FormState.SAVING
+      },
+      () => {
+        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        let {orgId, teamId} = this.props;
+        this.api.request(`/teams/${orgId}/${teamId}/`, {
+          method: 'PUT',
+          data: this.state.formData,
+          success: data => {
+            this.props.onSave(data);
+            this.setState({
+              state: FormState.READY,
+              errors: {}
+            });
+          },
+          error: error => {
+            this.setState({
+              state: FormState.ERROR,
+              errors: error.responseJSON
+            });
+          },
+          complete: () => {
+            IndicatorStore.remove(loadingIndicator);
+          }
+        });
+      }
+    );
   },
 
   render() {
@@ -71,9 +74,10 @@ const TeamSettingsForm = React.createClass({
       <form onSubmit={this.onSubmit} className="form-stacked">
         {this.state.state === FormState.ERROR &&
           <div className="alert alert-error alert-block">
-            {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
-          </div>
-        }
+            {t(
+              'Unable to save your changes. Please ensure all fields are valid and try again.'
+            )}
+          </div>}
         <fieldset>
           <TextField
             key="name"
@@ -82,18 +86,21 @@ const TeamSettingsForm = React.createClass({
             value={this.state.formData.name}
             required={true}
             error={errors.name}
-            onChange={this.onFieldChange.bind(this, 'name')} />
+            onChange={this.onFieldChange.bind(this, 'name')}
+          />
           <TextField
             key="slug"
             label={t('Short name')}
             value={this.state.formData.slug}
             required={true}
             error={errors.slug}
-            onChange={this.onFieldChange.bind(this, 'slug')} />
-       </fieldset>
+            onChange={this.onFieldChange.bind(this, 'slug')}
+          />
+        </fieldset>
         <fieldset className="form-actions">
-          <button type="submit" className="btn btn-primary"
-                  disabled={isSaving}>{t('Save Changes')}</button>
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {t('Save Changes')}
+          </button>
         </fieldset>
       </form>
     );
@@ -118,7 +125,8 @@ const TeamSettings = React.createClass({
               orgId={orgId}
               teamId={teamId}
               initialData={team}
-              onSave={this.props.onTeamChange} />
+              onSave={this.props.onTeamChange}
+            />
           </div>
         </div>
       </div>

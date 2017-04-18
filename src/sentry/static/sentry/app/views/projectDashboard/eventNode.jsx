@@ -40,9 +40,9 @@ const EventNode = React.createClass({
             <div className="event-extra">
               <ul>
                 <li>
-                  <span className="icon icon-clock"></span>
+                  <span className="icon icon-clock" />
                   <TimeSince date={group.lastSeen} />
-                  &nbsp;&mdash;&nbsp;
+                  &nbsp;—&nbsp;
                   <TimeSince date={group.firstSeen} suffix="old" />
                 </li>
               </ul>

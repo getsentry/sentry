@@ -17,11 +17,12 @@ const GroupChart = React.createClass({
   },
 
   render() {
-    let stats = this.props.statsPeriod ? this.props.data.stats[this.props.statsPeriod] : null;
-    if (!stats || !stats.length)
-      return null;
+    let stats = this.props.statsPeriod
+      ? this.props.data.stats[this.props.statsPeriod]
+      : null;
+    if (!stats || !stats.length) return null;
 
-    let chartData = stats.map((point) => {
+    let chartData = stats.map(point => {
       return {x: point[0], y: point[1]};
     });
 

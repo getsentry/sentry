@@ -10,9 +10,7 @@ const MissingProjectMembership = React.createClass({
     team: React.PropTypes.object.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -26,27 +24,30 @@ const MissingProjectMembership = React.createClass({
       loading: true
     });
 
-    this.api.joinTeam({
-      orgId: this.props.organization.slug,
-      teamId: this.props.team.slug
-    }, {
-      success: () => {
-        this.setState({
-          loading: false,
-          error: false
-        });
+    this.api.joinTeam(
+      {
+        orgId: this.props.organization.slug,
+        teamId: this.props.team.slug
       },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true
-        });
-        AlertActions.addAlert({
+      {
+        success: () => {
+          this.setState({
+            loading: false,
+            error: false
+          });
+        },
+        error: () => {
+          this.setState({
+            loading: false,
+            error: true
+          });
+          AlertActions.addAlert({
             message: 'There was an error while trying to join the team.',
             type: 'error'
-        });
+          });
+        }
       }
-    });
+    );
   },
 
   render() {
@@ -56,25 +57,28 @@ const MissingProjectMembership = React.createClass({
     return (
       <div className="container">
         <div className="box alert-box">
-          <span className="icon icon-exclamation"></span>
-          <p>{'You\'re not a member of this project.'}</p>
-          {openMembership ?
-            <p>{t('To view this data you must first join the %s team.', team.name)}</p>
-          :
-            <p>{t('To view this data you must first request access to the %s team.', team.name)}</p>
-          }
+          <span className="icon icon-exclamation" />
+          <p>{"You're not a member of this project."}</p>
+          {openMembership
+            ? <p>{t('To view this data you must first join the %s team.', team.name)}</p>
+            : <p>
+                {t(
+                  'To view this data you must first request access to the %s team.',
+                  team.name
+                )}
+              </p>}
           <p>
-            {this.state.loading ?
-              <a className="btn btn-default btn-loading btn-disabled">...</a>
-            : (team.isPending ?
-              <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>
-            : (openMembership ?
-              <a className="btn btn-default"
-                 onClick={this.joinTeam}>{t('Join Team')}</a>
-            :
-              <a className="btn btn-default"
-                 onClick={this.joinTeam}>{t('Request Access')}</a>
-            ))}
+            {this.state.loading
+              ? <a className="btn btn-default btn-loading btn-disabled">...</a>
+              : team.isPending
+                  ? <a className="btn btn-default btn-disabled">{t('Request Pending')}</a>
+                  : openMembership
+                      ? <a className="btn btn-default" onClick={this.joinTeam}>
+                          {t('Join Team')}
+                        </a>
+                      : <a className="btn btn-default" onClick={this.joinTeam}>
+                          {t('Request Access')}
+                        </a>}
           </p>
         </div>
       </div>

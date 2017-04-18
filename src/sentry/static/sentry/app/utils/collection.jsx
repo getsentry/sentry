@@ -46,14 +46,16 @@ Collection.prototype.push = function push(items) {
     items = [items];
   }
 
-  items.forEach(function(item){
-    let existing = this.pop(item);
-    if (existing) {
-      $.extend(true, existing, item);
-      item = existing;
-    }
-    Array.prototype.push.apply(this, [item]);
-  }.bind(this));
+  items.forEach(
+    function(item) {
+      let existing = this.pop(item);
+      if (existing) {
+        $.extend(true, existing, item);
+        item = existing;
+      }
+      Array.prototype.push.apply(this, [item]);
+    }.bind(this)
+  );
   this._refresh();
   return this;
 };
@@ -62,14 +64,16 @@ Collection.prototype.unshift = function unshift(items) {
   if (!_.isArray(items)) {
     items = [items];
   }
-  items.reverse().forEach(function(item){
-    let existing = this.pop(item);
-    if (existing) {
-      $.extend(true, existing, item);
-      item = existing;
-    }
-    Array.prototype.unshift.apply(this, [item]);
-  }.bind(this));
+  items.reverse().forEach(
+    function(item) {
+      let existing = this.pop(item);
+      if (existing) {
+        $.extend(true, existing, item);
+        item = existing;
+      }
+      Array.prototype.unshift.apply(this, [item]);
+    }.bind(this)
+  );
   this._refresh();
   return this;
 };

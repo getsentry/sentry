@@ -44,16 +44,18 @@ const ProjectEvents = React.createClass({
   componentWillReceiveProps(nextProps) {
     if (nextProps.location.search !== this.props.location.search) {
       let queryParams = nextProps.location.query;
-      this.setState({
-        query: queryParams.query
-      }, this.fetchData);
+      this.setState(
+        {
+          query: queryParams.query
+        },
+        this.fetchData
+      );
     }
   },
 
   onSearch(query) {
     let targetQueryParams = {};
-    if (query !== '')
-      targetQueryParams.query = query;
+    if (query !== '') targetQueryParams.query = query;
 
     let {orgId, projectId} = this.props.params;
     browserHistory.pushState(null, `/${orgId}/${projectId}/events/`, targetQueryParams);
@@ -101,16 +103,12 @@ const ProjectEvents = React.createClass({
   renderStreamBody() {
     let body;
 
-    if (this.state.loading)
-      body = this.renderLoading();
-    else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.eventList.length > 0)
-      body = this.renderResults();
+    if (this.state.loading) body = this.renderLoading();
+    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
+    else if (this.state.eventList.length > 0) body = this.renderResults();
     else if (this.state.query && this.state.query !== this.props.defaultQuery)
       body = this.renderNoQueryResults();
-    else
-      body = this.renderEmpty();
+    else body = this.renderEmpty();
 
     return body;
   },
@@ -141,30 +139,31 @@ const ProjectEvents = React.createClass({
     );
   },
 
-
   renderResults() {
     let {orgId, projectId} = this.props.params;
 
     let children = this.state.eventList.map((event, eventIdx) => {
       return (
         <tr key={event.id}>
-          <td style={{width: 240}}><small><DateTime date={event.dateCreated} /></small></td>
+          <td style={{width: 240}}>
+            <small><DateTime date={event.dateCreated} /></small>
+          </td>
           <td>
             <h5>
-              <Link to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}>
+              <Link
+                to={`/${orgId}/${projectId}/issues/${event.groupID}/events/${event.id}/`}
+              >
                 {this.getEventTitle(event)}
               </Link>
             </h5>
           </td>
           <td className="event-user table-user-info" style={{textAlign: 'right'}}>
-            {event.user ?
-              <div>
-                <Avatar user={event.user} size={64} className="avatar" />
-                {event.user.email}
-              </div>
-            :
-              <span>&mdash;</span>
-            }
+            {event.user
+              ? <div>
+                  <Avatar user={event.user} size={64} className="avatar" />
+                  {event.user.email}
+                </div>
+              : <span>—</span>}
           </td>
         </tr>
       );
@@ -189,14 +188,17 @@ const ProjectEvents = React.createClass({
             <h3>{t('Events')}</h3>
           </div>
           <div className="col-sm-5 release-search">
-            <SearchBar defaultQuery=""
+            <SearchBar
+              defaultQuery=""
               placeholder="Search event message"
               query={this.state.query}
               onSearch={this.onSearch}
             />
           </div>
         </div>
-        <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
+        <div className="alert alert-block alert-info">
+          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+        </div>
         {this.renderStreamBody()}
         <Pagination pageLinks={this.state.pageLinks} />
       </div>

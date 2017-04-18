@@ -17,15 +17,20 @@ const MutedBox = React.createClass({
       <div className="box">
         <span className="icon icon-soundoff" />
         <p>
-          {statusDetails.ignoreUntil ?
-            <span>{t(
-              'This issue has been ignored until %s',
-              <strong><DateTime date={statusDetails.ignoreUntil} /></strong>
-            )} &mdash; </span>
-          :
-            <span>{t('This issue has been ignored')} &mdash; </span>
-          }
-          {t('You will not be notified of any changes and it will not show up by default in feeds.')}
+          {statusDetails.ignoreUntil
+            ? <span>
+                {t(
+                  'This issue has been ignored until %s',
+                  <strong><DateTime date={statusDetails.ignoreUntil} /></strong>
+                )}
+                {' '}
+                —
+                {' '}
+              </span>
+            : <span>{t('This issue has been ignored')} — </span>}
+          {t(
+            'You will not be notified of any changes and it will not show up by default in feeds.'
+          )}
         </p>
       </div>
     );

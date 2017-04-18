@@ -8,12 +8,12 @@ const Version = React.createClass({
     anchor: React.PropTypes.bool,
     version: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
   },
 
   getDefaultProps() {
     return {
-      anchor: true,
+      anchor: true
     };
   },
 
@@ -25,9 +25,11 @@ const Version = React.createClass({
       return (
         // NOTE: version is encoded because it can contain slashes "/",
         //       which can interfere with URL construction
+        (
           <Link to={`/${orgId}/${projectId}/releases/${encodeURIComponent(version)}/`}>
             <span title={version}>{shortVersion}</span>
           </Link>
+        )
       );
     }
     return <span title={version}>{shortVersion}</span>;

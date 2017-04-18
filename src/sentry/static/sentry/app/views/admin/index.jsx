@@ -11,12 +11,12 @@ const Admin = React.createClass({
   getInitialState() {
     // Allow injection via getsentry et all
     let hooksManage = [];
-    HookStore.get('admin:sidebar:manage').forEach((cb) => {
+    HookStore.get('admin:sidebar:manage').forEach(cb => {
       hooksManage.push(cb());
     });
 
     return {
-      hooksManage: hooksManage,
+      hooksManage: hooksManage
     };
   },
 

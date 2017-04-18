@@ -2,7 +2,7 @@ import ReactDOM from 'react-dom';
 import $ from 'jquery';
 import 'bootstrap/js/tooltip';
 
-export default function (options) {
+export default function(options) {
   options = options || {};
   return {
     componentDidMount() {
@@ -16,8 +16,9 @@ export default function (options) {
 
     attachTooltips() {
       $(ReactDOM.findDOMNode(this)).tooltip(
-        Object.prototype.toString.call(options) === '[object Function]' ?
-          options.call(this) : options
+        Object.prototype.toString.call(options) === '[object Function]'
+          ? options.call(this)
+          : options
       );
     },
 
@@ -25,7 +26,7 @@ export default function (options) {
       $(ReactDOM.findDOMNode(this))
         .tooltip('destroy') // destroy tooltips on parent ...
         .find(options.selector)
-          .tooltip('destroy'); // ... and descendents
+        .tooltip('destroy'); // ... and descendents
     }
   };
 }

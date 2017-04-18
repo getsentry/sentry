@@ -4,12 +4,10 @@ import PureRenderMixin from 'react-addons-pure-render-mixin';
 const ProjectLabel = React.createClass({
   propTypes: {
     project: React.PropTypes.object,
-    organization: React.PropTypes.object,
+    organization: React.PropTypes.object
   },
 
-  mixins: [
-    PureRenderMixin
-  ],
+  mixins: [PureRenderMixin],
 
   render() {
     let project = this.props.project;

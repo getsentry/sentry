@@ -6,11 +6,10 @@ const Switch = React.createClass({
     isActive: React.PropTypes.bool,
     isLoading: React.PropTypes.bool,
     isDisabled: React.PropTypes.bool,
-    toggle: React.PropTypes.func.isRequired,
+    toggle: React.PropTypes.func.isRequired
   },
 
   render() {
-
     let switchClasses = 'switch';
 
     if (this.props.size) {
@@ -30,10 +29,13 @@ const Switch = React.createClass({
     }
 
     return (
-      <div className={switchClasses}
-          onClick={this.props.isDisabled ? null : this.props.toggle}
-          role="checkbox" aria-checked={this.props.isActive}>
-        <span className="switch-toggle"/>
+      <div
+        className={switchClasses}
+        onClick={this.props.isDisabled ? null : this.props.toggle}
+        role="checkbox"
+        aria-checked={this.props.isActive}
+      >
+        <span className="switch-toggle" />
       </div>
     );
   }

@@ -13,7 +13,8 @@ export default class TextareaField extends InputField {
         required={this.props.required}
         placeholder={this.props.placeholder}
         onChange={this.onChange.bind(this)}
-        {...this.getAttributes} />
+        {...this.getAttributes}
+      />
     );
   }
 }

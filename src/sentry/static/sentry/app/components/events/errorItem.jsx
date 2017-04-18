@@ -6,9 +6,9 @@ const EventErrorItem = React.createClass({
     error: React.PropTypes.object.isRequired
   },
 
-  getInitialState(){
+  getInitialState() {
     return {
-      isOpen: false,
+      isOpen: false
     };
   },
 
@@ -26,8 +26,15 @@ const EventErrorItem = React.createClass({
     return (
       <li>
         {error.message}
-        <small> <a style={{marginLeft: 10}} onClick={this.toggle}>{isOpen ? t('Collapse') : t('Expand')}</a></small>
-        <pre style={{display: isOpen ? 'block' : 'none'}}>{JSON.stringify(error.data, null, 2)}</pre>
+        <small>
+          {' '}
+          <a style={{marginLeft: 10}} onClick={this.toggle}>
+            {isOpen ? t('Collapse') : t('Expand')}
+          </a>
+        </small>
+        <pre style={{display: isOpen ? 'block' : 'none'}}>
+          {JSON.stringify(error.data, null, 2)}
+        </pre>
       </li>
     );
   }

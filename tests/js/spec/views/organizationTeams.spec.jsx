@@ -5,7 +5,6 @@ import {Client} from 'app/api';
 import OrganizationTeams from 'app/views/organizationTeams';
 
 describe('OrganizationTeams', function() {
-
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
@@ -17,8 +16,8 @@ describe('OrganizationTeams', function() {
   });
 
   describe('fetchStats()', function() {
-    it('should make a request to the organizations endpoint', function () {
-      let organizationTeams = shallow(<OrganizationTeams params={{orgId:'123'}}/>, {
+    it('should make a request to the organizations endpoint', function() {
+      let organizationTeams = shallow(<OrganizationTeams params={{orgId: '123'}} />, {
         organization: {id: '1337'}
       }).instance();
 
@@ -29,8 +28,9 @@ describe('OrganizationTeams', function() {
       organizationTeams.fetchStats();
 
       expect(this.stubbedApiRequest.callCount).to.equal(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal('/organizations/123/stats/');
+      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal(
+        '/organizations/123/stats/'
+      );
     });
   });
 });
-

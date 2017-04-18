@@ -88,8 +88,10 @@ const ProjectContext = React.createClass({
     // See: https://github.com/gaearon/react-document-title/issues/35
 
     // intentionally shallow comparing references
-    if (prevState.project !== this.state.project ||
-      prevState.organization !== this.state.organization) {
+    if (
+      prevState.project !== this.state.project ||
+      prevState.organization !== this.state.organization
+    ) {
       let docTitle = this.refs.docTitle;
       if (docTitle) docTitle.forceUpdate();
     }
@@ -100,8 +102,7 @@ const ProjectContext = React.createClass({
   },
 
   getTitle() {
-    if (this.state.project)
-      return this.state.team.name + ' / ' + this.state.project.name;
+    if (this.state.project) return this.state.team.name + ' / ' + this.state.project.name;
     return 'Sentry';
   },
 
@@ -129,8 +130,8 @@ const ProjectContext = React.createClass({
     let activeProject = null;
     let activeTeam = null;
     let org = this.context.organization;
-    org.teams.forEach((team) => {
-      team.projects.forEach((project) => {
+    org.teams.forEach(team => {
+      team.projects.forEach(project => {
         if (project.slug == projectSlug) {
           activeProject = project;
           activeTeam = team;
@@ -157,13 +158,13 @@ const ProjectContext = React.createClass({
     if (activeProject && hasAccess) {
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
-        success: (data) => {
-          MemberListStore.loadInitialData(data.filter((m) => m.user).map((m) => m.user));
+        success: data => {
+          MemberListStore.loadInitialData(data.filter(m => m.user).map(m => m.user));
         }
       });
 
       this.api.request(this.getEnvironmentListEndpoint(), {
-        success: (data) => {
+        success: data => {
           EnvironmentStore.loadInitialData(data);
         }
       });
@@ -205,8 +206,7 @@ const ProjectContext = React.createClass({
   },
 
   renderBody() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
+    if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.PROJECT_NOT_FOUND:
@@ -222,9 +222,10 @@ const ProjectContext = React.createClass({
           // out into a reusable missing access error component
           return (
             <MissingProjectMembership
-                organization={this.getOrganization()}
-                team={this.state.team}
-                project={this.state.project} />
+              organization={this.getOrganization()}
+              team={this.state.team}
+              project={this.state.project}
+            />
           );
         default:
           return <LoadingError onRetry={this.remountComponent} />;
@@ -235,7 +236,11 @@ const ProjectContext = React.createClass({
   },
 
   render() {
-    return <DocumentTitle ref="docTitle" title={this.getTitle()}>{this.renderBody()}</DocumentTitle>;
+    return (
+      <DocumentTitle ref="docTitle" title={this.getTitle()}>
+        {this.renderBody()}
+      </DocumentTitle>
+    );
   }
 });
 

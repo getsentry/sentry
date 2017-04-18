@@ -56,4 +56,3 @@ const ProjectStore = Reflux.createStore({
 });
 
 export default ProjectStore;
-

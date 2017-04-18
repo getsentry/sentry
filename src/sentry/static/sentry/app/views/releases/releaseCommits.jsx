@@ -12,7 +12,7 @@ import {t} from '../../locale';
 const CommitLink = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
-    repository: React.PropTypes.object,
+    repository: React.PropTypes.object
   },
 
   getCommitUrl() {
@@ -26,12 +26,14 @@ const CommitLink = React.createClass({
     let commitUrl = this.getCommitUrl();
     let shortId = this.props.commitId.slice(0, 7);
 
-    return (commitUrl ?
-              <a className="btn btn-default btn-sm"
-                 href={commitUrl}
-                 target="_blank"><span
-                 className={'icon-mark-' + this.props.repository.provider.id}/>&nbsp; {shortId}</a> :
-              <span>{shortId}</span>);
+    return commitUrl
+      ? <a className="btn btn-default btn-sm" href={commitUrl} target="_blank">
+          <span className={'icon-mark-' + this.props.repository.provider.id} />
+          &nbsp;
+          {' '}
+          {shortId}
+        </a>
+      : <span>{shortId}</span>;
   }
 });
 
@@ -41,7 +43,7 @@ const ReleaseCommit = React.createClass({
     commitMessage: React.PropTypes.string,
     commitDateCreated: React.PropTypes.string,
     author: React.PropTypes.object,
-    repository: React.PropTypes.object,
+    repository: React.PropTypes.object
   },
 
   render() {
@@ -49,13 +51,24 @@ const ReleaseCommit = React.createClass({
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
           <div className="col-xs-8 list-group-avatar">
-            <Avatar user={this.props.author}/>
+            <Avatar user={this.props.author} />
             <h5>{this.props.commitMessage || t('No message provided')}</h5>
-            <p><strong>{this.props.author.name || t('Unknown author')}</strong> committed <TimeSince date={this.props.commitDateCreated} /></p>
+            <p>
+              <strong>{this.props.author.name || t('Unknown author')}</strong>
+              {' '}
+              committed
+              {' '}
+              <TimeSince date={this.props.commitDateCreated} />
+            </p>
           </div>
-          <div className="col-xs-2"><span className="repo-label">{this.props.repository.name}</span></div>
+          <div className="col-xs-2">
+            <span className="repo-label">{this.props.repository.name}</span>
+          </div>
           <div className="col-xs-2 align-right">
-            <CommitLink commitId={this.props.commitId} repository={this.props.repository}/>
+            <CommitLink
+              commitId={this.props.commitId}
+              repository={this.props.repository}
+            />
           </div>
         </div>
       </li>
@@ -99,7 +112,7 @@ const ReleaseCommits = React.createClass({
   },
 
   emptyState() {
-    return(
+    return (
       <div className="box empty-stream m-y-0">
         <span className="icon icon-exclamation" />
         <p>There are no commits associated with this release.</p>
@@ -109,16 +122,13 @@ const ReleaseCommits = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator/>;
+    if (this.state.loading) return <LoadingIndicator />;
 
-    if (this.state.error)
-      return <LoadingError/>;
+    if (this.state.error) return <LoadingError />;
 
     let {commitList} = this.state;
 
-    if (!commitList.length)
-      return <this.emptyState/>;
+    if (!commitList.length) return <this.emptyState />;
 
     return (
       <div className="panel panel-default">
@@ -145,7 +155,7 @@ const ReleaseCommits = React.createClass({
                 commitMessage={commit.message}
                 commitDateCreated={commit.dateCreated}
                 repository={commit.repository}
-                />
+              />
             );
           })}
         </ul>

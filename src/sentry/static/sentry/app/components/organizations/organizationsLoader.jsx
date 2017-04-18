@@ -9,12 +9,12 @@ const OrganizationsLoader = React.createClass({
   componentWillMount() {
     this.api.request('/organizations/', {
       query: {
-        'member': '1'
+        member: '1'
       },
-      success: (data) => {
+      success: data => {
         OrganizationStore.load(data);
         this.setState({
-          loading: false,
+          loading: false
         });
       },
       error: () => {

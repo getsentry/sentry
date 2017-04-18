@@ -5,13 +5,11 @@ import ContextBlock from './contextBlock';
 const DefaultContextType = React.createClass({
   propTypes: {
     alias: React.PropTypes.string.isRequired,
-    data: React.PropTypes.object.isRequired,
+    data: React.PropTypes.object.isRequired
   },
 
   render() {
-    return (
-      <ContextBlock data={this.props.data} alias={this.props.alias} />
-    );
+    return <ContextBlock data={this.props.data} alias={this.props.alias} />;
   }
 });
 
