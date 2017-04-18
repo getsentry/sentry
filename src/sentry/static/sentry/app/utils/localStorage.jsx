@@ -1,5 +1,7 @@
 let functions = {};
 
+let localStorage = window.localStorage;
+
 try {
   let mod = 'sentry';
   localStorage.setItem(mod, mod);

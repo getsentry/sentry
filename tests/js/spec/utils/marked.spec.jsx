@@ -3,7 +3,7 @@
 import marked from 'app/utils/marked';
 
 function expectMarkdown(test) {
-  expect(marked(test[0])).to.eql('<p>' + test[1] + '</p>\n');
+  expect(marked(test[0])).toEqual('<p>' + test[1] + '</p>\n');
 }
 
 describe('marked', function() {

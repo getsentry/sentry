@@ -23,11 +23,11 @@ describe('logging', function() {
         {foo: 'bar'} /* context */
       );
 
-      expect(Raven.captureMessage.calledOnce).to.be.ok;
-      expect(Raven.captureMessage.getCall(0).args[0]).to.eql(
+      expect(Raven.captureMessage.calledOnce).toBeTruthy;
+      expect(Raven.captureMessage.getCall(0).args[0]).toEqual(
         'HTTP 500: A bad thing happened'
       );
-      expect(Raven.captureMessage.getCall(0).args[1].extra).to.eql({foo: 'bar'});
+      expect(Raven.captureMessage.getCall(0).args[1].extra).toEqual({foo: 'bar'});
     });
 
     it('should handle text/html responses', function() {
@@ -39,21 +39,21 @@ describe('logging', function() {
         {foo: 'bar'} /* context */
       );
 
-      expect(Raven.captureMessage.calledOnce).to.be.ok;
-      expect(Raven.captureMessage.getCall(0).args[0]).to.eql(
+      expect(Raven.captureMessage.calledOnce).toBeTruthy;
+      expect(Raven.captureMessage.getCall(0).args[0]).toEqual(
         'HTTP 401: You are not authenticated'
       );
-      expect(Raven.captureMessage.getCall(0).args[1].extra).to.eql({foo: 'bar'});
+      expect(Raven.captureMessage.getCall(0).args[1].extra).toEqual({foo: 'bar'});
     });
 
     it('should handle responseJSON/responseText undefined (bad content type?)', function() {
       logAjaxError({status: 404}, {foo: 'bar'} /* context */);
 
-      expect(Raven.captureMessage.calledOnce).to.be.ok;
-      expect(Raven.captureMessage.getCall(0).args[0]).to.eql(
+      expect(Raven.captureMessage.calledOnce).toBeTruthy;
+      expect(Raven.captureMessage.getCall(0).args[0]).toEqual(
         'HTTP 404: <unknown response>'
       );
-      expect(Raven.captureMessage.getCall(0).args[1].extra).to.eql({foo: 'bar'});
+      expect(Raven.captureMessage.getCall(0).args[1].extra).toEqual({foo: 'bar'});
     });
   });
 });

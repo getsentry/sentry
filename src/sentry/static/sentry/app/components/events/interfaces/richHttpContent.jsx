@@ -28,11 +28,17 @@ const RichHttpContent = React.createClass({
         let val = obj[k];
         return out.concat(
           {}.toString.call(val) === '[object Array]'
-            ? val.map(v => [k, v]) // key has multiple values (array)
+            ? val.sort().map(v => [k, v]) // key has multiple values (array)
             : [[k, val]] // key has single value
         );
       }, [])
-      .sort(function([keyA], [keyB]) {
+      .sort(function([keyA, valA], [keyB, valB]) {
+        // if keys are identical, sort on value
+        if (keyA === keyB) {
+          keyA = valA;
+          keyB = valB;
+        }
+
         return keyA < keyB ? -1 : 1;
       });
   },

@@ -1,6 +1,5 @@
-class PendingChangeQueue extends Array {
+class PendingChangeQueue {
   constructor() {
-    super();
     this.changes = [];
   }
 
