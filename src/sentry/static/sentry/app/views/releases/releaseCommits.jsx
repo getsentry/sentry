@@ -4,7 +4,8 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
-
+import DropdownLink from '../../components/dropdownLink';
+import MenuItem from '../../components/menuItem';
 import ApiMixin from '../../mixins/apiMixin';
 
 import {t} from '../../locale';
@@ -121,6 +122,28 @@ const ReleaseCommits = React.createClass({
     );
   },
 
+  renderCommitsForRepo(repoCommits) {
+    let commitList = repoCommits;
+    return (
+      <ul className="list-group list-group-lg commit-list">
+        {commitList.map(commit => {
+          return (
+            <ReleaseCommit
+              key={commit.id}
+              commitId={commit.id}
+              author={commit.author}
+              commitMessage={commit.message}
+              commitDateCreated={commit.dateCreated}
+              repository={commit.repository}
+            />
+          );
+        })}
+      </ul>
+    );
+  },
+
+  // renderCommitsForRepo() {},
+
   render() {
     if (this.state.loading) return <LoadingIndicator />;
 
@@ -130,35 +153,68 @@ const ReleaseCommits = React.createClass({
 
     if (!commitList.length) return <this.emptyState />;
 
+    let commitsByRepository = commitList.reduce(function(cbr, commit) {
+      let {repository} = commit;
+      if (!cbr.hasOwnProperty(repository.name)) {
+        cbr[repository.name] = [];
+      }
+
+      cbr[repository.name].push(commit);
+      return cbr;
+    }, {});
     return (
-      <div className="panel panel-default">
-        <div className="panel-heading panel-heading-bold">
-          <div className="row">
-            <div className="col-xs-8">
-              Commit
-            </div>
-            <div className="col-xs-2">
-              Repository
-            </div>
-            <div className="col-xs-2 align-right">
-              SHA
-            </div>
-          </div>
-        </div>
-        <ul className="list-group list-group-lg commit-list">
-          {commitList.map(commit => {
-            return (
-              <ReleaseCommit
-                key={commit.id}
-                commitId={commit.id}
-                author={commit.author}
-                commitMessage={commit.message}
-                commitDateCreated={commit.dateCreated}
-                repository={commit.repository}
+      <div>
+        <DropdownLink
+          caret={false}
+          className="btn btn-default btn-sm"
+          title={
+            <span>
+              Repositories
+              <span
+                className="icon-arrow-down"
+                style={{marginLeft: 3, marginRight: -3}}
               />
+            </span>
+          }
+        >
+          <MenuItem key="all">
+            <a onClick={console.log('click')}>
+              All Repositories
+            </a>
+          </MenuItem>
+          {Object.keys(commitsByRepository).map(repository => {
+            return (
+              <MenuItem key={commitsByRepository[repository].id} noAnchor={true}>
+                <a onClick={console.log('click')}>
+                  {repository}
+                </a>
+              </MenuItem>
             );
           })}
-        </ul>
+        </DropdownLink>
+        {Object.keys(commitsByRepository).map(repository => {
+          return (
+            <div>
+              <span>{repository}</span>
+              <div className="panel panel-default">
+                <div className="panel-heading panel-heading-bold">
+                  <div className="row">
+                    <div className="col-xs-8">
+                      Commit
+                    </div>
+                    <div className="col-xs-2">
+                      Repository
+                    </div>
+                    <div className="col-xs-2 align-right">
+                      SHA
+                    </div>
+                  </div>
+                </div>
+                {this.renderCommitsForRepo(commitsByRepository[repository])}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
