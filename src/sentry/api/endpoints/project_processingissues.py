@@ -51,14 +51,13 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         reprocessing_issues = ReprocessingReport.objects \
             .filter(project_id=project.id).count()
 
-        data = {
-            'hasIssues': num_issues > 0,
-            'numIssues': num_issues,
-            'lastSeen': last_seen and serialize(last_seen.datetime) or None,
-            'resolveableIssues': len(resolveable_issues),
-            'hasMoreResolveableIssues': has_more,
-            'issuesProcessing': reprocessing_issues,
-            'signedLink': generate_signed_link(
+        tokens = [x for x in ApiToken.objects.filter(
+            user=request.user
+        ).all() if 'project:releases' in x.get_scopes()]
+
+        signedLink = None
+        if tokens and tokens[0]:
+            signedLink = generate_signed_link(
                 request.user,
                 'sentry-api-0-project-fix-processing-issues',
                 kwargs={
@@ -66,6 +65,15 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
                     'organization_slug': project.organization.slug,
                 }
             )
+
+        data = {
+            'hasIssues': num_issues > 0,
+            'numIssues': num_issues,
+            'lastSeen': last_seen and serialize(last_seen.datetime) or None,
+            'resolveableIssues': len(resolveable_issues),
+            'hasMoreResolveableIssues': has_more,
+            'issuesProcessing': reprocessing_issues,
+            'signedLink': signedLink
         }
 
         if request.GET.get('detailed') == '1':
