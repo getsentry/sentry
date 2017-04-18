@@ -3,10 +3,6 @@ class PendingChangeQueue {
     this.changes = [];
   }
 
-  clear() {
-    this.changes = [];
-  }
-
   getForItem(itemId) {
     return this.changes.filter(change => change[1] === itemId);
   }
