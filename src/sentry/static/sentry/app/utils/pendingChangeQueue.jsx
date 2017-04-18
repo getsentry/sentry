@@ -20,6 +20,10 @@ class PendingChangeQueue {
       change => change[0] != changeId || change[1] != itemId
     );
   }
+
+  forEach() {
+    this.changes.forEach.apply(this.changes, arguments);
+  }
 }
 
 export default PendingChangeQueue;
