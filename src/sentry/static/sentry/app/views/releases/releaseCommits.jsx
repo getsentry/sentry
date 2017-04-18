@@ -149,11 +149,8 @@ const ReleaseCommits = React.createClass({
       <div className="panel panel-default">
         <div className="panel-heading panel-heading-bold">
           <div className="row">
-            <div className="col-xs-10">
-              Commits in {repo}
-            </div>
-            <div className="col-xs-2 align-right">
-              SHA
+            <div className="col-xs-12">
+              {repo}
             </div>
           </div>
         </div>
