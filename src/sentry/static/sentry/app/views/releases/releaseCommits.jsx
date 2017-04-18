@@ -188,22 +188,19 @@ const ReleaseCommits = React.createClass({
       <div>
         <div className="heading">
           <div className="row">
-            <div className="col-xs-1">
+            <div className="commits-header col-xs-1">
               <h5>Commits</h5>
             </div>
-            <div className="col-xs-11 align-left">
+            <div className="commits-dropdown col-xs-11 align-left">
               {Object.keys(commitsByRepository).length > 1
-                ? <div className="col-xs-2">
+                ? <div className="commits-dropdown col-xs-2">
                     <DropdownLink
                       caret={false}
-                      className="btn btn-default btn-sm"
                       title={
-                        <span>
-                          <span
-                            className="icon-arrow-down"
-                            style={{marginLeft: 3, marginRight: -3}}
-                          />
-                        </span>
+                        <span
+                          className="icon-arrow-down dropdown"
+                          style={{marginLeft: 3, marginRight: -3}}
+                        />
                       }
                     >
                       <MenuItem
@@ -212,8 +209,9 @@ const ReleaseCommits = React.createClass({
                         onClick={() => {
                           this.setActiveRepo(null);
                         }}
+                        isActive={this.state.activeRepo === null}
                       >
-                        All Repositories
+                        <a>All Repositories</a>
                       </MenuItem>
                       {Object.keys(commitsByRepository).map(repository => {
                         return (
@@ -223,8 +221,9 @@ const ReleaseCommits = React.createClass({
                             onClick={() => {
                               this.setActiveRepo(repository);
                             }}
+                            isActive={this.state.activeRepo === repository}
                           >
-                            {repository}
+                            <a>{repository}</a>
                           </MenuItem>
                         );
                       })}
