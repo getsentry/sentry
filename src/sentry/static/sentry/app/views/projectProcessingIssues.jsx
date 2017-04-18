@@ -260,15 +260,17 @@ const ProjectProcessingIssues = React.createClass({
 
     let fixLinkBlock = null;
     if (fixLink) {
-      fixLinkBlock = <div className="alert alert-block alert-info">
-        <div className="form-group" style={{marginBottom: 0}}>
-          <label>{t('Paste this command into your shell:')}</label>
-          <div className="form-control disabled auto-select" style={{marginBottom: 6}}>
-            curl -sL {fixLink} | bash
+      fixLinkBlock = (
+        <div className="alert alert-block alert-info">
+          <div className="form-group" style={{marginBottom: 0}}>
+            <label>{t('Paste this command into your shell:')}</label>
+            <div className="form-control disabled auto-select" style={{marginBottom: 6}}>
+              curl -sL {fixLink} | bash
+            </div>
+            <i>{t('It will try to upload missing symbols from your system.')}</i>
           </div>
-          <i>{t('It will try to upload missing symbols from your system.')}</i>
         </div>
-      </div>
+      );
     }
     return (
       <div>
