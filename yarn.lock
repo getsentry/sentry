@@ -789,6 +789,13 @@ babel-runtime@^6.0.0, babel-runtime@^6.11.6, babel-runtime@^6.18.0, babel-runtim
     core-js "^2.4.0"
     regenerator-runtime "^0.10.0"
 
+babel-runtime@^6.22.0:
+  version "6.23.0"
+  resolved "https://registry.yarnpkg.com/babel-runtime/-/babel-runtime-6.23.0.tgz#0a9489f144de70efb3ce4300accdb329e2fc543b"
+  dependencies:
+    core-js "^2.4.0"
+    regenerator-runtime "^0.10.0"
+
 babel-template@^6.14.0, babel-template@^6.15.0, babel-template@^6.16.0, babel-template@^6.3.0, babel-template@^6.8.0:
   version "6.16.0"
   resolved "https://registry.yarnpkg.com/babel-template/-/babel-template-6.16.0.tgz#e149dd1a9f03a35f817ddbc4d0481988e7ebc8ca"
@@ -3309,7 +3316,7 @@ lodash@^3.3.1, lodash@^3.8.0:
   version "3.10.1"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-3.10.1.tgz#5bf45e8e49ba4189e17d482789dfd15bd140b7b6"
 
-lodash@^4.0.1, lodash@^4.1.0, lodash@^4.13.1, lodash@^4.14.0, lodash@^4.2.0:
+lodash@^4.0.1, lodash@^4.1.0, lodash@^4.13.1, lodash@^4.14.0, lodash@^4.2.0, lodash@^4.3.0, lodash@^4.5.1:
   version "4.16.4"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.16.4.tgz#01ce306b9bad1319f2a5528674f88297aeb70127"
 
@@ -4344,6 +4351,14 @@ react-lazy-load@3.0.10:
     lodash.debounce "^4.0.0"
     lodash.throttle "^4.0.0"
 
+react-mentions@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/react-mentions/-/react-mentions-1.0.0.tgz#a2faf0f392bf1af863258c37555465b6d7ef99af"
+  dependencies:
+    babel-runtime "^6.22.0"
+    lodash "^4.5.1"
+    substyle "^5.1.0"
+
 react-overlays@^0.6.3:
   version "0.6.10"
   resolved "https://registry.yarnpkg.com/react-overlays/-/react-overlays-0.6.10.tgz#e7e52dad47f00a0fc784eb044428c3a9e874bfa3"
@@ -4943,6 +4958,15 @@ style-loader@0.12.4:
   resolved "https://registry.yarnpkg.com/style-loader/-/style-loader-0.12.4.tgz#ae7d0665dc4dc653daa2fe97bb90914bc1d22d9b"
   dependencies:
     loader-utils "^0.2.7"
+
+substyle@^5.1.0:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/substyle/-/substyle-5.1.1.tgz#3941a7df3dbfd413d8012180266577fb58f92002"
+  dependencies:
+    hoist-non-react-statics "^1.2.0"
+    invariant "^2.2.0"
+    lodash "^4.3.0"
+    warning "^2.1.0"
 
 supports-color@1.2.0:
   version "1.2.0"

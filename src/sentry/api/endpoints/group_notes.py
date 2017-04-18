@@ -40,17 +40,17 @@ class GroupNotesEndpoint(GroupEndpoint):
         if not serializer2.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        data = dict(serializer.object)
+        note_data = dict(serializer.object)
 
         GroupSubscription.objects.subscribe(
             group=group,
             user=request.user,
             reason=GroupSubscriptionReason.comment,
         )
-        data2 = dict(serializer2.object)
+        mentions_data = dict(serializer2.object)
 
-        if data2['mentions']:
-            for item in data2['mentions']:
+        if mentions_data['mentions']:
+            for item in mentions_data['mentions']:
                 user = User.objects.get(id=item)
                 GroupSubscription.objects.subscribe(
                     group=group,
@@ -62,7 +62,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             group=group,
             type=Activity.NOTE,
             user=request.user,
-            data=data,
+            data=note_data,
             datetime__gte=timezone.now() - timedelta(hours=1)
         ).exists():
             return Response('{"detail": "You have already posted that comment."}',
@@ -73,7 +73,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             project=group.project,
             type=Activity.NOTE,
             user=extract_lazy_object(request.user),
-            data=data,
+            data=note_data,
         )
 
         activity.send_notification()
