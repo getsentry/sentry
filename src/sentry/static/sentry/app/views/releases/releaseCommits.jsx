@@ -51,7 +51,7 @@ const ReleaseCommit = React.createClass({
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
-          <div className="col-xs-8 list-group-avatar">
+          <div className="col-xs-10 list-group-avatar">
             <Avatar user={this.props.author} />
             <h5>{this.props.commitMessage || t('No message provided')}</h5>
             <p>
@@ -61,9 +61,6 @@ const ReleaseCommit = React.createClass({
               {' '}
               <TimeSince date={this.props.commitDateCreated} />
             </p>
-          </div>
-          <div className="col-xs-2">
-            <span className="repo-label">{this.props.repository.name}</span>
           </div>
           <div className="col-xs-2 align-right">
             <CommitLink
@@ -131,8 +128,8 @@ const ReleaseCommits = React.createClass({
     });
   },
 
-  renderCommitsForRepo() {
-    let {activeRepo, commitList} = this.state;
+  getCommitsByRepository() {
+    let {commitList} = this.state;
     let commitsByRepository = commitList.reduce(function(cbr, commit) {
       let {repository} = commit;
       if (!cbr.hasOwnProperty(repository.name)) {
@@ -142,22 +139,39 @@ const ReleaseCommits = React.createClass({
       cbr[repository.name].push(commit);
       return cbr;
     }, {});
-    let activeCommits = commitsByRepository[activeRepo];
+    return commitsByRepository;
+  },
+
+  renderCommitsForRepo(repo) {
+    let commitsByRepository = this.getCommitsByRepository();
+    let activeCommits = commitsByRepository[repo];
     return (
-      <ul className="list-group list-group-lg commit-list">
-        {activeCommits.map(commit => {
-          return (
-            <ReleaseCommit
-              key={commit.id}
-              commitId={commit.id}
-              author={commit.author}
-              commitMessage={commit.message}
-              commitDateCreated={commit.dateCreated}
-              repository={commit.repository}
-            />
-          );
-        })}
-      </ul>
+      <div className="panel panel-default">
+        <div className="panel-heading panel-heading-bold">
+          <div className="row">
+            <div className="col-xs-10">
+              Commits in {repo}
+            </div>
+            <div className="col-xs-2 align-right">
+              SHA
+            </div>
+          </div>
+        </div>
+        <ul className="list-group list-group-lg commit-list">
+          {activeCommits.map(commit => {
+            return (
+              <ReleaseCommit
+                key={commit.id}
+                commitId={commit.id}
+                author={commit.author}
+                commitMessage={commit.message}
+                commitDateCreated={commit.dateCreated}
+                repository={commit.repository}
+              />
+            );
+          })}
+        </ul>
+      </div>
     );
   },
 
@@ -166,99 +180,69 @@ const ReleaseCommits = React.createClass({
 
     if (this.state.error) return <LoadingError />;
 
-    let {commitList} = this.state;
+    let {commitList, activeRepo} = this.state;
 
     if (!commitList.length) return <this.emptyState />;
-
-    let commitsByRepository = commitList.reduce(function(cbr, commit) {
-      let {repository} = commit;
-      if (!cbr.hasOwnProperty(repository.name)) {
-        cbr[repository.name] = [];
-      }
-
-      cbr[repository.name].push(commit);
-      return cbr;
-    }, {});
+    let commitsByRepository = this.getCommitsByRepository();
     return (
       <div>
-        <div className="panel panel-default">
-          <div className="panel-heading panel-heading-bold">
-            <div className="row">
-              <div className="col-xs-8">
-                Commit
-              </div>
-              <div className="col-xs-2">
-                <DropdownLink
-                  caret={false}
-                  className="btn btn-default btn-sm"
-                  title={
-                    <span>
-                      {this.state.title}
-                      <span
-                        className="icon-arrow-down"
-                        style={{marginLeft: 3, marginRight: -3}}
-                      />
-                    </span>
-                  }
-                >
-                  <MenuItem key="all">
-                    <a
-                      onClick={() => {
-                        this.setActiveRepo(null);
-                      }}
+        <div className="heading">
+          <div className="row">
+            <div className="col-xs-1">
+              <h5>Commits</h5>
+            </div>
+            <div className="col-xs-11 align-left">
+              {Object.keys(commitsByRepository).length > 1
+                ? <div className="col-xs-2">
+                    <DropdownLink
+                      caret={false}
+                      className="btn btn-default btn-sm"
+                      title={
+                        <span>
+                          <span
+                            className="icon-arrow-down"
+                            style={{marginLeft: 3, marginRight: -3}}
+                          />
+                        </span>
+                      }
                     >
-                      All Repositories
-                    </a>
-                  </MenuItem>
-                  {Object.keys(commitsByRepository).map(repository => {
-                    return (
-                      <MenuItem key={commitsByRepository[repository].id} noAnchor={true}>
-                        <a
-                          onClick={() => {
-                            this.setActiveRepo(repository);
-                          }}
-                        >
-                          {repository}
-                        </a>
+                      <MenuItem
+                        key="all"
+                        noAnchor={true}
+                        onClick={() => {
+                          this.setActiveRepo(null);
+                        }}
+                      >
+                        All Repositories
                       </MenuItem>
-                    );
-                  })}
-                </DropdownLink>
-              </div>
-              <div className="col-xs-2 align-right">
-                SHA
-              </div>
+                      {Object.keys(commitsByRepository).map(repository => {
+                        return (
+                          <MenuItem
+                            key={commitsByRepository[repository].id}
+                            noAnchor={true}
+                            onClick={() => {
+                              this.setActiveRepo(repository);
+                            }}
+                          >
+                            {repository}
+                          </MenuItem>
+                        );
+                      })}
+                    </DropdownLink>
+                  </div>
+                : null}
             </div>
           </div>
         </div>
-        {!this.state.activeRepo
-          ? Object.keys(commitsByRepository).map(repository => {
-              let activeCommits = commitsByRepository[repository];
-              return (
-                <div>
-                  <span>{repository}</span>
-                  <ul className="list-group list-group-lg commit-list">
-                    {activeCommits.map(commit => {
-                      return (
-                        <ReleaseCommit
-                          key={commit.id}
-                          commitId={commit.id}
-                          author={commit.author}
-                          commitMessage={commit.message}
-                          commitDateCreated={commit.dateCreated}
-                          repository={commit.repository}
-                        />
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })
-          : this.renderCommitsForRepo()}
+        {activeRepo
+          ? this.renderCommitsForRepo(activeRepo)
+          : Object.keys(commitsByRepository).map(repository => {
+              return this.renderCommitsForRepo(repository);
+            })}
       </div>
     );
   }
 });
 
 export default ReleaseCommits;
-export {ReleaseCommits, CommitLink};
+export {ReleaseCommit, CommitLink};
