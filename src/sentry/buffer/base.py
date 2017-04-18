@@ -13,7 +13,7 @@ import six
 from django.db.models import F
 
 from sentry.signals import buffer_incr_complete
-from sentry.tasks.process_buffer import process_incr
+from sentry.tasks.process_buffer import process_incr, process_cb
 
 
 class BufferMount(type):
@@ -37,7 +37,21 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    __all__ = ('incr', 'process', 'process_pending', 'validate')
+    __all__ = ('incr', 'process_incr', 'process_pending', 'validate', 'apply', 'process_cb')
+
+    registry = {}
+
+    def register_cb(self, name, cb):
+        self.registry[name] = cb
+
+    def apply(self, name, value):
+        if name not in self.registry:
+            raise NotImplementedError
+
+        process_cb.apply_async(kwargs={
+            'name': name,
+            'value': value,
+        })
 
     def incr(self, model, columns, filters, extra=None):
         """
@@ -59,9 +73,16 @@ class Buffer(object):
         """
 
     def process_pending(self):
+        self.process_pending_incr()
+        self.process_pending_cb()
+
+    def process_pending_incr(self):
         return []
 
-    def process(self, model, columns, filters, extra=None):
+    def process_pending_cb(self):
+        return []
+
+    def process_incr(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in six.iteritems(columns))
         if extra:
             update_kwargs.update(extra)
@@ -79,3 +100,10 @@ class Buffer(object):
             created=created,
             sender=model,
         )
+
+    def process_cb(self, name, value):
+        try:
+            cb = self.registry[name]
+        except KeyError:
+            raise NotImplementedError
+        cb(value=value)

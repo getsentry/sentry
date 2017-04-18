@@ -16,7 +16,7 @@ from django.utils.encoding import force_bytes
 
 from sentry.buffer import Buffer
 from sentry.exceptions import InvalidConfiguration
-from sentry.tasks.process_buffer import process_incr
+from sentry.tasks.process_buffer import process_incr, process_cb
 from sentry.utils import metrics
 from sentry.utils.compat import pickle
 from sentry.utils.hashlib import md5_text
@@ -30,6 +30,7 @@ class RedisBuffer(Buffer):
 
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
+        Buffer.__init__(self)
 
     def validate(self):
         try:
@@ -43,7 +44,7 @@ class RedisBuffer(Buffer):
             value = value.pk
         return force_bytes(value, errors='replace')
 
-    def _make_key(self, model, filters):
+    def _make_incr_key(self, model, filters):
         """
         Returns a Redis-compatible key for the model given filters.
         """
@@ -54,6 +55,9 @@ class RedisBuffer(Buffer):
                     for k, v in sorted(six.iteritems(filters)))
             ).hexdigest(),
         )
+
+    def _make_cb_key(self, name):
+        return '%s:%s' % (self.pending_key, md5_text(name).hexdigest())
 
     def _make_lock_key(self, key):
         return 'l:%s' % (key,)
@@ -69,7 +73,7 @@ class RedisBuffer(Buffer):
         """
         # TODO(dcramer): longer term we'd rather not have to serialize values
         # here (unless it's to JSON)
-        key = self._make_key(model, filters)
+        key = self._make_incr_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis shard)
         conn = self.cluster.get_local_client_for_key(key)
@@ -87,7 +91,7 @@ class RedisBuffer(Buffer):
         pipe.zadd(self.pending_key, time(), key)
         pipe.execute()
 
-    def process_pending(self):
+    def process_pending_incr(self):
         client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(self.pending_key)
         # prevent a stampede due to celerybeat + periodic task
@@ -113,7 +117,7 @@ class RedisBuffer(Buffer):
         finally:
             client.delete(lock_key)
 
-    def process(self, key):
+    def process_incr(self, key):
         client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
@@ -146,6 +150,40 @@ class RedisBuffer(Buffer):
                 elif k.startswith('e+'):
                     extra_values[k[2:]] = pickle.loads(v)
 
-            super(RedisBuffer, self).process(model, incr_values, filters, extra_values)
+            super(RedisBuffer, self).process_incr(model, incr_values, filters, extra_values)
         finally:
             client.delete(lock_key)
+
+    def apply(self, name, value):
+        if name not in self.registry:
+            raise NotImplementedError
+
+        key = self._make_cb_key(name)
+        client = self.cluster.get_routing_client()
+        client.sadd(key, value)
+
+    def process_pending_cb(self):
+        client = self.cluster.get_routing_client()
+
+        for name in self.registry.iterkeys():
+            pending_key = self._make_cb_key(name)
+            lock_key = self._make_lock_key(pending_key)
+            # prevent a stampede due to celerybeat + periodic task
+            if not client.set(lock_key, '1', nx=True, ex=60):
+                continue
+
+            try:
+                values = client.smembers(pending_key)
+
+                if not values:
+                    continue
+
+                for value in values:
+                    process_cb.apply_async(kwargs={
+                        'name': name,
+                        'value': value,
+                    })
+
+                client.srem(pending_key, *values)
+            finally:
+                client.delete(lock_key)

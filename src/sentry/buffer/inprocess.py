@@ -18,4 +18,7 @@ class InProcessBuffer(Buffer):
               in development and testing environments.
     """
     def incr(self, model, columns, filters, extra=None):
-        self.process(model, columns, filters, extra)
+        self.process_incr(model, columns, filters, extra)
+
+    def apply(self, name, value):
+        self.process_cb(name, value)

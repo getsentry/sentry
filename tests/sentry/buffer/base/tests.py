@@ -29,13 +29,13 @@ class BufferTest(TestCase):
         group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 1}
         filters = {'id': group.id, 'project_id': 1}
-        self.buf.process(Group, columns, filters)
+        self.buf.process_incr(Group, columns, filters)
         assert Group.objects.get(id=group.id).times_seen == group.times_seen + 1
 
     def test_process_saves_data_without_existing_row(self):
         columns = {'times_seen': 1}
         filters = {'message': 'foo bar', 'project_id': 1}
-        self.buf.process(Group, columns, filters)
+        self.buf.process_incr(Group, columns, filters)
         group = Group.objects.get(message='foo bar')
         # the default value for times_seen is 1, so we actually end up
         # incrementing it to 2 here
@@ -48,7 +48,7 @@ class BufferTest(TestCase):
         filters = {'id': group.id, 'project_id': 1}
         # strip micrseconds because MySQL doesn't seem to handle them correctly
         the_date = (timezone.now() + timedelta(days=5)).replace(microsecond=0)
-        self.buf.process(Group, columns, filters, {'last_seen': the_date})
+        self.buf.process_incr(Group, columns, filters, {'last_seen': the_date})
         group_ = Group.objects.get(id=group.id)
         assert group_.times_seen == group.times_seen + 1
         assert group_.last_seen.replace(microsecond=0) == the_date
@@ -70,6 +70,6 @@ class BufferTest(TestCase):
 
         columns = {'new_groups': 1}
         filters = {'id': release_project.id}
-        self.buf.process(ReleaseProject, columns, filters)
+        self.buf.process_incr(ReleaseProject, columns, filters)
         release_project_ = ReleaseProject.objects.get(id=release_project.id)
         assert release_project_.new_groups == 1

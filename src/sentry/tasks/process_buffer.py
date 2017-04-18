@@ -42,4 +42,12 @@ def process_incr(**kwargs):
     """
     from sentry import buffer
 
-    buffer.process(**kwargs)
+    buffer.process_incr(**kwargs)
+
+
+@instrumented_task(
+    name='sentry.tasks.process_buffer.process_cb')
+def process_cb(**kwargs):
+    from sentry import buffer
+
+    buffer.process_cb(**kwargs)
