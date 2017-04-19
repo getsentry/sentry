@@ -1,7 +1,9 @@
 {% autoescape off %}#!/bin/sh
 set -eu
 
-{% if issues %}
+{% if not token %}
+echo '😕  The link you followed expired.'
+{% elif issues %}
 echo "There are currently {{ issues|length }} missing debug symbols:"
 {% for issue in issues %}
   echo "   - {{ issue.uuid }}  [{{ issue.name }}]"
@@ -22,7 +24,7 @@ echo "⚙️  Fetched sentry-cli utility"
 echo -n $'\033[K'
 echo "👀  Looking for debug symbols"
 
-{% if token %}export SENTRY_AUTH_TOKEN="{{ token }}"{% endif %}
+export SENTRY_AUTH_TOKEN="{{ token }}"
 export SENTRY_URL="{{ server_url }}"
 export SENTRY_ORG="{{ project.organization.slug }}"
 export SENTRY_PROJECT="{{ project.slug }}"

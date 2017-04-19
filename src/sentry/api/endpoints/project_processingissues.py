@@ -14,9 +14,22 @@ from sentry.utils.http import absolute_uri
 
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
     def get(self, request, project):
-        tokens = [x for x in ApiToken.objects.filter(
-            user=request.user
-        ).all() if 'project:releases' in x.get_scopes()]
+        token = None
+
+        if request.user_from_signed_request and request.user.is_authenticated():
+            tokens = [x for x in ApiToken.objects.filter(
+                user=request.user
+            ).all() if 'project:releases' in x.get_scopes()]
+            if not tokens:
+                token = ApiToken.objects.create(
+                    user=request.user,
+                    scope_list=['project:releases'],
+                    refresh_token=None,
+                    expires_at=None,
+                )
+            else:
+                token = tokens[0]
+
         resp = render_to_response('sentry/reprocessing-script.sh', {
             'issues': [{
                 'uuid': issue.data.get('image_uuid'),
@@ -25,8 +38,15 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
                 project=project
             )],
             'project': project,
-            'token': tokens and tokens[0] or None,
+            'token': token,
             'server_url': absolute_uri('/'),
+        })
+        resp['Content-Type'] = 'text/plain'
+        return resp
+
+    def permission_denied(self, request):
+        resp = render_to_response('sentry/reprocessing-script.sh', {
+            'token': None
         })
         resp['Content-Type'] = 'text/plain'
         return resp
@@ -51,13 +71,9 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         reprocessing_issues = ReprocessingReport.objects \
             .filter(project_id=project.id).count()
 
-        tokens = [x for x in ApiToken.objects.filter(
-            user=request.user
-        ).all() if 'project:releases' in x.get_scopes()]
-
-        signedLink = None
-        if tokens and tokens[0]:
-            signedLink = generate_signed_link(
+        signed_link = None
+        if num_issues > 0:
+            signed_link = generate_signed_link(
                 request.user,
                 'sentry-api-0-project-fix-processing-issues',
                 kwargs={
@@ -73,7 +89,7 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
             'resolveableIssues': len(resolveable_issues),
             'hasMoreResolveableIssues': has_more,
             'issuesProcessing': reprocessing_issues,
-            'signedLink': signedLink
+            'signedLink': signed_link
         }
 
         if request.GET.get('detailed') == '1':
