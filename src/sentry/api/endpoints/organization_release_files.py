@@ -11,7 +11,7 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import File, Release, ReleaseFile
+from sentry.models import File, Release, ReleaseFile, Distribution
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -75,6 +75,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :param string name: the name (full path) of the file.
         :param file file: the multipart encoded file.
+        :param string distribution: the name of the distribution.
         :param string header: this parameter can be supplied multiple times
                               to attach headers to the file.  Each header
                               is a string in the format ``key:value``.  For
@@ -107,6 +108,11 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         if _filename_re.search(name):
             return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
 
+        dist_name = request.DATA.get('distribution')
+        dist = None
+        if dist_name:
+            dist = Distribution.get_or_create(release, dist_name)
+
         headers = {
             'Content-Type': fileobj.content_type,
         }
@@ -134,6 +140,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
                     release=release,
                     file=file,
                     name=full_name,
+                    distribution=dist,
                 )
         except IntegrityError:
             file.delete()
