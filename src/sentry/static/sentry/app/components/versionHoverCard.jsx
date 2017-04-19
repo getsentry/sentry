@@ -27,7 +27,8 @@ const VersionHoverCard = React.createClass({
       error: false,
       data: {},
       visible: false,
-      hasRepos: false
+      hasRepos: false,
+      deploys: []
     };
   },
 
@@ -37,7 +38,7 @@ const VersionHoverCard = React.createClass({
 
   fetchData() {
     let {orgId, projectId, version} = this.props;
-    let done = _.after(2, () => {
+    let done = _.after(3, () => {
       this.setState({loading: false});
     });
 
@@ -65,6 +66,23 @@ const VersionHoverCard = React.createClass({
       success: data => {
         this.setState({
           hasRepos: data.length > 0
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true
+        });
+      },
+      complete: done
+    });
+
+    //deploys
+    let deployPath = `/organizations/${orgId}/releases/${encodeURIComponent(version)}/deploys/`;
+    this.api.request(deployPath, {
+      method: 'GET',
+      success: data => {
+        this.setState({
+          deploys: data
         });
       },
       error: () => {
@@ -116,13 +134,11 @@ const VersionHoverCard = React.createClass({
   },
 
   renderBody() {
-    let {release} = this.state;
+    let {release, deploys} = this.state;
     let {version} = this.props;
-
     let lastCommit = release.lastCommit;
     let commitAuthor = lastCommit && lastCommit.author;
     let shortVersion = getShortVersion(version);
-
     return (
       <div>
         <div className="hovercard-header">
@@ -184,6 +200,18 @@ const VersionHoverCard = React.createClass({
                           </div>
                         </div>
                       </div>}
+                    {deploys &&
+                      deploys.map(deploy => {
+                        return (
+                          <div key={deploy.id}>
+                            <h6 className="commit-heading">
+                              Deployed to {deploy.environment}
+                            </h6>
+                            {deploy.dateFinished &&
+                              <TimeSince date={deploy.dateFinished} />}
+                          </div>
+                        );
+                      })}
                   </div>}
         </div>
       </div>
