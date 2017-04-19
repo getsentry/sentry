@@ -19,7 +19,7 @@ from sentry.lang.javascript.processor import (
 from sentry.lang.javascript.errormapping import (
     rewrite_exception, REACT_MAPPING_URL
 )
-from sentry.models import File, Release, Distribution, ReleaseFile, EventError
+from sentry.models import File, Release, ReleaseFile, EventError
 from sentry.testutils import TestCase
 from sentry.utils.strings import truncatechars
 
@@ -95,10 +95,7 @@ class FetchReleaseFileTest(TestCase):
         other_file.putfile(six.BytesIO(b''))
         file.putfile(six.BytesIO(binary_body))
 
-        dist = Distribution.get_or_create(
-            release,
-            name='foo'
-        )
+        dist = release.add_dist('foo')
 
         ReleaseFile.objects.create(
             name='file.min.js',
