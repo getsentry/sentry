@@ -261,13 +261,17 @@ const ProjectProcessingIssues = React.createClass({
     let fixLinkBlock = null;
     if (fixLink) {
       fixLinkBlock = (
-        <div className="alert alert-block alert-info">
-          <div className="form-group" style={{marginBottom: 0}}>
-            <label>{t('Paste this command into your shell:')}</label>
-            <div className="form-control disabled auto-select" style={{marginBottom: 6}}>
-              curl -sL {fixLink} | bash
+        <div className="panel panel-info">
+          <div className="panel-heading">
+          <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+          </div>
+          <div className="panel-body">
+            <div className="form-group" style={{marginBottom: 0}}>
+              <label>{t('Paste this command into your shell and we\'ll attempt to upload the missing symbols from your machine:')}</label>
+              <div className="form-control disabled auto-select" style={{marginBottom: 6}}>
+                curl -sL {fixLink} | bash
+              </div>
             </div>
-            <i>{t('It will try to upload missing symbols from your system.')}</i>
           </div>
         </div>
       );
@@ -275,28 +279,46 @@ const ProjectProcessingIssues = React.createClass({
     return (
       <div>
         {fixLinkBlock}
-        <table className="table processing-issues">
-          <thead>
-            <tr>
-              <th>{t('Problem')}</th>
-              <th>{t('Details')}</th>
-              <th>{t('Events')}</th>
-              <th>{t('Last seen')}</th>
-            </tr>
-          </thead>
-          <tbody>
+        <div className="panel panel-default">
+          <div className="panel-heading panel-heading-bold hidden-xs">
+            <div className="row">
+              <div className="col-sm-3">
+                {t('Problem')}
+              </div>
+              <div className="col-sm-5">
+                {t('Details')}
+              </div>
+              <div className="col-sm-2">
+                {t('Events')}
+              </div>
+              <div className="col-sm-2">
+                {t('Last seen')}
+              </div>
+            </div>
+          </div>
+          <div className="list-group">
             {this.state.processingIssues.issues.map((item, idx) => {
               return (
-                <tr key={idx}>
-                  <td>{this.renderProblem(item)}</td>
-                  <td>{this.renderDetails(item)}</td>
-                  <td>{item.numEvents + ''}</td>
-                  <td><TimeSince date={item.lastSeen} /></td>
-                </tr>
+                <div className="list-group-item">
+                  <div className="row row-flex row-center-vertically">
+                    <div className="col-sm-3">
+                      {this.renderProblem(item)}
+                    </div>
+                    <div className="col-sm-5">
+                      {this.renderDetails(item)}
+                    </div>
+                    <div className="col-sm-2">
+                      {item.numEvents + ''}
+                    </div>
+                    <div className="col-sm-2">
+                      <TimeSince date={item.lastSeen} />
+                    </div>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
     );
   },
