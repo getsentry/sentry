@@ -140,7 +140,7 @@ const ReleaseArtifacts = React.createClass({
                       <strong>{file.name || '(empty)'}</strong>
                     </div>
                     <div className="col-lg-2 col-sm-2">
-                      {file.distribution || '(default)'}
+                      {file.dist || '(default)'}
                     </div>
                     <div className="col-lg-1 col-sm-2">
                       <FileSize bytes={file.size} />
