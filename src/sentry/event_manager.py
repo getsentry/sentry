@@ -30,7 +30,7 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
-    GroupRelease, GroupResolution, GroupStatus, Project, Release,
+    GroupRelease, GroupResolution, GroupStatus, Project, Release, Distribution,
     ReleaseEnvironment, ReleaseProject, TagKey, UserReport
 )
 from sentry.plugins import plugins
@@ -279,6 +279,7 @@ class EventManager(object):
         data.setdefault('checksum', None)
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
+        data.setdefault('distribution', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
         data.setdefault('errors', [])
@@ -414,6 +415,7 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+        distribution = data.pop('distribution', None)
         environment = data.pop('environment', None)
 
         # unused
@@ -470,6 +472,15 @@ class EventManager(object):
             )
 
             tags['sentry:release'] = release.version
+
+        if distribution and release:
+            distribution = Distribution.get_or_create(
+                release=release,
+                name=distribution,
+                date_added=date
+            )
+        else:
+            distribution = None
 
         event_user = self._get_event_user(project, data)
         if event_user:
