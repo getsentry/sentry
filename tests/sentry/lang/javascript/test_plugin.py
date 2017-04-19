@@ -7,7 +7,7 @@ import os.path
 
 from mock import patch
 
-from sentry.models import Event, File, Release, ReleaseFile, Distribution
+from sentry.models import Event, File, Release, ReleaseFile
 from sentry.testutils import TestCase
 
 BASE64_SOURCEMAP = 'data:application/json;base64,' + (
@@ -613,10 +613,7 @@ class JavascriptIntegrationTest(TestCase):
             version='abc',
         )
         release.add_project(project)
-        dist = Distribution.get_or_create(
-            release=release,
-            name='foo'
-        )
+        dist = release.add_dist('foo')
 
         # file.min.js
         # ------------
