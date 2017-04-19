@@ -29,8 +29,8 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildGravatarUrl.calledOnce).to.be.ok;
-      expect(avatar.buildProfileUrl.called).to.not.be.ok;
+      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy;
+      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
     });
 
     it('should show an upload when avatar type is upload', function() {
@@ -44,8 +44,8 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildProfileUrl.calledOnce).to.be.ok;
-      expect(avatar.buildGravatarUrl.called).to.not.be.ok;
+      expect(avatar.buildProfileUrl.calledOnce).toBeTruthy;
+      expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
     });
 
     it('should not show upload or gravatar when avatar type is letter', function() {
@@ -59,8 +59,8 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildProfileUrl.called).to.not.be.ok;
-      expect(avatar.buildGravatarUrl.called).to.not.be.ok;
+      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
+      expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
     });
 
     it('should show a gravatar when no avatar type is set and user has an email address', function() {
@@ -68,8 +68,8 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildGravatarUrl.calledOnce).to.be.ok;
-      expect(avatar.buildProfileUrl.called).to.not.be.ok;
+      expect(avatar.buildGravatarUrl.calledOnce).toBeTruthy;
+      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
     });
 
     it('should not show a gravatar when no avatar type is set and user has no email address', function() {
@@ -79,8 +79,8 @@ describe('Avatar', function() {
       this.sandbox.stub(avatar, 'buildGravatarUrl');
       this.sandbox.stub(avatar, 'buildProfileUrl');
       avatar.renderImg();
-      expect(avatar.buildGravatarUrl.called).to.not.be.ok;
-      expect(avatar.buildProfileUrl.called).to.not.be.ok;
+      expect(avatar.buildGravatarUrl.called).not.toBeTruthy();
+      expect(avatar.buildProfileUrl.called).not.toBeTruthy();
     });
   });
 });

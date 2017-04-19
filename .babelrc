@@ -1,16 +1,32 @@
 {
   "presets": [
     "react",
-    ["latest", {
-      "es2015": {
-        "modules": false
+    [
+      "latest",
+      {
+        "es2015": {
+          "modules": false
+        }
       }
-    }]
+    ]
   ],
   "plugins": [
     "transform-object-rest-spread",
-    ["babel-plugin-transform-builtin-extend", {
-      "globals": ["Array"]
-    }]
-  ]
+    [
+      "babel-plugin-transform-builtin-extend",
+      {
+        "globals": [
+          "Array"
+        ]
+      }
+    ]
+  ],
+  "env": {
+    "test": {
+      "presets": [
+        "react",
+        "latest"
+      ]
+    }
+  }
 }

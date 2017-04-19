@@ -21,9 +21,11 @@ describe('HttpRenderer', function() {
       let summaryLine = httpRendererWrapper.prop('summary');
 
       let summaryLineWrapper = shallow(summaryLine);
-      expect(summaryLineWrapper.find('strong').text()).to.eql('POST ');
-      expect(summaryLineWrapper.find('a').text().trim()).to.eql('http://example.com/foo');
-      expect(summaryLineWrapper.find('span').text()).to.eql(' [0]');
+      expect(summaryLineWrapper.find('strong').text()).toEqual('POST ');
+      expect(summaryLineWrapper.find('a').text().trim()).toEqual(
+        'http://example.com/foo'
+      );
+      expect(summaryLineWrapper.find('span').text()).toEqual(' [0]');
     });
 
     it('shouldn\'t blow up if crumb.data is missing', function() {
@@ -36,7 +38,7 @@ describe('HttpRenderer', function() {
         />
       );
 
-      expect(httpRendererWrapper.find('.crumb-category').text()).to.eql('xhr');
+      expect(httpRendererWrapper.find('.crumb-category').text()).toEqual('xhr');
     });
   });
 });

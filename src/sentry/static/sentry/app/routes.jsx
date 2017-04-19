@@ -4,6 +4,7 @@ import {Redirect, Route, IndexRoute, IndexRedirect} from 'react-router';
 import HookStore from './stores/hookStore';
 
 import AccountAuthorizations from './views/accountAuthorizations';
+
 import AccountLayout from './views/accountLayout';
 import ApiApplications from './views/apiApplications';
 import ApiApplicationDetails from './views/apiApplicationDetails';
