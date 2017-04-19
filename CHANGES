@@ -8,7 +8,7 @@ Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``Distribution`` model
-- Added ``Event.dist`` column
+- Added ``ReleaseFile.dist`` column
 
 Version 8.15
 ------------
