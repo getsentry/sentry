@@ -43,3 +43,15 @@ class Distribution(Model):
                 release=release,
                 name=name
             )
+
+    @classmethod
+    def get(cls, release, name):
+        try:
+            rv = Distribution.objects.get(
+                release=release,
+                name=name
+            )
+            rv.release = release
+            return rv
+        except Distribution.DoesNotExist:
+            return None
