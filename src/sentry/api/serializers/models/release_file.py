@@ -12,6 +12,7 @@ class ReleaseFileSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'name': obj.name,
+            'distribution': obj.distribution and obj.distribution.name or None,
             'headers': obj.file.headers,
             'size': obj.file.size,
             'sha1': obj.file.checksum,
