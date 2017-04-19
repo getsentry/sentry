@@ -82,8 +82,7 @@ const ReleaseCommits = React.createClass({
       loading: true,
       error: false,
       commitList: [],
-      activeRepo: null,
-      title: 'All Repositories'
+      activeRepo: null
     };
   },
 
@@ -123,8 +122,7 @@ const ReleaseCommits = React.createClass({
 
   setActiveRepo(repo) {
     this.setState({
-      activeRepo: repo,
-      title: repo || 'All Repositories'
+      activeRepo: repo
     });
   },
 
