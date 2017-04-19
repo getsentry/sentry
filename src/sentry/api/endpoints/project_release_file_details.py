@@ -104,7 +104,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
-        :param string distribution: the name of the distribution.
+        :qparam string distribution: the name of the distribution.
         :auth: required
         """
         try:
@@ -215,7 +215,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.
-        :param string distribution: the name of the distribution.
+        :qparam string distribution: the name of the distribution.
         :auth: required
         """
         try:
