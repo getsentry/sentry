@@ -7,6 +7,7 @@ import _ from 'underscore';
 
 let LOCALE_DEBUG = false;
 
+let sessionStorage = window.sessionStorage;
 if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
   LOCALE_DEBUG = true;
 }

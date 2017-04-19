@@ -8,7 +8,7 @@ describe('formatters', function() {
           name: 'foo@bar.com',
           email: 'foo@bar.com'
         })
-      ).to.eql('foo@bar.com');
+      ).toEqual('foo@bar.com');
     });
 
     it('should show name + email, if name and email differ', function() {
@@ -17,7 +17,7 @@ describe('formatters', function() {
           name: 'user',
           email: 'foo@bar.com'
         })
-      ).to.eql('user (foo@bar.com)');
+      ).toEqual('user (foo@bar.com)');
     });
   });
 });
