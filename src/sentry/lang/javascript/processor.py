@@ -23,7 +23,7 @@ except ImportError:
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, Release, ReleaseFile
+from sentry.models import EventError, Release, ReleaseFile, Distribution
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
@@ -192,7 +192,7 @@ def discover_sourcemap(result):
     return sourcemap
 
 
-def fetch_release_file(filename, release):
+def fetch_release_file(filename, release, distribution=None):
     cache_key = 'releasefile:v1:%s:%s' % (
         release.id,
         md5_text(filename).hexdigest(),
@@ -215,12 +215,14 @@ def fetch_release_file(filename, release):
         logger.debug('Checking database for release artifact %r (release_id=%s)',
                      filename, release.id)
 
-        filename_idents = [ReleaseFile.get_ident(filename)]
+        filename_idents = [ReleaseFile.get_ident(filename, distribution)]
         if filename_path is not None and filename_path != filename:
-            filename_idents.append(ReleaseFile.get_ident(filename_path))
+            filename_idents.append(ReleaseFile.get_ident(
+                filename_path, distribution))
 
         possible_files = list(ReleaseFile.objects.filter(
             release=release,
+            distribution=distribution,
             ident__in=filename_idents,
         ).select_related('file'))
 
@@ -269,7 +271,8 @@ def fetch_release_file(filename, release):
     return result
 
 
-def fetch_file(url, project=None, release=None, allow_scraping=True):
+def fetch_file(url, project=None, release=None, distribution=None,
+               allow_scraping=True):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -284,7 +287,7 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
         })
     if release:
         with metrics.timer('sourcemaps.release_file'):
-            result = fetch_release_file(url, release)
+            result = fetch_release_file(url, release, distribution)
     else:
         result = None
 
@@ -364,7 +367,8 @@ def fetch_file(url, project=None, release=None, allow_scraping=True):
     return result
 
 
-def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
+def fetch_sourcemap(url, project=None, release=None, distribution=None,
+                    allow_scraping=True):
     if is_data_uri(url):
         try:
             body = base64.b64decode(
@@ -377,6 +381,7 @@ def fetch_sourcemap(url, project=None, release=None, allow_scraping=True):
             })
     else:
         result = fetch_file(url, project=project, release=release,
+                            distribution=distribution,
                             allow_scraping=allow_scraping)
         body = result.body
     try:
@@ -447,6 +452,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
         self.release = None
+        self.distribution = None
 
     def get_stacktraces(self, data):
         try:
@@ -488,6 +494,11 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 project=self.project,
                 version=self.data['release'],
             )
+            if self.data.get('distribution'):
+                self.distribution = Distribution.objects.get(
+                    release=self.release,
+                    name=self.data['distribution']
+                )
         self.populate_source_cache(frames)
         return True
 
@@ -690,6 +701,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         try:
             result = fetch_file(filename, project=self.project,
                                 release=self.release,
+                                distribution=self.distribution,
                                 allow_scraping=self.allow_scraping)
         except http.BadSource as exc:
             cache.add_error(filename, exc.data)
