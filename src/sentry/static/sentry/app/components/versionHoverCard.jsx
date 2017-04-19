@@ -213,21 +213,23 @@ const VersionHoverCard = React.createClass({
                           </div>
                         </div>
                       </div>}
-                    <h6 className="deploy-heading">Recent Deploys</h6>
-                    {deploys &&
-                      mostRecentDeploySlice.map((env, idx) => {
-                        let dateFinished = recentDeploysByEnviroment[env];
-                        return (
-                          <div className="deploy">
-                            <div key={idx} className="deploy-meta">
-                              <strong>
-                                Deployed to {env + ' '}
-                              </strong>
-                              {dateFinished && <TimeSince date={dateFinished} />}
+                    {deploys.length > 0 &&
+                      <div>
+                        <h6 className="deploy-heading">Recent Deploys</h6>
+                        {mostRecentDeploySlice.map((env, idx) => {
+                          let dateFinished = recentDeploysByEnviroment[env];
+                          return (
+                            <div className="deploy">
+                              <div key={idx} className="deploy-meta">
+                                <strong>
+                                  Deployed to {env + ' '}
+                                </strong>
+                                {dateFinished && <TimeSince date={dateFinished} />}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>}
                   </div>}
         </div>
       </div>
