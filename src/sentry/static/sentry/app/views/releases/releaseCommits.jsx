@@ -82,8 +82,7 @@ const ReleaseCommits = React.createClass({
       loading: true,
       error: false,
       commitList: [],
-      activeRepo: null,
-      title: 'All Repositories'
+      activeRepo: null
     };
   },
 
@@ -123,8 +122,7 @@ const ReleaseCommits = React.createClass({
 
   setActiveRepo(repo) {
     this.setState({
-      activeRepo: repo,
-      title: repo || 'All Repositories'
+      activeRepo: repo
     });
   },
 
@@ -186,12 +184,12 @@ const ReleaseCommits = React.createClass({
         <div className="heading">
           {Object.keys(commitsByRepository).length > 1
             ? <div className="commits-dropdown align-left">
-                <div className="commits-dropdown">
+                <div className="commits-dropdowng">
                   <DropdownLink
                     caret={false}
                     title={
                       <h5>
-                        {this.state.title}
+                        {this.state.activeRepo || 'All Repositories'}
                         <span
                           className="icon-arrow-down dropdown"
                           style={{marginLeft: 3, marginRight: -3}}
