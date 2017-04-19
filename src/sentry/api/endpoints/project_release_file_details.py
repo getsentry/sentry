@@ -8,7 +8,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseFile
+from sentry.models import Release, ReleaseFile, Distribution
 from sentry.utils.apidocs import scenario, attach_scenarios
 try:
     from django.http import (
@@ -104,6 +104,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
+        :param string distribution: the name of the distribution.
         :auth: required
         """
         try:
@@ -115,10 +116,22 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
+        dist_name = request.GET.get('distribution')
+        dist = None
+        if dist_name:
+            try:
+                dist = Distribution.objects.get(
+                    release=release,
+                    name=dist_name,
+                )
+            except Distribution.DoesNotExist:
+                raise ResourceDoesNotExist
+
         try:
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
+                distribution=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
@@ -147,6 +160,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
         :param string name: the new name of the file.
+        :param string distribution: the name of the distribution.
         :auth: required
         """
         try:
@@ -158,10 +172,16 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
+        dist_name = request.DATA.get('distribution')
+        dist = None
+        if dist_name:
+            dist = Distribution.get_or_create(release, dist_name)
+
         try:
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
+                distribution=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
@@ -195,6 +215,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
                                      file of.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.
+        :param string distribution: the name of the distribution.
         :auth: required
         """
         try:
@@ -206,10 +227,22 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
+        dist_name = request.GET.get('distribution')
+        dist = None
+        if dist_name:
+            try:
+                dist = Distribution.objects.get(
+                    release=release,
+                    name=dist_name,
+                )
+            except Distribution.DoesNotExist:
+                raise ResourceDoesNotExist
+
         try:
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
+                distribution=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
