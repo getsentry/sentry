@@ -363,6 +363,12 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'release'
         assert data['errors'][0]['value'] == 'a' * 65
 
+    def test_release_as_non_string(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 42,
+        })
+        assert data.get('release') == '42'
+
     def test_distribution_too_long(self):
         data = self.helper.validate_data(self.project, {
             'release': 'a' * 62,
@@ -374,11 +380,19 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'distribution'
         assert data['errors'][0]['value'] == 'b' * 65
 
-    def test_release_as_non_string(self):
+    def test_distribution_as_non_string(self):
         data = self.helper.validate_data(self.project, {
-            'release': 42,
+            'release': '42',
+            'distribution': 23,
         })
         assert data.get('release') == '42'
+        assert data.get('distribution') == '23'
+
+    def test_distribution_no_release(self):
+        data = self.helper.validate_data(self.project, {
+            'distribution': 23,
+        })
+        assert data.get('distribution') is None
 
     def test_valid_platform(self):
         data = self.helper.validate_data(self.project, {
