@@ -20,7 +20,7 @@ describe('StreamTagStore', function() {
         }
       ]);
       StreamTagStore.onMemberListStoreChange();
-      expect(StreamTagStore.tags.assigned.values).to.eql(['me', 'janesmith']);
+      expect(StreamTagStore.tags.assigned.values).toEqual(['me', 'janesmith']);
     });
 
     it('should fall back to email when username isn\'t available', () => {
@@ -30,7 +30,10 @@ describe('StreamTagStore', function() {
         }
       ]);
       StreamTagStore.onMemberListStoreChange();
-      expect(StreamTagStore.tags.assigned.values).to.eql(['me', 'janesmith@example.org']);
+      expect(StreamTagStore.tags.assigned.values).toEqual([
+        'me',
+        'janesmith@example.org'
+      ]);
     });
   });
 
@@ -45,13 +48,13 @@ describe('StreamTagStore', function() {
         }
       ]);
 
-      expect(StreamTagStore.tags.mytag).to.eql({
+      expect(StreamTagStore.tags.mytag).toEqual({
         key: 'mytag',
         name: 'My Custom Tag',
         values: []
       });
 
-      expect(StreamTagStore.trigger.calledOnce).to.be.ok;
+      expect(StreamTagStore.trigger.calledOnce).toBeTruthy;
     });
 
     it('should not overwrite predefined filters', () => {
@@ -63,7 +66,7 @@ describe('StreamTagStore', function() {
         }
       ]);
 
-      expect(StreamTagStore.tags.is).to.equal(isTag);
+      expect(StreamTagStore.tags.is).toEqual(isTag);
     });
   });
 });

@@ -26,7 +26,7 @@ describe('GroupActivity', function() {
         organization: {id: 'bar'}
       }
     });
-    expect(wrapper.find(NoteInput)).to.have.length(1);
+    expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
 
   describe('onNoteDelete()', function() {
@@ -48,7 +48,7 @@ describe('GroupActivity', function() {
       let request = this.sandbox.stub(instance.api, 'request');
 
       instance.onNoteDelete({id: 1});
-      expect(request.calledOnce).to.not.be.ok;
+      expect(request.calledOnce).not.toBeTruthy();
     });
 
     it('should remove remove the item from the GroupStore make a DELETE API request', function() {
@@ -58,9 +58,9 @@ describe('GroupActivity', function() {
 
       let request = this.sandbox.stub(instance.api, 'request');
       instance.onNoteDelete({id: 1});
-      expect(request.calledOnce).to.be.ok;
-      expect(request.getCall(0).args[0]).to.equal('/issues/1337/comments/1/');
-      expect(request.getCall(0).args[1]).to.have.property('method', 'DELETE');
+      expect(request.calledOnce).toBeTruthy;
+      expect(request.getCall(0).args[0]).toEqual('/issues/1337/comments/1/');
+      expect(request.getCall(0).args[1]).toHaveProperty('method', 'DELETE');
     });
   });
 });

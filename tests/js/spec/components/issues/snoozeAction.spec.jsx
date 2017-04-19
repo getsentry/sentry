@@ -14,7 +14,7 @@ describe('SnoozeAction', function() {
   describe('render()', function() {
     it('should show a gravatar when avatar type is gravatar', function() {
       let wrapper = shallow(<SnoozeAction onSnooze={function() {}} />);
-      expect(wrapper.find('h5').text()).to.equal('How long should we ignore this issue?');
+      expect(wrapper.find('h5').text()).toEqual('How long should we ignore this issue?');
     });
   });
 
@@ -23,7 +23,7 @@ describe('SnoozeAction', function() {
       let wrapper = shallow(
         <SnoozeAction
           onSnooze={function(duration) {
-            expect(duration).to.equal(30);
+            expect(duration).toEqual(30);
             done();
           }}
         />
@@ -36,7 +36,7 @@ describe('SnoozeAction', function() {
       let wrapper = shallow(
         <SnoozeAction
           onSnooze={function(duration) {
-            expect(duration).to.equal(undefined);
+            expect(duration).toEqual(undefined);
             done();
           }}
         />

@@ -27,8 +27,8 @@ describe('OrganizationTeams', function() {
 
       organizationTeams.fetchStats();
 
-      expect(this.stubbedApiRequest.callCount).to.equal(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal(
+      expect(this.stubbedApiRequest.callCount).toEqual(1);
+      expect(this.stubbedApiRequest.getCall(0).args[0]).toEqual(
         '/organizations/123/stats/'
       );
     });

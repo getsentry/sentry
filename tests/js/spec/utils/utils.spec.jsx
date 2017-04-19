@@ -21,7 +21,7 @@ describe('utils.valueIsEqual', function() {
       },
       true
     );
-    expect(isEqual).to.be.true;
+    expect(isEqual).toBe(true);
   });
 
   it('should return false when objects are not deeply equal', function() {
@@ -44,7 +44,7 @@ describe('utils.valueIsEqual', function() {
       },
       true
     );
-    expect(isEqual).to.be.false;
+    expect(isEqual).toBe(false);
   });
 
   it('should return true when objects are shalowly equal', function() {
@@ -61,7 +61,7 @@ describe('utils.valueIsEqual', function() {
       },
       false
     );
-    expect(isEqual).to.be.true;
+    expect(isEqual).toBe(true);
   });
 
   it('should return false when objects are not shalowly equal', function() {
@@ -78,12 +78,12 @@ describe('utils.valueIsEqual', function() {
       },
       false
     );
-    expect(isEqual).to.be.false;
+    expect(isEqual).toBe(false);
   });
 
   it('should not blow up when comparing null value to an object', function() {
     let isEqual = valueIsEqual(null, {username: 'foo'}, true);
-    expect(isEqual).to.be.false;
+    expect(isEqual).toBe(false);
 
     isEqual = valueIsEqual(
       {
@@ -101,21 +101,17 @@ describe('utils.valueIsEqual', function() {
       },
       true
     );
-    expect(isEqual).to.be.false;
+    expect(isEqual).toBe(false);
   });
 });
 
 describe('utils.extractMultilineFields', function() {
   it('should work for basic, simple values', function() {
-    expect(extractMultilineFields('one\ntwo\nthree')).to.deep.equal([
-      'one',
-      'two',
-      'three'
-    ]);
+    expect(extractMultilineFields('one\ntwo\nthree')).toEqual(['one', 'two', 'three']);
   });
 
   it('should return an empty array if only whitespace', function() {
-    expect(extractMultilineFields('    \n    \n\n\n   \n')).to.deep.equal([]);
+    expect(extractMultilineFields('    \n    \n\n\n   \n')).toEqual([]);
   });
 
   it('should trim values and ignore empty lines', function() {
@@ -129,6 +125,6 @@ three
 
 five`
       )
-    ).to.deep.equal(['one', 'two', 'three', 'four', 'five']);
+    ).toEqual(['one', 'two', 'three', 'four', 'five']);
   });
 });

@@ -33,7 +33,7 @@ describe('ProjectReleases', function() {
 
   describe('fetchData()', function() {
     it('should call releases endpoint', function() {
-      expect(Client.prototype.request.args[0][0]).to.equal(
+      expect(Client.prototype.request.args[0][0]).toEqual(
         '/projects/123/456/releases/?per_page=20&query=derp'
       );
     });
@@ -41,7 +41,7 @@ describe('ProjectReleases', function() {
 
   describe('getInitialState()', function() {
     it('should take query state from query string', function() {
-      expect(this.projectReleases.state.query).to.equal('derp');
+      expect(this.projectReleases.state.query).toEqual('derp');
     });
   });
 
@@ -51,8 +51,8 @@ describe('ProjectReleases', function() {
 
       projectReleases.onSearch('searchquery');
 
-      expect(browserHistory.pushState.calledOnce).to.be.ok;
-      expect(browserHistory.pushState.args[0]).to.eql([
+      expect(browserHistory.pushState.calledOnce).toBeTruthy;
+      expect(browserHistory.pushState.args[0]).toEqual([
         null,
         '/123/456/releases/',
         {query: 'searchquery'}
@@ -77,8 +77,8 @@ describe('ProjectReleases', function() {
       };
       projectReleases.componentWillReceiveProps(newProps);
 
-      expect(setState.calledOnce).to.be.ok;
-      expect(setState.getCall(0).args[0]).to.eql({
+      expect(setState.calledOnce).toBeTruthy;
+      expect(setState.getCall(0).args[0]).toEqual({
         query: 'newquery'
       });
     });

@@ -35,54 +35,54 @@ describe('LetterAvatar', function() {
   describe('getInitials()', function() {
     it('should get initials based on name', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.getInitials()).to.eql('JD');
+      expect(letterAvatar.getInitials()).toEqual('JD');
     });
 
     it('should get initials based on email', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_2} />);
-      expect(letterAvatar.getInitials()).to.eql('J');
+      expect(letterAvatar.getInitials()).toEqual('J');
     });
 
     it('should get initials based on username', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.getInitials()).to.eql('F');
+      expect(letterAvatar.getInitials()).toEqual('F');
     });
 
     it('should show question mark if user has no display name', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.getInitials()).to.eql('?');
+      expect(letterAvatar.getInitials()).toEqual('?');
     });
 
     it('should show question mark even if display name is a space', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_7} />);
-      expect(letterAvatar.getInitials()).to.eql('?');
+      expect(letterAvatar.getInitials()).toEqual('?');
     });
 
     it('should get initials based on name even if there are trailing spaces', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_6} />);
-      expect(letterAvatar.getInitials()).to.eql('JD');
+      expect(letterAvatar.getInitials()).toEqual('JD');
     });
   });
 
   describe('getColor()', function() {
     it('should return a color based on email', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_1} />);
-      expect(letterAvatar.getColor()).to.eql('#f868bc');
+      expect(letterAvatar.getColor()).toEqual('#f868bc');
     });
 
     it('should return a color based on username', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_3} />);
-      expect(letterAvatar.getColor()).to.eql('#315cac');
+      expect(letterAvatar.getColor()).toEqual('#315cac');
     });
 
     it('should return a color based on id', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_4} />);
-      expect(letterAvatar.getColor()).to.eql('#57be8c');
+      expect(letterAvatar.getColor()).toEqual('#57be8c');
     });
 
     it('should return a color based on ip address', function() {
       let letterAvatar = TestUtils.renderIntoDocument(<LetterAvatar {...USER_5} />);
-      expect(letterAvatar.getColor()).to.eql('#ec5e44');
+      expect(letterAvatar.getColor()).toEqual('#ec5e44');
     });
   });
 });

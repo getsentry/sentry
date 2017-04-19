@@ -24,7 +24,7 @@ describe('OrganizationTeams', function() {
           team: {id: '3559'}
         }
       });
-      expect(wrapper.children()).to.have.length(0);
+      expect(wrapper.children()).toHaveLength(0);
     });
 
     it('should return a list of each user that saw', function() {
@@ -42,7 +42,7 @@ describe('OrganizationTeams', function() {
         }
       });
 
-      expect(wrapper.find('li')).to.have.length(3); // +1 for "icon-eye"
+      expect(wrapper.find('li')).toHaveLength(3); // +1 for "icon-eye"
     });
   });
 });
