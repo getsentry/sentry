@@ -380,6 +380,24 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'dist'
         assert data['errors'][0]['value'] == 'b' * 65
 
+    def test_distribution_bad_char(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 62,
+            'dist': '^%',
+        })
+        assert not data.get('dist')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'invalid_data'
+        assert data['errors'][0]['name'] == 'dist'
+        assert data['errors'][0]['value'] == '^%'
+
+    def test_distribution_strip(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 62,
+            'dist': ' foo ',
+        })
+        assert data.get('dist') == 'foo'
+
     def test_distribution_as_non_string(self):
         data = self.helper.validate_data(self.project, {
             'release': '42',
