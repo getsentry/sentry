@@ -363,6 +363,17 @@ class ValidateDataTest(BaseAPITest):
         assert data['errors'][0]['name'] == 'release'
         assert data['errors'][0]['value'] == 'a' * 65
 
+    def test_distribution_too_long(self):
+        data = self.helper.validate_data(self.project, {
+            'release': 'a' * 62,
+            'distribution': 'b' * 65,
+        })
+        assert not data.get('distribution')
+        assert len(data['errors']) == 1
+        assert data['errors'][0]['type'] == 'value_too_long'
+        assert data['errors'][0]['name'] == 'distribution'
+        assert data['errors'][0]['value'] == 'b' * 65
+
     def test_release_as_non_string(self):
         data = self.helper.validate_data(self.project, {
             'release': 42,
