@@ -151,7 +151,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/foo.js',
             project=self.project,
             release=None,
-            distribution=None,
+            dist=None,
             allow_scraping=True,
         )
 
@@ -208,7 +208,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/test.min.js',
             project=self.project,
             release=None,
-            distribution=None,
+            dist=None,
             allow_scraping=True,
         )
 
@@ -633,7 +633,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='~/{}?foo=bar'.format(f_minified.name),
             release=release,
-            distribution=dist,
+            dist=dist,
             organization_id=project.organization_id,
             file=f_minified,
         )
@@ -651,7 +651,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f1.name),
             release=release,
-            distribution=dist,
+            dist=dist,
             organization_id=project.organization_id,
             file=f1,
         )
@@ -668,7 +668,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f2.name),
             release=release,
-            distribution=dist,
+            dist=dist,
             organization_id=project.organization_id,
             file=f2,
         )
@@ -687,7 +687,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
             release=release,
-            distribution=dist,
+            dist=dist,
             organization_id=project.organization_id,
             file=f2_empty,
         )
@@ -704,7 +704,7 @@ class JavascriptIntegrationTest(TestCase):
         ReleaseFile.objects.create(
             name='http://example.com/{}'.format(f_sourcemap.name),
             release=release,
-            distribution=dist,
+            dist=dist,
             organization_id=project.organization_id,
             file=f_sourcemap,
         )
@@ -713,7 +713,7 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
-            'distribution': 'foo',
+            'dist': 'foo',
             'sentry.interfaces.Exception': {
                 'values': [{
                     'type': 'Error',

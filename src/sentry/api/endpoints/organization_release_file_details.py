@@ -49,7 +49,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
-        :qparam string distribution: the name of the distribution.
+        :qparam string dist: the name of the dist.
         :auth: required
         """
         try:
@@ -63,7 +63,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        dist_name = request.GET.get('distribution')
+        dist_name = request.GET.get('dist')
         dist = None
         if dist_name:
             try:
@@ -78,7 +78,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
-                distribution=dist,
+                dist=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
@@ -104,7 +104,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
         :param string name: the new name of the file.
-        :param string distribution: the name of the distribution.
+        :param string dist: the name of the dist.
         :auth: required
         """
         try:
@@ -118,7 +118,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        dist_name = request.DATA.get('distribution')
+        dist_name = request.DATA.get('dist')
         dist = None
         if dist_name:
             dist = Distribution.get_or_create(release, dist_name)
@@ -127,7 +127,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
-                distribution=dist,
+                dist=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
@@ -158,7 +158,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.
-        :qparam string distribution: the name of the distribution.
+        :qparam string dist: the name of the dist.
         :auth: required
         """
         try:
@@ -172,7 +172,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        dist_name = request.GET.get('distribution')
+        dist_name = request.GET.get('dist')
         dist = None
         if dist_name:
             try:
@@ -187,7 +187,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
-                distribution=dist,
+                dist=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist

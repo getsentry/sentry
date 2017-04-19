@@ -691,17 +691,17 @@ class ClientApiHelper(object):
                 })
                 del data['release']
 
-        if data.get('distribution'):
-            data['distribution'] = six.text_type(data['distribution'])
+        if data.get('dist'):
+            data['dist'] = six.text_type(data['dist'])
             if not data.get('release'):
-                data['distribution'] = None
-            elif len(data['distribution']) > 64:
+                data['dist'] = None
+            elif len(data['dist']) > 64:
                 data['errors'].append({
                     'type': EventError.VALUE_TOO_LONG,
-                    'name': 'distribution',
-                    'value': data['distribution'],
+                    'name': 'dist',
+                    'value': data['dist'],
                 })
-                del data['distribution']
+                del data['dist']
 
         if data.get('environment'):
             data['environment'] = six.text_type(data['environment'])

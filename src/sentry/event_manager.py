@@ -279,7 +279,7 @@ class EventManager(object):
         data.setdefault('checksum', None)
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
-        data.setdefault('distribution', None)
+        data.setdefault('dist', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
         data.setdefault('errors', [])
@@ -415,7 +415,7 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
-        distribution = data.pop('distribution', None)
+        dist = data.pop('dist', None)
         environment = data.pop('environment', None)
 
         # unused
@@ -473,15 +473,15 @@ class EventManager(object):
 
             tags['sentry:release'] = release.version
 
-        if distribution and release:
-            distribution = Distribution.get_or_create(
+        if dist and release:
+            dist = Distribution.get_or_create(
                 release=release,
-                name=distribution,
+                name=dist,
                 date_added=date
             )
-            tags['sentry:distribution'] = distribution.name
+            tags['sentry:dist'] = dist.name
         else:
-            distribution = None
+            dist = None
 
         event_user = self._get_event_user(project, data)
         if event_user:
