@@ -7,7 +7,7 @@ import os.path
 
 from mock import patch
 
-from sentry.models import Event, File, Release, ReleaseFile
+from sentry.models import Event, File, Release, ReleaseFile, Distribution
 from sentry.testutils import TestCase
 
 BASE64_SOURCEMAP = 'data:application/json;base64,' + (
@@ -552,6 +552,168 @@ class JavascriptIntegrationTest(TestCase):
             'message': 'hello',
             'platform': 'javascript',
             'release': 'abc',
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'type': 'Error',
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/file.min.js?foo=bar',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 39,
+                            },
+                            {
+                                'abs_path': 'http://example.com/file.min.js?foo=bar',
+                                'filename': 'file.min.js',
+                                'lineno': 1,
+                                'colno': 79,
+                            }
+                        ],
+                    },
+                }],
+            }
+        }
+
+        resp = self._postWithHeader(data)
+        assert resp.status_code, 200
+
+        event = Event.objects.get()
+        assert not event.data['errors']
+
+        exception = event.interfaces['sentry.interfaces.Exception']
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == [
+            'function add(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == u'\treturn a + b; // fôo'
+        assert frame.post_context == ['}', '']
+
+        frame = frame_list[1]
+        assert frame.pre_context == [
+            'function multiply(a, b) {',
+            '\t"use strict";',
+        ]
+        assert frame.context_line == '\treturn a * b;'
+        assert frame.post_context == [
+            '}',
+            'function divide(a, b) {',
+            '\t"use strict";', u'\ttry {',
+            '\t\treturn multiply(add(a, b), a, b) / c;'
+        ]
+
+    @responses.activate
+    def test_expansion_via_distribution_release_artifacts(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+        dist = Distribution.get_or_create(
+            release=release,
+            name='foo'
+        )
+
+        # file.min.js
+        # ------------
+
+        f_minified = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_minified.putfile(open(get_fixture_path('file.min.js'), 'rb'))
+
+        # Intentionally omit hostname - use alternate artifact path lookup instead
+        # /file1.js vs http://example.com/file1.js
+        ReleaseFile.objects.create(
+            name='~/{}?foo=bar'.format(f_minified.name),
+            release=release,
+            distribution=dist,
+            organization_id=project.organization_id,
+            file=f_minified,
+        )
+
+        # file1.js
+        # ---------
+
+        f1 = File.objects.create(
+            name='file1.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f1.putfile(open(get_fixture_path('file1.js'), 'rb'))
+
+        ReleaseFile.objects.create(
+            name='http://example.com/{}'.format(f1.name),
+            release=release,
+            distribution=dist,
+            organization_id=project.organization_id,
+            file=f1,
+        )
+
+        # file2.js
+        # ----------
+
+        f2 = File.objects.create(
+            name='file2.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f2.putfile(open(get_fixture_path('file2.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='http://example.com/{}'.format(f2.name),
+            release=release,
+            distribution=dist,
+            organization_id=project.organization_id,
+            file=f2,
+        )
+
+        # To verify that the full url has priority over the relative url,
+        # we will also add a second ReleaseFile alias for file2.js (f3) w/o
+        # hostname that points to an empty file. If the processor chooses
+        # this empty file over the correct file2.js, it will not locate
+        # context for the 2nd frame.
+        f2_empty = File.objects.create(
+            name='empty.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f2_empty.putfile(open(get_fixture_path('empty.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='~/{}'.format(f2.name),  # intentionally using f2.name ("file2.js")
+            release=release,
+            distribution=dist,
+            organization_id=project.organization_id,
+            file=f2_empty,
+        )
+
+        # sourcemap
+        # ----------
+
+        f_sourcemap = File.objects.create(
+            name='file.sourcemap.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json'},
+        )
+        f_sourcemap.putfile(open(get_fixture_path('file.sourcemap.js'), 'rb'))
+        ReleaseFile.objects.create(
+            name='http://example.com/{}'.format(f_sourcemap.name),
+            release=release,
+            distribution=dist,
+            organization_id=project.organization_id,
+            file=f_sourcemap,
+        )
+
+        data = {
+            'message': 'hello',
+            'platform': 'javascript',
+            'release': 'abc',
+            'distribution': 'foo',
             'sentry.interfaces.Exception': {
                 'values': [{
                     'type': 'Error',
