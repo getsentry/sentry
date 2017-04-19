@@ -24,7 +24,7 @@ from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
 
 
-class RingBuffer(object):
+class PendingBuffer(object):
     def __init__(self, size):
         assert size > 0
         self.buffer = [None] * size
@@ -122,7 +122,7 @@ class RedisBuffer(Buffer):
         if not client.set(lock_key, '1', nx=True, ex=60):
             return
 
-        pending_ring_buffer = RingBuffer(self.incr_batch_size)
+        pending_buffer = PendingBuffer(self.incr_batch_size)
 
         try:
             keycount = 0
@@ -135,17 +135,17 @@ class RedisBuffer(Buffer):
                         continue
                     keycount += len(keys)
                     for key in keys:
-                        pending_ring_buffer.append(key)
-                        if pending_ring_buffer.full():
+                        pending_buffer.append(key)
+                        if pending_buffer.full():
                             process_incr.apply_async(kwargs={
-                                'batch_keys': pending_ring_buffer.flush(),
+                                'batch_keys': pending_buffer.flush(),
                             })
                     conn.target([host_id]).zrem(self.pending_key, *keys)
 
             # queue up remainder of pending keys
-            if not pending_ring_buffer.empty():
+            if not pending_buffer.empty():
                 process_incr.apply_async(kwargs={
-                    'batch_keys': pending_ring_buffer.flush(),
+                    'batch_keys': pending_buffer.flush(),
                 })
 
             metrics.timing('buffer.pending-size', keycount)
