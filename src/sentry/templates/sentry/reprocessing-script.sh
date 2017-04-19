@@ -3,6 +3,7 @@ set -eu
 
 {% if not token %}
 echo '😕  The link you followed expired.'
+exit 1
 {% elif issues %}
 echo "There are currently {{ issues|length }} missing debug symbols:"
 {% for issue in issues %}
