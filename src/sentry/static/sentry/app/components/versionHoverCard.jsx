@@ -139,6 +139,19 @@ const VersionHoverCard = React.createClass({
     let lastCommit = release.lastCommit;
     let commitAuthor = lastCommit && lastCommit.author;
     let shortVersion = getShortVersion(version);
+
+    let recentDeploysByEnviroment = deploys.reduce(function(dbe, deploy) {
+      let {dateFinished, environment} = deploy;
+      if (!dbe.hasOwnProperty(environment)) {
+        dbe[environment] = dateFinished;
+      }
+
+      return dbe;
+    }, {});
+    let mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment);
+    if (Object.keys(recentDeploysByEnviroment).length > 3) {
+      mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
+    }
     return (
       <div>
         <div className="hovercard-header">
@@ -200,15 +213,18 @@ const VersionHoverCard = React.createClass({
                           </div>
                         </div>
                       </div>}
+                    <h6 className="deploy-heading">Recent Deploys</h6>
                     {deploys &&
-                      deploys.map(deploy => {
+                      mostRecentDeploySlice.map((env, idx) => {
+                        let dateFinished = recentDeploysByEnviroment[env];
                         return (
-                          <div key={deploy.id}>
-                            <h6 className="commit-heading">
-                              Deployed to {deploy.environment}
-                            </h6>
-                            {deploy.dateFinished &&
-                              <TimeSince date={deploy.dateFinished} />}
+                          <div className="deploy">
+                            <div key={idx} className="deploy-meta">
+                              <strong>
+                                Deployed to {env + ' '}
+                              </strong>
+                              {dateFinished && <TimeSince date={dateFinished} />}
+                            </div>
                           </div>
                         );
                       })}

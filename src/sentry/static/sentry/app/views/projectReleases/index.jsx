@@ -153,7 +153,7 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any releases yet.')}</p>
+        <p>{t("There don't seem to be any releases yet.")}</p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
@@ -182,12 +182,15 @@ const ProjectReleases = React.createClass({
         <div className="panel panel-default">
           <div className="panel-heading panel-heading-bold">
             <div className="row">
-              <div className="col-sm-8 col-xs-7">{t('Version')}</div>
-              <div className="col-sm-2 col-xs-3">
+              <div className="col-sm-5 col-xs-5">{t('Version')}</div>
+              <div className="col-sm-2 col-xs-2">
                 {t('New Issues')}
               </div>
               <div className="col-sm-2 col-xs-2">
                 {t('Last Event')}
+              </div>
+              <div className="col-sm-3 col-xs-3">
+                {t('Latest Deploys')}
               </div>
             </div>
           </div>
