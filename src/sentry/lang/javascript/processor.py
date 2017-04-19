@@ -211,14 +211,16 @@ def fetch_release_file(filename, release, distribution=None):
                  filename, release.id)
     result = cache.get(cache_key)
 
+    dist_name = distribution and distribution.name or None
+
     if result is None:
         logger.debug('Checking database for release artifact %r (release_id=%s)',
                      filename, release.id)
 
-        filename_idents = [ReleaseFile.get_ident(filename, distribution)]
+        filename_idents = [ReleaseFile.get_ident(filename, dist_name)]
         if filename_path is not None and filename_path != filename:
             filename_idents.append(ReleaseFile.get_ident(
-                filename_path, distribution))
+                filename_path, dist_name))
 
         possible_files = list(ReleaseFile.objects.filter(
             release=release,
