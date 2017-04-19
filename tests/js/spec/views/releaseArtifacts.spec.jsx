@@ -64,7 +64,7 @@ describe('ReleaseArtifacts', function() {
         ]
       });
 
-      expect(wrapper.find('.list-group-item')).to.have.length(2);
+      expect(wrapper.find('.list-group-item')).toHaveLength(2);
     });
 
     it('should have no permission to download', function() {
@@ -85,7 +85,7 @@ describe('ReleaseArtifacts', function() {
         ]
       });
 
-      expect(wrapper.find('div.btn > .icon-open')).to.have.length(2);
+      expect(wrapper.find('div.btn > .icon-open')).toHaveLength(2);
     });
 
     it('should have permission to download', function() {
@@ -106,7 +106,7 @@ describe('ReleaseArtifacts', function() {
         ]
       });
 
-      expect(wrapper.find('a.btn > .icon-open')).to.have.length(2);
+      expect(wrapper.find('a.btn > .icon-open')).toHaveLength(2);
     });
   });
 
@@ -138,9 +138,9 @@ describe('ReleaseArtifacts', function() {
       });
 
       instance.handleRemove('1');
-      expect(instance.api.request.callCount).to.eql(1);
-      expect(wrapper.state('fileList')).to.have.length(1);
-      expect(wrapper.state('fileList')[0]).to.have.property('id', '2');
+      expect(instance.api.request.callCount).toEqual(1);
+      expect(wrapper.state('fileList')).toHaveLength(1);
+      expect(wrapper.state('fileList')[0]).toHaveProperty('id', '2');
     });
   });
 
@@ -150,8 +150,8 @@ describe('ReleaseArtifacts', function() {
       wrapper.instance().fetchData();
 
       let apiArgs = this.stubbedApiRequest.lastCall.args;
-      expect(apiArgs[0]).to.eql('/projects/123/456/releases/abcdef/files/');
-      expect(apiArgs[1].data).to.have.property('cursor', '0:0:100');
+      expect(apiArgs[0]).toEqual('/projects/123/456/releases/abcdef/files/');
+      expect(apiArgs[1].data).toHaveProperty('cursor', '0:0:100');
     });
   });
 });

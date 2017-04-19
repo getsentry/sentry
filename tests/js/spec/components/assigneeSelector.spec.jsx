@@ -42,22 +42,24 @@ describe('AssigneeSelector', function() {
 
     describe('filterMembers()', function() {
       it('should return the full array when filter is falsy', function() {
-        expect(filterMembers([USER_1, USER_2], '')).to.eql([USER_1, USER_2]);
-        expect(filterMembers([USER_1, USER_2], null)).to.eql([USER_1, USER_2]);
-        expect(filterMembers([USER_1, USER_2], undefined)).to.eql([USER_1, USER_2]);
+        expect(filterMembers([USER_1, USER_2], '')).toEqual([USER_1, USER_2]);
+        expect(filterMembers([USER_1, USER_2], null)).toEqual([USER_1, USER_2]);
+        expect(filterMembers([USER_1, USER_2], undefined)).toEqual([USER_1, USER_2]);
       });
 
       it('should match on email', function() {
-        expect(filterMembers([USER_1, USER_2], 'johnsmith@example.com')).to.eql([USER_2]);
+        expect(filterMembers([USER_1, USER_2], 'johnsmith@example.com')).toEqual([
+          USER_2
+        ]);
       });
 
       it('should match on name', function() {
-        expect(filterMembers([USER_1, USER_2], 'John Smith')).to.eql([USER_2]);
+        expect(filterMembers([USER_1, USER_2], 'John Smith')).toEqual([USER_2]);
       });
 
       it('should ignore capitalization', function() {
-        expect(filterMembers([USER_1], 'Jane')).to.eql([USER_1]);
-        expect(filterMembers([USER_1], 'jane')).to.eql([USER_1]);
+        expect(filterMembers([USER_1], 'Jane')).toEqual([USER_1]);
+        expect(filterMembers([USER_1], 'jane')).toEqual([USER_1]);
       });
     });
 
@@ -70,7 +72,7 @@ describe('AssigneeSelector', function() {
           name: 'John Smith',
           email: 'johnsmith@example.com'
         });
-        expect(putSessionUserFirst([USER_1, USER_2])).to.eql([USER_2, USER_1]);
+        expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
       });
 
       it('should return the same member list if the session user isn\'t present', function() {
@@ -80,7 +82,7 @@ describe('AssigneeSelector', function() {
           email: 'guile@mail.us.af.mil'
         });
 
-        expect(putSessionUserFirst([USER_1, USER_2])).to.eql([USER_1, USER_2]);
+        expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
       });
     });
   });
@@ -103,8 +105,8 @@ describe('AssigneeSelector', function() {
         keyCode: 13,
         which: 13
       });
-      expect(assigneeSelector.assignTo.calledOnce).to.be.ok;
-      expect(assigneeSelector.assignTo.lastCall.args[0]).to.have.property(
+      expect(assigneeSelector.assignTo.calledOnce).toBeTruthy;
+      expect(assigneeSelector.assignTo.lastCall.args[0]).toHaveProperty(
         'name',
         'Jane Doe'
       );
@@ -119,7 +121,7 @@ describe('AssigneeSelector', function() {
         keyCode: 13,
         which: 13
       });
-      expect(assigneeSelector.assignTo.notCalled).to.be.ok;
+      expect(assigneeSelector.assignTo.notCalled).toBeTruthy;
     });
 
     it('should do nothing if a non-Enter key is pressed', function() {
@@ -131,7 +133,7 @@ describe('AssigneeSelector', function() {
         keyCode: 72,
         which: 72
       });
-      expect(assigneeSelector.assignTo.notCalled).to.be.ok;
+      expect(assigneeSelector.assignTo.notCalled).toBeTruthy;
     });
   });
 
@@ -148,14 +150,14 @@ describe('AssigneeSelector', function() {
 
       TestUtils.Simulate.keyUp(assigneeSelector.refs.filter, {key: 'Escape'});
 
-      expect(assigneeSelector.refs.dropdown.close.calledOnce).to.be.ok;
+      expect(assigneeSelector.refs.dropdown.close.calledOnce).toBeTruthy;
     });
 
     it('should update the local filter state if any other key is pressed', function() {
       let assigneeSelector = this.assigneeSelector;
 
       TestUtils.Simulate.keyUp(assigneeSelector.refs.filter, {target: {value: 'foo'}});
-      expect(assigneeSelector.state.filter).to.eql('foo');
+      expect(assigneeSelector.state.filter).toEqual('foo');
     });
   });
 
@@ -173,8 +175,8 @@ describe('AssigneeSelector', function() {
       this.sandbox.spy(this.assigneeSelector, 'removeTooltips');
 
       this.assigneeSelector.setState({assignedTo: USER_1}, () => {
-        expect(this.assigneeSelector.attachTooltips.calledOnce).to.be.ok;
-        expect(this.assigneeSelector.removeTooltips.calledOnce).to.be.ok;
+        expect(this.assigneeSelector.attachTooltips.calledOnce).toBeTruthy;
+        expect(this.assigneeSelector.removeTooltips.calledOnce).toBeTruthy;
         done();
       });
     });

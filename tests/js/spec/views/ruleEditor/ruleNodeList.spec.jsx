@@ -37,9 +37,9 @@ describe('RuleNodeList', function() {
         <RuleNodeList nodes={this.sampleNodes} initialItems={initialItems} />
       );
 
-      expect(wrapper.state('items')[0]).to.have.property('key_attr', 0);
-      expect(wrapper.state('items')[1]).to.have.property('key_attr', 1);
-      expect(wrapper.state('counter')).to.equal(2);
+      expect(wrapper.state('items')[0]).toHaveProperty('key_attr', 0);
+      expect(wrapper.state('items')[1]).toHaveProperty('key_attr', 1);
+      expect(wrapper.state('counter')).toEqual(2);
     });
   });
 
@@ -57,11 +57,11 @@ describe('RuleNodeList', function() {
         }
       });
 
-      expect(wrapper.state('items')[0]).to.eql({
+      expect(wrapper.state('items')[0]).toEqual({
         id: 'sentry.rules.conditions.every_event.EveryEventCondition',
         key_attr: 5
       });
-      expect(wrapper.state('counter')).to.equal(6);
+      expect(wrapper.state('counter')).toEqual(6);
     });
   });
 });
