@@ -151,6 +151,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/foo.js',
             project=self.project,
             release=None,
+            distribution=None,
             allow_scraping=True,
         )
 
@@ -207,6 +208,7 @@ class JavascriptIntegrationTest(TestCase):
             'http://example.com/test.min.js',
             project=self.project,
             release=None,
+            distribution=None,
             allow_scraping=True,
         )
 
