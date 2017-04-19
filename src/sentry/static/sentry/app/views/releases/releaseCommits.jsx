@@ -82,7 +82,8 @@ const ReleaseCommits = React.createClass({
       loading: true,
       error: false,
       commitList: [],
-      activeRepo: null
+      activeRepo: null,
+      title: 'All Repositories'
     };
   },
 
@@ -122,7 +123,8 @@ const ReleaseCommits = React.createClass({
 
   setActiveRepo(repo) {
     this.setState({
-      activeRepo: repo
+      activeRepo: repo,
+      title: repo || 'All Repositories'
     });
   },
 
@@ -183,47 +185,45 @@ const ReleaseCommits = React.createClass({
       <div>
         <div className="heading">
           {Object.keys(commitsByRepository).length > 1
-            ? <div className="row">
-                <div className="commits-header col-xs-1">
-                  <h5>Commits</h5>
-                </div>
-                <div className="commits-dropdown col-xs-11 align-left">
-                  <div className="commits-dropdown col-xs-2">
-                    <DropdownLink
-                      caret={false}
-                      title={
+            ? <div className="commits-dropdown align-left">
+                <div className="commits-dropdown">
+                  <DropdownLink
+                    caret={false}
+                    title={
+                      <h5>
+                        {this.state.title}
                         <span
                           className="icon-arrow-down dropdown"
                           style={{marginLeft: 3, marginRight: -3}}
                         />
-                      }
+                      </h5>
+                    }
+                  >
+                    <MenuItem
+                      key="all"
+                      noAnchor={true}
+                      onClick={() => {
+                        this.setActiveRepo(null);
+                      }}
+                      isActive={this.state.activeRepo === null}
                     >
-                      <MenuItem
-                        key="all"
-                        noAnchor={true}
-                        onClick={() => {
-                          this.setActiveRepo(null);
-                        }}
-                        isActive={this.state.activeRepo === null}
-                      >
-                        <a>All Repositories</a>
-                      </MenuItem>
-                      {Object.keys(commitsByRepository).map(repository => {
-                        return (
-                          <MenuItem
-                            key={commitsByRepository[repository].id}
-                            noAnchor={true}
-                            onClick={() => {
-                              this.setActiveRepo(repository);
-                            }}
-                            isActive={this.state.activeRepo === repository}
-                          >
-                            <a>{repository}</a>
-                          </MenuItem>
-                        );
-                      })}
-                    </DropdownLink>
-                  </div>
+                      <a>All Repositories</a>
+                    </MenuItem>
+                    {Object.keys(commitsByRepository).map(repository => {
+                      return (
+                        <MenuItem
+                          key={commitsByRepository[repository].id}
+                          noAnchor={true}
+                          onClick={() => {
+                            this.setActiveRepo(repository);
+                          }}
+                          isActive={this.state.activeRepo === repository}
+                        >
+                          <a>{repository}</a>
+                        </MenuItem>
+                      );
+                    })}
+                  </DropdownLink>
                 </div>
               </div>
             : null}
