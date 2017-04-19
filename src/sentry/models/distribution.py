@@ -18,7 +18,7 @@ class Distribution(Model):
 
     release = FlexibleForeignKey('sentry.Release')
     name = models.CharField(max_length=64)
-    date_added = models.DateTimeField()
+    date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = 'sentry'
@@ -43,15 +43,3 @@ class Distribution(Model):
                 release=release,
                 name=name
             )
-
-    @classmethod
-    def get(cls, release, name):
-        try:
-            rv = Distribution.objects.get(
-                release=release,
-                name=name
-            )
-            rv.release = release
-            return rv
-        except Distribution.DoesNotExist:
-            return None
