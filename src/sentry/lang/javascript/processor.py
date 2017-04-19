@@ -728,6 +728,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 sourcemap_url,
                 project=self.project,
                 release=self.release,
+                distribution=self.distribution,
                 allow_scraping=self.allow_scraping,
             )
         except http.BadSource as exc:
