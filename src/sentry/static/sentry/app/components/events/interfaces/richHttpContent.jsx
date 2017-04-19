@@ -32,7 +32,12 @@ const RichHttpContent = React.createClass({
             : [[k, val]] // key has single value
         );
       }, [])
-      .sort(function([keyA], [keyB]) {
+      .sort(function([keyA, valA], [keyB, valB]) {
+        // if keys are identical, sort on value
+        if (keyA === keyB) {
+          return valA < valB ? -1 : 1;
+        }
+
         return keyA < keyB ? -1 : 1;
       });
   },

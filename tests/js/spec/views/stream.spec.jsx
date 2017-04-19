@@ -1,3 +1,5 @@
+jest.mock('app/stores/groupStore');
+
 import React from 'react';
 import {shallow} from 'enzyme';
 import Cookies from 'js-cookie';
@@ -75,7 +77,7 @@ describe('Stream', function() {
           CursorPoller.prototype.setEndpoint.calledWith(
             'http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1'
           )
-        ).to.be.true;
+        ).toBe(true);
       });
 
       it('should not enable the poller if realtimeActive is false', function() {
@@ -84,7 +86,7 @@ describe('Stream', function() {
         stream.state.realtimeActive = false;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
       });
 
       it('should not enable the poller if the \'previous\' link has results', function() {
@@ -96,7 +98,7 @@ describe('Stream', function() {
         stream.state.realtimeActive = true;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
       });
     }); // complete handler
 
@@ -119,15 +121,15 @@ describe('Stream', function() {
       stream.fetchData();
       stream.fetchData();
 
-      expect(requestCancel.calledOnce).to.be.ok;
-      expect(stream.lastRequest).to.be.ok;
+      expect(requestCancel.calledOnce).toBeTruthy();
+      expect(stream.lastRequest).toBeTruthy();
 
       // when request "completes", lastRequest is cleared
       requestOptions.complete({
         getResponseHeader: () => DEFAULT_LINKS_HEADER
       });
 
-      expect(stream.lastRequest).to.be.null;
+      expect(stream.lastRequest).toBeNull();
     });
   });
 
@@ -135,13 +137,13 @@ describe('Stream', function() {
     it('displays a loading indicator when component is loading', function() {
       let wrapper = this.wrapper;
       wrapper.setState({loading: true});
-      expect(wrapper.find('.loading')).to.be.ok;
+      expect(wrapper.find('.loading')).toBeTruthy();
     });
 
     it('displays a loading indicator when data is loading', function() {
       let wrapper = this.wrapper;
       wrapper.setState({dataLoading: true});
-      expect(wrapper.find('.loading')).to.be.ok;
+      expect(wrapper.find('.loading')).toBeTruthy();
     });
 
     it('displays an error when component has errored', function() {
@@ -151,7 +153,7 @@ describe('Stream', function() {
         loading: false,
         dataLoading: false
       });
-      expect(wrapper.find(LoadingError).length).to.be.ok;
+      expect(wrapper.find(LoadingError).length).toBeTruthy();
     });
 
     it('displays the group list', function() {
@@ -162,7 +164,7 @@ describe('Stream', function() {
         loading: false,
         dataLoading: false
       });
-      expect(wrapper.find('.group-list').length).to.be.ok;
+      expect(wrapper.find('.group-list').length).toBeTruthy();
     });
 
     it('displays empty with no ids', function() {
@@ -174,7 +176,7 @@ describe('Stream', function() {
         loading: false,
         dataLoading: false
       });
-      expect(wrapper.find('.empty-stream').length).to.be.ok;
+      expect(wrapper.find('.empty-stream').length).toBeTruthy();
     });
 
     it('shows "awaiting events" message when no events have been sent', function() {
@@ -189,7 +191,7 @@ describe('Stream', function() {
         dataLoading: false
       });
 
-      expect(this.wrapper.find('.awaiting-events').length).to.equal(1);
+      expect(this.wrapper.find('.awaiting-events').length).toEqual(1);
 
       this.context.project.firstEvent = true; // Reset for other tests
     });
@@ -204,14 +206,14 @@ describe('Stream', function() {
       Cookies.set('realtimeActive', 'false');
 
       let stream = this.wrapper.instance();
-      expect(stream.getInitialState()).to.have.property('realtimeActive', false);
+      expect(stream.getInitialState()).toHaveProperty('realtimeActive', false);
     });
 
     it('reads the true realtimeActive state from a cookie', function() {
       Cookies.set('realtimeActive', 'true');
 
       let stream = this.wrapper.instance();
-      expect(stream.getInitialState()).to.have.property('realtimeActive', true);
+      expect(stream.getInitialState()).toHaveProperty('realtimeActive', true);
     });
   });
 
@@ -220,12 +222,12 @@ describe('Stream', function() {
       let stream = this.wrapper.instance();
       stream.state.realtimeActive = false;
       stream.onRealtimeChange(true);
-      expect(stream.state.realtimeActive).to.eql(true);
-      expect(Cookies.get('realtimeActive')).to.eql('true');
+      expect(stream.state.realtimeActive).toEqual(true);
+      expect(Cookies.get('realtimeActive')).toEqual('true');
 
       stream.onRealtimeChange(false);
-      expect(stream.state.realtimeActive).to.eql(false);
-      expect(Cookies.get('realtimeActive')).to.eql('false');
+      expect(stream.state.realtimeActive).toEqual(false);
+      expect(Cookies.get('realtimeActive')).toEqual('false');
     });
   });
 
@@ -248,7 +250,7 @@ describe('Stream', function() {
       };
 
       let actual = this.wrapper.instance().getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
     it('handles no searchId or query', function() {
@@ -279,7 +281,7 @@ describe('Stream', function() {
       }).instance();
 
       let actual = stream.getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
     it('handles valid searchId in routing params', function() {
@@ -314,7 +316,7 @@ describe('Stream', function() {
       });
 
       let actual = wrapper.instance().getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
     it('handles invalid searchId in routing params', function() {
@@ -345,7 +347,7 @@ describe('Stream', function() {
       }).instance();
 
       let actual = stream.getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
   });
 });
