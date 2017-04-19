@@ -175,7 +175,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         dist_name = request.DATA.get('dist')
         dist = None
         if dist_name:
-            dist = Distribution.get_or_create(release, dist_name)
+            dist = release.add_dist(dist_name)
 
         try:
             releasefile = ReleaseFile.objects.get(

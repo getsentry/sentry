@@ -11,7 +11,7 @@ from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import File, Release, ReleaseFile, Distribution
+from sentry.models import File, Release, ReleaseFile
 
 ERR_FILE_EXISTS = 'A file matching this name already exists for the given release'
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -111,7 +111,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
         dist_name = request.DATA.get('dist')
         dist = None
         if dist_name:
-            dist = Distribution.get_or_create(release, dist_name)
+            dist = release.add_dist(dist_name)
 
         headers = {
             'Content-Type': fileobj.content_type,
