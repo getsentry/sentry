@@ -13,7 +13,7 @@ describe('RawStacktraceContent', function() {
           filename: 'QueuedThreadPool.java',
           lineNo: 582
         })
-      ).to.eql(
+      ).toEqual(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java:582)'
       );
 
@@ -24,7 +24,7 @@ describe('RawStacktraceContent', function() {
           function: 'run',
           filename: 'QueuedThreadPool.java'
         })
-      ).to.eql(
+      ).toEqual(
         '    at org.mortbay.thread.QueuedThreadPool$PoolThread.run(QueuedThreadPool.java)'
       );
 
@@ -34,7 +34,7 @@ describe('RawStacktraceContent', function() {
           module: 'org.mortbay.thread.QueuedThreadPool$PoolThread',
           function: 'run'
         })
-      ).to.eql('    at org.mortbay.thread.QueuedThreadPool$PoolThread.run');
+      ).toEqual('    at org.mortbay.thread.QueuedThreadPool$PoolThread.run');
     });
   });
 
@@ -44,7 +44,7 @@ describe('RawStacktraceContent', function() {
         type: 'Baz',
         value: 'message'
       })
-    ).to.eql('Baz: message');
+    ).toEqual('Baz: message');
 
     expect(
       getJavaPreamble({
@@ -52,7 +52,7 @@ describe('RawStacktraceContent', function() {
         type: 'Baz',
         value: 'message'
       })
-    ).to.eql('foo.bar.Baz: message');
+    ).toEqual('foo.bar.Baz: message');
   });
 
   describe('render()', function() {
@@ -78,13 +78,13 @@ describe('RawStacktraceContent', function() {
         ]
       };
 
-    expect(render(data, 'java', exception)).to.eql(
+    expect(render(data, 'java', exception)).toEqual(
       `example.application.Error: an error occurred
     at example.application.doThing(application:2)
     at example.application.main(application:1)`
     );
 
-    expect(render(data, 'python', exception)).to.eql(
+    expect(render(data, 'python', exception)).toEqual(
       `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`

@@ -1,10 +1,5 @@
-class PendingChangeQueue extends Array {
+class PendingChangeQueue {
   constructor() {
-    super();
-    this.changes = [];
-  }
-
-  clear() {
     this.changes = [];
   }
 
@@ -20,6 +15,10 @@ class PendingChangeQueue extends Array {
     this.changes = this.changes.filter(
       change => change[0] != changeId || change[1] != itemId
     );
+  }
+
+  forEach() {
+    this.changes.forEach.apply(this.changes, arguments);
   }
 }
 

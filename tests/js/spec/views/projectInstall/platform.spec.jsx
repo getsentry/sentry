@@ -60,7 +60,7 @@ describe('ProjectInstallPlatform', function() {
         organization: {id: '1337'}
       });
 
-      expect(wrapper.find('NotFound')).to.have.length(1);
+      expect(wrapper.find('NotFound')).toHaveLength(1);
     });
 
     it('should rendering Loading if integration/platform exists', function() {
@@ -75,7 +75,7 @@ describe('ProjectInstallPlatform', function() {
         organization: {id: '1337'}
       });
 
-      expect(wrapper.find('LoadingIndicator')).to.have.length(1);
+      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
   });
 });

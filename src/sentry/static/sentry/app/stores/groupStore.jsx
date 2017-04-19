@@ -2,7 +2,7 @@ import jQuery from 'jquery';
 import Reflux from 'reflux';
 import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
-import utils from '../utils';
+import PendingChangeQueue from '../utils/pendingChangeQueue';
 import {t} from '../locale';
 import _ from 'underscore';
 
@@ -16,15 +16,13 @@ const GroupStore = Reflux.createStore({
   listenables: [GroupActions],
 
   init() {
-    this.items = [];
-    this.statuses = {};
-    this.pendingChanges = new utils.PendingChangeQueue();
+    this.reset();
   },
 
   reset() {
     this.items = [];
     this.statuses = {};
-    this.pendingChanges.clear();
+    this.pendingChanges = new PendingChangeQueue();
   },
 
   // TODO(dcramer): this should actually come from an action of some sorts
