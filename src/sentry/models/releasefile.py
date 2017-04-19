@@ -29,7 +29,7 @@ class ReleaseFile(Model):
     file = FlexibleForeignKey('sentry.File')
     ident = models.CharField(max_length=40)
     name = models.TextField()
-    distribution = FlexibleForeignKey('sentry.Distribution')
+    distribution = FlexibleForeignKey('sentry.Distribution', null=True)
 
     __repr__ = sane_repr('release', 'ident')
 
