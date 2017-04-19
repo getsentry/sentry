@@ -15,11 +15,11 @@ from sentry.utils.hashlib import sha1_text
 
 
 class ReleaseFile(Model):
-    """
+    r"""
     A ReleaseFile is an association between a Release and a File.
 
     The ident of the file should be sha1(name) or
-    sha1(name '@@' dist.name) and must be unique per release.
+    sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
     __core__ = False
 
