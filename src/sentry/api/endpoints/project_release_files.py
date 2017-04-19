@@ -112,7 +112,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                                      release of.
         :pparam string version: the version identifier of the release.
         :param string name: the name (full path) of the file.
-        :param string distribution: the name of the distribution.
+        :param string dist: the name of the dist.
         :param file file: the multipart encoded file.
         :param string header: this parameter can be supplied multiple times
                               to attach headers to the file.  Each header
@@ -144,7 +144,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         if _filename_re.search(name):
             return Response({'detail': 'File name must not contain special whitespace characters'}, status=400)
 
-        dist_name = request.DATA.get('distribution')
+        dist_name = request.DATA.get('dist')
         dist = None
         if dist_name:
             dist = Distribution.get_or_create(release, dist_name)
@@ -176,7 +176,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                     release=release,
                     file=file,
                     name=full_name,
-                    distribution=dist
+                    dist=dist
                 )
         except IntegrityError:
             file.delete()
