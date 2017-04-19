@@ -4,10 +4,11 @@ Version 8.16 (Unreleased)
 - Time series data (used by graphs and other features) is now updated when groups are merged.
 - Added distributions to the release system to better support mobile apps
 
-Several schema changes are made in this upgrade:
+Schema Changes
+~~~~~~~~~~~~~~
 
-- A new model: Distribution
-- A new field on Event: dist
+- Added ``Distribution`` model
+- Added ``Event.dist`` column
 
 Version 8.15
 ------------
