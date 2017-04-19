@@ -1,6 +1,7 @@
 Version 8.16 (Unreleased)
 -------------------------
 - Added data migration to create UserEmail objects for users whose primary emails did not have them
+- Added distributions to the release system to better support mobile apps
 
 Version 8.15
 ------------
