@@ -30,7 +30,7 @@ from sentry.constants import (
 from sentry.interfaces.base import get_interface
 from sentry.models import (
     Activity, Environment, Event, EventMapping, EventUser, Group, GroupHash,
-    GroupRelease, GroupResolution, GroupStatus, Project, Release, Distribution,
+    GroupRelease, GroupResolution, GroupStatus, Project, Release,
     ReleaseEnvironment, ReleaseProject, TagKey, UserReport
 )
 from sentry.plugins import plugins
@@ -474,11 +474,7 @@ class EventManager(object):
             tags['sentry:release'] = release.version
 
         if dist and release:
-            dist = Distribution.get_or_create(
-                release=release,
-                name=dist,
-                date_added=date
-            )
+            release.ensure_distribution(dist, date)
             tags['sentry:dist'] = dist.name
         else:
             dist = None

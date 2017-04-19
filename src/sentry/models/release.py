@@ -199,6 +199,23 @@ class Release(Model):
             return self.version[:12]
         return self.version
 
+    def add_dist(self, name, date_added=None):
+        from sentry.models import Distribution
+        if date_added is None:
+            date_added = timezone.now()
+        try:
+            with transaction.atomic():
+                return Distribution.objects.create(
+                    release=self,
+                    name=name,
+                    date_added=date_added
+                )
+        except IntegrityError:
+            return Distribution.objects.get(
+                release=self,
+                name=name
+            )
+
     def add_project(self, project):
         """
         Add a project to this release.

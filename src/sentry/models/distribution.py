@@ -7,7 +7,7 @@ sentry.models.distribution
 """
 from __future__ import absolute_import
 
-from django.db import models, IntegrityError, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import Model, FlexibleForeignKey, sane_repr
@@ -26,20 +26,3 @@ class Distribution(Model):
         unique_together = (('release', 'name'),)
 
     __repr__ = sane_repr('release', 'name')
-
-    @classmethod
-    def get_or_create(cls, release, name, date_added=None):
-        if date_added is None:
-            date_added = timezone.now()
-        try:
-            with transaction.atomic():
-                return cls.objects.create(
-                    release=release,
-                    name=name,
-                    date_added=date_added
-                )
-        except IntegrityError:
-            return cls.objects.get(
-                release=release,
-                name=name
-            )
