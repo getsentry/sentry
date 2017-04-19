@@ -479,10 +479,7 @@ class EventManager(object):
                 name=distribution,
                 date_added=date
             )
-            tags['sentry:distribution'] = '%s/%s' % (
-                tags['sentry:release'],
-                distribution.name,
-            )
+            tags['sentry:distribution'] = distribution.name
         else:
             distribution = None
 

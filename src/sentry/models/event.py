@@ -205,9 +205,7 @@ class Event(Model):
 
     @property
     def distribution(self):
-        dist = self.get_tag('sentry:distribution')
-        if dist:
-            return dist.split('/', 1)[-1]
+        return self.get_tag('sentry:distribution')
 
     def as_dict(self):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
