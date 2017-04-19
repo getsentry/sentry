@@ -55,5 +55,5 @@ class ReleaseFile(Model):
     @classmethod
     def get_ident(cls, name, dist=None):
         if dist is not None:
-            return sha1_text(name + '@@' + dist).hexdigest()
+            return sha1_text(name + '\x00\x00' + dist).hexdigest()
         return sha1_text(name).hexdigest()
