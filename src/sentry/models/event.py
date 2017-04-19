@@ -203,12 +203,19 @@ class Event(Model):
                 return v
         return None
 
+    @property
+    def distribution(self):
+        dist = self.get_tag('sentry:distribution')
+        if dist:
+            return dist.split('/', 1)[-1]
+
     def as_dict(self):
         # We use a OrderedDict to keep elements ordered for a potential JSON serializer
         data = OrderedDict()
         data['id'] = self.event_id
         data['project'] = self.project_id
         data['release'] = self.get_tag('sentry:release')
+        data['distribution'] = self.distribution
         data['platform'] = self.platform
         data['culprit'] = self.group.culprit
         data['message'] = self.get_legacy_message()
