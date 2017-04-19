@@ -203,18 +203,11 @@ class Release(Model):
         from sentry.models import Distribution
         if date_added is None:
             date_added = timezone.now()
-        try:
-            with transaction.atomic():
-                return Distribution.objects.create(
-                    release=self,
-                    name=name,
-                    date_added=date_added
-                )
-        except IntegrityError:
-            return Distribution.objects.get(
-                release=self,
-                name=name
-            )
+        return Distribution.objects.get_or_create(
+            release=self,
+            name=name,
+            defaults={'date_added': date_added}
+        )[0]
 
     def add_project(self, project):
         """

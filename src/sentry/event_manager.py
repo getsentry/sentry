@@ -474,7 +474,7 @@ class EventManager(object):
             tags['sentry:release'] = release.version
 
         if dist and release:
-            release.ensure_distribution(dist, date)
+            dist = release.add_dist(dist, date)
             tags['sentry:dist'] = dist.name
         else:
             dist = None
