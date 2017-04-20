@@ -3,18 +3,13 @@ import React from 'react';
 import CrumbTable from './crumbTable';
 import SummaryLine from './summaryLine';
 
-
 const ErrorRenderer = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired,
+    crumb: React.PropTypes.object.isRequired
   },
 
   renderUrl(url) {
-    return (
-      url.match(/^https?:\/\//)
-        ? <a href={url}>{url}</a>
-        : <em>{url}</em>
-    );
+    return url.match(/^https?:\/\//) ? <a href={url}>{url}</a> : <em>{url}</em>;
   },
 
   render() {
@@ -40,13 +35,7 @@ const ErrorRenderer = React.createClass({
       </SummaryLine>
     );
 
-    return (
-      <CrumbTable
-        title="Error"
-        summary={summary}
-        kvData={extra}
-        {...this.props} />
-    );
+    return <CrumbTable title="Error" summary={summary} kvData={extra} {...this.props} />;
   }
 });
 

@@ -5,7 +5,7 @@ let TeamState = {
   mixins: [OrganizationState],
 
   contextTypes: {
-    team: PropTypes.Team.isRequired,
+    team: PropTypes.Team.isRequired
   },
 
   getTeam() {
@@ -14,4 +14,3 @@ let TeamState = {
 };
 
 export default TeamState;
-

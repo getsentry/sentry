@@ -16,10 +16,7 @@ const GettingStartedBody = React.createClass({
       <div className="getting-started">
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div className="p-t-1 p-b-1">
-            <ProjectSelector
-              organization={organization}
-              projectId={project.slug}
-              />
+            <ProjectSelector organization={organization} projectId={project.slug} />
           </div>
         </div>
         <div className="container">

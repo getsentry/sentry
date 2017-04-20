@@ -26,24 +26,23 @@ const ListLink = React.createClass({
   getDefaultProps() {
     return {
       activeClassName: 'active',
-      index: false,
+      index: false
     };
   },
 
   isActive() {
     return (this.props.isActive || this.context.router.isActive)(
-      {pathname: this.props.to, query: this.props.query}, this.props.index
+      {pathname: this.props.to, query: this.props.query},
+      this.props.index
     );
   },
 
   getClassName() {
     let _classNames = {};
 
-    if (this.props.className)
-      _classNames[this.props.className] = true;
+    if (this.props.className) _classNames[this.props.className] = true;
 
-    if (this.isActive())
-      _classNames[this.props.activeClassName] = true;
+    if (this.isActive()) _classNames[this.props.activeClassName] = true;
 
     return classNames(_classNames);
   },
@@ -52,11 +51,12 @@ const ListLink = React.createClass({
     let carriedProps = _.omit(this.props, 'activeClassName', 'isActive', 'index');
     return (
       <li className={this.getClassName()}>
-        <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>{this.props.children}</Link>
+        <Link {...carriedProps} onlyActiveOnIndex={this.props.index}>
+          {this.props.children}
+        </Link>
       </li>
     );
   }
 });
 
 export default ListLink;
-
