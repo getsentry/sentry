@@ -222,7 +222,7 @@ const VersionHoverCard = React.createClass({
                             <div className="deploy">
                               <div key={idx} className="deploy-meta">
                                 <strong>
-                                  Deployed to {env + ' '}
+                                  {env + ' - '}
                                 </strong>
                                 {dateFinished && <TimeSince date={dateFinished} />}
                               </div>

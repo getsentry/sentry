@@ -1,6 +1,7 @@
 import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
-import {t} from '../locale';
+import TooltipMixin from '../mixins/tooltip';
+// import {t} from '../locale';
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
 import TimeSince from './timeSince';
@@ -11,7 +12,12 @@ const RecentReleaseDeploys = React.createClass({
     version: React.PropTypes.object
   },
 
-  mixins: [ApiMixin],
+  mixins: [
+    ApiMixin,
+    TooltipMixin({
+      selector: '.tip'
+    })
+  ],
 
   getInitialState() {
     return {
@@ -68,19 +74,12 @@ const RecentReleaseDeploys = React.createClass({
           mostRecentDeploySlice.map((env, idx) => {
             let dateFinished = recentDeploysByEnviroment[env];
             return (
-              <div className="deploy">
-                <div key={idx} className="deploy-meta">
-                  <strong>
-                    {t('Deployed to ')}{env + ' '}
-                  </strong>
-                  {dateFinished &&
-                    <p className="m-b-0 text-light">
-                      <span className="icon icon-clock" />
-                      {' '}
-                      <TimeSince date={dateFinished} />
-                    </p>}
-                </div>
-              </div>
+              <span className="deploy tip" title={dateFinished}>
+                <span key={idx} className="deploy-meta repo-label">
+                  {env + ' '}
+                  {dateFinished && <TimeSince date={dateFinished} />}
+                </span>
+              </span>
             );
           })}
       </div>
