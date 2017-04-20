@@ -74,12 +74,18 @@ const RecentReleaseDeploys = React.createClass({
           mostRecentDeploySlice.map((env, idx) => {
             let dateFinished = recentDeploysByEnviroment[env];
             return (
-              <span className="deploy tip" title={dateFinished}>
-                <span key={idx} className="deploy-meta repo-label">
-                  {env + ' '}
-                  {dateFinished && <TimeSince date={dateFinished} />}
-                </span>
-              </span>
+              <div className="deploy" key={idx}>
+                <span className="repo-label">{env + ' '}</span>
+                {dateFinished &&
+                  <p
+                    style={{
+                      display: 'inline',
+                      'padding-left': '5px'
+                    }}
+                  >
+                    <TimeSince date={dateFinished} />
+                  </p>}
+              </div>
             );
           })}
       </div>
