@@ -1,0 +1,49 @@
+{% extends "sentry/emails/activity/generic.html" %}
+
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+
+{% block action %}
+{% endblock %}
+
+{% block activity %}
+    <h2 style="margin-bottom: 10px">
+        Failed to Process Events in {{ project.organization.name }} / {{ project.name }}
+    </h2>
+
+    <p class="muted">
+        Some events failed to process in your project "{{ project.name }}".
+        {% if reprocessing_active %}
+          Because reprocessing is enabled you will not see these events until
+          you corrected some issues that affect processing.
+        {% else %}
+          If you enable reprocessing you will not be receiving alert emails
+          for such events in the future until issues are resolved.  We
+          strongly recommend to enable reprocessing.
+        {% endif %}
+    </p>
+    <hr>
+
+    <h6>Project Affected</h6>
+    <div class="table-border">
+      <table class="table projects">
+        <tbody>
+            <tr>
+              <td>
+                <h5 style="margin-bottom: 0">
+                  <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
+                </h5>
+                <p class="muted" style="margin-bottom: 0">
+                  {% if issues|count == 1 %}one issue{% else %}{{ issues|count }} issues{% endif %}
+                </p>
+              </td>
+              <td style="text-align: right">
+                {% if reprocessing_active %}
+                <a href="{{ info_url }}" class="btn btn-sm btn-primary">View Issues</a>
+                {% endif %}
+              </td>
+            </tr>
+        </tbody>
+      </table>
+    </div>
+{% endblock %}

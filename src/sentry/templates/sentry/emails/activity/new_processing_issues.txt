@@ -1,0 +1,1 @@
+Some events failed to process in your project "{{ project.name }}".
