@@ -12,8 +12,9 @@ from sentry.db.models import (
 
 
 class GroupSubscriptionReason(object):
-    committed = -2  # not for use as a persisted field value
     implicit = -1   # not for use as a persisted field value
+    committed = -2  # not for use as a persisted field value
+    processing_issue = -3  # not for use as a persisted field value
 
     unknown = 0
     comment = 1
@@ -25,6 +26,7 @@ class GroupSubscriptionReason(object):
         implicit: u"have opted to receive updates for all issues within "
                   "projects that you are a member of",
         committed: u"were involved in a commit that is part of this release",
+        processing_issue: u"are subscribed to alerts for this project",
         comment: u"have commented on this issue",
         assigned: u"have been assigned to this issue",
         bookmark: u"have bookmarked this issue",
