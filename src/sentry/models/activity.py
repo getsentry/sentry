@@ -41,6 +41,7 @@ class Activity(Model):
     SET_RESOLVED_BY_AGE = 15
     SET_RESOLVED_IN_COMMIT = 16
     DEPLOY = 17
+    NEW_PROCESSING_ISSUES = 18
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -61,6 +62,7 @@ class Activity(Model):
         (UNASSIGNED, 'unassigned'),
         (MERGE, 'merge'),
         (DEPLOY, 'deploy'),
+        (NEW_PROCESSING_ISSUES, 'new_processing_issues'),
     )
 
     project = FlexibleForeignKey('sentry.Project')
