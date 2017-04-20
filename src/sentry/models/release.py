@@ -206,7 +206,10 @@ class Release(Model):
         return Distribution.objects.get_or_create(
             release=self,
             name=name,
-            defaults={'date_added': date_added}
+            defaults={
+                'date_added': date_added,
+                'organization_id': self.organization_id,
+            }
         )[0]
 
     def add_project(self, project):
