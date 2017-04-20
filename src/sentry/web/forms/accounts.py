@@ -515,12 +515,14 @@ class NotificationDeploySettingsForm(forms.Form):
         self.fields['notifications'].label = ""
 
     def save(self):
-        UserOrgOption.objects.set_value(
-            user=self.user,
-            organization=self.organization,
-            key='deploy-emails',
-            value=self.data['{}-notifications'.format(self.prefix)],
-        )
+        value = self.data.get('{}-notifications'.format(self.prefix), -1)
+        if value != -1:
+            UserOrgOption.objects.set_value(
+                user=self.user,
+                organization=self.organization,
+                key='deploy-emails',
+                value=value,
+            )
 
 
 class NotificationSettingsForm(forms.Form):
