@@ -23,7 +23,7 @@ except ImportError:
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, Release, ReleaseFile, Distribution
+from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
@@ -497,10 +497,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 version=self.data['release'],
             )
             if self.data.get('dist'):
-                self.dist = Distribution.objects.get(
-                    release=self.release,
-                    name=self.data['dist']
-                )
+                self.dist = self.release.get_dist(self.data['dist'])
         self.populate_source_cache(frames)
         return True
 

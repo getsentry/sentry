@@ -212,6 +212,16 @@ class Release(Model):
             }
         )[0]
 
+    def get_dist(self, name):
+        from sentry.models import Distribution
+        try:
+            return Distribution.objects.get(
+                name=name,
+                release=self
+            )
+        except Distribution.DoesNotExist:
+            pass
+
     def add_project(self, project):
         """
         Add a project to this release.
