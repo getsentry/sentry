@@ -17,6 +17,12 @@ from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import BaseManager
 
 
+class UserOrgOptionValue(object):
+    all_deploys = '0'
+    committed_only = '1'
+    none = '2'
+
+
 class UserOrgOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(UserOrgOptionManager, self).__init__(*args, **kwargs)
@@ -32,9 +38,9 @@ class UserOrgOptionManager(BaseManager):
         self.__dict__.update(state)
         self.__metadata = {}
 
-    def get_value(self, user, organization, key, default=None):
+    def get_value(self, user, organization, key):
         result = self.get_all_values(user, organization)
-        return result.get(key, default)
+        return result.get(key, UserOrgOptionValue.committed_only)
 
     def unset_value(self, user, organization, key):
         self.filter(user=user, organization=organization, key=key).delete()

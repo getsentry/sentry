@@ -1,14 +1,13 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
-
 from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     CommitFileChange, Deploy, Environment, Group,
     GroupSubscriptionReason, GroupCommitResolution,
-    Release, ReleaseCommit, Repository, Team, User, UserEmail
+    Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOrgOption, UserOrgOptionValue
 )
 from sentry.utils.http import absolute_uri
 
@@ -101,18 +100,29 @@ class ReleaseActivityEmail(ActivityEmail):
             return {}
 
         # identify members which have been seen in the commit log and have
-        # verified the matching email address
-        return {
-            user: GroupSubscriptionReason.committed
+        # verified the matching email address, or who opt into all deploy emails
+        users_with_options = [
+            (user, UserOrgOption.objects.get_value(
+                user=user,
+                organization=self.organization,
+                key='deploy-emails',
+            ))
             for user in User.objects.filter(
-                in_iexact('emails__email', self.email_list),
                 emails__is_verified=True,
                 sentry_orgmember_set__teams=Team.objects.filter(
                     id__in=[p.team_id for p in self.projects]
                 ),
                 is_active=True,
             ).distinct()
+        ]
+
+        participants = {
+            user: GroupSubscriptionReason.committed if option == UserOrgOptionValue.committed_only else GroupSubscriptionReason.setting
+            for user, option in users_with_options
+            if option == UserOrgOptionValue.all_deploys or
+            option == UserOrgOptionValue.committed_only and user.email in self.email_list
         }
+        return participants
 
     def get_users_by_teams(self):
         if not self.user_id_team_lookup:

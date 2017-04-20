@@ -22,7 +22,7 @@ from sentry.auth import password_validation
 from sentry.app import ratelimiter, newsletter
 from sentry.constants import LANGUAGES
 from sentry.models import (
-    Organization, OrganizationStatus, User, UserOption, UserOrgOption, UserOptionValue
+    Organization, OrganizationStatus, User, UserOption, UserOrgOption, UserOptionValue, UserOrgOptionValue
 )
 from sentry.security import capture_security_activity
 from sentry.utils.auth import find_users, logger
@@ -491,9 +491,9 @@ class NotificationReportSettingsForm(forms.Form):
 
 class NotificationDeploySettingsForm(forms.Form):
     CHOICES = [
-        ('all', 'All deploys'),
-        ('mine', 'Deploys with your commits'),
-        ('none', 'Never')]
+        (UserOrgOptionValue.all_deploys, 'All deploys'),
+        (UserOrgOptionValue.committed_only, 'Deploys with your commits'),
+        (UserOrgOptionValue.none, 'Never')]
 
     notifications = forms.ChoiceField(
         choices=CHOICES,
@@ -509,7 +509,6 @@ class NotificationDeploySettingsForm(forms.Form):
             user=user,
             organization=self.organization,
             key='deploy-emails',
-            default='mine'
         )
 
         self.fields['notifications'].initial = deploy_setting
