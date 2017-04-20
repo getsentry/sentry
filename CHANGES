@@ -3,6 +3,11 @@ Version 8.16 (Unreleased)
 - Added data migration to create UserEmail objects for users whose primary emails did not have them
 - Time series data (used by graphs and other features) is now updated when groups are merged.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added ``CommitAuthor.external_id`` column
+
 Version 8.15
 ------------
 
