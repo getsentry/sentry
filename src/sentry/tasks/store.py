@@ -21,6 +21,8 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 from sentry.stacktraces import process_stacktraces, \
     should_process_for_stacktraces
+from sentry.utils.dates import to_datetime
+from sentry.models import ProjectOption, Activity, Project
 
 error_logger = logging.getLogger('sentry.errors.events')
 
@@ -131,9 +133,9 @@ def _do_process_event(cache_key, start_time, event_id):
 
     if has_changed:
         issues = data.get('processing_issues')
-        if issues:
-            create_failed_event(cache_key, project, list(issues.values()),
-                event_id=event_id)
+        if issues and create_failed_event(
+                cache_key, project, list(issues.values()), event_id=event_id,
+                start_time=start_time):
             return
 
         default_cache.set(cache_key, data, 3600)
@@ -162,7 +164,7 @@ def process_event_from_reprocessing(cache_key, start_time=None, event_id=None, *
     return _do_process_event(cache_key, start_time, event_id)
 
 
-def delete_raw_event(project_id, event_id):
+def delete_raw_event(project_id, event_id, allow_hint_clear=False):
     if event_id is None:
         error_logger.error('process.failed_delete_raw_event',
             extra={'project_id': project_id})
@@ -177,24 +179,66 @@ def delete_raw_event(project_id, event_id):
         event_id=event_id
     ).delete()
 
+    # Clear the sent notification if we reprocessed everything
+    # successfully and reprocessing is enabled
+    reprocessing_active = ProjectOption.objects.get_value(
+        project_id, 'sentry:reprocessing_active', False)
+    if reprocessing_active:
+        sent_notification = ProjectOption.objects.get_value(
+            project_id, 'sentry:sent_failed_event_hint', False)
+        if sent_notification:
+            if ReprocessingReport.objects.filter(
+                project_id=project_id,
+                event_id=event_id
+            ).values('id').first() is None:
+                project = Project.objects.get_from_cache(id=project_id)
+                ProjectOption.objects.set_value(
+                    project, 'sentry:sent_failed_event_hint', False)
 
-def create_failed_event(cache_key, project, issues, event_id):
+
+def create_failed_event(cache_key, project_id, issues, event_id, start_time=None):
     """If processing failed we put the original data from the cache into a
-    raw event.
+    raw event.  Returns `True` if a failed event was inserted
     """
+    reprocessing_active = ProjectOption.objects.get_value(
+        project_id, 'sentry:reprocessing_active', False)
+
+    # The first time we encounter a failed event and the hint was cleared
+    # we send a notification.
+    sent_notification = ProjectOption.objects.get_value(
+        project_id, 'sentry:sent_failed_event_hint', False)
+    if not sent_notification:
+        project = Project.objects.get_from_cache(id=project_id)
+        Activity.objects.create(
+            type=Activity.NEW_PROCESSING_ISSUES,
+            project=project,
+            datetime=to_datetime(start_time),
+            data={
+                'reprocessing_active': reprocessing_active,
+                'issues': issues
+            },
+        ).send_notification()
+        ProjectOption.objects.set_value(
+            project, 'sentry:sent_failed_event_hint', True)
+
+    # If reprocessing is not active we bail now without creating the
+    # processing issues
+    if not reprocessing_active:
+        return False
+
     # We need to get the original data here instead of passing the data in
     # from the last processing step because we do not want any
     # modifications to take place.
-    delete_raw_event(project, event_id)
+    delete_raw_event(project_id, event_id)
     data = default_cache.get(cache_key)
     if data is None:
         metrics.incr('events.failed', tags={'reason': 'cache', 'stage': 'raw'})
         error_logger.error('process.failed_raw.empty', extra={'cache_key': cache_key})
-        return
+        return True
 
     from sentry.models import RawEvent, ProcessingIssue
     raw_event = RawEvent.objects.create(
-        project_id=project,
+        project_id=project_id,
         event_id=event_id,
         datetime=datetime.utcfromtimestamp(
             data['timestamp']).replace(tzinfo=timezone.utc),
@@ -211,6 +255,8 @@ def create_failed_event(cache_key, project, issues, event_id):
         )
 
     default_cache.delete(cache_key)
+
+    return True
 
 
 @instrumented_task(
@@ -234,7 +280,7 @@ def save_event(cache_key=None, data=None, start_time=None, event_id=None, **kwar
 
     project = data.pop('project')
 
-    delete_raw_event(project, event_id)
+    delete_raw_event(project, event_id, allow_hint_clear=True)
 
     Raven.tags_context({
         'project': project,
