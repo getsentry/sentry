@@ -411,8 +411,8 @@ class Frame(Interface):
                 output.append('<function>')
             else:
                 output.append(remove_function_outliers(self.function))
-        elif self.lineno is not None:
-            output.append(self.lineno)
+            if self.lineno is not None:
+                output.append(self.lineno)
         return output
 
     def get_api_context(self, is_public=False, pad_addr=None):
