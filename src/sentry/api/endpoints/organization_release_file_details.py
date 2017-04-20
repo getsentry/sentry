@@ -9,7 +9,7 @@ from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import Release, ReleaseFile, Distribution
+from sentry.models import Release, ReleaseFile
 try:
     from django.http import (
         CompatibleStreamingHttpResponse as StreamingHttpResponse
@@ -49,7 +49,6 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to retrieve.
-        :qparam string dist: the name of the dist.
         :auth: required
         """
         try:
@@ -63,22 +62,10 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        dist_name = request.GET.get('dist')
-        dist = None
-        if dist_name:
-            try:
-                dist = Distribution.objects.get(
-                    release=release,
-                    name=dist_name,
-                )
-            except Distribution.DoesNotExist:
-                raise ResourceDoesNotExist
-
         try:
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
-                dist=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
@@ -118,16 +105,10 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        dist_name = request.DATA.get('dist')
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
-
         try:
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
-                dist=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
@@ -158,7 +139,6 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                                           release belongs to.
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to delete.
-        :qparam string dist: the name of the dist.
         :auth: required
         """
         try:
@@ -172,22 +152,10 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         if not self.has_release_permission(request, organization, release):
             raise PermissionDenied
 
-        dist_name = request.GET.get('dist')
-        dist = None
-        if dist_name:
-            try:
-                dist = Distribution.objects.get(
-                    release=release,
-                    name=dist_name,
-                )
-            except Distribution.DoesNotExist:
-                raise ResourceDoesNotExist
-
         try:
             releasefile = ReleaseFile.objects.get(
                 release=release,
                 id=file_id,
-                dist=dist,
             )
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
