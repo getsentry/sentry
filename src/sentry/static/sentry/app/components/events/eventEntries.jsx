@@ -5,7 +5,6 @@ import EventContexts from './contexts';
 import EventContextSummary from './contextSummary';
 import EventDataSection from './eventDataSection';
 import EventErrors from './errors';
-import ReprocessingHint from './reprocessingHint';
 import EventExtraData from './extraData';
 import EventPackageData from './packageData';
 import EventTags from './eventTags';
@@ -113,13 +112,6 @@ const EventEntries = React.createClass({
     return (
       <div className="entries">
         {evt.userReport && <EventUserReport group={group} event={evt} />}
-        {!utils.objectIsEmpty(evt.errors) &&
-          <ReprocessingHint
-            group={group}
-            event={evt}
-            orgId={this.props.orgId}
-            projectId={project.slug}
-          />}
         {!utils.objectIsEmpty(evt.errors) && <EventErrors group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.sdk) &&
           evt.sdk.upstream.isNewer &&

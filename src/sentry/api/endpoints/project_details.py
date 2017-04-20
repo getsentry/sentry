@@ -144,7 +144,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
             'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
             'sentry:default_environment': project.get_option('sentry:default_environment'),
-            'sentry:reprocessing_show_hint': bool(project.get_option('sentry:reprocessing_show_hint', True)),
             'sentry:reprocessing_active': bool(project.get_option('sentry:reprocessing_active', False)),
             'filters:blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
             'feedback:branding': project.get_option('feedback:branding', '1') == '1',
@@ -290,9 +289,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if 'sentry:reprocessing_active' in options:
                 project.update_option('sentry:reprocessing_active',
                     bool(options['sentry:reprocessing_active']))
-            if 'sentry:reprocessing_show_hint' in options:
-                project.update_option('sentry:reprocessing_show_hint',
-                    bool(options['sentry:reprocessing_show_hint']))
             if 'filters:blacklisted_ips' in options:
                 project.update_option(
                     'sentry:blacklisted_ips',
