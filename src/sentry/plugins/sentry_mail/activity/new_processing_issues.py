@@ -1,9 +1,31 @@
 from __future__ import absolute_import
 
-from sentry.models import User, GroupSubscriptionReason
+from sentry.models import User, GroupSubscriptionReason, EventError
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
+
+
+def summarize_issues(issues):
+    rv = []
+    for issue in issues:
+        extra_info = None
+        msg_d = dict(issue['data'])
+        msg_d['type'] = issue['type']
+
+        if 'image_path' in issue['data']:
+            extra_info = issue['data']['image_path'].rsplit('/', 1)[-1]
+            if 'image_arch' in issue['data']:
+                extra_info = '%s (%s)' % (
+                    extra_info,
+                    issue['data']['image_arch'],
+                )
+
+        rv.append({
+            'message': EventError.get_message(msg_d),
+            'extra_info': extra_info,
+        })
+    return rv
 
 
 class NewProcessingIssuesActivityEmail(ActivityEmail):
@@ -11,6 +33,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
     def __init__(self, activity):
         ActivityEmail.__init__(self, activity)
         self.organization = self.project.organization
+        self.issues = summarize_issues(self.data['issues'])
 
     def get_participants(self):
         # XXX: We want to send an email to everybody who is subscribed to
@@ -31,7 +54,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
     def get_context(self):
         return {
             'project': self.project,
-            'issues': self.activity.data['issues'],
+            'issues': self.issues,
             'reprocessing_active': self.activity.data['reprocessing_active'],
             'info_url': absolute_uri('/{}/{}/settings/processing-issues/'.format(
                 self.organization.slug,

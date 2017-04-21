@@ -1,1 +1,17 @@
 Some events failed to process in your project "{{ project.name }}".
+
+{% if reprocessing_active %}Because reprocessing is enabled you will not see these events until
+you corrected some issues that affect processing.
+
+{% endif %}Issues:
+{% for issue in issues %}
+* {{ issue.message }}{% if issue.extra_info %}
+  ({{ issue.extra_info }}){% endif %}
+{% endfor %}
+
+{% if not reprocessing_active %}Because reprocessing is not enabled we
+will not futher bother you about issues like this.  We do however
+recommend to enable reprocessing in the project settings
+({{ info_url }})
+for a better user experience.{% else %}You can fix these issues here:
+  {{ info_url }}{% endif %}

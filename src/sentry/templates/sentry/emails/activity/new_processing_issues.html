@@ -8,42 +8,74 @@
 
 {% block activity %}
     <h2 style="margin-bottom: 10px">
-        Failed to Process Events in {{ project.organization.name }} / {{ project.name }}
+      Failed to Process Events
     </h2>
 
     <p class="muted">
-        Some events failed to process in your project "{{ project.name }}".
-        {% if reprocessing_active %}
-          Because reprocessing is enabled you will not see these events until
-          you corrected some issues that affect processing.
-        {% else %}
-          If you enable reprocessing you will not be receiving alert emails
-          for such events in the future until issues are resolved.  We
-          strongly recommend to enable reprocessing.
-        {% endif %}
+      Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.name }}</a>".
+      {% if reprocessing_active %}
+        Because reprocessing is enabled you will not see these events until
+        you corrected some issues that affect processing.
+      {% endif %}
     </p>
+    {% if not reprocessing_active %}
+    <p>
+      <strong>Tip:</strong> If you <a href="{{ info_url }}">enable reprocessing</a>
+      you will not be receiving alert emails for such events in the future
+      until issues are resolved.
+    </p>
+    {% endif %}
     <hr>
 
     <h6>Project Affected</h6>
     <div class="table-border">
       <table class="table projects">
         <tbody>
-            <tr>
-              <td>
-                <h5 style="margin-bottom: 0">
-                  <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
-                </h5>
-                <p class="muted" style="margin-bottom: 0">
-                  {% if issues|count == 1 %}one issue{% else %}{{ issues|count }} issues{% endif %}
-                </p>
-              </td>
-              <td style="text-align: right">
-                {% if reprocessing_active %}
-                <a href="{{ info_url }}" class="btn btn-sm btn-primary">View Issues</a>
-                {% endif %}
-              </td>
-            </tr>
+          <tr>
+            <td>
+              <h5 style="margin-bottom: 0">
+                <a href="{{ project.get_absolute_url }}">{{ project.name }}</a>
+              </h5>
+              <p class="muted" style="margin-bottom: 0">
+                {% if issues|length == 1 %}1 issue{% else %}{{ issues|length }} issues{% endif %}
+              </p>
+            </td>
+            <td style="text-align: right">
+              {% if reprocessing_active %}
+              <a href="{{ info_url }}" class="btn btn-sm btn-primary">Fix Issues</a>
+              {% endif %}
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
+
+    <h6>Issues</h6>
+    <div class="table-border">
+      <table class="table issues">
+        <tbody>
+          {% for issue in issues %}
+          <tr>
+            <td>
+              <p style="margin-bottom: 0">
+                <strong>{{ issue.message }}</strong>
+              </p>
+              {% if issue.extra_info %}
+                <p class="muted" style="margin-bottom: 0">{{ issue.extra_info }}</p>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if not reprocessing_active %}
+    <p>
+      Because reprocessing is not enabled we will not futher bother you about
+      issues like this.  We do however recommend to <a href="{{ info_url
+        }}">enable reprocessing in the project settings</a> for a better user
+      experience.
+    </p>
+    {% endif %}
 {% endblock %}
