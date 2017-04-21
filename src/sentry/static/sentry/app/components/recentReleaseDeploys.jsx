@@ -75,12 +75,14 @@ const RecentReleaseDeploys = React.createClass({
             let dateFinished = recentDeploysByEnviroment[env];
             return (
               <div className="deploy" key={idx}>
-                <span className="repo-label">{env + ' '}</span>
+                <span className="repo-label"  style={{padding: 3, display: 'inline-block', width: 86, maxWidth: 86, textAlign: 'center', fontSize: 12}}>{env + ' '}</span>
                 {dateFinished &&
                   <p
+                    className="text-light"
                     style={{
-                      display: 'inline',
-                      'padding-left': '5px'
+                      display: 'inline-block',
+                      'padding-left': '10px',
+                      'vertical-align': 'baseline'
                     }}
                   >
                     <TimeSince date={dateFinished} />
