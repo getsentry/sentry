@@ -96,7 +96,7 @@ const VersionHoverCard = React.createClass({
 
   toggleHovercard() {
     this.setState({
-      visible: true //!this.state.visible
+      visible: !this.state.visible
     });
   },
 
@@ -229,12 +229,13 @@ const VersionHoverCard = React.createClass({
                                 className="deploy-meta"
                                 style={{position: 'relative'}}
                               >
-                                <strong className="repo-label">
+                                <strong className="repo-label truncate" style={{padding: 3, display: 'inline-block', width: 86, maxWidth: 86, textAlign: 'center', fontSize: 12}}>
                                   {env}
                                 </strong>
                                 {dateFinished &&
                                   <span
-                                    style={{position: 'absolute', right: 0, width: '50%'}}
+                                    className="text-light"
+                                    style={{position: 'absolute', left: 98, width: '50%', padding: '3px 0'}}
                                   >
                                     <TimeSince date={dateFinished} />
                                   </span>}
