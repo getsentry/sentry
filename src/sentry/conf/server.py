@@ -445,6 +445,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
+    'sentry.tasks.commits',
     'sentry.tasks.check_auth',
     'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms',
@@ -464,6 +465,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
+    Queue('commits', routing_key='commits'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('default', routing_key='default'),
     Queue('digests.delivery', routing_key='digests.delivery'),
