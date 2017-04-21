@@ -199,6 +199,29 @@ class Release(Model):
             return self.version[:12]
         return self.version
 
+    def add_dist(self, name, date_added=None):
+        from sentry.models import Distribution
+        if date_added is None:
+            date_added = timezone.now()
+        return Distribution.objects.get_or_create(
+            release=self,
+            name=name,
+            defaults={
+                'date_added': date_added,
+                'organization_id': self.organization_id,
+            }
+        )[0]
+
+    def get_dist(self, name):
+        from sentry.models import Distribution
+        try:
+            return Distribution.objects.get(
+                name=name,
+                release=self
+            )
+        except Distribution.DoesNotExist:
+            pass
+
     def add_project(self, project):
         """
         Add a project to this release.
