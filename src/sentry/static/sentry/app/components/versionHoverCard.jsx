@@ -220,11 +220,20 @@ const VersionHoverCard = React.createClass({
                           let dateFinished = recentDeploysByEnviroment[env];
                           return (
                             <div className="deploy">
-                              <div key={idx} className="deploy-meta">
-                                <strong>
-                                  {env + ' - '}
+                              <div
+                                key={idx}
+                                className="deploy-meta"
+                                style={{position: 'relative'}}
+                              >
+                                <strong className="repo-label">
+                                  {env}
                                 </strong>
-                                {dateFinished && <TimeSince date={dateFinished} />}
+                                {dateFinished &&
+                                  <span
+                                    style={{position: 'absolute', right: 0, width: '50%'}}
+                                  >
+                                    <TimeSince date={dateFinished} />
+                                  </span>}
                               </div>
                             </div>
                           );
@@ -239,7 +248,10 @@ const VersionHoverCard = React.createClass({
   render() {
     let {visible} = this.state;
     return (
-      <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}>
+      <span
+        onMouseEnter={this.toggleHovercard}
+        onMouseLeave={/*this.toggleHovercard*/ () => {}}
+      >
         {this.props.children}
         {visible &&
           <div className="hovercard">
