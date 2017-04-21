@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Commit, Repository
 from sentry.api.serializers.models.release import get_users_for_commits
@@ -11,13 +13,14 @@ class CommitSerializer(Serializer):
         author_objs = get_users_for_commits(item_list)
 
         repositories = list(Repository.objects.filter(id__in=[c.repository_id for c in item_list]))
+        repositories = serialize(repositories)
         repository_objs = {}
         for repository in repositories:
-            repository_objs[repository.id] = serialize(repository)
+            repository_objs[repository['id']] = repository
         result = {}
         for item in item_list:
             result[item] = {
-                'repository': repository_objs.get(item.repository_id, {}),
+                'repository': repository_objs.get(six.text_type(item.repository_id), {}),
                 'user': author_objs.get(item.author_id, {})
             }
 
