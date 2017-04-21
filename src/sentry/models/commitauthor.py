@@ -11,11 +11,15 @@ class CommitAuthor(Model):
     organization_id = BoundedPositiveIntegerField(db_index=True)
     name = models.CharField(max_length=128, null=True)
     email = models.EmailField()
+    external_id = models.CharField(max_length=164, null=True)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_commitauthor'
-        unique_together = (('organization_id', 'email'),)
+        unique_together = (
+            ('organization_id', 'email'),
+            ('organization_id', 'external_id'),
+        )
 
     __repr__ = sane_repr('organization_id', 'email', 'name')
 
