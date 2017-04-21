@@ -94,7 +94,7 @@ def js_lint(file_list=None):
     js_file_list = get_js_files(file_list)
 
     has_errors = False
-    if file_list:
+    if js_file_list:
         status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix']
                        + js_file_list).wait()
         has_errors = status != 0
