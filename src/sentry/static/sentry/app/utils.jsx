@@ -224,7 +224,14 @@ export function formatBytes(bytes) {
 }
 
 export function getShortVersion(version) {
-  return version.match(/^[a-f0-9]{40}$/) ? version.substr(0, 12) : version;
+  let match = version.match(/^(?:[a-z][a-z0-9-]+)(?:\.[a-z][a-z0-9-]+)+-(.*)$/);
+  if (match) {
+    version = match[1];
+  }
+  if (version.match(/^[a-f0-9]{40}$/)) {
+    version = version.substr(0, 12);
+  }
+  return version;
 }
 
 /**
