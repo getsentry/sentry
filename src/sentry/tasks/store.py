@@ -27,6 +27,10 @@ from sentry.models import ProjectOption, Activity, Project
 error_logger = logging.getLogger('sentry.errors.events')
 
 
+# Is reprocessing on or off by default?
+REPROCESSING_DEFAULT = True
+
+
 def should_process(data):
     """Quick check if processing is needed at all."""
     from sentry.plugins import plugins
@@ -182,7 +186,7 @@ def delete_raw_event(project_id, event_id, allow_hint_clear=False):
     # Clear the sent notification if we reprocessed everything
     # successfully and reprocessing is enabled
     reprocessing_active = ProjectOption.objects.get_value(
-        project_id, 'sentry:reprocessing_active', False)
+        project_id, 'sentry:reprocessing_active', REPROCESSING_DEFAULT)
     if reprocessing_active:
         sent_notification = ProjectOption.objects.get_value(
             project_id, 'sentry:sent_failed_event_hint', False)
@@ -201,7 +205,7 @@ def create_failed_event(cache_key, project_id, issues, event_id, start_time=None
     raw event.  Returns `True` if a failed event was inserted
     """
     reprocessing_active = ProjectOption.objects.get_value(
-        project_id, 'sentry:reprocessing_active', False)
+        project_id, 'sentry:reprocessing_active', REPROCESSING_DEFAULT)
 
     # The first time we encounter a failed event and the hint was cleared
     # we send a notification.
