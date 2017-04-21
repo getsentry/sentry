@@ -160,6 +160,7 @@ CLIENT_RESERVED_ATTRS = (
     'tags',
     'platform',
     'release',
+    'dist',
     'environment',
 )
 

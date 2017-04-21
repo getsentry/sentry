@@ -30,7 +30,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
         Commit, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit,
-        ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit, Repository
+        ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit, Repository
     )
 
     try:
@@ -58,7 +58,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
     model_list = (
         OrganizationMember, CommitFileChange, Commit, CommitAuthor,
         Environment, Repository, Release, ReleaseCommit,
-        ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit
+        ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit
     )
 
     has_more = delete_objects(
