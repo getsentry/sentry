@@ -148,7 +148,8 @@ const ProjectCspSettings = React.createClass({
     let location = this.props.location;
     let nextLocation = nextProps.location;
     if (
-      location.pathname != nextLocation.pathname || location.search != nextLocation.search
+      location.pathname != nextLocation.pathname ||
+      location.search != nextLocation.search
     ) {
       this.remountComponent();
     }

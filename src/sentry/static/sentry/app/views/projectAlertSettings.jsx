@@ -134,8 +134,7 @@ const DigestSettings = React.createClass({
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={isSaving || !hasChanges}
-              >
+                disabled={isSaving || !hasChanges}>
                 {t('Save Changes')}
               </button>
             </fieldset>
@@ -242,8 +241,7 @@ const GeneralSettings = React.createClass({
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={isSaving || !hasChanges}
-              >
+                disabled={isSaving || !hasChanges}>
                 {t('Save Changes')}
               </button>
             </fieldset>
@@ -279,8 +277,7 @@ const InactivePlugins = React.createClass({
                 <li key={plugin.id}>
                   <button
                     onClick={this.enablePlugin.bind(this, plugin)}
-                    className={`ref-plugin-enable-${plugin.id}`}
-                  >
+                    className={`ref-plugin-enable-${plugin.id}`}>
                     {plugin.name}
                   </button>
                 </li>
@@ -368,8 +365,7 @@ const ProjectAlertSettings = React.createClass({
       <div>
         <a
           href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
-          className="btn pull-right btn-primary btn-sm"
-        >
+          className="btn pull-right btn-primary btn-sm">
           <span className="icon-plus" />
           {t('New Alert Rule')}
         </a>

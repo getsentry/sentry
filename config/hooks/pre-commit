@@ -3,9 +3,9 @@ from __future__ import absolute_import
 
 import os
 import sys
+import subprocess
 
 from glob import glob
-from subprocess import Popen
 
 from sentry.lint.engine import check_files, get_js_files
 
@@ -18,6 +18,8 @@ if 'VIRTUAL_ENV' in os.environ:
         '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
     sys.path.insert(0, site_packages)
 
+
+PRETTIER_VERSION = "1.2.2"
 
 def js_format(file_list=None):
     """
@@ -32,12 +34,22 @@ def js_format(file_list=None):
         echo('!! Skipping JavaScript formatting because prettier is not installed.')
         return False
 
+    proc = subprocess.Popen([prettier_path, '--version'], stdout=subprocess.PIPE)
+    proc.wait()
+    prettier_version = proc.stdout.readline().rstrip()
+    if prettier_version != PRETTIER_VERSION:
+        from click import echo
+        echo('!! Prettier is out of date. Please run `yarn install`.')
+        return False
+
     js_file_list = get_js_files(file_list)
 
     has_errors = False
     if js_file_list:
-        status = Popen([prettier_path, '--write', '--single-quote', '--bracket-spacing=false', '--print-width=90']
-                       + js_file_list).wait()
+        status = subprocess.Popen([prettier_path, '--write', '--single-quote',
+            '--bracket-spacing=false', '--print-width=90', '--jsx-bracket-same-line=true'] +
+            js_file_list
+        ).wait()
         has_errors = status != 0
 
     return has_errors

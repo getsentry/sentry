@@ -156,15 +156,13 @@ const GroupReleaseStats = React.createClass({
         <h6>
           <span>
             <DropdownLink
-              title={environment ? toTitleCase(environment) : DEFAULT_ENV_NAME}
-            >
+              title={environment ? toTitleCase(environment) : DEFAULT_ENV_NAME}>
               {envList.map(e => {
                 return (
                   <MenuItem
                     key={e.name}
                     isActive={environment === e.name}
-                    onClick={this.switchEnv.bind(this, e.name)}
-                  >
+                    onClick={this.switchEnv.bind(this, e.name)}>
                     {toTitleCase(e.name) || DEFAULT_ENV_NAME}
                   </MenuItem>
                 );

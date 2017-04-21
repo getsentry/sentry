@@ -69,15 +69,13 @@ const RequestInterface = React.createClass({
         <div key="view-buttons" className="btn-group">
           <a
             className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'rich')}
-          >
+            onClick={this.toggleView.bind(this, 'rich')}>
             {/* Translators: this means "rich" rendering (fancy tables) */
             t('Rich')}
           </a>
           <a
             className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'curl')}
-          >
+            onClick={this.toggleView.bind(this, 'curl')}>
             <code>{'curl'}</code>
           </a>
         </div>
@@ -109,8 +107,7 @@ const RequestInterface = React.createClass({
         type={this.props.type}
         title={title}
         wrapTitle={false}
-        className="request"
-      >
+        className="request">
         {view === 'curl'
           ? <pre>{getCurlCommand(data)}</pre>
           : <RichHttpContent data={data} />}

@@ -29,7 +29,8 @@ const TeamDetails = React.createClass({
   componentWillReceiveProps(nextProps) {
     let params = this.props.params;
     if (
-      nextProps.params.teamId !== params.teamId || nextProps.params.orgId !== params.orgId
+      nextProps.params.teamId !== params.teamId ||
+      nextProps.params.orgId !== params.orgId
     ) {
       this.setState(
         {
@@ -92,8 +93,7 @@ const TeamDetails = React.createClass({
           <DropdownLink
             topLevelClasses="pull-right anchor-right"
             className="dropdown-menu-right"
-            title={t('More')}
-          >
+            title={t('More')}>
             <MenuItem href={`${routePrefix}/remove/`}>{t('Remove Team')}</MenuItem>
           </DropdownLink>}
 

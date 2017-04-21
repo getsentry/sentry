@@ -44,8 +44,7 @@ const Incidents = React.createClass({
           status &&
           <SidebarPanel
             title={t('Recent status updates')}
-            hidePanel={this.props.hidePanel}
-          >
+            hidePanel={this.props.hidePanel}>
             <ul className="incident-list list-unstyled">
               {status.incidents.map(incident => (
                 <li className="incident-item" key={incident.id}>

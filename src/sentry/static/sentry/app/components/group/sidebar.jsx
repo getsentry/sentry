@@ -146,8 +146,7 @@ const GroupSidebar = React.createClass({
         <p className="help-block">{this.getNotificationText()}</p>
         <a
           className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
-          onClick={this.toggleSubscription}
-        >
+          onClick={this.toggleSubscription}>
           <span className="icon-signal" />
           {' '}
           {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}

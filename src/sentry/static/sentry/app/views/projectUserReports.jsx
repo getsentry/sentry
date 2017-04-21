@@ -179,8 +179,7 @@ const ProjectUserReports = React.createClass({
           id={issue.id}
           data={issue}
           orgId={orgId}
-          projectId={projectId}
-        >
+          projectId={projectId}>
           <div className="activity-container" style={{margin: '10px 0 5px'}}>
             <ul className="activity">
               <li className="activity-note" style={{paddingBottom: 0}}>
@@ -221,14 +220,12 @@ const ProjectUserReports = React.createClass({
                 to={path}
                 className={
                   'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
-                }
-              >
+                }>
                 {t('Unresolved')}
               </Link>
               <Link
                 to={{pathname: path, query: {status: ''}}}
-                className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}
-              >
+                className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
                 {t('All Issues')}
               </Link>
             </div>

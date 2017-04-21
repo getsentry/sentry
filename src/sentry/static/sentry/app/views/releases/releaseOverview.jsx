@@ -237,14 +237,12 @@ const ReleaseOverview = React.createClass({
                       <li key={deploy.id}>
                         <a
                           href={`/${orgId}/${projectId}/?query=${query}`}
-                          title={t('View in stream')}
-                        >
+                          title={t('View in stream')}>
                           <div className="row row-flex row-center-vertically">
                             <div className="col-xs-6">
                               <span
                                 className="repo-label"
-                                style={{verticalAlign: 'bottom'}}
-                              >
+                                style={{verticalAlign: 'bottom'}}>
                                 {deploy.environment}
                                 <IconOpen
                                   className="icon-open"

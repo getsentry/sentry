@@ -107,8 +107,7 @@ const CustomSnoozeModal = React.createClass({
           <button
             type="button"
             className="btn btn-default"
-            onClick={this.props.onCanceled}
-          >
+            onClick={this.props.onCanceled}>
             {t('Cancel')}
           </button>
           <button type="button" className="btn btn-primary" onClick={this.snoozeClicked}>

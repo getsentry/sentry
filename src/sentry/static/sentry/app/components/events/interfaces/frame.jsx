@@ -144,8 +144,7 @@ const Frame = React.createClass({
           <a
             key="real-filename"
             className="in-at tip real-filename"
-            data-title={_.escape(data.filename)}
-          >
+            data-title={_.escape(data.filename)}>
             <span className="icon-question" />
           </a>
         );
@@ -197,8 +196,7 @@ const Frame = React.createClass({
         <a
           key="original-src"
           className="in-at tip original-src"
-          data-title={this.renderOriginalSourceInfo()}
-        >
+          data-title={this.renderOriginalSourceInfo()}>
           <span className="icon-question" />
         </a>
       );
@@ -269,8 +267,7 @@ const Frame = React.createClass({
         key="expander"
         title={t('Toggle context')}
         onClick={this.toggleContext}
-        className="btn btn-sm btn-default btn-toggle"
-      >
+        className="btn btn-sm btn-default btn-toggle">
         <span className={this.state.isExpanded ? 'icon-minus' : 'icon-plus'} />
       </a>
     );
@@ -322,8 +319,7 @@ const Frame = React.createClass({
       return (
         <span
           className="repeated-frames"
-          title={`Frame repeated ${this.props.timesRepeated} times`}
-        >
+          title={`Frame repeated ${this.props.timesRepeated} times`}>
           <span className="icon-refresh" />
           <span>{this.props.timesRepeated}</span>
         </span>

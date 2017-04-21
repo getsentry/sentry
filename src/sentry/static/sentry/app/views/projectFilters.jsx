@@ -300,8 +300,7 @@ const ProjectFiltersSettingsForm = React.createClass({
             <button
               type="submit"
               className="btn btn-sm btn-primary"
-              disabled={isSaving || !this.state.hasChanged}
-            >
+              disabled={isSaving || !this.state.hasChanged}>
               {t('Save Changes')}
             </button>
 

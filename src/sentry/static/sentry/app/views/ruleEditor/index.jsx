@@ -141,8 +141,7 @@ const RuleEditor = React.createClass({
                     className={this.hasError('actionMatch') ? ' error' : ''}
                     value={actionMatch}
                     style={{width: 80}}
-                    required={true}
-                  >
+                    required={true}>
                     <option value="all">{t('all')}</option>
                     <option value="any">{t('any')}</option>
                     <option value="none">{t('none')}</option>
@@ -196,8 +195,7 @@ const RuleEditor = React.createClass({
                         className={this.hasError('frequency') ? ' error' : ''}
                         value={frequency}
                         style={{width: 150}}
-                        required={true}
-                      >
+                        required={true}>
                         <option value="5">{t('5 minutes')}</option>
                         <option value="10">{t('10 minutes')}</option>
                         <option value="30">{t('30 minutes')}</option>

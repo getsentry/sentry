@@ -121,8 +121,7 @@ const SavedSearchRow = React.createClass({
             <a
               className="btn btn-sm btn-default"
               onClick={this.handleRemove}
-              disabled={this.state.loading}
-            >
+              disabled={this.state.loading}>
               <span className="icon icon-trash" /> &nbsp;{t('Remove')}
             </a>
           </td>}
