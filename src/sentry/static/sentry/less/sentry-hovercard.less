@@ -5,20 +5,42 @@
 
 .hovercard {
   @hovercard-padding: 15px;
-  .dropdown-menu;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(52, 60, 69, .2), 0 1px 3px rgba(70, 82, 98, .25);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-clip: padding-box;
+  background: #fff;
+  color: @gray-darker;
+  text-align: left;
+  position: absolute;
   display: block;
-  top: auto;
-  left: auto;
   right: 0;
   bottom: 35px;
   width: 295px;
   padding: 0;
-  border-radius: 4px;
+  border-radius: 5px;
   line-height: 1;
+  z-index: 1000;
+  box-shadow: 0 6px 24px 0 rgba(67,62,75,0.35), 0 1px 12px 0 rgba(67,61,74,0.16);
 
   &:before, &:after {
-    top: auto;
-    left: auto;
+    width: 0;
+    height: 0;
+    content: "";
+    display: block;
+    position: absolute;
+  }
+
+  &:after {
+    z-index: -1;
+    bottom: -20px;
+    right: 21px;
+    border-bottom: 10px solid transparent;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid #fff;
   }
 
   .hovercard-hoverlap {
@@ -29,29 +51,11 @@
     right: 0;
   }
 
-  &:before {
-    bottom: -22px;
-    right: 20px;
-    border-bottom: 11px solid transparent;
-    border-left: 11px solid transparent;
-    border-right: 11px solid transparent;
-    border-top: 11px solid rgba(52, 60, 69, 0.35);
-  }
-
-  &:after {
-    bottom: -20px;
-    right: 21px;
-    border-bottom: 10px solid transparent;
-    border-left: 10px solid transparent;
-    border-right: 10px solid transparent;
-    border-top: 10px solid #fff;
-  }
-
   .hovercard-header {
-    padding: (@hovercard-padding/1.5) @hovercard-padding;
+    padding: @hovercard-padding;
     background: @white-dark;
     border-bottom: 1px solid @trim;
-    border-radius: 4px 4px 0 0;
+    border-radius: 5px 5px 0 0;
     font-weight: 600;
     word-wrap: break-word;
 
@@ -71,6 +75,31 @@
     min-height: 74px;
   }
 
+  .divider {
+    position: relative;
+    margin: 10px 0;
+    padding: 0 10px;
+
+    &:before {
+      display: block;
+      position: absolute;
+      content: "";
+      height: 1px;
+      top: 50%;
+      left: -@hovercard-padding;
+      right: -@hovercard-padding;
+      background: @trim;
+      opacity: .6;
+    }
+
+    h6 {
+      display: inline;
+      background: #fff;
+      padding: 0 5px;
+      margin-left: -15px;
+    }
+  }
+
   h6 {
     color: @50 !important;
     margin-bottom: 4px !important;
@@ -83,12 +112,20 @@
 
   .count {
     color: @80;
-    font-size: 24px;
+    font-size: 22px;
     padding: 3px 0 0;
   }
 
   .avatar-grid {
-    margin-top: 2px;
+    margin-top: 7px;
+
+    .avatar-grid-item {
+      margin-bottom: 0;
+
+      .avatar {
+        .square(20px);
+      }
+    }
 
     .tip {
       border-bottom: 0 !important;
@@ -102,17 +139,17 @@
   .commit {
     margin-top: 5px;
     position: relative;
-    padding: 1px 0 0 25px;
+    padding: 1px 0 0 38px;
     font-size: 13px;
 
     .commit-avatar {
       position: absolute;
-      .square(19px);
-      top: 2px;
+      .square(30px);
+      top: 1px;
       left: 0;
 
       .avatar {
-        .square(19px);
+        .square(30px);
       }
     }
 
@@ -124,6 +161,10 @@
     .commit-meta {
       font-size: 12px;
       color: @70;
+
+      strong {
+        color: @gray-dark;
+      }
     }
   }
 

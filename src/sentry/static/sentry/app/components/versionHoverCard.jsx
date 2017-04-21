@@ -96,7 +96,7 @@ const VersionHoverCard = React.createClass({
 
   toggleHovercard() {
     this.setState({
-      visible: !this.state.visible
+      visible: true //!this.state.visible
     });
   },
 
@@ -197,25 +197,29 @@ const VersionHoverCard = React.createClass({
                     </div>
                     {lastCommit &&
                       <div>
-                        <h6 className="commit-heading">Last commit</h6>
+                        <div className="divider">
+                          <h6 className="commit-heading">Last commit</h6>
+                        </div>
                         <div className="commit">
                           <div className="commit-avatar">
                             <Avatar user={commitAuthor || {username: '?'}} />
                           </div>
-                          <div className="commit-message truncate">
-                            {this.renderMessage(lastCommit.message)}
-                          </div>
                           <div className="commit-meta">
+                            <TimeSince date={lastCommit.dateCreated} className="pull-right text-light" />
                             <strong>
                               {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
-                            </strong>&nbsp;
-                            <TimeSince date={lastCommit.dateCreated} />
+                            </strong>
+                          </div>
+                          <div className="commit-message break-word">
+                            {this.renderMessage(lastCommit.message)}
                           </div>
                         </div>
                       </div>}
                     {deploys.length > 0 &&
                       <div>
-                        <h6 className="deploy-heading">Recent Deploys</h6>
+                        <div className="divider">
+                          <h6 className="deploy-heading">Recent Deploys</h6>
+                        </div>
                         {mostRecentDeploySlice.map((env, idx) => {
                           let dateFinished = recentDeploysByEnviroment[env];
                           return (
