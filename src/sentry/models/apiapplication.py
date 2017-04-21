@@ -32,7 +32,7 @@ class ApiApplication(Model):
     owner = FlexibleForeignKey('sentry.User')
     name = models.CharField(
         max_length=64, blank=True,
-        default=lambda: petname.Generate(2, ' ').title())
+        default=lambda: petname.Generate(2, ' ', letters=1).title())
     status = BoundedPositiveIntegerField(default=0, choices=(
         (ApiApplicationStatus.active, _('Active')),
         (ApiApplicationStatus.inactive, _('Inactive')),
