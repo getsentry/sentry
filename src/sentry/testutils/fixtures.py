@@ -196,7 +196,7 @@ class Fixtures(object):
 
     def create_organization(self, **kwargs):
         if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ').title()
+            kwargs['name'] = petname.Generate(2, ' ', letters=1).title()
 
         owner = kwargs.pop('owner', -1)
         if owner is -1:
@@ -226,7 +226,7 @@ class Fixtures(object):
 
     def create_team(self, **kwargs):
         if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ').title()
+            kwargs['name'] = petname.Generate(2, ' ', letters=1).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('organization'):
@@ -236,7 +236,7 @@ class Fixtures(object):
 
     def create_project(self, **kwargs):
         if not kwargs.get('name'):
-            kwargs['name'] = petname.Generate(2, ' ').title()
+            kwargs['name'] = petname.Generate(2, ' ', letters=1).title()
         if not kwargs.get('slug'):
             kwargs['slug'] = slugify(six.text_type(kwargs['name']))
         if not kwargs.get('team'):
