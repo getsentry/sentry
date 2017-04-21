@@ -255,7 +255,7 @@ const VersionHoverCard = React.createClass({
     return (
       <span
         onMouseEnter={this.toggleHovercard}
-        onMouseLeave={/*this.toggleHovercard*/ () => {}}
+        onMouseLeave={this.toggleHovercard}
       >
         {this.props.children}
         {visible &&
