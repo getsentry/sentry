@@ -5,6 +5,7 @@ import Cookies from 'js-cookie';
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
 import AlertActions from '../actions/alertActions';
+import BroadcastModal from '../components/broadcastModal';
 import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
@@ -132,6 +133,7 @@ const App = React.createClass({
       <OrganizationsLoader>
         <Alerts className="messages-container" />
         <Indicators className="indicators-container" />
+        <BroadcastModal />
         {this.props.children}
       </OrganizationsLoader>
     );
