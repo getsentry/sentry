@@ -30,7 +30,7 @@ class SmsForm(forms.Form):
 class U2fForm(forms.Form):
     device_name = forms.CharField(
         label=_('Device name'), max_length=60, required=False,
-        initial=lambda: petname.Generate(2, ' ', letters=1).title(),
+        initial=lambda: petname.Generate(2, ' ', letters=10).title(),
     )
 
 
