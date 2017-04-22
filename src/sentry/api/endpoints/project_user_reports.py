@@ -10,7 +10,9 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize, ProjectUserReportSerializer
 from sentry.api.paginator import DateTimePaginator
-from sentry.models import EventMapping, Group, GroupStatus, UserReport
+from sentry.models import (
+    Event, EventMapping, EventUser, Group, GroupStatus, UserReport
+)
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -117,11 +119,45 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 project=report.project,
                 event_id=report.event_id,
             )
+            euser = self.find_event_user(report)
+            if euser and not euser.uname and report.name:
+                euser.update(report.name)
+
             report.update(
                 name=report.name,
                 email=report.email,
                 comments=report.comments,
                 date_added=timezone.now(),
+                event_user_id=euser.id if euser else None,
             )
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer()))
+
+    def find_event_user(self, report):
+        try:
+            event = Event.objects.get(
+                group=report.group,
+                event_id=report.event_id,
+            )
+        except Event.DoesNotExist:
+            if not report.email:
+                return None
+            try:
+                return EventUser.objects.filter(
+                    project=report.project_id,
+                    email__iexact=report.email,
+                )[0]
+            except IndexError:
+                return None
+
+        tag = event.get_tag('sentry:user')
+        if not tag:
+            return None
+
+        try:
+            return EventUser.for_tags(
+                project_id=report.project_id,
+                values=[tag],
+            )[tag]
+        except KeyError:
+            pass

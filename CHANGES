@@ -46,6 +46,9 @@ API Changes
 ~~~~~~~~~~~
 
 - Deprecate `dateStarted` in releases endpoints
+- Added ``CommitAuthor.external_id`` column
+- Added ``EventUser.name`` column
+- Added ``UserReport.event_user_id`` column
 
 Version 8.15
 ------------
