@@ -1,6 +1,5 @@
 import React from 'react';
 
-
 const Pills = React.createClass({
   render() {
     return (

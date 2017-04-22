@@ -2,7 +2,7 @@ const FormState = {
   LOADING: 'Loading',
   READY: 'Ready',
   SAVING: 'Saving',
-  ERROR: 'Error',
+  ERROR: 'Error'
 };
 
 export {default as BooleanField} from './booleanField';
@@ -18,4 +18,4 @@ export {default as Select2Field} from './select2Field';
 export {default as TextField} from './textField';
 export {default as TextareaField} from './textareaField';
 
-export {FormState as FormState};
+export {FormState};

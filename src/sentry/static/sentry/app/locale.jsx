@@ -1,3 +1,4 @@
+/*eslint no-cond-assign:0*/
 import Jed from 'jed';
 import React from 'react';
 import {getTranslations} from './translations';
@@ -6,6 +7,7 @@ import _ from 'underscore';
 
 let LOCALE_DEBUG = false;
 
+let sessionStorage = window.sessionStorage;
 if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
   LOCALE_DEBUG = true;
 }
@@ -13,21 +15,22 @@ if (sessionStorage && sessionStorage.getItem('localeDebug') == '1') {
 export function setLocaleDebug(value) {
   sessionStorage.setItem('localeDebug', value ? '1' : '0');
   /*eslint no-console:0*/
-  console.log('Locale debug is: ', value ? 'on' : 'off',
-              '. Reload page to apply changes!');
+  console.log(
+    'Locale debug is: ',
+    value ? 'on' : 'off',
+    '. Reload page to apply changes!'
+  );
 }
 
 let i18n = null;
 
-
 export function setLocale(locale) {
   let translations = getTranslations(locale);
   i18n = new Jed({
-    'domain' : 'sentry',
-    'missing_key_callback' : function(key) {
-    },
-    'locale_data': {
-      'sentry': translations
+    domain: 'sentry',
+    missing_key_callback: function(key) {},
+    locale_data: {
+      sentry: translations
     }
   });
 }
@@ -55,16 +58,18 @@ function formatForReact(formatString, args) {
       // this points to a react element!
       if (React.isValidElement(arg)) {
         rv.push(React.cloneElement(arg, {key: idx}));
-      // not a react element, fuck around with it so that sprintf.format
-      // can format it for us.  We make sure match[2] is null so that we
-      // do not go down the object path, and we set match[1] to the first
-      // index and then pass an array with two items in.
+        // not a react element, fuck around with it so that sprintf.format
+        // can format it for us.  We make sure match[2] is null so that we
+        // do not go down the object path, and we set match[1] to the first
+        // index and then pass an array with two items in.
       } else {
         match[2] = null;
         match[1] = 1;
-        rv.push(<span key={idx++}>
-          {sprintf.format([match], [null, arg])}
-        </span>);
+        rv.push(
+          <span key={idx++}>
+            {sprintf.format([match], [null, arg])}
+          </span>
+        );
       }
     }
   });
@@ -77,7 +82,7 @@ function argsInvolveReact(args) {
     return true;
   }
   if (args.length == 1 && _.isObject(args[0])) {
-    return Object.keys(args[0]).some((key) => {
+    return Object.keys(args[0]).some(key => {
       return React.isValidElement(args[0][key]);
     });
   }
@@ -93,8 +98,8 @@ export function parseComponentTemplate(string) {
     let buf = [];
     let satisfied = false;
 
-    let pos = regex.lastIndex = startPos;
-    while ((match = regex.exec(string)) !== null) { // eslint-disable-line no-cond-assign
+    let pos = (regex.lastIndex = startPos);
+    while ((match = regex.exec(string)) !== null) {
       let substr = string.substr(pos, match.index - pos);
       if (substr !== '') {
         buf.push(substr);
@@ -141,7 +146,7 @@ export function renderComponentTemplate(template, components) {
   function renderGroup(group) {
     let children = [];
 
-    (template[group] || []).forEach((item) => {
+    (template[group] || []).forEach(item => {
       if (_.isString(item)) {
         children.push(<span key={idx++}>{item}</span>);
       } else {

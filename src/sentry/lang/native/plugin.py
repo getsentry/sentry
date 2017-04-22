@@ -12,6 +12,7 @@ from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
 
 from sentry import options
+from django.db import transaction, IntegrityError
 from sentry.models import Project, EventError, VersionDSymFile, DSymPlatform, \
     DSymApp
 from sentry.plugins import Plugin2
@@ -22,6 +23,7 @@ from sentry.lang.native.utils import \
     get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING, \
     rebase_addr, version_build_from_data
 from sentry.lang.native.systemsymbols import lookup_system_symbols
+from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -358,6 +360,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         debug_meta = self.data.get('debug_meta')
         self.cpu_name = cpu_name_from_data(self.data)
         self.sym = None
+        self.dsyms_referenced = set()
         if debug_meta:
             self.available = True
             self.debug_meta = debug_meta
@@ -368,6 +371,10 @@ class NativeStacktraceProcessor(StacktraceProcessor):
 
     def close(self):
         StacktraceProcessor.close(self)
+        if self.dsyms_referenced:
+            metrics.incr('dsyms.processed',
+                         amount=len(self.dsyms_referenced),
+                         instance=self.project.id)
         if self.sym is not None:
             self.sym.close()
             self.sym = None
@@ -453,12 +460,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     data={'name': app_info.name},
                     platform=DSymPlatform.APPLE,
                 )
-                version_dsym_file, created = VersionDSymFile.objects.get_or_create(
-                    dsym_file=dsym_file,
-                    dsym_app=dsym_app,
-                    version=app_info.version,
-                    build=app_info.build,
-                )
+                try:
+                    with transaction.atomic():
+                        version_dsym_file, created = VersionDSymFile.objects.get_or_create(
+                            dsym_file=dsym_file,
+                            dsym_app=dsym_app,
+                            version=app_info.version,
+                            build=app_info.build,
+                        )
+                except IntegrityError:
+                    # XXX: this can currently happen because we only
+                    # support one app per dsym file.  Since this can
+                    # happen in some cases anyways we ignore it.
+                    pass
 
         self.sym = Symbolizer(self.project, self.image_lookup,
                               cpu_name=self.cpu_name,
@@ -517,6 +531,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             }
             in_app = self.sym.is_in_app(sym_input_frame)
             raw_frame['in_app'] = in_app
+            img_uuid = processable_frame.data['image_uuid']
+            if img_uuid is not None:
+                self.dsyms_referenced.add(img_uuid)
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
                     sym_input_frame, self.sdk_info,

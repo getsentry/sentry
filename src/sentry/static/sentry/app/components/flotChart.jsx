@@ -10,13 +10,13 @@ require('flot/jquery.flot.time');
 require('flot-tooltip/jquery.flot.tooltip');
 
 let timeUnitSize = {
-  'second': 1000,
-  'minute': 60 * 1000,
-  'hour': 60 * 60 * 1000,
-  'day': 24 * 60 * 60 * 1000,
-  'month': 30 * 24 * 60 * 60 * 1000,
-  'quarter': 3 * 30 * 24 * 60 * 60 * 1000,
-  'year': 365.2425 * 24 * 60 * 60 * 1000
+  second: 1000,
+  minute: 60 * 1000,
+  hour: 60 * 60 * 1000,
+  day: 24 * 60 * 60 * 1000,
+  month: 30 * 24 * 60 * 60 * 1000,
+  quarter: 3 * 30 * 24 * 60 * 60 * 1000,
+  year: 365.2425 * 24 * 60 * 60 * 1000
 };
 
 let numberWithCommas = function(x) {
@@ -26,11 +26,19 @@ let numberWithCommas = function(x) {
 let buildTooltipHandler = function(series) {
   return function(_l, xval, _y, flotItem) {
     let yval;
-    let content = '<h6>' + moment(parseInt(xval, 10)).format('MMMM D YYYY HH:mm z') + '</h6>';
+    let content =
+      '<h6>' + moment(parseInt(xval, 10)).format('MMMM D YYYY HH:mm z') + '</h6>';
     for (let i = 0; i < series.length; i++) {
       // we're assuming series are identical
       yval = numberWithCommas(series[i].data[flotItem.dataIndex][1] || 0);
-      content += '<strong style="color:' + series[i].color + '">' + series[i].label + ':</strong> ' + yval + '<br>';
+      content +=
+        '<strong style="color:' +
+        series[i].color +
+        '">' +
+        series[i].label +
+        ':</strong> ' +
+        yval +
+        '<br>';
     }
     return content;
   };
@@ -102,12 +110,12 @@ const FlotChart = React.createClass({
       yaxis: {
         min: 0,
         minTickSize: 1,
-        tickFormatter: (value) => {
+        tickFormatter: value => {
           if (value > 999999) {
-            return (value / 1000000) + 'mm';
+            return value / 1000000 + 'mm';
           }
           if (value > 999) {
-            return (value / 1000) + 'k';
+            return value / 1000 + 'k';
           }
           return value;
         }
@@ -130,7 +138,7 @@ const FlotChart = React.createClass({
         noColumns: series.length,
         position: 'nw'
       },
-      lines: {show: false},
+      lines: {show: false}
     };
 
     let chart = ReactDOM.findDOMNode(this.refs.chartNode);
@@ -142,7 +150,8 @@ const FlotChart = React.createClass({
       <figure
         className={this.props.className || 'chart'}
         style={this.props.style}
-        ref="chartNode" />
+        ref="chartNode"
+      />
     );
   }
 });

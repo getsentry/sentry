@@ -118,6 +118,7 @@ class EventSerializer(Serializer):
             'eventID': six.text_type(obj.event_id),
             'size': obj.size,
             'entries': attrs['entries'],
+            'dist': obj.dist,
             # See GH-3248
             'message': obj.get_legacy_message(),
             'user': attrs['user'],

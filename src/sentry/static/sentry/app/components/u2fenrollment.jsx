@@ -10,14 +10,14 @@ const U2fEnrollment = React.createClass({
 
   render() {
     return (
-      <U2fInterface
-        challengeData={this.props.enrollmentData}
-        flowMode={'enroll'}>
+      <U2fInterface challengeData={this.props.enrollmentData} flowMode={'enroll'}>
         <p>
-          {t(`
+          {t(
+            `
             To enroll your U2F device insert it now or tap the button on it
             to activate it.
-          `)}
+          `
+          )}
         </p>
       </U2fInterface>
     );

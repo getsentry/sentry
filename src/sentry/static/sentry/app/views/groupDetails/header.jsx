@@ -23,10 +23,7 @@ const GroupHeader = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin,
-    ProjectState
-  ],
+  mixins: [ApiMixin, ProjectState],
 
   onToggleMute() {
     let group = this.props.group;
@@ -34,18 +31,21 @@ const GroupHeader = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        status: group.status === 'ignored' ? 'unresolved' : 'ignored'
+    this.api.bulkUpdate(
+      {
+        orgId: org.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data: {
+          status: group.status === 'ignored' ? 'unresolved' : 'ignored'
+        }
+      },
+      {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       }
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
+    );
   },
 
   onShare() {
@@ -59,18 +59,21 @@ const GroupHeader = React.createClass({
     let org = this.getOrganization();
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
-    this.api.bulkUpdate({
-      orgId: org.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data: {
-        isPublic: !group.isPublic
+    this.api.bulkUpdate(
+      {
+        orgId: org.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data: {
+          isPublic: !group.isPublic
+        }
+      },
+      {
+        complete: () => {
+          IndicatorStore.remove(loadingIndicator);
+        }
       }
-    }, {
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
+    );
   },
 
   getMessage() {
@@ -88,8 +91,8 @@ const GroupHeader = React.createClass({
 
   render() {
     let group = this.props.group,
-        orgFeatures = new Set(this.getOrganization().features),
-        userCount = group.userCount;
+      orgFeatures = new Set(this.getOrganization().features),
+      userCount = group.userCount;
 
     let className = 'group-detail';
 
@@ -121,35 +124,37 @@ const GroupHeader = React.createClass({
             </h3>
             <div className="event-message">
               <span className="error-level">{group.level}</span>
-              {message &&
-                <span className="message">{message}</span>
-              }
+              {message && <span className="message">{message}</span>}
               {group.logger &&
                 <span className="event-annotation">
-                  <Link to={{
-                      pathname:`/${orgId}/${projectId}/`,
+                  <Link
+                    to={{
+                      pathname: `/${orgId}/${projectId}/`,
                       query: {query: 'logger:' + group.logger}
-                    }}>
+                    }}
+                  >
                     {group.logger}
                   </Link>
-                </span>
-              }
+                </span>}
               {group.annotations.map((annotation, i) => {
                 return (
-                  <span className="event-annotation" key={i}
-                      dangerouslySetInnerHTML={{__html: annotation}} />
+                  <span
+                    className="event-annotation"
+                    key={i}
+                    dangerouslySetInnerHTML={{__html: annotation}}
+                  />
                 );
               })}
             </div>
           </div>
           <div className="col-sm-5 stats">
             <div className="flex flex-justify-right">
-              {group.shortId && this.getFeatures().has('callsigns') &&
+              {group.shortId &&
+                this.getFeatures().has('callsigns') &&
                 <div className="short-id-box count align-right">
                   <h6 className="nav-header">{t('Issue #')}</h6>
                   <ShortId shortId={group.shortId} />
-                </div>
-              }
+                </div>}
               <div className="assigned-to">
                 <h6 className="nav-header">{t('Assigned')}</h6>
                 <AssigneeSelector id={group.id} />
@@ -162,13 +167,11 @@ const GroupHeader = React.createClass({
               </div>
               <div className="count align-right">
                 <h6 className="nav-header">{t('Users')}</h6>
-                {userCount !== 0 ?
-                  <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
-                    <Count className="count" value={userCount} />
-                  </Link>
-                :
-                  <span>0</span>
-                }
+                {userCount !== 0
+                  ? <Link to={`/${orgId}/${projectId}/issues/${groupId}/tags/user/`}>
+                      <Count className="count" value={userCount} />
+                    </Link>
+                  : <span>0</span>}
               </div>
             </div>
           </div>
@@ -182,16 +185,18 @@ const GroupHeader = React.createClass({
                 <span className="icon" /> {t('Share this event')}
               </a>
             </div>
-          </div>
-        }
+          </div>}
         <ul className="nav nav-tabs">
-          <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/`} isActive={() => {
-            let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
-            let pathname = this.context.location.pathname;
+          <ListLink
+            to={`/${orgId}/${projectId}/issues/${groupId}/`}
+            isActive={() => {
+              let rootGroupPath = `/${orgId}/${projectId}/issues/${groupId}/`;
+              let pathname = this.context.location.pathname;
 
-            // Because react-router 1.0 removes router.isActive(route)
-            return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
-          }}>
+              // Because react-router 1.0 removes router.isActive(route)
+              return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
+            }}
+          >
             {t('Details')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>
@@ -201,7 +206,9 @@ const GroupHeader = React.createClass({
             {t('Audience')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/feedback/`}>
-            {t('User Feedback')} <span className="badge animated">{group.userReportCount}</span>
+            {t('User Feedback')}
+            {' '}
+            <span className="badge animated">{group.userReportCount}</span>
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/tags/`}>
             {t('Tags')}

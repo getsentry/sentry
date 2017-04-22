@@ -9,9 +9,7 @@ import OrganizationState from '../../mixins/organizationState';
 
 import {t} from '../../locale';
 
-
 const EventsPerHour = React.createClass({
-
   mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
@@ -40,30 +38,39 @@ const EventsPerHour = React.createClass({
     let query = {
       since: this.state.querySince,
       until: this.state.queryUntil,
-      resolution: '1h',
+      resolution: '1h'
     };
 
-    $.when.apply($, this.STAT_OPTS.map(stat => {
-        let deferred = $.Deferred();
-        this.api.request(statEndpoint, {
-          query: Object.assign({stat: stat}, query),
-          success: deferred.resolve.bind(deferred),
-          error: deferred.reject.bind(deferred)
-        });
-        return deferred;
-      }
-    )).done(function() {
-      let rawOrgData = {};
-      for (let i = 0; i < this.STAT_OPTS.length; i++) {
-        rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
-      }
-      this.setState({
-        rawOrgData: rawOrgData,
-        formattedData: this.formatData(rawOrgData)
-      });
-    }.bind(this)).fail(function() {
-      this.setState({error: true});
-    }.bind(this));
+    $.when
+      .apply(
+        $,
+        this.STAT_OPTS.map(stat => {
+          let deferred = $.Deferred();
+          this.api.request(statEndpoint, {
+            query: Object.assign({stat: stat}, query),
+            success: deferred.resolve.bind(deferred),
+            error: deferred.reject.bind(deferred)
+          });
+          return deferred;
+        })
+      )
+      .done(
+        function() {
+          let rawOrgData = {};
+          for (let i = 0; i < this.STAT_OPTS.length; i++) {
+            rawOrgData[this.STAT_OPTS[i]] = arguments[i][0];
+          }
+          this.setState({
+            rawOrgData: rawOrgData,
+            formattedData: this.formatData(rawOrgData)
+          });
+        }.bind(this)
+      )
+      .fail(
+        function() {
+          this.setState({error: true});
+        }.bind(this)
+      );
   },
 
   getEndpoint() {
@@ -76,10 +83,11 @@ const EventsPerHour = React.createClass({
     let valueLookup = {};
     this.STAT_OPTS.forEach(stat => {
       valueLookup[stat] = {};
-      rawData[stat] && rawData[stat].forEach(point => {
-        allXValues[point[0]] = null;
-        valueLookup[stat][point[0]] = point[1];
-      });
+      rawData[stat] &&
+        rawData[stat].forEach(point => {
+          allXValues[point[0]] = null;
+          valueLookup[stat][point[0]] = point[1];
+        });
     });
     allXValues = Object.keys(allXValues);
 
@@ -87,7 +95,8 @@ const EventsPerHour = React.createClass({
     allXValues.forEach(x => {
       let point = {x: +x, y: []};
       // convert received --> accepted
-      let acceptedY = valueLookup.received[x] - valueLookup.rejected[x] - valueLookup.blacklisted[x];
+      let acceptedY =
+        valueLookup.received[x] - valueLookup.rejected[x] - valueLookup.blacklisted[x];
       point.y.push(acceptedY);
       ['rejected', 'blacklisted'].forEach(stat => {
         let yVal = valueLookup[stat][x] || 0;
@@ -121,12 +130,18 @@ const EventsPerHour = React.createClass({
 
     return (
       <div>
-        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>{t('View Stats')}</Link>
+        <Link className="btn-sidebar-header" to={`/organizations/${org.slug}/stats/`}>
+          {t('View Stats')}
+        </Link>
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
-          <StackedBarChart points={this.state.formattedData} className="sparkline dashboard-sparkline" barClasses={this.STAT_OPTS} />
+        <StackedBarChart
+          points={this.state.formattedData}
+          className="sparkline dashboard-sparkline"
+          barClasses={this.STAT_OPTS}
+        />
       </div>
     );
-  },
+  }
 });
 
 export default EventsPerHour;
