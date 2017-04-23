@@ -97,22 +97,15 @@ class EventUser(Model):
 
     def find_similar_users(self, user):
         from sentry.models import (
-            OrganizationMember, OrganizationMemberTeam, Project, Team
+            OrganizationMemberTeam, Project
         )
         # limit to only teams user has opted into
-        member = OrganizationMember.objects.get(
-            user=user,
-            organization=self.project.organization,
-        )
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember=member,
-                is_active=True,
-            ).values('team')
-        )
-
         project_ids = list(Project.objects.filter(
-            team__in=list(teams),
+            team__in=OrganizationMemberTeam.objects.filter(
+                organizationmember__user=user,
+                organizationmember__organization=self.project.organization,
+                is_active=True,
+            ).values('team'),
         ).values_list('id', flat=True)[:1000])
         if not project_ids:
             return type(self).objects.none()
