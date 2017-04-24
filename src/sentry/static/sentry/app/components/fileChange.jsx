@@ -40,8 +40,7 @@ const FileChange = React.createClass({
               return (
                 <span
                   className="avatar-grid-item m-b-0 tip"
-                  title={author.name + ' ' + author.email}
-                >
+                  title={author.name + ' ' + author.email}>
                   <Avatar user={author} />
                 </span>
               );

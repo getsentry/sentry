@@ -92,8 +92,7 @@ let GroupEventToolbar = React.createClass({
             key="oldest"
             to={`/${orgId}/${projectId}/issues/${groupId}/events/oldest/`}
             className="btn btn-default"
-            title={t('Oldest')}
-          >
+            title={t('Oldest')}>
             <span className="icon-skip-back" />
           </Link>
         : <a key="oldest" className="btn btn-default disabled">
@@ -103,8 +102,7 @@ let GroupEventToolbar = React.createClass({
         ? <Link
             key="prev"
             to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.previousEventID}/`}
-            className="btn btn-default"
-          >
+            className="btn btn-default">
             {t('Older')}
           </Link>
         : <a key="prev" className="btn btn-default disabled">{t('Older')}</a>,
@@ -112,8 +110,7 @@ let GroupEventToolbar = React.createClass({
         ? <Link
             key="next"
             to={`/${orgId}/${projectId}/issues/${groupId}/events/${evt.nextEventID}/`}
-            className="btn btn-default"
-          >
+            className="btn btn-default">
             {t('Newer')}
           </Link>
         : <a key="next" className="btn btn-default disabled">{t('Newer')}</a>,
@@ -122,8 +119,7 @@ let GroupEventToolbar = React.createClass({
             key="latest"
             to={`/${orgId}/${projectId}/issues/${groupId}/events/latest/`}
             className="btn btn-default"
-            title={t('Newest')}
-          >
+            title={t('Newest')}>
             <span className="icon-skip-forward" />
           </Link>
         : <a key="latest" className="btn btn-default disabled">

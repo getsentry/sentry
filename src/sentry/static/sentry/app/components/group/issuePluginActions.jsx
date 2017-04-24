@@ -82,8 +82,7 @@ const IssuePluginActions = React.createClass({
       button = (
         <button
           className={'btn btn-default btn-sm btn-plugin-' + plugin.slug}
-          onClick={this.openModal.bind(this, allowedActions[0])}
-        >
+          onClick={this.openModal.bind(this, allowedActions[0])}>
           {toTitleCase(allowedActions[0]) + ' ' + plugin.title + ' Issue'}
         </button>
       );
@@ -101,8 +100,7 @@ const IssuePluginActions = React.createClass({
                   style={{marginLeft: 3, marginRight: -3}}
                 />
               </span>
-            }
-          >
+            }>
             {allowedActions.map(action => {
               return (
                 <MenuItem key={action} noAnchor={true}>
@@ -125,8 +123,7 @@ const IssuePluginActions = React.createClass({
           onHide={this.closeModal}
           animation={false}
           backdrop="static"
-          enforceFocus={false}
-        >
+          enforceFocus={false}>
           <Modal.Header closeButton>
             <Modal.Title>{plugin.title + ' Issue'}</Modal.Title>
           </Modal.Header>

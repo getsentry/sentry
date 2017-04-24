@@ -100,8 +100,7 @@ const AllTeamsRow = React.createClass({
             : team.isMember
                 ? <a
                     className="leave-team btn btn-default btn-sm"
-                    onClick={this.leaveTeam}
-                  >
+                    onClick={this.leaveTeam}>
                     {t('Leave Team')}
                   </a>
                 : team.isPending
@@ -119,8 +118,7 @@ const AllTeamsRow = React.createClass({
             <Link
               className="btn btn-default btn-sm"
               to={`/organizations/${orgId}/teams/${team.slug}/settings/`}
-              style={{marginLeft: 5}}
-            >
+              style={{marginLeft: 5}}>
               {t('Team Settings')}
             </Link>}
         </td>

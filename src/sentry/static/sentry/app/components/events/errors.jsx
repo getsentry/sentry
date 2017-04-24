@@ -37,8 +37,7 @@ const EventErrors = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="errors"
-        className="errors"
-      >
+        className="errors">
         <span className="icon icon-alert" />
         <p>
           <a className="pull-right" onClick={this.toggle}>

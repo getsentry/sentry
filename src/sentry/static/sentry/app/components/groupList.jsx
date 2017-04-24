@@ -53,7 +53,8 @@ const GroupList = React.createClass({
 
   componentDidUpdate(prevProps) {
     if (
-      prevProps.orgId !== this.props.orgId || prevProps.projectId !== this.props.projectId
+      prevProps.orgId !== this.props.orgId ||
+      prevProps.projectId !== this.props.projectId
     ) {
       this.fetchData();
     }

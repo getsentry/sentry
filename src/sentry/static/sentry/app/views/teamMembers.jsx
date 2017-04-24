@@ -25,7 +25,8 @@ const TeamMembers = React.createClass({
   componentWillReceiveProps(nextProps) {
     let params = this.props.params;
     if (
-      nextProps.params.teamId !== params.teamId || nextProps.params.orgId !== params.orgId
+      nextProps.params.teamId !== params.teamId ||
+      nextProps.params.orgId !== params.orgId
     ) {
       this.setState(
         {
@@ -71,14 +72,12 @@ const TeamMembers = React.createClass({
           {access.has('org:write')
             ? <a
                 className="btn btn-primary btn-sm pull-right"
-                href={`${memberPrefix}/new/`}
-              >
+                href={`${memberPrefix}/new/`}>
                 <span className="icon-plus" /> {t('Invite Member')}
               </a>
             : <a
                 className="btn btn-primary btn-sm btn-disabled tip pull-right"
-                title={t('You do not have enough permission to add new members')}
-              >
+                title={t('You do not have enough permission to add new members')}>
                 <span className="icon-plus" /> {t('Invite Member')}
               </a>}
         </div>

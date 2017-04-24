@@ -30,7 +30,7 @@ class AddRepositoryLink extends PluginComponentBase {
     });
 
     ['onOpen', 'onCancel', 'formSubmit', 'changeField'].map(
-      method => this[method] = this[method].bind(this)
+      method => (this[method] = this[method].bind(this))
     );
   }
 
@@ -164,16 +164,14 @@ class AddRepositoryLink extends PluginComponentBase {
             type="button"
             className="btn btn-default"
             onClick={this.onCancel}
-            disabled={state === FormState.SAVING}
-          >
+            disabled={state === FormState.SAVING}>
             {t('Cancel')}
           </button>
           <button
             type="button"
             className="btn btn-primary"
             onClick={this.onSubmit}
-            disabled={state === FormState.SAVING}
-          >
+            disabled={state === FormState.SAVING}>
             {t('Save Changes')}
           </button>
         </div>
@@ -333,8 +331,7 @@ const OrganizationRepositories = React.createClass({
           <DropdownLink
             topLevelClasses="anchor-right"
             className="btn btn-primary btn-sm"
-            title={t('Add Repository')}
-          >
+            title={t('Add Repository')}>
             {this.state.repoConfig.providers.map(provider => {
               return (
                 <MenuItem noAnchor={true} key={provider.id}>
@@ -392,15 +389,13 @@ const OrganizationRepositories = React.createClass({
                           {repo.status === 'visible'
                             ? <button
                                 onClick={this.deleteRepo.bind(this, repo)}
-                                className="btn btn-default btn-xs"
-                              >
+                                className="btn btn-default btn-xs">
                                 <span className="icon icon-trash" />
                               </button>
                             : <button
                                 onClick={this.deleteRepo.bind(this, repo)}
                                 disabled={true}
-                                className="btn btn-default btn-xs btn-disabled"
-                              >
+                                className="btn btn-default btn-xs btn-disabled">
                                 <span className="icon icon-trash" />
                               </button>}
                         </td>
@@ -421,8 +416,7 @@ const OrganizationRepositories = React.createClass({
               <p className="m-b-1">
                 <a
                   className="btn btn-default"
-                  href="https://docs.sentry.io/learn/releases/"
-                >
+                  href="https://docs.sentry.io/learn/releases/">
                   Learn more
                 </a>
               </p>

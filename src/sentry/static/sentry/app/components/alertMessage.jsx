@@ -32,8 +32,7 @@ const AlertMessage = React.createClass({
             type="button"
             className="close"
             aria-label={t('Close')}
-            onClick={this.closeAlert}
-          >
+            onClick={this.closeAlert}>
             <span aria-hidden="true">×</span>
           </button>
           <span className="icon" />

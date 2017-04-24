@@ -50,8 +50,7 @@ const AssignedIssues = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}
-          >
+            onClick={this.refresh}>
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -102,8 +101,7 @@ const NewIssues = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}
-          >
+            onClick={this.refresh}>
             <span className="icon icon-refresh" />
           </a>
         </div>
@@ -238,8 +236,7 @@ const Activity = React.createClass({
           <a
             className="btn btn-sm btn-default"
             style={{marginLeft: 5}}
-            onClick={this.refresh}
-          >
+            onClick={this.refresh}>
             <span className="icon icon-refresh" />
           </a>
         </div>

@@ -80,8 +80,7 @@ const ReprocessingHint = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="hint"
-        className="errors hint"
-      >
+        className="errors hint">
         <span className="icon icon-question event" />
         <p>
           <a className="pull-right" onClick={this.hide}>{t('Dismiss')}</a>
@@ -123,8 +122,7 @@ const ReprocessingHint = React.createClass({
       <ReactCSSTransitionGroup
         transitionName="hint"
         transitionEnterTimeout={500}
-        transitionLeaveTimeout={500}
-      >
+        transitionLeaveTimeout={500}>
         {shouldRender ? this.renderHint() : null}
       </ReactCSSTransitionGroup>
     );

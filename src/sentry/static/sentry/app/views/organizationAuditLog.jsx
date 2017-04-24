@@ -159,8 +159,7 @@ const OrganizationAuditLog = React.createClass({
                     name="event"
                     onChange={this.onEventSelect}
                     value={currentEventType}
-                    style={{width: 250}}
-                  >
+                    style={{width: 250}}>
                     <option key="any" value="">{t('Any')}</option>
                     {EVENT_TYPES.map(eventType => {
                       return <option key={eventType}>{eventType}</option>;

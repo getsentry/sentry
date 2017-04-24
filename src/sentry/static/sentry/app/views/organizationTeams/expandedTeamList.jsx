@@ -90,8 +90,7 @@ const ExpandedTeamList = React.createClass({
             {access.has('team:write') &&
               <Link
                 className="team-settings"
-                to={`/organizations/${orgId}/teams/${team.slug}/settings/`}
-              >
+                to={`/organizations/${orgId}/teams/${team.slug}/settings/`}>
                 {t('Team Settings')}
               </Link>}
           </div>
@@ -133,8 +132,7 @@ const ExpandedTeamList = React.createClass({
             <a
               onClick={this.toggleBookmark.bind(this, project)}
               className="tip"
-              data-isbookmarked={project.isBookmarked}
-            >
+              data-isbookmarked={project.isBookmarked}>
               {project.isBookmarked
                 ? <span className="icon-star-solid bookmark" />
                 : <span className="icon-star-outline bookmark" />}

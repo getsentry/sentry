@@ -153,24 +153,21 @@ const ReleaseArtifacts = React.createClass({
                                 this.getFilesEndpoint() +
                                 `${file.id}/?download=1`
                             }
-                            className="btn btn-sm btn-default"
-                          >
+                            className="btn btn-sm btn-default">
                             <span className="icon icon-open" />
                           </a>
                         : <div
                             className="btn btn-sm btn-default disabled tip"
                             title={t(
                               'You do not have the required permission to download this artifact.'
-                            )}
-                          >
+                            )}>
                             <span className="icon icon-open" />
                           </div>}
                       <LinkWithConfirmation
                         className="btn btn-sm btn-default"
                         title={t('Delete artifact')}
                         message={t('Are you sure you want to remove this artifact?')}
-                        onConfirm={this.handleRemove.bind(this, file.id)}
-                      >
+                        onConfirm={this.handleRemove.bind(this, file.id)}>
 
                         <span className="icon icon-trash" />
                       </LinkWithConfirmation>

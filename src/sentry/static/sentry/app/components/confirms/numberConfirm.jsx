@@ -50,8 +50,7 @@ const NumberConfirm = React.createClass({
         animation={true}
         backdrop="static"
         enforceFocus={true}
-        bsSize="sm"
-      >
+        bsSize="sm">
         <Modal.Header closeButton>
           <Modal.Title>{t('Please enter your code:')}</Modal.Title>
         </Modal.Header>

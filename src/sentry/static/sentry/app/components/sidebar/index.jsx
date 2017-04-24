@@ -44,8 +44,7 @@ const OnboardingStatus = React.createClass({
       <li
         className={
           this.props.currentPanel == 'todos' ? 'onboarding active' : 'onboarding'
-        }
-      >
+        }>
         <div className="onboarding-progress-bar" onClick={this.props.onShowPanel}>
           <div className="slider" style={style} />
         </div>
@@ -53,8 +52,7 @@ const OnboardingStatus = React.createClass({
           this.props.currentPanel == 'todos' &&
           <SidebarPanel
             title="Getting Started with Sentry"
-            hidePanel={this.props.hidePanel}
-          >
+            hidePanel={this.props.hidePanel}>
             <TodoList />
           </SidebarPanel>}
       </li>
@@ -214,8 +212,7 @@ const Sidebar = React.createClass({
                 !config.isOnPremise
                   ? `/organizations/${org.slug}/support/`
                   : 'https://forum.sentry.io/'
-              }
-            >
+              }>
               <span className="icon icon-support" />
             </a>
           </li>
