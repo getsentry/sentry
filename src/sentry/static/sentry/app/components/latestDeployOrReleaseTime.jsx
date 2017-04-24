@@ -63,11 +63,16 @@ const LatestDeployOrReleaseTime = React.createClass({
     if (this.state.error) {
       return <LoadingError />;
     }
+    let {releaseDateCreated} = this.props;
     let {deploys} = this.state;
     let earlierDeploysNum = deploys.length - 1;
+    let latestDeploy = deploys[0];
+    // if there are deploys associated with the release
+    // render the most recent deploy (API will return data ordered by dateFinished)
+    // otherwise, render the dateCreated associated with release
     return (
       <div>
-        {deploys.length > 0 && deploys[0].dateFinished
+        {deploys.length > 0 && latestDeploy.dateFinished
           ? <div className="deploy">
               <p className="m-b-0 text-light">
                 <span
@@ -80,12 +85,12 @@ const LatestDeployOrReleaseTime = React.createClass({
                     textAlign: 'center',
                     fontSize: 12
                   }}>
-                  {deploys[0].environment + ' '}
+                  {latestDeploy.environment + ' '}
                 </span>
                 {' '}
                 <span className="icon icon-clock" />
                 {' '}
-                <TimeSince date={deploys[0].dateFinished} />
+                <TimeSince date={latestDeploy.dateFinished} />
                 {earlierDeploysNum > 0 &&
                   <span className="tip" title={earlierDeploysNum + t(' earlier deploys')}>
                     <span className="badge">{earlierDeploysNum}</span>
@@ -95,7 +100,7 @@ const LatestDeployOrReleaseTime = React.createClass({
           : <p className="m-b-0 text-light">
               <span className="icon icon-clock" />
               {' '}
-              <TimeSince date={this.props.releaseDateCreated} />
+              <TimeSince date={releaseDateCreated} />
             </p>}
       </div>
     );

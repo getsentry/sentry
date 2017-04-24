@@ -216,7 +216,7 @@ const VersionHoverCard = React.createClass({
           {deploys.length > 0 &&
             <div>
               <div className="divider">
-                <h6 className="deploy-heading">Recent Deploys</h6>
+                <h6 className="deploy-heading">Deploys</h6>
               </div>
               {mostRecentDeploySlice.map((env, idx) => {
                 let dateFinished = recentDeploysByEnviroment[env];
