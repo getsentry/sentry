@@ -201,13 +201,10 @@ const NoteInput = React.createClass({
   },
 
   finalMentions() {
-    let results = [];
-    this.state.mentions.forEach(item => {
-      if (this.state.value.indexOf(item[1]) !== -1) {
-        results.push(item[0]);
-      }
-    });
-    return results;
+    //mention = [id, display]
+    return this.state.mentions
+      .filter(mention => this.state.value.indexOf(mention[1]))
+      .map(mention => mention[0]);
   },
 
   expand(e) {
