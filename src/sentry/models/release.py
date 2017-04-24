@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
+_dotted_path_prefix_re = re.compile(r'^([a-z][a-z0-9-]+)(\.[a-z][a-z0-9-]+)+-')
 
 
 class ReleaseProject(Model):
@@ -195,9 +196,36 @@ class Release(Model):
 
     @property
     def short_version(self):
-        if _sha1_re.match(self.version):
-            return self.version[:12]
-        return self.version
+        version = self.version
+        match = _dotted_path_prefix_re.match(version)
+        if match is not None:
+            version = version[match.end():]
+        if _sha1_re.match(version):
+            return version[:12]
+        return version
+
+    def add_dist(self, name, date_added=None):
+        from sentry.models import Distribution
+        if date_added is None:
+            date_added = timezone.now()
+        return Distribution.objects.get_or_create(
+            release=self,
+            name=name,
+            defaults={
+                'date_added': date_added,
+                'organization_id': self.organization_id,
+            }
+        )[0]
+
+    def get_dist(self, name):
+        from sentry.models import Distribution
+        try:
+            return Distribution.objects.get(
+                name=name,
+                release=self
+            )
+        except Distribution.DoesNotExist:
+            pass
 
     def add_project(self, project):
         """

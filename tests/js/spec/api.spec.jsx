@@ -20,7 +20,7 @@ describe('api', function() {
           itemIds: [1, 2, 3],
           query: 'is:unresolved' // itemIds takes precedence
         })
-      ).to.eql({id: [1, 2, 3]});
+      ).toEqual({id: [1, 2, 3]});
     });
 
     it('should extract query property if no itemIds', function() {
@@ -29,7 +29,7 @@ describe('api', function() {
           query: 'is:unresolved',
           foo: 'bar'
         })
-      ).to.eql({query: 'is:unresolved'});
+      ).toEqual({query: 'is:unresolved'});
     });
 
     it('should convert params w/o itemIds or query to undefined', function() {
@@ -38,7 +38,7 @@ describe('api', function() {
           foo: 'bar',
           bar: 'baz' // paramsToQueryArgs ignores these
         })
-      ).to.be.undefined;
+      ).toBeUndefined();
     });
   });
 
@@ -63,8 +63,8 @@ describe('api', function() {
 
         this.api.clear();
 
-        expect(req1.xhr.abort.calledOnce).to.be.ok;
-        expect(req2.xhr.abort.calledOnce).to.be.ok;
+        expect(req1.xhr.abort.calledOnce).toBeTruthy();
+        expect(req2.xhr.abort.calledOnce).toBeTruthy();
       });
     });
   });
@@ -84,9 +84,9 @@ describe('api', function() {
         query: 'is:resolved'
       });
 
-      expect(this.api._wrapRequest.calledOnce).to.be.ok;
+      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
       let requestArgs = this.api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).to.eql({id: [1, 2, 3]});
+      expect(requestArgs.query).toEqual({id: [1, 2, 3]});
     });
 
     it('should use query as query if itemIds are absent', function() {
@@ -98,9 +98,9 @@ describe('api', function() {
         query: 'is:resolved'
       });
 
-      expect(this.api._wrapRequest.calledOnce).to.be.ok;
+      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
       let requestArgs = this.api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).to.eql({query: 'is:resolved'});
+      expect(requestArgs.query).toEqual({query: 'is:resolved'});
     });
   });
 
@@ -121,9 +121,9 @@ describe('api', function() {
         query: 'is:resolved'
       });
 
-      expect(this.api._wrapRequest.calledOnce).to.be.ok;
+      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
       let requestArgs = this.api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).to.eql({id: [1, 2, 3]});
+      expect(requestArgs.query).toEqual({id: [1, 2, 3]});
     });
 
     it('should use query as query if itemIds are absent', function() {
@@ -135,9 +135,9 @@ describe('api', function() {
         query: 'is:resolved'
       });
 
-      expect(this.api._wrapRequest.calledOnce).to.be.ok;
+      expect(this.api._wrapRequest.calledOnce).toBeTruthy();
       let requestArgs = this.api._wrapRequest.getCall(0).args[1];
-      expect(requestArgs.query).to.eql({query: 'is:resolved'});
+      expect(requestArgs.query).toEqual({query: 'is:resolved'});
     });
   });
 });

@@ -122,8 +122,7 @@ const ProjectDashboard = React.createClass({
                 className={
                   'btn btn-sm btn-default' +
                     (statsPeriod === PERIOD_HOUR ? ' active' : '')
-                }
-              >
+                }>
                 {t('1 hour')}
               </Link>
               <Link
@@ -134,8 +133,7 @@ const ProjectDashboard = React.createClass({
                 active={statsPeriod === PERIOD_DAY}
                 className={
                   'btn btn-sm btn-default' + (statsPeriod === PERIOD_DAY ? ' active' : '')
-                }
-              >
+                }>
                 {t('1 day')}
               </Link>
               <Link
@@ -146,8 +144,7 @@ const ProjectDashboard = React.createClass({
                 className={
                   'btn btn-sm btn-default' +
                     (statsPeriod === PERIOD_WEEK ? ' active' : '')
-                }
-              >
+                }>
                 {t('1 week')}
               </Link>
             </div>

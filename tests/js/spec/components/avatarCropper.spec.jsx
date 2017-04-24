@@ -20,7 +20,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNW(4, 5);
-        expect(diff).to.equal(-4.5);
+        expect(diff).toEqual(-4.5);
       }
     );
 
@@ -32,7 +32,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNW(-4, -5);
-        expect(diff).to.equal(4.5);
+        expect(diff).toEqual(4.5);
       }
     );
   });
@@ -46,7 +46,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNE(-4, 5);
-        expect(diff).to.equal(4.5);
+        expect(diff).toEqual(4.5);
       }
     );
 
@@ -58,7 +58,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffNE(4, -5);
-        expect(diff).to.equal(-4.5);
+        expect(diff).toEqual(-4.5);
       }
     );
   });
@@ -72,7 +72,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSE(4, 5);
-        expect(diff).to.equal(4.5);
+        expect(diff).toEqual(4.5);
       }
     );
 
@@ -84,7 +84,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSE(-4, -5);
-        expect(diff).to.equal(-4.5);
+        expect(diff).toEqual(-4.5);
       }
     );
   });
@@ -98,7 +98,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSW(4, -5);
-        expect(diff).to.equal(4.5);
+        expect(diff).toEqual(4.5);
       }
     );
 
@@ -110,7 +110,7 @@ describe('AvatarCropper', function() {
           <AvatarCropper user={USER} updateDataUrlState={function() {}} />
         ).instance();
         let diff = cropper.getDiffSW(-4, 5);
-        expect(diff).to.equal(-4.5);
+        expect(diff).toEqual(-4.5);
       }
     );
   });

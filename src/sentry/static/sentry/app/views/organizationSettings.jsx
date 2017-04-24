@@ -301,8 +301,7 @@ const OrganizationSettingsForm = React.createClass({
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={isSaving || !this.state.hasChanges}
-          >
+            disabled={isSaving || !this.state.hasChanges}>
             {t('Save Changes')}
           </button>
         </fieldset>

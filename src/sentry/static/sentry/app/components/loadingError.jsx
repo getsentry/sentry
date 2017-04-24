@@ -26,8 +26,7 @@ const LoadingError = React.createClass({
             <a
               onClick={this.props.onRetry}
               className="btn btn-default btn-sm"
-              style={{marginLeft: 5}}
-            >
+              style={{marginLeft: 5}}>
               {t('Retry')}
             </a>}
         </p>

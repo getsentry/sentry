@@ -16,12 +16,12 @@ describe('DropdownLink', function() {
       let dropdownlink = TestUtils.renderIntoDocument(<DropdownLink {...INPUT_1} />);
 
       let handlers = jQuery._data(dropdownlink.refs.dropdownToggle.parentNode, 'events');
-      expect(handlers).to.be.an('object');
+      expect(handlers).toBeInstanceOf(Object);
 
       dropdownlink.componentWillUnmount(dropdownlink);
 
       handlers = jQuery._data(dropdownlink.refs.dropdownToggle.parentNode, 'events');
-      expect(handlers).to.be.an('undefined');
+      expect(handlers).toBe(undefined);
     });
   });
 });

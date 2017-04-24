@@ -34,8 +34,8 @@ describe('TagDistributionMeter', function() {
 
       this.element.fetchData();
 
-      expect(this.stubbedApiRequest.callCount).to.equal(1);
-      expect(this.stubbedApiRequest.getCall(0).args[0]).to.equal(
+      expect(this.stubbedApiRequest.callCount).toEqual(1);
+      expect(this.stubbedApiRequest.getCall(0).args[0]).toEqual(
         '/issues/1337/tags/browser/'
       );
     });
@@ -49,7 +49,7 @@ describe('TagDistributionMeter', function() {
           error: false
         },
         () => {
-          expect(this.element.renderBody()).to.be.null;
+          expect(this.element.renderBody()).toBe(null);
           done();
         }
       );
@@ -62,7 +62,7 @@ describe('TagDistributionMeter', function() {
           loading: false
         },
         () => {
-          expect(this.element.renderBody()).to.be.null;
+          expect(this.element.renderBody()).toBe(null);
           done();
         }
       );
@@ -79,7 +79,7 @@ describe('TagDistributionMeter', function() {
         },
         () => {
           let out = this.element.renderBody();
-          expect(ReactDOMServer.renderToStaticMarkup(out)).to.eql(
+          expect(ReactDOMServer.renderToStaticMarkup(out)).toEqual(
             '<p>No recent data.</p>'
           );
           done();

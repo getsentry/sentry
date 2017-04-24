@@ -46,15 +46,13 @@ const LinkWithConfirmation = React.createClass({
         className={className}
         disabled={this.props.disabled}
         onClick={this.onToggle}
-        title={this.props.title}
-      >
+        title={this.props.title}>
         {this.props.children}
         <Modal
           show={this.state.isModalOpen}
           title={t('Please confirm')}
           animation={false}
-          onHide={this.onToggle}
-        >
+          onHide={this.onToggle}>
           <div className="modal-body">
             <p><strong>{this.props.message}</strong></p>
           </div>

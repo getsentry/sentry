@@ -254,29 +254,78 @@ const ProjectProcessingIssues = React.createClass({
   },
 
   renderResults() {
+    const fixLink = this.state.processingIssues
+      ? this.state.processingIssues.signedLink
+      : false;
+
+    let fixLinkBlock = null;
+    if (fixLink) {
+      fixLinkBlock = (
+        <div className="panel panel-info">
+          <div className="panel-heading">
+            <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+          </div>
+          <div className="panel-body">
+            <div className="form-group" style={{marginBottom: 0}}>
+              <label>
+                {t(
+                  'Paste this command into your shell and we\'ll attempt to upload the missing symbols from your machine:'
+                )}
+              </label>
+              <div
+                className="form-control disabled auto-select"
+                style={{marginBottom: 6}}>
+                curl -sL {fixLink} | bash
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
-      <table className="table processing-issues">
-        <thead>
-          <tr>
-            <th>{t('Problem')}</th>
-            <th>{t('Details')}</th>
-            <th>{t('Events')}</th>
-            <th>{t('Last seen')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {this.state.processingIssues.issues.map((item, idx) => {
-            return (
-              <tr key={idx}>
-                <td>{this.renderProblem(item)}</td>
-                <td>{this.renderDetails(item)}</td>
-                <td>{item.numEvents + ''}</td>
-                <td><TimeSince date={item.lastSeen} /></td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div>
+        {fixLinkBlock}
+        <div className="panel panel-default">
+          <div className="panel-heading panel-heading-bold hidden-xs">
+            <div className="row">
+              <div className="col-sm-3">
+                {t('Problem')}
+              </div>
+              <div className="col-sm-5">
+                {t('Details')}
+              </div>
+              <div className="col-sm-2">
+                {t('Events')}
+              </div>
+              <div className="col-sm-2">
+                {t('Last seen')}
+              </div>
+            </div>
+          </div>
+          <div className="list-group">
+            {this.state.processingIssues.issues.map((item, idx) => {
+              return (
+                <div className="list-group-item">
+                  <div className="row row-flex row-center-vertically">
+                    <div className="col-sm-3">
+                      {this.renderProblem(item)}
+                    </div>
+                    <div className="col-sm-5">
+                      {this.renderDetails(item)}
+                    </div>
+                    <div className="col-sm-2">
+                      {item.numEvents + ''}
+                    </div>
+                    <div className="col-sm-2">
+                      <TimeSince date={item.lastSeen} />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     );
   },
 

@@ -39,8 +39,7 @@ const HomeSidebar = React.createClass({
             isActive={() => {
               // return true if path matches /organizations/slug-name/teams/ OR /organizations/slug-name/all-teams/
               return /^\/[^\/]+\/$/.test(this.context.location.pathname);
-            }}
-          >
+            }}>
             {t('Dashboard')}
           </ListLink>
           <ListLink
@@ -50,8 +49,7 @@ const HomeSidebar = React.createClass({
               return /^\/organizations\/[^\/]+\/(teams|all-teams)\/$/.test(
                 this.context.location.pathname
               );
-            }}
-          >
+            }}>
             {t('Projects & Teams')}
           </ListLink>
           {access.has('org:read') &&

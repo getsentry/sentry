@@ -57,8 +57,7 @@ const Truncate = React.createClass({
         onMouseOver={this.onFocus}
         onMouseOut={this.onBlur}
         onFocus={this.onFocus}
-        onBlur={this.onBlur}
-      >
+        onBlur={this.onBlur}>
         <span className="short-value">{shortValue}</span>
         {isTruncated && <span className="full-value">{value}</span>}
       </span>

@@ -15,6 +15,7 @@ import logging
 import six
 import uuid
 import zlib
+import re
 
 from collections import MutableMapping
 from datetime import datetime, timedelta
@@ -53,6 +54,9 @@ try:
     import ujson as json  # noqa
 except ImportError:
     from sentry.utils import json
+
+
+_dist_re = re.compile(r'^[a-zA-Z0-9_.-]+$')
 
 
 class APIError(Exception):
@@ -690,6 +694,25 @@ class ClientApiHelper(object):
                     'value': data['release'],
                 })
                 del data['release']
+
+        if data.get('dist'):
+            data['dist'] = six.text_type(data['dist']).strip()
+            if not data.get('release'):
+                data['dist'] = None
+            elif len(data['dist']) > 64:
+                data['errors'].append({
+                    'type': EventError.VALUE_TOO_LONG,
+                    'name': 'dist',
+                    'value': data['dist'],
+                })
+                del data['dist']
+            elif _dist_re.match(data['dist']) is None:
+                data['errors'].append({
+                    'type': EventError.INVALID_DATA,
+                    'name': 'dist',
+                    'value': data['dist'],
+                })
+                del data['dist']
 
         if data.get('environment'):
             data['environment'] = six.text_type(data['environment'])

@@ -35,8 +35,7 @@ const Filter = React.createClass({
         key=""
         isActive={this.props.value === '' || !this.props.value}
         to={this.props.path}
-        query={query}
-      >
+        query={query}>
         Any
       </MenuItem>
     );
@@ -56,8 +55,7 @@ const Filter = React.createClass({
               key={item[0]}
               isActive={this.props.value === item[0]}
               to={this.props.path}
-              query={query}
-            >
+              query={query}>
               {item[1]}
             </MenuItem>
           );
@@ -104,8 +102,7 @@ const SortBy = React.createClass({
               isActive={this.props.value === item[0]}
               key={item[0]}
               to={this.props.path}
-              query={query}
-            >
+              query={query}>
               {item[1]}
             </MenuItem>
           );
