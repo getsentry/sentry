@@ -36,7 +36,7 @@ def js_format(file_list=None):
 
     # Get Prettier version from package.json
     package_version = None
-    package_json_path = os.path.join((project_root), 'package.json')
+    package_json_path = os.path.join(project_root, 'package.json')
     with open(package_json_path) as package_json:
         try:
             package_version = json.load(package_json)['devDependencies']['prettier']
