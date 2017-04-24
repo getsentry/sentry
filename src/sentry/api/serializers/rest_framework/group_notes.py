@@ -7,7 +7,4 @@ from .list import ListField
 
 class NoteSerializer(serializers.Serializer):
     text = serializers.CharField()
-
-
-class MentionSerializer(serializers.Serializer):
     mentions = ListField(required=False)

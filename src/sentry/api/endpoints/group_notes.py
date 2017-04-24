@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.group_notes import NoteSerializer, MentionSerializer
+from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.models import Activity, GroupSubscription, GroupSubscriptionReason, User
 from sentry.utils.functional import extract_lazy_object
 
@@ -32,26 +32,22 @@ class GroupNotesEndpoint(GroupEndpoint):
 
     def post(self, request, group):
         serializer = NoteSerializer(data=request.DATA)
-        serializer2 = MentionSerializer(data=request.DATA)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if not serializer2.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        note_data = dict(serializer.object)
+        data = dict(serializer.object)
+        mentions = data.pop('mentions', [])
 
         GroupSubscription.objects.subscribe(
             group=group,
             user=request.user,
             reason=GroupSubscriptionReason.comment,
         )
-        mentions_data = dict(serializer2.object)
 
-        if mentions_data['mentions']:
-            for item in mentions_data['mentions']:
-                user = User.objects.get(id=item)
+        if mentions:
+            users = User.objects.filter(id__in=mentions)
+            for user in users:
                 GroupSubscription.objects.subscribe(
                     group=group,
                     user=user,
@@ -62,7 +58,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             group=group,
             type=Activity.NOTE,
             user=request.user,
-            data=note_data,
+            data=data,
             datetime__gte=timezone.now() - timedelta(hours=1)
         ).exists():
             return Response('{"detail": "You have already posted that comment."}',
@@ -73,7 +69,7 @@ class GroupNotesEndpoint(GroupEndpoint):
             project=group.project,
             type=Activity.NOTE,
             user=extract_lazy_object(request.user),
-            data=note_data,
+            data=data,
         )
 
         activity.send_notification()
