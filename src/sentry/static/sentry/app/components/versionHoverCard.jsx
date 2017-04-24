@@ -136,7 +136,7 @@ const VersionHoverCard = React.createClass({
   renderBody() {
     let {release, deploys} = this.state;
     let {version} = this.props;
-    let lastCommit = release.lastCommit;
+    let lastCommit = release && release.lastCommit;
     let commitAuthor = lastCommit && lastCommit.author;
     let shortVersion = getShortVersion(version);
 
@@ -158,93 +158,98 @@ const VersionHoverCard = React.createClass({
           <span className="truncate">Release {shortVersion}</span>
         </div>
         <div className="hovercard-body">
-          {this.state.loading
-            ? <LoadingIndicator mini={true} />
-            : this.state.error
-                ? <LoadingError />
-                : <div>
-                    <div className="row row-flex">
-                      <div className="col-xs-4">
-                        <h6>New Issues</h6>
-                        <div className="count">{release.newGroups}</div>
-                      </div>
-                      <div className="col-xs-8">
-                        <h6>
-                          {release.commitCount}
-                          {' '}
-                          {release.commitCount !== 1 ? t('commits ') : t('commit ')}
-                          {' '}
-                          {t('by ')}
-                          {' '}
-                          {release.authors.length}
-                          {' '}
-                          {release.authors.length !== 1 ? t('authors') : t('author')}
-                          {' '}
-                        </h6>
-                        <div className="avatar-grid">
-                          {release.authors.map(author => {
-                            return (
-                              <span
-                                className="avatar-grid-item tip"
-                                title={author.name + ' ' + author.email}
-                              >
-                                <Avatar user={author} />
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
+          <div className="row row-flex">
+            <div className="col-xs-4">
+              <h6>New Issues</h6>
+              <div className="count">{release.newGroups}</div>
+            </div>
+            <div className="col-xs-8">
+              <h6>
+                {release.commitCount}
+                {' '}
+                {release.commitCount !== 1 ? t('commits ') : t('commit ')}
+                {' '}
+                {t('by ')}
+                {' '}
+                {release.authors.length}
+                {' '}
+                {release.authors.length !== 1 ? t('authors') : t('author')}
+                {' '}
+              </h6>
+              <div className="avatar-grid">
+                {release.authors.map(author => {
+                  return (
+                    <span
+                      className="avatar-grid-item tip"
+                      title={author.name + ' ' + author.email}>
+                      <Avatar user={author} />
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          {lastCommit &&
+            <div>
+              <div className="divider">
+                <h6 className="commit-heading">Last commit</h6>
+              </div>
+              <div className="commit">
+                <div className="commit-avatar">
+                  <Avatar user={commitAuthor || {username: '?'}} />
+                </div>
+                <div className="commit-meta">
+                  <TimeSince
+                    date={lastCommit.dateCreated}
+                    className="pull-right text-light"
+                  />
+                  <strong>
+                    {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
+                  </strong>
+                </div>
+                <div className="commit-message break-word">
+                  {this.renderMessage(lastCommit.message)}
+                </div>
+              </div>
+            </div>}
+          {deploys.length > 0 &&
+            <div>
+              <div className="divider">
+                <h6 className="deploy-heading">Recent Deploys</h6>
+              </div>
+              {mostRecentDeploySlice.map((env, idx) => {
+                let dateFinished = recentDeploysByEnviroment[env];
+                return (
+                  <div className="deploy">
+                    <div key={idx} className="deploy-meta" style={{position: 'relative'}}>
+                      <strong
+                        className="repo-label truncate"
+                        style={{
+                          padding: 3,
+                          display: 'inline-block',
+                          width: 86,
+                          maxWidth: 86,
+                          textAlign: 'center',
+                          fontSize: 12
+                        }}>
+                        {env}
+                      </strong>
+                      {dateFinished &&
+                        <span
+                          className="text-light"
+                          style={{
+                            position: 'absolute',
+                            left: 98,
+                            width: '50%',
+                            padding: '3px 0'
+                          }}>
+                          <TimeSince date={dateFinished} />
+                        </span>}
                     </div>
-                    {lastCommit &&
-                      <div>
-                        <div className="divider">
-                          <h6 className="commit-heading">Last commit</h6>
-                        </div>
-                        <div className="commit">
-                          <div className="commit-avatar">
-                            <Avatar user={commitAuthor || {username: '?'}} />
-                          </div>
-                          <div className="commit-meta">
-                            <TimeSince date={lastCommit.dateCreated} className="pull-right text-light" />
-                            <strong>
-                              {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
-                            </strong>
-                          </div>
-                          <div className="commit-message break-word">
-                            {this.renderMessage(lastCommit.message)}
-                          </div>
-                        </div>
-                      </div>}
-                    {deploys.length > 0 &&
-                      <div>
-                        <div className="divider">
-                          <h6 className="deploy-heading">Recent Deploys</h6>
-                        </div>
-                        {mostRecentDeploySlice.map((env, idx) => {
-                          let dateFinished = recentDeploysByEnviroment[env];
-                          return (
-                            <div className="deploy">
-                              <div
-                                key={idx}
-                                className="deploy-meta"
-                                style={{position: 'relative'}}
-                              >
-                                <strong className="repo-label truncate" style={{padding: 3, display: 'inline-block', width: 86, maxWidth: 86, textAlign: 'center', fontSize: 12}}>
-                                  {env}
-                                </strong>
-                                {dateFinished &&
-                                  <span
-                                    className="text-light"
-                                    style={{position: 'absolute', left: 98, width: '50%', padding: '3px 0'}}
-                                  >
-                                    <TimeSince date={dateFinished} />
-                                  </span>}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>}
-                  </div>}
+                  </div>
+                );
+              })}
+            </div>}
         </div>
       </div>
     );
@@ -253,15 +258,16 @@ const VersionHoverCard = React.createClass({
   render() {
     let {visible} = this.state;
     return (
-      <span
-        onMouseEnter={this.toggleHovercard}
-        onMouseLeave={this.toggleHovercard}
-      >
+      <span onMouseEnter={this.toggleHovercard} onMouseLeave={this.toggleHovercard}>
         {this.props.children}
         {visible &&
           <div className="hovercard">
             <div className="hovercard-hoverlap" />
-            {this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
+            {this.state.loading
+              ? <div className="hovercard-body"><LoadingIndicator mini={true} /></div>
+              : this.state.error
+                  ? <div className="hovercard-body"><LoadingError /></div>
+                  : this.state.hasRepos ? this.renderBody() : this.renderRepoLink()}
           </div>}
       </span>
     );
