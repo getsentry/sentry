@@ -4,8 +4,10 @@ from __future__ import absolute_import
 import os
 import sys
 import subprocess
+import json
 
 from glob import glob
+from click import echo
 
 from sentry.lint.engine import check_files, get_js_files
 
@@ -18,7 +20,6 @@ if 'VIRTUAL_ENV' in os.environ:
         '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
     sys.path.insert(0, site_packages)
 
-
 PRETTIER_VERSION = "1.2.2"
 
 def js_format(file_list=None):
@@ -30,16 +31,23 @@ def js_format(file_list=None):
     prettier_path = os.path.join(project_root, 'node_modules', '.bin', 'prettier')
 
     if not os.path.exists(prettier_path):
-        from click import echo
-        echo('!! Skipping JavaScript formatting because prettier is not installed.')
+        echo('!! Skipping JavaScript formatting because prettier is not installed.', err=True)
         return False
 
-    proc = subprocess.Popen([prettier_path, '--version'], stdout=subprocess.PIPE)
-    proc.wait()
-    prettier_version = proc.stdout.readline().rstrip()
-    if prettier_version != PRETTIER_VERSION:
-        from click import echo
-        echo('!! Prettier is out of date. Please run `yarn install`.')
+    # Get Prettier version from package.json
+    package_version = None
+    package_json_path = os.path.join((project_root), 'package.json')
+    with open(package_json_path) as package_json:
+        try:
+            package_version = json.load(package_json)['devDependencies']['prettier']
+        except KeyError:
+            echo('!! Prettier missing from package.json', err=True)
+            return False
+
+    prettier_version = subprocess.check_output([prettier_path, '--version']).rstrip()
+    if prettier_version != package_version:
+        echo('!! Prettier is out of date: %s (expected %s). Please run `yarn install`.' \
+            % (prettier_version, package_version), err=True)
         return False
 
     js_file_list = get_js_files(file_list)
