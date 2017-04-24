@@ -181,8 +181,7 @@ const VersionHoverCard = React.createClass({
                   return (
                     <span
                       className="avatar-grid-item tip"
-                      title={author.name + ' ' + author.email}
-                    >
+                      title={author.name + ' ' + author.email}>
                       <Avatar user={author} />
                     </span>
                   );
@@ -232,8 +231,7 @@ const VersionHoverCard = React.createClass({
                           maxWidth: 86,
                           textAlign: 'center',
                           fontSize: 12
-                        }}
-                      >
+                        }}>
                         {env}
                       </strong>
                       {dateFinished &&
@@ -244,8 +242,7 @@ const VersionHoverCard = React.createClass({
                             left: 98,
                             width: '50%',
                             padding: '3px 0'
-                          }}
-                        >
+                          }}>
                           <TimeSince date={dateFinished} />
                         </span>}
                     </div>
