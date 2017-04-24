@@ -31,7 +31,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
     def post(self, request, group):
-        serializer = NoteSerializer(data=request.DATA)
+        serializer = NoteSerializer(data=request.DATA, context={'group': group})
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
