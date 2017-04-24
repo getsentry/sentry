@@ -12,7 +12,7 @@ export default React.createClass({
     project: React.PropTypes.object.isRequired,
     pluginList: React.PropTypes.array.isRequired,
     onDisablePlugin: React.PropTypes.func.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired
+    onEnablePlugin: React.PropTypes.func.isRequired,
   },
 
   mixins: [ApiMixin],
@@ -20,19 +20,16 @@ export default React.createClass({
   enablePlugin(plugin) {
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     let {organization, project} = this.props;
-    this.api.request(
-      `/projects/${organization.slug}/${project.slug}/plugins/${plugin.id}/`,
-      {
-        method: 'POST',
-        success: () => this.props.onEnablePlugin(plugin),
-        error: error => {
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-        },
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
+    this.api.request(`/projects/${organization.slug}/${project.slug}/plugins/${plugin.id}/`, {
+      method: 'POST',
+      success: () => this.props.onEnablePlugin(plugin),
+      error: error => {
+        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
       }
-    );
+    });
   },
 
   onDisablePlugin(plugin) {
@@ -57,9 +54,8 @@ export default React.createClass({
         })}
         <InactivePlugins
           plugins={pluginList.filter(p => !p.enabled)}
-          onEnablePlugin={this.enablePlugin}
-        />
+          onEnablePlugin={this.enablePlugin} />
       </div>
     );
-  }
+  },
 });

@@ -197,6 +197,9 @@
         <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
     <li>
+        <a href="{% absolute_uri '/{}/{}/settings/data-forwarding/' project.organization.slug project.slug %}">{% trans "Data Forwarding" %}</a>
+    </li>
+    <li>
         <a href="{% absolute_uri '/{}/{}/settings/saved-searches/' project.organization.slug project.slug %}">{% trans "Saved Searches" %}</a>
     </li>
     <li>
