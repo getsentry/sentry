@@ -129,7 +129,10 @@
     "no-with": 2, // http://eslint.org/docs/rules/no-with
     "quotes": [
       2,
-      "single"
+      "single",
+      {
+        "avoidEscape": true
+      }
     ], // http://eslint.org/docs/rules/quotes.html
     "radix": 2, // http://eslint.org/docs/rules/radix
     "computed-property-spacing": [
