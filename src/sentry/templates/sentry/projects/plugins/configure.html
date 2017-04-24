@@ -7,6 +7,7 @@
 
 {% block main %}
     <div class="pull-right">
+
         {% if plugin.can_disable %}
             {% if not plugin_is_enabled %}
                 <form method="post" action="{% url 'sentry-enable-project-plugin' project.organization.slug project.slug plugin.slug %}"
@@ -33,6 +34,10 @@
     <hr>
     <div class="row">
         <div class="col-md-7">
+            {% if plugin.get_status == 'beta' %}
+                <div class="alert alert-block alert-warning"><strong>Note: This plugin is considered beta and may change in the future.</strong></div>
+            {% endif %}
+
             {% if request.GET.success %}
                 <div class="alert alert-success">
                     {% trans "Changes to your project were saved successfully." %}
