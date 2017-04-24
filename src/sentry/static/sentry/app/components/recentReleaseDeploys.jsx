@@ -1,7 +1,6 @@
 import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import TooltipMixin from '../mixins/tooltip';
-// import {t} from '../locale';
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
 import TimeSince from './timeSince';
@@ -69,13 +68,24 @@ const RecentReleaseDeploys = React.createClass({
       mostRecentDeploySlice = Object.keys(recentDeploysByEnviroment).slice(0, 3);
     }
     return (
-      <div>
+      <div className="col-sm-3 col-xs-3 text-light">
         {deploys &&
           mostRecentDeploySlice.map((env, idx) => {
             let dateFinished = recentDeploysByEnviroment[env];
             return (
               <div className="deploy" key={idx}>
-                <span className="repo-label"  style={{padding: 3, display: 'inline-block', width: 86, maxWidth: 86, textAlign: 'center', fontSize: 12}}>{env + ' '}</span>
+                <span
+                  className="repo-label"
+                  style={{
+                    padding: 3,
+                    display: 'inline-block',
+                    width: 86,
+                    maxWidth: 86,
+                    textAlign: 'center',
+                    fontSize: 12
+                  }}>
+                  {env + ' '}
+                </span>
                 {dateFinished &&
                   <p
                     className="text-light"
@@ -83,8 +93,7 @@ const RecentReleaseDeploys = React.createClass({
                       display: 'inline-block',
                       'padding-left': '10px',
                       'vertical-align': 'baseline'
-                    }}
-                  >
+                    }}>
                     <TimeSince date={dateFinished} />
                   </p>}
               </div>

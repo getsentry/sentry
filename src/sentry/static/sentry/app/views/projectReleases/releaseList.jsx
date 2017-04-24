@@ -3,7 +3,7 @@ import ReleaseStats from '../../components/releaseStats';
 import Count from '../../components/count';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
-import RecentReleaseDeploys from '../../components/recentReleaseDeploys';
+import LatestDeployOrReleaseTime from '../../components/latestDeployOrReleaseTime';
 
 const ReleaseList = React.createClass({
   propTypes: {
@@ -21,7 +21,7 @@ const ReleaseList = React.createClass({
           return (
             <li className="list-group-item" key={release.version}>
               <div className="row row-center-vertically">
-                <div className="col-sm-3 col-xs-5">
+                <div className="col-sm-4 col-xs-6">
                   <h2>
                     <Version
                       orgId={orgId}
@@ -29,28 +29,22 @@ const ReleaseList = React.createClass({
                       version={release.version}
                     />
                   </h2>
-                  <p className="m-b-0 text-light">
-                    <span className="icon icon-clock" />
-                    {' '}
-                    <TimeSince date={release.dateCreated} />
-                  </p>
+                  <LatestDeployOrReleaseTime
+                    orgId={orgId}
+                    releaseDateCreated={release.dateCreated}
+                    version={release.version}
+                  />
                 </div>
-                <div className="col-sm-2 hidden-xs">
+                <div className="col-sm-4 hidden-xs">
                   <ReleaseStats release={release} />
                 </div>
-                <div className="col-sm-2 col-xs-2 text-big text-light">
+                <div className="col-sm-2 col-xs-3 text-big text-light">
                   <Count className="release-count" value={release.newGroups} />
                 </div>
                 <div className="col-sm-2 col-xs-2 text-light">
                   {release.lastEvent
                     ? <TimeSince date={release.lastEvent} />
                     : <span>—</span>}
-                </div>
-                <div className="col-sm-3 col-xs-3 text-light">
-                  <RecentReleaseDeploys
-                    version={release.version}
-                    orgId={this.props.orgId}
-                  />
                 </div>
               </div>
             </li>
