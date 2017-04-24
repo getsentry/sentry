@@ -4,6 +4,7 @@ import TooltipMixin from '../mixins/tooltip';
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
 import TimeSince from './timeSince';
+import {t} from '../locale';
 
 const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
@@ -28,6 +29,13 @@ const LatestDeployOrReleaseTime = React.createClass({
 
   componentWillMount() {
     this.fetchData();
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.loading && !this.state.loading) {
+      this.removeTooltips();
+      this.attachTooltips();
+    }
   },
 
   fetchData() {
@@ -56,28 +64,33 @@ const LatestDeployOrReleaseTime = React.createClass({
       return <LoadingError />;
     }
     let {deploys} = this.state;
+    let earlierDeploysNum = deploys.length - 1;
     return (
       <div>
         {deploys.length > 0 && deploys[0].dateFinished
           ? <div className="deploy">
-              <span
-                className="repo-label"
-                style={{
-                  padding: 3,
-                  display: 'inline-block',
-                  width: 86,
-                  maxWidth: 86,
-                  textAlign: 'center',
-                  fontSize: 12
-                }}>
-                {deploys[0].environment + ' '}
-              </span>
               <p className="m-b-0 text-light">
+                <span
+                  className="repo-label"
+                  style={{
+                    padding: 3,
+                    display: 'inline-block',
+                    width: 70,
+                    maxWidth: 86,
+                    textAlign: 'center',
+                    fontSize: 12
+                  }}>
+                  {deploys[0].environment + ' '}
+                </span>
+                {' '}
                 <span className="icon icon-clock" />
                 {' '}
                 <TimeSince date={deploys[0].dateFinished} />
+                {earlierDeploysNum > 0 &&
+                  <span className="tip" title={earlierDeploysNum + t(' earlier deploys')}>
+                    <span className="badge">{earlierDeploysNum}</span>
+                  </span>}
               </p>
-              <span>{deploys.length} earlier deploys</span>
             </div>
           : <p className="m-b-0 text-light">
               <span className="icon icon-clock" />
