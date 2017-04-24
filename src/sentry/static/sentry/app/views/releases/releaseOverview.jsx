@@ -178,9 +178,10 @@ const ReleaseOverview = React.createClass({
             />
             {hasRepos &&
               <div>
-                {Object.keys(filesByRepository).map(repository => {
+                {Object.keys(filesByRepository).map((repository, i) => {
                   return (
                     <RepositoryFileSummary
+                      key={i}
                       repository={repository}
                       fileChangeSummary={filesByRepository[repository]}
                     />

@@ -92,7 +92,7 @@ const GroupDetails = React.createClass({
           errorType: null
         });
 
-        GroupStore.loadInitialData([data]);
+        return void GroupStore.loadInitialData([data]);
       },
       error: (_, textStatus, errorThrown) => {
         let errorType = null;

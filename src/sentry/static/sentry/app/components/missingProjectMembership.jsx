@@ -58,7 +58,7 @@ const MissingProjectMembership = React.createClass({
       <div className="container">
         <div className="box alert-box">
           <span className="icon icon-exclamation" />
-          <p>{"You're not a member of this project."}</p>
+          <p>{'You\'re not a member of this project.'}</p>
           {openMembership
             ? <p>{t('To view this data you must first join the %s team.', team.name)}</p>
             : <p>

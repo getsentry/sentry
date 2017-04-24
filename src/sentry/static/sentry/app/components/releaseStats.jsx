@@ -33,9 +33,10 @@ const ReleaseStats = React.createClass({
       <div className="release-stats">
         <h6>{releaseSummary}</h6>
         <div className="avatar-grid">
-          {release.authors.map(author => {
+          {release.authors.map((author, i) => {
             return (
               <span
+                key={i}
                 className="avatar-grid-item tip"
                 title={author.name + ' ' + author.email}>
                 <Avatar user={author} />

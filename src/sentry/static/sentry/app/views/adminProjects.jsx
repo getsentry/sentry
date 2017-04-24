@@ -38,7 +38,7 @@ const AdminProjects = React.createClass({
         <h3>{t('Projects')}</h3>
         <ResultGrid
           path="/manage/projects/"
-          endpoint={`/projects/`}
+          endpoint={'/projects/'}
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

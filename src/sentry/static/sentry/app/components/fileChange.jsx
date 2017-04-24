@@ -26,8 +26,8 @@ const FileChange = React.createClass({
   },
 
   render() {
-    let {filename, authors, types} = this.props;
-    types = Array.from(types);
+    let {filename, authors} = this.props;
+    // types = Array.from(types);
     return (
       <li className="list-group-item list-group-item-sm release-file-change">
         <div className="row row-flex row-center-vertically">
@@ -36,9 +36,10 @@ const FileChange = React.createClass({
             <span className="file-name">{filename}</span>
           </div>
           <div className="col-sm-3 avatar-grid align-right">
-            {authors.map(author => {
+            {authors.map((author, i) => {
               return (
                 <span
+                  key={i}
                   className="avatar-grid-item m-b-0 tip"
                   title={author.name + ' ' + author.email}>
                   <Avatar user={author} />

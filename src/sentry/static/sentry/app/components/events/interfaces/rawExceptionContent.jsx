@@ -86,7 +86,7 @@ const RawExceptionContent = React.createClass({
           );
           downloadButton = (
             <a
-              href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + `&download=1`}
+              href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + '&download=1'}
               className="btn btn-default btn-sm pull-right">
               Download
             </a>
@@ -95,9 +95,9 @@ const RawExceptionContent = React.createClass({
       }
 
       return (
-        <div>
+        <div key={excIdx}>
           {downloadButton}
-          <pre key={excIdx} className="traceback plain">
+          <pre className="traceback plain">
             {content}
           </pre>
         </div>
