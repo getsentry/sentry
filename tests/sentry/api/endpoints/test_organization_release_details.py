@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from mock import patch
 from datetime import datetime
 from django.core.urlresolvers import reverse
 
@@ -94,7 +95,8 @@ class ReleaseDetailsTest(APITestCase):
 
 
 class UpdateReleaseDetailsTest(APITestCase):
-    def test_simple(self):
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_simple(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -161,28 +163,20 @@ class UpdateReleaseDetailsTest(APITestCase):
             ],
         })
 
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': release.id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name},
+                    {'commit': 'b' * 40, 'repository': repo2.name},
+                ],
+                'prev_release_id': base_release.id,
+            }
+        )
+
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
 
         release = Release.objects.get(id=release.id)
         assert release.ref == 'master'
@@ -195,7 +189,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         response = self.client.put(url, {'ref': 'master'})
         assert response.status_code == 403
 
-    def test_deprecated_head_commits(self):
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_deprecated_head_commits(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
         org.flags.allow_joinleave = False
@@ -263,28 +258,20 @@ class UpdateReleaseDetailsTest(APITestCase):
             ],
         })
 
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': release.id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'previousCommit': None, 'repository': repo.name},
+                    {'commit': 'b' * 40, 'previousCommit': None, 'repository': repo2.name},
+                ],
+                'prev_release_id': base_release.id,
+            }
+        )
+
         assert response.status_code == 200, response.content
         assert response.data['version'] == release.version
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
 
         release = Release.objects.get(id=release.id)
         assert release.ref == 'master'
