@@ -1,7 +1,7 @@
 Some events failed to process in your project "{{ project.name }}".
 
-{% if reprocessing_active %}Because reprocessing is enabled you will not see these events until
-you corrected some issues that affect processing.
+{% if reprocessing_active %}Since reprocessing is enabled, these events
+will not show up in Sentry until the processing issues are resolved.
 
 {% endif %}Issues:
 {% for issue in issues %}
@@ -9,9 +9,10 @@ you corrected some issues that affect processing.
   ({{ issue.extra_info }}){% endif %}
 {% endfor %}
 
-{% if not reprocessing_active %}Because reprocessing is not enabled we
-will not futher bother you about issues like this.  We do however
-recommend to enable reprocessing in the project settings
-({{ info_url }})
-for a better user experience.{% else %}You can fix these issues here:
+{% if not reprocessing_active %}Since reprocessing is disabled, we won't
+send you additional notifications about issues like this. However, we
+recommend enabling reprocessing in project settings to improve your
+debugging experience on Sentry.
+
+{{ info_url }}{% else %}You can fix these issues here:
   {{ info_url }}{% endif %}
