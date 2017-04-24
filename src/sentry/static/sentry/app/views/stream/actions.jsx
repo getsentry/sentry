@@ -156,13 +156,13 @@ const StreamActions = React.createClass({
     let extraDescription = null;
     if (this.state.allInQuerySelected) {
       extraDescription = this.props.query
-        ? (<div>
+        ? <div>
             <p>{t('This will apply to the current search query:')}</p>
             <pre>{this.props.query}</pre>
-          </div>)
-        : (<p className="error">
+          </div>
+        : <p className="error">
             <strong>{t('This will apply to ALL issues in this project!')}</strong>
-          </p>);
+          </p>;
     }
 
     return (
