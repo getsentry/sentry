@@ -32,7 +32,6 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
 
     def __init__(self, activity):
         ActivityEmail.__init__(self, activity)
-        self.organization = self.project.organization
         self.issues = summarize_issues(self.data['issues'])
 
     def get_participants(self):
@@ -42,8 +41,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         # code (Project.is_user_subscribed_to_mail_alerts) which
         # replicates the logic on a per-user basis.
         users = User.objects.filter(
-            sentry_orgmember_set__teams=self.project.team,
-            is_active=True,
+            id__in=self.project.team.member_set.values_list('user_id'),
         )
         participants = {}
         for user in users:

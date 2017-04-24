@@ -194,7 +194,7 @@ def delete_raw_event(project_id, event_id, allow_hint_clear=False):
             if ReprocessingReport.objects.filter(
                 project_id=project_id,
                 event_id=event_id
-            ).values('id').first() is None:
+            ).exists():
                 project = Project.objects.get_from_cache(id=project_id)
                 ProjectOption.objects.set_value(
                     project, 'sentry:sent_failed_event_hint', False)
