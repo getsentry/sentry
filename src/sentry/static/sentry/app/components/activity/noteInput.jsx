@@ -203,7 +203,7 @@ const NoteInput = React.createClass({
   finalMentions() {
     //mention = [id, display]
     return this.state.mentions
-      .filter(mention => this.state.value.indexOf(mention[1]))
+      .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);
   },
 
@@ -229,17 +229,10 @@ const NoteInput = React.createClass({
 
   getMemberData() {
     let sessionUser = ConfigStore.get('user');
-    let results = [];
-    this.state.memberList.forEach(member => {
-      if (sessionUser.id !== member.id) {
-        results.push({
-          id: member.id,
-          display: member.name,
-          email: member.email
-        });
-      }
-    });
-    return results;
+
+    return this.state.memberList
+      .filter(member => sessionUser.id !== member.id)
+      .map(member => ({id: member.id, display: member.name, email: member.email}));
   },
 
   render() {
