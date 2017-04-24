@@ -56,6 +56,7 @@ const CrashContent = React.createClass({
     if (this.props.stacktrace) {
       return this.renderStacktrace();
     }
+    return null;
   }
 });
 
