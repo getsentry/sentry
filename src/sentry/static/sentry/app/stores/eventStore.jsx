@@ -65,6 +65,7 @@ const EventStore = Reflux.createStore({
         return this.items[i];
       }
     }
+    return undefined;
   },
 
   getAllItemIds() {

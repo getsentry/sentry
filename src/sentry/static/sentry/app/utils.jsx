@@ -23,9 +23,7 @@ export const arrayIsEqual = function(arr, other, deep) {
     return false;
   }
 
-  for (let i = 0, l = Math.max(arr.length, other.length); i < l; i++) {
-    return valueIsEqual(arr[i], other[i], deep);
-  }
+  return arr.every((val, idx) => valueIsEqual(val, other[idx], deep));
 };
 
 export const valueIsEqual = function(value, other, deep) {

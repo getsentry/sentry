@@ -175,6 +175,7 @@ const GroupStore = Reflux.createStore({
         return rItem;
       }
     }
+    return undefined;
   },
 
   getAllItemIds() {

@@ -48,8 +48,7 @@ const ActionLink = React.createClass({
     if (!this.state.isModalOpen && !this.shouldConfirm(selectedItemIds.size)) {
       return void this.handleAction();
     }
-
-    this.handleToggle();
+    return void this.handleToggle();
   },
 
   handleToggle() {
