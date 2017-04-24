@@ -14,8 +14,7 @@
     <p class="muted">
       Some events failed to process in your project "<a href="{{ project.get_absolute_url }}">{{ project.name }}</a>".
       {% if reprocessing_active %}
-        Because reprocessing is enabled you will not see these events until
-        you corrected some issues that affect processing.
+        Since reprocessing is enabled, these events will not show up in Sentry until the processing issues are resolved.
       {% endif %}
     </p>
     {% if not reprocessing_active %}
@@ -72,10 +71,10 @@
 
     {% if not reprocessing_active %}
     <p>
-      Because reprocessing is not enabled we will not futher bother you about
-      issues like this.  We do however recommend to <a href="{{ info_url
-        }}">enable reprocessing in the project settings</a> for a better user
-      experience.
+      Since reprocessing is disabled, we won't send you additional
+      notifications about issues like this. However, we recommend <a href="{{
+        info_url }}">enabling reprocessing</a> in the project settings to
+      improve your debugging experience on Sentry.
     </p>
     {% endif %}
 {% endblock %}
