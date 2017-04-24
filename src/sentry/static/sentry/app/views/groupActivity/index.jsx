@@ -99,10 +99,6 @@ const GroupActivity = React.createClass({
             return t('%s assigned this event to an unknown user', author);
           }
         }
-        return t('%(author)s assigned this event to %(assignee)s', {
-          author: author,
-          assignee: assignee.email
-        });
       case 'unassigned':
         return t('%s unassigned this issue', author);
       case 'merge':

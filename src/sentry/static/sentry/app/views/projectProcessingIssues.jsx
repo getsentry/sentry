@@ -305,7 +305,7 @@ const ProjectProcessingIssues = React.createClass({
           <div className="list-group">
             {this.state.processingIssues.issues.map((item, idx) => {
               return (
-                <div className="list-group-item">
+                <div key={idx} className="list-group-item">
                   <div className="row row-flex row-center-vertically">
                     <div className="col-sm-3">
                       {this.renderProblem(item)}

@@ -220,8 +220,8 @@ const VersionHoverCard = React.createClass({
               {mostRecentDeploySlice.map((env, idx) => {
                 let dateFinished = recentDeploysByEnviroment[env];
                 return (
-                  <div className="deploy">
-                    <div key={idx} className="deploy-meta" style={{position: 'relative'}}>
+                  <div className="deploy" key={idx}>
+                    <div className="deploy-meta" style={{position: 'relative'}}>
                       <strong
                         className="repo-label truncate"
                         style={{
