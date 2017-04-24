@@ -192,9 +192,8 @@ const NoteInput = React.createClass({
   },
 
   onAdd(id, display) {
-    let mentions = this.state.mentions;
-    mentions.push([id, display]);
-    this.setState({mentions: mentions});
+    let mentions = this.state.mentions.concat([[id, display]]);
+    this.setState({mentions});
   },
 
   finish() {
