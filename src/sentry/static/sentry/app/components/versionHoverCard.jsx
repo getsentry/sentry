@@ -177,11 +177,12 @@ const VersionHoverCard = React.createClass({
                 {' '}
               </h6>
               <div className="avatar-grid">
-                {release.authors.map(author => {
+                {release.authors.map((author, idx) => {
                   return (
                     <span
                       className="avatar-grid-item tip"
-                      title={author.name + ' ' + author.email}>
+                      title={author.name + ' ' + author.email}
+                      key={idx}>
                       <Avatar user={author} />
                     </span>
                   );
