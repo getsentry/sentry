@@ -130,8 +130,7 @@ const GroupHeader = React.createClass({
                     to={{
                       pathname: `/${orgId}/${projectId}/`,
                       query: {query: 'logger:' + group.logger}
-                    }}
-                  >
+                    }}>
                     {group.logger}
                   </Link>
                 </span>}
@@ -194,8 +193,7 @@ const GroupHeader = React.createClass({
 
               // Because react-router 1.0 removes router.isActive(route)
               return pathname === rootGroupPath || /events\/\w+\/$/.test(pathname);
-            }}
-          >
+            }}>
             {t('Details')}
           </ListLink>
           <ListLink to={`/${orgId}/${projectId}/issues/${groupId}/activity/`}>

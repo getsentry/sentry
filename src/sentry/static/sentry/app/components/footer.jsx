@@ -27,8 +27,7 @@ const Footer = React.createClass({
             <a
               className="hidden-xs"
               href="https://github.com/getsentry/sentry"
-              rel="noreferrer"
-            >
+              rel="noreferrer">
               {t('Contribute')}
             </a>
             {config.isOnPremise &&

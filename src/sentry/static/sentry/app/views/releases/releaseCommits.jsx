@@ -195,16 +195,14 @@ const ReleaseCommits = React.createClass({
                           style={{marginLeft: 3, marginRight: -3}}
                         />
                       </h5>
-                    }
-                  >
+                    }>
                     <MenuItem
                       key="all"
                       noAnchor={true}
                       onClick={() => {
                         this.setActiveRepo(null);
                       }}
-                      isActive={this.state.activeRepo === null}
-                    >
+                      isActive={this.state.activeRepo === null}>
                       <a>All Repositories</a>
                     </MenuItem>
                     {Object.keys(commitsByRepository).map(repository => {
@@ -215,8 +213,7 @@ const ReleaseCommits = React.createClass({
                           onClick={() => {
                             this.setActiveRepo(repository);
                           }}
-                          isActive={this.state.activeRepo === repository}
-                        >
+                          isActive={this.state.activeRepo === repository}>
                           <a>{repository}</a>
                         </MenuItem>
                       );

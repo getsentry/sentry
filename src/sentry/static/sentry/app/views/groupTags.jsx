@@ -82,8 +82,7 @@ const GroupTags = React.createClass({
                 to={{
                   pathname: `/${orgId}/${projectId}/`,
                   query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
-                }}
-              >
+                }}>
                 <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
@@ -99,8 +98,7 @@ const GroupTags = React.createClass({
                 <span className="pull-right">
                   <Link
                     className="btn btn-default btn-sm"
-                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}
-                  >
+                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>
                     {t('More Details')}
                   </Link>
                 </span>

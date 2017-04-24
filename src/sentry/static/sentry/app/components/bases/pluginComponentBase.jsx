@@ -27,7 +27,7 @@ class PluginComponentBase extends React.Component {
       'onSaveError',
       'onSaveComplete',
       'renderField'
-    ].map(method => this[method] = this[method].bind(this));
+    ].map(method => (this[method] = this[method].bind(this)));
 
     if (this.fetchData) {
       this.fetchData = this.onLoad.bind(this, this.fetchData.bind(this));

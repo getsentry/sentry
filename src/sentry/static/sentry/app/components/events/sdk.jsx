@@ -20,8 +20,7 @@ const EventSdk = React.createClass({
         event={event}
         type="sdk"
         title={t('SDK')}
-        wrapTitle={true}
-      >
+        wrapTitle={true}>
         <table className="table key-value">
           <tbody>
             <tr key="name">

@@ -186,8 +186,7 @@ class IssueActions extends PluginComponentBase {
             <Form
               onSubmit={this.createIssue}
               submitLabel={t('Create Issue')}
-              footerClass=""
-            >
+              footerClass="">
               {this.state.createFieldList.map(field => {
                 if (field.has_autocomplete) {
                   field = Object.assign(

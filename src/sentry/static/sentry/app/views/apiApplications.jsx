@@ -72,8 +72,7 @@ const ApiApplicationRow = React.createClass({
           <a
             onClick={this.onRemove.bind(this, app)}
             className={btnClassName}
-            disabled={this.state.loading}
-          >
+            disabled={this.state.loading}>
             <span className="icon icon-trash" />
           </a>
         </td>
@@ -193,8 +192,7 @@ const ApiApplications = React.createClass({
           <div className="form-actions" style={{textAlign: 'right'}}>
             <a
               className="btn btn-primary ref-create-application"
-              onClick={this.createApplication}
-            >
+              onClick={this.createApplication}>
               {t('Create New Application')}
             </a>
           </div>

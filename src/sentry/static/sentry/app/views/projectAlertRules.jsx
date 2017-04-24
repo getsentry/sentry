@@ -203,8 +203,7 @@ const ProjectAlertRules = React.createClass({
       <div>
         <a
           href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
-          className="btn pull-right btn-primary btn-sm"
-        >
+          className="btn pull-right btn-primary btn-sm">
           <span className="icon-plus" />
           {t('New Alert Rule')}
         </a>

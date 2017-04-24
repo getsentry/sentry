@@ -121,15 +121,13 @@ const TokenForm = React.createClass({
           <button
             className="btn btn-default"
             disabled={isSaving}
-            onClick={this.props.onCancel}
-          >
+            onClick={this.props.onCancel}>
             {t('Cancel')}
           </button>
           <button
             type="submit"
             className="btn btn-primary pull-right"
-            disabled={isSaving}
-          >
+            disabled={isSaving}>
             {t('Save Changes')}
           </button>
         </fieldset>

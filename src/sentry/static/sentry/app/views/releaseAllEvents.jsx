@@ -17,8 +17,7 @@ const ReleaseAllEvents = React.createClass({
             to={{
               pathname: `/${orgId}/${projectId}/`,
               query: {query: 'release:' + this.context.release.version}
-            }}
-          >
+            }}>
             <span className="icon icon-open" />
             {t('View all events seen in this release in the stream')}
           </Link>

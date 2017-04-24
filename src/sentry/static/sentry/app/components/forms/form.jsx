@@ -32,8 +32,7 @@ const Form = React.createClass({
           <button
             className="btn btn-primary"
             disabled={this.props.submitDisabled}
-            type="submit"
-          >
+            type="submit">
             {this.props.submitLabel}
           </button>
           {this.props.extraButton}

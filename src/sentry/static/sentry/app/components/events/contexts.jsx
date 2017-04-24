@@ -118,8 +118,7 @@ const ContextChunk = React.createClass({
         event={evt}
         key={`context-${alias}`}
         type={`context-${alias}`}
-        title={this.renderTitle(Component)}
-      >
+        title={this.renderTitle(Component)}>
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );

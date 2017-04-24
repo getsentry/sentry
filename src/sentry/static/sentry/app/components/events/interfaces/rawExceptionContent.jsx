@@ -87,8 +87,7 @@ const RawExceptionContent = React.createClass({
           downloadButton = (
             <a
               href={this.api.baseUrl + this.getAppleCrashReportEndpoint() + `&download=1`}
-              className="btn btn-default btn-sm pull-right"
-            >
+              className="btn btn-default btn-sm pull-right">
               Download
             </a>
           );

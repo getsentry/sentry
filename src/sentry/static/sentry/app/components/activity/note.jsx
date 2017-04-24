@@ -34,8 +34,7 @@ const Note = React.createClass({
               <LinkWithConfirmation
                 className="danger"
                 message={t('Are you sure you wish to delete this comment?')}
-                onConfirm={onDelete}
-              >
+                onConfirm={onDelete}>
                 {t('Remove')}
               </LinkWithConfirmation>
             </span>}

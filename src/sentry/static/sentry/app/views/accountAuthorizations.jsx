@@ -72,8 +72,7 @@ const AuthorizationRow = React.createClass({
           <a
             onClick={this.onRevoke.bind(this, authorization)}
             className={btnClassName}
-            disabled={this.state.loading}
-          >
+            disabled={this.state.loading}>
             <span className="icon icon-trash" />
           </a>
         </td>

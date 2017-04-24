@@ -46,8 +46,7 @@ const SnoozeAction = React.createClass({
         title={this.props.tooltip}
         className={this.props.className}
         disabled={this.props.disabled}
-        onClick={this.toggleModal}
-      >
+        onClick={this.toggleModal}>
         <span>{t('zZz')}</span>
 
         <Modal
@@ -55,8 +54,7 @@ const SnoozeAction = React.createClass({
           title={t('Please confirm')}
           animation={false}
           onHide={this.closeModal}
-          bsSize="sm"
-        >
+          bsSize="sm">
           <div className="modal-body">
             <h5>{t('How long should we ignore this issue?')}</h5>
             <ul className="nav nav-stacked nav-pills">

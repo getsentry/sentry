@@ -63,8 +63,7 @@ const OrganizationSelector = React.createClass({
                 return (
                   <li
                     className={activeOrg.id === org.id ? 'org active' : 'org'}
-                    key={org.slug}
-                  >
+                    key={org.slug}>
                     {this.getLinkNode(
                       org,
                       <LetterAvatar displayName={org.name} identifier={org.slug} />,

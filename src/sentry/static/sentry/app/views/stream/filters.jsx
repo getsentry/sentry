@@ -79,8 +79,7 @@ const StreamFilters = React.createClass({
               />
               <a
                 className="btn btn-default toggle-stream-sidebar"
-                onClick={this.props.onSidebarToggle}
-              >
+                onClick={this.props.onSidebarToggle}>
                 <span className="icon-filter" />
               </a>
             </div>

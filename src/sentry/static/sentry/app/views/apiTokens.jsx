@@ -74,8 +74,7 @@ const ApiTokenRow = React.createClass({
           <a
             onClick={this.onRemove.bind(this, token)}
             className={btnClassName}
-            disabled={this.state.loading}
-          >
+            disabled={this.state.loading}>
             <span className="icon icon-trash" />
           </a>
         </td>

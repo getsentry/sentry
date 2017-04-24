@@ -174,8 +174,7 @@ const ProjectDebugSymbols = React.createClass({
                   let row = (
                     <li
                       className="group hoverable"
-                      onClick={() => this.setActive(app.id, version, builds)}
-                    >
+                      onClick={() => this.setActive(app.id, version, builds)}>
                       <div className="row">
                         <div className="col-xs-8 event-details">
                           <h3 className="truncate">{version}</h3>
@@ -243,8 +242,7 @@ const ProjectDebugSymbols = React.createClass({
         <li
           className="group hoverable"
           key={build}
-          onClick={() => this.openModal(build, dsyms)}
-        >
+          onClick={() => this.openModal(build, dsyms)}>
           <div className="row">
             <div className="col-xs-8 event-details">
               <div className="event-message">
@@ -365,8 +363,7 @@ const ProjectDebugSymbols = React.createClass({
           animation={false}
           backdrop="static"
           enforceFocus={false}
-          bsSize="lg"
-        >
+          bsSize="lg">
           <Modal.Header closeButton>
             <Modal.Title>
               {this.state.activeVersion} ({this.state.activeBuild})

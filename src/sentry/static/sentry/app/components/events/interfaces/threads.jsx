@@ -253,8 +253,7 @@ const ThreadsInterface = React.createClass({
           btnGroup={true}
           caret={true}
           className="btn btn-default btn-sm"
-          title={getThreadTitle(activeThread, this.props.event, true)}
-        >
+          title={getThreadTitle(activeThread, this.props.event, true)}>
           {this.props.data.values.map((thread, idx) => {
             return (
               <MenuItem key={idx} noAnchor={true}>
@@ -292,8 +291,7 @@ const ThreadsInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}
-      >
+        wrapTitle={false}>
         <Thread
           group={group}
           data={activeThread}

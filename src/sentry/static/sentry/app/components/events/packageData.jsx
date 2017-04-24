@@ -25,8 +25,7 @@ const EventPackageData = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="packages"
-        title={t('Packages')}
-      >
+        title={t('Packages')}>
         <ClippedBox>
           <KeyValueList data={packages} />
         </ClippedBox>

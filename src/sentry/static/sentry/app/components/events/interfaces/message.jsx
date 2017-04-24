@@ -20,8 +20,7 @@ const MessageInterface = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="message"
-        title={t('Message')}
-      >
+        title={t('Message')}>
         <pre
           className="plain"
           dangerouslySetInnerHTML={{

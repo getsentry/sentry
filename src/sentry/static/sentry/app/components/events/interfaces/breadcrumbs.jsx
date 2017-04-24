@@ -216,8 +216,7 @@ const BreadcrumbsInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}
-      >
+        wrapTitle={false}>
         <ul className="crumbs">
           {numCollapsed > 0 &&
             <Collapsed onClick={this.onCollapseToggle} count={numCollapsed} />}

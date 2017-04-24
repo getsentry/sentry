@@ -107,8 +107,7 @@ const SaveSearchButton = React.createClass({
         className={this.props.className}
         disabled={this.props.disabled}
         onClick={this.onToggle}
-        style={this.props.style}
-      >
+        style={this.props.style}>
         {this.props.children}
 
         <Modal show={this.state.isModalOpen} animation={false} onHide={this.onToggle}>
@@ -157,8 +156,7 @@ const SaveSearchButton = React.createClass({
                 type="button"
                 className="btn btn-default"
                 disabled={isSaving}
-                onClick={this.onToggle}
-              >
+                onClick={this.onToggle}>
                 {t('Cancel')}
               </button>
               <button type="submit" className="btn btn-primary" disabled={isSaving}>
@@ -220,16 +218,14 @@ const SavedSearchSelector = React.createClass({
                 <SaveSearchButton
                   className="btn btn-sm btn-default"
                   onSave={this.props.onSavedSearchCreate}
-                  {...this.props}
-                >
+                  {...this.props}>
                   {t('Save Current Search')}
                 </SaveSearchButton>
               </div>
               <div className="col-md-5">
                 <Link
                   to={`/${orgId}/${projectId}/settings/saved-searches/`}
-                  className="btn btn-sm btn-default"
-                >
+                  className="btn btn-sm btn-default">
                   {t('Manage')}
                 </Link>
               </div>

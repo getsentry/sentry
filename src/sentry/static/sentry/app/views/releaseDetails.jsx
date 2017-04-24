@@ -166,8 +166,7 @@ const ReleaseDetails = React.createClass({
                       (hasReleases && this.props.location.pathname === basePath) ||
                       loc.pathname === this.props.location.pathname
                     );
-                  }}
-                >
+                  }}>
                   {t('Overview')}
                 </ListLink>}
               <ListLink
@@ -179,25 +178,21 @@ const ReleaseDetails = React.createClass({
                     (!hasReleases && this.props.location.pathname === basePath) ||
                     loc.pathname === this.props.location.pathname
                   );
-                }}
-              >
+                }}>
                 {t('New Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}
-              >
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/all-events/`}>
                 {t('All Issues')}
               </ListLink>
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}
-              >
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/artifacts/`}>
                 {t('Artifacts')}
               </ListLink>
 
               {new Set(this.context.organization.features).has('release-commits') &&
                 <ListLink
-                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}
-                >
+                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/commits/`}>
                   {t('Commits')}
                 </ListLink>}
             </ul>

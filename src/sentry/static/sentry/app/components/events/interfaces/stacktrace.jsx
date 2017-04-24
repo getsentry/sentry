@@ -70,8 +70,7 @@ const StacktraceInterface = React.createClass({
         event={evt}
         type={this.props.type}
         title={title}
-        wrapTitle={false}
-      >
+        wrapTitle={false}>
         <CrashContent
           group={group}
           event={evt}

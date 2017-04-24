@@ -108,8 +108,7 @@ const GroupTagValues = React.createClass({
               to={{
                 pathname: `/${orgId}/${projectId}/`,
                 query: {query: `${tagKey.key}:"${tagValue.value}"`}
-              }}
-            >
+              }}>
               {tagKey.key === 'user'
                 ? [
                     <Avatar user={tagValue} size={20} className="avatar" />,
@@ -123,8 +122,7 @@ const GroupTagValues = React.createClass({
               <a
                 href={`mailto:${tagValue.email}`}
                 target="_blank"
-                className="external-icon"
-              >
+                className="external-icon">
                 <em className="icon-envelope" />
               </a>}
             {isUrl(tagValue.value) &&

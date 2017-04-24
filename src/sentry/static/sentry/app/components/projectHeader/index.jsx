@@ -77,8 +77,7 @@ const ProjectHeader = React.createClass({
                   ? 'btn btn-sm btn-default active'
                   : 'btn btn-sm btn-default'
               }
-              href={`/${org.slug}/${project.slug}/settings/`}
-            >
+              href={`/${org.slug}/${project.slug}/settings/`}>
               <span className="icon icon-settings" /> {t('Project Settings')}
             </a>}
         </div>

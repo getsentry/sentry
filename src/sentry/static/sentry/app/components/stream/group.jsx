@@ -168,8 +168,7 @@ const StreamGroup = React.createClass({
                 <li>
                   <Link
                     to={`/${orgId}/${projectId}/issues/${id}/activity/`}
-                    className="comments"
-                  >
+                    className="comments">
                     <span className="icon icon-comments" />
                     <span className="tag-count">{data.numComments}</span>
                   </Link>
@@ -180,8 +179,7 @@ const StreamGroup = React.createClass({
                     to={{
                       pathname: `/${orgId}/${projectId}/`,
                       query: {query: 'logger:' + data.logger}
-                    }}
-                  >
+                    }}>
                     {data.logger}
                   </Link>
                 </li>}

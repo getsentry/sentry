@@ -53,8 +53,7 @@ const RouteError = React.createClass({
             Give it a few seconds and <a
               onClick={() => {
                 window.location.href = window.location.href;
-              }}
-            >
+              }}>
               reload the page
             </a>.
           </li>

@@ -95,7 +95,7 @@
     "karma-sourcemap-loader": "0.3.7",
     "karma-webpack": "2.0.1",
     "phantomjs-prebuilt": "2.1.14",
-    "prettier": "1.1.0",
+    "prettier": "1.2.2",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0"
   }
