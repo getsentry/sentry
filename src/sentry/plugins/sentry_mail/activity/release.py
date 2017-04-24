@@ -72,7 +72,7 @@ class ReleaseActivityEmail(ActivityEmail):
 
             for commit in self.commit_list:
                 repos[commit.repository_id]['commits'].append(
-                    (commit, users.get(commit.author.email))
+                    (commit, users.get(commit.author.email) if commit.author_id else None)
                 )
 
             self.repos = repos.values()

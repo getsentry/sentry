@@ -28,4 +28,3 @@ let PropTypes = {
 };
 
 export default PropTypes;
-

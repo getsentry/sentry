@@ -30,7 +30,7 @@ const HookStore = Reflux.createStore({
     if (_.isUndefined(this.hooks[hookName])) {
       return;
     }
-    this.hooks[hookName] = this.hooks[hookName].filter((cb) => {
+    this.hooks[hookName] = this.hooks[hookName].filter(cb => {
       return cb !== callback;
     });
     this.trigger(hookName, this.hooks[hookName]);
@@ -42,4 +42,3 @@ const HookStore = Reflux.createStore({
 });
 
 export default HookStore;
-

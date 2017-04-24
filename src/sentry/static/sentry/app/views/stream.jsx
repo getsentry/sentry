@@ -57,7 +57,7 @@ const Stream = React.createClass({
       isDefaultSearch: null,
       searchId: searchId,
       // if we have no query then we can go ahead and fetch data
-      loading: (searchId || !this.hasQuery() ? true : false),
+      loading: searchId || !this.hasQuery() ? true : false,
       savedSearchLoading: true,
       savedSearchList: [],
       selectAllActive: false,
@@ -102,8 +102,9 @@ const Stream = React.createClass({
       return;
     }
 
-    let searchIdChanged = this.state.isDefaultSearch ?
-      nextProps.params.searchId : nextProps.params.searchId !== this.state.searchId;
+    let searchIdChanged = this.state.isDefaultSearch
+      ? nextProps.params.searchId
+      : nextProps.params.searchId !== this.state.searchId;
 
     if (searchIdChanged || nextProps.location.search !== this.props.location.search) {
       // TODO(dcramer): handle 404 from popState on searchId
@@ -133,40 +134,43 @@ const Stream = React.createClass({
 
   fetchSavedSearches() {
     this.setState({
-      savedSearchLoading: true,
+      savedSearchLoading: true
     });
 
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/searches/`, {
-      success: (data) => {
+      success: data => {
         let newState = {
           isDefaultSearch: false,
           savedSearchLoading: false,
           savedSearchList: data,
-          loading: false,
+          loading: false
         };
         let needsData = this.state.loading;
         let searchId = this.state.searchId;
         if (searchId) {
-          let match = data.filter((search) => {
+          let match = data.filter(search => {
             return search.id === searchId;
           });
           if (match.length) {
             newState.query = match[0].query;
           } else {
-            return void this.setState({
-              savedSearchLoading: false,
-              savedSearchList: data,
-              searchId: null,
-              isDefaultSearch: true,
-            }, this.transitionTo);
+            return void this.setState(
+              {
+                savedSearchLoading: false,
+                savedSearchList: data,
+                searchId: null,
+                isDefaultSearch: true
+              },
+              this.transitionTo
+            );
           }
         } else if (!this.hasQuery()) {
-          let defaultResults = data.filter((search) => {
+          let defaultResults = data.filter(search => {
             return search.isUserDefault;
           });
           if (!defaultResults.length) {
-            defaultResults = data.filter((search) => {
+            defaultResults = data.filter(search => {
               return search.isDefault;
             });
           }
@@ -178,7 +182,7 @@ const Stream = React.createClass({
         }
         this.setState(newState, needsData ? this.fetchData : null);
       },
-      error: (error) => {
+      error: error => {
         // XXX(dcramer): fail gracefully by still loading the stream
         logAjaxError(error);
         this.setState({
@@ -196,16 +200,14 @@ const Stream = React.createClass({
   fetchProcessingIssues() {
     let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
-      success: (data) => {
-        if (data.hasIssues
-          || data.resolveableIssues > 0
-          || data.issuesProcessing > 0) {
+      success: data => {
+        if (data.hasIssues || data.resolveableIssues > 0 || data.issuesProcessing > 0) {
           this.setState({
-            processingIssues: data,
+            processingIssues: data
           });
         }
       },
-      error: (error) => {
+      error: error => {
         logAjaxError(error);
         // this is okay. it's just a ui hint
       }
@@ -222,11 +224,11 @@ const Stream = React.createClass({
 
     let params = this.props.params;
     this.api.request(`/projects/${params.orgId}/${params.projectId}/tags/`, {
-      success: (tags) => {
+      success: tags => {
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsSuccess(tags);
       },
-      error: (error) => {
+      error: error => {
         this.setState({tagsLoading: false});
         StreamTagActions.loadTagsError();
       }
@@ -243,7 +245,7 @@ const Stream = React.createClass({
     savedSearchList.push(data);
     // TODO(dcramer): sort
     this.setState({
-      savedSearchList: savedSearchList,
+      savedSearchList: savedSearchList
     });
     browserHistory.pushState(null, `/${orgId}/${projectId}/searches/${data.id}/`);
   },
@@ -256,20 +258,15 @@ const Stream = React.createClass({
 
     let hasQuery = currentQuery.hasOwnProperty('query');
 
-    let searchId = (
-      hasQuery ?
-      null :
-      props.params.searchId || state.searchId || null);
+    let searchId = hasQuery ? null : props.params.searchId || state.searchId || null;
 
-    let sort =
-      currentQuery.hasOwnProperty('sort') ?
-      currentQuery.sort :
-      this.props.defaultSort;
+    let sort = currentQuery.hasOwnProperty('sort')
+      ? currentQuery.sort
+      : this.props.defaultSort;
 
-    let statsPeriod =
-      currentQuery.hasOwnProperty('statsPeriod') ?
-      currentQuery.statsPeriod :
-      this.props.defaultStatsPeriod;
+    let statsPeriod = currentQuery.hasOwnProperty('statsPeriod')
+      ? currentQuery.statsPeriod
+      : this.props.defaultStatsPeriod;
 
     if (statsPeriod !== '14d' && statsPeriod !== '24h') {
       statsPeriod = this.props.defaultStatsPeriod;
@@ -284,11 +281,10 @@ const Stream = React.createClass({
     };
 
     // state is not yet defined
-    if (this.state === null)
-      return newState;
+    if (this.state === null) return newState;
 
     if (searchId) {
-      let searchResult = this.state.savedSearchList.filter((search) => {
+      let searchResult = this.state.savedSearchList.filter(search => {
         return search.id === searchId;
       });
       if (searchResult.length) {
@@ -297,7 +293,7 @@ const Stream = React.createClass({
         newState.searchId = null;
       }
     } else if (!hasQuery) {
-      let defaultResult = this.state.savedSearchList.filter((search) => {
+      let defaultResult = this.state.savedSearchList.filter(search => {
         return search.isDefault;
       });
       if (defaultResult.length) {
@@ -333,7 +329,7 @@ const Stream = React.createClass({
       limit: this.props.maxItems,
       sort: this.state.sort,
       statsPeriod: this.state.statsPeriod,
-      shortIdLookup: '1',
+      shortIdLookup: '1'
     };
 
     let currentQuery = this.props.location.query || {};
@@ -356,12 +352,16 @@ const Stream = React.createClass({
         // the current props one as the shortIdLookup can return results for
         // different projects.
         if (jqXHR.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
-           if (data[0].matchingEventId){
-            return void browserHistory.pushState(null,
-              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/events/${data[0].matchingEventId}/`);
+          if (data[0].matchingEventId) {
+            return void browserHistory.pushState(
+              null,
+              `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/events/${data[0].matchingEventId}/`
+            );
           }
-          return void browserHistory.pushState(null,
-            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`);
+          return void browserHistory.pushState(
+            null,
+            `/${this.props.params.orgId}/${data[0].project.slug}/issues/${data[0].id}/`
+          );
         }
 
         this._streamManager.push(data);
@@ -369,10 +369,10 @@ const Stream = React.createClass({
         this.setState({
           error: false,
           dataLoading: false,
-          pageLinks: jqXHR.getResponseHeader('Link'),
+          pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (err) => {
+      error: err => {
         let error = err.responseJSON || true;
         error = error.detail || true;
         this.setState({
@@ -380,7 +380,7 @@ const Stream = React.createClass({
           dataLoading: false
         });
       },
-      complete: (jqXHR) => {
+      complete: jqXHR => {
         this.lastRequest = null;
 
         this.resumePolling();
@@ -389,8 +389,7 @@ const Stream = React.createClass({
   },
 
   resumePolling() {
-    if (!this.state.pageLinks)
-      return;
+    if (!this.state.pageLinks) return;
 
     // Only resume polling if we're on the first page of results
     let links = parseLinkHeader(this.state.pageLinks);
@@ -416,11 +415,14 @@ const Stream = React.createClass({
   onSelectStatsPeriod(period) {
     if (period != this.state.statsPeriod) {
       // TODO(dcramer): all charts should now suggest "loading"
-      this.setState({
-        statsPeriod: period
-      }, function() {
-        this.transitionTo();
-      });
+      this.setState(
+        {
+          statsPeriod: period
+        },
+        function() {
+          this.transitionTo();
+        }
+      );
     }
   },
 
@@ -428,13 +430,13 @@ const Stream = React.createClass({
     this._streamManager.unshift(data);
     if (!utils.valueIsEqual(this.state.pageLinks, links, true)) {
       this.setState({
-        pageLinks: links,
+        pageLinks: links
       });
     }
   },
 
   onGroupChange() {
-    let groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    let groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
         groupIds: groupIds
@@ -454,17 +456,23 @@ const Stream = React.createClass({
       // if query is the same, just re-fetch data
       this.fetchData();
     } else {
-      this.setState({
-        query: query,
-        searchId: null,
-      }, this.transitionTo);
+      this.setState(
+        {
+          query: query,
+          searchId: null
+        },
+        this.transitionTo
+      );
     }
   },
 
   onSortChange(sort) {
-    this.setState({
-      sort: sort
-    }, this.transitionTo);
+    this.setState(
+      {
+        sort: sort
+      },
+      this.transitionTo
+    );
   },
 
   onSidebarToggle() {
@@ -483,8 +491,7 @@ const Stream = React.createClass({
    * Returns true if all results in the current query are visible/on this page
    */
   allResultsVisible() {
-    if (!this.state.pageLinks)
-      return false;
+    if (!this.state.pageLinks) return false;
 
     let links = parseLinkHeader(this.state.pageLinks);
     return links && !links.previous.results && !links.next.results;
@@ -506,9 +513,9 @@ const Stream = React.createClass({
     }
 
     let params = this.props.params;
-    let path = (this.state.searchId ?
-      `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/` :
-      `/${params.orgId}/${params.projectId}/`);
+    let path = this.state.searchId
+      ? `/${params.orgId}/${params.projectId}/searches/${this.state.searchId}/`
+      : `/${params.orgId}/${params.projectId}/`;
 
     browserHistory.pushState(null, path, queryParams);
   },
@@ -524,7 +531,7 @@ const Stream = React.createClass({
     let showButton = false;
     let className = {
       'processing-issues': true,
-      'alert': true
+      alert: true
     };
     let issues = null;
     let lastEvent = null;
@@ -532,13 +539,16 @@ const Stream = React.createClass({
 
     if (pi.numIssues > 0) {
       icon = <span className="icon icon-alert" />;
-      issues = tn('There is %d issue blocking event processing',
-                  'There are %d issues blocking event processing',
-                  pi.numIssues);
+      issues = tn(
+        'There is %d issue blocking event processing',
+        'There are %d issues blocking event processing',
+        pi.numIssues
+      );
       lastEvent = (
-        <span className="last-seen">({tct('last event from [ago]', {
-          ago: <TimeSince date={pi.lastSeen}/>
-        })})
+        <span className="last-seen">
+          ({tct('last event from [ago]', {
+            ago: <TimeSince date={pi.lastSeen} />
+          })})
         </span>
       );
       className['alert-error'] = true;
@@ -546,15 +556,19 @@ const Stream = React.createClass({
     } else if (pi.issuesProcessing > 0) {
       icon = <span className="icon icon-processing play" />;
       className['alert-info'] = true;
-      issues = tn('Reprocessing %d event …',
+      issues = tn(
+        'Reprocessing %d event …',
         'Reprocessing %d events …',
-        pi.issuesProcessing);
+        pi.issuesProcessing
+      );
     } else if (pi.resolveableIssues > 0) {
       icon = <span className="icon icon-processing" />;
       className['alert-warning'] = true;
-      issues = tn('There is %d event pending reprocessing.',
+      issues = tn(
+        'There is %d event pending reprocessing.',
         'There are %d events pending reprocessing.',
-        pi.resolveableIssues);
+        pi.resolveableIssues
+      );
       showButton = true;
     } else {
       /* we should not go here but what do we know */
@@ -564,9 +578,9 @@ const Stream = React.createClass({
     return (
       <div className={classNames(className)}>
         {showButton &&
-          <Link to={link} className="btn btn-default btn-sm pull-right">{
-            t('Show details')}</Link>
-        }
+          <Link to={link} className="btn btn-default btn-sm pull-right">
+            {t('Show details')}
+          </Link>}
         {icon}
         {' '}
         <strong>{issues}</strong>
@@ -579,18 +593,19 @@ const Stream = React.createClass({
 
   renderGroupNodes(ids, statsPeriod) {
     let {orgId, projectId} = this.props.params;
-    let groupNodes = ids.map((id) => {
+    let groupNodes = ids.map(id => {
       return (
         <StreamGroup
           key={id}
           id={id}
           orgId={orgId}
           projectId={projectId}
-          statsPeriod={statsPeriod} />
+          statsPeriod={statsPeriod}
+        />
       );
     });
 
-    return (<ul className="group-list" ref="groupList">{groupNodes}</ul>);
+    return <ul className="group-list" ref="groupList">{groupNodes}</ul>;
   },
 
   renderAwaitingEvents() {
@@ -600,7 +615,13 @@ const Stream = React.createClass({
 
     if (this.state.groupIds.length > 0) {
       let sampleIssueId = this.state.groupIds[0];
-      sampleLink = <p><Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>{t('Or see a sample Javascript event')}</Link></p>;
+      sampleLink = (
+        <p>
+          <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
+            {t('Or see a sample Javascript event')}
+          </Link>
+        </p>
+      );
     }
 
     return (
@@ -608,8 +629,20 @@ const Stream = React.createClass({
         <div className="wrap">
           <div className="robot"><span className="eye" /></div>
           <h3>{t('Waiting for events…')}</h3>
-          <p>{tct('Our error robot is waiting to [cross:devour] receive your first event.', {cross: <span className="strikethrough"/>})}</p>
-          <p><Link to={`/${org.slug}/${project.slug}/getting-started/`} className="btn btn-primary btn-lg">{t('Installation Instructions')}</Link></p>
+          <p>
+            {tct(
+              'Our error robot is waiting to [cross:devour] receive your first event.',
+              {cross: <span className="strikethrough" />}
+            )}
+          </p>
+          <p>
+            <Link
+              to={`/${org.slug}/${project.slug}/getting-started/`}
+              className="btn btn-primary btn-lg"
+            >
+              {t('Installation Instructions')}
+            </Link>
+          </p>
           {sampleLink}
         </div>
       </div>
@@ -619,7 +652,7 @@ const Stream = React.createClass({
   renderEmpty() {
     return (
       <div className="box empty-stream">
-        <span className="icon icon-exclamation"></span>
+        <span className="icon icon-exclamation" />
         <p>{t('Sorry, no events match your filters.')}</p>
       </div>
     );
@@ -640,9 +673,7 @@ const Stream = React.createClass({
     if (this.state.dataLoading) {
       body = this.renderLoading();
     } else if (this.state.error) {
-      body = (<LoadingError
-        message={this.state.error}
-        onRetry={this.fetchData} />);
+      body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
     } else if (!project.firstEvent) {
       body = this.renderAwaitingEvents();
     } else if (this.state.groupIds.length > 0) {
@@ -663,8 +694,7 @@ const Stream = React.createClass({
     let params = this.props.params;
 
     let classes = ['stream-row'];
-    if (this.state.isSidebarVisible)
-      classes.push('show-sidebar');
+    if (this.state.isSidebarVisible) classes.push('show-sidebar');
 
     let {orgId, projectId} = this.props.params;
     let searchId = this.state.searchId;
@@ -704,13 +734,14 @@ const Stream = React.createClass({
                     realtimeActive={this.state.realtimeActive}
                     statsPeriod={this.state.statsPeriod}
                     groupIds={this.state.groupIds}
-                    allResultsVisible={this.allResultsVisible()}/>
+                    allResultsVisible={this.allResultsVisible()}
+                  />
                 </div>
               </div>
             </Sticky>
             {this.renderProcessingIssuesHint()}
             {this.renderStreamBody()}
-            <Pagination pageLinks={this.state.pageLinks}/>
+            <Pagination pageLinks={this.state.pageLinks} />
           </div>
           <StreamSidebar
             loading={this.state.tagsLoading}
@@ -719,12 +750,11 @@ const Stream = React.createClass({
             onQueryChange={this.onSearch}
             orgId={params.orgId}
             projectId={params.projectId}
-            />
+          />
         </div>
       </StickyContainer>
     );
   }
-
 });
 
 export default Stream;

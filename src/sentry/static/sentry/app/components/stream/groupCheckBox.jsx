@@ -8,9 +8,7 @@ const GroupCheckBox = React.createClass({
     id: React.PropTypes.string.isRequired
   },
 
-  mixins: [
-    Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')
-  ],
+  mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange')],
 
   getInitialState() {
     return {
@@ -27,14 +25,14 @@ const GroupCheckBox = React.createClass({
   },
 
   shouldComponentUpdate(nextProps, nextState) {
-    return (nextState.isSelected !== this.state.isSelected);
+    return nextState.isSelected !== this.state.isSelected;
   },
 
   onSelectedGroupChange() {
     let isSelected = SelectedGroupStore.isSelected(this.props.id);
     if (isSelected !== this.state.isSelected) {
       this.setState({
-        isSelected: isSelected,
+        isSelected: isSelected
       });
     }
   },
@@ -46,9 +44,13 @@ const GroupCheckBox = React.createClass({
 
   render() {
     return (
-      <input type="checkbox" className="chk-select" value={this.props.id}
-             checked={this.state.isSelected}
-             onChange={this.onSelect} />
+      <input
+        type="checkbox"
+        className="chk-select"
+        value={this.props.id}
+        checked={this.state.isSelected}
+        onChange={this.onSelect}
+      />
     );
   }
 });

@@ -28,15 +28,13 @@ const App = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
       loading: false,
       error: false,
-      needsUpgrade: ConfigStore.get('needsUpgrade'),
+      needsUpgrade: ConfigStore.get('needsUpgrade')
     };
   },
 
@@ -49,12 +47,12 @@ const App = React.createClass({
   componentWillMount() {
     this.api.request('/organizations/', {
       query: {
-        'member': '1'
+        member: '1'
       },
-      success: (data) => {
+      success: data => {
         OrganizationStore.load(data);
         this.setState({
-          loading: false,
+          loading: false
         });
       },
       error: () => {
@@ -66,7 +64,7 @@ const App = React.createClass({
     });
 
     this.api.request('/internal/health/', {
-      success: (data) => {
+      success: data => {
         if (data && data.problems) {
           data.problems.forEach(problem => {
             AlertActions.addAlert({
@@ -81,14 +79,14 @@ const App = React.createClass({
       error: () => {} // TODO: do something?
     });
 
-    ConfigStore.get('messages').forEach((msg) => {
+    ConfigStore.get('messages').forEach(msg => {
       AlertActions.addAlert({
         message: msg.message,
         type: msg.level
       });
     });
 
-    $(document).ajaxError(function (evt, jqXHR) {
+    $(document).ajaxError(function(evt, jqXHR) {
       // TODO: Need better way of identifying anonymous pages
       //       that don't trigger redirect
       let pageAllowsAnon = /^\/share\//.test(window.location.pathname);

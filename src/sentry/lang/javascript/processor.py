@@ -443,6 +443,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.allow_scraping = self.project.get_option(
             'sentry:scrape_javascript', True)
         self.fetch_count = 0
+        self.sourcemaps_touched = set()
         self.cache = SourceCache()
         self.sourcemaps = SourceMapCache()
         self.release = None
@@ -524,6 +525,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         raw_frame = dict(frame)
 
         sourcemap_url, sourcemap_view = sourcemaps.get_link(frame['abs_path'])
+        self.sourcemaps_touched.add(sourcemap_url)
         if sourcemap_view and frame.get('colno') is None:
             all_errors.append({
                 'type': EventError.JS_NO_COLUMN,
@@ -751,3 +753,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.cache_source(
                 filename=filename,
             )
+
+    def close(self):
+        StacktraceProcessor.close(self)
+        if self.sourcemaps_touched:
+            metrics.incr('sourcemaps.processed',
+                         amount=len(self.sourcemaps_touched),
+                         instance=self.project.id)

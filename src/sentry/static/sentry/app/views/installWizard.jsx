@@ -18,10 +18,14 @@ const InstallWizardSettings = React.createClass({
 
   getInitialState() {
     let options = {...this.props.options};
-    let requiredOptions = Object.keys(_.pick(options, (option) => {
-      return option.field.required && !option.field.disabled;
-    }));
-    let missingOptions = new Set(requiredOptions.filter(option => !options[option].field.isSet));
+    let requiredOptions = Object.keys(
+      _.pick(options, option => {
+        return option.field.required && !option.field.disabled;
+      })
+    );
+    let missingOptions = new Set(
+      requiredOptions.filter(option => !options[option].field.isSet)
+    );
     // This is to handle the initial installation case.
     // Even if all options are filled out, we want to prompt to confirm
     // them. This is a bit of a hack because we're assuming that
@@ -40,7 +44,12 @@ const InstallWizardSettings = React.createClass({
         let o = getOption(key);
         option.value = o.defaultValue ? o.defaultValue() : '';
       }
-      fields[key] = getOptionField(key, this.onFieldChange.bind(this, key), option.value, option.field);
+      fields[key] = getOptionField(
+        key,
+        this.onFieldChange.bind(this, key),
+        option.value,
+        option.field
+      );
       // options is used for submitting to the server, and we dont submit values
       // that are deleted
       if (option.field.disabled) {
@@ -51,7 +60,7 @@ const InstallWizardSettings = React.createClass({
     return {
       options: options,
       required: requiredOptions,
-      fields: fields,
+      fields: fields
     };
   },
 
@@ -70,20 +79,24 @@ const InstallWizardSettings = React.createClass({
 
   render() {
     let {fields, required, options} = this.state;
-    let formValid = !required.filter(option => !options[option].field.allowEmpty && !options[option].value).length;
+    let formValid = !required.filter(
+      option => !options[option].field.allowEmpty && !options[option].value
+    ).length;
     let disabled = !formValid || this.props.formDisabled;
 
     return (
       <form onSubmit={this.onSubmit}>
-        <p>Welcome to Sentry, yo! Complete setup by filling out the required
-          configuration.</p>
+        <p>
+          Welcome to Sentry, yo! Complete setup by filling out the required
+          configuration.
+        </p>
 
         {getForm(fields)}
 
         <div className="form-actions" style={{marginTop: 25}}>
-          <button className="btn btn-primary"
-                  disabled={disabled}
-                  type="submit">{t('Continue')}</button>
+          <button className="btn btn-primary" disabled={disabled} type="submit">
+            {t('Continue')}
+          </button>
         </div>
       </form>
     );
@@ -95,9 +108,7 @@ const InstallWizard = React.createClass({
     onConfigured: React.PropTypes.func.isRequired
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin],
 
   getInitialState() {
     return {
@@ -106,7 +117,7 @@ const InstallWizard = React.createClass({
       options: {},
       submitError: false,
       submitErrorType: null,
-      submitInProgress: false,
+      submitInProgress: false
     };
   },
 
@@ -128,7 +139,7 @@ const InstallWizard = React.createClass({
     // already configured
     this.api.request('/internal/options/?query=is:required', {
       method: 'GET',
-      success: (data) => {
+      success: data => {
         this.setState({
           options: data,
           loading: false,
@@ -147,7 +158,7 @@ const InstallWizard = React.createClass({
   onSubmit(options) {
     this.setState({
       submitInProgress: true,
-      submitError: false,
+      submitError: false
     });
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
 
@@ -161,7 +172,7 @@ const InstallWizard = React.createClass({
       data: data,
       success: () => {
         this.setState({
-          submitInProgress: false,
+          submitInProgress: false
         });
         this.props.onConfigured();
       },
@@ -169,7 +180,7 @@ const InstallWizard = React.createClass({
         let err = {};
         try {
           err = xhr.responseJSON;
-        } catch(ex) {
+        } catch (ex) {
           // ...
         }
         let errorMessage = '';
@@ -180,22 +191,28 @@ const InstallWizard = React.createClass({
         } else {
           switch (err.error) {
             case 'unknown_option':
-              errorMessage = t('An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
-                               err.errorDetail.option);
+              errorMessage = t(
+                'An invalid option (%s) was passed to the server. Please report this issue to the Sentry team.',
+                err.errorDetail.option
+              );
               break;
             case 'invalid_type':
-              errorMessage = t('An invalid value for (%s) was passed to the server.',
-                               err.errorDetail.option);
+              errorMessage = t(
+                'An invalid value for (%s) was passed to the server.',
+                err.errorDetail.option
+              );
               break;
             default:
-              errorMessage = t('An unknown error occurred. Please take a look at the service logs.');
+              errorMessage = t(
+                'An unknown error occurred. Please take a look at the service logs.'
+              );
           }
         }
         this.setState({
           submitInProgress: false,
           submitError: true,
           submitErrorMessage: errorMessage,
-          submitErrorType: err.error,
+          submitErrorType: err.error
         });
       },
       complete: () => {
@@ -205,7 +222,14 @@ const InstallWizard = React.createClass({
   },
 
   render() {
-    let {error, loading, options, submitError, submitErrorMessage, submitInProgress} = this.state;
+    let {
+      error,
+      loading,
+      options,
+      submitError,
+      submitErrorMessage,
+      submitInProgress
+    } = this.state;
     let version = ConfigStore.get('version');
     return (
       <DocumentTitle title={t('Sentry Setup')}>
@@ -216,28 +240,28 @@ const InstallWizard = React.createClass({
               <span>{t('Welcome to Sentry')}</span>
               <small>{version.current}</small>
             </h1>
-            {loading ?
-              <LoadingIndicator>
-                {t('Please wait while we load configuration.')}
-              </LoadingIndicator>
-            : (error ?
-              <div className="loading-error">
-                <span className="icon-exclamation" />
-                {t('We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.')}
-              </div>
-            :
-              <div>
-                {submitError &&
-                  <div className="alert alert-block alert-error">
-                    {submitErrorMessage}
-                  </div>
-                }
-                <InstallWizardSettings
-                    options={options}
-                    onSubmit={this.onSubmit}
-                    formDisabled={submitInProgress} />
-              </div>
-            )}
+            {loading
+              ? <LoadingIndicator>
+                  {t('Please wait while we load configuration.')}
+                </LoadingIndicator>
+              : error
+                  ? <div className="loading-error">
+                      <span className="icon-exclamation" />
+                      {t(
+                        'We were unable to load the required configuration from the Sentry server. Please take a look at the service logs.'
+                      )}
+                    </div>
+                  : <div>
+                      {submitError &&
+                        <div className="alert alert-block alert-error">
+                          {submitErrorMessage}
+                        </div>}
+                      <InstallWizardSettings
+                        options={options}
+                        onSubmit={this.onSubmit}
+                        formDisabled={submitInProgress}
+                      />
+                    </div>}
           </div>
         </div>
       </DocumentTitle>

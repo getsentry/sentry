@@ -28,4 +28,3 @@ const TeamStatsBar = React.createClass({
 });
 
 export default TeamStatsBar;
-
