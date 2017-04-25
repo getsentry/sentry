@@ -63,6 +63,32 @@ class BrowserExtensionsFilterTest(TestCase):
         data = self.get_mock_data(exc_source='chrome-extension://my-extension/or/something')
         assert self.apply_filter(data)
 
+    def test_filters_global_code(self):
+        data = {
+            'platform': 'javascript',
+            'sentry.interfaces.Exception': {
+                'values': [
+                    {
+                        'type': 'Error',
+                        'value': 'undefined is not defined',
+                        'stacktrace': {
+                            'frames': [
+                                {
+                                    'abs_path': 'http://example.com/foo.js',
+                                    'function': 'global code'
+                                },
+                                {
+                                    'abs_path': 'http://example.com/bar.js'
+                                },
+                            ],
+                        }
+                    }
+                ]
+            }
+        }
+
+        assert self.apply_filter(data)
+
     def test_does_not_filter_generic_data(self):
         data = self.get_mock_data()
         assert not self.apply_filter(data)
