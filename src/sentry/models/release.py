@@ -9,7 +9,6 @@ from __future__ import absolute_import, print_function
 
 import logging
 import re
-import six
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
@@ -19,7 +18,6 @@ from jsonfield import JSONField
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
-from sentry.exceptions import InvalidIdentity, PluginError
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -247,9 +245,9 @@ class Release(Model):
         else:
             return True
 
-    def set_refs(self, refs, user, fetch_commits=False):
+    def set_refs(self, refs, user, fetch=False):
         from sentry.models import Commit, ReleaseHeadCommit, Repository
-        from sentry.plugins import bindings
+        from sentry.tasks.commits import fetch_commits
 
         # TODO: this does the wrong thing unless you are on the most
         # recent release.  Add a timestamp compare?
@@ -257,8 +255,6 @@ class Release(Model):
             organization_id=self.organization_id,
             projects__in=self.projects.all(),
         ).exclude(version=self.version).order_by('-date_added').first()
-
-        commit_list = []
 
         for ref in refs:
             try:
@@ -283,43 +279,15 @@ class Release(Model):
                     'commit': commit,
                 }
             )
-            if fetch_commits:
-                try:
-                    provider_cls = bindings.get('repository.provider').get(repo.provider)
-                except KeyError:
-                    continue
-
-                # if previous commit isn't provided, try to get from
-                # previous release otherwise, give up
-                if ref.get('previousCommit'):
-                    start_sha = ref['previousCommit']
-                elif prev_release:
-                    try:
-                        start_sha = Commit.objects.filter(
-                            organization_id=self.organization_id,
-                            releaseheadcommit__release=prev_release,
-                            repository_id=repo.id,
-                        ).values_list('key', flat=True)[0]
-                    except IndexError:
-                        continue
-                else:
-                    continue
-
-                end_sha = commit.key
-                provider = provider_cls(id=repo.provider)
-                try:
-                    repo_commits = provider.compare_commits(
-                        repo, start_sha, end_sha, actor=user
-                    )
-                except NotImplementedError:
-                    pass
-                except (PluginError, InvalidIdentity) as e:
-                    logger.exception(six.text_type(e))
-                else:
-                    commit_list.extend(repo_commits)
-
-            if commit_list:
-                self.set_commits(commit_list)
+        if fetch:
+            fetch_commits.apply_async(
+                kwargs={
+                    'release_id': self.id,
+                    'user_id': user.id,
+                    'refs': refs,
+                    'prev_release_id': prev_release and prev_release.id,
+                }
+            )
 
     def set_commits(self, commit_list):
         from sentry.models import (
