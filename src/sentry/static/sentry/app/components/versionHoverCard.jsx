@@ -136,7 +136,7 @@ const VersionHoverCard = React.createClass({
   renderBody() {
     let {release, deploys} = this.state;
     let {version} = this.props;
-    let lastCommit = release && release.lastCommit;
+    let lastCommit = release.lastCommit;
     let commitAuthor = lastCommit && lastCommit.author;
     let shortVersion = getShortVersion(version);
 

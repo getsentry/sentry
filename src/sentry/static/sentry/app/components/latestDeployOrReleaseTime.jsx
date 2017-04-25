@@ -8,9 +8,9 @@ import {t} from '../locale';
 
 const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
-    orgId: React.PropTypes.string,
-    version: React.PropTypes.string,
-    releaseDateCreated: React.PropTypes.string
+    orgId: React.PropTypes.string.isRequired,
+    version: React.PropTypes.string.isRequired,
+    releaseDateCreated: React.PropTypes.string.isRequired
   },
 
   mixins: [
