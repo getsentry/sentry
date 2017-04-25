@@ -42,6 +42,8 @@ class UserOptionManager(BaseManager):
         self.__metadata = {}
 
     def get_value(self, user, project, key, default=None, organization=None):
+        if organization and project:
+            raise NotImplementedError('this is not a supported use case, scope to project OR organization')
         if organization:
             result = self.get_all_values(user, None, organization)
         else:
@@ -53,7 +55,7 @@ class UserOptionManager(BaseManager):
         if not hasattr(self, '_metadata'):
             return
         if project:
-            metakey = (user.pk, project.pk)
+            metakey = (user.pk, project.pk, 'project')
         else:
             metakey = (user.pk, None)
         if metakey not in self.__metadata:
@@ -74,7 +76,7 @@ class UserOptionManager(BaseManager):
             inst.update(value=value)
 
         if project:
-            metakey = (user.pk, project.pk)
+            metakey = (user.pk, project.pk, 'project')
         else:
             metakey = (user.pk, None)
         if metakey not in self.__metadata:
@@ -95,7 +97,7 @@ class UserOptionManager(BaseManager):
             inst.update(value=value)
 
         if organization:
-            metakey = (user.pk, organization.pk)
+            metakey = (user.pk, organization.pk, 'organization')
         else:
             metakey = (user.pk, None)
         if metakey not in self.__metadata:
@@ -104,9 +106,9 @@ class UserOptionManager(BaseManager):
 
     def get_all_values(self, user, project, organization=None):
         if project:
-            metakey = (user.pk, project.pk)
+            metakey = (user.pk, project.pk, 'project')
         elif organization:
-            metakey = (user.pk, organization.pk)
+            metakey = (user.pk, organization.pk, 'organization')
         else:
             metakey = (user.pk, None)
         if metakey not in self.__metadata:
@@ -134,7 +136,7 @@ class UserOptionManager(BaseManager):
 # be manually replaced in the database. We should restructure this model.
 class UserOption(Model):
     """
-    User options apply only to a user, and optionally a project.
+    User options apply only to a user, and optionally a project OR an organization.
 
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
@@ -156,6 +158,6 @@ class UserOption(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_useroption'
-        unique_together = (('user', 'project', 'organization', 'key',),)
+        unique_together = (('user', 'project', 'key',), ('user', 'organization', 'key',))
 
     __repr__ = sane_repr('user_id', 'project_id', 'organization_id', 'key', 'value')

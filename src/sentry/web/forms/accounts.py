@@ -684,8 +684,10 @@ class ProjectEmailOptionsForm(forms.Form):
         )
 
         UserOption.objects.set_value(
-            self.user, self.project, 'workflow:notifications',
-            UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            user=self.user,
+            project=self.project,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
         )
 
         if self.cleaned_data['email']:
