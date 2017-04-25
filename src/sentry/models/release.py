@@ -308,7 +308,7 @@ class Release(Model):
                 end_sha = commit.key
                 provider = provider_cls(id=repo.provider)
                 try:
-                    repo_commits = provider.compare_commits(
+                    repo_commits = provider.compare_and_backfill_commits(
                         repo, start_sha, end_sha, actor=user
                     )
                 except NotImplementedError:

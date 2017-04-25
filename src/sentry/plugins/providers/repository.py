@@ -83,3 +83,6 @@ class RepositoryProvider(ProviderMixin):
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         raise NotImplementedError
+
+    def compare_and_backfill_commits(self, repo, start_sha, end_sha, actor=None):
+        return self.compare_commits(repo, start_sha, end_sha, actor)
