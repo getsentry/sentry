@@ -131,3 +131,31 @@
     top: -4px;
   }
 }
+
+/**
+* Last Commit in Release Overview
+* ============================================================================
+*/
+
+.commit {
+  margin-top: 5px;
+  position: relative;
+  padding: 1px 0 0 25px;
+  font-size: 13px;
+
+  .commit-avatar {
+    position: absolute;
+    .square(19px);
+    top: 2px;
+    left: 0;
+
+    .avatar {
+      .square(19px);
+    }
+  }
+
+  .commit-message {
+    line-height: 1.4;
+    margin: 2px 0 5px;
+  }
+}

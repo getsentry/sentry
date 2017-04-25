@@ -3,6 +3,7 @@ import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IconOpen from '../../icons/icon-open';
+import Avatar from '../../components/avatar';
 import IssueList from '../../components/issueList';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
@@ -14,6 +15,10 @@ import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
 const ReleaseOverview = React.createClass({
+  contextTypes: {
+    release: React.PropTypes.object
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -109,8 +114,29 @@ const ReleaseOverview = React.createClass({
     return <div className="box empty">{t('None')}</div>;
   },
 
+  renderMessage(message) {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    if (message.length > 100) {
+      let truncated = message.substr(0, 90);
+      let words = truncated.split(' ');
+      // try to not have elipsis mid-word
+      if (words.length > 1) {
+        words.pop();
+        truncated = words.join(' ');
+      }
+      return truncated + '...';
+    }
+    return message;
+  },
+
   render() {
     let {orgId, projectId, version} = this.props.params;
+    let {release} = this.context;
+    let lastCommit = release.lastCommit;
+    let commitAuthor = lastCommit && lastCommit.author;
 
     if (this.state.loading) return <LoadingIndicator />;
 
@@ -192,6 +218,24 @@ const ReleaseOverview = React.createClass({
           <div className="col-sm-4">
             {hasRepos
               ? <div>
+                  {lastCommit &&
+                    <div>
+                      <h6 className="nav-header">Last commit</h6>
+                      <div className="commit">
+                        <div className="commit-avatar">
+                          <Avatar user={commitAuthor || {username: '?'}} />
+                        </div>
+                        <div className="commit-message truncate">
+                          {this.renderMessage(lastCommit.message)}
+                        </div>
+                        <div className="commit-meta">
+                          <strong>
+                            {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
+                          </strong>&nbsp;
+                          <TimeSince date={lastCommit.dateCreated} />
+                        </div>
+                      </div>
+                    </div>}
                   <CommitAuthorStats
                     orgId={orgId}
                     projectId={projectId}
