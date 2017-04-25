@@ -12,7 +12,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Repository
-from sentry.tasks.deletion import generic_delete
+from sentry.tasks.deletion import delete_repository
 
 delete_logger = logging.getLogger('sentry.deletions.api')
 
@@ -75,10 +75,8 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             transaction_id = uuid4().hex
             countdown = 86400
 
-            generic_delete.apply_async(
+            delete_repository.apply_async(
                 kwargs={
-                    'app_label': Repository._meta.app_label,
-                    'model_name': Repository._meta.model_name,
                     'object_id': repo.id,
                     'transaction_id': transaction_id,
                     'actor_id': request.user.id,
