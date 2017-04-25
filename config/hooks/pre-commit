@@ -60,6 +60,11 @@ def js_format(file_list=None):
         ).wait()
         has_errors = status != 0
 
+        if not has_errors:
+            # Stage modifications by Prettier
+            status = subprocess.Popen(['git', 'update-index', '--add'] + file_list).wait()
+            has_errors = status != 0
+
     return has_errors
 
 def main():
