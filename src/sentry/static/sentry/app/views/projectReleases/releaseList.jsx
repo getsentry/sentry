@@ -41,7 +41,7 @@ const ReleaseList = React.createClass({
                 <div className="col-sm-2 col-xs-3 text-big text-light">
                   <Count className="release-count" value={release.newGroups} />
                 </div>
-                <div className="col-sm-2 col-xs-2 text-light">
+                <div className="col-sm-2 col-xs-3 text-light">
                   {release.lastEvent
                     ? <TimeSince date={release.lastEvent} />
                     : <span>—</span>}
