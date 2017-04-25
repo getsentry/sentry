@@ -3,9 +3,10 @@ import _ from 'underscore';
 
 import Avatar from './avatar';
 
+import LastCommit from './lastCommit';
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
-import TimeSince from './timeSince';
+import TimeSince from './TimeSince';
 
 import {getShortVersion} from '../utils';
 import {t} from '../locale';
@@ -115,29 +116,10 @@ const VersionHoverCard = React.createClass({
     );
   },
 
-  renderMessage(message) {
-    if (!message) {
-      return t('No message provided');
-    }
-
-    if (message.length > 100) {
-      let truncated = message.substr(0, 90);
-      let words = truncated.split(' ');
-      // try to not have elipsis mid-word
-      if (words.length > 1) {
-        words.pop();
-        truncated = words.join(' ');
-      }
-      return truncated + '...';
-    }
-    return message;
-  },
-
   renderBody() {
     let {release, deploys} = this.state;
     let {version} = this.props;
     let lastCommit = release.lastCommit;
-    let commitAuthor = lastCommit && lastCommit.author;
     let shortVersion = getShortVersion(version);
 
     let recentDeploysByEnviroment = deploys.reduce(function(dbe, deploy) {
@@ -191,28 +173,7 @@ const VersionHoverCard = React.createClass({
             </div>
           </div>
           {lastCommit &&
-            <div>
-              <div className="divider">
-                <h6 className="commit-heading">Last commit</h6>
-              </div>
-              <div className="commit">
-                <div className="commit-avatar">
-                  <Avatar user={commitAuthor || {username: '?'}} />
-                </div>
-                <div className="commit-meta">
-                  <TimeSince
-                    date={lastCommit.dateCreated}
-                    className="pull-right text-light"
-                  />
-                  <strong>
-                    {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
-                  </strong>
-                </div>
-                <div className="commit-message break-word">
-                  {this.renderMessage(lastCommit.message)}
-                </div>
-              </div>
-            </div>}
+            <LastCommit lastCommit={lastCommit} headerClass="commit-heading" />}
           {deploys.length > 0 &&
             <div>
               <div className="divider">
@@ -251,6 +212,7 @@ const VersionHoverCard = React.createClass({
                 );
               })}
             </div>}
+
         </div>
       </div>
     );
