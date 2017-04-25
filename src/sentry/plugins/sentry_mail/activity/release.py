@@ -7,7 +7,7 @@ from sentry.db.models.query import in_iexact
 from sentry.models import (
     CommitFileChange, Deploy, Environment, Group,
     GroupSubscriptionReason, GroupCommitResolution,
-    Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOrgOption, UserOrgOptionValue
+    Release, ReleaseCommit, Repository, Team, User, UserEmail, UserOption, UserOptionValue
 )
 from sentry.utils.http import absolute_uri
 
@@ -102,10 +102,12 @@ class ReleaseActivityEmail(ActivityEmail):
         # identify members which have been seen in the commit log and have
         # verified the matching email address, or who opt into all deploy emails
         users_with_options = [
-            (user, UserOrgOption.objects.get_value(
+            (user, UserOption.objects.get_value(
                 user=user,
+                project=None,
                 organization=self.organization,
                 key='deploy-emails',
+                default=UserOptionValue.committed_deploys_only,
             ))
             for user in User.objects.filter(
                 emails__is_verified=True,
@@ -117,10 +119,10 @@ class ReleaseActivityEmail(ActivityEmail):
         ]
 
         participants = {
-            user: GroupSubscriptionReason.committed if option == UserOrgOptionValue.committed_only else GroupSubscriptionReason.setting
+            user: GroupSubscriptionReason.committed if option == UserOptionValue.committed_deploys_only else GroupSubscriptionReason.deploy_setting
             for user, option in users_with_options
-            if option == UserOrgOptionValue.all_deploys or
-            option == UserOrgOptionValue.committed_only and user.email in self.email_list
+            if option == UserOptionValue.all_deploys or
+            option == UserOptionValue.committed_deploys_only and user.email in self.email_list
         }
         return participants
 

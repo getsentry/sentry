@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry.models import (
     Activity, Commit, CommitAuthor, Deploy, Environment,
-    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail, UserOrgOption, UserOrgOptionValue
+    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail, UserOption, UserOptionValue
 )
 from sentry.plugins.sentry_mail.activity.release import ReleaseActivityEmail
 from sentry.testutils import TestCase
@@ -17,12 +17,14 @@ class ReleaseTestCase(TestCase):
     def setUp(self):
         super(ReleaseTestCase, self).setUp()
         self.user = self.create_user('foo@example.com')
+
         assert UserEmail.objects.filter(
             user=self.user,
             email=self.user.email,
         ).update(
             is_verified=True,
         )
+
         self.user2 = self.create_user('bar@example.com')
         assert UserEmail.objects.filter(
             user=self.user2,
@@ -134,18 +136,18 @@ class ReleaseTestCase(TestCase):
             order=2,
         )
 
-        UserOrgOption.objects.set_value(
+        UserOption.objects.set_organization_value(
             user=self.user3,
             organization=self.org,
             key='deploy-emails',
-            value=UserOrgOptionValue.all_deploys,
+            value=UserOptionValue.all_deploys,
         )
 
-        UserOrgOption.objects.set_value(
+        UserOption.objects.set_organization_value(
             user=self.user4,
             organization=self.org,
             key='deploy-emails',
-            value=UserOrgOptionValue.none,
+            value=UserOptionValue.no_deploys,
         )
 
     def test_simple(self):
@@ -160,10 +162,15 @@ class ReleaseTestCase(TestCase):
                 },
             )
         )
+        # user is included because they committed
+        # user2 committed but isn't in a team associated with the project.
+        # user3 is included because they oped into all deploy emails
+        # user4 commited but isn't included because they opted out of all deploy emails
+        assert len(email.get_participants()) == 2
 
         assert email.get_participants() == {
             self.user: GroupSubscriptionReason.committed,
-            self.user3: GroupSubscriptionReason.setting,
+            self.user3: GroupSubscriptionReason.deploy_setting,
         }
 
         context = email.get_context()

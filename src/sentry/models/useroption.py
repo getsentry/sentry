@@ -21,6 +21,9 @@ class UserOptionValue(object):
     # 'workflow:notifications'
     all_conversations = '0'
     participating_only = '1'
+    all_deploys = '2'
+    committed_deploys_only = '3'
+    no_deploys = '4'
 
 
 class UserOptionManager(BaseManager):
@@ -38,8 +41,11 @@ class UserOptionManager(BaseManager):
         self.__dict__.update(state)
         self.__metadata = {}
 
-    def get_value(self, user, project, key, default=None):
-        result = self.get_all_values(user, project)
+    def get_value(self, user, project, key, default=None, organization=None):
+        if organization:
+            result = self.get_all_values(user, None, organization)
+        else:
+            result = self.get_all_values(user, project)
         return result.get(key, default)
 
     def unset_value(self, user, project, key):
@@ -58,6 +64,7 @@ class UserOptionManager(BaseManager):
         inst, created = self.get_or_create(
             user=user,
             project=project,
+            organization=None,
             key=key,
             defaults={
                 'value': value,
@@ -74,9 +81,32 @@ class UserOptionManager(BaseManager):
             return
         self.__metadata[metakey][key] = value
 
-    def get_all_values(self, user, project):
+    def set_organization_value(self, user, organization, key, value):
+        inst, created = self.get_or_create(
+            user=user,
+            project=None,
+            organization=organization,
+            key=key,
+            defaults={
+                'value': value,
+            },
+        )
+        if not created and inst.value != value:
+            inst.update(value=value)
+
+        if organization:
+            metakey = (user.pk, organization.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self.__metadata:
+            return
+        self.__metadata[metakey][key] = value
+
+    def get_all_values(self, user, project, organization=None):
         if project:
             metakey = (user.pk, project.pk)
+        elif organization:
+            metakey = (user.pk, organization.pk)
         else:
             metakey = (user.pk, None)
         if metakey not in self.__metadata:
@@ -85,6 +115,7 @@ class UserOptionManager(BaseManager):
                 self.filter(
                     user=user,
                     project=project,
+                    organization=organization,
                 )
             )
             self.__metadata[metakey] = result
@@ -116,6 +147,7 @@ class UserOption(Model):
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     project = FlexibleForeignKey('sentry.Project', null=True)
+    organization = FlexibleForeignKey('sentry.Organization', null=True)
     key = models.CharField(max_length=64)
     value = EncryptedPickledObjectField()
 
@@ -124,6 +156,6 @@ class UserOption(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_useroption'
-        unique_together = (('user', 'project', 'key',),)
+        unique_together = (('user', 'project', 'organization', 'key',),)
 
-    __repr__ = sane_repr('user_id', 'project_id', 'key', 'value')
+    __repr__ = sane_repr('user_id', 'project_id', 'organization_id', 'key', 'value')
