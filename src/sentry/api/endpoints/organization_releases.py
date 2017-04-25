@@ -189,7 +189,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         'refs': ['You must use an authenticated API token to fetch refs']
                     }, status=400)
                 fetch_commits = not commit_list
-                release.set_refs(refs, request.user, fetch_commits=fetch_commits)
+                release.set_refs(refs, request.user, fetch=fetch_commits)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want

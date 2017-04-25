@@ -167,7 +167,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                     'refs': ['You must use an authenticated API token to fetch refs']
                 }, status=400)
             fetch_commits = not commit_list
-            release.set_refs(refs, request.user, fetch_commits=fetch_commits)
+            release.set_refs(refs, request.user, fetch=fetch_commits)
 
         if (not was_released and release.date_released):
             for project in release.projects.all():
