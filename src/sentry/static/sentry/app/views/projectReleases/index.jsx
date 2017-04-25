@@ -153,7 +153,7 @@ const ProjectReleases = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t("There don't seem to be any releases yet.")}</p>
+        <p>{t('There don\'t seem to be any releases yet.')}</p>
         <p>
           <a href={this.getReleaseTrackingUrl()}>
             {t('Learn how to integrate Release Tracking')}
