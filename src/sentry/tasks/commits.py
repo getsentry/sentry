@@ -11,7 +11,7 @@ from sentry.tasks.base import instrumented_task, retry
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name='sentry.tasks.commit.fetch_commits', queue='commits',
+@instrumented_task(name='sentry.tasks.commits.fetch_commits', queue='commits',
                    default_retry_delay=60 * 5, max_retries=5)
 @retry(exclude=(Release.DoesNotExist, User.DoesNotExist,))
 def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
