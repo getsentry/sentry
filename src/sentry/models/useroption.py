@@ -21,6 +21,7 @@ class UserOptionValue(object):
     # 'workflow:notifications'
     all_conversations = '0'
     participating_only = '1'
+    # 'deploy-emails
     all_deploys = '2'
     committed_deploys_only = '3'
     no_deploys = '4'
@@ -62,11 +63,14 @@ class UserOptionManager(BaseManager):
             return
         self.__metadata[metakey].pop(key, None)
 
-    def set_value(self, user, project, key, value):
+    def set_value(self, user, key, value, project=None, organization=None):
+        if organization and project:
+            raise NotImplementedError('this is not a supported use case, scope to project OR organization')
+
         inst, created = self.get_or_create(
             user=user,
             project=project,
-            organization=None,
+            organization=organization,
             key=key,
             defaults={
                 'value': value,
@@ -77,26 +81,7 @@ class UserOptionManager(BaseManager):
 
         if project:
             metakey = (user.pk, project.pk, 'project')
-        else:
-            metakey = (user.pk, None)
-        if metakey not in self.__metadata:
-            return
-        self.__metadata[metakey][key] = value
-
-    def set_organization_value(self, user, organization, key, value):
-        inst, created = self.get_or_create(
-            user=user,
-            project=None,
-            organization=organization,
-            key=key,
-            defaults={
-                'value': value,
-            },
-        )
-        if not created and inst.value != value:
-            inst.update(value=value)
-
-        if organization:
+        elif organization:
             metakey = (user.pk, organization.pk, 'organization')
         else:
             metakey = (user.pk, None)

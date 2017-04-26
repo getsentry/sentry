@@ -26,7 +26,7 @@ def reset_options(prefix, project=None, user=None):
 
 def set_option(key, value, project=None, user=None):
     if user:
-        result = UserOption.objects.set_value(user, project, key, value)
+        result = UserOption.objects.set_value(user, key, value, project)
     elif project:
         result = ProjectOption.objects.set_value(project, key, value)
     else:

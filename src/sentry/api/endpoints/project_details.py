@@ -252,9 +252,19 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             project.update_option('mail:subject_template', result['subjectTemplate'])
 
         if result.get('isSubscribed'):
-            UserOption.objects.set_value(request.user, project, 'mail:alert', 1)
+            UserOption.objects.set_value(
+                user=request.user,
+                key='mail:alert',
+                value=1,
+                project=project
+            )
         elif result.get('isSubscribed') is False:
-            UserOption.objects.set_value(request.user, project, 'mail:alert', 0)
+            UserOption.objects.set_value(
+                user=request.user,
+                key='mail:alert',
+                value=0,
+                project=project
+            )
 
         if has_project_write:
             options = request.DATA.get('options', {})

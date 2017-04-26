@@ -415,7 +415,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save user language
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='language',
             value=self.cleaned_data['language'],
         )
@@ -423,7 +422,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save stacktrace options
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='stacktrace_order',
             value=self.cleaned_data['stacktrace_order'],
         )
@@ -431,7 +429,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save time zone options
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='timezone',
             value=self.cleaned_data['timezone'],
         )
@@ -439,7 +436,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save clock 24 hours option
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='clock_24_hours',
             value=self.cleaned_data['clock_24_hours'],
         )
@@ -483,7 +479,6 @@ class NotificationReportSettingsForm(forms.Form):
         all_orgs = set(self.fields['organizations'].queryset.values_list('id', flat=True))
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='reports:disabled-organizations',
             value=list(all_orgs.difference(enabled_orgs)),
         )
@@ -519,7 +514,7 @@ class NotificationDeploySettingsForm(forms.Form):
     def save(self):
         value = self.data.get('{}-notifications'.format(self.prefix), -1)
         if value != -1:
-            UserOption.objects.set_organization_value(
+            UserOption.objects.set_value(
                 user=self.user,
                 organization=self.organization,
                 key='deploy-emails',
@@ -605,28 +600,24 @@ class NotificationSettingsForm(forms.Form):
     def save(self):
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='alert_email',
             value=self.cleaned_data['alert_email'],
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='subscribe_by_default',
             value='1' if self.cleaned_data['subscribe_by_default'] else '0',
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='self_notifications',
             value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='self_assign_issue',
             value='1' if self.cleaned_data['self_assign_issue'] else '0',
         )
@@ -634,14 +625,12 @@ class NotificationSettingsForm(forms.Form):
         if self.cleaned_data.get('workflow_notifications') is True:
             UserOption.objects.set_value(
                 user=self.user,
-                project=None,
                 key='workflow:notifications',
                 value=UserOptionValue.all_conversations,
             )
         else:
             UserOption.objects.set_value(
                 user=self.user,
-                project=None,
                 key='workflow:notifications',
                 value=UserOptionValue.participating_only,
             )
@@ -679,21 +668,25 @@ class ProjectEmailOptionsForm(forms.Form):
 
     def save(self):
         UserOption.objects.set_value(
-            self.user, self.project, 'mail:alert',
-            int(self.cleaned_data['alert']),
+            user=self.user,
+            key='mail:alert',
+            value=int(self.cleaned_data['alert']),
+            project=self.project,
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=self.project,
             key='workflow:notifications',
             value=UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            project=self.project,
         )
 
         if self.cleaned_data['email']:
             UserOption.objects.set_value(
-                self.user, self.project, 'mail:email',
-                self.cleaned_data['email'],
+                user=self.user,
+                key='mail:email',
+                value=self.cleaned_data['email'],
+                project=self.project,
             )
         else:
             UserOption.objects.unset_value(

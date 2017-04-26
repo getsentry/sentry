@@ -136,14 +136,14 @@ class ReleaseTestCase(TestCase):
             order=2,
         )
 
-        UserOption.objects.set_organization_value(
+        UserOption.objects.set_value(
             user=self.user3,
             organization=self.org,
             key='deploy-emails',
             value=UserOptionValue.all_deploys,
         )
 
-        UserOption.objects.set_organization_value(
+        UserOption.objects.set_value(
             user=self.user4,
             organization=self.org,
             key='deploy-emails',
