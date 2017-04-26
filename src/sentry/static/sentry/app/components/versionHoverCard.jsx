@@ -212,7 +212,6 @@ const VersionHoverCard = React.createClass({
                 );
               })}
             </div>}
-
         </div>
       </div>
     );

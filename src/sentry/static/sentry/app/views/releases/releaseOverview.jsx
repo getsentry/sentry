@@ -200,7 +200,7 @@ const ReleaseOverview = React.createClass({
             {hasRepos
               ? <div>
                   {lastCommit &&
-                    <LastCommit lastCommit={lastCommit} headerClass="nav-header" />}
+                    <LastCommit commit={lastCommit} headerClass="nav-header" />}
                   <CommitAuthorStats
                     orgId={orgId}
                     projectId={projectId}

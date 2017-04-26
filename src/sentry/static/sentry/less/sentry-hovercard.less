@@ -73,6 +73,39 @@
   .hovercard-body {
     padding: @hovercard-padding;
     min-height: 74px;
+
+    .commit-heading {
+      margin: 10px 0;
+    }
+
+    .commit {
+      margin-top: 5px;
+      margin-bottom: 0;
+      position: relative;
+      padding: 1px 0 0 25px;
+      font-size: 13px;
+
+      .commit-avatar {
+        position: absolute;
+        .square(19px);
+        top: 2px;
+        left: 0;
+
+        .avatar {
+          .square(19px);
+        }
+      }
+
+      .commit-message {
+        line-height: 1.4;
+        margin: 2px 0 5px;
+      }
+
+      .commit-meta {
+        font-size: 12px;
+        color: @70;
+      }
+    }
   }
 
   .divider {
@@ -129,42 +162,6 @@
 
     .tip {
       border-bottom: 0 !important;
-    }
-  }
-
-  .commit-heading {
-    margin: 10px 0;
-  }
-
-  .commit {
-    margin-top: 5px;
-    position: relative;
-    padding: 1px 0 0 38px;
-    font-size: 13px;
-
-    .commit-avatar {
-      position: absolute;
-      .square(30px);
-      top: 1px;
-      left: 0;
-
-      .avatar {
-        .square(30px);
-      }
-    }
-
-    .commit-message {
-      line-height: 1.4;
-      margin: 2px 0 5px;
-    }
-
-    .commit-meta {
-      font-size: 12px;
-      color: @70;
-
-      strong {
-        color: @gray-dark;
-      }
     }
   }
 

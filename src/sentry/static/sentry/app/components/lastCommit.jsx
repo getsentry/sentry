@@ -7,7 +7,7 @@ import {t} from '../locale';
 
 const LastCommit = React.createClass({
   propTypes: {
-    lastCommit: React.PropTypes.object.isRequired,
+    commit: React.PropTypes.object.isRequired,
     headerClass: React.PropTypes.string
   },
 
@@ -16,9 +16,10 @@ const LastCommit = React.createClass({
       return t('No message provided');
     }
 
-    if (message.length > 100) {
-      let truncated = message.substr(0, 90);
-      let words = truncated.split(' ');
+    let firstLine = message.split(/\n/)[0];
+    if (firstLine.length > 100) {
+      let truncated = firstLine.substr(0, 90);
+      let words = truncated.split(/ /);
       // try to not have elipsis mid-word
       if (words.length > 1) {
         words.pop();
@@ -26,12 +27,12 @@ const LastCommit = React.createClass({
       }
       return truncated + '...';
     }
-    return message;
+    return firstLine;
   },
 
   render() {
-    let {lastCommit, headerClass} = this.props;
-    let commitAuthor = lastCommit && lastCommit.author;
+    let {commit, headerClass} = this.props;
+    let commitAuthor = commit && commit.author;
     return (
       <div>
         <h6 className={headerClass}>Last commit</h6>
@@ -40,13 +41,13 @@ const LastCommit = React.createClass({
             <Avatar user={commitAuthor || {username: '?'}} />
           </div>
           <div className="commit-message truncate">
-            {this.renderMessage(lastCommit.message)}
+            {this.renderMessage(commit.message)}
           </div>
           <div className="commit-meta">
             <strong>
               {(commitAuthor && commitAuthor.name) || t('Unknown Author')}
             </strong>&nbsp;
-            <TimeSince date={lastCommit.dateCreated} />
+            <TimeSince date={commit.dateCreated} />
           </div>
         </div>
       </div>
