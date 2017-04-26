@@ -52,7 +52,11 @@ const GroupActivity = React.createClass({
         return t('%(author)s marked this issue as fixed in %(version)s', {
           author: author,
           version: (
-            <CommitLink commitId={data.commit.id} repository={data.commit.repository} />
+            <CommitLink
+              inline={true}
+              commitId={data.commit.id}
+              repository={data.commit.repository}
+            />
           )
         });
       case 'set_unresolved':

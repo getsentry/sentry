@@ -95,7 +95,11 @@ const ActivityItem = React.createClass({
         return tct('[author] marked [issue] as fixed in [version]', {
           author: author,
           version: (
-            <CommitLink commitId={data.commit.id} repository={data.commit.repository} />
+            <CommitLink
+              inline={true}
+              commitId={data.commit.id}
+              repository={data.commit.repository}
+            />
           ),
           issue: issueLink
         });
