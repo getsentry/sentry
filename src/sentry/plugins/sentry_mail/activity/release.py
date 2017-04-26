@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from collections import defaultdict
+
 from django.db.models import Count
 
 from sentry.db.models.query import in_iexact
@@ -99,8 +100,8 @@ class ReleaseActivityEmail(ActivityEmail):
         if not self.email_list:
             return {}
 
-        # identify members which have been seen in the commit log and have
-        # verified the matching email address, or who opt into all deploy emails
+        # collect all users with verified emails on a team in the related projects,
+        # and couple them with the the users' setting value for deploy-emails
         users_with_options = [
             (user, UserOption.objects.get_value(
                 user=user,
@@ -118,12 +119,16 @@ class ReleaseActivityEmail(ActivityEmail):
             ).distinct()
         ]
 
+        # identify members which have been seen in the commit log or who opt into all deploy emails,
+        # and assign a value corresponding to the reason they were included.
         participants = {
-            user: GroupSubscriptionReason.committed if option == UserOptionValue.committed_deploys_only else GroupSubscriptionReason.deploy_setting
+            user: GroupSubscriptionReason.committed if
+            option == UserOptionValue.committed_deploys_only else GroupSubscriptionReason.deploy_setting
             for user, option in users_with_options
             if option == UserOptionValue.all_deploys or
             option == UserOptionValue.committed_deploys_only and user.email in self.email_list
         }
+
         return participants
 
     def get_users_by_teams(self):

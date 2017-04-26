@@ -86,7 +86,6 @@ class AccountNotificationView(BaseView):
                 ext_forms,
                 (f for _, f in project_forms),
                 (f for _, f in org_forms)
-
             ))
             if all(f.is_valid() for f in all_forms):
                 for form in all_forms:

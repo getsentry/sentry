@@ -500,6 +500,8 @@ class NotificationDeploySettingsForm(forms.Form):
         self.user = user
         self.organization = organization
         super(NotificationDeploySettingsForm, self).__init__(*args, **kwargs)
+        self.fields['notifications'].label = ""  # hide the label
+
         deploy_setting = UserOption.objects.get_value(
             user=user,
             project=None,
@@ -509,11 +511,10 @@ class NotificationDeploySettingsForm(forms.Form):
         )
 
         self.fields['notifications'].initial = deploy_setting
-        self.fields['notifications'].label = ""
 
     def save(self):
-        value = self.data.get('{}-notifications'.format(self.prefix), -1)
-        if value != -1:
+        value = self.data.get('{}-notifications'.format(self.prefix), None)
+        if value is not None:
             UserOption.objects.set_value(
                 user=self.user,
                 organization=self.organization,

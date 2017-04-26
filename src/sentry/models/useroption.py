@@ -52,6 +52,7 @@ class UserOptionManager(BaseManager):
         return result.get(key, default)
 
     def unset_value(self, user, project, key):
+        # this isn't implemented for user-organization scoped options yet, because it hasn't been needed
         self.filter(user=user, project=project, key=key).delete()
         if not hasattr(self, '_metadata'):
             return
@@ -89,7 +90,10 @@ class UserOptionManager(BaseManager):
             return
         self.__metadata[metakey][key] = value
 
-    def get_all_values(self, user, project, organization=None):
+    def get_all_values(self, user, project=None, organization=None):
+        if organization and project:
+            raise NotImplementedError('this is not a supported use case, scope to project OR organization')
+
         if project:
             metakey = (user.pk, project.pk, 'project')
         elif organization:

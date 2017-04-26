@@ -86,6 +86,7 @@ class ReleaseTestCase(TestCase):
             organization_id=self.org.id,
             name=self.project.name,
         )
+
         self.commit = Commit.objects.create(
             key='a' * 40,
             repository_id=repository.id,
