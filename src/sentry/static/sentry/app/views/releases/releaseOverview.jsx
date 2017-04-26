@@ -3,6 +3,7 @@ import React from 'react';
 import LoadingIndicator from '../../components/loadingIndicator';
 import LoadingError from '../../components/loadingError';
 import IconOpen from '../../icons/icon-open';
+import LastCommit from '../../components/lastCommit';
 import IssueList from '../../components/issueList';
 import CommitAuthorStats from '../../components/commitAuthorStats';
 import ReleaseProjectStatSparkline from '../../components/releaseProjectStatSparkline';
@@ -14,6 +15,10 @@ import ApiMixin from '../../mixins/apiMixin';
 import {t} from '../../locale';
 
 const ReleaseOverview = React.createClass({
+  contextTypes: {
+    release: React.PropTypes.object
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -111,6 +116,8 @@ const ReleaseOverview = React.createClass({
 
   render() {
     let {orgId, projectId, version} = this.props.params;
+    let {release} = this.context;
+    let lastCommit = release.lastCommit;
 
     if (this.state.loading) return <LoadingIndicator />;
 
@@ -192,6 +199,8 @@ const ReleaseOverview = React.createClass({
           <div className="col-sm-4">
             {hasRepos
               ? <div>
+                  {lastCommit &&
+                    <LastCommit commit={lastCommit} headerClass="nav-header" />}
                   <CommitAuthorStats
                     orgId={orgId}
                     projectId={projectId}
