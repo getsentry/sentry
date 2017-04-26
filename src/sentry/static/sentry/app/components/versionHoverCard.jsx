@@ -6,7 +6,7 @@ import Avatar from './avatar';
 import LastCommit from './lastCommit';
 import LoadingIndicator from './loadingIndicator';
 import LoadingError from './loadingError';
-import TimeSince from './TimeSince';
+import TimeSince from './timeSince';
 
 import {getShortVersion} from '../utils';
 import {t} from '../locale';
