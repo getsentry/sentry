@@ -172,8 +172,7 @@ const VersionHoverCard = React.createClass({
               </div>
             </div>
           </div>
-          {lastCommit &&
-            <LastCommit lastCommit={lastCommit} headerClass="commit-heading" />}
+          {lastCommit && <LastCommit commit={lastCommit} headerClass="commit-heading" />}
           {deploys.length > 0 &&
             <div>
               <div className="divider">
