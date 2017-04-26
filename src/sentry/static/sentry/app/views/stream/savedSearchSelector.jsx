@@ -7,13 +7,7 @@ import DropdownLink from '../../components/dropdownLink';
 import IndicatorStore from '../../stores/indicatorStore';
 import MenuItem from '../../components/menuItem';
 import {t} from '../../locale';
-import {BooleanField, TextField} from '../../components/forms';
-
-const SaveSearchState = {
-  READY: 'Ready',
-  SAVING: 'Saving',
-  ERROR: 'Error'
-};
+import {BooleanField, FormState, TextField} from '../../components/forms';
 
 const SaveSearchButton = React.createClass({
   propTypes: {
@@ -34,10 +28,10 @@ const SaveSearchButton = React.createClass({
   getInitialState() {
     return {
       isModalOpen: false,
-      state: SaveSearchState.READY,
       formData: {
         query: this.props.query
-      }
+      },
+      errors: {}
     };
   },
 
@@ -47,7 +41,7 @@ const SaveSearchButton = React.createClass({
     }
     this.setState({
       isModalOpen: !this.state.isModalOpen,
-      state: SaveSearchState.READY,
+      state: FormState.READY,
       formData: {
         query: this.props.query
       }
@@ -73,12 +67,12 @@ const SaveSearchButton = React.createClass({
   onSubmit(e) {
     e.preventDefault();
 
-    if (this.state.state == SaveSearchState.SAVING) {
+    if (this.state.state == FormState.SAVING) {
       return;
     }
     this.setState(
       {
-        state: SaveSearchState.SAVING
+        state: FormState.SAVING
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
@@ -89,9 +83,20 @@ const SaveSearchButton = React.createClass({
           success: data => {
             this.onToggle();
             this.props.onSave(data);
+            this.setState({
+              state: FormState.READY,
+              errors: {}
+            });
+          },
+          error: (err) => {
+            let errors = err.responseJSON || true;
+            errors = errors.detail || true;
+            this.setState({
+              state: FormState.ERROR,
+              errors: errors
+            });
           },
           complete: () => {
-            this.setState({state: SaveSearchState.ERROR});
             IndicatorStore.remove(loadingIndicator);
           }
         });
@@ -100,7 +105,7 @@ const SaveSearchButton = React.createClass({
   },
 
   render() {
-    let isSaving = this.state.state === SaveSearchState.SAVING;
+    let isSaving = this.state.state === FormState.SAVING;
     return (
       <a
         title={this.props.tooltip || this.props.buttonTitle}
@@ -116,6 +121,12 @@ const SaveSearchButton = React.createClass({
               <h4>{t('Save Current Search')}</h4>
             </div>
             <div className="modal-body">
+              {this.state.state === FormState.ERROR &&
+                <div className="alert alert-error alert-block">
+                  {t(
+                    `Unable to save your changes. ${this.state.errors}`
+                  )}
+                </div>}
               <p>
                 {t(
                   'Saving this search will give you and your team quick access to it in the future.'
