@@ -22,6 +22,6 @@
     </fieldset>
   </div>
 </div>
-{% else %}
+{% elif all_teams|length == 1 %}
     <input type="hidden" name="teams" value="{{ all_teams.0.id }}" />
 {% endif %}
