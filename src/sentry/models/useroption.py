@@ -42,7 +42,10 @@ class UserOptionManager(BaseManager):
         self.__dict__.update(state)
         self.__metadata = {}
 
-    def get_value(self, user, project, key, default=None, organization=None):
+    def get_value(self, user, key, default=None, **kwargs):
+        project = kwargs.get('project')
+        organization = kwargs.get('organization')
+
         if organization and project:
             raise NotImplementedError('this is not a supported use case, scope to project OR organization')
         if organization:
@@ -64,7 +67,10 @@ class UserOptionManager(BaseManager):
             return
         self.__metadata[metakey].pop(key, None)
 
-    def set_value(self, user, key, value, project=None, organization=None):
+    def set_value(self, user, key, value, **kwargs):
+        project = kwargs.get('project')
+        organization = kwargs.get('organization')
+
         if organization and project:
             raise NotImplementedError('this is not a supported use case, scope to project OR organization')
 

@@ -268,7 +268,6 @@ class ReportTestCase(TestCase):
         set_option_value = functools.partial(
             UserOption.objects.set_value,
             user,
-            None,
             DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
         )
 
@@ -293,7 +292,6 @@ class ReportTestCase(TestCase):
         set_option_value = functools.partial(
             UserOption.objects.set_value,
             user,
-            None,
             DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
         )
 

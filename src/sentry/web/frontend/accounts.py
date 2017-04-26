@@ -242,7 +242,7 @@ def account_settings(request):
         form.save()
 
         # update notification settings for those set to primary email with new primary email
-        alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+        alert_email = UserOption.objects.get_value(user=user, key='alert_email')
 
         if alert_email == old_email:
             UserOption.objects.set_value(user=user, key='alert_email', value=user.email)
@@ -486,7 +486,7 @@ def show_emails(request):
         elif new_primary != user.email:
 
             # update notification settings for those set to primary email with new primary email
-            alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+            alert_email = UserOption.objects.get_value(user=user, key='alert_email')
 
             if alert_email == user.email:
                 UserOption.objects.set_value(user=user, key='alert_email', value=new_primary)

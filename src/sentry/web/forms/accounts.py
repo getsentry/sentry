@@ -461,7 +461,6 @@ class NotificationReportSettingsForm(forms.Form):
 
         disabled_orgs = set(UserOption.objects.get_value(
             user=user,
-            project=None,
             key='reports:disabled-organizations',
             default=[],
         ))
@@ -504,7 +503,6 @@ class NotificationDeploySettingsForm(forms.Form):
 
         deploy_setting = UserOption.objects.get_value(
             user=user,
-            project=None,
             organization=self.organization,
             key='deploy-emails',
             default=UserOptionValue.committed_deploys_only,
@@ -559,14 +557,12 @@ class NotificationSettingsForm(forms.Form):
 
         self.fields['alert_email'].initial = UserOption.objects.get_value(
             user=self.user,
-            project=None,
             key='alert_email',
             default=user.email,
         )
         self.fields['subscribe_by_default'].initial = (
             UserOption.objects.get_value(
                 user=self.user,
-                project=None,
                 key='subscribe_by_default',
                 default='1',
             ) == '1'
@@ -575,7 +571,6 @@ class NotificationSettingsForm(forms.Form):
         self.fields['workflow_notifications'].initial = (
             UserOption.objects.get_value(
                 user=self.user,
-                project=None,
                 key='workflow:notifications',
                 default=UserOptionValue.all_conversations,
             ) == UserOptionValue.all_conversations
@@ -583,14 +578,12 @@ class NotificationSettingsForm(forms.Form):
 
         self.fields['self_notifications'].initial = UserOption.objects.get_value(
             user=self.user,
-            project=None,
             key='self_notifications',
             default='0'
         ) == '1'
 
         self.fields['self_assign_issue'].initial = UserOption.objects.get_value(
             user=self.user,
-            project=None,
             key='self_assign_issue',
             default='0'
         ) == '1'
@@ -655,8 +648,8 @@ class ProjectEmailOptionsForm(forms.Form):
         # This allows users who have entered an alert_email value or have specified an email
         # for notifications to keep their settings
         emails = [e.email for e in user.get_verified_emails()]
-        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=None)
-        specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
+        alert_email = UserOption.objects.get_value(self.user, 'alert_email')
+        specified_email = UserOption.objects.get_value(self.user, 'mail:email', project=project)
         emails.extend([user.email, alert_email, specified_email])
 
         choices = [(email, email) for email in sorted(set(emails)) if email]

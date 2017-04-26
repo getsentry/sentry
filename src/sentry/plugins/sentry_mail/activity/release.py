@@ -105,7 +105,6 @@ class ReleaseActivityEmail(ActivityEmail):
         users_with_options = [
             (user, UserOption.objects.get_value(
                 user=user,
-                project=None,
                 organization=self.organization,
                 key='deploy-emails',
                 default=UserOptionValue.committed_deploys_only,
@@ -119,14 +118,16 @@ class ReleaseActivityEmail(ActivityEmail):
             ).distinct()
         ]
 
-        # identify members which have been seen in the commit log or who opt into all deploy emails,
-        # and assign a value corresponding to the reason they were included.
         participants = {
+            # assign reason they were included:
             user: GroupSubscriptionReason.committed if
             option == UserOptionValue.committed_deploys_only else GroupSubscriptionReason.deploy_setting
+
             for user, option in users_with_options
-            if option == UserOptionValue.all_deploys or
-            option == UserOptionValue.committed_deploys_only and user.email in self.email_list
+
+            # filter down to members which have been seen in the commit log:
+            if option == UserOptionValue.committed_deploys_only and user.email in self.email_list or
+            option == UserOptionValue.all_deploys  # or who opt into all deploy emails:
         }
 
         return participants
