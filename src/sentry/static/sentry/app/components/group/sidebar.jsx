@@ -30,20 +30,17 @@ const GroupSidebar = React.createClass({
 
   componentWillMount() {
     let group = this.props.group;
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/issues/${group.id}/participants/`, {
       success: data => {
         this.setState({
           participants: data,
           error: false
         });
-        IndicatorStore.remove(loadingIndicator);
       },
       error: () => {
         this.setState({
           error: true
         });
-        IndicatorStore.remove(loadingIndicator);
       }
     });
   },
