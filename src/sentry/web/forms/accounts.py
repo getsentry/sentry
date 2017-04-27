@@ -485,9 +485,9 @@ class NotificationReportSettingsForm(forms.Form):
 
 class NotificationDeploySettingsForm(forms.Form):
     CHOICES = [
-        (UserOptionValue.all_deploys, 'All deploys'),
-        (UserOptionValue.committed_deploys_only, 'Deploys with your commits'),
-        (UserOptionValue.no_deploys, 'Never')]
+        (UserOptionValue.all_deploys, _('All deploys')),
+        (UserOptionValue.committed_deploys_only, _('Deploys with your commits')),
+        (UserOptionValue.no_deploys, _('Never'))]
 
     notifications = forms.ChoiceField(
         choices=CHOICES,

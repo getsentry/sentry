@@ -26,6 +26,8 @@ class UserOptionValue(object):
     committed_deploys_only = '3'
     no_deploys = '4'
 
+option_scope_error = NotImplementedError('this is not a supported use case, scope to project OR organization')
+
 
 def user_metakey(user):
     return (user.pk)
@@ -59,7 +61,7 @@ class UserOptionManager(BaseManager):
         organization = kwargs.get('organization')
 
         if organization and project:
-            raise NotImplementedError('this is not a supported use case, scope to project OR organization')
+            raise option_scope_error
         if organization:
             result = self.get_all_values(user, None, organization)
         else:
@@ -84,7 +86,7 @@ class UserOptionManager(BaseManager):
         organization = kwargs.get('organization')
 
         if organization and project:
-            raise NotImplementedError('this is not a supported use case, scope to project OR organization')
+            raise option_scope_error
 
         inst, created = self.get_or_create(
             user=user,
@@ -110,7 +112,7 @@ class UserOptionManager(BaseManager):
 
     def get_all_values(self, user, project=None, organization=None):
         if organization and project:
-            raise NotImplementedError('this is not a supported use case, scope to project OR organization')
+            raise option_scope_error
 
         if project:
             metakey = project_metakey(user, project)
