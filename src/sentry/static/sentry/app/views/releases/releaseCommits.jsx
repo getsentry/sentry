@@ -13,7 +13,8 @@ import {t} from '../../locale';
 const CommitLink = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
-    repository: React.PropTypes.object
+    repository: React.PropTypes.object,
+    inline: React.PropTypes.bool
   },
 
   getCommitUrl() {
@@ -29,10 +30,13 @@ const CommitLink = React.createClass({
     let shortId = this.props.commitId.slice(0, 7);
 
     return commitUrl
-      ? <a className="btn btn-default btn-sm" href={commitUrl} target="_blank">
+      ? <a
+          className={this.props.inline ? 'inline-commit' : 'btn btn-default btn-sm'}
+          href={commitUrl}
+          target="_blank">
           <span className={'icon-mark-' + this.props.repository.provider.id} />
           &nbsp;
-          {' '}
+          {this.props.inline ? '' : ' '}
           {shortId}
         </a>
       : <span>{shortId}</span>;
