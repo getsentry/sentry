@@ -661,7 +661,6 @@ DISABLED_ORGANIZATIONS_USER_OPTION_KEY = 'reports:disabled-organizations'
 def user_subscribed_to_organization_reports(user, organization):
     return organization.id not in UserOption.objects.get_value(
         user=user,
-        project=None,
         key=DISABLED_ORGANIZATIONS_USER_OPTION_KEY,
         default=[],
     )

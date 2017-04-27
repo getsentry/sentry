@@ -43,7 +43,7 @@ class AppearanceSettingsTest(TestCase):
         })
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(user=self.user, project=None)
+        options = UserOption.objects.get_all_values(user=self.user)
 
         assert options.get('language') == 'en'
         assert options.get('stacktrace_order') == '2'

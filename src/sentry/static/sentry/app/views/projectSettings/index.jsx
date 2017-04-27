@@ -90,8 +90,7 @@ const ProjectSettings = React.createClass({
             <li><a href={`${settingsUrlRoot}/`}>{t('General')}</a></li>
             <ListLink
               to={`/${orgId}/${projectId}/settings/alerts/`}
-              isActive={loc => path.indexOf(loc.pathname) === 0}
-            >
+              isActive={loc => path.indexOf(loc.pathname) === 0}>
               {t('Alerts')}
             </ListLink>
             {features.has('quotas') &&
@@ -111,8 +110,7 @@ const ProjectSettings = React.createClass({
             </ListLink>
             <ListLink
               className="badged"
-              to={`/${orgId}/${projectId}/settings/processing-issues/`}
-            >
+              to={`/${orgId}/${projectId}/settings/processing-issues/`}>
               {t('Processing Issues')}
               {processingIssues > 0 &&
                 <Badge
@@ -128,8 +126,7 @@ const ProjectSettings = React.createClass({
               isActive={loc => {
                 // Because react-router 1.0 removes router.isActive(route)
                 return path === rootInstallPath || /install\/[\w\-]+\/$/.test(path);
-              }}
-            >
+              }}>
               {t('Error Tracking')}
             </ListLink>
             {isEarlyAdopter &&

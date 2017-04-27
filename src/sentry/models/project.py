@@ -263,10 +263,16 @@ class Project(Model):
     def is_user_subscribed_to_mail_alerts(self, user):
         from sentry.models import UserOption
         is_enabled = UserOption.objects.get_value(
-            user, self, 'mail:alert', None)
+            user,
+            'mail:alert',
+            project=self
+        )
         if is_enabled is None:
             is_enabled = UserOption.objects.get_value(
-                user, None, 'subscribe_by_default', '1') == '1'
+                user,
+                'subscribe_by_default',
+                '1'
+            ) == '1'
         else:
             is_enabled = bool(is_enabled)
         return is_enabled
@@ -275,9 +281,14 @@ class Project(Model):
         from sentry.models import UserOption, UserOptionValue
 
         opt_value = UserOption.objects.get_value(
-            user, self, 'workflow:notifications', None)
+            user,
+            'workflow:notifications',
+            project=self
+        )
         if opt_value is None:
             opt_value = UserOption.objects.get_value(
-                user, None, 'workflow:notifications',
-                UserOptionValue.all_conversations)
+                user,
+                'workflow:notifications',
+                UserOptionValue.all_conversations
+            )
         return opt_value == UserOptionValue.all_conversations

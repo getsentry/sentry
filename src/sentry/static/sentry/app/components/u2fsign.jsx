@@ -21,8 +21,7 @@ const U2fSign = React.createClass({
       <U2fInterface
         challengeData={this.props.challengeData}
         silentIfUnsupported={displayMode === 'sudo'}
-        flowMode={'sign'}
-      >
+        flowMode={'sign'}>
         <p>
           {displayMode === 'signin'
             ? t(

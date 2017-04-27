@@ -142,7 +142,7 @@ const StreamGroup = React.createClass({
     className += ' level-' + data.level;
 
     let {id, orgId, projectId} = this.props;
-    
+
     let styles = {};
     if (data.subscriptionDetails && data.subscriptionDetails.reason === 'mentioned') {
       styles = {color: '#57be8c'};
@@ -171,8 +171,10 @@ const StreamGroup = React.createClass({
               </li>
               {data.numComments !== 0 &&
                 <li>
-                  <Link to={`/${orgId}/${projectId}/issues/${id}/activity/`} className="comments">
-                    <span className="icon icon-comments" style={styles}></span>
+                  <Link
+                    to={`/${orgId}/${projectId}/issues/${id}/activity/`}
+                    className="comments">
+                    <span className="icon icon-comments" style={styles} />
                     <span className="tag-count">{data.numComments}</span>
                   </Link>
                 </li>}
@@ -182,8 +184,7 @@ const StreamGroup = React.createClass({
                     to={{
                       pathname: `/${orgId}/${projectId}/`,
                       query: {query: 'logger:' + data.logger}
-                    }}
-                  >
+                    }}>
                     {data.logger}
                   </Link>
                 </li>}

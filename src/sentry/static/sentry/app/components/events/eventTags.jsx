@@ -29,8 +29,7 @@ const EventTags = React.createClass({
         event={this.props.event}
         title={t('Tags')}
         type="tags"
-        className="p-b-1"
-      >
+        className="p-b-1">
         <Pills className="no-margin">
           {tags.map(tag => {
             return (
@@ -39,8 +38,7 @@ const EventTags = React.createClass({
                   to={{
                     pathname: `/${orgId}/${projectId}/`,
                     query: {query: `${tag.key}:"${tag.value}"`}
-                  }}
-                >
+                  }}>
                   {deviceNameMapper(tag.value)}
                 </Link>
                 {isUrl(tag.value) &&

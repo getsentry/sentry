@@ -12,7 +12,7 @@ const GroupParticipants = React.createClass({
   mixins: [
     TooltipMixin({
       selector: '.tip'
-    }),
+    })
   ],
 
   render() {
@@ -26,9 +26,9 @@ const GroupParticipants = React.createClass({
           </span>
         </h6>
         <ul className="faces">
-          {participants.map(user => {
+          {participants.map((user, i) => {
             return (
-              <li key={user.username} className="tip" title={userDisplayName(user)} >
+              <li key={user.username} className="tip" title={userDisplayName(user)}>
                 <Avatar size={32} user={user} />
               </li>
             );

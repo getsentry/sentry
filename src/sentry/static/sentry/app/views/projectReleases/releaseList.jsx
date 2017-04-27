@@ -3,6 +3,7 @@ import ReleaseStats from '../../components/releaseStats';
 import Count from '../../components/count';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
+import LatestDeployOrReleaseTime from '../../components/latestDeployOrReleaseTime';
 
 const ReleaseList = React.createClass({
   propTypes: {
@@ -28,11 +29,11 @@ const ReleaseList = React.createClass({
                       version={release.version}
                     />
                   </h2>
-                  <p className="m-b-0 text-light">
-                    <span className="icon icon-clock" />
-                    {' '}
-                    <TimeSince date={release.dateCreated} />
-                  </p>
+                  <LatestDeployOrReleaseTime
+                    orgId={orgId}
+                    releaseDateCreated={release.dateCreated}
+                    version={release.version}
+                  />
                 </div>
                 <div className="col-sm-4 hidden-xs">
                   <ReleaseStats release={release} />

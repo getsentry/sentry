@@ -29,8 +29,7 @@ const SortOptions = React.createClass({
       <MenuItem
         onSelect={this.onSelect}
         eventKey={key}
-        isActive={this.state.sortKey === key}
-      >
+        isActive={this.state.sortKey === key}>
         {this.getSortLabel(key)}
       </MenuItem>
     );

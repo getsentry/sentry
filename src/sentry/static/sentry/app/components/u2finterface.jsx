@@ -186,8 +186,7 @@ const U2fInterface = React.createClass({
           'u2f-box' +
             (this.state.hasBeenTapped ? ' tapped' : '') +
             (this.state.deviceFailure ? ' device-failure' : '')
-        }
-      >
+        }>
         <div className="device-animation-frame">
           <div className="device-failed" />
           <div className="device-animation" />

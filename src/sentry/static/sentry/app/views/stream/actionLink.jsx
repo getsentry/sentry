@@ -48,8 +48,7 @@ const ActionLink = React.createClass({
     if (!this.state.isModalOpen && !this.shouldConfirm(selectedItemIds.size)) {
       return void this.handleAction();
     }
-
-    this.handleToggle();
+    return void this.handleToggle();
   },
 
   handleToggle() {
@@ -107,16 +106,14 @@ const ActionLink = React.createClass({
         className={className}
         disabled={this.props.disabled}
         onClick={this.handleClick}
-        data-placement="bottom"
-      >
+        data-placement="bottom">
         {this.props.children}
 
         <Modal
           show={this.state.isModalOpen}
           title={t('Please confirm')}
           animation={false}
-          onHide={this.handleToggle}
-        >
+          onHide={this.handleToggle}>
           <div className="modal-body">
             <p><strong>{confirmationQuestion}</strong></p>
             {this.props.extraDescription}

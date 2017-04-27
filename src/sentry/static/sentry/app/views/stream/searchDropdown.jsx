@@ -60,8 +60,7 @@ const SearchDropdown = React.createClass({
                       'search-autocomplete-item',
                       item.active && 'active'
                     )}
-                    onClick={this.onClick.bind(this, item.value)}
-                  >
+                    onClick={this.onClick.bind(this, item.value)}>
                     <span className={classNames('icon', item.className)} />
                     <h4>
                       {item.title && item.title + ' - '}

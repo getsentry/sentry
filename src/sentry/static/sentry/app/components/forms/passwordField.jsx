@@ -32,7 +32,8 @@ class PasswordField extends InputField {
   componentWillReceiveProps(nextProps) {
     // close edit mode after successful save
     if (
-      this.props.formState === FormState.SAVING && nextProps.formState === FormState.READY
+      this.props.formState === FormState.SAVING &&
+      nextProps.formState === FormState.READY
     ) {
       this.setState({
         editing: false

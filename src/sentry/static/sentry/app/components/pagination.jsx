@@ -40,8 +40,7 @@ const Pagination = React.createClass({
               query: {...location.query, cursor: links.previous.cursor}
             }}
             className={previousPageClassName}
-            disabled={links.previous.results === false}
-          >
+            disabled={links.previous.results === false}>
             <span title={t('Previous')} className="icon-arrow-left" />
           </Link>
           <Link
@@ -50,8 +49,7 @@ const Pagination = React.createClass({
               query: {...location.query, cursor: links.next.cursor}
             }}
             className={nextPageClassName}
-            disabled={links.next.results === false}
-          >
+            disabled={links.next.results === false}>
             <span title={t('Next')} className="icon-arrow-right" />
           </Link>
         </div>

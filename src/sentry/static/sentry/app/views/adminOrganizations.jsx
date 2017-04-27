@@ -28,7 +28,7 @@ const AdminOrganizations = React.createClass({
         <h3>{t('Organizations')}</h3>
         <ResultGrid
           path="/manage/organizations/"
-          endpoint={`/organizations/`}
+          endpoint={'/organizations/'}
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}
