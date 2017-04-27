@@ -232,7 +232,11 @@ const NoteInput = React.createClass({
 
     return this.state.memberList
       .filter(member => sessionUser.id !== member.id)
-      .map(member => ({id: member.id, display: member.name, email: member.email}));
+      .map(member => ({
+        id: member.id,
+        display: member.name,
+        email: member.email
+      }));
   },
 
   render() {
@@ -343,8 +347,7 @@ const NoteInput = React.createClass({
                 required={true}
                 autoFocus={true}
                 displayTransform={(id, display) => `@${display}`}
-                markup="**__display__**"
-              >
+                markup="**__display__**">
                 <Mention
                   trigger="@"
                   data={this.getMemberData()}

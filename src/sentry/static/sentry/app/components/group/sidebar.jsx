@@ -7,6 +7,7 @@ import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
+import LoadingError from '../../components/loadingError';
 import {t, tct} from '../../locale';
 
 const GroupSidebar = React.createClass({
@@ -21,7 +22,6 @@ const GroupSidebar = React.createClass({
 
   mixins: [ApiMixin, GroupState],
 
-
   getInitialState() {
     return {
       participants: []
@@ -32,19 +32,32 @@ const GroupSidebar = React.createClass({
     let group = this.props.group;
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/issues/${group.id}/participants/`, {
-      success: (data) => {
-        this.setState({participants: data});
+      success: data => {
+        this.setState({
+          participants: data,
+          error: false
+        });
+        IndicatorStore.remove(loadingIndicator);
+      },
+      error: () => {
+        this.setState({
+          error: true
+        });
         IndicatorStore.remove(loadingIndicator);
       }
     });
   },
 
   subscriptionReasons: {
-    commented: t('You\'re receiving updates because you have commented on this issue.'),
-    assigned: t('You\'re receiving updates because you were assigned to this issue.'),
-    bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
-    changed_status: t('You\'re receiving updates because you have changed the status of this issue.'),
-    mentioned: t('You\'re receiving updates because you have been mentioned in this issue.'),
+    commented: t("You're receiving updates because you have commented on this issue."),
+    assigned: t("You're receiving updates because you were assigned to this issue."),
+    bookmarked: t("You're receiving updates because you have bookmarked this issue."),
+    changed_status: t(
+      "You're receiving updates because you have changed the status of this issue."
+    ),
+    mentioned: t(
+      "You're receiving updates because you have been mentioned in this issue."
+    )
   },
 
   toggleSubscription() {
@@ -66,7 +79,16 @@ const GroupSidebar = React.createClass({
         complete: () => {
           this.api.request(`/issues/${group.id}/participants/`, {
             success: data => {
-              this.setState({participants: data});
+              this.setState({
+                participants: data,
+                error: false
+              });
+              IndicatorStore.remove(loadingIndicator);
+            },
+            error: () => {
+              this.setState({
+                error: true
+              });
               IndicatorStore.remove(loadingIndicator);
             }
           });
@@ -82,7 +104,8 @@ const GroupSidebar = React.createClass({
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt><dd><a href={issue.url}>{issue.label}</a></dd>
+            <dt>{plugin.title + ': '}</dt>
+            <dd><a href={issue.url}>{issue.label}</a></dd>
           </dl>
         );
       }
@@ -102,7 +125,7 @@ const GroupSidebar = React.createClass({
 
     if (group.isSubscribed) {
       let result = t(
-        'You\'re receiving updates because you are subscribed to this issue.'
+        "You're receiving updates because you are subscribed to this issue."
       );
       if (group.subscriptionDetails) {
         let reason = group.subscriptionDetails.reason;
@@ -111,7 +134,7 @@ const GroupSidebar = React.createClass({
         }
       } else {
         result = tct(
-          'You\'re receiving updates because you are [link:subscribed to workflow notifications] for this project.',
+          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
           {
             link: <a href="/account/settings/notifications/" />
           }
@@ -119,7 +142,24 @@ const GroupSidebar = React.createClass({
       }
       return result;
     } else {
-      return t('You\'re not subscribed to this issue.');
+      return t("You're not subscribed to this issue.");
+    }
+  },
+
+  renderParticipantData() {
+    let error = this.state.error;
+    let participants = (this.state || {}).participants || [];
+
+    if (!error) {
+      return (
+        participants.length !== 0 && <GroupParticipants participants={participants} />
+      );
+    } else {
+      return (
+        <LoadingError
+          message={t('There was an error while trying to load participants.')}
+        />
+      );
     }
   },
 
@@ -129,7 +169,6 @@ const GroupSidebar = React.createClass({
     let orgId = this.getOrganization().slug;
     let defaultEnvironment = project.defaultEnvironment;
     let group = this.getGroup();
-    let participants = (this.state || {}).participants || [];
 
     return (
       <div className="group-stats">
@@ -157,14 +196,14 @@ const GroupSidebar = React.createClass({
             />
           );
         })}
-        {participants.length !== 0 && <GroupParticipants participants={participants} />}
+
+        {this.renderParticipantData()}
 
         <h6><span>{t('Notifications')}</span></h6>
         <p className="help-block">{this.getNotificationText()}</p>
         <a
           className={`btn btn-default btn-subscribe ${group.isSubscribed && 'subscribed'}`}
-          onClick={this.toggleSubscription}
-        >
+          onClick={this.toggleSubscription}>
           <span className="icon-signal" />
           {' '}
           {group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
