@@ -4,12 +4,14 @@ Version 8.16 (Unreleased)
 - Time series data (used by graphs and other features) is now updated when groups are merged.
 - Added distributions to the release system to better support mobile apps
 - Update activity entries to reference issues by their short ID.
+- Added user notifications settings for deploy emails.
 
 Schema Changes
 ~~~~~~~~~~~~~~
 
 - Added ``Distribution`` model
 - Added ``ReleaseFile.dist`` column
+- Added ``UserOption.organization`` column
 
 Schema Changes
 ~~~~~~~~~~~~~~

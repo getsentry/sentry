@@ -44,7 +44,6 @@ class ActivityEmail(object):
         if self.activity.user is not None and self.activity.user in participants:
             receive_own_activity = UserOption.objects.get_value(
                 user=self.activity.user,
-                project=None,
                 key='self_notifications',
                 default='0'
             ) == '1'

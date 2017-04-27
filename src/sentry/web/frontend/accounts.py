@@ -242,10 +242,10 @@ def account_settings(request):
         form.save()
 
         # update notification settings for those set to primary email with new primary email
-        alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+        alert_email = UserOption.objects.get_value(user=user, key='alert_email')
 
         if alert_email == old_email:
-            UserOption.objects.set_value(user=user, project=None, key='alert_email', value=user.email)
+            UserOption.objects.set_value(user=user, key='alert_email', value=user.email)
         options = UserOption.objects.filter(user=user, key='mail:email')
         for option in options:
             if option.value != old_email:
@@ -372,7 +372,11 @@ def email_unsubscribe_project(request, project_id):
     if request.method == 'POST':
         if 'cancel' not in request.POST:
             UserOption.objects.set_value(
-                request.user, project, 'mail:alert', 0)
+                user=request.user,
+                key='mail:alert',
+                value=0,
+                project=project,
+            )
         return HttpResponseRedirect(auth.get_login_url())
 
     context = csrf(request)
@@ -482,10 +486,10 @@ def show_emails(request):
         elif new_primary != user.email:
 
             # update notification settings for those set to primary email with new primary email
-            alert_email = UserOption.objects.get_value(user=user, project=None, key='alert_email')
+            alert_email = UserOption.objects.get_value(user=user, key='alert_email')
 
             if alert_email == user.email:
-                UserOption.objects.set_value(user=user, project=None, key='alert_email', value=new_primary)
+                UserOption.objects.set_value(user=user, key='alert_email', value=new_primary)
             options = UserOption.objects.filter(user=user, key='mail:email')
             for option in options:
                 if option.value != user.email:
