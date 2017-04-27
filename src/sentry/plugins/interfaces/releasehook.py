@@ -13,7 +13,7 @@ __all__ = ['ReleaseHook']
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from sentry.models import Activity, Release
+from sentry.models import Activity, Release, Repository
 
 
 class ReleaseHook(object):
@@ -63,6 +63,7 @@ class ReleaseHook(object):
         release.set_commits(commit_list)
 
     def finish_release(self, version, **values):
+
         values.setdefault('date_released', timezone.now())
         try:
             with transaction.atomic():
@@ -87,6 +88,22 @@ class ReleaseHook(object):
             data={'version': version},
             datetime=values['date_released'],
         )
+
+        # check if a deploy_provider has been passed in and if user exists
+        if values.get('deploy_provider', None) and values.get('owner', None):
+            try:
+                repo = Repository.objects.get(
+                    organization_id=self.project.organization_id)
+            except (Repository.MultipleObjectsReturned, Repository.DoesNotExist):
+                pass
+            else:
+                release.set_refs(
+                    refs=[{
+                        'commit': values.get('head_commit', None),
+                        'repository': repo.name}],
+                    user=values.owner,
+                    fetch=True
+                )
 
     def handle(self, request):
         raise NotImplementedError
