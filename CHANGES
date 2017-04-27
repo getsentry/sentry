@@ -12,10 +12,6 @@ Schema Changes
 - Added ``Distribution`` model
 - Added ``ReleaseFile.dist`` column
 - Added ``UserOption.organization`` column
-
-Schema Changes
-~~~~~~~~~~~~~~
-
 - Added ``CommitAuthor.external_id`` column
 
 Version 8.15
