@@ -28,3 +28,16 @@ class UserAvatar(AvatarBase):
 
     def get_cache_key(self, size):
         return 'avatar:%s:%s' % (self.user_id, size)
+
+    def get_gravatar_url(self, size=None, default='mm'):
+        from sentry.utils.avatar import get_gravatar_url
+        return get_gravatar_url(self.user.email, size=size, default=default)
+
+    def get_letter_avatar(self, size=None):
+        from sentry.utils.avatar import get_letter_avatar
+        user = self.user
+        return get_letter_avatar(
+            user.get_display_name(),
+            user.get_label(),
+            size=size,
+        )

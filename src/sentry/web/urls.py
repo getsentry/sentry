@@ -50,7 +50,7 @@ from sentry.web.frontend.account_identity import AccountIdentityAssociateView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
     UnsubscribeIssueNotificationsView
-from sentry.web.frontend.user_avatar import UserAvatarPhotoView
+from sentry.web.frontend.user_avatar import UserAvatarPhotoView, UserAvatarMeView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.vsts_extension_configuration import \
     VstsExtensionConfigurationView
@@ -458,6 +458,9 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-manage-project'
     ),
+    url(r'^avatar/me/$',
+        UserAvatarMeView.as_view(),
+        name='sentry-user-avatar-me'),
     url(
         r'^avatar/(?P<avatar_id>[^\/]+)/$',
         UserAvatarPhotoView.as_view(),
