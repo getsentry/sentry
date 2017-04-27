@@ -51,7 +51,7 @@ class NotificationSettingsTest(TestCase):
         resp = self.client.post(self.path, params)
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(user=self.user, project=None)
+        options = UserOption.objects.get_all_values(user=self.user)
 
         assert options.get('alert_email') == 'foo@example.com'
 
@@ -64,7 +64,7 @@ class NotificationSettingsTest(TestCase):
         assert resp.status_code == 302
 
         options = UserOption.objects.get_all_values(
-            user=self.user, project=None
+            user=self.user
         )
 
         assert options.get('workflow:notifications') == '0'
@@ -75,7 +75,7 @@ class NotificationSettingsTest(TestCase):
         assert resp.status_code == 302
 
         options = UserOption.objects.get_all_values(
-            user=self.user, project=None
+            user=self.user
         )
 
         assert options.get('workflow:notifications') == \
@@ -90,7 +90,7 @@ class NotificationSettingsTest(TestCase):
         assert resp.status_code == 302
 
         options = UserOption.objects.get_all_values(
-            user=self.user, project=None
+            user=self.user
         )
 
         assert options.get('subscribe_by_default') == '1'
@@ -106,9 +106,7 @@ class NotificationSettingsTest(TestCase):
         })
         assert resp.status_code == 302
 
-        options = UserOption.objects.get_all_values(
-            user=self.user, project=None
-        )
+        options = UserOption.objects.get_all_values(user=self.user)
 
         disabled_orgs = set(options.get('reports:disabled-organizations', []))
         assert org1.id not in disabled_orgs

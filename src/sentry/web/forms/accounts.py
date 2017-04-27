@@ -415,7 +415,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save user language
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='language',
             value=self.cleaned_data['language'],
         )
@@ -423,7 +422,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save stacktrace options
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='stacktrace_order',
             value=self.cleaned_data['stacktrace_order'],
         )
@@ -431,7 +429,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save time zone options
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='timezone',
             value=self.cleaned_data['timezone'],
         )
@@ -439,7 +436,6 @@ class AppearanceSettingsForm(forms.Form):
         # Save clock 24 hours option
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='clock_24_hours',
             value=self.cleaned_data['clock_24_hours'],
         )
@@ -465,7 +461,6 @@ class NotificationReportSettingsForm(forms.Form):
 
         disabled_orgs = set(UserOption.objects.get_value(
             user=user,
-            project=None,
             key='reports:disabled-organizations',
             default=[],
         ))
@@ -483,10 +478,47 @@ class NotificationReportSettingsForm(forms.Form):
         all_orgs = set(self.fields['organizations'].queryset.values_list('id', flat=True))
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='reports:disabled-organizations',
             value=list(all_orgs.difference(enabled_orgs)),
         )
+
+
+class NotificationDeploySettingsForm(forms.Form):
+    CHOICES = [
+        (UserOptionValue.all_deploys, _('All deploys')),
+        (UserOptionValue.committed_deploys_only, _('Deploys with your commits')),
+        (UserOptionValue.no_deploys, _('Never'))]
+
+    notifications = forms.ChoiceField(
+        choices=CHOICES,
+        required=False,
+        widget=forms.RadioSelect(),
+    )
+
+    def __init__(self, user, organization, *args, **kwargs):
+        self.user = user
+        self.organization = organization
+        super(NotificationDeploySettingsForm, self).__init__(*args, **kwargs)
+        self.fields['notifications'].label = ""  # hide the label
+
+        deploy_setting = UserOption.objects.get_value(
+            user=user,
+            organization=self.organization,
+            key='deploy-emails',
+            default=UserOptionValue.committed_deploys_only,
+        )
+
+        self.fields['notifications'].initial = deploy_setting
+
+    def save(self):
+        value = self.data.get('{}-notifications'.format(self.prefix), None)
+        if value is not None:
+            UserOption.objects.set_value(
+                user=self.user,
+                organization=self.organization,
+                key='deploy-emails',
+                value=value,
+            )
 
 
 class NotificationSettingsForm(forms.Form):
@@ -525,14 +557,12 @@ class NotificationSettingsForm(forms.Form):
 
         self.fields['alert_email'].initial = UserOption.objects.get_value(
             user=self.user,
-            project=None,
             key='alert_email',
             default=user.email,
         )
         self.fields['subscribe_by_default'].initial = (
             UserOption.objects.get_value(
                 user=self.user,
-                project=None,
                 key='subscribe_by_default',
                 default='1',
             ) == '1'
@@ -541,7 +571,6 @@ class NotificationSettingsForm(forms.Form):
         self.fields['workflow_notifications'].initial = (
             UserOption.objects.get_value(
                 user=self.user,
-                project=None,
                 key='workflow:notifications',
                 default=UserOptionValue.all_conversations,
             ) == UserOptionValue.all_conversations
@@ -549,14 +578,12 @@ class NotificationSettingsForm(forms.Form):
 
         self.fields['self_notifications'].initial = UserOption.objects.get_value(
             user=self.user,
-            project=None,
             key='self_notifications',
             default='0'
         ) == '1'
 
         self.fields['self_assign_issue'].initial = UserOption.objects.get_value(
             user=self.user,
-            project=None,
             key='self_assign_issue',
             default='0'
         ) == '1'
@@ -567,28 +594,24 @@ class NotificationSettingsForm(forms.Form):
     def save(self):
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='alert_email',
             value=self.cleaned_data['alert_email'],
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='subscribe_by_default',
             value='1' if self.cleaned_data['subscribe_by_default'] else '0',
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='self_notifications',
             value='1' if self.cleaned_data['self_notifications'] else '0',
         )
 
         UserOption.objects.set_value(
             user=self.user,
-            project=None,
             key='self_assign_issue',
             value='1' if self.cleaned_data['self_assign_issue'] else '0',
         )
@@ -596,14 +619,12 @@ class NotificationSettingsForm(forms.Form):
         if self.cleaned_data.get('workflow_notifications') is True:
             UserOption.objects.set_value(
                 user=self.user,
-                project=None,
                 key='workflow:notifications',
                 value=UserOptionValue.all_conversations,
             )
         else:
             UserOption.objects.set_value(
                 user=self.user,
-                project=None,
                 key='workflow:notifications',
                 value=UserOptionValue.participating_only,
             )
@@ -627,8 +648,8 @@ class ProjectEmailOptionsForm(forms.Form):
         # This allows users who have entered an alert_email value or have specified an email
         # for notifications to keep their settings
         emails = [e.email for e in user.get_verified_emails()]
-        alert_email = UserOption.objects.get_value(user=self.user, project=None, key='alert_email', default=None)
-        specified_email = UserOption.objects.get_value(user, project, 'mail:email', None)
+        alert_email = UserOption.objects.get_value(self.user, 'alert_email')
+        specified_email = UserOption.objects.get_value(self.user, 'mail:email', project=project)
         emails.extend([user.email, alert_email, specified_email])
 
         choices = [(email, email) for email in sorted(set(emails)) if email]
@@ -641,19 +662,25 @@ class ProjectEmailOptionsForm(forms.Form):
 
     def save(self):
         UserOption.objects.set_value(
-            self.user, self.project, 'mail:alert',
-            int(self.cleaned_data['alert']),
+            user=self.user,
+            key='mail:alert',
+            value=int(self.cleaned_data['alert']),
+            project=self.project,
         )
 
         UserOption.objects.set_value(
-            self.user, self.project, 'workflow:notifications',
-            UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            user=self.user,
+            key='workflow:notifications',
+            value=UserOptionValue.all_conversations if self.cleaned_data['workflow'] else UserOptionValue.participating_only,
+            project=self.project,
         )
 
         if self.cleaned_data['email']:
             UserOption.objects.set_value(
-                self.user, self.project, 'mail:email',
-                self.cleaned_data['email'],
+                user=self.user,
+                key='mail:email',
+                value=self.cleaned_data['email'],
+                project=self.project,
             )
         else:
             UserOption.objects.unset_value(
