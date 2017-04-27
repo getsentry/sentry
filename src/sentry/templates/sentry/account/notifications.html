@@ -108,7 +108,7 @@
 
         <h4>{% trans "Deploys" %}</h4>
 
-        <p>{% blocktrans %}Deploys are a summary of what releases are being pushed to what enviroment, and what commits are involved. Chose to recieve deploy emails for:{% endblocktrans %}</p>
+        <p>{% blocktrans %}Deploy emails include release, environment and commit overviews. Choose to receive emails for:{% endblocktrans %}</p>
 
         {% for org, form in org_forms %}
             {{ form|as_crispy_errors }}

@@ -27,6 +27,18 @@ class UserOptionValue(object):
     no_deploys = '4'
 
 
+def user_metakey(user):
+    return (user.pk)
+
+
+def project_metakey(user, project):
+    return (user.pk, project.pk, 'project')
+
+
+def organization_metakey(user, organization):
+    return (user.pk, organization.pk, 'organization')
+
+
 class UserOptionManager(BaseManager):
     def __init__(self, *args, **kwargs):
         super(UserOptionManager, self).__init__(*args, **kwargs)
@@ -60,9 +72,9 @@ class UserOptionManager(BaseManager):
         if not hasattr(self, '_metadata'):
             return
         if project:
-            metakey = (user.pk, project.pk, 'project')
+            metakey = project_metakey(user, project)
         else:
-            metakey = (user.pk, None)
+            metakey = user_metakey(user)
         if metakey not in self.__metadata:
             return
         self.__metadata[metakey].pop(key, None)
@@ -87,11 +99,11 @@ class UserOptionManager(BaseManager):
             inst.update(value=value)
 
         if project:
-            metakey = (user.pk, project.pk, 'project')
+            metakey = project_metakey(user, project)
         elif organization:
-            metakey = (user.pk, organization.pk, 'organization')
+            metakey = organization_metakey(user, organization)
         else:
-            metakey = (user.pk, None)
+            metakey = user_metakey(user)
         if metakey not in self.__metadata:
             return
         self.__metadata[metakey][key] = value
@@ -101,11 +113,11 @@ class UserOptionManager(BaseManager):
             raise NotImplementedError('this is not a supported use case, scope to project OR organization')
 
         if project:
-            metakey = (user.pk, project.pk, 'project')
+            metakey = project_metakey(user, project)
         elif organization:
-            metakey = (user.pk, organization.pk, 'organization')
+            metakey = organization_metakey(user, organization)
         else:
-            metakey = (user.pk, None)
+            metakey = user_metakey(user)
         if metakey not in self.__metadata:
             result = dict(
                 (i.key, i.value) for i in
