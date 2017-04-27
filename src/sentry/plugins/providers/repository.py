@@ -83,3 +83,7 @@ class RepositoryProvider(ProviderMixin):
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         raise NotImplementedError
+
+    @staticmethod
+    def ignore_commit(message):
+        return 'SKIP-SENTRY' in message
