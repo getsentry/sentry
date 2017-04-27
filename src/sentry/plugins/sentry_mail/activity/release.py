@@ -145,7 +145,7 @@ class ReleaseActivityEmail(ActivityEmail):
         # merge the two type of participants
         return dict(chain(
             six.iteritems(participants_committed),
-            six.iteritems(participants_opted.iteritems)
+            six.iteritems(participants_opted)
         ))
 
     def get_users_by_teams(self):
