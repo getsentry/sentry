@@ -411,6 +411,6 @@ class BaseTSDB(object):
 
     def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
         """
-        Delete all distinct counters.
+        Delete all frequency tables.
         """
         raise NotImplementedError
