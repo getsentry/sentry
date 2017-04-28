@@ -163,14 +163,11 @@ def record_group_tag_count(filters, created, extra, **kwargs):
     if not created:
         return
 
-    # TODO(dcramer): remove in 7.6.x
-    project_id = filters.get('project_id')
+    project_id = extra.get('project_id')
     if not project_id:
         project_id = extra['project']
 
-    group_id = filters.get('group_id')
-    if not group_id:
-        group_id = filters['group'].id
+    group_id = filters['group_id']
 
     buffer.incr(GroupTagKey, {
         'values_seen': 1,

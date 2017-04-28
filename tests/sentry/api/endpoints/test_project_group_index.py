@@ -267,15 +267,15 @@ class GroupListTest(APITestCase):
         group2 = self.create_group(checksum='b' * 32,
                                    project=project2)
         GroupTagValue.objects.create(
-            project=project,
-            group=group,
+            project_id=project.id,
+            group_id=group.id,
             key='sentry:release',
             value=release.version
         )
 
         GroupTagValue.objects.create(
-            project=project2,
-            group=group2,
+            project_id=project2.id,
+            group_id=group2.id,
             key='sentry:release',
             value=release.version
         )

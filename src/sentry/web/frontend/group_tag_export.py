@@ -105,7 +105,7 @@ class GroupTagExportView(ProjectView, CsvMixin):
 
         queryset = RangeQuerySetWrapper(
             GroupTagValue.objects.filter(
-                group=group,
+                group_id=group.id,
                 key=lookup_key,
             ),
             callbacks=callbacks,

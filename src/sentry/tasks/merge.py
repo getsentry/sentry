@@ -250,14 +250,14 @@ def merge_objects(models, group, new_group, limit=1000,
                                 key=obj.key,
                             ).update(
                                 values_seen=GroupTagValue.objects.filter(
-                                    group=new_group,
+                                    group_id=new_group.id,
                                     key=obj.key,
                                 ).count()
                             )
                     elif model == GroupTagValue:
                         with transaction.atomic(using=router.db_for_write(model)):
                             model.objects.filter(
-                                group=new_group,
+                                group_id=new_group.id,
                                 key=obj.key,
                                 value=obj.value,
                             ).update(times_seen=F('times_seen') + obj.times_seen)
