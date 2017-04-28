@@ -232,6 +232,12 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all counters.
+        """
+        raise NotImplementedError
+
     def get_range(self, model, keys, start, end, rollup=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -311,6 +317,12 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all distinct counters.
+        """
+        raise NotImplementedError
+
     def record_frequency_multi(self, requests, timestamp=None):
         """
         Record items in a frequency table.
@@ -378,5 +390,11 @@ class BaseTSDB(object):
         """
         Transfer all frequency tables from the source keys to the destination
         key.
+        """
+        raise NotImplementedError
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all distinct counters.
         """
         raise NotImplementedError
