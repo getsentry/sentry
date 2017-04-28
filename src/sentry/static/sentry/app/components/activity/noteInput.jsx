@@ -4,8 +4,6 @@ import marked from 'marked';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
-import MemberListStore from '../../stores/memberListStore';
-import ConfigStore from '../../stores/configStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
@@ -23,7 +21,9 @@ const NoteInput = React.createClass({
   propTypes: {
     item: React.PropTypes.object,
     group: React.PropTypes.object.isRequired,
-    onFinish: React.PropTypes.func
+    onFinish: React.PropTypes.func,
+    memberList: React.PropTypes.array.isRequired,
+    sessionUser: React.PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin, ApiMixin],
@@ -32,11 +32,9 @@ const NoteInput = React.createClass({
     let {item, group} = this.props;
     let updating = !!item;
     let defaultText = '';
-    let memberList = MemberListStore.getAll();
-    let sessionUser = ConfigStore.get('user');
 
-    let mentionsList = memberList
-      .filter(member => sessionUser.id !== member.id)
+    let mentionsList = this.props.memberList
+      .filter(member => this.props.sessionUser.id !== member.id)
       .map(member => ({
         id: member.id,
         display: member.name,
@@ -63,7 +61,7 @@ const NoteInput = React.createClass({
       preview: false,
       updating: updating,
       value: defaultText,
-      memberList: mentionsList,
+      mentionsList: mentionsList,
       mentions: []
     };
   },
@@ -238,7 +236,7 @@ const NoteInput = React.createClass({
   },
 
   render() {
-    let {error, errorJSON, loading, preview, updating, value, memberList} = this.state;
+    let {error, errorJSON, loading, preview, updating, value, mentionsList} = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -348,7 +346,7 @@ const NoteInput = React.createClass({
                 markup="**__display__**">
                 <Mention
                   trigger="@"
-                  data={memberList}
+                  data={mentionsList}
                   onAdd={this.onAdd}
                   appendSpaceOnAdd={true}
                 />
