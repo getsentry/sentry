@@ -182,6 +182,7 @@ NOT_SCRUBBED_VALUES = set([
     'true',
     'false',
     'null',
+    'undefined',
 ])
 
 VALID_PLATFORMS = set([
