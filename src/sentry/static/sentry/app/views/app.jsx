@@ -5,7 +5,6 @@ import Cookies from 'js-cookie';
 import ApiMixin from '../mixins/apiMixin';
 import Alerts from '../components/alerts';
 import AlertActions from '../actions/alertActions';
-import BroadcastModal from '../components/broadcastModal';
 import ConfigStore from '../stores/configStore';
 import Indicators from '../components/indicators';
 import InstallWizard from './installWizard';
@@ -35,8 +34,7 @@ const App = React.createClass({
     return {
       loading: false,
       error: false,
-      needsUpgrade: ConfigStore.get('needsUpgrade'),
-      showBroadCast: this.shouldShowBroadCast()
+      needsUpgrade: ConfigStore.get('needsUpgrade')
     };
   },
 
@@ -109,14 +107,6 @@ const App = React.createClass({
     this.setState({needsUpgrade: false});
   },
 
-  shouldShowBroadCast() {
-    return true;
-  },
-
-  closeBroadcast() {
-    this.setState({showBroadCast: false});
-  },
-
   render() {
     let user = ConfigStore.get('user');
     let needsUpgrade = this.state.needsUpgrade;
@@ -142,8 +132,6 @@ const App = React.createClass({
       <OrganizationsLoader>
         <Alerts className="messages-container" />
         <Indicators className="indicators-container" />
-        {this.state.showBroadCast &&
-          <BroadcastModal closeBroadcast={this.closeBroadcast} />}
         {this.props.children}
       </OrganizationsLoader>
     );

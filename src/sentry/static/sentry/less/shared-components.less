@@ -3053,44 +3053,50 @@ ul.radio-inputs {
 // Broadcast Modal
 
 .modal-broadcast {
-  .close-icon {
-    color: @50;
-    cursor: pointer;
 
-    &:hover {
-      color: @80;
+  .modal-dialog{
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+      .close-icon {
+        color: @50;
+        cursor: pointer;
+
+        &:hover {
+          color: @80;
+        }
+      }
+      .modal {
+        z-index: 2000;
+        .transition(transform .2s ease);
+
+
+        &.a-nth{
+          transform: scale(1.0, 1.0) translate(0, 0px);
+          z-index: 2000;
+          opacity: 1.0;
+        }
+
+        &.b-nth{
+          transform: scale(.95, .95) translate(0, -50px);
+          z-index: 1999;
+          // opacity: .8;
+        }
+
+        &.c-nth{
+          transform: scale(.90, .90) translate(0, -100px);
+          z-index: 1998;
+          // opacity: .6;
+        }
+
+        &.d-nth{
+          transform: scale(.85, .85) translate(0, -150px);
+          z-index: 1997;
+          // opacity: .4;
+        }
+
+      }
     }
-  }
-  .modal {
-    z-index: 2000;
-    .transition(transform .2s ease);
-
-
-    &.a-nth{
-      transform: scale(1.0, 1.0) translate(0, 0px);
-      z-index: 2000;
-      opacity: 1.0;
-    }
-
-    &.b-nth{
-      transform: scale(.95, .95) translate(0, -50px);
-      z-index: 1999;
-      // opacity: .8;
-    }
-
-    &.c-nth{
-      transform: scale(.90, .90) translate(0, -100px);
-      z-index: 1998;
-      // opacity: .6;
-    }
-
-    &.d-nth{
-      transform: scale(.85, .85) translate(0, -150px);
-      z-index: 1997;
-      // opacity: .4;
-    }
-
-  }
 }
 
 

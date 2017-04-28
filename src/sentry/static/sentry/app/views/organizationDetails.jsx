@@ -6,9 +6,15 @@ import Sidebar from '../components/sidebar';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import BroadcastModal from '../components/broadcastModal';
+
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';
+import ConfigStore from '../stores/configStore';
+
+import OrganizationState from '../mixins/organizationState';
+
 import {t} from '../locale';
 
 let ERROR_TYPES = {
@@ -39,14 +45,15 @@ const OrganizationDetails = React.createClass({
     organization: PropTypes.Organization
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
       errorType: null,
-      organization: null
+      organization: null,
+      showBroadCast: false
     };
   },
 
@@ -87,13 +94,13 @@ const OrganizationDetails = React.createClass({
         });
 
         data.requiredAdminActions = getRequiredAdminActions(data);
-
         this.setState({
           organization: data,
           loading: false,
           error: false,
           errorType: null,
-          hooks: hooks
+          hooks: hooks,
+          showBroadCast: this.shouldShowBroadCast(data)
         });
 
         TeamStore.loadInitialData(data.teams);
@@ -103,6 +110,7 @@ const OrganizationDetails = React.createClass({
           }, [])
         );
       },
+
       error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
@@ -127,6 +135,20 @@ const OrganizationDetails = React.createClass({
   getTitle() {
     if (this.state.organization) return this.state.organization.name;
     return 'Sentry';
+  },
+
+  shouldShowBroadCast(data) {
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    let seen = options.seenRelaseBroadcast;
+    console.log('seen: ' + seen);
+    console.log(data.onboardingTasks);
+    let show = !seen;
+    return show;
+  },
+
+  closeBroadcast() {
+    this.setState({showBroadCast: false});
   },
 
   render() {
@@ -156,6 +178,8 @@ const OrganizationDetails = React.createClass({
         <div className="app">
           {this.state.hooks}
           <Sidebar />
+          {this.state.showBroadCast &&
+            <BroadcastModal closeBroadcast={this.closeBroadcast} />}
           {this.props.children}
           <Footer />
         </div>

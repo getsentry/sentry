@@ -1,5 +1,7 @@
 import React from 'react';
 import IconCloseLg from '../icons/icon-close-lg';
+import ConfigStore from '../stores/configStore.jsx';
+import ApiMixin from '../mixins/apiMixin';
 
 const ReleaseAnnouncement = props => {
   return (
@@ -24,6 +26,11 @@ const ReleaseAnnouncement = props => {
 };
 
 const BroadcastModal = React.createClass({
+  propTypes: {
+    closeBroadcast: React.PropTypes.func.isRequired
+  },
+  mixins: [ApiMixin],
+
   getInitialState() {
     return {
       alerts: [ReleaseAnnouncement], // ReleaseAnnouncement, ReleaseAnnouncement],
@@ -34,17 +41,33 @@ const BroadcastModal = React.createClass({
   componentWillMount() {
     document.addEventListener('keydown', this.handleKeyDown);
 
-    $(document.body).addClass('modal-open');
+    // $(document.body).addClass('modal-open');
   },
 
   componentWillUnmount() {
     document.removeEventListener('keydown', this.handleKeyDown);
-    $(document.body).removeClass('modal-open');
+    // $(document.body).removeClass('modal-open');
   },
 
   close() {
     //tell server to close
-    this.props.closeBroadcast();
+    let user = ConfigStore.get('user');
+    let markedData = {options: {}};
+    markedData.options.seenRelaseBroadcast = true;
+
+    this.api.request(`/users/${user.id}/`, {
+      method: 'PUT',
+      data: markedData,
+      success: (data, _, jqXHR) => {
+        console.log(data);
+        ConfigStore.set('user', data);
+        this.props.closeBroadcast();
+      },
+      error: err => {
+        console.log(err);
+        this.props.closeBroadcast();
+      }
+    });
   },
 
   handleKeyDown(evt) {
