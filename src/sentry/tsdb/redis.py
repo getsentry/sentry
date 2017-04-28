@@ -515,7 +515,7 @@ class RedisTSDB(BaseTSDB):
                                 self.make_key(
                                     model,
                                     rollup,
-                                    timestamp,
+                                    to_timestamp(timestamp),
                                     key,
                                 )
                             )
