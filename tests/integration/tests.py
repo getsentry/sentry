@@ -168,8 +168,8 @@ class SentryRemoteTest(TestCase):
             key='foo', group=instance.group_id, project=self.project,
         ).exists()
         assert GroupTagValue.objects.filter(
-            key='foo', value='bar', group=instance.group_id,
-            project=self.project,
+            key='foo', value='bar', group_id=instance.group_id,
+            project_id=self.project.id,
         ).exists()
 
     def test_timestamp(self):

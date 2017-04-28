@@ -24,7 +24,7 @@ def parse_user_tag(value):
 @register(GroupTagValue)
 class GroupTagValueSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        project = item_list[0].project
+        project_id = item_list[0].project_id
 
         user_lookups = []
         for item in item_list:
@@ -43,7 +43,7 @@ class GroupTagValueSerializer(Serializer):
                 ('sentry:user', euser.tag_value): euser.get_label()
                 for euser in EventUser.objects.filter(
                     reduce(operator.or_, user_lookups),
-                    project=project,
+                    project_id=project_id,
                 )
             })
 
@@ -57,7 +57,7 @@ class GroupTagValueSerializer(Serializer):
                 (t.key, t.value): t.get_label()
                 for t in TagValue.objects.filter(
                     reduce(operator.or_, other_lookups),
-                    project=project,
+                    project_id=project_id,
                 )
             })
 
