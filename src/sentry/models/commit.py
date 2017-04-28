@@ -10,7 +10,7 @@ from sentry.db.models import (
 )
 from sentry.utils.cache import memoize
 
-_fixes_re = re.compile(r'\bFixes\s+([A-Za-z0-9_\-\s\,]+)\b', re.I)
+_fixes_re = re.compile(r'\b(Fix|Fixes|Fixed|Close|Closes|Closed|Resolve|Resolves|Resolved)\s+([A-Za-z0-9_\-\s\,]+)\b', re.I)
 _short_id_re = re.compile(r'\b([A-Z0-9_-]+-[A-Z0-9]+)\b', re.I)
 
 
@@ -58,7 +58,7 @@ class Commit(Model):
 
         results = set()
         for fmatch in _fixes_re.finditer(self.message):
-            for smatch in _short_id_re.finditer(fmatch.group(1)):
+            for smatch in _short_id_re.finditer(fmatch.group(2)):
                 short_id = smatch.group(1)
                 try:
                     group = Group.objects.by_qualified_short_id(
