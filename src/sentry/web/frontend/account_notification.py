@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 
 from sudo.decorators import sudo_required
 
+from sentry import features
 from sentry.models import (
     Project, ProjectStatus, Organization, OrganizationStatus
 )
@@ -44,6 +45,14 @@ class AccountNotificationView(BaseView):
             status=OrganizationStatus.VISIBLE,
             member_set__user=request.user,
         ).distinct())
+
+        org_list = [
+            o for o in org_list if features.has(
+                'organizations:release-commits',
+                o,
+                actor=request.user
+            )
+        ]
 
         org_forms = [
             (org, NotificationDeploySettingsForm(
