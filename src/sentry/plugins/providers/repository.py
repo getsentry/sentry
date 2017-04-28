@@ -86,4 +86,4 @@ class RepositoryProvider(ProviderMixin):
 
     @staticmethod
     def ignore_commit(message):
-        return 'SKIP-SENTRY' in message
+        return '#skipsentry' in message
