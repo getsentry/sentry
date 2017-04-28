@@ -104,8 +104,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         for instance.
         :param array projects: a list of project slugs that are involved in
                                this release
-        :param datetime dateStarted: an optional date that indicates when the
-                                     release process started.
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
                                       the current time is assumed.
@@ -147,7 +145,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         ref=result.get('ref'),
                         url=result.get('url'),
                         owner=result.get('owner'),
-                        date_started=result.get('dateStarted'),
                         date_released=result.get('dateReleased'),
                     ), True
             except IntegrityError:
