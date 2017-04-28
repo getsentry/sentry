@@ -7,12 +7,11 @@ import subprocess
 import json
 
 from glob import glob
-from click import echo
+from click import echo, style
 
 from sentry.lint.engine import check_files, get_js_files
 
 text_type = type(u'')
-
 
 # git usurbs your bin path for hooks and will always run system python
 if 'VIRTUAL_ENV' in os.environ:
@@ -21,6 +20,31 @@ if 'VIRTUAL_ENV' in os.environ:
     sys.path.insert(0, site_packages)
 
 PRETTIER_VERSION = "1.2.2"
+
+def yarn_check(file_list):
+    """
+    Checks if package.json was modified WITHOUT a corresponding change in the Yarn
+    lockfile. This can happen if a user manually edited package.json without running Yarn.
+
+    This is a user prompt right now because there ARE cases where you can touch package.json
+    without a Yarn lockfile change, e.g. Jest config changes, license changes, etc.
+    """
+    if file_list is None or os.environ.get('SKIP_YARN_CHECK'):
+        return False
+
+    if 'package.json' in file_list and 'yarn.lock' not in file_list:
+        echo(style("""
+Warning: package.json modified without accompanying yarn.lock modifications.
+
+If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
+
+To skip this check, run:
+
+$ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
+        return True
+
+    return False
+
 
 def js_format(file_list=None):
     """
@@ -82,6 +106,9 @@ def main():
 
     # Prettier formatting must take place before linting
     js_format(files_modified)
+
+    if yarn_check(files_modified):
+        return True
 
     return check_files(files_modified)
 
