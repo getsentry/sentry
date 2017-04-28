@@ -85,5 +85,5 @@ class RepositoryProvider(ProviderMixin):
         raise NotImplementedError
 
     @staticmethod
-    def ignore_commit(message):
+    def should_ignore_commit(message):
         return '#skipsentry' in message
