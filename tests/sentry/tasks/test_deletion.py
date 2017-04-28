@@ -196,7 +196,7 @@ class DeleteTagKeyTest(TestCase):
         tk = TagKey.objects.create(key='foo', project=project)
         TagValue.objects.create(key='foo', value='bar', project=project)
         GroupTagKey.objects.create(key='foo', group=group, project=project)
-        GroupTagValue.objects.create(key='foo', value='bar', group=group, project=project)
+        GroupTagValue.objects.create(key='foo', value='bar', group_id=group.id, project_id=project.id)
         EventTag.objects.create(
             key_id=tk.id, group_id=group.id, value_id=1, project_id=project.id,
             event_id=1,
@@ -206,7 +206,7 @@ class DeleteTagKeyTest(TestCase):
         group2 = self.create_group(project=project2)
         tk2 = TagKey.objects.create(key='foo', project=project2)
         gtk2 = GroupTagKey.objects.create(key='foo', group=group2, project=project2)
-        gtv2 = GroupTagValue.objects.create(key='foo', value='bar', group=group2, project=project2)
+        gtv2 = GroupTagValue.objects.create(key='foo', value='bar', group_id=group2.id, project_id=project2.id)
         EventTag.objects.create(
             key_id=tk2.id, group_id=group2.id, value_id=1, project_id=project.id,
             event_id=1,
@@ -215,7 +215,7 @@ class DeleteTagKeyTest(TestCase):
         with self.tasks():
             delete_tag_key(object_id=tk.id)
 
-            assert not GroupTagValue.objects.filter(key=tk.key, project=project).exists()
+            assert not GroupTagValue.objects.filter(key=tk.key, project_id=project.id).exists()
             assert not GroupTagKey.objects.filter(key=tk.key, project=project).exists()
             assert not TagValue.objects.filter(key=tk.key, project=project).exists()
             assert not TagKey.objects.filter(id=tk.id).exists()

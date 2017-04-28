@@ -141,9 +141,9 @@ class Project(Model):
             except Group.DoesNotExist:
                 group.update(project=project)
                 GroupTagValue.objects.filter(
-                    project=self,
-                    group_id=group,
-                ).update(project=project)
+                    project_id=self.id,
+                    group_id=group.id,
+                ).update(project_id=project.id)
             else:
                 Event.objects.filter(
                     group_id=group.id,
@@ -151,8 +151,8 @@ class Project(Model):
 
                 for obj in GroupTagValue.objects.filter(group=group):
                     obj2, created = GroupTagValue.objects.get_or_create(
-                        project=project,
-                        group=group,
+                        project_id=project.id,
+                        group_id=group.id,
                         key=obj.key,
                         value=obj.value,
                         defaults={'times_seen': obj.times_seen}

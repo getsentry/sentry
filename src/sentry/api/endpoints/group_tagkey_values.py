@@ -51,7 +51,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             raise ResourceDoesNotExist
 
         queryset = GroupTagValue.objects.filter(
-            group=group,
+            group_id=group.id,
             key=lookup_key,
         )
 
