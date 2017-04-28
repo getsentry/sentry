@@ -106,22 +106,24 @@
 
         <hr />
 
-        <h4>{% trans "Deploys" %}</h4>
+        {% if org_forms %}
+          <h4>{% trans "Deploys" %}</h4>
 
-        <p>{% blocktrans %}Deploy emails include release, environment and commit overviews. Choose to receive emails for:{% endblocktrans %}</p>
+          <p>{% blocktrans %}Deploy emails include release, environment and commit overviews. Choose to receive emails for:{% endblocktrans %}</p>
 
-        {% for org, form in org_forms %}
-            {{ form|as_crispy_errors }}
-        {% endfor %}
+          {% for org, form in org_forms %}
+              {{ form|as_crispy_errors }}
+          {% endfor %}
 
-        {% for org, form in org_forms %}
-          <div class="deploy-form">
-              <h5>{{org.name}}</h5>
-              {{ form.notifications|as_crispy_field }}
-          </div>
-        {% endfor %}
+          {% for org, form in org_forms %}
+            <div class="deploy-form">
+                <h5>{{org.name}}</h5>
+                {{ form.notifications|as_crispy_field }}
+            </div>
+          {% endfor %}
 
-        <hr />
+          <hr />
+        {% endif %}
 
         <h4>{% trans "Fine Tuning" %}</h4>
 
