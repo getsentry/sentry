@@ -32,6 +32,16 @@ const NoteInput = React.createClass({
     let {item, group} = this.props;
     let updating = !!item;
     let defaultText = '';
+    let memberList = MemberListStore.getAll();
+    let sessionUser = ConfigStore.get('user');
+
+    let mentionsList = memberList
+      .filter(member => sessionUser.id !== member.id)
+      .map(member => ({
+        id: member.id,
+        display: member.name,
+        email: member.email
+      }));
 
     if (updating) {
       defaultText = item.data.text;
@@ -53,7 +63,7 @@ const NoteInput = React.createClass({
       preview: false,
       updating: updating,
       value: defaultText,
-      memberList: MemberListStore.getAll(),
+      memberList: mentionsList,
       mentions: []
     };
   },
@@ -227,20 +237,8 @@ const NoteInput = React.createClass({
     }
   },
 
-  getMemberData() {
-    let sessionUser = ConfigStore.get('user');
-
-    return this.state.memberList
-      .filter(member => sessionUser.id !== member.id)
-      .map(member => ({
-        id: member.id,
-        display: member.name,
-        email: member.email
-      }));
-  },
-
   render() {
-    let {error, errorJSON, loading, preview, updating, value} = this.state;
+    let {error, errorJSON, loading, preview, updating, value, memberList} = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -350,7 +348,7 @@ const NoteInput = React.createClass({
                 markup="**__display__**">
                 <Mention
                   trigger="@"
-                  data={this.getMemberData()}
+                  data={memberList}
                   onAdd={this.onAdd}
                   appendSpaceOnAdd={true}
                 />
