@@ -7,6 +7,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
+import mentionsStyle from '../../styles/mentions-styles';
 
 import {MentionsInput, Mention} from 'react-mentions';
 
@@ -246,70 +247,6 @@ const NoteInput = React.createClass({
     }
 
     let btnText = updating ? t('Save Comment') : t('Post Comment');
-    let styles = {
-      control: {
-        backgroundColor: '#fff',
-        fontSize: 15,
-        fontWeight: 'normal'
-      },
-
-      input: {
-        margin: 0
-      },
-
-      '&singleLine': {
-        control: {
-          display: 'inline-block',
-
-          width: 130
-        },
-
-        highlighter: {
-          padding: 1,
-          border: '2px inset transparent'
-        },
-
-        input: {
-          padding: 1,
-          border: '2px inset'
-        }
-      },
-
-      '&multiLine': {
-        control: {
-          fontFamily: 'Lato, Avenir Next, Helvetica Neue, sans-serif'
-        },
-
-        highlighter: {
-          padding: 20
-        },
-
-        input: {
-          padding: '15px 20px 0',
-          minHeight: 140,
-          overflow: 'auto',
-          outline: 0,
-          border: 0
-        }
-      },
-
-      suggestions: {
-        list: {
-          backgroundColor: 'white',
-          border: '1px solid rgba(0,0,0,0.15)',
-          fontSize: 12
-        },
-
-        item: {
-          padding: '5px 15px',
-          borderBottom: '1px solid rgba(0,0,0,0.15)',
-
-          '&focused': {
-            backgroundColor: '#f8f6f9'
-          }
-        }
-      }
-    };
 
     return (
       <form className={classNames} onSubmit={this.onSubmit}>
@@ -335,7 +272,7 @@ const NoteInput = React.createClass({
                 dangerouslySetInnerHTML={{__html: marked(value)}}
               />
             : <MentionsInput
-                style={styles}
+                style={mentionsStyle}
                 placeholder={t('Add details or updates to this event')}
                 onChange={this.onChange}
                 onBlur={this.onBlur}
