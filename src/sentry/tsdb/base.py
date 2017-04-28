@@ -15,7 +15,7 @@ from django.conf import settings
 from django.utils import timezone
 from enum import Enum
 
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -180,6 +180,22 @@ class BaseTSDB(object):
             timestamp = timestamp - timedelta(seconds=rollup)
 
         return rollup, sorted(series)
+
+    def get_active_series(self, start=None, end=None, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                start if start is not None else to_datetime(
+                    self.get_earliest_timestamp(
+                        rollup,
+                        timestamp=timestamp,
+                    ),
+                ),
+                end,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+        return rollups
 
     def calculate_expiry(self, rollup, samples, timestamp):
         """

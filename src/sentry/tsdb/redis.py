@@ -214,14 +214,7 @@ class RedisTSDB(BaseTSDB):
         return dict(results_by_key)
 
     def merge(self, model, destination, sources, timestamp=None):
-        rollups = {}
-        for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
-                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
-                end=None,
-                rollup=rollup,
-            )
-            rollups[rollup] = map(to_datetime, series)
+        rollups = self.get_active_series(timestamp=timestamp)
 
         with self.cluster.map() as client:
             data = {}
@@ -266,19 +259,7 @@ class RedisTSDB(BaseTSDB):
                         )
 
     def delete(self, models, keys, start=None, end=None, timestamp=None):
-        rollups = {}
-        for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
-                start if start is not None else to_datetime(
-                    self.get_earliest_timestamp(
-                        rollup,
-                        timestamp=timestamp if timestamp is not None else timezone.now(),
-                    ),
-                ),
-                end=end,
-                rollup=rollup,
-            )
-            rollups[rollup] = map(to_datetime, series)
+        rollups = self.get_active_series(start, end, timestamp)
 
         with self.cluster.map() as client:
             for rollup, series in rollups.items():
@@ -464,14 +445,7 @@ class RedisTSDB(BaseTSDB):
         )
 
     def merge_distinct_counts(self, model, destination, sources, timestamp=None):
-        rollups = {}
-        for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
-                to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp)),
-                end=None,
-                rollup=rollup,
-            )
-            rollups[rollup] = map(to_datetime, series)
+        rollups = self.get_active_series(timestamp=timestamp)
 
         temporary_id = uuid.uuid1().hex
 
@@ -530,19 +504,7 @@ class RedisTSDB(BaseTSDB):
                         )
 
     def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
-        rollups = {}
-        for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
-                start if start is not None else to_datetime(
-                    self.get_earliest_timestamp(
-                        rollup,
-                        timestamp=timestamp if timestamp is not None else timezone.now(),
-                    ),
-                ),
-                end=end,
-                rollup=rollup,
-            )
-            rollups[rollup] = map(to_datetime, series)
+        rollups = self.get_active_series(start, end, timestamp)
 
         with self.cluster.map() as client:
             for rollup, series in rollups.items():
@@ -758,19 +720,7 @@ class RedisTSDB(BaseTSDB):
         })
 
     def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
-        rollups = {}
-        for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
-                start if start is not None else to_datetime(
-                    self.get_earliest_timestamp(
-                        rollup,
-                        timestamp=timestamp if timestamp is not None else timezone.now(),
-                    ),
-                ),
-                end=end,
-                rollup=rollup,
-            )
-            rollups[rollup] = map(to_datetime, series)
+        rollups = self.get_active_series(start, end, timestamp)
 
         with self.cluster.map() as client:
             for rollup, series in rollups.items():
