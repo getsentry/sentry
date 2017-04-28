@@ -512,7 +512,8 @@ class NotificationDeploySettingsForm(forms.Form):
 
     def save(self):
         value = self.data.get('{}-notifications'.format(self.prefix), None)
-        if value is not None:
+        # max bittker temporary disable hack
+        if False:  # value is not None:
             UserOption.objects.set_value(
                 user=self.user,
                 organization=self.organization,
