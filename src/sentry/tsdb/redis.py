@@ -265,6 +265,36 @@ class RedisTSDB(BaseTSDB):
                             ),
                         )
 
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                start if start is not None else to_datetime(
+                    self.get_earliest_timestamp(
+                        rollup,
+                        timestamp=timestamp if timestamp is not None else timezone.now(),
+                    ),
+                ),
+                end=end,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+
+        with self.cluster.map() as client:
+            for rollup, series in rollups.items():
+                for timestamp in series:
+                    for model in models:
+                        for key in keys:
+                            model_key = self.get_model_key(key)
+                            client.hdel(
+                                self.make_counter_key(
+                                    model,
+                                    self.normalize_to_rollup(timestamp, rollup),
+                                    model_key,
+                                ),
+                                model_key,
+                            )
+
     def record(self, model, key, values, timestamp=None):
         self.record_multi(((model, key, values),), timestamp)
 
@@ -499,6 +529,35 @@ class RedisTSDB(BaseTSDB):
                             ),
                         )
 
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                start if start is not None else to_datetime(
+                    self.get_earliest_timestamp(
+                        rollup,
+                        timestamp=timestamp if timestamp is not None else timezone.now(),
+                    ),
+                ),
+                end=end,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+
+        with self.cluster.map() as client:
+            for rollup, series in rollups.items():
+                for timestamp in series:
+                    for model in models:
+                        for key in keys:
+                            client.delete(
+                                self.make_key(
+                                    model,
+                                    rollup,
+                                    timestamp,
+                                    key,
+                                )
+                            )
+
     def make_frequency_table_keys(self, model, rollup, timestamp, key):
         prefix = self.make_key(model, rollup, timestamp, key)
         return map(
@@ -697,3 +756,26 @@ class RedisTSDB(BaseTSDB):
         self.cluster.execute_commands({
             destination: imports,
         })
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                start if start is not None else to_datetime(
+                    self.get_earliest_timestamp(
+                        rollup,
+                        timestamp=timestamp if timestamp is not None else timezone.now(),
+                    ),
+                ),
+                end=end,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+
+        with self.cluster.map() as client:
+            for rollup, series in rollups.items():
+                for timestamp in series:
+                    for model in models:
+                        for key in keys:
+                            for k in self.make_frequency_table_keys(model, rollup, to_timestamp(timestamp), key):
+                                client.delete(k)
