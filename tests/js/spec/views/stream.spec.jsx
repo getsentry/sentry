@@ -89,7 +89,7 @@ describe('Stream', function() {
         expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
       });
 
-      it('should not enable the poller if the \'previous\' link has results', function() {
+      it("should not enable the poller if the 'previous' link has results", function() {
         let stream = this.wrapper.instance();
         stream.state.pageLinks =
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
@@ -149,7 +149,7 @@ describe('Stream', function() {
     it('displays an error when component has errored', function() {
       let wrapper = this.wrapper;
       wrapper.setState({
-        error: true,
+        error: 'Something bad happened',
         loading: false,
         dataLoading: false
       });

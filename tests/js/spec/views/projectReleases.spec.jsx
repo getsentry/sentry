@@ -1,5 +1,5 @@
 import React from 'react';
-import TestUtils from 'react-addons-test-utils';
+import {shallow} from 'enzyme';
 
 import {browserHistory} from 'react-router';
 import stubReactComponents from '../../helpers/stubReactComponent';
@@ -22,9 +22,7 @@ describe('ProjectReleases', function() {
       params: {orgId: '123', projectId: '456'},
       location: {query: {per_page: 0, query: 'derp'}}
     };
-    this.projectReleases = TestUtils.renderIntoDocument(
-      <ProjectReleases {...this.props} />
-    );
+    this.projectReleases = shallow(<ProjectReleases {...this.props} />);
   });
 
   afterEach(function() {
@@ -41,7 +39,7 @@ describe('ProjectReleases', function() {
 
   describe('getInitialState()', function() {
     it('should take query state from query string', function() {
-      expect(this.projectReleases.state.query).toEqual('derp');
+      expect(this.projectReleases.state('query')).toEqual('derp');
     });
   });
 
@@ -49,7 +47,7 @@ describe('ProjectReleases', function() {
     it('should change query string with new search parameter', function() {
       let projectReleases = this.projectReleases;
 
-      projectReleases.onSearch('searchquery');
+      projectReleases.instance().onSearch('searchquery');
 
       expect(browserHistory.pushState.calledOnce).toBeTruthy;
       expect(browserHistory.pushState.args[0]).toEqual([
@@ -64,7 +62,7 @@ describe('ProjectReleases', function() {
 
   describe('componentWillReceiveProps()', function() {
     it('should update state with latest query pulled from query string', function() {
-      let projectReleases = this.projectReleases;
+      let projectReleases = this.projectReleases.instance();
 
       let setState = this.sandbox.stub(projectReleases, 'setState');
 
