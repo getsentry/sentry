@@ -115,8 +115,7 @@ const TagDistributionMeter = React.createClass({
                   '</div>' +
                   pctLabel +
                   '%'
-              }
-            >
+              }>
               <span className="tag-description">
                 <span className="tag-percentage">{pctLabel}%</span>
                 <span className="tag-label">{deviceNameMapper(value.name)}</span>
@@ -130,8 +129,7 @@ const TagDistributionMeter = React.createClass({
             className="segment segment-9"
             style={{width: otherPct + '%'}}
             to={`/${orgId}/${projectId}/issues/${this.props.group.id}/tags/${this.props.tag}/`}
-            title={'Other<br/>' + otherPctLabel + '%'}
-          >
+            title={'Other<br/>' + otherPctLabel + '%'}>
             <span className="tag-description">
               <span className="tag-percentage">{otherPctLabel}%</span>
               <span className="tag-label">{t('Other')}</span>

@@ -229,7 +229,8 @@ const SearchBar = React.createClass({
     let cursor = this.getCursorPosition();
 
     if (
-      cursor === this.state.query.length && this.state.query.charAt(cursor - 1) !== ' '
+      cursor === this.state.query.length &&
+      this.state.query.charAt(cursor - 1) !== ' '
     ) {
       // If the cursor lands at the end of the input value, and the preceding character
       // is not whitespace, then add a space and move the cursor beyond that space.
@@ -309,6 +310,7 @@ const SearchBar = React.createClass({
         this.updateAutoCompleteState
       );
     }
+    return undefined;
   },
 
   isDefaultDropdown() {

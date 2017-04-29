@@ -23,6 +23,7 @@ class PluginSerializer(Serializer):
             'isTestable': obj.is_testable(),
             'metadata': obj.get_metadata(),
             'contexts': contexts,
+            'status': obj.get_status(),
             'assets': [
                 {
                     'url': absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset)),

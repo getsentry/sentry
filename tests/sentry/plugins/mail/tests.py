@@ -377,7 +377,6 @@ class ActivityEmailTestCase(TestCase):
 
         UserOption.objects.set_value(
             user=actor,
-            project=None,
             key='self_notifications',
             value='1'
         )

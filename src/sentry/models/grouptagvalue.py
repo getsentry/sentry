@@ -8,7 +8,7 @@ sentry.models.grouptagvalue
 from __future__ import absolute_import
 
 from datetime import timedelta
-from django.db import connections, models
+from django.db import connections, models, router
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -61,7 +61,8 @@ class GroupTagValue(Model):
         if db.is_postgres():
             # This doesnt guarantee percentage is accurate, but it does ensure
             # that the query has a maximum cost
-            cursor = connections['default'].cursor()
+            using = router.db_for_read(cls)
+            cursor = connections[using].cursor()
             cursor.execute("""
                 SELECT SUM(t)
                 FROM (

@@ -180,7 +180,7 @@ const Stream = React.createClass({
             newState.isDefaultSearch = true;
           }
         }
-        this.setState(newState, needsData ? this.fetchData : null);
+        return void this.setState(newState, needsData ? this.fetchData : null);
       },
       error: error => {
         // XXX(dcramer): fail gracefully by still loading the stream
@@ -366,7 +366,7 @@ const Stream = React.createClass({
 
         this._streamManager.push(data);
 
-        this.setState({
+        return void this.setState({
           error: false,
           dataLoading: false,
           pageLinks: jqXHR.getResponseHeader('Link')
@@ -638,8 +638,7 @@ const Stream = React.createClass({
           <p>
             <Link
               to={`/${org.slug}/${project.slug}/getting-started/`}
-              className="btn btn-primary btn-lg"
-            >
+              className="btn btn-primary btn-lg">
               {t('Installation Instructions')}
             </Link>
           </p>

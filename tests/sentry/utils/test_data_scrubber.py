@@ -371,3 +371,15 @@ class SensitiveDataFilterTest(TestCase):
         proc = SensitiveDataFilter(include_defaults=True)
         assert proc.sanitize('MYSQL_PWD', 'the one') == FILTER_MASK
         assert proc.sanitize('mysql_pwd', 'the two') == FILTER_MASK
+
+    def test_authorization_scrubbing(self):
+        proc = SensitiveDataFilter(include_defaults=True)
+        assert proc.sanitize('authorization', 'foobar') == FILTER_MASK
+        assert proc.sanitize('auth', 'foobar') == FILTER_MASK
+        assert proc.sanitize('auXth', 'foobar') == 'foobar'
+
+    def test_doesnt_scrub_not_scrubbed(self):
+        proc = SensitiveDataFilter(include_defaults=True)
+        assert proc.sanitize('is_authenticated', 'foobar') == FILTER_MASK
+        assert proc.sanitize('is_authenticated', 'null') == 'null'
+        assert proc.sanitize('is_authenticated', True) is True

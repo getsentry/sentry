@@ -24,8 +24,7 @@ const EventExtraData = React.createClass({
         group={this.props.group}
         event={this.props.event}
         type="extra"
-        title={t('Additional Data')}
-      >
+        title={t('Additional Data')}>
         <KeyValueList data={extraDataArray} isContextData={true} />
       </EventDataSection>
     );

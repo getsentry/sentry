@@ -92,8 +92,7 @@ const SeenInfo = React.createClass({
                 ? <VersionHoverCard
                     orgId={orgId}
                     projectId={projectId}
-                    version={release.version}
-                  >
+                    version={release.version}>
                     <Version
                       orgId={orgId}
                       projectId={projectId}

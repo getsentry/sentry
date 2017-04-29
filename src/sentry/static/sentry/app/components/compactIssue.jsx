@@ -75,8 +75,7 @@ const CompactIssueHeader = React.createClass({
             <span>
               <Link
                 to={`/${orgId}/${projectId}/issues/${data.id}/activity/`}
-                className="comments"
-              >
+                className="comments">
                 <span className="icon icon-comments" />
                 <span className="tag-count">{data.numComments}</span>
               </Link>
@@ -197,21 +196,18 @@ const CompactIssue = React.createClass({
               topLevelClasses="more-menu"
               className="more-menu-toggle"
               caret={false}
-              title={title}
-            >
+              title={title}>
               <li>
                 <a
                   onClick={this.onUpdate.bind(this, {
                     status: issue.status !== 'resolved' ? 'resolved' : 'unresolved'
-                  })}
-                >
+                  })}>
                   <span className="icon-checkmark" />
                 </a>
               </li>
               <li>
                 <a
-                  onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}
-                >
+                  onClick={this.onUpdate.bind(this, {isBookmarked: !issue.isBookmarked})}>
                   <span className="icon-star-solid" />
                 </a>
               </li>

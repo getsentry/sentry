@@ -14,9 +14,7 @@ from sentry.models import UserOption
 def set_language_on_logon(request, user, **kwargs):
     language = UserOption.objects.get_value(
         user=user,
-        project=None,
         key='language',
-        default=None,
     )
     if language and hasattr(request, 'session'):
         request.session['django_language'] = language

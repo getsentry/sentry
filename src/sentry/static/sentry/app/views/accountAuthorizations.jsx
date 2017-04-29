@@ -72,8 +72,7 @@ const AuthorizationRow = React.createClass({
           <a
             onClick={this.onRevoke.bind(this, authorization)}
             className={btnClassName}
-            disabled={this.state.loading}
-          >
+            disabled={this.state.loading}>
             <span className="icon icon-trash" />
           </a>
         </td>
@@ -139,7 +138,7 @@ const AccountAuthorizations = React.createClass({
           <tbody>
             <tr colSpan="2">
               <td className="blankslate well">
-                {t('You haven\'t approved any third party applications.')}
+                {t("You haven't approved any third party applications.")}
               </td>
             </tr>
           </tbody>

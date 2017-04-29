@@ -208,8 +208,7 @@ const StreamActions = React.createClass({
                 }
                 tooltip={t('Set Status to Resolved')}
                 onlyIfBulk={true}
-                selectAllActive={this.state.pageSelected}
-              >
+                selectAllActive={this.state.pageSelected}>
                 <span className="icon-checkmark" style={{marginRight: 5}} />
                 {t('Resolve')}
               </ActionLink>
@@ -218,8 +217,7 @@ const StreamActions = React.createClass({
                 className="btn btn-default btn-sm action-resolve"
                 topLevelClasses="resolve-dropdown"
                 disabled={!this.state.anySelected}
-                title=""
-              >
+                title="">
                 <MenuItem noAnchor={true}>
                   {hasRelease
                     ? <ActionLink
@@ -253,8 +251,7 @@ const StreamActions = React.createClass({
                                 )
                         }
                         onlyIfBulk={true}
-                        selectAllActive={this.state.pageSelected}
-                      >
+                        selectAllActive={this.state.pageSelected}>
                         <strong>{t('Resolved in next release')}</strong>
                         <div className="help-text">
                           {t(
@@ -265,8 +262,9 @@ const StreamActions = React.createClass({
                     : <a
                         href={releaseTrackingUrl}
                         className="disabled tip"
-                        title={t('Set up release tracking in order to use this feature.')}
-                      >
+                        title={t(
+                          'Set up release tracking in order to use this feature.'
+                        )}>
                         <strong>{t('Resolved in next release.')}</strong>
                         <div className="help-text">
                           {t(
@@ -308,8 +306,7 @@ const StreamActions = React.createClass({
                 }
                 tooltip={t('Add to Bookmarks')}
                 onlyIfBulk={true}
-                selectAllActive={this.state.pageSelected}
-              >
+                selectAllActive={this.state.pageSelected}>
                 <i aria-hidden="true" className="icon-star-solid" />
               </ActionLink>
             </div>
@@ -319,8 +316,7 @@ const StreamActions = React.createClass({
                 btnGroup={true}
                 caret={false}
                 className="btn btn-sm btn-default hidden-xs action-more"
-                title={<span className="icon-ellipsis" />}
-              >
+                title={<span className="icon-ellipsis" />}>
                 <MenuItem noAnchor={true}>
                   <ActionLink
                     className="action-merge"
@@ -349,8 +345,7 @@ const StreamActions = React.createClass({
                               count
                             )
                     }
-                    selectAllActive={this.state.pageSelected}
-                  >
+                    selectAllActive={this.state.pageSelected}>
                     {t('Merge Events')}
                   </ActionLink>
                 </MenuItem>
@@ -383,8 +378,7 @@ const StreamActions = React.createClass({
                             )
                     }
                     onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}
-                  >
+                    selectAllActive={this.state.pageSelected}>
                     {t('Remove from Bookmarks')}
                   </ActionLink>
                 </MenuItem>
@@ -419,8 +413,7 @@ const StreamActions = React.createClass({
                     }
                     onlyIfBulk={true}
                     selectAllActive={this.state.pageSelected}
-                    groupIds={this.props.groupIds}
-                  >
+                    groupIds={this.props.groupIds}>
                     {t('Set status to: Unresolved')}
                   </ActionLink>
                 </MenuItem>
@@ -453,8 +446,7 @@ const StreamActions = React.createClass({
                             )
                     }
                     onlyIfBulk={true}
-                    selectAllActive={this.state.pageSelected}
-                  >
+                    selectAllActive={this.state.pageSelected}>
                     {t('Set status to: Ignored')}
                   </ActionLink>
                 </MenuItem>
@@ -473,8 +465,7 @@ const StreamActions = React.createClass({
                       )}
                     confirmLabel={count =>
                       tn('Delete %d selected issue', 'Delete %d selected issues', count)}
-                    selectAllActive={this.state.pageSelected}
-                  >
+                    selectAllActive={this.state.pageSelected}>
                     {t('Delete Events')}
                   </ActionLink>
                 </MenuItem>
@@ -484,8 +475,7 @@ const StreamActions = React.createClass({
             <div className="btn-group">
               <a
                 className="btn btn-default btn-sm hidden-xs realtime-control"
-                onClick={this.onRealtimeChange}
-              >
+                onClick={this.onRealtimeChange}>
                 {this.props.realtimeActive
                   ? <span className="icon icon-pause" />
                   : <span className="icon icon-play" />}

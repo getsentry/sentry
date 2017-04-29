@@ -21,7 +21,6 @@ class ReleaseHook(object):
         self.project = project
 
     def start_release(self, version, **values):
-        values.setdefault('date_started', timezone.now())
         try:
             with transaction.atomic():
                 release = Release.objects.create(

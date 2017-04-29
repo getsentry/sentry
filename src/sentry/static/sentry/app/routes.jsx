@@ -149,8 +149,7 @@ function routes() {
         />
         <Route
           path="/organizations/:orgId/teams/:teamId/"
-          component={errorHandler(TeamDetails)}
-        >
+          component={errorHandler(TeamDetails)}>
           <IndexRedirect to="settings/" />
           <Route path="settings/" component={errorHandler(TeamSettings)} />
           <Route path="members/" component={errorHandler(TeamMembers)} />
@@ -158,8 +157,7 @@ function routes() {
 
         <Route
           path="/organizations/:orgId/all-teams/"
-          component={errorHandler(OrganizationTeams)}
-        >
+          component={errorHandler(OrganizationTeams)}>
           <IndexRoute component={errorHandler(AllTeamsList)} />
         </Route>
         <Route
@@ -197,8 +195,7 @@ function routes() {
 
         <Route
           path=":projectId/getting-started/"
-          component={errorHandler(ProjectGettingStarted)}
-        >
+          component={errorHandler(ProjectGettingStarted)}>
           <IndexRoute component={errorHandler(ProjectInstallOverview)} />
           <Route path=":platform/" component={errorHandler(ProjectInstallPlatform)} />
         </Route>
@@ -227,8 +224,7 @@ function routes() {
                   }
                 }
               });
-            }}
-          >
+            }}>
             <Route path="new-events/" component={errorHandler(ReleaseNewEvents)} />
             <Route path="overview/" component={errorHandler(ReleaseOverview)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
@@ -263,8 +259,7 @@ function routes() {
           <Route
             path="issues/:groupId/"
             component={errorHandler(GroupDetails)}
-            ignoreScrollBehavior
-          >
+            ignoreScrollBehavior>
             <IndexRoute component={errorHandler(GroupEventDetails)} />
 
             <Route path="activity/" component={errorHandler(GroupActivity)} />

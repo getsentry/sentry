@@ -121,15 +121,13 @@ const TokenForm = React.createClass({
           <button
             className="btn btn-default"
             disabled={isSaving}
-            onClick={this.props.onCancel}
-          >
+            onClick={this.props.onCancel}>
             {t('Cancel')}
           </button>
           <button
             type="submit"
             className="btn btn-primary pull-right"
-            disabled={isSaving}
-          >
+            disabled={isSaving}>
             {t('Save Changes')}
           </button>
         </fieldset>
@@ -173,7 +171,7 @@ const ApiNewToken = React.createClass({
 
           <p>
             {t(
-              'Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.'
+              "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
             )}
           </p>
           <p>

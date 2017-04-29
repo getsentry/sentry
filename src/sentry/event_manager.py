@@ -279,6 +279,7 @@ class EventManager(object):
         data.setdefault('checksum', None)
         data.setdefault('fingerprint', None)
         data.setdefault('platform', None)
+        data.setdefault('dist', None)
         data.setdefault('environment', None)
         data.setdefault('extra', {})
         data.setdefault('errors', [])
@@ -414,6 +415,7 @@ class EventManager(object):
         fingerprint = data.pop('fingerprint', None)
         platform = data.pop('platform', None)
         release = data.pop('release', None)
+        dist = data.pop('dist', None)
         environment = data.pop('environment', None)
 
         # unused
@@ -470,6 +472,12 @@ class EventManager(object):
             )
 
             tags['sentry:release'] = release.version
+
+        if dist and release:
+            dist = release.add_dist(dist, date)
+            tags['sentry:dist'] = dist.name
+        else:
+            dist = None
 
         event_user = self._get_event_user(project, data)
         if event_user:
@@ -821,15 +829,34 @@ class EventManager(object):
         is_new = False
         new_hashes = [h[1] for h in all_hashes if h[0] is None]
         if new_hashes:
-            affected = GroupHash.objects.filter(
-                project=project,
-                hash__in=new_hashes,
-                group__isnull=True,
-            ).update(
-                group=group,
+            # This is an attempt at optimizing the lookup against GroupHash
+            # Previously this was doing something like:
+            # UPDATE "sentry_grouphash" SET "group_id" = x WHERE ("sentry_grouphash"."project_id" = x AND "sentry_grouphash"."hash" IN ('x') AND "sentry_grouphash"."group_id" IS NULL)
+            # This query is causing the query planner to choose the sentry_grouphash_group_id index
+            # rather than the expected sentry_grouphash_project_id_4a293f96a363c9a2_uniq index.
+            # So this change to a SELECT/UPDATE instead forces us to hit the expected index.
+            # We then filter in python to check if we need to update, and we update back explicitly
+            # on the primary keys.
+            affected = map(
+                # Extract just the id
+                lambda x: x[0],
+                filter(
+                    # find the rows that have no group id
+                    lambda x: x[1] is None, list(
+                        GroupHash.objects.filter(
+                            project=project,
+                            hash__in=new_hashes,
+                        ).values_list('id', 'group_id')
+                    )
+                )
             )
 
-            if affected != len(new_hashes):
+            if affected:
+                GroupHash.objects.filter(
+                    id__in=affected,
+                ).update(group=group)
+
+            if len(affected) != len(new_hashes):
                 self._ensure_hashes_merged(group, new_hashes)
             elif group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True

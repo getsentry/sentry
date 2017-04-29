@@ -30,7 +30,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
     from sentry.models import (
         Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
         Commit, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit,
-        ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit, Repository
+        ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit, Repository
     )
 
     try:
@@ -58,7 +58,7 @@ def delete_organization(object_id, transaction_id=None, continuous=True, **kwarg
     model_list = (
         OrganizationMember, CommitFileChange, Commit, CommitAuthor,
         Environment, Repository, Release, ReleaseCommit,
-        ReleaseEnvironment, ReleaseFile, ReleaseHeadCommit
+        ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit
     )
 
     has_more = delete_objects(
@@ -504,3 +504,49 @@ def delete_objects(models, relation, transaction_id=None, limit=100, logger=None
         if has_more:
             return True
     return has_more
+
+
+@instrumented_task(name='sentry.tasks.deletion.delete_repository', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=None)
+@retry(exclude=(DeleteAborted,))
+def delete_repository(object_id, transaction_id=None, continuous=True,
+                      actor_id=None, **kwargs):
+    from sentry.models import Commit, Repository, User
+
+    try:
+        repo = Repository.objects.get(id=object_id)
+    except Repository.DoesNotExist:
+        return
+
+    if repo.status == ObjectStatus.VISIBLE:
+        raise DeleteAborted
+
+    if repo.status == ObjectStatus.PENDING_DELETION:
+        if actor_id:
+            actor = User.objects.get(id=actor_id)
+        else:
+            actor = None
+        repo.update(status=ObjectStatus.DELETION_IN_PROGRESS)
+        pending_delete.send(sender=Repository, instance=repo, actor=actor)
+
+    has_more = delete_objects(
+        (Commit,),
+        transaction_id=transaction_id,
+        relation={'repository_id': repo.id},
+        logger=logger,
+    )
+    if has_more:
+        if continuous:
+            delete_repository.apply_async(
+                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+                countdown=15,
+            )
+        return
+
+    repo_id = repo.id
+    repo.delete()
+    logger.info('object.delete.executed', extra={
+        'object_id': repo_id,
+        'transaction_id': transaction_id,
+        'model': Repository.__name__,
+    })

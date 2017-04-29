@@ -33,7 +33,7 @@ describe('Frame', function() {
 
       // NOTE: indentation/whitespace intentional to match output string
       expect(frame.renderOriginalSourceInfo()).toEqual(
-        `\n    <div>\n      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>`
+        '\n    <div>\n      <strong>Source Map</strong><br/>https://beta.getsentry.com/_static/sentry/dist/vendor.js.map<br/></div>'
       );
     });
   });

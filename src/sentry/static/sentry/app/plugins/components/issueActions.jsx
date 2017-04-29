@@ -186,8 +186,7 @@ class IssueActions extends PluginComponentBase {
             <Form
               onSubmit={this.createIssue}
               submitLabel={t('Create Issue')}
-              footerClass=""
-            >
+              footerClass="">
               {this.state.createFieldList.map(field => {
                 if (field.has_autocomplete) {
                   field = Object.assign(
@@ -307,8 +306,8 @@ class IssueActions extends PluginComponentBase {
                 </p>
                 <p>The following settings must be configured:</p>
                 <ul>
-                  {error.required_auth_settings.map(setting => {
-                    return <li><code>{setting}</code></li>;
+                  {error.required_auth_settings.map((setting, i) => {
+                    return <li key={i}><code>{setting}</code></li>;
                   })}
                 </ul>
               </div>

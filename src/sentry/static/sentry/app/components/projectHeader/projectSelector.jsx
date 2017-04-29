@@ -296,8 +296,7 @@ const ProjectSelector = React.createClass({
             title=""
             topLevelClasses="project-dropdown"
             onOpen={this.onOpen}
-            onClose={this.onClose}
-          >
+            onClose={this.onClose}>
             <li className="project-filter" key="_filter">
               <input
                 value={this.state.filter}

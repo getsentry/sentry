@@ -100,8 +100,7 @@ const CrashHeader = React.createClass({
               onClick={this.toggleOrder}
               className="tip"
               title={t('Toggle stacktrace order')}
-              style={{borderBottom: '1px dotted #aaa'}}
-            >
+              style={{borderBottom: '1px dotted #aaa'}}>
               {newestFirst ? t('most recent call first') : t('most recent call last')}
             </a>)
           </small>
@@ -112,20 +111,17 @@ const CrashHeader = React.createClass({
               className={
                 (stackView === 'app' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={this.setStackView.bind(this, 'app')}
-            >
+              onClick={this.setStackView.bind(this, 'app')}>
               {t('App Only')}
             </a>}
           <a
             className={(stackView === 'full' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.setStackView.bind(this, 'full')}
-          >
+            onClick={this.setStackView.bind(this, 'full')}>
             {t('Full')}
           </a>
           <a
             className={(stackView === 'raw' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.setStackView.bind(this, 'raw')}
-          >
+            onClick={this.setStackView.bind(this, 'raw')}>
             {t('Raw')}
           </a>
         </div>
@@ -136,8 +132,7 @@ const CrashHeader = React.createClass({
               className={
                 (stackType === 'original' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={() => this.setStackType('original')}
-            >
+              onClick={() => this.setStackType('original')}>
               {this.getOriginalButtonLabel()}
             </a>,
             <a
@@ -145,8 +140,7 @@ const CrashHeader = React.createClass({
               className={
                 (stackType === 'minified' ? 'active' : '') + ' btn btn-default btn-sm'
               }
-              onClick={() => this.setStackType('minified')}
-            >
+              onClick={() => this.setStackType('minified')}>
               {this.getMinifiedButtonLabel()}
             </a>
           ]}

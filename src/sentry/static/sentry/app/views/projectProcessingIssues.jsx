@@ -263,12 +263,18 @@ const ProjectProcessingIssues = React.createClass({
       fixLinkBlock = (
         <div className="panel panel-info">
           <div className="panel-heading">
-          <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
+            <h3>{t('Having trouble uploading debug symbols? We can help!')}</h3>
           </div>
           <div className="panel-body">
             <div className="form-group" style={{marginBottom: 0}}>
-              <label>{t('Paste this command into your shell and we\'ll attempt to upload the missing symbols from your machine:')}</label>
-              <div className="form-control disabled auto-select" style={{marginBottom: 6}}>
+              <label>
+                {t(
+                  "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
+                )}
+              </label>
+              <div
+                className="form-control disabled auto-select"
+                style={{marginBottom: 6}}>
                 curl -sL {fixLink} | bash
               </div>
             </div>
@@ -299,7 +305,7 @@ const ProjectProcessingIssues = React.createClass({
           <div className="list-group">
             {this.state.processingIssues.issues.map((item, idx) => {
               return (
-                <div className="list-group-item">
+                <div key={idx} className="list-group-item">
                   <div className="row row-flex row-center-vertically">
                     <div className="col-sm-3">
                       {this.renderProblem(item)}

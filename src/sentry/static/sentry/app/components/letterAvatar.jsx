@@ -64,8 +64,7 @@ const LetterAvatar = React.createClass({
           fontSize="65"
           style={{dominantBaseline: 'central'}}
           textAnchor="middle"
-          fill="#FFFFFF"
-        >
+          fill="#FFFFFF">
           {this.getInitials()}
         </text>
       </svg>

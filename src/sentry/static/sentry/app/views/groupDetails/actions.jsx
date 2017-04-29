@@ -145,15 +145,13 @@ const GroupActions = React.createClass({
                     className={resolveClassName + ' tip'}
                     title={t(
                       'This event is resolved due to the Auto Resolve configuration for this project'
-                    )}
-                  >
+                    )}>
                     <span className="icon-checkmark" />
                   </a>
                 : <a
                     className={resolveClassName}
                     title={t('Unresolve')}
-                    onClick={this.onUpdate.bind(this, {status: 'unresolved'})}
-                  >
+                    onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
                     <span className="icon-checkmark" />
                   </a>
             : [
@@ -161,8 +159,7 @@ const GroupActions = React.createClass({
                   key="resolve-button"
                   className={resolveClassName}
                   title={t('Resolve')}
-                  onClick={this.onUpdate.bind(this, {status: 'resolved'})}
-                >
+                  onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
                   <span className="icon-checkmark" style={{marginRight: 5}} />
                   {t('Resolve')}
                 </a>,
@@ -171,15 +168,13 @@ const GroupActions = React.createClass({
                   caret={true}
                   className={resolveClassName}
                   topLevelClasses={resolveDropdownClasses}
-                  title=""
-                >
+                  title="">
                   <MenuItem noAnchor={true}>
                     {hasRelease
                       ? <a
                           onClick={this.onUpdate.bind(this, {
                             status: 'resolvedInNextRelease'
-                          })}
-                        >
+                          })}>
                           <strong>{t('Resolved in next release')}</strong>
                           <div className="help-text">
                             {t(
@@ -192,8 +187,7 @@ const GroupActions = React.createClass({
                           className="disabled tip"
                           title={t(
                             'Set up release tracking in order to use this feature.'
-                          )}
-                        >
+                          )}>
                           <strong>{t('Resolved in next release.')}</strong>
                           <div className="help-text">
                             {t(
@@ -210,8 +204,7 @@ const GroupActions = React.createClass({
             ? <a
                 className={ignoreClassName}
                 title={t('Remove Ignored Status')}
-                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}
-              >
+                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
                 {t('Ignore')}
               </a>
             : <DropdownLink
@@ -225,8 +218,7 @@ const GroupActions = React.createClass({
                       style={{marginLeft: 3, marginRight: -3}}
                     />
                   </span>
-                }
-              >
+                }>
                 <MenuItem noAnchor={true}>
                   <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>
                     {t('for 30 minutes')}
@@ -261,8 +253,7 @@ const GroupActions = React.createClass({
           <a
             className={bookmarkClassName}
             title={t('Bookmark')}
-            onClick={this.onToggleBookmark}
-          >
+            onClick={this.onToggleBookmark}>
             <span className="icon-star-solid" />
           </a>
         </div>
@@ -273,8 +264,7 @@ const GroupActions = React.createClass({
             message={t(
               'Deleting this event is permanent. Are you sure you wish to continue?'
             )}
-            onConfirm={this.onDelete}
-          >
+            onConfirm={this.onDelete}>
             <span className="icon-trash" />
           </LinkWithConfirmation>
         </div>
@@ -307,8 +297,7 @@ const GroupActions = React.createClass({
         {!hasIssueTracking &&
           <a
             href={`/${this.getOrganization().slug}/${this.getProject().slug}/settings/issue-tracking/`}
-            className={'btn btn-default btn-sm btn-config-issue-tracking'}
-          >
+            className={'btn btn-default btn-sm btn-config-issue-tracking'}>
             {t('Link Issue Tracker')}
           </a>}
       </div>

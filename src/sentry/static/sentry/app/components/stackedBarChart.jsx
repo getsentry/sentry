@@ -219,8 +219,7 @@ const StackedBarChart = React.createClass({
         <span
           key={i}
           className={this.props.barClasses[i]}
-          style={{height: pct + '%', bottom: prevPct + '%'}}
-        >
+          style={{height: pct + '%', bottom: prevPct + '%'}}>
           {y}
         </span>
       );
@@ -232,8 +231,7 @@ const StackedBarChart = React.createClass({
         key={point.x}
         className="chart-column tip"
         data-point-index={pointIdx}
-        style={{width: pointWidth}}
-      >
+        style={{width: pointWidth}}>
         {pts}
       </a>
     );

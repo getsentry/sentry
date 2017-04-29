@@ -72,6 +72,62 @@ class FetchReleaseFileTest(TestCase):
 
         assert result == new_result
 
+    def test_distribution(self):
+        project = self.project
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version='abc',
+        )
+        release.add_project(project)
+
+        other_file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+        file = File.objects.create(
+            name='file.min.js',
+            type='release.file',
+            headers={'Content-Type': 'application/json; charset=utf-8'},
+        )
+
+        binary_body = unicode_body.encode('utf-8')
+        other_file.putfile(six.BytesIO(b''))
+        file.putfile(six.BytesIO(binary_body))
+
+        dist = release.add_dist('foo')
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            organization_id=project.organization_id,
+            file=other_file,
+        )
+
+        ReleaseFile.objects.create(
+            name='file.min.js',
+            release=release,
+            dist=dist,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        result = fetch_release_file('file.min.js', release, dist)
+
+        assert type(result.body) is six.binary_type
+        assert result == http.UrlResult(
+            'file.min.js',
+            {'content-type': 'application/json; charset=utf-8'},
+            binary_body,
+            200,
+            'utf-8',
+        )
+
+        # test with cache hit, which should be compressed
+        new_result = fetch_release_file('file.min.js', release, dist)
+
+        assert result == new_result
+
 
 class FetchFileTest(TestCase):
     @responses.activate

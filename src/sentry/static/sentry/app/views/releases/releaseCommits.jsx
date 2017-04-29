@@ -13,7 +13,8 @@ import {t} from '../../locale';
 const CommitLink = React.createClass({
   propTypes: {
     commitId: React.PropTypes.string,
-    repository: React.PropTypes.object
+    repository: React.PropTypes.object,
+    inline: React.PropTypes.bool
   },
 
   getCommitUrl() {
@@ -21,6 +22,7 @@ const CommitLink = React.createClass({
     if (this.props.repository.provider.id === 'github') {
       return this.props.repository.url + '/commit/' + this.props.commitId;
     }
+    return undefined;
   },
 
   render() {
@@ -28,10 +30,13 @@ const CommitLink = React.createClass({
     let shortId = this.props.commitId.slice(0, 7);
 
     return commitUrl
-      ? <a className="btn btn-default btn-sm" href={commitUrl} target="_blank">
+      ? <a
+          className={this.props.inline ? 'inline-commit' : 'btn btn-default btn-sm'}
+          href={commitUrl}
+          target="_blank">
           <span className={'icon-mark-' + this.props.repository.provider.id} />
           &nbsp;
-          {' '}
+          {this.props.inline ? '' : ' '}
           {shortId}
         </a>
       : <span>{shortId}</span>;
@@ -195,16 +200,14 @@ const ReleaseCommits = React.createClass({
                           style={{marginLeft: 3, marginRight: -3}}
                         />
                       </h5>
-                    }
-                  >
+                    }>
                     <MenuItem
                       key="all"
                       noAnchor={true}
                       onClick={() => {
                         this.setActiveRepo(null);
                       }}
-                      isActive={this.state.activeRepo === null}
-                    >
+                      isActive={this.state.activeRepo === null}>
                       <a>All Repositories</a>
                     </MenuItem>
                     {Object.keys(commitsByRepository).map(repository => {
@@ -215,8 +218,7 @@ const ReleaseCommits = React.createClass({
                           onClick={() => {
                             this.setActiveRepo(repository);
                           }}
-                          isActive={this.state.activeRepo === repository}
-                        >
+                          isActive={this.state.activeRepo === repository}>
                           <a>{repository}</a>
                         </MenuItem>
                       );

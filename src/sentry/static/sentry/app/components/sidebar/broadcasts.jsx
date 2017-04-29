@@ -113,8 +113,7 @@ const Broadcasts = React.createClass({
         <a
           className="broadcasts-toggle"
           onClick={this.onShowPanel}
-          title="Updates from Sentry"
-        >
+          title="Updates from Sentry">
           <span className="icon icon-globe" />
           {this.getUnseenIds() > 0 && <span className="activity-indicator" />}
         </a>
@@ -122,8 +121,7 @@ const Broadcasts = React.createClass({
           this.props.currentPanel == 'broadcasts' &&
           <SidebarPanel
             title={t('Recent updates from Sentry')}
-            hidePanel={this.props.hidePanel}
-          >
+            hidePanel={this.props.hidePanel}>
             {loading
               ? <LoadingIndicator />
               : broadcasts.length === 0

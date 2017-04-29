@@ -28,30 +28,26 @@ const HomeContainer = React.createClass({
               ? <a
                   href={`/organizations/${org.slug}/projects/new/`}
                   className="btn btn-primary"
-                  style={{marginRight: 5}}
-                >
+                  style={{marginRight: 5}}>
                   {t('New Project')}
                 </a>
               : <a
                   className="btn btn-primary btn-disabled tip"
                   data-placement="bottom"
                   title={t('You do not have enough permission to create new projects')}
-                  style={{marginRight: 5}}
-                >
+                  style={{marginRight: 5}}>
                   {t('New Project')}
                 </a>}
             {access.has('team:write')
               ? <a
                   href={`/organizations/${org.slug}/teams/new/`}
-                  className="btn btn-primary"
-                >
+                  className="btn btn-primary">
                   {t('New Team')}
                 </a>
               : <a
                   className="btn btn-primary btn-disabled tip"
                   data-placement="bottom"
-                  title={t('You do not have enough permission to create new teams')}
-                >
+                  title={t('You do not have enough permission to create new teams')}>
                   {t('New Team')}
                 </a>}
           </div>

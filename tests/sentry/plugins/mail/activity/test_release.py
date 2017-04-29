@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from sentry.models import (
     Activity, Commit, CommitAuthor, Deploy, Environment,
-    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail
+    GroupSubscriptionReason, Release, ReleaseCommit, Repository, UserEmail, UserOption, UserOptionValue
 )
 from sentry.plugins.sentry_mail.activity.release import ReleaseActivityEmail
 from sentry.testutils import TestCase
@@ -17,12 +17,14 @@ class ReleaseTestCase(TestCase):
     def setUp(self):
         super(ReleaseTestCase, self).setUp()
         self.user = self.create_user('foo@example.com')
+
         assert UserEmail.objects.filter(
             user=self.user,
             email=self.user.email,
         ).update(
             is_verified=True,
         )
+
         self.user2 = self.create_user('bar@example.com')
         assert UserEmail.objects.filter(
             user=self.user2,
@@ -30,6 +32,23 @@ class ReleaseTestCase(TestCase):
         ).update(
             is_verified=True,
         )
+
+        self.user3 = self.create_user('baz@example.com')
+        assert UserEmail.objects.filter(
+            user=self.user3,
+            email=self.user3.email,
+        ).update(
+            is_verified=True,
+        )
+
+        self.user4 = self.create_user('floop@example.com')
+        assert UserEmail.objects.filter(
+            user=self.user4,
+            email=self.user4.email,
+        ).update(
+            is_verified=True,
+        )
+
         self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
         self.org.save()
@@ -37,6 +56,9 @@ class ReleaseTestCase(TestCase):
         self.team2 = self.create_team(organization=self.org)
         self.create_member(user=self.user, organization=self.org, teams=[self.team])
         self.create_member(user=self.user2, organization=self.org)
+        self.create_member(user=self.user3, organization=self.org, teams=[self.team])
+        self.create_member(user=self.user4, organization=self.org, teams=[self.team])
+
         self.project = self.create_project(
             organization=self.org,
             team=self.team,
@@ -64,6 +86,7 @@ class ReleaseTestCase(TestCase):
             organization_id=self.org.id,
             name=self.project.name,
         )
+
         self.commit = Commit.objects.create(
             key='a' * 40,
             repository_id=repository.id,
@@ -84,6 +107,17 @@ class ReleaseTestCase(TestCase):
                 email=self.user2.email,
             )
         )
+        self.commit3 = Commit.objects.create(
+            key='c' * 40,
+            repository_id=repository.id,
+            organization_id=self.org.id,
+            author=CommitAuthor.objects.create(
+                organization_id=self.org.id,
+                name=self.user4.name,
+                email=self.user4.email,
+            )
+        )
+
         ReleaseCommit.objects.create(
             organization_id=self.project.organization_id,
             release=self.release,
@@ -95,6 +129,26 @@ class ReleaseTestCase(TestCase):
             release=self.release,
             commit=self.commit2,
             order=1,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=self.release,
+            commit=self.commit3,
+            order=2,
+        )
+
+        UserOption.objects.set_value(
+            user=self.user3,
+            organization=self.org,
+            key='deploy-emails',
+            value=UserOptionValue.all_deploys,
+        )
+
+        UserOption.objects.set_value(
+            user=self.user4,
+            organization=self.org,
+            key='deploy-emails',
+            value=UserOptionValue.no_deploys,
         )
 
     def test_simple(self):
@@ -109,9 +163,15 @@ class ReleaseTestCase(TestCase):
                 },
             )
         )
+        # user is included because they committed
+        # user2 committed but isn't in a team associated with the project.
+        # user3 is included because they oped into all deploy emails
+        # user4 commited but isn't included because they opted out of all deploy emails
+        assert len(email.get_participants()) == 2
 
         assert email.get_participants() == {
             self.user: GroupSubscriptionReason.committed,
+            self.user3: GroupSubscriptionReason.deploy_setting,
         }
 
         context = email.get_context()
@@ -119,6 +179,7 @@ class ReleaseTestCase(TestCase):
         assert context['repos'][0]['commits'] == [
             (self.commit, self.user),
             (self.commit2, self.user2),
+            (self.commit3, self.user4),
         ]
         user_context = email.get_user_context(self.user)
         # make sure this only includes projects user has access to
@@ -128,9 +189,14 @@ class ReleaseTestCase(TestCase):
         with self.tasks():
             email.send()
 
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[-1]
-        assert msg.to == [self.user.email]
+        assert len(mail.outbox) == 2
+        msg = mail.outbox[0]
+        assert msg.to == [self.user.email] or msg.to == [self.user3.email]
+
+        msg2 = mail.outbox[1]
+        assert msg2.to == [self.user.email] or msg2.to == [self.user3.email]
+
+        assert msg.to != msg2.to
 
     def test_doesnt_generate_on_no_release(self):
         email = ReleaseActivityEmail(

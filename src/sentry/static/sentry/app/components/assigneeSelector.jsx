@@ -196,8 +196,7 @@ const AssigneeSelector = React.createClass({
         <MenuItem
           key={item.id}
           disabled={loading}
-          onSelect={this.assignTo.bind(this, item)}
-        >
+          onSelect={this.assignTo.bind(this, item)}>
           <Avatar user={item} className="avatar" size={48} />
           {this.highlight(item.name || item.email, this.state.filter)}
         </MenuItem>
@@ -231,8 +230,7 @@ const AssigneeSelector = React.createClass({
                   assignedTo
                     ? <Avatar user={assignedTo} className="avatar" size={48} />
                     : <span className="icon-user" />
-                }
-              >
+                }>
                 <MenuItem noAnchor={true} key="filter">
                   <input
                     type="text"
@@ -248,8 +246,7 @@ const AssigneeSelector = React.createClass({
                       key="clear"
                       className="clear-assignee"
                       disabled={!loading}
-                      onSelect={this.clearAssignTo}
-                    >
+                      onSelect={this.clearAssignTo}>
                       <span className="icon-circle-cross" /> {t('Clear Assignee')}
                     </MenuItem>
                   : ''}

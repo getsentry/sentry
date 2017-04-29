@@ -82,7 +82,7 @@ legend {
 label {
   font-weight: 600;
 
-  &.checkbox {
+  &.checkbox, &.radio {
     padding-left: 25px;
     position: relative;
 
@@ -147,5 +147,17 @@ textarea.form-control[disabled] {
     a {
       margin-left: 10px;
     }
+  }
+}
+
+.deploy-form {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+
+   .controls {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-around;
   }
 }

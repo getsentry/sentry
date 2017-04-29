@@ -7,6 +7,7 @@
 
 {% block main %}
     <div class="pull-right">
+
         {% if plugin.can_disable %}
             {% if not plugin_is_enabled %}
                 <form method="post" action="{% url 'sentry-enable-project-plugin' project.organization.slug project.slug plugin.slug %}"

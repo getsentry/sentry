@@ -30,6 +30,8 @@ CRAWLERS = re.compile(r'|'.join((
     r'bot[\/\s\)\;]',
     # Generic spider
     r'spider[\/\s\)\;]',
+    # Slack - see https://api.slack.com/robots
+    r'Slack',
 )), re.I)
 
 

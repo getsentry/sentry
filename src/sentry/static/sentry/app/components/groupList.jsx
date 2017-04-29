@@ -53,7 +53,8 @@ const GroupList = React.createClass({
 
   componentDidUpdate(prevProps) {
     if (
-      prevProps.orgId !== this.props.orgId || prevProps.projectId !== this.props.projectId
+      prevProps.orgId !== this.props.orgId ||
+      prevProps.projectId !== this.props.projectId
     ) {
       this.fetchData();
     }
@@ -117,7 +118,7 @@ const GroupList = React.createClass({
       return (
         <div className="box empty-stream">
           <span className="icon icon-exclamation" />
-          <p>{t('There doesn\'t seem to be any events fitting the query.')}</p>
+          <p>{t("There doesn't seem to be any events fitting the query.")}</p>
         </div>
       );
 

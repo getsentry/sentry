@@ -114,8 +114,7 @@ const SuggestedOwners = React.createClass({
               })}
             </ul>
           </div>
-        )}
-      >
+        )}>
         <Avatar user={author} />
       </span>
     );

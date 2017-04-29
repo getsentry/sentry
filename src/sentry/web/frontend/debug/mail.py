@@ -444,7 +444,6 @@ def report(request):
                     random.choice('0123456789abcdef') for _ in range(40)
                 ]),
                 date_added=dt,
-                date_started=dt,
             )
 
     def build_issue_summaries():

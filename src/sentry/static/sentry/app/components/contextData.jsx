@@ -117,8 +117,7 @@ const ContextData = React.createClass({
               (valueInfo.isString ? 'val-string' : 'val-repr') +
                 (valueInfo.isStripped ? ' val-stripped' : '') +
                 (valueInfo.isMultiLine ? ' val-string-multiline' : '')
-            }
-          >
+            }>
             {valueInfo.repr}
           </span>
         ];

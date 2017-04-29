@@ -174,8 +174,7 @@ const SetCallsignsAction = React.createClass({
               <div className={className} key={project.projectId}>
                 <label
                   htmlFor={inputId}
-                  className="col-sm-6 col-sm-offset-2 control-label"
-                >
+                  className="col-sm-6 col-sm-offset-2 control-label">
                   {project.teamName} / {project.projectName}
                 </label>
                 <div className="col-sm-2">
@@ -195,8 +194,7 @@ const SetCallsignsAction = React.createClass({
               type="button"
               onClick={this.onSubmit}
               className="btn btn-primary btn-lg"
-              disabled={!canSubmit}
-            >
+              disabled={!canSubmit}>
               {t('Set Call Signs')}
             </button>
           </div>

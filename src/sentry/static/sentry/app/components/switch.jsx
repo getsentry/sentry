@@ -33,8 +33,7 @@ const Switch = React.createClass({
         className={switchClasses}
         onClick={this.props.isDisabled ? null : this.props.toggle}
         role="checkbox"
-        aria-checked={this.props.isActive}
-      >
+        aria-checked={this.props.isActive}>
         <span className="switch-toggle" />
       </div>
     );

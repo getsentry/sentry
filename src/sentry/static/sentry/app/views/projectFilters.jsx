@@ -159,7 +159,7 @@ const LegacyBrowserFilterRow = React.createClass({
     let entries = LEGACY_BROWSER_KEYS.map(key => {
       let subfilter = LEGACY_BROWSER_SUBFILTERS[key];
       return (
-        <div className="col-md-4">
+        <div className="col-md-4" key={key}>
           <div className="filter-grid-item">
             <div className={'filter-grid-icon icon-' + subfilter.icon} />
             <h5>{subfilter.title}</h5>
@@ -300,8 +300,7 @@ const ProjectFiltersSettingsForm = React.createClass({
             <button
               type="submit"
               className="btn btn-sm btn-primary"
-              disabled={isSaving || !this.state.hasChanged}
-            >
+              disabled={isSaving || !this.state.hasChanged}>
               {t('Save Changes')}
             </button>
 

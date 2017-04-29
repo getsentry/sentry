@@ -60,8 +60,7 @@ const ExceptionInterface = React.createClass({
         event={event}
         type={this.props.type}
         title={title}
-        wrapTitle={false}
-      >
+        wrapTitle={false}>
         <CrashContent
           group={group}
           event={event}
