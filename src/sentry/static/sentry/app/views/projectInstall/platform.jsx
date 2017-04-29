@@ -84,8 +84,7 @@ const ProjectInstallPlatform = React.createClass({
       <Link
         key={platform}
         to={`/${orgId}/${projectId}/settings/install/${platform}/`}
-        className="list-group-item"
-      >
+        className="list-group-item">
         {display || platform}
       </Link>
     );
@@ -100,8 +99,7 @@ const ProjectInstallPlatform = React.createClass({
             <LanguageNav
               key={p_item.id}
               name={p_item.name}
-              active={platform && platform.id === p_item.id}
-            >
+              active={platform && platform.id === p_item.id}>
               {p_item.integrations.map(i_item => {
                 return this.getPlatformLink(
                   i_item.id,
@@ -161,8 +159,7 @@ const ProjectInstallPlatform = React.createClass({
             <p>
               <Link
                 to={`/${orgId}/${projectId}/#welcome`}
-                className="btn btn-primary btn-lg"
-              >
+                className="btn btn-primary btn-lg">
                 {t('Got it! Take me to the Issue Stream.')}
               </Link>
             </p>}

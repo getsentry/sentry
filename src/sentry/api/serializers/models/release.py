@@ -210,7 +210,6 @@ class ReleaseSerializer(Serializer):
             'shortVersion': obj.short_version,
             'ref': obj.ref,
             'url': obj.url,
-            'dateStarted': obj.date_started,
             'dateReleased': obj.date_released,
             'dateCreated': obj.date_added,
             'data': obj.data,

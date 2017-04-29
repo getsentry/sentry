@@ -178,7 +178,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             )
             self_assign_issue = UserOption.objects.get_value(
                 user=acting_user,
-                project=None,
                 key='self_assign_issue',
                 default='0'
             )

@@ -72,9 +72,9 @@ const RuleRow = React.createClass({
                     When <strong>{data.actionMatch}</strong> of these conditions are met:
                   </h6>
                   <table className="conditions-list table">
-                    {data.conditions.map(condition => {
+                    {data.conditions.map((condition, i) => {
                       return (
-                        <tr>
+                        <tr key={i}>
                           <td>{condition.name}</td>
                         </tr>
                       );
@@ -93,9 +93,9 @@ const RuleRow = React.createClass({
                     for an issue:
                   </h6>
                   <table className="actions-list table">
-                    {data.actions.map(action => {
+                    {data.actions.map((action, i) => {
                       return (
-                        <tr>
+                        <tr key={i}>
                           <td>{action.name}</td>
                         </tr>
                       );
@@ -203,8 +203,7 @@ const ProjectAlertRules = React.createClass({
       <div>
         <a
           href={`/${orgId}/${projectId}/settings/alerts/rules/new/`}
-          className="btn pull-right btn-primary btn-sm"
-        >
+          className="btn pull-right btn-primary btn-sm">
           <span className="icon-plus" />
           {t('New Alert Rule')}
         </a>

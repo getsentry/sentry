@@ -16,7 +16,7 @@ from sentry.models import (
 )
 from sentry.tasks.deletion import (
     delete_api_application, delete_group, delete_organization, delete_project,
-    delete_tag_key, delete_team, generic_delete, revoke_api_tokens
+    delete_repository, delete_tag_key, delete_team, generic_delete, revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -369,3 +369,53 @@ class GenericDeleteTest(TestCase):
             generic_delete('sentry', 'project', object_id=project.id)
 
         assert not Project.objects.filter(id=project.id).exists()
+
+
+class DeleteRepoTest(TestCase):
+    def test_does_not_delete_visible(self):
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            status=ObjectStatus.VISIBLE,
+            provider='dummy',
+            organization_id=org.id,
+            name='example/example',
+        )
+
+        with self.tasks():
+            with pytest.raises(DeleteAborted):
+                delete_repository(object_id=repo.id)
+
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.status == ObjectStatus.VISIBLE
+
+    def test_deletes(self):
+        org = self.create_organization()
+        repo = Repository.objects.create(
+            status=ObjectStatus.PENDING_DELETION,
+            organization_id=org.id,
+            provider='dummy',
+            name='example/example',
+        )
+        repo2 = Repository.objects.create(
+            status=ObjectStatus.PENDING_DELETION,
+            organization_id=org.id,
+            provider='dummy',
+            name='example/example2',
+        )
+        commit = Commit.objects.create(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='1234abcd',
+        )
+        commit2 = Commit.objects.create(
+            repository_id=repo2.id,
+            organization_id=org.id,
+            key='1234abcd',
+        )
+
+        with self.tasks():
+            delete_repository(object_id=repo.id)
+
+        assert not Repository.objects.filter(id=repo.id).exists()
+        assert not Commit.objects.filter(id=commit.id).exists()
+        assert Commit.objects.filter(id=commit2.id).exists()

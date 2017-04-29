@@ -178,7 +178,7 @@ const OrganizationSettingsForm = React.createClass({
             name="isEarlyAdopter"
             label={t('Early Adopter')}
             value={formData.isEarlyAdopter}
-            help={t('Opt-in to new features before they\'re released to the public.')}
+            help={t("Opt-in to new features before they're released to the public.")}
             required={false}
             error={errors.isEarlyAdopter}
             onChange={this.onFieldChange.bind(this, 'isEarlyAdopter')}
@@ -301,8 +301,7 @@ const OrganizationSettingsForm = React.createClass({
           <button
             type="submit"
             className="btn btn-primary"
-            disabled={isSaving || !this.state.hasChanges}
-          >
+            disabled={isSaving || !this.state.hasChanges}>
             {t('Save Changes')}
           </button>
         </fieldset>

@@ -27,7 +27,6 @@ class StartReleaseTest(TestCase):
             organization_id=project.organization_id,
             version=version,
         )
-        assert release.date_started
         assert release.organization
         assert ReleaseProject.objects.get(release=release, project=project)
 
@@ -45,7 +44,6 @@ class StartReleaseTest(TestCase):
             projects=project,
             version=version,
         )
-        assert release.date_started
         assert release.organization == project.organization
 
 
@@ -78,7 +76,6 @@ class FinishReleaseTest(TestCase):
             projects=project,
             version=version,
         )
-        assert release.date_started
         assert release.organization == project.organization
 
 

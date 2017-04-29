@@ -10,7 +10,7 @@ echo "There are currently {{ issues|length }} missing debug symbols:"
   echo "   - {{ issue.uuid }}  [{{ issue.name }}]"
 {% endfor %}
 
-DOWNLOAD_URL="https://github.com/getsentry/sentry-cli/releases/download/1.5.0/sentry-cli-Darwin-x86_64"
+DOWNLOAD_URL="https://github.com/getsentry/sentry-cli/releases/download/1.7.0/sentry-cli-Darwin-x86_64"
 TEMP_FILE=`mktemp "${TMPDIR:-/tmp}/.sentrycli.XXXXXXXX"`
 cleanup() {
   rm -f "$TEMP_FILE"

@@ -93,8 +93,7 @@ const EventEntries = React.createClass({
             group={group}
             event={evt}
             type={entry.type}
-            title={entry.type}
-          >
+            title={entry.type}>
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );

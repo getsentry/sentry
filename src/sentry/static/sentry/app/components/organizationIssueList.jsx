@@ -48,14 +48,12 @@ const OrganizationIssueList = React.createClass({
               to={path}
               className={
                 'btn btn-sm btn-default' + (status === 'unresolved' ? ' active' : '')
-              }
-            >
+              }>
               {t('Unresolved')}
             </Link>
             <Link
               to={{pathname: path, query: {status: ''}}}
-              className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}
-            >
+              className={'btn btn-sm btn-default' + (status === '' ? ' active' : '')}>
               {t('All Issues')}
             </Link>
           </div>

@@ -38,7 +38,7 @@ const AdminUsers = React.createClass({
         <h3>{t('Users')}</h3>
         <ResultGrid
           path="/manage/users/"
-          endpoint={`/users/`}
+          endpoint={'/users/'}
           method="GET"
           columns={columns}
           columnsForRow={this.getRow}

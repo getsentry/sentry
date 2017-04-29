@@ -22,8 +22,7 @@ const Indicators = React.createClass({
         <ReactCSSTransitionGroup
           transitionName="toast"
           transitionEnter={false}
-          transitionLeaveTimeout={500}
-        >
+          transitionLeaveTimeout={500}>
           {this.state.items.map(indicator => {
             if (indicator.type === 'error' || indicator.type === 'success') {
               return (

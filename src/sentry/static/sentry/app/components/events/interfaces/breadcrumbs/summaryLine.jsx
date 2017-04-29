@@ -62,8 +62,7 @@ const SummaryLine = React.createClass({
       <div
         className={className}
         onClick={this.onToggle}
-        ref={this.makeSummariesGreatAgain}
-      >
+        ref={this.makeSummariesGreatAgain}>
         {this.props.children}
       </div>
     );

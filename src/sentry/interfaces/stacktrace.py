@@ -125,7 +125,6 @@ def is_newest_frame_first(event):
     if env.request and env.request.user.is_authenticated():
         display = UserOption.objects.get_value(
             user=env.request.user,
-            project=None,
             key='stacktrace_order',
             default=None,
         )

@@ -35,8 +35,7 @@ const DeviceInterface = React.createClass({
         event={event}
         type="device"
         title={t('Device')}
-        wrapTitle={true}
-      >
+        wrapTitle={true}>
         <table className="table key-value">
           <tbody>
             {data.name &&

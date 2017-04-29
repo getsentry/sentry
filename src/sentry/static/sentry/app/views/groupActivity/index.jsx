@@ -3,6 +3,7 @@ import React from 'react';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
+import {CommitLink} from '../../views/releases/releaseCommits';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
@@ -50,7 +51,13 @@ const GroupActivity = React.createClass({
       case 'set_resolved_in_commit':
         return t('%(author)s marked this issue as fixed in %(version)s', {
           author: author,
-          version: data.commit.id.substr(0, 12)
+          version: (
+            <CommitLink
+              inline={true}
+              commitId={data.commit.id}
+              repository={data.commit.repository}
+            />
+          )
         });
       case 'set_unresolved':
         return t('%s marked this issue as unresolved', author);
@@ -99,10 +106,6 @@ const GroupActivity = React.createClass({
             return t('%s assigned this event to an unknown user', author);
           }
         }
-        return t('%(author)s assigned this event to %(assignee)s', {
-          author: author,
-          assignee: assignee.email
-        });
       case 'unassigned':
         return t('%s unassigned this issue', author);
       case 'merge':

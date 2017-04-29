@@ -91,6 +91,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         :pparam string version: the version identifier of the release.
         :pparam string file_id: the ID of the file to update.
         :param string name: the new name of the file.
+        :param string dist: the name of the dist.
         :auth: required
         """
         try:

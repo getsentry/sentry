@@ -34,8 +34,7 @@ const LanguageNav = React.createClass({
           <span
             style={{
               display: isVisible ? 'block' : 'none'
-            }}
-          >
+            }}>
             {this.props.children}
           </span>
         </ul>
