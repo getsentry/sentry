@@ -79,11 +79,11 @@ class UserDetailsEndpoint(UserEndpoint):
             user = serializer.save()
 
             options = request.DATA.get('options', {})
-            if options.get('seenRelaseBroadcast'):
+            if options.get('seenReleaseBroadcast'):
                 UserOption.objects.set_value(
                     user=user,
                     key='seen_release_broadcast',
-                    value=options.get('seenRelaseBroadcast')
+                    value=options.get('seenReleaseBroadcast')
                 )
             return Response(serialize(user, request.user))
 

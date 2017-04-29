@@ -56,7 +56,7 @@ const BroadcastModal = React.createClass({
     //tell server to close
     let user = ConfigStore.get('user');
     let markedData = {options: {}};
-    markedData.options.seenRelaseBroadcast = true;
+    markedData.options.seenReleaseBroadcast = true;
 
     this.api.request(`/users/${user.id}/`, {
       method: 'PUT',

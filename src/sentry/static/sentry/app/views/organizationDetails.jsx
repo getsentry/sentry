@@ -140,7 +140,7 @@ const OrganizationDetails = React.createClass({
   shouldShowBroadCast(data) {
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
-    let seen = options.seenRelaseBroadcast;
+    let seen = options.seenReleaseBroadcast;
     let tasks = data.onboardingTasks;
     // don't show broadcast they've seen it
     if (seen) {
