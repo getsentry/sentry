@@ -62,12 +62,10 @@ const BroadcastModal = React.createClass({
       method: 'PUT',
       data: markedData,
       success: (data, _, jqXHR) => {
-        console.log(data);
         ConfigStore.set('user', data);
         this.props.closeBroadcast();
       },
       error: err => {
-        console.log(err);
         this.props.closeBroadcast();
       }
     });

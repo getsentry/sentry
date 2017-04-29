@@ -142,12 +142,22 @@ const OrganizationDetails = React.createClass({
     let options = user ? user.options : {};
     let seen = options.seenRelaseBroadcast;
     let tasks = data.onboardingTasks;
+    // don't show broadcast they've seen it
+    if (seen) {
+      return false;
+    }
 
-    let firstEvent = tasks.find(({task, status}) => task == 2 && status == 'complete');
-    let long_enough_ago =
-      firstEvent && moment().diff(firstEvent.dateCompleted, 'days') > 2;
+    // also if they havn't sent their first event
+    let sentFirstEvent = tasks.find(
+      ({task, status}) => task == 2 && status == 'complete'
+    );
 
-    return !seen && firstEvent && long_enough_ago;
+    if (!sentFirstEvent) {
+      return false;
+    }
+
+    // show it if they sent their first event more than 2 days ago
+    return moment().diff(sentFirstEvent.dateCompleted, 'days') > 2;
   },
 
   closeBroadcast() {
