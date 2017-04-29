@@ -12,7 +12,7 @@ const ReleaseAnnouncement = props => {
         <span className="badge badge-square badge-new">NEW</span>
       </h3>
       <p>
-        <img src="https://d3vv6lp55qjaqc.cloudfront.net/items/3O211Y3U0x2r371k2r26/broadcast-screenshot.png?X-CloudApp-Visitor-Id=17234&v=c85cb825" />
+        <img src="./static/sentry/images/onboarding/release-commits-modal.gif" />
       </p>
       <p>
         Knowing what code changed recently is extremely helpful in determining the cause of an error. With that in mind, we’re excited to announce that we’ve expanded our Releases feature to support commit data. If you include commit data when creating a release, you’ll unlock a number of helpful features.

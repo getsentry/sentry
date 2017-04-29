@@ -78,9 +78,6 @@ class UserDetailsEndpoint(UserEndpoint):
         if serializer.is_valid():
             user = serializer.save()
 
-            result = serialize(user, request.user)
-
-            # TODO(Maxbitter) check write access
             options = request.DATA.get('options', {})
             if options.get('seenRelaseBroadcast'):
                 UserOption.objects.set_value(
@@ -88,10 +85,6 @@ class UserDetailsEndpoint(UserEndpoint):
                     key='seen_release_broadcast',
                     value=options.get('seenRelaseBroadcast')
                 )
-                result['options']['seenRelaseBroadcast'] = UserOption.objects.get_value(
-                    user=user,
-                    key='seen_release_broadcast',
-                )
-            return Response(result)
+            return Response(serialize(user, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

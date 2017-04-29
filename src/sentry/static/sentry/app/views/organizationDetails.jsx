@@ -7,7 +7,7 @@ import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import BroadcastModal from '../components/broadcastModal';
-
+import moment from 'moment';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';
@@ -141,10 +141,13 @@ const OrganizationDetails = React.createClass({
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
     let seen = options.seenRelaseBroadcast;
-    console.log('seen: ' + seen);
-    console.log(data.onboardingTasks);
-    let show = !seen;
-    return show;
+    let tasks = data.onboardingTasks;
+
+    let firstEvent = tasks.find(({task, status}) => task == 2 && status == 'complete');
+    let long_enough_ago =
+      firstEvent && moment().diff(firstEvent.dateCompleted, 'days') > 2;
+
+    return !seen && firstEvent && long_enough_ago;
   },
 
   closeBroadcast() {
