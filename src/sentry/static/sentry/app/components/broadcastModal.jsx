@@ -3,7 +3,7 @@ import IconCloseLg from '../icons/icon-close-lg';
 import ConfigStore from '../stores/configStore.jsx';
 import ApiMixin from '../mixins/apiMixin';
 
-const ReleaseAnnouncement = props => {
+const ReleaseAnnouncement = ({close}) => {
   return (
     <div>
       <h3>
@@ -12,17 +12,23 @@ const ReleaseAnnouncement = props => {
         <span className="badge badge-square badge-new">NEW</span>
       </h3>
       <p>
-        <img src="./static/sentry/images/onboarding/release-commits-modal.gif" />
+        <img src="http://localhost:8000/_static/1493424212/sentry/images/onboarding/release-commits-modal.gif" />
       </p>
       <p>
         Knowing what code changed recently is extremely helpful in determining the cause of an error. With that in mind, we’re excited to announce that we’ve expanded our Releases feature to support commit data. If you include commit data when creating a release, you’ll unlock a number of helpful features.
       </p>
-      <p>
+      <p className="release-buttons">
         <a className="btn btn-primary btn-lg" href="#">Read the full post</a>
-        {/* <a className="btn btn-default btn-lg" href="#">Okay</a> */}
+        <a className="btn btn-default btn-lg" href="#" onClick={close}>
+          Dismiss
+        </a>
       </p>
     </div>
   );
+};
+
+ReleaseAnnouncement.propTypes = {
+  close: React.PropTypes.func.isRequired
 };
 
 const BroadcastModal = React.createClass({
@@ -33,20 +39,17 @@ const BroadcastModal = React.createClass({
 
   getInitialState() {
     return {
-      alerts: [ReleaseAnnouncement], // ReleaseAnnouncement, ReleaseAnnouncement],
+      alerts: [ReleaseAnnouncement],
       index: 0
     };
   },
 
   componentWillMount() {
     document.addEventListener('keydown', this.handleKeyDown);
-
-    // $(document.body).addClass('modal-open');
   },
 
   componentWillUnmount() {
     document.removeEventListener('keydown', this.handleKeyDown);
-    // $(document.body).removeClass('modal-open');
   },
 
   close() {
@@ -105,7 +108,7 @@ const BroadcastModal = React.createClass({
                   <IconCloseLg />
                 </span>
               </div>
-              {message()}
+              {message({close: this.close})}
             </div>
           </div>
         </div>
