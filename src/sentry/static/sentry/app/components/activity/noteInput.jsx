@@ -7,7 +7,7 @@ import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
-import mentionsStyle from '../../styles/mentions-styles';
+import mentionsStyle from '../../../styles/mentions-styles';
 
 import {MentionsInput, Mention} from 'react-mentions';
 
