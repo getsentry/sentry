@@ -16,17 +16,33 @@ const ReleaseAnnouncement = ({close}) => {
         <img src={mediaUrl + 'dist/release-commits-modal.gif'} />
       </p>
       <p>
-        Knowing what code changed recently is extremely helpful in determining the cause of an error. With that in mind, we’re excited to announce that we’ve expanded our Releases feature to support commit data. If you include commit data when creating a release, you’ll unlock a number of helpful features.
+        <h5 style={{lineHeight: '1.2'}}>
+          By integrating commit data with Sentry, you’ll unlock a number of helpful features:
+        </h5>
+        <ul>
+          <li>
+            Enhanced releases overview page that allows you to see new and resolved issues, files changed and authors all in the same place
+          </li>
+          <li>
+            Resolving Sentry issues via commit messages
+          </li>
+          <li>
+            Suggested assignees for issues
+          </li>
+          <li>
+            Detailed summary emails when a deploy goes out
+          </li>
+        </ul>
       </p>
       <p className="release-buttons">
+        <a className="btn btn-default btn-lg" href="#" onClick={close}>
+          Dismiss
+        </a>
         <a
           className="btn btn-primary btn-lg"
           href="https://blog.sentry.io/2017/05/01/release-commits.html"
           onClick={close}>
           Read the full post
-        </a>
-        <a className="btn btn-default btn-lg" href="#" onClick={close}>
-          Dismiss
         </a>
       </p>
     </div>
