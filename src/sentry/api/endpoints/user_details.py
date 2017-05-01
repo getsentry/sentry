@@ -83,7 +83,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 UserOption.objects.set_value(
                     user=user,
                     key='seen_release_broadcast',
-                    value=options.get('seenReleaseBroadcast')
+                    value=options.get('seenReleaseBroadcast'),
                 )
             return Response(serialize(user, request.user))
 

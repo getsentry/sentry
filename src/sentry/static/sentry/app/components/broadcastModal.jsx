@@ -1,7 +1,8 @@
 import React from 'react';
 import IconCloseLg from '../icons/icon-close-lg';
-import ConfigStore from '../stores/configStore.jsx';
+import ConfigStore from '../stores/configStore';
 import ApiMixin from '../mixins/apiMixin';
+import {logAjaxError} from '../utils/logging';
 
 const ReleaseAnnouncement = ({close}) => {
   const mediaUrl = ConfigStore.get('mediaUrl');
@@ -15,25 +16,23 @@ const ReleaseAnnouncement = ({close}) => {
       <p>
         <img src={mediaUrl + 'dist/release-commits-modal.gif'} />
       </p>
-      <p>
-        <h5 style={{lineHeight: '1.2'}}>
-          By integrating commit data with Sentry, you’ll unlock a number of helpful features:
-        </h5>
-        <ul>
-          <li>
-            Enhanced releases overview page that allows you to see new and resolved issues, files changed and authors all in the same place
-          </li>
-          <li>
-            Resolving Sentry issues via commit messages
-          </li>
-          <li>
-            Suggested assignees for issues
-          </li>
-          <li>
-            Detailed summary emails when a deploy goes out
-          </li>
-        </ul>
-      </p>
+      <h5 style={{lineHeight: '1.2'}}>
+        By integrating commit data with Sentry, you’ll unlock a number of helpful features:
+      </h5>
+      <ul>
+        <li>
+          Enhanced releases overview page that allows you to see new and resolved issues, files changed and authors all in the same place
+        </li>
+        <li>
+          Resolving Sentry issues via commit messages
+        </li>
+        <li>
+          Suggested assignees for issues
+        </li>
+        <li>
+          Detailed summary emails when a deploy goes out
+        </li>
+      </ul>
       <p className="release-buttons">
         <a className="btn btn-default btn-lg" href="#" onClick={close}>
           Dismiss
@@ -77,10 +76,12 @@ const BroadcastModal = React.createClass({
   close() {
     //tell server to close
     let user = ConfigStore.get('user');
-    let markedData = {options: {}};
-    markedData.options.seenReleaseBroadcast = true;
-
-    this.api.request(`/users/${user.id}/`, {
+    let markedData = {
+      options: {
+        seenReleaseBroadcast: true
+      }
+    };
+    this.api.request(`/userzs/${user.id}/`, {
       method: 'PUT',
       data: markedData,
       success: (data, _, jqXHR) => {
@@ -88,6 +89,7 @@ const BroadcastModal = React.createClass({
         this.props.closeBroadcast();
       },
       error: err => {
+        logAjaxError(err);
         this.props.closeBroadcast();
       }
     });
