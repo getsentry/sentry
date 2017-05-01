@@ -15,7 +15,7 @@ from django.conf import settings
 from django.utils import timezone
 from enum import Enum
 
-from sentry.utils.dates import to_timestamp
+from sentry.utils.dates import to_datetime, to_timestamp
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -181,6 +181,22 @@ class BaseTSDB(object):
 
         return rollup, sorted(series)
 
+    def get_active_series(self, start=None, end=None, timestamp=None):
+        rollups = {}
+        for rollup, samples in self.rollups.items():
+            _, series = self.get_optimal_rollup_series(
+                start if start is not None else to_datetime(
+                    self.get_earliest_timestamp(
+                        rollup,
+                        timestamp=timestamp,
+                    ),
+                ),
+                end,
+                rollup=rollup,
+            )
+            rollups[rollup] = map(to_datetime, series)
+        return rollups
+
     def calculate_expiry(self, rollup, samples, timestamp):
         """
         Calculate the expiration time for a rollup.
@@ -229,6 +245,12 @@ class BaseTSDB(object):
     def merge(self, model, destination, sources, timestamp=None):
         """
         Transfer all counters from the source keys to the destination key.
+        """
+        raise NotImplementedError
+
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all counters.
         """
         raise NotImplementedError
 
@@ -311,6 +333,12 @@ class BaseTSDB(object):
         """
         raise NotImplementedError
 
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all distinct counters.
+        """
+        raise NotImplementedError
+
     def record_frequency_multi(self, requests, timestamp=None):
         """
         Record items in a frequency table.
@@ -378,5 +406,11 @@ class BaseTSDB(object):
         """
         Transfer all frequency tables from the source keys to the destination
         key.
+        """
+        raise NotImplementedError
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        """
+        Delete all frequency tables.
         """
         raise NotImplementedError
