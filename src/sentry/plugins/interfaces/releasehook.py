@@ -91,16 +91,14 @@ class ReleaseHook(object):
 
         # check if user exists, and then try to get refs based on version
         if values.get('owner', None):
-            try:
-                repo = Repository.objects.get(
-                    organization_id=self.project.organization_id)
-            except (Repository.MultipleObjectsReturned, Repository.DoesNotExist):
-                pass
-            else:
+            repos = Repository.objects.filter(
+                organization_id=self.project.organization_id,
+            )[0:2]
+            if len(repos) == 1:
                 release.set_refs(
                     refs=[{
                         'commit': version,
-                        'repository': repo.name}],
+                        'repository': repos[0].name}],
                     user=values['owner'],
                     fetch=True
                 )
