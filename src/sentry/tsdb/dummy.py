@@ -20,6 +20,9 @@ class DummyTSDB(BaseTSDB):
     def merge(self, model, destination, sources, timestamp=None):
         pass
 
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        pass
+
     def get_range(self, model, keys, start, end, rollup=None):
         _, series = self.get_optimal_rollup_series(start, end, rollup)
         return {k: [(ts, 0) for ts in series] for k in keys}
@@ -38,6 +41,9 @@ class DummyTSDB(BaseTSDB):
         return 0
 
     def merge_distinct_counts(self, model, destination, sources, timestamp=None):
+        pass
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
         pass
 
     def record_frequency_multi(self, requests, timestamp=None):
@@ -71,4 +77,7 @@ class DummyTSDB(BaseTSDB):
         return results
 
     def merge_frequencies(self, model, destination, sources, timestamp=None):
+        pass
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
         pass
