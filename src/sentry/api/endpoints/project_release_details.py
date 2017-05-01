@@ -57,7 +57,6 @@ def update_release_scenario(runner):
 class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
-    dateStarted = serializers.DateTimeField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
     commits = ListField(child=CommitSerializer(), required=False)
 
@@ -111,8 +110,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         :param url url: a URL that points to the release.  This can be the
                         path to an online interface to the sourcecode
                         for instance.
-        :param datetime dateStarted: an optional date that indicates when the
-                                     release process started.
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
                                       the current time is assumed.
@@ -137,8 +134,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
         was_released = bool(release.date_released)
 
         kwargs = {}
-        if result.get('dateStarted'):
-            kwargs['date_started'] = result['dateStarted']
         if result.get('dateReleased'):
             kwargs['date_released'] = result['dateReleased']
         if result.get('ref'):

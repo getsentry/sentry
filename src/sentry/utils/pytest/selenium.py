@@ -15,6 +15,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions
 from six.moves.urllib.parse import quote, urlparse
 
+# if we're not running in a PR, we kill the PERCY_TOKEN because its a push
+# to a branch, and we dont want percy comparing things
+# we do need to ensure its run on master so that changes get updated
+if os.environ.get('TRAVIS_PULL_REQUEST', 'false') == 'false' and os.environ.get('TRAVIS_BRANCH', 'master') != 'master':
+    os.environ.setdefault('PERCY_ENABLE', '0')
+
 
 class Browser(object):
     def __init__(self, driver, live_server, percy):

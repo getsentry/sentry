@@ -45,13 +45,14 @@ const Breadcrumb = React.createClass({
   },
 
   render() {
+    let {crumb} = this.props;
     return (
       <li className={this.getClassName()}>
         <span className="icon-container">
           <span className="icon" />
         </span>
-        <span className="dt">
-          {moment(this.props.crumb.timestamp).format('HH:mm:ss')}
+        <span className="dt" title="{moment(crumb.timestamp).format()}">
+          {moment(crumb.timestamp).format('HH:mm:ss')}
         </span>
         {this.renderType()}
       </li>

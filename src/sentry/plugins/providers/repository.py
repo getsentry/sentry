@@ -83,3 +83,7 @@ class RepositoryProvider(ProviderMixin):
 
     def compare_commits(self, repo, start_sha, end_sha, actor=None):
         raise NotImplementedError
+
+    @staticmethod
+    def should_ignore_commit(message):
+        return '#skipsentry' in message
