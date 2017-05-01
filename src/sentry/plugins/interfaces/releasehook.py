@@ -90,7 +90,7 @@ class ReleaseHook(object):
         )
 
         # check if a deploy_provider has been passed in and if user exists
-        if values.get('deploy_provider', None) and values.get('owner', None):
+        if values.get('owner', None):
             try:
                 repo = Repository.objects.get(
                     organization_id=self.project.organization_id)
@@ -99,9 +99,9 @@ class ReleaseHook(object):
             else:
                 release.set_refs(
                     refs=[{
-                        'commit': values.get('head_commit', None),
+                        'commit': version,
                         'repository': repo.name}],
-                    user=values.owner,
+                    user=values['owner'],
                     fetch=True
                 )
 
