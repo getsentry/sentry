@@ -11,11 +11,11 @@ class NoteSerializer(serializers.Serializer):
     mentions = ListField(required=False)
 
     def validate_mentions(self, attrs, source):
-        if source in attrs:
+        if source in attrs and 'group' in self.context:
             mentions = attrs[source]
+            project = Project.objects.get(id=self.context['group'].project_id)
         else:
             mentions = None
-        project = Project.objects.get(id=self.context['group'].project_id)
         if mentions:
             users = User.objects.filter(id__in=mentions)
             for u in users:
