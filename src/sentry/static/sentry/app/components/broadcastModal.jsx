@@ -4,6 +4,7 @@ import ConfigStore from '../stores/configStore.jsx';
 import ApiMixin from '../mixins/apiMixin';
 
 const ReleaseAnnouncement = ({close}) => {
+  const mediaUrl = ConfigStore.get('mediaUrl');
   return (
     <div>
       <h3>
@@ -12,13 +13,18 @@ const ReleaseAnnouncement = ({close}) => {
         <span className="badge badge-square badge-new">NEW</span>
       </h3>
       <p>
-        <img src="http://localhost:8000/_static/1493424212/sentry/images/onboarding/release-commits-modal.gif" />
+        <img src={mediaUrl + 'dist/release-commits-modal.gif'} />
       </p>
       <p>
         Knowing what code changed recently is extremely helpful in determining the cause of an error. With that in mind, we’re excited to announce that we’ve expanded our Releases feature to support commit data. If you include commit data when creating a release, you’ll unlock a number of helpful features.
       </p>
       <p className="release-buttons">
-        <a className="btn btn-primary btn-lg" href="#">Read the full post</a>
+        <a
+          className="btn btn-primary btn-lg"
+          href="https://blog.sentry.io/2017/05/01/release-commits.html"
+          onClick={close}>
+          Read the full post
+        </a>
         <a className="btn btn-default btn-lg" href="#" onClick={close}>
           Dismiss
         </a>
