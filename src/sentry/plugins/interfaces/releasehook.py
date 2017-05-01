@@ -89,7 +89,7 @@ class ReleaseHook(object):
             datetime=values['date_released'],
         )
 
-        # check if a deploy_provider has been passed in and if user exists
+        # check if user exists, and then try to get refs based on version
         if values.get('owner', None):
             try:
                 repo = Repository.objects.get(
