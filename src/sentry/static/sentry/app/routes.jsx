@@ -206,27 +206,12 @@ function routes() {
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
           <Route path="releases/" component={errorHandler(ProjectReleases)} />
-          {/* TODO(jess): take this out when we release releases to everyone */}
           <Route
             name="releaseDetails"
             path="releases/:version/"
-            component={errorHandler(ReleaseDetails)}
-            getIndexRoute={(partialNextState, cb) => {
-              let client = new this.api.Client();
-              let orgId = partialNextState.params.orgId;
-              client.request(`/organizations/${orgId}/`, {
-                method: 'GET',
-                success: (data, _, jqXHR) => {
-                  if (new Set(data.features).has('release-commits')) {
-                    cb(null, {component: errorHandler(ReleaseOverview)});
-                  } else {
-                    cb(null, {component: errorHandler(ReleaseNewEvents)});
-                  }
-                }
-              });
-            }}>
+            component={errorHandler(ReleaseDetails)}>
+            <IndexRoute component={errorHandler(ReleaseOverview)} />
             <Route path="new-events/" component={errorHandler(ReleaseNewEvents)} />
-            <Route path="overview/" component={errorHandler(ReleaseOverview)} />
             <Route path="all-events/" component={errorHandler(ReleaseAllEvents)} />
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
             <Route path="commits/" component={errorHandler(ReleaseCommits)} />
