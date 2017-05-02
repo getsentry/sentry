@@ -14,7 +14,7 @@ const ReleaseAnnouncement = ({close}) => {
         <span className="badge badge-square badge-new">NEW</span>
       </h3>
       <p>
-        <img src={mediaUrl + 'dist/release-commits-modal.gif'} />
+        <img src={mediaUrl + 'images/onboarding/release-commits-modal.gif'} />
       </p>
       <h5 style={{lineHeight: '1.2'}}>
         By integrating commit data with Sentry, you’ll unlock a number of helpful features:
