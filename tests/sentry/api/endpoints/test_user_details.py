@@ -4,7 +4,7 @@ import six
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Authenticator, AuthIdentity, AuthProvider, User
+from sentry.models import Authenticator, AuthIdentity, AuthProvider, User, UserOption
 from sentry.testutils import APITestCase
 
 
@@ -93,6 +93,9 @@ class UserUpdateTest(APITestCase):
         resp = self.client.put(url, data={
             'name': 'hello world',
             'username': 'b@example.com',
+            'options': {
+                'seenReleaseBroadcast': True
+            }
         })
         assert resp.status_code == 200, resp.content
         assert resp.data['id'] == six.text_type(user.id)
@@ -101,6 +104,10 @@ class UserUpdateTest(APITestCase):
         assert user.name == 'hello world'
         assert user.email == 'b@example.com'
         assert user.username == user.email
+        assert UserOption.objects.get_value(
+            user=user,
+            key='seen_release_broadcast',
+        ) is True
 
     def test_superuser(self):
         user = self.create_user(email='a@example.com')
