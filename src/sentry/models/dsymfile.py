@@ -68,9 +68,13 @@ def _auto_enrich_data(data, app_id, platform):
     if 'icon_url' not in data and platform == DSymPlatform.APPLE:
         from sentry.http import safe_urlopen
         try:
-            rv = safe_urlopen('http://itunes.apple.com/lookup', params={
-                'bundleId': app_id,
-            })
+            rv = safe_urlopen(
+                'https://itunes.apple.com/lookup',
+                params={
+                    'bundleId': app_id,
+                },
+                allow_redirects=True,
+            )
         except RequestException:
             pass
         else:
