@@ -4,7 +4,7 @@ import underscore from 'underscore';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import ListLink from '../components/listLink';
-import PluginConfig from '../components/pluginConfig';
+import PluginList from '../components/pluginList';
 import {FormState, RangeField, TextField} from '../components/forms';
 import {t, tct} from '../locale';
 
@@ -252,44 +252,6 @@ const GeneralSettings = React.createClass({
   }
 });
 
-const InactivePlugins = React.createClass({
-  propTypes: {
-    plugins: React.PropTypes.array.isRequired,
-    onEnablePlugin: React.PropTypes.func.isRequired
-  },
-
-  enablePlugin(plugin) {
-    return this.props.onEnablePlugin(plugin, true);
-  },
-
-  render() {
-    let plugins = this.props.plugins;
-    if (plugins.length === 0) return null;
-    return (
-      <div className="box">
-        <div className="box-header">
-          <h3>{t('Inactive Integrations')}</h3>
-        </div>
-        <div className="box-content with-padding">
-          <ul className="integration-list">
-            {plugins.map(plugin => {
-              return (
-                <li key={plugin.id}>
-                  <button
-                    onClick={this.enablePlugin.bind(this, plugin)}
-                    className={`ref-plugin-enable-${plugin.id}`}>
-                    {plugin.name}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      </div>
-    );
-  }
-});
-
 const ProjectAlertSettings = React.createClass({
   propTypes: {
     // these are not declared as required of issues with cloned elements
@@ -303,8 +265,33 @@ const ProjectAlertSettings = React.createClass({
 
   getInitialState() {
     return {
-      project: this.props.project
+      loading: true,
+      error: false,
+      pluginList: []
     };
+  },
+
+  componentDidMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
+      success: (data, _, jqXHR) => {
+        this.setState({
+          error: false,
+          loading: false,
+          pluginList: data.filter(p => p.type === 'notification'),
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true,
+          loading: false
+        });
+      }
+    });
   },
 
   onDigestsChange(data) {
@@ -328,39 +315,32 @@ const ProjectAlertSettings = React.createClass({
     });
   },
 
-  enablePlugin(plugin) {
-    let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId} = this.props.params;
-    this.api.request(`/projects/${orgId}/${projectId}/plugins/${plugin.id}/`, {
-      method: 'POST',
-      data: this.state.formData,
-      success: data => {
-        // TODO(dcramer): propagate this in a more correct way
-        plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-        plugin.enabled = true;
-        this.setState({project: this.state.project});
-      },
-      error: error => {
-        IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-      },
-      complete: () => {
-        IndicatorStore.remove(loadingIndicator);
-      }
-    });
+  onEnablePlugin(plugin) {
+    this.setState({pluginList: this.state.pluginList.map(p => {
+      if (p.id !== plugin.id)
+        return p;
+      return {
+        ...plugin,
+        enabled: true,
+      };
+    })});
   },
 
   onDisablePlugin(plugin) {
-    // TODO(dcramer): propagate this in a more correct way
-    plugin = this.state.project.plugins.find(p => p.id === plugin.id);
-    plugin.enabled = false;
-    this.setState({project: this.state.project});
+    this.setState({pluginList: this.state.pluginList.map(p => {
+      if (p.id !== plugin.id)
+        return p;
+      return {
+        ...plugin,
+        enabled: false,
+      };
+    })});
   },
 
   render() {
     let {orgId, projectId} = this.props.params;
-    let organization = this.props.organization;
-    let project = this.state.project;
-    let plugins = project.plugins.filter(p => p.type == 'notification');
+    let {organization, project} = this.props;
+    let {pluginList} = this.state;
     return (
       <div>
         <a
@@ -410,23 +390,12 @@ const ProjectAlertSettings = React.createClass({
           onSave={this.onDigestsChange}
         />
 
-        {plugins.filter(p => p.enabled).map(data => {
-          return (
-            <PluginConfig
-              data={data}
-              organization={organization}
-              project={project}
-              key={data.id}
-              onDisablePlugin={this.onDisablePlugin.bind(this, data)}
-            />
-          );
-        })}
-
-        <InactivePlugins
-          plugins={plugins.filter(p => !p.enabled)}
-          onEnablePlugin={this.enablePlugin}
-        />
-
+        <PluginList
+          organization={organization}
+          project={project}
+          pluginList={pluginList}
+          onEnablePlugin={this.onEnablePlugin}
+          onDisablePlugin={this.onDisablePlugin} />
       </div>
     );
   }
