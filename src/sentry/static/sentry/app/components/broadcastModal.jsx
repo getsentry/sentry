@@ -81,7 +81,7 @@ const BroadcastModal = React.createClass({
         seenReleaseBroadcast: true
       }
     };
-    this.api.request(`/userzs/${user.id}/`, {
+    this.api.request(`/users/${user.id}/`, {
       method: 'PUT',
       data: markedData,
       success: (data, _, jqXHR) => {
