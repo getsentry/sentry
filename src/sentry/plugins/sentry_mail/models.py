@@ -64,6 +64,13 @@ class MailPlugin(NotificationPlugin):
         subject_prefix = force_text(subject_prefix)
         subject = force_text(subject)
 
+        try:
+            subject_prefix = subject_prefix.encode("utf-8")
+            subject = subject.encode("utf-8")
+        except UnicodeDecodeError:
+            subject_prefix = unicode(subject_prefix, "utf-8")
+            subject = unicode(subject, "utf-8")
+
         msg = MessageBuilder(
             subject='%s%s' % (subject_prefix, subject),
             template=template,
