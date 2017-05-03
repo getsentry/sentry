@@ -53,7 +53,7 @@ const OrganizationDetails = React.createClass({
       error: false,
       errorType: null,
       organization: null,
-      showBroadcast: false
+      showBroadCast: false
     };
   },
 
@@ -100,7 +100,7 @@ const OrganizationDetails = React.createClass({
           error: false,
           errorType: null,
           hooks: hooks,
-          showBroadcast: this.shouldShowBroadcast(data)
+          showBroadCast: this.shouldShowBroadCast(data)
         });
 
         TeamStore.loadInitialData(data.teams);
@@ -137,7 +137,7 @@ const OrganizationDetails = React.createClass({
     return 'Sentry';
   },
 
-  shouldShowBroadcast(data) {
+  shouldShowBroadCast(data) {
     let user = ConfigStore.get('user');
     let options = user ? user.options : {};
     let seen = options.seenReleaseBroadcast;
@@ -161,7 +161,7 @@ const OrganizationDetails = React.createClass({
   },
 
   closeBroadcast() {
-    this.setState({showBroadcast: false});
+    this.setState({showBroadCast: false});
   },
 
   render() {
@@ -191,7 +191,7 @@ const OrganizationDetails = React.createClass({
         <div className="app">
           {this.state.hooks}
           <Sidebar />
-          {this.state.showBroadcast &&
+          {this.state.showBroadCast &&
             <BroadcastModal closeBroadcast={this.closeBroadcast} />}
           {this.props.children}
           <Footer />
