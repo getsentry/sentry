@@ -336,8 +336,10 @@ class ClientApiHelper(object):
                 ts_bits = value.split('.', 1)
                 value = '%s.%s' % (ts_bits[0], ts_bits[1][:2])
                 fmt = '%Y-%m-%dT%H:%M:%S.%f'
-            else:
+            elif 'T' in value:
                 fmt = '%Y-%m-%dT%H:%M:%S'
+            else:
+                fmt = '%Y-%m-%d %H:%M:%S'
             try:
                 value = datetime.strptime(value, fmt)
             except Exception:

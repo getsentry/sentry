@@ -159,6 +159,14 @@ class ProcessDataTimestampTest(BaseAPITest):
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], 1325413845.0)
 
+    def test_simple_timestamp(self):
+        d = datetime(2012, 01, 01, 10, 30, 45)
+        data = self.helper._process_data_timestamp({
+            'timestamp': '2012-01-01 10:30:45'
+        }, current_datetime=d)
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], 1325413845.0)
+
     def test_invalid_timestamp(self):
         self.assertRaises(InvalidTimestamp, self.helper._process_data_timestamp, {
             'timestamp': 'foo'
