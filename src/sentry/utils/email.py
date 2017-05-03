@@ -379,6 +379,9 @@ class MessageBuilder(object):
         extra = {
             'message_type': self.type
         }
+        # Extract rule_id specifically and the rest generically.
+        first_rule = self.context.get('rules', [None])[0]
+        extra['rule_id'] = first_rule.id if first_rule else None
         loggable = [v for k, v in six.iteritems(self.context) if hasattr(v, 'id')]
         for context in loggable:
             extra['%s_id' % type(context).__name__.lower()] = context.id
