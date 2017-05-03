@@ -37,15 +37,6 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             continue
 
         try:
-            commit = Commit.objects.get(
-                organization_id=release.organization_id,
-                repository_id=repo.id,
-                key=ref['commit'],
-            )
-        except Commit.DoesNotExist:
-            continue
-
-        try:
             provider_cls = bindings.get('repository.provider').get(repo.provider)
         except KeyError:
             continue
@@ -66,7 +57,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         else:
             continue
 
-        end_sha = commit.key
+        end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
         try:
             repo_commits = provider.compare_commits(
