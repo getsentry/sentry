@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import logging
 import posixpath
 
-from symsynd.demangle import demangle_symbol
 from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
 from symsynd.images import ImageLookup
@@ -20,7 +19,6 @@ from sentry.lang.native.systemsymbols import lookup_system_symbols
 from sentry.utils import metrics
 from sentry.stacktraces import StacktraceProcessor
 from sentry.reprocessing import report_processing_issue
-from sentry.constants import NATIVE_UNKNOWN_STRING
 
 
 logger = logging.getLogger(__name__)
@@ -193,19 +191,15 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         if processable_frame.cache_value is None:
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
-            sym_input_frame = {
-                'object_name': frame.get('package'),
-                'instruction_addr': processable_frame.data['instruction_addr'],
-                'symbol_name': frame.get('function'),
-            }
-            in_app = self.sym.is_in_app(sym_input_frame)
+            instruction_addr = processable_frame.data['instruction_addr']
+            in_app = self.sym.is_in_app(instruction_addr)
             raw_frame['in_app'] = in_app
             img_uuid = processable_frame.data['image_uuid']
             if img_uuid is not None:
                 self.dsyms_referenced.add(img_uuid)
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
-                    sym_input_frame, self.sdk_info,
+                    instruction_addr, self.sdk_info,
                     symbolserver_match=processable_frame.data['symbolserver_match'])
                 if not symbolicated_frames:
                     return None, [raw_frame], []
@@ -258,28 +252,19 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             raw_frame['in_app'] = in_app
 
         for sfrm in symbolicated_frames:
-            symbol = sfrm.get('symbol_name') or \
-                frame.get('function') or NATIVE_UNKNOWN_STRING
-            function = demangle_symbol(symbol, simplified=True)
-
             new_frame = dict(frame)
-            new_frame['function'] = function
-
-            # If we demangled something, store the original in the
-            # symbol portion of the frame
-            if function != symbol:
-                new_frame['symbol'] = symbol
-
-            new_frame['abs_path'] = sfrm.get('filename') or None
-            if new_frame['abs_path']:
-                new_frame['filename'] = posixpath.basename(
-                    new_frame['abs_path'])
-            if sfrm.get('line') is not None:
-                new_frame['lineno'] = sfrm['line']
-            if sfrm.get('column') is not None:
-                new_frame['colno'] = sfrm['column']
-            new_frame['package'] = sfrm['object_name'] \
-                or new_frame.get('package')
+            new_frame['function'] = sfrm['function']
+            if sfrm.get('symbol'):
+                new_frame['symbol'] = sfrm['symbol']
+            new_frame['abs_path'] = sfrm['abs_path']
+            new_frame['filename'] = sfrm.get('filename') or \
+                posixpath.basename(sfrm['abs_path'])
+            if sfrm.get('lineno'):
+                new_frame['lineno'] = sfrm['lineno']
+            if sfrm.get('colno'):
+                new_frame['colno'] = sfrm['colno']
+            if sfrm.get('package'):
+                new_frame['package'] = sfrm['package']
             new_frame['in_app'] = in_app
             new_frames.append(new_frame)
 
