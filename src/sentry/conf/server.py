@@ -635,7 +635,9 @@ LOGGING = {
     },
     'root': {
         'level': 'NOTSET',
-        'handlers': ['console', 'internal'],
+        # Always run the internal handler first so that Raven can get to
+        # sys info before anything else might mutate it.
+        'handlers': ['internal', 'console'],
     },
     # LOGGING.overridable is a list of loggers including root that will change
     # based on the overridden level defined above.
