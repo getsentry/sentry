@@ -305,7 +305,7 @@ def twofactor_settings(request):
     context = csrf(request)
     context.update({
         'page': 'security',
-        'has_2fa': any(x.is_enrolled and not x.is_backup_interface for x in interfaces),
+        'has_2fa': Authenticator.objects.user_has_2fa(request.user),
         'interfaces': interfaces,
         'has_newsletters': newsletter.is_enabled,
     })

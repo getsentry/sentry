@@ -130,7 +130,7 @@ class AuthenticatorManager(BaseManager):
         """
         return Authenticator.objects.filter(
             user=user,
-            type__in=[a.type for a in available_authenticators(ignore_backup=True)],
+            type__in=[a.type for a in available_authenticators(ignore_backup=False)],
         ).exists()
 
     def bulk_users_have_2fa(self, user_ids):
@@ -139,7 +139,7 @@ class AuthenticatorManager(BaseManager):
         """
         authenticators = set(Authenticator.objects.filter(
             user__in=user_ids,
-            type__in=[a.type for a in available_authenticators(ignore_backup=True)],
+            type__in=[a.type for a in available_authenticators(ignore_backup=False)],
         ).distinct().values_list('user_id', flat=True))
         return {id: id in authenticators for id in user_ids}
 
