@@ -108,6 +108,16 @@ class AuthenticatorManager(BaseManager):
             interface.enroll(user)
             return interface
 
+    def add_email_fallback(self, user):
+        """Enables the email fallback for a user."""
+        auth = Authenticator.objects.filter(
+            user=user,
+            type=EmailInterface.type
+        ).first()
+        if auth is None:
+            iface = EmailInterface()
+            iface.enroll(user)
+
     def get_interface(self, user, interface_id):
         """Looks up an interface by interface ID for a user.  If the
         interface is not available but configured a
@@ -163,6 +173,11 @@ def available_authenticators(ignore_backup=False):
     return [v for v in interfaces if not v.is_backup_interface and v.is_available]
 
 
+def transitional_authenticators():
+    interfaces = six.itervalues(AUTHENTICATOR_INTERFACES)
+    return [v for v in interfaces if v.is_transitional_interface]
+
+
 class AuthenticatorInterface(object):
     type = -1
     interface_id = None
@@ -173,6 +188,8 @@ class AuthenticatorInterface(object):
     configure_button = _('Info')
     remove_button = _('Remove')
     is_available = True
+    is_hidden = False
+    is_transitional_interface = False
     allow_multi_enrollment = False
 
     def __init__(self, authenticator=None):
@@ -249,6 +266,14 @@ class AuthenticatorInterface(object):
                 raise Authenticator.AlreadyEnrolled()
             self.authenticator.config = self.config
             self.authenticator.save()
+
+        # If we just enrolled a non transitional interface and non backup
+        # interface we delete the transitional interfaces on the account.
+        if not self.is_transitional_interface and not self.is_backup_interface:
+            Authenticator.objects.filter(
+                user=user,
+                type__in=[a.type for a in transitional_authenticators()]
+            ).delete()
 
     def validate_otp(self, otp):
         """This method is invoked for an OTP response and has to return
@@ -552,6 +577,60 @@ class U2fInterface(AuthenticatorInterface):
         except (InvalidSignature, InvalidKey, StopIteration):
             return False
         return True
+
+
+@register_authenticator
+class EmailInterface(OtpMixin, AuthenticatorInterface):
+    """This interface sends OTP codes via email.  This is used as a fallback
+    if we need to wipe authenticators.
+    """
+    type = 4
+    interface_id = 'email'
+    name = _('Email')
+    is_hidden = True
+    is_transitional_interface = True
+    description = _('This authenticator sends you mails for '
+                    'verification.  You cannot add this authenticator '
+                    'yourself. You see it because the last authenticator was '
+                    'removed from your account. You should replace it for '
+                    'a real one.')
+    code_ttl = 90
+
+    def make_otp(self):
+        return TOTP(self.config['secret'], digits=6, interval=self.code_ttl,
+                    default_window=1)
+
+    def send_email(self, request=None):
+        if self.authenticator is None:
+            return False
+        from sentry.utils.email import MessageBuilder
+
+        ctx = {'code': self.make_otp().generate_otp()}
+
+        text = _('%(code)s is your Sentry authentication code.')
+
+        if request is not None:
+            text = u'%s\n\n%s' % (text, _('Requested from %(ip)s'))
+            ctx['ip'] = request.META['REMOTE_ADDR']
+
+        msg = MessageBuilder(
+            subject='Sentry Backup Authentication Code',
+            template='sentry/emails/auth-backup-2fa.txt',
+            html_template='sentry/emails/auth-backup-2fa.html',
+            context=ctx,
+        )
+        msg.add_users([self.authenticator.user.id])
+        msg.send_async()
+        return True
+
+    def activate(self, request):
+        if self.send_email(request):
+            return ActivationMessageResult(
+                _('Your authenticator was removed by customer support. '
+                  'A recovery code was sent to your email address which is '
+                  'valid for %d seconds.') % self.code_ttl)
+        # This should not happen but then stored recovery codes can be
+        # used still so no reason to complain.
 
 
 class Authenticator(BaseModel):

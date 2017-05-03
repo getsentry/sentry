@@ -1,0 +1,9 @@
+Your authentication device was removed by customer support.  As a fallback
+you can confirm your sign in with this email.  Provide the following
+authentication code for sign in:
+
+    {{ code }}
+
+{% if ip %}
+The login was requested from the following IP: {{ ip }}
+{% endif %}

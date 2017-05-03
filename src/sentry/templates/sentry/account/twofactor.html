@@ -18,6 +18,7 @@
   </p>
   <div class="method-list">
   {% for auth in interfaces %}
+    {% if auth.is_enrolled or not auth.is_hidden %}
     <div class="box box-collapse-margins {% if auth.is_enrolled %}enrolled{% else %}not-enrolled{% endif %}">
       <div class="pull-right">
       {% if auth.is_enrolled %}
@@ -46,6 +47,7 @@
       <h4>{{ auth.name }}</h4>
       <p>{{ auth.description }}</p>
     </div>
+    {% endif %}
   {% endfor %}
   </div>
 

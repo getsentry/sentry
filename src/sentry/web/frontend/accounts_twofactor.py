@@ -133,6 +133,10 @@ class TwoFactorSettingsView(BaseView):
                                   context, request)
 
     def enroll(self, request, interface, insecure=False):
+        if interface.is_transitional_interface:
+            # This interface cannot be enrolled into
+            raise Http404()
+
         next = request.path
         # Only enroll if it's either not an insecure enrollment or we are
         # enrolling a backup interface when we already had a primary one.
@@ -305,3 +309,7 @@ class U2fSettingsView(TwoFactorSettingsView):
         context['u2f_form'] = u2f_form
         return render_to_response('sentry/account/twofactor/enroll_u2f.html',
                                   context, request)
+
+
+class EmailSettingsView(TwoFactorSettingsView):
+    interface_id = 'email'

@@ -4,7 +4,9 @@ import six
 import time
 
 from django.http import HttpResponseRedirect, HttpResponse
+from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext as _
+from django.contrib import messages
 
 from sentry import options
 from sentry.web.frontend.base import BaseView
@@ -26,11 +28,21 @@ class TwoFactorAuthView(BaseView):
         rv = HttpResponseRedirect(auth.get_login_redirect(request))
         if interface is not None:
             interface.authenticator.mark_used()
-            if not interface.is_backup_interface:
+            # If we're dealing with a transitional interface then we
+            # forward the user to the settings to manage their two-factor
+            # account
+            if interface.is_transitional_interface:
+                messages.warning(request, _('You are currently using a '
+                                            'temporary authenticator that '
+                                            'should be replaced for a real '
+                                            'one.'))
+                rv = HttpResponseRedirect(reverse('sentry-account-settings-2fa'))
+            elif not interface.is_backup_interface:
                 rv.set_cookie(
                     COOKIE_NAME,
                     six.text_type(interface.type).encode('utf-8'),
                     max_age=COOKIE_MAX_AGE, path='/')
+
         return rv
 
     def fail_signin(self, request, user, form):
