@@ -479,15 +479,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                               referenced_images=referenced_images,
                               on_dsym_file_referenced=on_referenced)
 
-        # The symbolizer gets a reference to the debug meta's images so
-        # when it resolves the missing vmaddrs it changes them in the data
-        # dict.
-        data = self.sym.resolve_missing_vmaddrs()
-
         if options.get('symbolserver.enabled'):
             self.fetch_system_symbols(processing_task)
-
-        return data
 
     def fetch_system_symbols(self, processing_task):
         to_lookup = []

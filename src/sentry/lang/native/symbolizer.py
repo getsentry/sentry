@@ -4,15 +4,15 @@ import re
 import six
 import bisect
 
-from symsynd.driver import Driver, SymbolicationError, normalize_dsym_path
+from symsynd.driver import Driver, SymbolicationError
 from symsynd.report import ReportSymbolizer
-from symsynd.macho.arch import get_cpu_name, get_macho_vmaddr
+from symsynd.macho.arch import get_cpu_name
 from symsynd.utils import parse_addr
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
-from sentry.models import DSymSymbol, EventError
+from sentry.models import EventError
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 
@@ -101,23 +101,8 @@ def trim_frame(frame):
     return frame
 
 
-def find_system_symbol(img, instruction_addr, sdk_info=None, cpu_name=None):
-    """Finds a system symbol."""
-    img_cpu_name = get_cpu_name(img['cpu_type'], img['cpu_subtype'])
-    cpu_name = img_cpu_name or cpu_name
-    return DSymSymbol.objects.lookup_symbol(
-        instruction_addr=instruction_addr,
-        image_addr=img['image_addr'],
-        image_vmaddr=img['image_vmaddr'],
-        uuid=img['uuid'],
-        cpu_name=cpu_name,
-        object_path=img['name'],
-        sdk_info=sdk_info
-    )
-
-
 def make_symbolizer(project, image_lookup, referenced_images=None,
-        on_dsym_file_referenced=None):
+                    on_dsym_file_referenced=None):
     """Creates a symbolizer for the given project and binary images.  If a
     list of referenced images is referenced (UUIDs) then only images
     needed by those frames are loaded.
@@ -189,38 +174,12 @@ class Symbolizer(object):
             on_dsym_file_referenced=on_dsym_file_referenced)
         self.cpu_name = cpu_name
 
-    def resolve_missing_vmaddrs(self):
-        """When called this changes the vmaddr on all contained images from
-        the information in the dsym files (if there is no vmaddr already).
-        This changes both the image data from the original event submission
-        in the debug meta as well as the image data that the symbolizer uses.
-        """
-        changed_any = False
-
-        loaded_images = self.symsynd_symbolizer.images
-        for image_addr, image in six.iteritems(self.image_lookup.images):
-            if image.get('image_vmaddr') or not image.get('image_addr'):
-                continue
-            image_info = loaded_images.get(image_addr)
-            if not image_info:
-                continue
-            dsym_path = normalize_dsym_path(image_info['dsym_path'])
-            # Here we use the CPU name from the image as it might be
-            # slightly different (armv7 vs armv7f for instance)
-            cpu_name = image_info['cpu_name']
-            image_vmaddr = get_macho_vmaddr(dsym_path, cpu_name)
-            if image_vmaddr:
-                image['image_vmaddr'] = image_vmaddr
-                image_info['image_vmaddr'] = image_vmaddr
-                changed_any = True
-
-        return changed_any
-
     def close(self):
         self.symsynd_symbolizer.driver.close()
 
     def _process_frame(self, frame, img):
         rv = trim_frame(frame)
+
         if img is not None:
             # Only set the object name if we "upgrade" it from a filename to
             # full path.
@@ -307,8 +266,7 @@ class Symbolizer(object):
 
         try:
             rv = self.symsynd_symbolizer.symbolize_frame(
-                frame, silent=False, demangle=False,
-                symbolize_inlined=symbolize_inlined)
+                frame, symbolize_inlined=symbolize_inlined)
         except SymbolicationError as e:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
@@ -335,22 +293,6 @@ class Symbolizer(object):
                 symbol_name=symbolserver_match['symbol'], filename=None,
                 line=0, column=0,
                 object_name=symbolserver_match['object_name']), img)
-        else:
-            symbol = find_system_symbol(
-                img, frame['instruction_addr'], sdk_info, self.cpu_name)
-            if symbol is None:
-                # Simulator frames cannot be symbolicated
-                if self._is_simulator_frame(frame, img):
-                    type = EventError.NATIVE_SIMULATOR_FRAME
-                else:
-                    type = EventError.NATIVE_MISSING_SYSTEM_DSYM
-                raise SymbolicationFailed(
-                    type=type,
-                    image=img
-                )
-            rv = self._process_frame(dict(frame,
-                symbol_name=symbol, filename=None, line=0, column=0,
-                object_name=img['name']), img)
 
         # We actually do not support inline symbolication for system
         # frames, so we just only ever return a single frame here.  Maybe
