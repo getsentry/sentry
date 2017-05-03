@@ -180,7 +180,7 @@ build_session = SafeSession
 
 def safe_urlopen(url, method=None, params=None, data=None, json=None,
                  headers=None, allow_redirects=False, timeout=30,
-                 verify_ssl=True, user_agent=None):
+                 verify_ssl=True, user_agent=None, proxies=None):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
@@ -206,6 +206,9 @@ def safe_urlopen(url, method=None, params=None, data=None, json=None,
 
     if headers:
         kwargs['headers'] = headers
+
+    if proxies:
+        kwargs['proxies'] = proxies
 
     if method is None:
         method = 'POST' if (data or json) else 'GET'
