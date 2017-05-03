@@ -152,8 +152,8 @@ class GroupSerializerTest(TestCase):
             else:
                 UserOption.objects.unset_value(
                     user=user,
-                    project=project,
                     key='workflow:notifications',
+                    project=project,
                 )
 
         for options, expected_result in combinations:

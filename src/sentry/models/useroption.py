@@ -68,12 +68,16 @@ class UserOptionManager(BaseManager):
             result = self.get_all_values(user, project)
         return result.get(key, default)
 
-    def unset_value(self, user, project, key):
-        # this isn't implemented for user-organization scoped options yet, because it hasn't been needed
-        self.filter(user=user, project=project, key=key).delete()
+    def unset_value(self, user, key, **kwargs):
+        project = kwargs.get('project')
+        organization = kwargs.get('organization')
+
+        self.filter(user=user, project=project, organization=organization, key=key).delete()
         if not hasattr(self, '_metadata'):
             return
         if project:
+            metakey = project_metakey(user, project)
+        if organization:
             metakey = project_metakey(user, project)
         else:
             metakey = user_metakey(user)
