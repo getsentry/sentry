@@ -75,6 +75,9 @@ class BaseModel(models.Model):
         if self.id:
             data = {}
             for f in self._meta.fields:
+                # This is a deferred field, so we can't load it
+                if f.attname not in self.__dict__:
+                    continue
                 try:
                     data[f.column] = self.__get_field_value(f)
                 except AttributeError as e:
