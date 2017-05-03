@@ -13,13 +13,6 @@ from sentry.interfaces.contexts import DeviceContextType
 logger = logging.getLogger(__name__)
 
 
-APPLE_SDK_MAPPING = {
-    'iPhone OS': 'iOS',
-    'tvOS': 'tvOS',
-    'Mac OS': 'macOS',
-    'watchOS': 'watchOS',
-}
-
 KNOWN_DSYM_TYPES = {
     'iOS': 'macho',
     'tvOS': 'macho',
@@ -28,24 +21,6 @@ KNOWN_DSYM_TYPES = {
 }
 
 AppInfo = namedtuple('AppInfo', ['id', 'version', 'build', 'name'])
-
-
-def find_apple_crash_report_referenced_images(binary_images, threads):
-    """Given some binary images from an apple crash report and a thread
-    list this returns a list of image UUIDs to load.
-    """
-    image_map = {}
-    for image in binary_images:
-        image_map[image['image_addr']] = image['uuid']
-    to_load = set()
-    for thread in threads:
-        if 'backtrace' not in thread:
-            continue
-        for frame in thread['backtrace']['contents']:
-            img_uuid = image_map.get(frame['object_addr'])
-            if img_uuid is not None:
-                to_load.add(img_uuid)
-    return list(to_load)
 
 
 def find_all_stacktraces(data):
@@ -110,29 +85,6 @@ def get_sdk_from_os(data):
         'version_minor': system_version[1],
         'version_patchlevel': system_version[2],
         'build': data.get('build'),
-    }
-
-
-def get_sdk_from_apple_system_info(info):
-    if not info:
-        return None
-    try:
-        # Support newer mapping in old format.
-        if info['system_name'] in KNOWN_DSYM_TYPES:
-            sdk_name = info['system_name']
-        else:
-            sdk_name = APPLE_SDK_MAPPING[info['system_name']]
-        system_version = tuple(int(x) for x in (
-            info['system_version'] + '.0' * 3).split('.')[:3])
-    except (ValueError, LookupError):
-        return None
-
-    return {
-        'dsym_type': 'macho',
-        'sdk_name': sdk_name,
-        'version_major': system_version[0],
-        'version_minor': system_version[1],
-        'version_patchlevel': system_version[2],
     }
 
 
