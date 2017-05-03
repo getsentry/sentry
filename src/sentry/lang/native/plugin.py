@@ -10,14 +10,14 @@ import posixpath
 from symsynd.demangle import demangle_symbol
 from symsynd.heuristics import find_best_instruction
 from symsynd.utils import parse_addr
+from symsynd.images import ImageLookup
 
 from sentry import options
 from django.db import transaction, IntegrityError
 from sentry.models import Project, EventError, VersionDSymFile, DSymPlatform, \
     DSymApp
 from sentry.plugins import Plugin2
-from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed, \
-    ImageLookup
+from sentry.lang.native.symbolizer import Symbolizer, SymbolicationFailed
 from sentry.lang.native.utils import \
     find_apple_crash_report_referenced_images, get_sdk_from_event, \
     get_sdk_from_apple_system_info, cpu_name_from_data, APPLE_SDK_MAPPING, \
@@ -530,8 +530,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             try:
                 symbolicated_frames = self.sym.symbolize_frame(
                     sym_input_frame, self.sdk_info,
-                    symbolserver_match=processable_frame.data['symbolserver_match'],
-                    symbolize_inlined=True)
+                    symbolserver_match=processable_frame.data['symbolserver_match'])
                 if not symbolicated_frames:
                     return None, [raw_frame], []
             except SymbolicationFailed as e:

@@ -569,9 +569,7 @@ def create_files_from_macho_zip(fileobj, project=None):
 
 
 def find_dsym_file(project, image_uuid):
-    """Finds a dsym file for the given uuid.  Looks both within the project
-    as well the global store.
-    """
+    """Finds a dsym file for the given uuid."""
     image_uuid = image_uuid.lower()
     try:
         return ProjectDSymFile.objects.filter(
@@ -580,9 +578,3 @@ def find_dsym_file(project, image_uuid):
         ).select_related('file').get()
     except ProjectDSymFile.DoesNotExist:
         pass
-    try:
-        return GlobalDSymFile.objects.filter(
-            uuid=image_uuid
-        ).select_related('file').get()
-    except GlobalDSymFile.DoesNotExist:
-        return None
