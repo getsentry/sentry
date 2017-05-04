@@ -196,7 +196,6 @@ class Symbolizer(object):
                 dsym_path, img['image_vmaddr'], img['image_addr'],
                 instruction_addr, self.cpu_name, symbolize_inlined=True)
         except SymbolicationError as e:
-            raise
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
                 message=six.text_type(e),
