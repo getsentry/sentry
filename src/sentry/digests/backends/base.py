@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import logging
 
 from sentry.utils.imports import import_string
+from sentry.utils.services import Service
 
 
 logger = logging.getLogger('sentry.digests')
@@ -24,7 +25,7 @@ class InvalidState(Exception):
     """
 
 
-class Backend(object):
+class Backend(Service):
     """
     A digest backend coordinates the addition of records to timelines, as well
     as scheduling their digestion (processing.) This allows for summarizations
@@ -103,9 +104,6 @@ class Backend(object):
                 raise TypeError('No timeline capacity has been set, "truncation_chance" must be None.')
             else:
                 self.truncation_chance = 0.0
-
-    def validate(self):
-        pass
 
     def enabled(self, project):
         """

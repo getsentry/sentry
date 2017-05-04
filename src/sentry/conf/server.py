@@ -283,6 +283,8 @@ INSTALLED_APPS = (
     'raven.contrib.django.raven_compat',
     'rest_framework',
     'sentry',
+    'sentry.analytics',
+    'sentry.analytics.events',
     'sentry.nodestore',
     'sentry.search',
     'sentry.lang.javascript',
@@ -851,6 +853,10 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 SENTRY_FILESTORE_ALIASES = {
     'filesystem': 'django.core.files.storage.FileSystemStorage',
     's3': 'sentry.filestore.s3.S3Boto3Storage',
+}
+
+SENTRY_ANALYTICS_ALIASES = {
+    'noop': 'sentry.analytics.Analytics',
 }
 
 # set of backends that do not support needing SMTP mail.* settings

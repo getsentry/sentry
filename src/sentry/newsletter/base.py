@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
+from sentry.utils.services import Service
 
-class Newsletter(object):
+
+class Newsletter(Service):
     __all__ = ('is_enabled', 'get_subscriptions', 'update_subscription',
                'create_or_update_subscription')
 

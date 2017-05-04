@@ -16,6 +16,7 @@ from django.utils import timezone
 from enum import Enum
 
 from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.services import Service
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -74,7 +75,7 @@ class TSDBModel(Enum):
     frequent_environments_by_group = 408
 
 
-class BaseTSDB(object):
+class BaseTSDB(Service):
     __all__ = (
         'models', 'incr', 'incr_multi', 'get_range', 'get_rollups', 'get_sums',
         'rollup', 'validate',
@@ -96,14 +97,6 @@ class BaseTSDB(object):
             legacy_rollups = getattr(settings, 'SENTRY_TSDB_LEGACY_ROLLUPS', {})
 
         self.__legacy_rollups = legacy_rollups
-
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
 
     def get_rollups(self):
         return self.rollups
