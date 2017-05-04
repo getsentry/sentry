@@ -42,7 +42,9 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             continue
 
         # if previous commit isn't provided, try to get from
-        # previous release otherwise, give up
+        # previous release otherwise, try to get
+        # recent commits from provider api
+        start_sha = None
         if ref.get('previousCommit'):
             start_sha = ref['previousCommit']
         elif prev_release:
@@ -53,9 +55,7 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                     repository_id=repo.id,
                 ).values_list('key', flat=True)[0]
             except IndexError:
-                continue
-        else:
-            continue
+                pass
 
         end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
