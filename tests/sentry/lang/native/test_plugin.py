@@ -5,54 +5,13 @@ from mock import patch
 from sentry.models import Event
 from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
-from sentry.lang.native.plugin import convert_stacktrace
 
 from symsynd import parse_addr
 
 
-def test_legacy_stacktrace_converter():
-    addr = {'foo': 'bar'}
-    rv = convert_stacktrace([
-        {
-            'symbol_name': '<redacted>',
-            'symbol_addr': 6479154912,
-            'instruction_addr': 6479155036,
-            'object_name': 'CoreFoundation',
-            'object_addr': 6477955072
-        },
-        {
-            'symbol_name': 'objc_exception_throw',
-            'symbol_addr': 6820298568,
-            'instruction_addr': 6820298624,
-            'object_name': 'libobjc.A.dylib',
-            'object_addr': 6820265984
-        }
-    ], notable_addresses=addr)['frames']
-    assert len(rv) == 2
-    assert rv == [
-        {'abs_path': None,
-         'filename': None,
-         'function': 'objc_exception_throw',
-         'in_app': False,
-         'instruction_addr': '0x196857f80',
-         'lineno': None,
-         'package': 'libobjc.A.dylib',
-         'symbol_addr': '0x196857f48'},
-        {'abs_path': None,
-         'filename': None,
-         'function': '<redacted>',
-         'in_app': False,
-         'instruction_addr': '0x182300f5c',
-         'lineno': None,
-         'package': 'CoreFoundation',
-         'symbol_addr': '0x182300ee0',
-         'vars': {'foo': 'bar'}}
-    ]
-
-
 class BasicResolvingIntegrationTest(TestCase):
 
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame')
+    @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame')
     def test_frame_resolution(self, symbolize_frame):
         object_name = (
             "/var/containers/Bundle/Application/"
@@ -62,10 +21,11 @@ class BasicResolvingIntegrationTest(TestCase):
 
         symbolize_frame.return_value = [{
             'filename': 'Foo.swift',
-            'line': 42,
-            'column': 23,
-            'object_name': object_name,
-            'symbol_name': 'real_main',
+            'abs_path': 'Foo.swift',
+            'lineno': 42,
+            'colno': 23,
+            'package': object_name,
+            'function': 'real_main',
             'symbol_addr': '0x1000262a0',
             "instruction_addr": '0x100026330',
         }]
@@ -225,34 +185,35 @@ class BasicResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, frame, img, symbolize_inlined=False):
-        assert symbolize_inlined
+    def sym_app_frame(self, instruction_addr, img):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
             "SentryTest.app/SentryTest"
         )
-        if not (4295098384 <= parse_addr(frame['instruction_addr']) < 4295098388):
+        if not (4295098384 <= parse_addr(instruction_addr) < 4295098388):
             return [{
                 'filename': 'Foo.swift',
-                'line': 82,
-                'column': 23,
-                'object_name': object_name,
-                'symbol_name': 'other_main',
+                'abs_path': 'Foo.swift',
+                'lineno': 82,
+                'colno': 23,
+                'package': object_name,
+                'function': 'other_main',
                 'symbol_addr': '0x1',
                 "instruction_addr": '0x1',
             }]
         return [{
             'filename': 'Foo.swift',
-            'line': 42,
-            'column': 23,
-            'object_name': object_name,
-            'symbol_name': 'real_main',
+            'abs_path': 'Foo.swift',
+            'lineno': 42,
+            'colno': 23,
+            'package': object_name,
+            'function': 'real_main',
             'symbol_addr': '0x1000262a0',
             "instruction_addr": '0x100026330',
         }]
 
-    @patch.object(Symbolizer, 'symbolize_app_frame', sym_app_frame)
+    @patch.object(Symbolizer, '_symbolize_app_frame', sym_app_frame)
     def test_frame_resolution_no_sdk_info(self):
         object_name = (
             "/var/containers/Bundle/Application/"

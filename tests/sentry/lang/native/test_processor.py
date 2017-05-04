@@ -21,36 +21,35 @@ SDK_INFO = {
 }
 
 
-def patched_symbolize_app_frame(self, frame, img, symbolize_inlined=False):
-    assert symbolize_inlined
+def patched_symbolize_app_frame(self, instruction_addr, img):
     return [{
         'filename': 'Foo.swift',
-        'line': 42,
-        'column': 23,
-        'object_name': OBJECT_NAME,
-        'symbol_name': 'real_main',
+        'abs_path': 'Foo.swift',
+        'lineno': 42,
+        'colno': 23,
+        'package': OBJECT_NAME,
+        'function': 'real_main',
     }]
 
 
-def patched_symbolize_system_frame(self, frame, img, sdk_info,
-                                   symbolize_inlined=False,
-                                   symbolserver_match=None):
-    assert symbolize_inlined
-    assert sdk_info == SDK_INFO
-    if 6016 <= frame['instruction_addr'] < 6020:
+def patched_convert_symbolserver_match(self, instruction_addr,
+                                       symbolserver_match, img):
+    if 6016 <= instruction_addr < 6020:
         return [{
-            'object_name': '/usr/lib/whatever.dylib',
-            'symbol_name': 'whatever_system',
+            'abs_path': None,
+            'filename': None,
+            'package': '/usr/lib/whatever.dylib',
+            'function': 'whatever_system',
         }]
     return []
 
 
 class BasicResolvingFileTest(TestCase):
 
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame',
+    @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame',
            new=patched_symbolize_app_frame)
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_system_frame',
-           new=patched_symbolize_system_frame)
+    @patch('sentry.lang.native.symbolizer.Symbolizer._convert_symbolserver_match',
+           new=patched_convert_symbolserver_match)
     def test_frame_resolution(self):
         event_data = {
             "sentry.interfaces.User": {
