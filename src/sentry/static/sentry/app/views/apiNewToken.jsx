@@ -171,7 +171,7 @@ const ApiNewToken = React.createClass({
 
           <p>
             {t(
-              'Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.'
+              "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
             )}
           </p>
           <p>

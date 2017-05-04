@@ -39,7 +39,7 @@ function getRubyFrame(frame) {
     result += ':' + frame.colNo;
   }
   if (defined(frame.function)) {
-    result += ':in `' + frame.function + '\'';
+    result += ':in `' + frame.function + "'";
   }
   return result;
 }

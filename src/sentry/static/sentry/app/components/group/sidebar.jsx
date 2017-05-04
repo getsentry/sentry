@@ -22,11 +22,11 @@ const GroupSidebar = React.createClass({
   mixins: [ApiMixin, GroupState],
 
   subscriptionReasons: {
-    commented: t('You\'re receiving updates because you have commented on this issue.'),
-    assigned: t('You\'re receiving updates because you were assigned to this issue.'),
-    bookmarked: t('You\'re receiving updates because you have bookmarked this issue.'),
+    commented: t("You're receiving updates because you have commented on this issue."),
+    assigned: t("You're receiving updates because you were assigned to this issue."),
+    bookmarked: t("You're receiving updates because you have bookmarked this issue."),
     changed_status: t(
-      'You\'re receiving updates because you have changed the status of this issue.'
+      "You're receiving updates because you have changed the status of this issue."
     )
   },
 
@@ -86,7 +86,7 @@ const GroupSidebar = React.createClass({
 
     if (group.isSubscribed) {
       let result = t(
-        'You\'re receiving updates because you are subscribed to this issue.'
+        "You're receiving updates because you are subscribed to this issue."
       );
       if (group.subscriptionDetails) {
         let reason = group.subscriptionDetails.reason;
@@ -95,7 +95,7 @@ const GroupSidebar = React.createClass({
         }
       } else {
         result = tct(
-          'You\'re receiving updates because you are [link:subscribed to workflow notifications] for this project.',
+          "You're receiving updates because you are [link:subscribed to workflow notifications] for this project.",
           {
             link: <a href="/account/settings/notifications/" />
           }
@@ -103,7 +103,7 @@ const GroupSidebar = React.createClass({
       }
       return result;
     } else {
-      return t('You\'re not subscribed to this issue.');
+      return t("You're not subscribed to this issue.");
     }
   },
 
