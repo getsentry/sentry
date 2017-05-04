@@ -209,7 +209,8 @@ class Symbolizer(object):
             )
         return [self._process_frame(nf, img) for nf in reversed(rv)]
 
-    def _convert_symbolserver_match(self, symbolserver_match, img):
+    def _convert_symbolserver_match(self, instruction_addr,
+                                    symbolserver_match, img):
         """Symbolizes a frame with system symbols only."""
         if symbolserver_match is None:
             return []
@@ -242,7 +243,8 @@ class Symbolizer(object):
         # we look at system symbols.  If that fails, we go to looking for
         # app symbols explicitly.
         if not self.is_image_from_app_bundle(img):
-            return self._convert_symbolserver_match(symbolserver_match, img)
+            return self._convert_symbolserver_match(instruction_addr,
+                                                    symbolserver_match, img)
 
         return self._symbolize_app_frame(instruction_addr, img)
 
