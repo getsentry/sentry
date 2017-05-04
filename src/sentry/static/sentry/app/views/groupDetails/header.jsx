@@ -27,8 +27,8 @@ const GroupHeader = React.createClass({
     ApiMixin,
     ProjectState,
     TooltipMixin({
-      selector: '.tip',
-    }),
+      selector: '.tip'
+    })
   ],
 
   onToggleMute() {
@@ -158,9 +158,14 @@ const GroupHeader = React.createClass({
                 this.getFeatures().has('callsigns') &&
                 <div className="short-id-box count align-right">
                   <h6 className="nav-header">
-                    <a className="help-link tip"
-                       title={t('This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.')}
-                       href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits">{t('Issue #')}</a>
+                    <a
+                      className="help-link tip"
+                      title={t(
+                        'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+                      )}
+                      href="https://docs.sentry.io/learn/releases/#resolving-issues-via-commits">
+                      {t('Issue #')}
+                    </a>
                   </h6>
                   <ShortId shortId={group.shortId} />
                 </div>}

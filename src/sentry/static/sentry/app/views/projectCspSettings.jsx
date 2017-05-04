@@ -207,10 +207,10 @@ const ProjectCspSettings = React.createClass({
 
     return (
       'def middleware(request, response):\n' +
-      '    response[\'Content-Security-Policy\'] = \\\n' +
+      "    response['Content-Security-Policy'] = \\\n" +
       '        "default-src *; " \\\n' +
-      '        "script-src \'self\' \'unsafe-eval\' \'unsafe-inline\' cdn.example.com cdn.ravenjs.com; " \\\n' +
-      '        "style-src \'self\' \'unsafe-inline\' cdn.example.com; " \\\n' +
+      "        \"script-src 'self' 'unsafe-eval' 'unsafe-inline' cdn.example.com cdn.ravenjs.com; \" \\\n" +
+      "        \"style-src 'self' 'unsafe-inline' cdn.example.com; \" \\\n" +
       '        "img-src * data:; " \\\n' +
       '        "report-uri ' +
       endpoint +
@@ -226,7 +226,7 @@ const ProjectCspSettings = React.createClass({
 
     return (
       'def middleware(request, response):\n' +
-      '    response[\'Content-Security-Policy-Report-Only\'] = \\\n' +
+      "    response['Content-Security-Policy-Report-Only'] = \\\n" +
       '        "default-src \'self\'; " \\\n' +
       '        "report-uri ' +
       endpoint +

@@ -163,7 +163,7 @@ const TodoList = React.createClass({
       {
         task: 2,
         title: t('Send your first event'),
-        description: t('Install Sentry\'s client and send an event'),
+        description: t("Install Sentry's client and send an event"),
         skippable: false,
         prereq: [1],
         featureLocation: 'project',

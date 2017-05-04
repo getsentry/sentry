@@ -23,7 +23,7 @@ describe('StreamTagStore', function() {
       expect(StreamTagStore.tags.assigned.values).toEqual(['me', 'janesmith']);
     });
 
-    it('should fall back to email when username isn\'t available', () => {
+    it("should fall back to email when username isn't available", () => {
       this.sandbox.stub(MemberListStore, 'getAll').returns([
         {
           email: 'janesmith@example.org'
