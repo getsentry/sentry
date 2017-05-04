@@ -3,9 +3,7 @@ from __future__ import absolute_import
 import logging
 import posixpath
 
-from symsynd.heuristics import find_best_instruction
-from symsynd.utils import parse_addr
-from symsynd.images import ImageLookup
+from symsynd import find_best_instruction, parse_addr, ImageLookup
 
 from sentry import options
 from django.db import transaction, IntegrityError
@@ -162,7 +160,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
         for pf in processing_task.iter_processable_frames(self):
             img = pf.data['image']
             if pf.cache_value is not None or img is None or \
-               self.sym.is_frame_from_app_bundle(pf.frame, img):
+               self.sym.is_image_from_app_bundle(img):
                 continue
             to_lookup.append({
                 'object_uuid': img['uuid'],
@@ -258,7 +256,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 new_frame['symbol'] = sfrm['symbol']
             new_frame['abs_path'] = sfrm['abs_path']
             new_frame['filename'] = sfrm.get('filename') or \
-                posixpath.basename(sfrm['abs_path'])
+                (sfrm['abs_path'] and posixpath.basename(sfrm['abs_path'])) or None
             if sfrm.get('lineno'):
                 new_frame['lineno'] = sfrm['lineno']
             if sfrm.get('colno'):

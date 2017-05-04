@@ -21,7 +21,7 @@ from django.db import models, router, transaction, connection, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symsynd.macho.arch import get_macho_uuids
+from symsynd import DebugInfo, DebugInfoError
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
@@ -550,13 +550,17 @@ def create_files_from_macho_zip(fileobj, project=None):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
                 try:
-                    uuids = get_macho_uuids(fn)
-                except (IOError, ValueError):
+                    di = DebugInfo.open_path(fn)
+                except DebugInfoError:
                     # Whatever was contained there, was probably not a
                     # macho file.
                     continue
-                for cpu, uuid in uuids:
-                    to_create.append((cpu, uuid, fn))
+                for variant in di.get_variants():
+                    to_create.append((
+                        variant.cpu_name,
+                        str(variant.uuid),  # noqa: B308
+                        fn,
+                    ))
 
         rv = []
         for cpu, uuid, filename in to_create:

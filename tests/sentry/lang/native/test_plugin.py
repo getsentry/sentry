@@ -7,7 +7,7 @@ from sentry.testutils import TestCase
 from sentry.lang.native.symbolizer import Symbolizer
 from sentry.lang.native.plugin import convert_stacktrace
 
-from symsynd.utils import parse_addr
+from symsynd import parse_addr
 
 
 def test_legacy_stacktrace_converter():

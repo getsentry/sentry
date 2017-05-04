@@ -4,8 +4,7 @@ import six
 import logging
 
 from collections import namedtuple
-from symsynd.macho.arch import get_cpu_name
-from symsynd.utils import parse_addr
+from symsynd import get_cpu_name, parse_addr
 
 from sentry.interfaces.contexts import DeviceContextType
 

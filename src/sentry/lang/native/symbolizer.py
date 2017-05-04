@@ -3,10 +3,8 @@ from __future__ import absolute_import
 import re
 import six
 
-from symsynd.demangle import demangle_symbol
-from symsynd.driver import Driver, SymbolicationError
-from symsynd.macho.arch import get_cpu_name
-from symsynd.images import ImageLookup
+from symsynd import demangle_symbol, SymbolicationError, get_cpu_name, \
+    ImageLookup, Symbolizer as SymsyndSymbolizer
 
 from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
@@ -105,7 +103,7 @@ class Symbolizer(object):
         else:
             self.image_lookup = ImageLookup(binary_images)
 
-        self.driver = Driver()
+        self._symbolizer = SymsyndSymbolizer()
 
         to_load = referenced_images
         if to_load is None:
@@ -117,16 +115,18 @@ class Symbolizer(object):
         self.cpu_name = cpu_name
 
     def close(self):
-        self.driver.close()
+        self._symbolizer.close()
 
     def _process_frame(self, frame, img):
-        symbol = trim(frame['function'], MAX_SYM)
-        function = trim(demangle_symbol(frame['function'], simplified=True),
+        symbol = trim(frame['symbol'], MAX_SYM)
+        function = trim(demangle_symbol(frame['symbol'], simplified=True),
                         MAX_SYM)
 
         frame['function'] = function
         if function != symbol:
             frame['symbol'] = symbol
+        else:
+            frame['symbol'] = None
 
         frame['filename'] = trim(frame.get('filename'), 256)
         frame['abs_path'] = trim(frame.get('abs_path'), 256)
@@ -189,13 +189,14 @@ class Symbolizer(object):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
-            raise SymbolicationError(type=type, image=img)
+            raise SymbolicationFailed(type=type, image=img)
 
         try:
-            rv = self.driver.symbolize(
+            rv = self._symbolizer.symbolize(
                 dsym_path, img['image_vmaddr'], img['image_addr'],
                 instruction_addr, self.cpu_name, symbolize_inlined=True)
         except SymbolicationError as e:
+            raise
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
                 message=six.text_type(e),
@@ -214,10 +215,13 @@ class Symbolizer(object):
         if symbolserver_match is None:
             return []
 
+        symbol = symbolserver_match['symbol']
+        if symbol[:1] == '_':
+            symbol = symbol[1:]
+
         return [self._process_frame(dict(
-            function=symbolserver_match['symbol'],
-            filename=None, abs_path=None, lineno=0, colno=0,
-            package=symbolserver_match['package']), img)]
+            symbol=symbol, filename=None, abs_path=None, lineno=0,
+            colno=0, package=symbolserver_match['object_name']), img)]
 
     def symbolize_frame(self, instruction_addr, sdk_info=None,
                         symbolserver_match=None):
