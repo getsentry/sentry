@@ -28,4 +28,11 @@ class UserOptionManagerTest(TestCase):
             user=self.user,
             key='deploy-emails',
             organization=self.org,
-        ) == UserOption.UserOption.committed_deploys_only
+            default=UserOptionValue.committed_deploys_only,
+        ) == UserOptionValue.committed_deploys_only
+
+        assert UserOption.objects.filter(
+            user=self.user,
+            key='deploy-emails',
+            organization=self.org,
+        ).first() is None

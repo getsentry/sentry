@@ -513,6 +513,7 @@ class NotificationDeploySettingsForm(forms.Form):
     def save(self):
         value = self.data.get('{}-notifications'.format(self.prefix), None)
         if value is not None:
+            #  this is the default, so we unset the value.
             if value == UserOptionValue.committed_deploys_only:
                 UserOption.objects.unset_value(
                     user=self.user,
