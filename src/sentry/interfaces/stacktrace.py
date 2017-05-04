@@ -12,6 +12,7 @@ __all__ = ('Stacktrace',)
 
 import re
 import six
+import posixpath
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -153,12 +154,20 @@ def remove_function_outliers(function):
     return _ruby_anon_func.sub('_<anon>', function)
 
 
-def remove_filename_outliers(filename):
+def remove_filename_outliers(filename, platform=None):
     """
     Attempt to normalize filenames by removing common platform outliers.
 
     - Sometimes filename paths contain build numbers
     """
+    # On cocoa we generally only want to use the last path component as
+    # the filename.  The reason for this is that the chances are very high
+    # that full filenames contain information we do want to strip but
+    # currently can't (for instance because the information we get from
+    # the dwarf files does not contain prefix information) and that might
+    # contain things like /Users/foo/Dropbox/...
+    if platform == 'cocoa':
+        return posixpath.basename(filename)
     return _filename_version_re.sub('<version>/', filename)
 
 
@@ -356,7 +365,7 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def get_hash(self):
+    def get_hash(self, platform=None):
         """
         The hash of the frame varies depending on the data available.
 
@@ -366,6 +375,7 @@ class Frame(Interface):
 
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
+        platform = self.platform or platform
         output = []
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -379,7 +389,7 @@ class Frame(Interface):
             else:
                 output.append(remove_module_outliers(self.module))
         elif self.filename and not self.is_url() and not self.is_caused_by():
-            output.append(remove_filename_outliers(self.filename))
+            output.append(remove_filename_outliers(self.filename, platform))
 
         if self.context_line is None:
             can_use_context = False
@@ -719,17 +729,17 @@ class Stacktrace(Interface):
         return 'sentry.interfaces.Stacktrace'
 
     def compute_hashes(self, platform):
-        system_hash = self.get_hash(system_frames=True)
+        system_hash = self.get_hash(platform, system_frames=True)
         if not system_hash:
             return []
 
-        app_hash = self.get_hash(system_frames=False)
+        app_hash = self.get_hash(platform, system_frames=False)
         if system_hash == app_hash or not app_hash:
             return [system_hash]
 
         return [system_hash, app_hash]
 
-    def get_hash(self, system_frames=True):
+    def get_hash(self, platform=None, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to platform=javascript
@@ -756,7 +766,7 @@ class Stacktrace(Interface):
 
         output = []
         for frame in frames:
-            output.extend(frame.get_hash())
+            output.extend(frame.get_hash(platform))
         return output
 
     def to_string(self, event, is_public=False, **kwargs):

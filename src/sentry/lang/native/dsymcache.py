@@ -57,9 +57,8 @@ class DSymCache(object):
         if on_dsym_file_referenced is not None:
             on_dsym_file_referenced(dsf)
 
-        base = os.path.basename(dsym_path)
         try:
-            os.makedirs(base)
+            os.makedirs(os.path.dirname(dsym_path))
         except OSError:
             pass
 
