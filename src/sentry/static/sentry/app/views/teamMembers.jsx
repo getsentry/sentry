@@ -25,7 +25,8 @@ const TeamMembers = React.createClass({
   componentWillReceiveProps(nextProps) {
     let params = this.props.params;
     if (
-      nextProps.params.teamId !== params.teamId || nextProps.params.orgId !== params.orgId
+      nextProps.params.teamId !== params.teamId ||
+      nextProps.params.orgId !== params.orgId
     ) {
       this.setState(
         {

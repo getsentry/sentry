@@ -138,7 +138,7 @@ const AccountAuthorizations = React.createClass({
           <tbody>
             <tr colSpan="2">
               <td className="blankslate well">
-                {t('You haven\'t approved any third party applications.')}
+                {t("You haven't approved any third party applications.")}
               </td>
             </tr>
           </tbody>

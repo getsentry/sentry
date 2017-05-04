@@ -269,7 +269,7 @@ const ProjectProcessingIssues = React.createClass({
             <div className="form-group" style={{marginBottom: 0}}>
               <label>
                 {t(
-                  'Paste this command into your shell and we\'ll attempt to upload the missing symbols from your machine:'
+                  "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
                 )}
               </label>
               <div

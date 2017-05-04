@@ -152,7 +152,7 @@ const ApiApplications = React.createClass({
       return (
         <tr colSpan="2">
           <td className="blankslate well">
-            {t('You haven\'t created any applications yet.')}
+            {t("You haven't created any applications yet.")}
           </td>
         </tr>
       );

@@ -51,7 +51,7 @@ describe('GroupStore', function() {
     });
 
     describe('onUpdate()', function() {
-      it('should treat undefined itemIds argument as \'all\'', function() {
+      it("should treat undefined itemIds argument as 'all'", function() {
         this.sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdate(1337, undefined, 'somedata');
 
@@ -61,7 +61,7 @@ describe('GroupStore', function() {
     });
 
     describe('onUpdateSuccess()', function() {
-      it('should treat undefined itemIds argument as \'all\'', function() {
+      it("should treat undefined itemIds argument as 'all'", function() {
         this.sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateSuccess(1337, undefined, 'somedata');
 
@@ -71,7 +71,7 @@ describe('GroupStore', function() {
     });
 
     describe('onUpdateError()', function() {
-      it('should treat undefined itemIds argument as \'all\'', function() {
+      it("should treat undefined itemIds argument as 'all'", function() {
         this.sandbox.stub(GroupStore, 'trigger');
         GroupStore.onUpdateError(1337, undefined, 'something failed', false);
 

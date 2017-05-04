@@ -78,7 +78,7 @@ const GroupHashes = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any hashes for this issue.')}</p>
+        <p>{t("There don't seem to be any hashes for this issue.")}</p>
       </div>
     );
   },

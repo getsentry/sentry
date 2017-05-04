@@ -282,7 +282,7 @@ const ProjectAlertSettings = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pluginList: data.filter(p => p.type === 'notification'),
+          pluginList: data.filter(p => p.type === 'notification')
         });
       },
       error: () => {
@@ -316,25 +316,27 @@ const ProjectAlertSettings = React.createClass({
   },
 
   onEnablePlugin(plugin) {
-    this.setState({pluginList: this.state.pluginList.map(p => {
-      if (p.id !== plugin.id)
-        return p;
-      return {
-        ...plugin,
-        enabled: true,
-      };
-    })});
+    this.setState({
+      pluginList: this.state.pluginList.map(p => {
+        if (p.id !== plugin.id) return p;
+        return {
+          ...plugin,
+          enabled: true
+        };
+      })
+    });
   },
 
   onDisablePlugin(plugin) {
-    this.setState({pluginList: this.state.pluginList.map(p => {
-      if (p.id !== plugin.id)
-        return p;
-      return {
-        ...plugin,
-        enabled: false,
-      };
-    })});
+    this.setState({
+      pluginList: this.state.pluginList.map(p => {
+        if (p.id !== plugin.id) return p;
+        return {
+          ...plugin,
+          enabled: false
+        };
+      })
+    });
   },
 
   render() {
@@ -362,7 +364,7 @@ const ProjectAlertSettings = React.createClass({
 
         <div className="alert alert-block alert-info">
           {tct(
-            'These settings cover rule-based alerts. If you\'re ' +
+            "These settings cover rule-based alerts. If you're " +
               'looking to change which notifications you receive ' +
               'you may do so from your [link:account settings].',
             {
@@ -395,7 +397,8 @@ const ProjectAlertSettings = React.createClass({
           project={project}
           pluginList={pluginList}
           onEnablePlugin={this.onEnablePlugin}
-          onDisablePlugin={this.onDisablePlugin} />
+          onDisablePlugin={this.onDisablePlugin}
+        />
       </div>
     );
   }

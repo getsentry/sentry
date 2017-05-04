@@ -97,9 +97,13 @@ const PluginConfig = React.createClass({
           <h3>{data.name}</h3>
         </div>
         <div className="box-content with-padding">
-          {data.status === 'beta' ?
-            <div className="alert alert-block alert-warning"><strong>Note: This plugin is considered beta and may change in the future.</strong></div>
-          : null}
+          {data.status === 'beta'
+            ? <div className="alert alert-block alert-warning">
+                <strong>
+                  Note: This plugin is considered beta and may change in the future.
+                </strong>
+              </div>
+            : null}
 
           {this.state.loading
             ? <LoadingIndicator />
