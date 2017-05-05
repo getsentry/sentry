@@ -311,9 +311,7 @@ def collect_tsdb_data(project, events):
     frequencies = defaultdict(
         lambda: defaultdict(
             lambda: defaultdict(
-                lambda: defaultdict(
-                    int,
-                ),
+                lambda: defaultdict(int),
             ),
         ),
     )
