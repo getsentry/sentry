@@ -464,9 +464,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                     with transaction.atomic():
                         version_dsym_file, created = VersionDSymFile.objects.get_or_create(
                             dsym_file=dsym_file,
-                            dsym_app=dsym_app,
                             version=app_info.version,
                             build=app_info.build,
+                            defaults=dict(dsym_app=dsym_app),
                         )
                 except IntegrityError:
                     # XXX: this can currently happen because we only
