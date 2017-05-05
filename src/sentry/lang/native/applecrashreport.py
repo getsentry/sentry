@@ -38,49 +38,24 @@ class AppleCrashReport(object):
         rv = []
         if self.exception and self.exception[0]:
             # We only have one exception at a time
-            exception = self.exception[0]
-            signal = ''
-            if (exception
-                .get('mechanism', {})
-                .get('posix_signal', {})
-                .get('name')
-               ):
-                signal = ' (%s)' % \
-                    exception['mechanism']['posix_signal']['name']
+            exception = self.exception[0] or {}
+            mechanism = exception.get('mechanism') or {}
 
-            name = ''
-            if (exception
-                .get('mechanism', {})
-                .get('mach_exception', {})
-                .get('exception_name')
-               ):
-                name = exception['mechanism']['mach_exception']['exception_name']
+            signal = (mechanism.get('posix_signal') or {}).get('name')
+            name = (mechanism.get('mach_exception') or {}).get('exception_name')
 
             if name or signal:
                 rv.append('Exception Type: %s%s' % (
-                    name,
-                    signal
+                    name or 'Unknown',
+                    signal and (' (%s)' % signal) or '',
                 ))
 
-            exc_name = ''
-            if (exception
-                .get('mechanism', {})
-                .get('posix_signal', {})
-                .get('code_name')
-               ):
-                exc_name = exception['mechanism']['posix_signal']['code_name']
-
-            exc_addr = ''
-            if (exception
-                .get('mechanism', {})
-                .get('relevant_address')
-               ):
-                exc_addr = ' at %s' % exception['mechanism']['relevant_address']
-
-            if exc_name and exc_addr:
+            exc_name = (mechanism.get('posix_signal') or {}).get('code_name')
+            exc_addr = mechanism.get('relevant_address')
+            if exc_name:
                 rv.append('Exception Codes: %s%s' % (
                     exc_name,
-                    exc_addr
+                    exc_addr is not None and (' at %s' % exc_addr) or '',
                 ))
 
             if exception.get('thread_id') is not None:
