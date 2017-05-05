@@ -14,6 +14,7 @@ Schema Changes
 - Dropped ``GroupTagValue.project_id`` foreign key constraint
 - Added ``Deploy.notified`` column
 - Added index on ``EventTag.date_added``
+- The threads interface now contributes to grouping if it contains a single thread.
 
 Version 8.16
 ------------
