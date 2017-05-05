@@ -16,7 +16,7 @@ describe('LetterAvatar', function() {
     displayName: 'foo@example.com'
   };
   const USER_4 = {
-    identifier: 2,
+    identifier: '2',
     displayName: ''
   };
   const USER_5 = {

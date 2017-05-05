@@ -14,6 +14,7 @@ from django.db.models import F
 
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils.services import Service
 
 
 class BufferMount(type):
@@ -24,7 +25,7 @@ class BufferMount(type):
 
 
 @six.add_metaclass(BufferMount)
-class Buffer(object):
+class Buffer(Service):
     """
     Buffers act as temporary stores for counters. The default implementation is just a passthru and
     does not actually buffer anything.
@@ -49,14 +50,6 @@ class Buffer(object):
             'filters': filters,
             'extra': extra,
         })
-
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
 
     def process_pending(self):
         return []

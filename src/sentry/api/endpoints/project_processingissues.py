@@ -33,6 +33,7 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         resp = render_to_response('sentry/reprocessing-script.sh', {
             'issues': [{
                 'uuid': issue.data.get('image_uuid'),
+                'arch': issue.data.get('image_arch'),
                 'name': (issue.data.get('image_path') or '').split('/')[-1]
             } for issue in ProcessingIssue.objects.filter(
                 project=project

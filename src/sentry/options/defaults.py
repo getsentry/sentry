@@ -89,3 +89,7 @@ register('filestore.options', default={'location': '/tmp/sentry-files'}, flags=F
 register('symbolserver.enabled', default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register('symbolserver.options', default={'url': 'http://127.0.0.1:3000'},
          flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+
+# Analytics
+register('analytics.backend', default='noop', flags=FLAG_NOSTORE)
+register('analytics.options', default={}, flags=FLAG_NOSTORE)

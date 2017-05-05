@@ -97,8 +97,6 @@ const ReleaseDetails = React.createClass({
 
     let release = this.state.release;
     let {orgId, projectId} = this.props.params;
-    let hasReleases = new Set(this.context.organization.features).has('release-commits');
-    let basePath = `/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`;
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
@@ -156,29 +154,17 @@ const ReleaseDetails = React.createClass({
               </div>
             </div>
             <ul className="nav nav-tabs">
-              {hasReleases &&
-                <ListLink
-                  to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/overview/`}
-                  isActive={loc => {
-                    // react-router isActive will return true for any route that is part of the active route
-                    // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
-                    return (
-                      (hasReleases && this.props.location.pathname === basePath) ||
-                      loc.pathname === this.props.location.pathname
-                    );
-                  }}>
-                  {t('Overview')}
-                </ListLink>}
               <ListLink
-                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`}
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/`}
                 isActive={loc => {
                   // react-router isActive will return true for any route that is part of the active route
                   // e.g. parent routes. To avoid matching on sub-routes, insist on strict path equality.
-                  return (
-                    (!hasReleases && this.props.location.pathname === basePath) ||
-                    loc.pathname === this.props.location.pathname
-                  );
+                  return loc.pathname === this.props.location.pathname;
                 }}>
+                {t('Overview')}
+              </ListLink>
+              <ListLink
+                to={`/${orgId}/${projectId}/releases/${encodeURIComponent(release.version)}/new-events/`}>
                 {t('New Issues')}
               </ListLink>
               <ListLink
