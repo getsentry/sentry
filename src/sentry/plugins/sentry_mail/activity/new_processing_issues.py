@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.models import User, GroupSubscriptionReason, EventError
+from sentry.models import GroupSubscriptionReason, EventError
 from sentry.utils.http import absolute_uri
 
 from .base import ActivityEmail
@@ -35,19 +35,10 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         self.issues = summarize_issues(self.data['issues'])
 
     def get_participants(self):
-        # XXX: We want to send an email to everybody who is subscribed to
-        # the mail alerts.  Since currenlty that is only checked in the
-        # base notify code and requires event information, we use the UI
-        # code (Project.is_user_subscribed_to_mail_alerts) which
-        # replicates the logic on a per-user basis.
-        users = User.objects.filter(
-            id__in=self.project.team.member_set.values_list('user_id'),
+        return dict(
+            (user, GroupSubscriptionReason.processing_issue)
+            for user in self.project.get_mail_alert_subscribers()
         )
-        participants = {}
-        for user in users:
-            if self.project.is_user_subscribed_to_mail_alerts(user):
-                participants[user] = GroupSubscriptionReason.processing_issue
-        return participants
 
     def get_context(self):
         return {
