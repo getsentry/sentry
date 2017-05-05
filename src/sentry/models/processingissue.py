@@ -85,7 +85,7 @@ class ProcessingIssueManager(BaseManager):
             project_id=raw_event.project_id,
             checksum=checksum,
             type=type,
-            data=data
+            defaults=dict(data=data),
         )
         ProcessingIssue.objects \
             .filter(pk=issue.id) \
