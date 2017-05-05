@@ -49,6 +49,24 @@ class ReleaseTestCase(TestCase):
             is_verified=True,
         )
 
+        self.user5 = self.create_user('companyemail@example.com')
+        user5_alt_email = 'privateEmail@gmail.com'
+        UserEmail.objects.create(email=user5_alt_email, user=self.user5)
+
+        assert UserEmail.objects.filter(
+            user=self.user5,
+            email=self.user5.email,
+        ).update(
+            is_verified=True,
+        )
+
+        assert UserEmail.objects.filter(
+            user=self.user5,
+            email=user5_alt_email,
+        ).update(
+            is_verified=True,
+        )
+
         self.org = self.create_organization(owner=None)
         self.org.flags.allow_joinleave = False
         self.org.save()
@@ -58,6 +76,7 @@ class ReleaseTestCase(TestCase):
         self.create_member(user=self.user2, organization=self.org)
         self.create_member(user=self.user3, organization=self.org, teams=[self.team])
         self.create_member(user=self.user4, organization=self.org, teams=[self.team])
+        self.create_member(user=self.user5, organization=self.org, teams=[self.team])
 
         self.project = self.create_project(
             organization=self.org,
@@ -117,6 +136,16 @@ class ReleaseTestCase(TestCase):
                 email=self.user4.email,
             )
         )
+        self.commit4 = Commit.objects.create(
+            key='e' * 40,
+            repository_id=repository.id,
+            organization_id=self.org.id,
+            author=CommitAuthor.objects.create(
+                organization_id=self.org.id,
+                name=self.user5.name,
+                email=user5_alt_email,
+            )
+        )
 
         ReleaseCommit.objects.create(
             organization_id=self.project.organization_id,
@@ -135,6 +164,13 @@ class ReleaseTestCase(TestCase):
             release=self.release,
             commit=self.commit3,
             order=2,
+        )
+
+        ReleaseCommit.objects.create(
+            organization_id=self.project.organization_id,
+            release=self.release,
+            commit=self.commit4,
+            order=3,
         )
 
         UserOption.objects.set_value(
@@ -166,12 +202,15 @@ class ReleaseTestCase(TestCase):
         # user is included because they committed
         # user2 committed but isn't in a team associated with the project.
         # user3 is included because they oped into all deploy emails
-        # user4 commited but isn't included because they opted out of all deploy emails
-        assert len(email.get_participants()) == 2
+        # user4 committed but isn't included because they opted out of all deploy emails
+        # user5 committed with another email address and is still included.
+
+        assert len(email.get_participants()) == 3
 
         assert email.get_participants() == {
             self.user: GroupSubscriptionReason.committed,
             self.user3: GroupSubscriptionReason.deploy_setting,
+            self.user5: GroupSubscriptionReason.committed,
         }
 
         context = email.get_context()
@@ -180,7 +219,9 @@ class ReleaseTestCase(TestCase):
             (self.commit, self.user),
             (self.commit2, self.user2),
             (self.commit3, self.user4),
+            (self.commit4, self.user5),
         ]
+
         user_context = email.get_user_context(self.user)
         # make sure this only includes projects user has access to
         assert len(user_context['projects']) == 1
@@ -189,14 +230,11 @@ class ReleaseTestCase(TestCase):
         with self.tasks():
             email.send()
 
-        assert len(mail.outbox) == 2
-        msg = mail.outbox[0]
-        assert msg.to == [self.user.email] or msg.to == [self.user3.email]
+        assert len(mail.outbox) == 3
 
-        msg2 = mail.outbox[1]
-        assert msg2.to == [self.user.email] or msg2.to == [self.user3.email]
+        sent_email_addresses = {msg.to[0] for msg in mail.outbox}
 
-        assert msg.to != msg2.to
+        assert sent_email_addresses == {self.user.email, self.user3.email, self.user5.email}
 
     def test_doesnt_generate_on_no_release(self):
         email = ReleaseActivityEmail(
