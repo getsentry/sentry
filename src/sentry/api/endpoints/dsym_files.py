@@ -139,9 +139,9 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
         for dsym_file in dsym_files:
             version_dsym_file, created = VersionDSymFile.objects.get_or_create(
                 dsym_file=dsym_file,
-                dsym_app=dsym_app,
                 version=data['version'],
                 build=data['build'],
+                defaults=dict(dsym_app=dsym_app),
             )
             if created:
                 associated.append(dsym_file)
