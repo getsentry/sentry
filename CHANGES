@@ -2,6 +2,7 @@ Version 8.17 (Unreleased)
 -------------------------
 
 - Initial (internal) analytics abstraction.
+- Turned on reprocessing by default
 
 Version 8.16
 ------------
