@@ -28,7 +28,7 @@ error_logger = logging.getLogger('sentry.errors.events')
 
 
 # Is reprocessing on or off by default?
-REPROCESSING_DEFAULT = True
+REPROCESSING_DEFAULT = False
 
 
 def should_process(data):
