@@ -109,6 +109,14 @@ class RedisTSDBTest(TestCase):
             2: 0,
         }
 
+        self.db.delete([TSDBModel.project], [1, 2], dts[0], dts[-1])
+
+        results = self.db.get_sums(TSDBModel.project, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
+
     def test_count_distinct(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC) - timedelta(hours=4)
         dts = [now + timedelta(hours=i) for i in range(4)]
@@ -210,6 +218,14 @@ class RedisTSDBTest(TestCase):
         assert self.db.get_distinct_counts_union(model, [1], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(model, [1, 2], dts[0], dts[-1], rollup=3600) == 3
         assert self.db.get_distinct_counts_union(model, [2], dts[0], dts[-1], rollup=3600) == 0
+
+        self.db.delete_distinct_counts([model], [1, 2], dts[0], dts[-1])
+
+        results = self.db.get_distinct_counts_totals(model, [1, 2], dts[0], dts[-1])
+        assert results == {
+            1: 0,
+            2: 0,
+        }
 
     def test_frequency_tables(self):
         now = datetime.utcnow().replace(tzinfo=pytz.UTC)
@@ -384,6 +400,22 @@ class RedisTSDBTest(TestCase):
             'organization:2': {
                 "project:1": 0.0,
             },
+        }
+
+        self.db.delete_frequencies(
+            [model],
+            ['organization:1', 'organization:2'],
+            now - timedelta(hours=1),
+            now,
+        )
+
+        assert self.db.get_most_frequent(
+            model,
+            ('organization:1', 'organization:2'),
+            now,
+        ) == {
+            'organization:1': [],
+            'organization:2': [],
         }
 
     def test_frequency_table_import_export_no_estimators(self):

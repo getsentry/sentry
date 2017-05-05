@@ -40,6 +40,19 @@ class InMemoryTSDB(BaseTSDB):
             for bucket, count in self.data[model].pop(source, {}).items():
                 destination[bucket] += count
 
+    def delete(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        for rollup, series in rollups.items():
+            for model in models:
+                for key in keys:
+                    data = self.data[model][key]
+                    for timestamp in series:
+                        data.pop(
+                            self.normalize_to_rollup(timestamp, rollup),
+                            0,
+                        )
+
     def get_range(self, model, keys, start, end, rollup=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
@@ -111,6 +124,19 @@ class InMemoryTSDB(BaseTSDB):
         for source in sources:
             for bucket, values in self.sets[model].pop(source, {}).items():
                 destination[bucket].update(values)
+
+    def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        for rollup, series in rollups.items():
+            for model in models:
+                for key in keys:
+                    data = self.data[model][key]
+                    for timestamp in series:
+                        data.pop(
+                            self.normalize_to_rollup(timestamp, rollup),
+                            set(),
+                        )
 
     def flush(self):
         # self.data[model][key][rollup] = count
@@ -198,3 +224,16 @@ class InMemoryTSDB(BaseTSDB):
         for source in sources:
             for bucket, counter in self.data[model].pop(source, {}).items():
                 destination[bucket].update(counter)
+
+    def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
+        rollups = self.get_active_series(start, end, timestamp)
+
+        for rollup, series in rollups.items():
+            for model in models:
+                for key in keys:
+                    data = self.data[model][key]
+                    for timestamp in series:
+                        data.pop(
+                            self.normalize_to_rollup(timestamp, rollup),
+                            Counter(),
+                        )

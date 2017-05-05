@@ -49,7 +49,7 @@ class OrganizationSerializer(Serializer):
         return {
             'id': six.text_type(obj.id),
             'slug': obj.slug,
-            'name': obj.name,
+            'name': obj.name or obj.slug,
             'dateCreated': obj.date_added,
             'isEarlyAdopter': bool(obj.flags.early_adopter),
             'avatar': avatar,

@@ -94,7 +94,7 @@ class AppleCrashReport(object):
 
     def get_threads_apple_string(self):
         rv = []
-        for thread in self.threads:
+        for thread in self.threads or []:
             thread_string = self.get_thread_apple_string(thread)
             if thread_string is not None:
                 rv.append(thread_string)

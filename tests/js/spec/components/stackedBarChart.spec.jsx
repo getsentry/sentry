@@ -1,18 +1,18 @@
 import React from 'react';
-import {mount} from 'enzyme';
+import {shallow} from 'enzyme';
 
-import BarChart from 'app/components/barChart';
+import StackedBarChart from 'app/components/stackedBarChart';
 
-describe('BarChart', function() {
+describe('StackedBarChart', function() {
   describe('render()', function() {
     it('renders with points data', function() {
       let points = [
-        {x: 1439766000, y: 10},
-        {x: 1439769600, y: 20},
-        {x: 1439773200, y: 30}
+        {x: 1439766000, y: [10]},
+        {x: 1439769600, y: [20]},
+        {x: 1439773200, y: [30]}
       ];
 
-      let wrapper = mount(<BarChart points={points} />);
+      let wrapper = shallow(<StackedBarChart points={points} />);
       let columns = wrapper.find('.chart-column');
 
       expect(columns).toHaveProperty('length', 3);
@@ -23,16 +23,16 @@ describe('BarChart', function() {
 
     it('renders with points and markers', function() {
       let points = [
-        {x: 1439769600, y: 10},
-        {x: 1439773200, y: 20},
-        {x: 1439776800, y: 30}
+        {x: 1439769600, y: [10]},
+        {x: 1439773200, y: [20]},
+        {x: 1439776800, y: [30]}
       ];
       let markers = [
         {x: 1439769600, className: 'first-seen', label: 'first seen'}, // matches first point
         {x: 1439776800, className: 'last-seen', label: 'last seen'} // matches last point
       ];
 
-      let wrapper = mount(<BarChart points={points} markers={markers} />);
+      let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
       let columns = wrapper.find('a');
 
       expect(columns).toHaveProperty('length', 5);
@@ -46,13 +46,13 @@ describe('BarChart', function() {
     });
 
     it('renders with points and markers, when first and last seen are same data point', function() {
-      let points = [{x: 1439776800, y: 30}];
+      let points = [{x: 1439776800, y: [30]}];
       let markers = [
         {x: 1439776800, className: 'first-seen', label: 'first seen'},
         {x: 1439776800, className: 'last-seen', label: 'last seen'}
       ];
 
-      let wrapper = mount(<BarChart points={points} markers={markers} />);
+      let wrapper = shallow(<StackedBarChart points={points} markers={markers} />);
       let columns = wrapper.find('a');
 
       expect(columns).toHaveProperty('length', 3);

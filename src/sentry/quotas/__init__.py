@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 from django.conf import settings
 
-from sentry.utils.functional import LazyBackendWrapper
+from sentry.utils.services import LazyServiceWrapper
 
 from .base import Quota  # NOQA
 
 
-backend = LazyBackendWrapper(Quota, settings.SENTRY_QUOTAS,
+backend = LazyServiceWrapper(Quota, settings.SENTRY_QUOTAS,
                              settings.SENTRY_QUOTA_OPTIONS)
 backend.expose(locals())

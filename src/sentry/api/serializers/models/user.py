@@ -95,6 +95,7 @@ class UserSerializer(Serializer):
                 'stacktraceOrder': stacktrace_order,
                 'timezone': options.get('timezone') or settings.SENTRY_DEFAULT_TIME_ZONE,
                 'clock24Hours': options.get('clock_24_hours') or False,
+                'seenReleaseBroadcast': options.get('seen_release_broadcast'),
             }
 
         if attrs.get('avatar'):

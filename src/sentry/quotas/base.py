@@ -12,6 +12,7 @@ import six
 from django.conf import settings
 
 from sentry import options
+from sentry.utils.services import Service
 
 
 class RateLimit(object):
@@ -38,7 +39,7 @@ class RateLimited(RateLimit):
         super(RateLimited, self).__init__(True, **kwargs)
 
 
-class Quota(object):
+class Quota(Service):
     """
     Quotas handle tracking a project's event usage (at a per minute tick) and
     respond whether or not a project has been configured to throttle incoming
@@ -51,14 +52,6 @@ class Quota(object):
 
     def __init__(self, **options):
         pass
-
-    def validate(self):
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
 
     def is_rate_limited(self, project):
         return NotRateLimited()
