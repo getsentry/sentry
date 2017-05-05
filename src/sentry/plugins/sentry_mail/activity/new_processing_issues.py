@@ -32,7 +32,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
 
     def __init__(self, activity):
         ActivityEmail.__init__(self, activity)
-        self.issues = summarize_issues(self.data['issues'])
+        self.issues = summarize_issues(self.activity.data['issues'])
 
     def get_participants(self):
         return dict(
