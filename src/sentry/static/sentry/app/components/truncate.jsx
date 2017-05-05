@@ -4,19 +4,19 @@ const Truncate = React.createClass({
   propTypes: {
     value: React.PropTypes.string.isRequired,
     leftTrim: React.PropTypes.bool,
-    maxLength: React.PropTypes.number,
+    maxLength: React.PropTypes.number
   },
 
   getDefaultProps() {
     return {
       leftTrim: false,
-      maxLength: 50,
+      maxLength: 50
     };
   },
 
   getInitialState() {
     return {
-      isExpanded: false,
+      isExpanded: false
     };
   },
 
@@ -27,20 +27,21 @@ const Truncate = React.createClass({
   },
 
   onBlur(e) {
-    if (this.state.isExpanded)
-      this.setState({isExpanded: false});
+    if (this.state.isExpanded) this.setState({isExpanded: false});
   },
 
   render() {
     let {leftTrim, maxLength, value} = this.props;
-    let isTruncated = (value.length > maxLength);
+    let isTruncated = value.length > maxLength;
     let shortValue = '';
 
     if (isTruncated) {
       if (leftTrim) {
-        shortValue = <span>&hellip; {value.slice(value.length - (maxLength - 4), value.length)}</span>;
+        shortValue = (
+          <span>… {value.slice(value.length - (maxLength - 4), value.length)}</span>
+        );
       } else {
-        shortValue = <span>{value.slice(0, maxLength - 4)} &hellip;</span>;
+        shortValue = <span>{value.slice(0, maxLength - 4)} …</span>;
       }
     } else {
       shortValue = value;
@@ -48,8 +49,7 @@ const Truncate = React.createClass({
 
     let className = this.props.className || '';
     className += ' truncated';
-    if (this.state.isExpanded)
-      className += ' expanded';
+    if (this.state.isExpanded) className += ' expanded';
 
     return (
       <span
@@ -59,13 +59,10 @@ const Truncate = React.createClass({
         onFocus={this.onFocus}
         onBlur={this.onBlur}>
         <span className="short-value">{shortValue}</span>
-        {isTruncated &&
-          <span className="full-value">{value}</span>
-        }
+        {isTruncated && <span className="full-value">{value}</span>}
       </span>
     );
   }
 });
 
 export default Truncate;
-

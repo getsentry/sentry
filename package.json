@@ -67,26 +67,35 @@
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
   "scripts": {
-    "test": "node_modules/karma/bin/karma start tests/karma.conf.js --single-run",
-    "test-watch": "node_modules/karma/bin/karma start tests/karma.conf.js",
+    "test": "NODE_ENV=test node_modules/.bin/jest tests/js/spec",
+    "test-watch": "NODE_ENV=test node_modules/.bin/jest tests/js/spec --watch",
     "lint": "node_modules/.bin/eslint tests/js src/sentry/static/sentry/app --ext .jsx"
+  },
+  "jest": {
+    "modulePaths": [
+      "<rootDir>/src/sentry/static/sentry"
+    ],
+    "setupFiles": [
+      "<rootDir>/tests/js/setup.js"
+    ],
+    "unmockedModulePathPatterns": [
+      "<rootDir>/node_modules/react",
+      "<rootDir>/node_modules/reflux"
+    ]
   },
   "devDependencies": {
     "babel-eslint": "7.1.1",
+    "babel-jest": "^19.0.0",
     "chai": "3.4.1",
     "enzyme": "2.4.1",
-    "eslint": "1.9.0",
+    "eslint": "3.19.0",
     "eslint-plugin-getsentry": "1.0.0",
-    "eslint-plugin-react": "3.11.2",
-    "karma": "0.13.22",
-    "karma-chai": "0.1.0",
-    "karma-mocha": "0.1.10",
-    "karma-phantomjs-launcher": "1.0.2",
-    "karma-sinon": "1.0.4",
+    "eslint-plugin-react": "6.10.3",
+    "jest": "^19.0.2",
     "karma-sourcemap-loader": "0.3.7",
     "karma-webpack": "2.0.1",
-    "mocha": "2.3.4",
     "phantomjs-prebuilt": "2.1.14",
+    "prettier": "1.2.2",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0"
   }

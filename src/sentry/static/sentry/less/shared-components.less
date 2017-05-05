@@ -2535,6 +2535,11 @@ ul.faces {
   letter-spacing: 0.1px;
   .clearfix;
 
+  a.help-link {
+    color: inherit;
+    border-bottom: 1px dotted @gray-light;
+  }
+
   .view-more {
     color: @gray-dark;
     float: right;
@@ -2741,6 +2746,16 @@ ul.faces {
   margin-left: 4px;
   .transition(.1s background linear);
 
+  &.badge-square {
+    height: auto;
+    line-height: 1;
+    border-radius: 3px;
+    padding: 7px;
+    font-size: 12px;
+    vertical-align: bottom;
+    top: 0;
+  }
+
   &.new {
     background: @red;
   }
@@ -2751,6 +2766,10 @@ ul.faces {
     line-height: 18px;
     border: 1px solid @gray-lighter;
     background: inherit;
+  }
+
+  &.badge-new {
+    background: @green;
   }
 }
 
@@ -2959,9 +2978,9 @@ ul.radio-inputs {
     }
   }
   .modal-content {
-    padding: 20px;
-    border-radius: 2px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+    box-shadow: 0 15px 40px 0 rgba(67,62,75,0.30), 0 1px 15px 0 rgba(67,61,74,0.15);
+    border-radius: 7px;
     border: 0;
     overflow: hidden;
   }
@@ -2969,8 +2988,8 @@ ul.radio-inputs {
   .modal-header {
     background: rgba(249, 250, 251, 0.8);
     border-bottom: 1px solid @trim;
-    border-radius: 5px 5px 0 0;
-    padding: 20px;
+    border-radius: 7px 7px 0 0;
+    padding: 20px 30px;
     margin: -20px -20px 20px;
 
     h1, h2, h3, h4, h5, h6 {
@@ -2995,12 +3014,19 @@ ul.radio-inputs {
     .alert {
       border-radius: @border-radius-base;
     }
+
+    img {
+      max-width: 100%;
+      border-radius: 3px;
+      border: 1px solid @trim;
+      box-shadow: 0 1px 1px rgba(0,0,0, .08);
+    }
   }
 
   .modal-footer {
-    padding: 15px 20px;
+    padding: 20px 30px;
     border-top: 1px solid @trim;
-    margin: 5px -20px -20px;
+    margin: 20px -30px -30px;
   }
 
   .nav-stacked {
@@ -3024,230 +3050,60 @@ ul.radio-inputs {
   width: 400px;
 }
 
-.welcome-modal {
-  background: rgba(52, 60, 69, 0.5);
+// Broadcast Modal
 
-  @slideWidth: 720px;
-  @slideCount: 4;
+.modal-broadcast {
 
-  .dot-nav {
-    .clearfix();
-    margin: 8px 0 0;
-    padding: 0;
-
-    li {
-      .list-unstyled();
-      display: inline-block;
-
-      a {
-        text-indent: -9999em;
-        display: block;
-        .square(9px);
-        border: 1px solid lighten(@gray, 35);
-        border-radius: 12px;
-        margin: 0 2px;
-        overflow: hidden;
-      }
-
-      &.active {
-        a {
-          border-color: @gray;
-          background: @gray;
-        }
-      }
-    }
-  }
-
-  .modal-body {
-    margin: 0 -20px;
-  }
-
-  .modal-footer {
+  .modal-dialog{
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    box-shadow: 0 -1px 0 rgba(52, 60, 69, 0.1);
-    padding: 21px 100px;
-    background: #fff;
-    margin-bottom: 0;
-  }
-
-  .prev, .next {
-    border-radius: 24px;
-    .square(34px);
-    padding: 0;
-    line-height: 37px;
-    text-align: center;
-
-    span {
-      font-size: 18px !important;
-      position: relative;
+    right: 10px;
+    bottom: 10px;
+    .release-buttons{
+        display: flex;
+        justify-content: flex-end;
+        .btn{
+          margin-left: 10px;
+        }
     }
-  }
+      .close-icon {
+        color: @50;
+        cursor: pointer;
 
-  .prev span {
-    left: -1px;
-  }
-
-  .next span {
-    left: 1px;
-  }
-
-  .welcome-slides {
-    width: @slideWidth * @slideCount;
-    .transition(margin-left .4s ease-in-out);
-  }
-
-  .slide {
-    width: @slideWidth;
-    float: left;
-
-    h1, h2, h3 {
-      color: @gray-dark;
-      line-height: 1.2;
-    }
-
-    h1 {
-      font-size: 34px;
-    }
-
-    p {
-      font-size: 18px;
-      line-height: 1.4;
-    }
-
-    .screenshot {
-      background-size: contain;
-      box-shadow: inset 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 2px rgba(52, 60, 69, 0.1);
-      border-radius: 2px;
-    }
-  }
-
-  .slide-1 {
-    padding: 35px 0;
-    text-align: center;
-
-    .screenshot {
-      width: 600px;
-      height: 348px;
-      margin: 30px auto 0;
-      background-image: url(https://s3.amazonaws.com/f.cl.ly/items/261Y0m3B2W3V0F2I2b1w/Screen%20Shot%202015-04-20%20at%205.04.01%20PM.png);
-    }
-
-    &.active {
-
-    }
-  }
-
-  .slide-2 {
-    padding: 45px;
-
-    h3 {
-      margin-top: 45px;
-    }
-
-    .screenshot, .loupe {
-      background-image: url(http://cl.ly/image/0G0S2R07000L/Screen%20Shot%202015-04-20%20at%206.02.20%20PM.png);
-    }
-
-    .screenshot {
-      margin-top: -15px;
-      position: relative;
-      right: -25px;
-      background-size: cover;
-      width: 400px;
-      height: 375px;
-    }
-
-    .loupe {
-      position: absolute;
-      top: -10px;
-      left: -28px;
-      width: 170px;
-      height: 170px;
-      background-position: -112px -143px;
-      border-radius: 190px;
-      box-shadow: inset 0 0 0 1px rgba(52, 60, 69, 0.3), 0 1px 2px rgba(52, 60, 69, 0.2), inset 0 0 60px rgba(255, 255,255, 1), inset 0 0 20px rgba(255, 255,255, 1), inset 0 0 40px rgba(255, 255,255, 1), inset 0 0 40px rgba(255, 255,255, 1);
-      background-size: 540% 540%;
-    }
-  }
-
-  .slide-3 {
-    padding: 45px;
-    position: relative;
-    height: 423px;
-
-    h3 {
-      margin-top: 55px;
-    }
-
-    .chat-column, .row {
-      position: static;
-    }
-
-    .chat {
-      .list-unstyled();
-      position: relative;
-      top: -90px;
-
-      .chat-message {
-        position: relative;
-        padding-left: 54px;
-        margin-bottom: 24px;
-
-        h5 {
-          line-height: 1.2;
-          font-weight: 600;
-          font-size: 15px;
-          margin: 0 0 4px;
-
-          time {
-            font-weight: 400;
-            text-transform: uppercase;
-          }
+        &:hover {
+          color: @80;
         }
       }
+      .modal {
+        z-index: 2000;
+        .transition(transform .2s ease);
 
-      blockquote {
-        font-size: 13px;
-        margin-top: 10px;
-        padding: 0 0 0 15px;
-        border-left: 4px solid @orange;
-      }
 
-      .chat-avatar {
-        position: absolute;
-        left: 0;
-        top: 0;
-        background: #f1f2f3 url(https://avatars3.githubusercontent.com/u/1396951?v=3);
-        background-size: cover;
-        .square(40px);
-        border-radius: 3px;
-
-        img {
-          max-width: 100%;
-          border-radius: 3px;
+        &.a-nth{
+          transform: scale(1.0, 1.0) translate(0, 0px);
+          z-index: 2000;
+          opacity: 1.0;
         }
+
+        &.b-nth{
+          transform: scale(.95, .95) translate(0, -50px);
+          z-index: 1999;
+          // opacity: .8;
+        }
+
+        &.c-nth{
+          transform: scale(.90, .90) translate(0, -100px);
+          z-index: 1998;
+          // opacity: .6;
+        }
+
+        &.d-nth{
+          transform: scale(.85, .85) translate(0, -150px);
+          z-index: 1997;
+          // opacity: .4;
+        }
+
       }
     }
-    .mask {
-      position: absolute;
-      top: -20px;
-      left: 0;
-      right: 100px;
-      height: 100px;
-      #gradient > .vertical(rgba(255,255,255, 1), rgba(255,255,255, 0));
-    }
-  }
-
-  .slide-4 {
-    padding: 45px;
-
-    h3 {
-      padding-top: 35px;
-    }
-  }
 }
 
 

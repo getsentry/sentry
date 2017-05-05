@@ -93,8 +93,7 @@ const ProjectSelector = React.createClass({
 
   getProjectNode(team, project, highlightText, hasSingleTeam, isSelected) {
     let projectId = project.slug;
-    let label = this.getProjectLabel(team, project, hasSingleTeam,
-                                     highlightText);
+    let label = this.getProjectLabel(team, project, hasSingleTeam, highlightText);
 
     let menuItemProps = {
       key: projectId, // TODO: what if two projects w/ same name under diff orgs?
@@ -110,7 +109,7 @@ const ProjectSelector = React.createClass({
 
     return (
       <MenuItem {...menuItemProps}>
-        {project.isBookmarked && <span className="icon-star-solid bookmark "></span>}
+        {project.isBookmarked && <span className="icon-star-solid bookmark " />}
         {label}
       </MenuItem>
     );
@@ -120,8 +119,13 @@ const ProjectSelector = React.createClass({
     let label, text;
     if (!hasSingleTeam && project.name.indexOf(team.name) === -1) {
       label = (
-        <span>{team.name} / <ProjectLabel
-            project={project} organization={this.props.organization}/></span>
+        <span>
+          {team.name}
+          {' '}
+          /
+          {' '}
+          <ProjectLabel project={project} organization={this.props.organization} />
+        </span>
       );
       text = team.name + ' / ' + project.name;
     } else {
@@ -236,16 +240,18 @@ const ProjectSelector = React.createClass({
     let projectList = [];
     let activeTeam;
     let activeProject;
-    org.teams.forEach((team) => {
+    org.teams.forEach(team => {
       if (!team.isMember) {
         return;
       }
-      team.projects.forEach((project) => {
+      team.projects.forEach(project => {
         if (project.slug == this.props.projectId) {
           activeProject = project;
           activeTeam = team;
         }
-        let fullName = [team.name, project.name, team.slug, project.slug].join(' ').toLowerCase();
+        let fullName = [team.name, project.name, team.slug, project.slug]
+          .join(' ')
+          .toLowerCase();
         if (filter && fullName.indexOf(filter) === -1) {
           return;
         }
@@ -268,7 +274,13 @@ const ProjectSelector = React.createClass({
     });
 
     let children = projectList.map(([team, project], index) => {
-      return this.getProjectNode(team, project, this.state.filter, hasSingleTeam, this.state.currentIndex === index);
+      return this.getProjectNode(
+        team,
+        project,
+        this.state.filter,
+        hasSingleTeam,
+        this.state.currentIndex === index
+      );
     });
     return (
       <div className="project-select" ref="container">
@@ -276,13 +288,15 @@ const ProjectSelector = React.createClass({
           <Link to={`/${org.slug}/`} className="home-crumb">
             <span className="icon-home" />
           </Link>
-          {this.state.activeProject ?
-            this.getLinkNode(this.state.activeTeam, this.state.activeProject)
-          :
-            t('Select a project')
-          }
-          <DropdownLink ref="dropdownLink" title="" topLevelClasses="project-dropdown"
-              onOpen={this.onOpen} onClose={this.onClose}>
+          {this.state.activeProject
+            ? this.getLinkNode(this.state.activeTeam, this.state.activeProject)
+            : t('Select a project')}
+          <DropdownLink
+            ref="dropdownLink"
+            title=""
+            topLevelClasses="project-dropdown"
+            onOpen={this.onOpen}
+            onClose={this.onClose}>
             <li className="project-filter" key="_filter">
               <input
                 value={this.state.filter}
@@ -292,7 +306,8 @@ const ProjectSelector = React.createClass({
                 onKeyUp={this.onKeyUp}
                 onKeyDown={this.onKeyDown}
                 onBlur={this.onFilterBlur}
-                ref="filter" />
+                ref="filter"
+              />
             </li>
             {children}
           </DropdownLink>

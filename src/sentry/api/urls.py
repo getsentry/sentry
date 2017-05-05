@@ -71,6 +71,7 @@ from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
@@ -83,7 +84,8 @@ from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
-from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint
+from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
+    ProjectProcessingIssuesFixEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
@@ -381,11 +383,17 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/$',
         ProjectProcessingIssuesEndpoint.as_view(),
         name='sentry-api-0-project-processing-issues'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/fix$',
+        ProjectProcessingIssuesFixEndpoint.as_view(),
+        name='sentry-api-0-project-fix-processing-issues'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/reprocessing/$',
         ProjectReprocessingEndpoint.as_view(),
         name='sentry-api-0-project-reprocessing'),
 
     # Load plugin project urls
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/$',
+        ProjectPluginsEndpoint.as_view(),
+        name='sentry-api-0-project-plugins'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/(?P<plugin_id>[^\/]+)/$',
         ProjectPluginDetailsEndpoint.as_view(),
         name='sentry-api-0-project-plugin-details'),

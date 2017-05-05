@@ -122,7 +122,8 @@ def pytest_configure(config):
 
     from sentry.runner.initializer import (
         bootstrap_options, configure_structlog, initialize_receivers, fix_south,
-        bind_cache_to_option_store)
+        bind_cache_to_option_store, setup_services
+    )
 
     bootstrap_options(settings)
     configure_structlog()
@@ -131,6 +132,7 @@ def pytest_configure(config):
     bind_cache_to_option_store()
 
     initialize_receivers()
+    setup_services()
 
     from sentry.plugins import plugins
     from sentry.plugins.utils import TestIssuePlugin2

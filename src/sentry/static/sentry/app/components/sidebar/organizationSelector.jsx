@@ -23,9 +23,7 @@ const OrganizationSelector = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    AppState,
-  ],
+  mixins: [AppState],
 
   getLinkNode(org, child, className) {
     let url = `/${org.slug}/`;
@@ -47,32 +45,37 @@ const OrganizationSelector = React.createClass({
     let features = ConfigStore.get('features');
 
     let classNames = 'org-selector divider-bottom';
-    if(this.props.currentPanel == 'org-selector') {
+    if (this.props.currentPanel == 'org-selector') {
       classNames += ' active';
     }
 
     return (
       <div className={classNames}>
         <a className="active-org" onClick={this.props.togglePanel}>
-          <LetterAvatar displayName={activeOrg.name} identifier={activeOrg.slug}/>
+          <LetterAvatar displayName={activeOrg.name} identifier={activeOrg.slug} />
         </a>
 
-        {this.props.showPanel && this.props.currentPanel == 'org-selector' &&
-          <SidebarPanel
-            title={t('Organizations')}
-            hidePanel={this.props.hidePanel}>
+        {this.props.showPanel &&
+          this.props.currentPanel == 'org-selector' &&
+          <SidebarPanel title={t('Organizations')} hidePanel={this.props.hidePanel}>
             <ul className="org-list list-unstyled">
-              {OrganizationStore.getAll().map((org) => {
+              {OrganizationStore.getAll().map(org => {
                 return (
-                  <li className={activeOrg.id === org.id ? 'org active' : 'org'} key={org.slug}>
-                    {this.getLinkNode(org, <LetterAvatar displayName={org.name} identifier={org.slug}/>, 'org-avatar')}
+                  <li
+                    className={activeOrg.id === org.id ? 'org active' : 'org'}
+                    key={org.slug}>
+                    {this.getLinkNode(
+                      org,
+                      <LetterAvatar displayName={org.name} identifier={org.slug} />,
+                      'org-avatar'
+                    )}
                     <h5>{this.getLinkNode(org, org.name)}</h5>
                     <p>
                       <a href={`/organizations/${org.slug}/settings/`}>
-                        <span className="icon-settings"/> {t('Settings')}
+                        <span className="icon-settings" /> {t('Settings')}
                       </a>
                       <a href={`/organizations/${org.slug}/members/`}>
-                        <span className="icon-users"/> {t('Members')}
+                        <span className="icon-users" /> {t('Members')}
                       </a>
                     </p>
                   </li>
@@ -81,12 +84,12 @@ const OrganizationSelector = React.createClass({
 
               {features.has('organizations:create') &&
                 <li className="org-create">
-                  <a href="/organizations/new/" className="btn btn-default btn-block">{t('New Organization')}</a>
-                </li>
-              }
+                  <a href="/organizations/new/" className="btn btn-default btn-block">
+                    {t('New Organization')}
+                  </a>
+                </li>}
             </ul>
-          </SidebarPanel>
-        }
+          </SidebarPanel>}
       </div>
     );
   }

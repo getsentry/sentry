@@ -4,7 +4,7 @@ import Avatar from '../avatar';
 
 const GroupParticipants = React.createClass({
   propTypes: {
-    participants: React.PropTypes.array.isRequired,
+    participants: React.PropTypes.array.isRequired
   },
 
   render() {
@@ -12,12 +12,15 @@ const GroupParticipants = React.createClass({
 
     return (
       <div>
-        <h6><span>{participants.length} {'Participant' +
-                                         (participants.length === 1 ? '' : 's')}</span></h6>
+        <h6>
+          <span>
+            {participants.length} {'Participant' + (participants.length === 1 ? '' : 's')}
+          </span>
+        </h6>
         <ul className="faces">
-          {participants.map((user) => {
+          {participants.map((user, i) => {
             return (
-              <li>
+              <li key={i}>
                 <Avatar size={32} user={user} />
               </li>
             );
@@ -25,7 +28,7 @@ const GroupParticipants = React.createClass({
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default GroupParticipants;

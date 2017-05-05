@@ -20,7 +20,7 @@ const InternalChart = React.createClass({
     return {
       error: false,
       loading: true,
-      data: null,
+      data: null
     };
   },
 
@@ -34,16 +34,16 @@ const InternalChart = React.createClass({
       data: {
         since: this.props.since,
         resolution: this.props.resolution,
-        key: this.props.stat,
+        key: this.props.stat
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           data: data,
           loading: false,
-          error: false,
+          error: false
         });
       },
-      error: (data) => {
+      error: data => {
         this.setState({
           error: true
         });
@@ -52,11 +52,9 @@ const InternalChart = React.createClass({
   },
 
   getChartPoints() {
-    let points = this.state.data.map((point) => {
+    let points = this.state.data.map(point => {
       return [point[0] * 1000, point[1]];
     });
-
-
 
     return [
       {
@@ -75,15 +73,12 @@ const InternalChart = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return <FlotChart style={{height: 250}} plotData={this.getChartPoints()} />;
   }
 });
-
 
 const AdminBuffer = React.createClass({
   getInitialState() {
@@ -105,7 +100,12 @@ const AdminBuffer = React.createClass({
           </div>
 
           <div className="box-content with-padding">
-            <p>Sentry buffers are responsible for making changes to cardinality counters &mdash; such as an issues event count &mdash; as well as updating attributes like <em>last seen</em>. These are flushed on a regularly interval, and are directly affected by the queue backlog.</p>
+            <p>
+              Sentry buffers are responsible for making changes to cardinality counters — such as an issues event count — as well as updating attributes like
+              {' '}
+              <em>last seen</em>
+              . These are flushed on a regularly interval, and are directly affected by the queue backlog.
+            </p>
           </div>
         </div>
 
@@ -114,10 +114,12 @@ const AdminBuffer = React.createClass({
             <h4>Updates Processed</h4>
           </div>
           <div className="box-content with-padding">
-            <InternalChart since={this.state.since}
-                           resolution={this.state.resolution}
-                           stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
-                           label="Jobs" />
+            <InternalChart
+              since={this.state.since}
+              resolution={this.state.resolution}
+              stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
+              label="Jobs"
+            />
           </div>
         </div>
 
@@ -126,10 +128,12 @@ const AdminBuffer = React.createClass({
             <h4>Revoked Updates</h4>
           </div>
           <div className="box-content with-padding">
-            <InternalChart since={this.state.since}
-                           resolution={this.state.resolution}
-                           stat="buffer.revoked"
-                           label="Jobs" />
+            <InternalChart
+              since={this.state.since}
+              resolution={this.state.resolution}
+              stat="buffer.revoked"
+              label="Jobs"
+            />
           </div>
         </div>
       </div>

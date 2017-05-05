@@ -7,7 +7,7 @@ const CustomSnoozeModal = React.createClass({
   propTypes: {
     onSelected: React.PropTypes.func,
     onCanceled: React.PropTypes.func,
-    show: React.PropTypes.bool,
+    show: React.PropTypes.bool
   },
 
   getInitialState() {
@@ -51,13 +51,14 @@ const CustomSnoozeModal = React.createClass({
     defaultDate.setSeconds(0);
     defaultDate.setMilliseconds(0);
 
-    const defaultDateVal = sprintf('%d-%02d-%02d',
-        defaultDate.getUTCFullYear(),
-        defaultDate.getUTCMonth() + 1,
-        defaultDate.getUTCDate());
+    const defaultDateVal = sprintf(
+      '%d-%02d-%02d',
+      defaultDate.getUTCFullYear(),
+      defaultDate.getUTCMonth() + 1,
+      defaultDate.getUTCDate()
+    );
 
-    const defaultTimeVal = sprintf('%02d:00',
-        defaultDate.getUTCHours());
+    const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
 
     return (
       <Modal show={this.props.show} animation={false} bsSize="sm">
@@ -67,29 +68,33 @@ const CustomSnoozeModal = React.createClass({
         <div className="modal-body">
           <form className="form-horizontal">
             <div className="form-group">
-              <label htmlFor="snooze-until-date"
-                     className="col-sm-4 control-label">{t('Date:')}</label>
-                   <div className="col-sm-8">
-                <input className="form-control"
-                       type="date"
-                       id="snooze-until-date"
-                       defaultValue={defaultDateVal}
-                       ref="snoozeDateInput"
-                       style={{padding: '0 10px'}}
-                       />
+              <label htmlFor="snooze-until-date" className="col-sm-4 control-label">
+                {t('Date:')}
+              </label>
+              <div className="col-sm-8">
+                <input
+                  className="form-control"
+                  type="date"
+                  id="snooze-until-date"
+                  defaultValue={defaultDateVal}
+                  ref="snoozeDateInput"
+                  style={{padding: '0 10px'}}
+                />
               </div>
             </div>
             <div className="form-group m-b-1">
-              <label htmlFor="snooze-until-time"
-                     className="col-sm-4 control-label">{t('Time (UTC):')}</label>
-                   <div className="col-sm-8">
-                <input className="form-control"
-                       type="time"
-                       id="snooze-until-time"
-                       defaultValue={defaultTimeVal}
-                       ref="snoozeTimeInput"
-                       style={{padding: '0 10px'}}
-                       />
+              <label htmlFor="snooze-until-time" className="col-sm-4 control-label">
+                {t('Time (UTC):')}
+              </label>
+              <div className="col-sm-8">
+                <input
+                  className="form-control"
+                  type="time"
+                  id="snooze-until-time"
+                  defaultValue={defaultTimeVal}
+                  ref="snoozeTimeInput"
+                  style={{padding: '0 10px'}}
+                />
               </div>
             </div>
           </form>
@@ -99,15 +104,19 @@ const CustomSnoozeModal = React.createClass({
             {t('Please enter a valid date in the future')}
           </div>}
         <div className="modal-footer">
-          <button type="button" className="btn btn-default"
-                  onClick={this.props.onCanceled}>{t('Cancel')}</button>
-          <button type="button" className="btn btn-primary"
-                  onClick={this.snoozeClicked}>{t('Ignore')}</button>
+          <button
+            type="button"
+            className="btn btn-default"
+            onClick={this.props.onCanceled}>
+            {t('Cancel')}
+          </button>
+          <button type="button" className="btn btn-primary" onClick={this.snoozeClicked}>
+            {t('Ignore')}
+          </button>
         </div>
       </Modal>
     );
-  },
-
+  }
 });
 
 export default CustomSnoozeModal;

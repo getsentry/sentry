@@ -3,6 +3,7 @@ import React from 'react';
 import ApiMixin from '../../mixins/apiMixin';
 import GroupState from '../../mixins/groupState';
 
+import {CommitLink} from '../../views/releases/releaseCommits';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
 import TimeSince from '../../components/timeSince';
@@ -23,37 +24,40 @@ const GroupActivity = React.createClass({
     group: React.PropTypes.object
   },
 
-  mixins: [
-    GroupState,
-    ApiMixin
-  ],
+  mixins: [GroupState, ApiMixin],
 
   formatActivity(author, item, params) {
     let data = item.data;
     let {orgId, projectId} = params;
 
-    switch(item.type) {
+    switch (item.type) {
       case 'note':
         return t('%s left a comment', author);
       case 'set_resolved':
         return t('%s marked this issue as resolved', author);
       case 'set_resolved_by_age':
         return t('%(author)s marked this issue as resolved due to inactivity', {
-          author: author,
+          author: author
         });
       case 'set_resolved_in_release':
-        return (data.version ?
-          t('%(author)s marked this issue as resolved in %(version)s', {
-            author: author,
-            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
-          })
-        :
-          t('%s marked this issue as resolved in the upcoming release', author)
-        );
+        return data.version
+          ? t('%(author)s marked this issue as resolved in %(version)s', {
+              author: author,
+              version: (
+                <Version version={data.version} orgId={orgId} projectId={projectId} />
+              )
+            })
+          : t('%s marked this issue as resolved in the upcoming release', author);
       case 'set_resolved_in_commit':
         return t('%(author)s marked this issue as fixed in %(version)s', {
           author: author,
-          version: data.commit.id.substr(0, 12)
+          version: (
+            <CommitLink
+              inline={true}
+              commitId={data.commit.id}
+              repository={data.commit.repository}
+            />
+          )
         });
       case 'set_unresolved':
         return t('%s marked this issue as unresolved', author);
@@ -70,14 +74,14 @@ const GroupActivity = React.createClass({
       case 'set_private':
         return t('%s made this issue private', author);
       case 'set_regression':
-        return (data.version ?
-          t('%(author)s marked this issue as a regression in %(version)s', {
-            author: author,
-            version: <Version version={data.version} orgId={orgId} projectId={projectId} />
-          })
-        :
-          t('%s marked this issue as a regression', author)
-        );
+        return data.version
+          ? t('%(author)s marked this issue as a regression in %(version)s', {
+              author: author,
+              version: (
+                <Version version={data.version} orgId={orgId} projectId={projectId} />
+              )
+            })
+          : t('%s marked this issue as a regression', author);
       case 'create_issue':
         return t('%(author)s created an issue on %(provider)s titled %(title)s', {
           author: author,
@@ -102,17 +106,15 @@ const GroupActivity = React.createClass({
             return t('%s assigned this event to an unknown user', author);
           }
         }
-        return t('%(author)s assigned this event to %(assignee)s', {
-          author: author,
-          assignee: assignee.email
-        });
       case 'unassigned':
         return t('%s unassigned this issue', author);
       case 'merge':
-        return tn('%2$s merged %1$d issue into this issue',
-                  '%2$s merged %1$d issues into this issue',
-                  data.issues.length,
-                  author);
+        return tn(
+          '%2$s merged %1$d issue into this issue',
+          '%2$s merged %1$d issues into this issue',
+          data.issues.length,
+          author
+        );
       default:
         return ''; // should never hit (?)
     }
@@ -130,9 +132,9 @@ const GroupActivity = React.createClass({
 
     let loadingIndicator = IndicatorStore.add(t('Removing comment..'));
 
-    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/' , {
+    this.api.request('/issues/' + group.id + '/comments/' + item.id + '/', {
       method: 'DELETE',
-      error: (error) => {
+      error: error => {
         // TODO(mattrobenolt): Show an actual error that this failed,
         // but just bring it back in place for now
         GroupStore.addActivity(group.id, item, index);
@@ -148,18 +150,24 @@ const GroupActivity = React.createClass({
     let me = ConfigStore.get('user');
 
     let children = group.activity.map((item, itemIdx) => {
-      let avatar = (item.user ?
-        <Avatar user={item.user} size={64} className="avatar" /> :
-        <div className="avatar sentry"><span className="icon-sentry-logo"></span></div>);
+      let avatar = item.user
+        ? <Avatar user={item.user} size={64} className="avatar" />
+        : <div className="avatar sentry"><span className="icon-sentry-logo" /></div>;
 
       let author = {
         name: item.user ? item.user.name : 'Sentry',
-        avatar: avatar,
+        avatar: avatar
       };
 
       if (item.type === 'note') {
         return (
-          <NoteContainer group={group} item={item} key={itemIdx} author={author} onDelete={this.onNoteDelete} />
+          <NoteContainer
+            group={group}
+            item={item}
+            key={itemIdx}
+            author={author}
+            onDelete={this.onNoteDelete}
+          />
         );
       } else {
         return (

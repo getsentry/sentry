@@ -17,7 +17,7 @@ const AuthorizationRow = React.createClass({
 
   getInitialState() {
     return {
-      loading: false,
+      loading: false
     };
   },
 
@@ -26,31 +26,33 @@ const AuthorizationRow = React.createClass({
 
     let {authorization} = this.props;
 
-    this.setState({
-      loading: true,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      this.api.request('/api-authorizations/', {
-        method: 'DELETE',
-        data: {authorization: authorization.id},
-        success: (data) => {
-          IndicatorStore.remove(loadingIndicator);
-          this.props.onRevoke();
-        },
-        error: () => {
-          IndicatorStore.remove(loadingIndicator);
-          IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
-        }
-      });
-    });
+    this.setState(
+      {
+        loading: true
+      },
+      () => {
+        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        this.api.request('/api-authorizations/', {
+          method: 'DELETE',
+          data: {authorization: authorization.id},
+          success: data => {
+            IndicatorStore.remove(loadingIndicator);
+            this.props.onRevoke();
+          },
+          error: () => {
+            IndicatorStore.remove(loadingIndicator);
+            IndicatorStore.add(t('Unable to save changes. Please try again.'), 'error');
+          }
+        });
+      }
+    );
   },
 
   render() {
     let authorization = this.props.authorization;
 
     let btnClassName = 'btn btn-default';
-    if (this.state.loading)
-      btnClassName += ' disabled';
+    if (this.state.loading) btnClassName += ' disabled';
 
     return (
       <tr>
@@ -58,17 +60,19 @@ const AuthorizationRow = React.createClass({
           <h5 style={{marginBottom: 5}}>{authorization.application.name}</h5>
           {authorization.homepageUrl &&
             <div style={{marginBottom: 5}}>
-              <small><a href={authorization.homepageUrl}>{authorization.homepageUrl}</a></small>
-            </div>
-          }
+              <small>
+                <a href={authorization.homepageUrl}>{authorization.homepageUrl}</a>
+              </small>
+            </div>}
           <div>
             <small style={{color: '#999'}}>{authorization.scopes.join(', ')}</small>
           </div>
         </td>
         <td style={{width: 32}}>
-          <a onClick={this.onRevoke.bind(this, authorization)}
-             className={btnClassName}
-             disabled={this.state.loading}>
+          <a
+            onClick={this.onRevoke.bind(this, authorization)}
+            className={btnClassName}
+            disabled={this.state.loading}>
             <span className="icon icon-trash" />
           </a>
         </td>
@@ -84,7 +88,7 @@ const AccountAuthorizations = React.createClass({
     return {
       loading: true,
       error: false,
-      authorizationList: [],
+      authorizationList: []
     };
   },
 
@@ -98,7 +102,7 @@ const AccountAuthorizations = React.createClass({
 
   fetchData() {
     this.setState({
-      loading: true,
+      loading: true
     });
 
     this.api.request('/api-authorizations/', {
@@ -112,7 +116,7 @@ const AccountAuthorizations = React.createClass({
       error: () => {
         this.setState({
           loading: false,
-          error: true,
+          error: true
         });
       }
     });
@@ -121,8 +125,8 @@ const AccountAuthorizations = React.createClass({
   onRevoke(authorization) {
     this.setState({
       authorizationList: this.state.authorizationList.filter(
-        (a) => a.id !== authorization.id
-      ),
+        a => a.id !== authorization.id
+      )
     });
   },
 
@@ -134,7 +138,7 @@ const AccountAuthorizations = React.createClass({
           <tbody>
             <tr colSpan="2">
               <td className="blankslate well">
-                {t('You haven\'t approved any third party applications.')}
+                {t("You haven't approved any third party applications.")}
               </td>
             </tr>
           </tbody>
@@ -147,14 +151,15 @@ const AccountAuthorizations = React.createClass({
         <h4>Approved Applications</h4>
         <table className="table">
           <tbody>
-          {authorizationList.map((authorization) => {
-            return (
-              <AuthorizationRow
-                key={authorization.id}
-                authorization={authorization}
-                onRevoke={this.onRevoke.bind(this, authorization)} />
-            );
-          })}
+            {authorizationList.map(authorization => {
+              return (
+                <AuthorizationRow
+                  key={authorization.id}
+                  authorization={authorization}
+                  onRevoke={this.onRevoke.bind(this, authorization)}
+                />
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -169,14 +174,19 @@ const AccountAuthorizations = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div>
-          {(this.state.loading ?
-            <LoadingIndicator />
-          : (this.state.error ?
-            <LoadingError onRetry={this.fetchData} />
-          :
-            this.renderResults()
-          ))}
-          <p><small>You can manage your own applications via the <a href="/api/">API dashboard</a>.</small></p>
+          {this.state.loading
+            ? <LoadingIndicator />
+            : this.state.error
+                ? <LoadingError onRetry={this.fetchData} />
+                : this.renderResults()}
+          <p>
+            <small>
+              You can manage your own applications via the
+              {' '}
+              <a href="/api/">API dashboard</a>
+              .
+            </small>
+          </p>
         </div>
       </DocumentTitle>
     );

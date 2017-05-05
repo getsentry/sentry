@@ -20,9 +20,10 @@ class PluginSerializer(Serializer):
             'name': six.text_type(obj.get_title()),
             'type': obj.get_plugin_type(),
             'canDisable': obj.can_disable,
-            'isTestable': obj.is_testable(),
+            'isTestable': hasattr(obj, 'is_testable') and obj.is_testable(),
             'metadata': obj.get_metadata(),
             'contexts': contexts,
+            'status': obj.get_status(),
             'assets': [
                 {
                     'url': absolute_uri(get_asset_url(obj.asset_key or obj.slug, asset)),

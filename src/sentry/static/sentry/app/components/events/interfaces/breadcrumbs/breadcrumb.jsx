@@ -7,13 +7,12 @@ import DefaultRenderer from './defaultRenderer';
 
 const CUSTOM_RENDERERS = {
   http: HttpRenderer,
-  error: ErrorRenderer,
+  error: ErrorRenderer
 };
-
 
 const Breadcrumb = React.createClass({
   propTypes: {
-    crumb: React.PropTypes.object.isRequired,
+    crumb: React.PropTypes.object.isRequired
   },
 
   getClassName() {
@@ -42,19 +41,18 @@ const Breadcrumb = React.createClass({
   renderType() {
     let {crumb} = this.props;
     let Renderer = CUSTOM_RENDERERS[crumb.type] || DefaultRenderer;
-    return (
-      <Renderer crumb={crumb} />
-    );
+    return <Renderer crumb={crumb} />;
   },
 
   render() {
+    let {crumb} = this.props;
     return (
       <li className={this.getClassName()}>
         <span className="icon-container">
-          <span className="icon"/>
+          <span className="icon" />
         </span>
-        <span className="dt">
-          {moment(this.props.crumb.timestamp).format('HH:mm:ss')}
+        <span className="dt" title="{moment(crumb.timestamp).format()}">
+          {moment(crumb.timestamp).format('HH:mm:ss')}
         </span>
         {this.renderType()}
       </li>

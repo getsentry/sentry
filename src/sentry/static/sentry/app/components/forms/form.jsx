@@ -29,9 +29,12 @@ const Form = React.createClass({
       <form onSubmit={this.onSubmit}>
         {this.props.children}
         <div className={this.props.footerClass} style={{marginTop: 25}}>
-          <button className="btn btn-primary"
-                  disabled={this.props.submitDisabled}
-                  type="submit">{this.props.submitLabel}</button>
+          <button
+            className="btn btn-primary"
+            disabled={this.props.submitDisabled}
+            type="submit">
+            {this.props.submitLabel}
+          </button>
           {this.props.extraButton}
         </div>
       </form>

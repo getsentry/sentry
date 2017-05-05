@@ -8,17 +8,14 @@ import Pagination from '../components/pagination';
 import {t} from '../locale';
 
 const GroupHashes = React.createClass({
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
       hashList: [],
       loading: true,
       error: false,
-      pageLinks: '',
+      pageLinks: ''
     };
   },
 
@@ -28,11 +25,14 @@ const GroupHashes = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     if (nextProps.params.groupId !== this.props.params.groupId) {
-      this.setState({
-        hashList: [],
-        loading: true,
-        error: false,
-      }, this.fetchData);
+      this.setState(
+        {
+          hashList: [],
+          loading: true,
+          error: false
+        },
+        this.fetchData
+      );
     }
   },
 
@@ -40,7 +40,7 @@ const GroupHashes = React.createClass({
     let params = this.props.params;
     let queryParams = {
       ...this.props.location.query,
-      limit: 50,
+      limit: 50
     };
 
     return `/issues/${params.groupId}/hashes/?${jQuery.param(queryParams)}`;
@@ -65,7 +65,7 @@ const GroupHashes = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (error) => {
+      error: error => {
         this.setState({
           error: true,
           loading: false
@@ -78,13 +78,13 @@ const GroupHashes = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any hashes for this issue.')}</p>
+        <p>{t("There don't seem to be any hashes for this issue.")}</p>
       </div>
     );
   },
 
   renderResults() {
-    let children = this.state.hashList.map((hash) => {
+    let children = this.state.hashList.map(hash => {
       return (
         <tr key={hash.id}>
           <td>
@@ -106,7 +106,7 @@ const GroupHashes = React.createClass({
             {children}
           </tbody>
         </table>
-        <Pagination pageLinks={this.state.pageLinks}/>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },
@@ -114,14 +114,10 @@ const GroupHashes = React.createClass({
   renderBody() {
     let body;
 
-    if (this.state.loading)
-      body = <LoadingIndicator />;
-    else if (this.state.error)
-      body = <LoadingError onRetry={this.fetchData} />;
-    else if (this.state.hashList.length > 0)
-      body = this.renderResults();
-    else
-      body = this.renderEmpty();
+    if (this.state.loading) body = <LoadingIndicator />;
+    else if (this.state.error) body = <LoadingError onRetry={this.fetchData} />;
+    else if (this.state.hashList.length > 0) body = this.renderResults();
+    else body = this.renderEmpty();
 
     return body;
   },

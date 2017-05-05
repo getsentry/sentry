@@ -3,37 +3,36 @@ from sentry.runner import configure
 configure()
 
 import itertools
-import six
-
+import random
 from datetime import datetime, timedelta
+from hashlib import sha1
+from random import randint
+from uuid import uuid4
+
+import six
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
-from hashlib import sha1
+from loremipsum import Generator
 from pytz import utc
-from random import randint
-from uuid import uuid4
 
 from sentry import buffer, roles
-from sentry.tsdb import backend as tsdb
 from sentry.models import (
-    Activity, Broadcast, Deploy, File, GroupMeta, Organization, OrganizationAccessRequest,
-    OrganizationMember, Project, Release, ReleaseFile, Team, User, UserReport,
-    GroupRelease, Environment, ReleaseEnvironment, ReleaseCommit, Commit, Repository,
-    CommitAuthor, CommitFileChange,
+    Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
+    Environment, EventUser, File, GroupMeta, GroupRelease, Organization,
+    OrganizationAccessRequest, OrganizationMember, Project, Release,
+    ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team, User,
+    UserReport
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
+from sentry.tsdb import backend as tsdb
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
+from sentry.utils.samples import generate_user
 
-
-def create_sample_event(*args, **kwargs):
-    event = _create_sample_event(*args, **kwargs)
-    features.record(event)
-    return event
-
+loremipsum = Generator()
 
 PLATFORMS = itertools.cycle([
     'ruby',
@@ -58,6 +57,46 @@ ENVIRONMENTS = itertools.cycle([
     'alpha',
     'beta',
 ])
+
+
+def make_sentence(words=None):
+    if words is None:
+        words = int(random.weibullvariate(8, 3))
+    return ' '.join(random.choice(loremipsum.words) for _ in range(words))
+
+
+def create_sample_event(*args, **kwargs):
+    event = _create_sample_event(*args, **kwargs)
+    features.record(event)
+    return event
+
+
+def generate_commits(user):
+    commits = []
+    for i in range(random.randint(0, 20)):
+        filename = random.choice(loremipsum.words)
+        if random.randint(0, 5) == 1:
+            author = (user.name, user.email)
+        else:
+            author = (
+                '{} {}'.format(
+                    random.choice(loremipsum.words),
+                    random.choice(loremipsum.words),
+                ),
+                '{}@example.com'.format(
+                    random.choice(loremipsum.words),
+                ),
+            )
+
+        commits.append({
+            'key': sha1(uuid4().hex).hexdigest(),
+            'message': 'modified {}.js}',
+            'author': author,
+            'files': [
+                (filename, 'M'),
+            ],
+        })
+    return commits
 
 
 def create_system_time_series():
@@ -234,6 +273,7 @@ def main(num_events=1, extra_events=False):
 
     if settings.SENTRY_SINGLE_ORGANIZATION:
         org = Organization.get_default()
+        print('Mocking org {}'.format(org.name))
     else:
         print('Mocking org {}'.format('Default'))
         org, _ = Organization.objects.get_or_create(
@@ -301,51 +341,7 @@ def main(num_events=1, extra_events=False):
                         )
                     release.add_project(project)
 
-            raw_commits = [
-                {
-                    'key': '5fb7672bee9c461a8aa074f52ed72eddzc9399e7a',
-                    'message': 'modified js view',
-                    'author': (user.name, user.email),
-                    'files': [
-                        ('/sentry/scripts/views.js', 'M'),
-                    ],
-                },
-                {
-                    'key': '6fb7672bee9c469a8aa074f52ed72eddzc9399e7d',
-                    'message': 'modified raven base',
-                    'author': (user.name, user.email),
-                    'files': [
-                        ('/getsentry/src/raven/raven/base.py', 'M'),
-                    ],
-                },
-                {
-                    'key': '6fb7672bee9c469a8aa074f52ed72eddc939ae7d',
-                    'message': 'Fix widget for real this time\n\nTurns out the sprocket configuration was broken.',
-                    'author': (user.name, user.email),
-                    'files': [
-                        ('/static/js/widget.js', 'M'),
-                    ],
-                },
-                {
-                    'key': '98a0672968c19e3d7921def5d724cc977e85f527',
-                    'message': 'Added .gitignore',
-                    'author': ('Jane Doe', 'janedoe@example.com'),
-                    'files': [
-                        ('.gitignore', 'A'),
-                        ('.DS_Store', 'D')
-                    ],
-                },
-                {
-                    'key': '631cd9096bd9811a046a472bb0aa8b573e86e1f1',
-                    'message': 'Fix widget',
-                    'author': (user.name, user.email),
-                    'files': [
-                        ('/static/html/widget.html', 'M'),
-                        ('/static/js/widget.js', 'M'),
-                        ('.DS_Store', 'A'),
-                    ],
-                },
-            ]
+            raw_commits = generate_commits(user)
 
             repo = Repository.objects.get_or_create(
                 organization_id=org.id,
@@ -408,14 +404,28 @@ def main(num_events=1, extra_events=False):
                 data={'version': release.version},
             )
 
-            Deploy.objects.create(
+            environment = Environment.get_or_create(
+                project=project,
+                name=ENVIRONMENTS.next()
+            )
+
+            deploy = Deploy.objects.create(
                 organization_id=project.organization_id,
                 release=release,
-                environment_id=Environment.get_or_create(
-                    project=project,
-                    name=ENVIRONMENTS.next()
-                ).id,
+                environment_id=environment.id,
             )
+
+            Activity.objects.create(
+                type=Activity.DEPLOY,
+                project=project,
+                ident=release.version,
+                data={
+                    'version': release.version,
+                    'deploy_id': deploy.id,
+                    'environment': environment.name
+                },
+                datetime=deploy.date_finished,
+             )
 
             # Add a bunch of additional dummy events to support pagination
             if extra_events:
@@ -430,6 +440,7 @@ def main(num_events=1, extra_events=False):
                         environment=ENVIRONMENTS.next(),
                         message='This is a mostly useless example %s exception' % platform,
                         checksum=md5_text(platform + six.text_type(_)).hexdigest(),
+                        user=generate_user(),
                     )
 
             for _ in range(num_events):
@@ -438,6 +449,7 @@ def main(num_events=1, extra_events=False):
                     platform='python',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
                 event2 = create_sample_event(
@@ -449,6 +461,7 @@ def main(num_events=1, extra_events=False):
                         'name': 'raven-js',
                         'version': '2.1.0',
                     },
+                    user=generate_user(),
                 )
 
                 event3 = create_sample_event(project, 'java')
@@ -458,6 +471,7 @@ def main(num_events=1, extra_events=False):
                     platform='ruby',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
                 event5 = create_sample_event(
@@ -465,6 +479,7 @@ def main(num_events=1, extra_events=False):
                     platform='cocoa',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
                 create_sample_event(
@@ -473,6 +488,7 @@ def main(num_events=1, extra_events=False):
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
                     message='This is a an example PHP event with an extremely long and annoying title\nIt also happens to contain some newlines in it,\nthus making it even more annoying.',
+                    user=generate_user(),
                 )
 
                 create_sample_event(
@@ -481,6 +497,7 @@ def main(num_events=1, extra_events=False):
                     sample_name='react-native',
                     release=release.version,
                     environment=ENVIRONMENTS.next(),
+                    user=generate_user(),
                 )
 
             Commit.objects.get_or_create(
@@ -519,7 +536,7 @@ def main(num_events=1, extra_events=False):
                 group=event3.group,
                 name='Jane Doe',
                 email='jane@example.com',
-                comments='I have no idea how I got here.',
+                comments=make_sentence(),
             )
 
             print('    > Loading time series data'.format(project_name))

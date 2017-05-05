@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from mock import patch
+
 from base64 import b64encode
 from datetime import datetime
 from django.core.urlresolvers import reverse
@@ -437,7 +439,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         for rc in rc_list:
             assert rc.organization_id
 
-    def test_commits_from_provider(self):
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_commits_from_provider(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -484,29 +487,21 @@ class OrganizationReleaseCreateTest(APITestCase):
             'projects': [project.slug]
         })
         assert response.status_code == 201
-        # check fake commits from dummy repo provider were created
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
 
-    def test_commits_from_provider_deprecated_head_commits(self):
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': Release.objects.get(version='1.2.1', organization=org).id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name},
+                    {'commit': 'b' * 40, 'repository': repo2.name},
+                ],
+                'prev_release_id': Release.objects.get(version='1', organization=org).id,
+            }
+        )
+
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_commits_from_provider_deprecated_head_commits(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -552,28 +547,19 @@ class OrganizationReleaseCreateTest(APITestCase):
             ],
             'projects': [project.slug]
         })
+
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': Release.objects.get(version='1.2.1', organization=org).id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name, 'previousCommit': None},
+                    {'commit': 'b' * 40, 'repository': repo2.name, 'previousCommit': None},
+                ],
+                'prev_release_id': Release.objects.get(version='1', organization=org).id,
+            }
+        )
         assert response.status_code == 201
-        # check fake commits from dummy repo provider were created
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
 
     def test_bad_project_slug(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -712,7 +698,8 @@ class OrganizationReleaseCreateTest(APITestCase):
             }, HTTP_AUTHORIZATION='Basic ' + b64encode('{}:'.format(good_api_key.key)))
         assert response.status_code == 201, response.content
 
-    def test_api_token(self):
+    @patch('sentry.tasks.commits.fetch_commits')
+    def test_api_token(self, mock_fetch_commits):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
         org.flags.allow_joinleave = False
@@ -749,40 +736,24 @@ class OrganizationReleaseCreateTest(APITestCase):
         })
 
         response = self.client.post(url, data={
-            'version': '1',
-            'headCommits': [
-                {'currentId': 'b' * 40, 'repository': repo2.name},
-            ],
-            'projects': [project1.slug]
-        }, HTTP_AUTHORIZATION='Bearer {}'.format(api_token.token))
-        response = self.client.post(url, data={
             'version': '1.2.1',
-            'headCommits': [
-                {'currentId': 'a' * 40, 'repository': repo.name, 'previousId': 'c' * 40},
-                {'currentId': 'b' * 40, 'repository': repo2.name},
+            'refs': [
+                {'commit': 'a' * 40, 'repository': repo.name, 'previousCommit': 'c' * 40},
+                {'commit': 'b' * 40, 'repository': repo2.name},
             ],
             'projects': [project1.slug]
         }, HTTP_AUTHORIZATION='Bearer {}'.format(api_token.token))
 
+        mock_fetch_commits.apply_async.assert_called_with(
+            kwargs={
+                'release_id': Release.objects.get(version='1.2.1', organization=org).id,
+                'user_id': user.id,
+                'refs': [
+                    {'commit': 'a' * 40, 'repository': repo.name, 'previousCommit': 'c' * 40},
+                    {'commit': 'b' * 40, 'repository': repo2.name},
+                ],
+                'prev_release_id': release1.id,
+            }
+        )
+
         assert response.status_code == 201
-        # check fake commits from dummy repo provider were created
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='62de626b7c7cfb8e77efb4273b1a3df4123e6216',
-            release__version=response.data['version'],
-        ).exists()
-        assert ReleaseCommit.objects.filter(
-            commit__repository_id=repo2.id,
-            commit__key='58de626b7c7cfb8e77efb4273b1a3df4123e6345',
-            release__version=response.data['version'],
-        ).exists()

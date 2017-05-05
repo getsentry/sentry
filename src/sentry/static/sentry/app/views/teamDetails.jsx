@@ -12,10 +12,7 @@ import OrganizationHomeContainer from '../components/organizations/homeContainer
 import {t} from '../locale';
 
 const TeamDetails = React.createClass({
-  mixins: [
-    ApiMixin,
-    OrganizationState
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
@@ -31,12 +28,17 @@ const TeamDetails = React.createClass({
 
   componentWillReceiveProps(nextProps) {
     let params = this.props.params;
-    if (nextProps.params.teamId !== params.teamId ||
-        nextProps.params.orgId !== params.orgId) {
-      this.setState({
-        loading: true,
-        error: false
-      }, this.fetchData);
+    if (
+      nextProps.params.teamId !== params.teamId ||
+      nextProps.params.orgId !== params.orgId
+    ) {
+      this.setState(
+        {
+          loading: true,
+          error: false
+        },
+        this.fetchData
+      );
     }
   },
 
@@ -44,7 +46,7 @@ const TeamDetails = React.createClass({
     let params = this.props.params;
 
     this.api.request(`/teams/${params.orgId}/${params.teamId}/`, {
-      success: (data) => {
+      success: data => {
         this.setState({
           team: data,
           loading: false,
@@ -64,7 +66,10 @@ const TeamDetails = React.createClass({
     let team = this.state.team;
     if (data.slug !== team.slug) {
       let orgId = this.props.params.orgId;
-      browserHistory.pushState(null, `/organizations/${orgId}/teams/${data.slug}/settings/`);
+      browserHistory.pushState(
+        null,
+        `/organizations/${orgId}/teams/${data.slug}/settings/`
+      );
     } else {
       Object.assign({}, team, data);
       this.setState({team: team});
@@ -72,10 +77,8 @@ const TeamDetails = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let team = this.state.team;
     let {orgId, teamId} = this.props.params;
@@ -87,10 +90,12 @@ const TeamDetails = React.createClass({
         <h3>{team.name}</h3>
 
         {access.has('team:admin') &&
-          <DropdownLink topLevelClasses="pull-right anchor-right" className="dropdown-menu-right" title={t('More')}>
+          <DropdownLink
+            topLevelClasses="pull-right anchor-right"
+            className="dropdown-menu-right"
+            title={t('More')}>
             <MenuItem href={`${routePrefix}/remove/`}>{t('Remove Team')}</MenuItem>
-          </DropdownLink>
-        }
+          </DropdownLink>}
 
         <ul className="nav nav-tabs border-bottom">
           <ListLink to={`${routePrefix}/settings/`}>{t('Settings')}</ListLink>
@@ -99,7 +104,7 @@ const TeamDetails = React.createClass({
 
         {React.cloneElement(this.props.children, {
           team: team,
-          onTeamChange: this.onTeamChange,
+          onTeamChange: this.onTeamChange
         })}
       </OrganizationHomeContainer>
     );

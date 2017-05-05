@@ -48,7 +48,7 @@ from sentry.utils.distutils import (
 )
 
 # The version of sentry
-VERSION = '8.16.0.dev0'
+VERSION = '8.17.0.dev0'
 
 # Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
 # in multiprocessing/util.py _exit_function when running `python
@@ -116,8 +116,8 @@ install_requires = [
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
-    'percy>=0.2.5',
-    'petname>=1.7,<1.8',
+    'percy>=0.4.4',
+    'petname>=2.0,<2.1',
     'Pillow>=3.2.0,<3.3.0',
     'progressbar2>=3.10,<3.11',
     'psycopg2>=2.6.0,<2.7.0',

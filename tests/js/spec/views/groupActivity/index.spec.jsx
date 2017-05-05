@@ -13,54 +13,54 @@ describe('GroupActivity', function() {
     this.sandbox.stub(ConfigStore, 'get').withArgs('user').returns({});
   });
 
-  afterEach(function () {
+  afterEach(function() {
     this.sandbox.restore();
   });
 
-  it('renders a NoteInput', function () {
-    let wrapper = shallow(<GroupActivity group={{id: '1337', activity: []}}/>, {
+  it('renders a NoteInput', function() {
+    let wrapper = shallow(<GroupActivity group={{id: '1337', activity: []}} />, {
       context: {
         group: {id: '1337'},
         project: {id: 'foo'},
         team: {id: '1'},
-        organization: {id:'bar'}
+        organization: {id: 'bar'}
       }
     });
-    expect(wrapper.find(NoteInput)).to.have.length(1);
+    expect(wrapper.find(NoteInput)).toHaveLength(1);
   });
 
-  describe('onNoteDelete()', function () {
-    beforeEach(function () {
-      this.instance = shallow(<GroupActivity group={{id: '1337', activity: []}}/>, {
+  describe('onNoteDelete()', function() {
+    beforeEach(function() {
+      this.instance = shallow(<GroupActivity group={{id: '1337', activity: []}} />, {
         context: {
           group: {id: '1337'},
           project: {id: 'foo'},
           team: {id: '1'},
-          organization: {id:'bar'}
+          organization: {id: 'bar'}
         }
       }).instance();
     });
 
-    it('should do nothing if not present in GroupStore', function () {
+    it('should do nothing if not present in GroupStore', function() {
       let instance = this.instance;
 
       this.sandbox.stub(GroupStore, 'removeActivity').returns(-1); // not found
       let request = this.sandbox.stub(instance.api, 'request');
 
       instance.onNoteDelete({id: 1});
-      expect(request.calledOnce).to.not.be.ok;
+      expect(request.calledOnce).not.toBeTruthy();
     });
 
-    it('should remove remove the item from the GroupStore make a DELETE API request', function () {
+    it('should remove remove the item from the GroupStore make a DELETE API request', function() {
       let instance = this.instance;
 
       this.sandbox.stub(GroupStore, 'removeActivity').returns(1);
 
       let request = this.sandbox.stub(instance.api, 'request');
       instance.onNoteDelete({id: 1});
-      expect(request.calledOnce).to.be.ok;
-      expect(request.getCall(0).args[0]).to.equal('/issues/1337/comments/1/');
-      expect(request.getCall(0).args[1]).to.have.property('method', 'DELETE');
+      expect(request.calledOnce).toBeTruthy;
+      expect(request.getCall(0).args[0]).toEqual('/issues/1337/comments/1/');
+      expect(request.getCall(0).args[1]).toHaveProperty('method', 'DELETE');
     });
   });
 });

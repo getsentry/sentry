@@ -18,17 +18,23 @@ class PasswordField extends InputField {
 
   cancelEdit(ev) {
     ev.preventDefault();
-    this.setState({
-      value: '',
-      editing: false
-    }, () => {
-      this.props.onChange('');
-    });
+    this.setState(
+      {
+        value: '',
+        editing: false
+      },
+      () => {
+        this.props.onChange('');
+      }
+    );
   }
 
   componentWillReceiveProps(nextProps) {
     // close edit mode after successful save
-    if (this.props.formState === FormState.SAVING && nextProps.formState === FormState.READY) {
+    if (
+      this.props.formState === FormState.SAVING &&
+      nextProps.formState === FormState.READY
+    ) {
       this.setState({
         editing: false
       });
@@ -61,9 +67,10 @@ class PasswordField extends InputField {
     } else {
       return (
         <div className="form-password saved">
-          <span>{this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}</span>
-          {!this.props.disabled &&
-            <a href="#" onClick={this.startEdit}>Edit</a>}
+          <span>
+            {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
+          </span>
+          {!this.props.disabled && <a href="#" onClick={this.startEdit}>Edit</a>}
         </div>
       );
     }
@@ -71,8 +78,8 @@ class PasswordField extends InputField {
 }
 
 PasswordField.defaultProps = Object.assign({}, InputField.defaultProps, {
-  'has_saved_value': false,
-  'prefix': ''
+  has_saved_value: false,
+  prefix: ''
 });
 
 export default PasswordField;

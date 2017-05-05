@@ -13,10 +13,7 @@ import {t} from '../locale';
 import {deviceNameMapper} from '../utils';
 
 const GroupEvents = React.createClass({
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     let queryParams = this.props.location.query;
@@ -25,7 +22,7 @@ const GroupEvents = React.createClass({
       loading: true,
       error: false,
       pageLinks: '',
-      query: queryParams.query || '',
+      query: queryParams.query || ''
     };
   },
 
@@ -34,22 +31,30 @@ const GroupEvents = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.groupId !== this.props.params.groupId ||
-        nextProps.location.search !== this.props.location.search) {
+    if (
+      nextProps.params.groupId !== this.props.params.groupId ||
+      nextProps.location.search !== this.props.location.search
+    ) {
       let queryParams = nextProps.location.query;
-      this.setState({
-        query: queryParams.query
-      }, this.fetchData);
+      this.setState(
+        {
+          query: queryParams.query
+        },
+        this.fetchData
+      );
     }
   },
 
   onSearch(query) {
     let targetQueryParams = {};
-    if (query !== '')
-      targetQueryParams.query = query;
+    if (query !== '') targetQueryParams.query = query;
 
     let {groupId, orgId, projectId} = this.props.params;
-    browserHistory.pushState(null, `/${orgId}/${projectId}/issues/${groupId}/events/`, targetQueryParams);
+    browserHistory.pushState(
+      null,
+      `/${orgId}/${projectId}/issues/${groupId}/events/`,
+      targetQueryParams
+    );
   },
 
   getEndpoint() {
@@ -82,7 +87,7 @@ const GroupEvents = React.createClass({
           pageLinks: jqXHR.getResponseHeader('Link')
         });
       },
-      error: (err) => {
+      error: err => {
         let error = err.responseJSON || true;
         error = error.detail || true;
         this.setState({
@@ -121,14 +126,14 @@ const GroupEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any events yet.')}</p>
+        <p>{t("There don't seem to be any events yet.")}</p>
       </div>
     );
   },
 
   renderResults() {
     let group = this.getGroup();
-    let tagList = group.tags.filter((tag) => {
+    let tagList = group.tags.filter(tag => {
       return tag.key !== 'user';
     });
 
@@ -142,9 +147,9 @@ const GroupEvents = React.createClass({
 
     let {orgId, projectId, groupId} = this.props.params;
 
-    let children = this.state.eventList.map((event) => {
+    let children = this.state.eventList.map(event => {
       let tagMap = {};
-      event.tags.forEach((tag) => {
+      event.tags.forEach(tag => {
         tagMap[tag.key] = tag.value;
       });
 
@@ -158,26 +163,29 @@ const GroupEvents = React.createClass({
               <small>{(this.getEventTitle(event) || '').substr(0, 100)}</small>
             </h5>
           </td>
-          {tagList.map((tag) => {
+          {tagList.map(tag => {
             return (
               <td key={tag.key}>
-                {tag.key === 'device' ? deviceNameMapper(tagMap[tag.key]) : tagMap[tag.key]}
+                {tag.key === 'device'
+                  ? deviceNameMapper(tagMap[tag.key])
+                  : tagMap[tag.key]}
               </td>
             );
           })}
           {hasUser &&
             <td className="event-user table-user-info">
-              {event.user ?
-                <div>
-                  <Avatar user={event.user} size={64} className="avatar"
-                          gravatar={false} />
-                  {event.user.email}
-                </div>
-              :
-                <span>&mdash;</span>
-              }
-            </td>
-          }
+              {event.user
+                ? <div>
+                    <Avatar
+                      user={event.user}
+                      size={64}
+                      className="avatar"
+                      gravatar={false}
+                    />
+                    {event.user.email}
+                  </div>
+                : <span>—</span>}
+            </td>}
         </tr>
       );
     });
@@ -189,16 +197,14 @@ const GroupEvents = React.createClass({
             <thead>
               <tr>
                 <th>{t('ID')}</th>
-                {tagList.map((tag) => {
+                {tagList.map(tag => {
                   return (
                     <th key={tag.key}>
                       {tag.name}
                     </th>
                   );
                 })}
-                {hasUser &&
-                  <th>{t('User')}</th>
-                }
+                {hasUser && <th>{t('User')}</th>}
               </tr>
             </thead>
             <tbody>
@@ -206,7 +212,7 @@ const GroupEvents = React.createClass({
             </tbody>
           </table>
         </div>
-        <Pagination pageLinks={this.state.pageLinks}/>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },
@@ -214,16 +220,13 @@ const GroupEvents = React.createClass({
   renderBody() {
     let body;
 
-    if (this.state.loading)
-      body = <LoadingIndicator />;
+    if (this.state.loading) body = <LoadingIndicator />;
     else if (this.state.error)
       body = <LoadingError message={this.state.error} onRetry={this.fetchData} />;
-    else if (this.state.eventList.length > 0)
-      body = this.renderResults();
+    else if (this.state.eventList.length > 0) body = this.renderResults();
     else if (this.state.query && this.state.query !== '')
       body = this.renderNoQueryResults();
-    else
-      body = this.renderEmpty();
+    else body = this.renderEmpty();
 
     return body;
   },
@@ -232,10 +235,12 @@ const GroupEvents = React.createClass({
     return (
       <div>
         <div style={{marginBottom: 20}}>
-          <SearchBar defaultQuery=""
+          <SearchBar
+            defaultQuery=""
             placeholder={t('search event message or tags')}
             query={this.state.query}
-            onSearch={this.onSearch} />
+            onSearch={this.onSearch}
+          />
         </div>
         {this.renderBody()}
       </div>

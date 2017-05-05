@@ -12,10 +12,7 @@ const ProjectChart = React.createClass({
     resolution: React.PropTypes.string.isRequired
   },
 
-  mixins: [
-    ApiMixin,
-    ProjectState
-  ],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     return {
@@ -31,10 +28,13 @@ const ProjectChart = React.createClass({
   },
 
   componentWillReceiveProps() {
-    this.setState({
-      loading: true,
-      error: false
-    }, this.fetchData);
+    this.setState(
+      {
+        loading: true,
+        error: false
+      },
+      this.fetchData
+    );
   },
 
   getStatsEndpoint() {
@@ -54,9 +54,9 @@ const ProjectChart = React.createClass({
       query: {
         since: this.props.dateSince,
         resolution: this.props.resolution,
-        stat: 'generated',
+        stat: 'generated'
       },
-      success: (data) => {
+      success: data => {
         this.setState({
           stats: data,
           error: false,
@@ -74,34 +74,35 @@ const ProjectChart = React.createClass({
     this.api.request(this.getProjectReleasesEndpoint(), {
       success: (data, _, jqXHR) => {
         this.setState({
-          releaseList: data,
+          releaseList: data
         });
       }
     });
   },
 
   renderChart() {
-    let points = this.state.stats.map((point) => {
+    let points = this.state.stats.map(point => {
       return {x: point[0], y: point[1]};
     });
-    let startX = (new Date().getTime() / 1000) - 3600 * 24 * 7;
-    let markers = this.state.releaseList.filter((release) => {
-      let date = new Date(release.dateCreated).getTime() / 1000;
-      return date >= startX;
-    }).map((release) => {
-      return {
-        label: 'Version ' + release.shortVersion,
-        x: new Date(release.dateCreated).getTime() / 1000
-      };
-    });
+    let startX = new Date().getTime() / 1000 - 3600 * 24 * 7;
+    let markers = this.state.releaseList
+      .filter(release => {
+        let date = new Date(release.dateCreated).getTime() / 1000;
+        return date >= startX;
+      })
+      .map(release => {
+        return {
+          label: 'Version ' + release.shortVersion,
+          x: new Date(release.dateCreated).getTime() / 1000
+        };
+      });
 
     return (
       <div className="chart-wrapper">
-        <BarChart
-          points={points}
-          markers={markers}
-          className="sparkline" />
-        <small className="date-legend">{moment(this.props.dateSince * 1000).format('LL')}</small>
+        <BarChart points={points} markers={markers} className="sparkline" />
+        <small className="date-legend">
+          {moment(this.props.dateSince * 1000).format('LL')}
+        </small>
       </div>
     );
   },
@@ -111,13 +112,11 @@ const ProjectChart = React.createClass({
       <div className="box project-chart">
         <div className="box-content with-padding">
           <div className="bar-chart">
-            {this.state.loading ?
-              <LoadingIndicator />
-            : (this.state.error ?
-              <LoadingError onRetry={this.fetchData} />
-            :
-              this.renderChart()
-            )}
+            {this.state.loading
+              ? <LoadingIndicator />
+              : this.state.error
+                  ? <LoadingError onRetry={this.fetchData} />
+                  : this.renderChart()}
           </div>
         </div>
       </div>

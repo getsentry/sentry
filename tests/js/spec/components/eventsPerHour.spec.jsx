@@ -9,10 +9,12 @@ describe('EventsPerHour', function() {
     rejected: [[1461099600, 2867], [1461103200, 2742]]
   };
 
-  it('should work', function () {
+  it('should work', function() {
     sinon.stub(EventsPerHour.prototype, 'fetchData');
-    let eventsPerHour = shallow(<EventsPerHour/>).instance();
-    expect(eventsPerHour.formatData(data)).to.deep.equal([{x: 1461099600, y: [28867, 2867, 0]},
-                                                          {x: 1461103200, y: [34048, 2742, 0]}]);
+    let eventsPerHour = shallow(<EventsPerHour />).instance();
+    expect(eventsPerHour.formatData(data)).toEqual([
+      {x: 1461099600, y: [28867, 2867, 0]},
+      {x: 1461103200, y: [34048, 2742, 0]}
+    ]);
   });
 });

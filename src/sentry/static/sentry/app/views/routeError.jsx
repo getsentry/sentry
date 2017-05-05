@@ -11,12 +11,14 @@ const RouteError = React.createClass({
     // TODO(dcramer): show something in addition to embed (that contains it?)
     // TODO(dcramer): capture better context
     // throw this in a timeout so if it errors we dont fall over
-    this._timeout = window.setTimeout(function(){
-      Raven.captureException(this.props.error);
-      // TODO(dcramer): we do not have errorId until send() is called which
-      // has latency in production so this will literally never fire
-      Raven.showReportDialog();
-    }.bind(this));
+    this._timeout = window.setTimeout(
+      function() {
+        Raven.captureException(this.props.error);
+        // TODO(dcramer): we do not have errorId until send() is called which
+        // has latency in production so this will literally never fire
+        Raven.showReportDialog();
+      }.bind(this)
+    );
   },
 
   componentWillUnmount() {
@@ -35,23 +37,37 @@ const RouteError = React.createClass({
           <span className="icon-exclamation" style={{fontSize: 20, marginRight: 10}} />
           <span>Oops! Something went wrong</span>
         </div>
-        <p>It looks like you've hit an issue in our client application. Don't worry
+        <p>
+          It looks like you've hit an issue in our client application. Don't worry
           though! We use Sentry to monitor Sentry and it's likely we're already
-          looking into this!</p>
+          looking into this!
+        </p>
         <p>If you're daring, you may want to try the following:</p>
         <ul>
-          {window && window.adblockSuspected &&
-            <li>We detected something AdBlock-like. Try disabling it, as it's known to cause issues.</li>
-          }
-          <li>Give it a few seconds and <a onClick={() => {
-              window.location.href = window.location.href;
-            }}>reload the page</a>.</li>
-          <li>If all else fails, <a href="http://github.com/getsentry/sentry/issues">create an issue</a> with more details.</li>
+          {window &&
+            window.adblockSuspected &&
+            <li>
+              We detected something AdBlock-like. Try disabling it, as it's known to cause issues.
+            </li>}
+          <li>
+            Give it a few seconds and <a
+              onClick={() => {
+                window.location.href = window.location.href;
+              }}>
+              reload the page
+            </a>.
+          </li>
+          <li>
+            If all else fails,
+            {' '}
+            <a href="http://github.com/getsentry/sentry/issues">create an issue</a>
+            {' '}
+            with more details.
+          </li>
         </ul>
       </div>
     );
-  },
+  }
 });
 
 export default RouteError;
-

@@ -13,7 +13,7 @@ const ReleaseProjectStatSparkline = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string,
     project: React.PropTypes.object,
-    version: React.PropTypes.string,
+    version: React.PropTypes.string
   },
 
   mixins: [ApiMixin],
@@ -23,7 +23,7 @@ const ReleaseProjectStatSparkline = React.createClass({
       loading: true,
       error: false,
       stats: [],
-      newIssueCount: null,
+      newIssueCount: null
     };
   },
 
@@ -36,13 +36,13 @@ const ReleaseProjectStatSparkline = React.createClass({
       data: 'stat=received',
       success: (data, _, jqXHR) => {
         this.setState({
-          stats: data,
+          stats: data
         });
         this.getNewIssuesCount();
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       }
     });
@@ -57,12 +57,12 @@ const ReleaseProjectStatSparkline = React.createClass({
       success: (data, _, jqXHR) => {
         this.setState({
           newIssueCount: data.newGroups,
-          loading: false,
+          loading: false
         });
       },
       error: () => {
         this.setState({
-          error: true,
+          error: true
         });
       }
     });
@@ -72,24 +72,27 @@ const ReleaseProjectStatSparkline = React.createClass({
     let {orgId, project, version} = this.props;
     let newIssueCount = this.state.newIssueCount;
     let values = this.state.stats.map(tuple => tuple[1]);
-    if (this.state.loading)
-      return <LoadingIndicator/>;
+    if (this.state.loading) return <LoadingIndicator />;
 
-    if (this.state.error)
-      return <LoadingError/>;
+    if (this.state.error) return <LoadingError />;
     return (
       <li>
         <div className="sparkline pull-right" style={{width: 96}}>
           <Sparklines data={values} width={100} height={32}>
-            <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}}/>
+            <SparklinesLine style={{stroke: '#8f85d4', fill: 'none', strokeWidth: 3}} />
           </Sparklines>
         </div>
-        <Link to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/overview/`}>
+        <Link
+          to={`/${orgId}/${project.slug}/releases/${encodeURIComponent(version)}/overview/`}>
           <h6 className="m-b-0">
             {project.name}
           </h6>
           <p className="m-b-0 text-muted">
-            <small>{newIssueCount > 0 ? tn('%d new issue', '%d new issues', newIssueCount) : t('No new issues')}</small>
+            <small>
+              {newIssueCount > 0
+                ? tn('%d new issue', '%d new issues', newIssueCount)
+                : t('No new issues')}
+            </small>
           </p>
         </Link>
       </li>

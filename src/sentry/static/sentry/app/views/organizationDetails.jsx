@@ -6,9 +6,15 @@ import Sidebar from '../components/sidebar';
 import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
+import BroadcastModal from '../components/broadcastModal';
+import moment from 'moment';
 import PropTypes from '../proptypes';
 import TeamStore from '../stores/teamStore';
 import ProjectStore from '../stores/projectStore';
+import ConfigStore from '../stores/configStore';
+
+import OrganizationState from '../mixins/organizationState';
+
 import {t} from '../locale';
 
 let ERROR_TYPES = {
@@ -39,16 +45,15 @@ const OrganizationDetails = React.createClass({
     organization: PropTypes.Organization
   },
 
-  mixins: [
-    ApiMixin
-  ],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {
       loading: true,
       error: false,
       errorType: null,
-      organization: null
+      organization: null,
+      showBroadcast: false
     };
   },
 
@@ -63,8 +68,10 @@ const OrganizationDetails = React.createClass({
   },
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.params.orgId !== this.props.params.orgId ||
-        nextProps.location.state === 'refresh') {
+    if (
+      nextProps.params.orgId !== this.props.params.orgId ||
+      nextProps.location.state === 'refresh'
+    ) {
       this.remountComponent();
     }
   },
@@ -79,28 +86,32 @@ const OrganizationDetails = React.createClass({
 
   fetchData() {
     this.api.request(this.getOrganizationDetailsEndpoint(), {
-      success: (data) => {
+      success: data => {
         // Allow injection via getsentry et all
         let hooks = [];
-        HookStore.get('organization:header').forEach((cb) => {
+        HookStore.get('organization:header').forEach(cb => {
           hooks.push(cb(data));
         });
 
         data.requiredAdminActions = getRequiredAdminActions(data);
-
         this.setState({
           organization: data,
           loading: false,
           error: false,
           errorType: null,
           hooks: hooks,
+          showBroadcast: this.shouldShowBroadcast(data)
         });
 
         TeamStore.loadInitialData(data.teams);
-        ProjectStore.loadInitialData(data.teams.reduce((out, team) => {
-          return out.concat(team.projects);
-        }, []));
-      }, error: (_, textStatus, errorThrown) => {
+        ProjectStore.loadInitialData(
+          data.teams.reduce((out, team) => {
+            return out.concat(team.projects);
+          }, [])
+        );
+      },
+
+      error: (_, textStatus, errorThrown) => {
         let errorType = null;
         switch (errorThrown) {
           case 'NOT FOUND':
@@ -111,7 +122,7 @@ const OrganizationDetails = React.createClass({
         this.setState({
           loading: false,
           error: true,
-          errorType: errorType,
+          errorType: errorType
         });
       }
     });
@@ -122,18 +133,44 @@ const OrganizationDetails = React.createClass({
   },
 
   getTitle() {
-    if (this.state.organization)
-      return this.state.organization.name;
+    if (this.state.organization) return this.state.organization.name;
     return 'Sentry';
+  },
+
+  shouldShowBroadcast(data) {
+    let user = ConfigStore.get('user');
+    let options = user ? user.options : {};
+    let seen = options.seenReleaseBroadcast;
+    let tasks = data.onboardingTasks;
+    // don't show broadcast they've seen it
+    if (seen) {
+      return false;
+    }
+
+    // also if they havn't sent their first event
+    let sentFirstEvent = tasks.find(
+      ({task, status}) => task == 2 && status == 'complete'
+    );
+
+    if (!sentFirstEvent) {
+      return false;
+    }
+
+    // show it if they sent their first event more than 2 days ago
+    return moment().diff(sentFirstEvent.dateCompleted, 'days') > 2;
+  },
+
+  closeBroadcast() {
+    this.setState({showBroadcast: false});
   },
 
   render() {
     if (this.state.loading) {
-        return (
-          <LoadingIndicator triangle={true}>
-            {t('Loading data for your organization.')}
-          </LoadingIndicator>
-        );
+      return (
+        <LoadingIndicator triangle={true}>
+          {t('Loading data for your organization.')}
+        </LoadingIndicator>
+      );
     } else if (this.state.error) {
       switch (this.state.errorType) {
         case ERROR_TYPES.ORG_NOT_FOUND:
@@ -153,7 +190,9 @@ const OrganizationDetails = React.createClass({
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
           {this.state.hooks}
-          <Sidebar/>
+          <Sidebar />
+          {this.state.showBroadcast &&
+            <BroadcastModal closeBroadcast={this.closeBroadcast} />}
           {this.props.children}
           <Footer />
         </div>

@@ -10,7 +10,7 @@ import {t} from '../../locale';
 
 const SuggestedOwners = React.createClass({
   propTypes: {
-    event: React.PropTypes.object,
+    event: React.PropTypes.object
   },
 
   mixins: [
@@ -20,12 +20,12 @@ const SuggestedOwners = React.createClass({
       selector: '.tip',
       html: true,
       container: 'body',
-      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>',
+      template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner tooltip-owners"></div></div>'
     })
   ],
 
   getInitialState() {
-      return {owners: undefined};
+    return {owners: undefined};
   },
 
   componentDidMount() {
@@ -56,18 +56,21 @@ const SuggestedOwners = React.createClass({
     if (!event) return;
     let org = this.getOrganization();
     let project = this.getProject();
-    this.api.request(`/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`, {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          owners: data.committers,
-        });
-      },
-      error: (error) => {
-        this.setState({
-          owners: undefined,
-        });
+    this.api.request(
+      `/projects/${org.slug}/${project.slug}/events/${event.id}/committers/`,
+      {
+        success: (data, _, jqXHR) => {
+          this.setState({
+            owners: data.committers
+          });
+        },
+        error: error => {
+          this.setState({
+            owners: undefined
+          });
+        }
       }
-    });
+    );
   },
 
   assignTo(member) {
@@ -78,45 +81,55 @@ const SuggestedOwners = React.createClass({
 
   renderCommitter({author, commits}) {
     return (
-      <span key={author.id || author.email} className="avatar-grid-item tip" onClick={() => this.assignTo(author)} title={
-        ReactDOMServer.renderToStaticMarkup(
+      <span
+        key={author.id || author.email}
+        className="avatar-grid-item tip"
+        onClick={() => this.assignTo(author)}
+        title={ReactDOMServer.renderToStaticMarkup(
           <div>
-            {author.id ?
-              ( <div className="tooltip-owners-name">
+            {author.id
+              ? <div className="tooltip-owners-name">
                   {author.name}
-                </div>)  :
-                (<div className="tooltip-owners-unknown">
+                </div>
+              : <div className="tooltip-owners-unknown">
                   <p className="tooltip-owners-unknown-email">
                     <span className="icon icon-circle-cross" />
                     <strong>{author.email}</strong>
                   </p>
-                  <p>Sorry, we don't recognize this member. Make sure to link alternative emails in Account Settings.</p>
-                  <hr/>
-                </div>)
-              }
+                  <p>
+                    Sorry, we don't recognize this member. Make sure to link alternative emails in Account Settings.
+                  </p>
+                  <hr />
+                </div>}
             <ul className="tooltip-owners-commits">
-              {commits.slice(0, 6).map( c => {
+              {commits.slice(0, 6).map(c => {
                 return (
                   <li key={c.id} className="tooltip-owners-commit">
                     {c.message}
-                    <span className="tooltip-owners-date"> - {moment(c.dateCreated).fromNow()}</span>
+                    <span className="tooltip-owners-date">
+                      {' '}- {moment(c.dateCreated).fromNow()}
+                    </span>
                   </li>
                 );
               })}
             </ul>
-          </div>)
-        }>
-        <Avatar user={author}/>
-      </span>);
+          </div>
+        )}>
+        <Avatar user={author} />
+      </span>
+    );
   },
 
   render() {
     if (!(this.state.owners && this.state.owners.length)) {
       return null;
     }
-    return(
+    return (
       <div className="m-b-1">
-        <h6><span>{t('Suggested Owners')}</span><small style={{background: '#FFFFFF'}}>Click to assign</small></h6>
+        <h6>
+          <span>{t('Suggested Owners')}</span>
+          <small style={{background: '#FFFFFF'}}>Click to assign</small>
+        </h6>
         <div className="avatar-grid">
           {this.state.owners.map(c => this.renderCommitter(c))}
         </div>

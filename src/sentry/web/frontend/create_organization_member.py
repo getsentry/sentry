@@ -78,7 +78,7 @@ class CreateOrganizationMemberView(OrganizationView):
                 (r, r in allowed_roles)
                 for r in roles.get_all()
             ],
-            'all_teams': all_teams
+            'all_teams': list(all_teams),
         }
 
         return self.respond('sentry/create-organization-member.html', context)

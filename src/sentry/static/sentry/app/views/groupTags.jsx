@@ -9,10 +9,7 @@ import {percent, deviceNameMapper} from '../utils';
 import {t} from '../locale';
 
 const GroupTags = React.createClass({
-  mixins: [
-    ApiMixin,
-    GroupState
-  ],
+  mixins: [ApiMixin, GroupState],
 
   getInitialState() {
     return {
@@ -35,7 +32,7 @@ const GroupTags = React.createClass({
     // TODO(dcramer): each tag should be a separate query as the tags endpoint
     // is not performant
     this.api.request('/issues/' + this.getGroup().id + '/tags/', {
-      success: (data) => {
+      success: data => {
         if (!this.isMounted()) {
           return;
         }
@@ -45,7 +42,7 @@ const GroupTags = React.createClass({
           loading: false
         });
       },
-      error: (error) => {
+      error: error => {
         if (!this.isMounted()) {
           return;
         }
@@ -81,12 +78,12 @@ const GroupTags = React.createClass({
           return (
             <li key={tagValueIdx}>
               <Link
-                  className="tag-bar"
-                  to={{
-                    pathname: `/${orgId}/${projectId}/`,
-                    query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
-                  }}>
-                <span className="tag-bar-background" style={{width: pct + '%'}}></span>
+                className="tag-bar"
+                to={{
+                  pathname: `/${orgId}/${projectId}/`,
+                  query: {query: tag.key + ':' + '"' + tagValue.value + '"'}
+                }}>
+                <span className="tag-bar-background" style={{width: pct + '%'}} />
                 <span className="tag-bar-label">{deviceNameMapper(tagValue.name)}</span>
                 <span className="tag-bar-count"><Count value={tagValue.count} /></span>
               </Link>
@@ -99,7 +96,11 @@ const GroupTags = React.createClass({
             <div className="box">
               <div className="box-header">
                 <span className="pull-right">
-                  <Link className="btn btn-default btn-sm" to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>{t('More Details')}</Link>
+                  <Link
+                    className="btn btn-default btn-sm"
+                    to={`/${orgId}/${projectId}/issues/${groupId}/tags/${tag.key}/`}>
+                    {t('More Details')}
+                  </Link>
                 </span>
                 <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
               </div>

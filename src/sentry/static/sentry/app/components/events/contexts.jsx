@@ -5,12 +5,12 @@ import plugins from '../../plugins';
 import {objectIsEmpty, toTitleCase, defined} from '../../utils';
 
 const CONTEXT_TYPES = {
-  'default': require('./contexts/default').default,
-  'app': require('./contexts/app').default,
-  'device': require('./contexts/device').default,
-  'os': require('./contexts/os').default,
-  'runtime': require('./contexts/runtime').default,
-  'user': require('./contexts/user').default,
+  default: require('./contexts/default').default,
+  app: require('./contexts/app').default,
+  device: require('./contexts/device').default,
+  os: require('./contexts/os').default,
+  runtime: require('./contexts/runtime').default,
+  user: require('./contexts/user').default
 };
 
 function getContextComponent(type) {
@@ -35,7 +35,7 @@ const ContextChunk = React.createClass({
     group: React.PropTypes.object.isRequired,
     type: React.PropTypes.string.isRequired,
     alias: React.PropTypes.string.isRequired,
-    value: React.PropTypes.object.isRequired,
+    value: React.PropTypes.object.isRequired
   },
 
   getInitialState() {
@@ -49,27 +49,28 @@ const ContextChunk = React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevProps.group.id != this.props.group.id ||
-        prevProps.type != this.props.type) {
+    if (prevProps.group.id != this.props.group.id || prevProps.type != this.props.type) {
       this.syncPlugin();
     }
   },
 
   syncPlugin() {
-    let sourcePlugin = getSourcePlugin(
-      this.props.group.pluginContexts, this.props.type);
+    let sourcePlugin = getSourcePlugin(this.props.group.pluginContexts, this.props.type);
     if (!sourcePlugin) {
       this.setState({
         pluginLoading: false
       });
     } else {
-      this.setState({
-        pluginLoading: true,
-      }, () => {
-        plugins.load(sourcePlugin, () => {
-          this.setState({pluginLoading: false});
-        });
-      });
+      this.setState(
+        {
+          pluginLoading: true
+        },
+        () => {
+          plugins.load(sourcePlugin, () => {
+            this.setState({pluginLoading: false});
+          });
+        }
+      );
     }
   },
 
@@ -113,15 +114,15 @@ const ContextChunk = React.createClass({
 
     return (
       <GroupEventDataSection
-          group={group}
-          event={evt}
-          key={`context-${alias}`}
-          type={`context-${alias}`}
-          title={this.renderTitle(Component)}>
+        group={group}
+        event={evt}
+        key={`context-${alias}`}
+        type={`context-${alias}`}
+        title={this.renderTitle(Component)}>
         <Component alias={alias} data={value} />
       </GroupEventDataSection>
     );
-  },
+  }
 });
 
 const ContextsInterface = React.createClass({
@@ -135,33 +136,35 @@ const ContextsInterface = React.createClass({
     let evt = this.props.event;
     let children = [];
     if (!objectIsEmpty(evt.user)) {
-      children.push((
+      children.push(
         <ContextChunk
           group={group}
           event={evt}
           type="user"
           alias="user"
           value={evt.user}
-          key="user" />
-      ));
+          key="user"
+        />
+      );
     }
 
     let value = null;
     for (let key in evt.contexts) {
       value = evt.contexts[key];
-      children.push((
+      children.push(
         <ContextChunk
           group={group}
           event={evt}
           type={value.type}
           alias={key}
           value={value}
-          key={key} />
-      ));
+          key={key}
+        />
+      );
     }
 
     return <div>{children}</div>;
-  },
+  }
 });
 
 export default ContextsInterface;

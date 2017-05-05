@@ -283,6 +283,8 @@ INSTALLED_APPS = (
     'raven.contrib.django.raven_compat',
     'rest_framework',
     'sentry',
+    'sentry.analytics',
+    'sentry.analytics.events',
     'sentry.nodestore',
     'sentry.search',
     'sentry.lang.javascript',
@@ -445,6 +447,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
+    'sentry.tasks.commits',
     'sentry.tasks.check_auth',
     'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms',
@@ -464,6 +467,7 @@ CELERY_IMPORTS = (
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
     Queue('auth', routing_key='auth'),
+    Queue('commits', routing_key='commits'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('default', routing_key='default'),
     Queue('digests.delivery', routing_key='digests.delivery'),
@@ -738,10 +742,10 @@ SENTRY_FEATURES = {
     'auth:register': True,
     'organizations:api-keys': False,
     'organizations:create': True,
-    'organizations:repos': False,
+    'organizations:repos': True,
     'organizations:sso': True,
     'organizations:callsigns': True,
-    'organizations:release-commits': False,
+    'organizations:release-commits': True,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -849,6 +853,10 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
 SENTRY_FILESTORE_ALIASES = {
     'filesystem': 'django.core.files.storage.FileSystemStorage',
     's3': 'sentry.filestore.s3.S3Boto3Storage',
+}
+
+SENTRY_ANALYTICS_ALIASES = {
+    'noop': 'sentry.analytics.Analytics',
 }
 
 # set of backends that do not support needing SMTP mail.* settings

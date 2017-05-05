@@ -35,7 +35,7 @@ export const INTERFACES = {
   csp: CspInterface,
   breadcrumbs: BreadcrumbsInterface,
   threads: ThreadsInterface,
-  debugmeta: DebugMetaInterface,
+  debugmeta: DebugMetaInterface
 };
 
 const EventEntries = React.createClass({
@@ -72,7 +72,9 @@ const EventEntries = React.createClass({
         let Component = this.interfaces[entry.type];
         if (!Component) {
           /*eslint no-console:0*/
-          window.console && console.error && console.error('Unregistered interface: ' + entry.type);
+          window.console &&
+            console.error &&
+            console.error('Unregistered interface: ' + entry.type);
           return null;
         }
         return (
@@ -82,95 +84,70 @@ const EventEntries = React.createClass({
             event={evt}
             type={entry.type}
             data={entry.data}
-            isShare={isShare} />
+            isShare={isShare}
+          />
         );
       } catch (ex) {
         logException(ex);
         return (
           <EventDataSection
-              group={group}
-              event={evt}
-              type={entry.type}
-              title={entry.type}>
+            group={group}
+            event={evt}
+            type={entry.type}
+            title={entry.type}>
             <p>{t('There was an error rendering this data.')}</p>
           </EventDataSection>
         );
       }
     });
 
-    let hasContext = (
-      !utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts)
-    );
+    let hasContext = !utils.objectIsEmpty(evt.user) || !utils.objectIsEmpty(evt.contexts);
 
-    let hasContextSummary = (
-      hasContext && (evt.platform === 'cocoa' || evt.platform === 'javascript' || evt.platform === 'java')
-    );
+    let hasContextSummary =
+      hasContext &&
+      (evt.platform === 'cocoa' ||
+        evt.platform === 'javascript' ||
+        evt.platform === 'java');
 
     return (
       <div className="entries">
-        {evt.userReport &&
-          <EventUserReport
-            group={group}
-            event={evt} />
-        }
+        {evt.userReport && <EventUserReport group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.errors) &&
           <ReprocessingHint
             group={group}
             event={evt}
             orgId={this.props.orgId}
-            projectId={project.slug} />
-        }
-        {!utils.objectIsEmpty(evt.errors) &&
-          <EventErrors
-            group={group}
-            event={evt} />
-        }
-        {!utils.objectIsEmpty(evt.sdk) && evt.sdk.upstream.isNewer &&
+            projectId={project.slug}
+          />}
+        {!utils.objectIsEmpty(evt.errors) && <EventErrors group={group} event={evt} />}
+        {!utils.objectIsEmpty(evt.sdk) &&
+          evt.sdk.upstream.isNewer &&
           <div className="alert-block alert-info box">
-            <span className="icon-exclamation"/>
-            {t('This event was reported with an old version of the %s SDK.', evt.platform)}
+            <span className="icon-exclamation" />
+            {t(
+              'This event was reported with an old version of the %s SDK.',
+              evt.platform
+            )}
             {evt.sdk.upstream.url &&
-              <a href={evt.sdk.upstream.url}
-                 className="btn btn-sm btn-default">{t('Learn More')}</a>
-            }
-          </div>
-        }
-        {hasContextSummary &&
-          <EventContextSummary
-            group={group}
-            event={evt} />
-        }
+              <a href={evt.sdk.upstream.url} className="btn btn-sm btn-default">
+                {t('Learn More')}
+              </a>}
+          </div>}
+        {hasContextSummary && <EventContextSummary group={group} event={evt} />}
         <EventTags
           group={group}
           event={evt}
           orgId={this.props.orgId}
-          projectId={project.slug} />
+          projectId={project.slug}
+        />
         {entries}
-        {hasContext &&
-          <EventContexts
-            group={group}
-            event={evt} />
-        }
+        {hasContext && <EventContexts group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.context) &&
-          <EventExtraData
-            group={group}
-            event={evt} />
-        }
+          <EventExtraData group={group} event={evt} />}
         {!utils.objectIsEmpty(evt.packages) &&
-          <EventPackageData
-            group={group}
-            event={evt} />
-        }
-        {!utils.objectIsEmpty(evt.device) &&
-          <EventDevice
-            group={group}
-            event={evt} />
-        }
-        {!utils.objectIsEmpty(evt.sdk) &&
-          <EventSdk
-            group={group}
-            event={evt} />
-        }
+          <EventPackageData group={group} event={evt} />}
+        {!utils.objectIsEmpty(evt.device) && <EventDevice group={group} event={evt} />}
+        {!utils.objectIsEmpty(evt.sdk) && <EventSdk group={group} event={evt} />}
       </div>
     );
   }

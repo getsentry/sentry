@@ -25,11 +25,7 @@ const GroupList = React.createClass({
     location: React.PropTypes.object
   },
 
-  mixins: [
-    ProjectState,
-    Reflux.listenTo(GroupStore, 'onGroupChange'),
-    ApiMixin
-  ],
+  mixins: [ProjectState, Reflux.listenTo(GroupStore, 'onGroupChange'), ApiMixin],
 
   getDefaultProps() {
     return {
@@ -56,8 +52,10 @@ const GroupList = React.createClass({
   },
 
   componentDidUpdate(prevProps) {
-    if (prevProps.orgId !== this.props.orgId ||
-      prevProps.projectId !== this.props.projectId) {
+    if (
+      prevProps.orgId !== this.props.orgId ||
+      prevProps.projectId !== this.props.projectId
+    ) {
       this.fetchData();
     }
   },
@@ -105,7 +103,7 @@ const GroupList = React.createClass({
   },
 
   onGroupChange() {
-    let groupIds = this._streamManager.getAllItems().map((item) => item.id);
+    let groupIds = this._streamManager.getAllItems().map(item => item.id);
     if (!utils.valueIsEqual(groupIds, this.state.groupIds)) {
       this.setState({
         groupIds: groupIds
@@ -114,15 +112,13 @@ const GroupList = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return <LoadingIndicator />;
-    else if (this.state.error)
-      return <LoadingError onRetry={this.fetchData} />;
+    if (this.state.loading) return <LoadingIndicator />;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
     else if (this.state.groupIds.length === 0)
       return (
         <div className="box empty-stream">
-          <span className="icon icon-exclamation"></span>
-          <p>{t('There doesn\'t seem to be any events fitting the query.')}</p>
+          <span className="icon icon-exclamation" />
+          <p>{t("There doesn't seem to be any events fitting the query.")}</p>
         </div>
       );
 
@@ -138,7 +134,7 @@ const GroupList = React.createClass({
       <div className={wrapperClass}>
         <GroupListHeader />
         <ul className="group-list">
-          {this.state.groupIds.map((id) => {
+          {this.state.groupIds.map(id => {
             return (
               <StreamGroup
                 key={id}

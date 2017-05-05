@@ -25,7 +25,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     }
     return {
       formData: formData,
-      errors: {},
+      errors: {}
     };
   },
 
@@ -33,7 +33,7 @@ const ProjectFeedbackSettingsForm = React.createClass({
     let formData = this.state.formData;
     formData[name] = value;
     this.setState({
-      formData: formData,
+      formData: formData
     });
   },
 
@@ -43,31 +43,34 @@ const ProjectFeedbackSettingsForm = React.createClass({
     if (this.state.state === FormState.SAVING) {
       return;
     }
-    this.setState({
-      state: FormState.SAVING,
-    }, () => {
-      let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-      let {orgId, projectId} = this.props;
-      this.api.request(`/projects/${orgId}/${projectId}/`, {
-        method: 'PUT',
-        data: {options: this.state.formData},
-        success: (data) => {
-          this.setState({
-            state: FormState.READY,
-            errors: {},
-          });
-        },
-        error: (error) => {
-          this.setState({
-            state: FormState.ERROR,
-            errors: error.responseJSON,
-          });
-        },
-        complete: () => {
-          IndicatorStore.remove(loadingIndicator);
-        }
-      });
-    });
+    this.setState(
+      {
+        state: FormState.SAVING
+      },
+      () => {
+        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
+        let {orgId, projectId} = this.props;
+        this.api.request(`/projects/${orgId}/${projectId}/`, {
+          method: 'PUT',
+          data: {options: this.state.formData},
+          success: data => {
+            this.setState({
+              state: FormState.READY,
+              errors: {}
+            });
+          },
+          error: error => {
+            this.setState({
+              state: FormState.ERROR,
+              errors: error.responseJSON
+            });
+          },
+          complete: () => {
+            IndicatorStore.remove(loadingIndicator);
+          }
+        });
+      }
+    );
   },
 
   render() {
@@ -77,22 +80,27 @@ const ProjectFeedbackSettingsForm = React.createClass({
       <form onSubmit={this.onSubmit} className="form-stacked">
         {this.state.state === FormState.ERROR &&
           <div className="alert alert-error alert-block">
-            {t('Unable to save your changes. Please ensure all fields are valid and try again.')}
-          </div>
-        }
+            {t(
+              'Unable to save your changes. Please ensure all fields are valid and try again.'
+            )}
+          </div>}
         <fieldset>
           <BooleanField
             key="branding"
             name="branding"
             label={t('Show Sentry Branding')}
-            help={t('Show "powered by Sentry" within the feedback dialog. We appreciate you helping get the word out about Sentry! <3')}
+            help={t(
+              'Show "powered by Sentry" within the feedback dialog. We appreciate you helping get the word out about Sentry! <3'
+            )}
             value={this.state.formData['feedback:branding']}
             error={errors['feedback:branding']}
-            onChange={this.onFieldChange.bind(this, 'feedback:branding')} />
+            onChange={this.onFieldChange.bind(this, 'feedback:branding')}
+          />
         </fieldset>
         <fieldset className="form-actions">
-          <button type="submit" className="btn btn-primary"
-                  disabled={isSaving}>{t('Save Changes')}</button>
+          <button type="submit" className="btn btn-primary" disabled={isSaving}>
+            {t('Save Changes')}
+          </button>
         </fieldset>
       </form>
     );
@@ -113,7 +121,7 @@ const ProjectUserReportSettings = React.createClass({
       expected: 2,
 
       keyList: [],
-      projectOptions: {},
+      projectOptions: {}
     };
   },
 
@@ -123,15 +131,18 @@ const ProjectUserReportSettings = React.createClass({
   },
 
   componentDidMount() {
-    window.sentryEmbedCallback = function (embed) {
+    window.sentryEmbedCallback = function(embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
-      embed.submit = function (body) {
+      embed.submit = function(body) {
         this._submitInProgress = true;
-        setTimeout(function () {
-          this._submitInProgress = false;
-          this.onSuccess();
-        }.bind(this), 500);
+        setTimeout(
+          function() {
+            this._submitInProgress = false;
+            this.onSuccess();
+          }.bind(this),
+          500
+        );
       };
     };
   },
@@ -140,7 +151,10 @@ const ProjectUserReportSettings = React.createClass({
   componentWillReceiveProps(nextProps) {
     let location = this.props.location;
     let nextLocation = nextProps.location;
-    if (location.pathname != nextLocation.pathname || location.search != nextLocation.search) {
+    if (
+      location.pathname != nextLocation.pathname ||
+      location.search != nextLocation.search
+    ) {
       this.remountComponent();
     }
   },
@@ -161,7 +175,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          keyList: data,
+          keyList: data
         });
       },
       error: () => {
@@ -169,7 +183,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           error: true,
           expected: expected,
-          loading: expected > 0,
+          loading: expected > 0
         });
       }
     });
@@ -180,7 +194,7 @@ const ProjectUserReportSettings = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0,
-          projectOptions: data.options,
+          projectOptions: data.options
         });
       },
       error: () => {
@@ -195,9 +209,9 @@ const ProjectUserReportSettings = React.createClass({
   },
 
   getInstructions() {
-    let dsn = (this.state.keyList.length ?
-      this.state.keyList[0].dsn.public :
-      'https://public@sentry.example.com/1');
+    let dsn = this.state.keyList.length
+      ? this.state.keyList[0].dsn.public
+      : 'https://public@sentry.example.com/1';
 
     return (
       '<!-- Sentry JS SDK 2.1.+ required -->\n' +
@@ -206,9 +220,11 @@ const ProjectUserReportSettings = React.createClass({
       '  <script>\n' +
       '  Raven.showReportDialog({\n' +
       '    // grab the eventId generated by the Sentry SDK\n' +
-      '    eventId: \'{{ request.sentry.id }}\',\n\n' +
+      "    eventId: '{{ request.sentry.id }}',\n\n" +
       '    // use the public DSN (dont include your secret!)\n' +
-      '    dsn: \'' + dsn + '\'\n' +
+      "    dsn: '" +
+      dsn +
+      "'\n" +
       '  });\n' +
       '  </script>\n' +
       '{% endif %}\n'
@@ -216,16 +232,18 @@ const ProjectUserReportSettings = React.createClass({
   },
 
   getBrowserJSInstructions() {
-    let dsn = (this.state.keyList.length ?
-      this.state.keyList[0].dsn.public :
-      'https://public@sentry.example.com/1');
+    let dsn = this.state.keyList.length
+      ? this.state.keyList[0].dsn.public
+      : 'https://public@sentry.example.com/1';
 
     return (
       '<!-- Sentry JS SDK 2.1.+ required -->\n' +
       '<script src="https://cdn.ravenjs.com/2.1.0/raven.min.js"></script>\n\n' +
       '<script>\n' +
       '// configure the SDK as you normally would\n' +
-      'Raven.config(\'' + dsn + '\').install();\n\n' +
+      "Raven.config('" +
+      dsn +
+      "').install();\n\n" +
       '/**\n' +
       ' * Report a routing error to Sentry and show a feedback dialog to\n' +
       ' * the user.\n' +
@@ -260,8 +278,7 @@ const ProjectUserReportSettings = React.createClass({
   },
 
   render() {
-    if (this.state.loading)
-      return this.renderLoading();
+    if (this.state.loading) return this.renderLoading();
 
     let {orgId, projectId} = this.props.params;
 
@@ -270,20 +287,34 @@ const ProjectUserReportSettings = React.createClass({
       <div>
         <h1>{t('User Feedback')}</h1>
 
-        <div className="alert alert-block alert-info">Psst! This feature is still a work-in-progress. Thanks for being an early adopter!</div>
+        <div className="alert alert-block alert-info">
+          Psst! This feature is still a work-in-progress. Thanks for being an early adopter!
+        </div>
 
-        <p>Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.</p>
-        <p>When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry</p>
-        <p><a className="btn btn-primary" onClick={this.handleClick}>See the report dialog in action</a></p>
+        <p>
+          Enabling User Feedback allows you to interact with your users on an unprecedented level. Collect additional details about issues affecting them, and more importantly reach out to them with resolutions.
+        </p>
+        <p>
+          When configured, your users will be presented with a dialog prompting them for additional information. That information will get attached to the issue in Sentry
+        </p>
+        <p>
+          <a className="btn btn-primary" onClick={this.handleClick}>
+            See the report dialog in action
+          </a>
+        </p>
 
         <div className="box">
           <div className="box-header">
             <h3>{t('Integration')}</h3>
           </div>
           <div className="box-content with-padding">
-            <p>The following example uses our Django integration. Check the documentation for the SDK you're using for more details.</p>
+            <p>
+              The following example uses our Django integration. Check the documentation for the SDK you're using for more details.
+            </p>
             <pre>{this.getInstructions()}</pre>
-            <p>If you're capturing an error with our Browser JS SDK, things get even simpler:</p>
+            <p>
+              If you're capturing an error with our Browser JS SDK, things get even simpler:
+            </p>
             <pre>{this.getBrowserJSInstructions()}</pre>
           </div>
         </div>
@@ -296,7 +327,8 @@ const ProjectUserReportSettings = React.createClass({
             <ProjectFeedbackSettingsForm
               orgId={orgId}
               projectId={projectId}
-              initialData={this.state.projectOptions} />
+              initialData={this.state.projectOptions}
+            />
           </div>
         </div>
 

@@ -67,12 +67,17 @@ const RequestInterface = React.createClass({
     if (!this.isPartial() && isValidUrl) {
       children.push(
         <div key="view-buttons" className="btn-group">
-          <a className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
-            onClick={this.toggleView.bind(this, 'rich')}>{
-              /* Translators: this means "rich" rendering (fancy tables) */
-              t('Rich')}</a>
-          <a className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
-             onClick={this.toggleView.bind(this, 'curl')}><code>{'curl'}</code></a>
+          <a
+            className={(view === 'rich' ? 'active' : '') + ' btn btn-default btn-sm'}
+            onClick={this.toggleView.bind(this, 'rich')}>
+            {/* Translators: this means "rich" rendering (fancy tables) */
+            t('Rich')}
+          </a>
+          <a
+            className={(view === 'curl' ? 'active' : '') + ' btn btn-default btn-sm'}
+            onClick={this.toggleView.bind(this, 'curl')}>
+            <code>{'curl'}</code>
+          </a>
         </div>
       );
     }
@@ -80,36 +85,32 @@ const RequestInterface = React.createClass({
     children.push(
       <h3 key="title">
         <a href={isValidUrl ? fullUrl : null} title={fullUrl}>
-          <span className="path"><strong>{data.method || 'GET'}</strong>
+          <span className="path">
+            <strong>{data.method || 'GET'}</strong>
             <Truncate value={parsedUrl.pathname} maxLength={36} leftTrim={true} />
           </span>
           {isValidUrl &&
             <span className="external-icon">
               <em className="icon-open" />
-            </span>
-          }
+            </span>}
         </a>
         <small style={{marginLeft: 10}} className="host">{parsedUrl.hostname}</small>
       </h3>
     );
 
-    let title = (
-      <div>{children}</div>
-    );
+    let title = <div>{children}</div>;
 
     return (
       <GroupEventDataSection
-          group={group}
-          event={evt}
-          type={this.props.type}
-          title={title}
-          wrapTitle={false}
-          className="request">
-        {view === 'curl' ?
-          <pre>{getCurlCommand(data)}</pre>
-        :
-          <RichHttpContent data={data} />
-        }
+        group={group}
+        event={evt}
+        type={this.props.type}
+        title={title}
+        wrapTitle={false}
+        className="request">
+        {view === 'curl'
+          ? <pre>{getCurlCommand(data)}</pre>
+          : <RichHttpContent data={data} />}
       </GroupEventDataSection>
     );
   }

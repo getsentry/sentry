@@ -160,6 +160,7 @@ CLIENT_RESERVED_ATTRS = (
     'tags',
     'platform',
     'release',
+    'dist',
     'environment',
 )
 
@@ -167,7 +168,6 @@ DEFAULT_SCRUBBED_FIELDS = (
     'password',
     'secret',
     'passwd',
-    'authorization',
     'api_key',
     'apikey',
     'access_token',
@@ -175,6 +175,15 @@ DEFAULT_SCRUBBED_FIELDS = (
     'credentials',
     'mysql_pwd',
 )
+
+NOT_SCRUBBED_VALUES = set([
+    True,
+    False,
+    'true',
+    'false',
+    'null',
+    'undefined',
+])
 
 VALID_PLATFORMS = set([
     'as3',

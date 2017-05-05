@@ -235,7 +235,7 @@ def configure_structlog():
     logging.config.dictConfig(settings.LOGGING)
 
 
-def initialize_app(config, skip_backend_validation=False):
+def initialize_app(config, skip_service_validation=False):
     settings = config['settings']
 
     bootstrap_options(settings, config['options'])
@@ -286,8 +286,7 @@ def initialize_app(config, skip_backend_validation=False):
 
     validate_options(settings)
 
-    if not skip_backend_validation:
-        validate_backends()
+    setup_services(validate=not skip_service_validation)
 
     from django.utils import timezone
     from sentry.app import env
@@ -296,14 +295,19 @@ def initialize_app(config, skip_backend_validation=False):
     env.data['start_date'] = timezone.now()
 
 
-def validate_backends():
+def setup_services(validate=True):
     from sentry import (
-        buffer, digests, nodestore, quotas, ratelimits, search, tsdb
+        analytics, buffer, digests, newsletter, nodestore, quotas, ratelimits,
+        search, tsdb
     )
+    from .importer import ConfigurationError
+    from sentry.utils.settings import reraise_as
 
-    backends = (
+    service_list = (
+        analytics,
         buffer,
         digests,
+        newsletter,
         nodestore,
         quotas,
         ratelimits,
@@ -311,18 +315,28 @@ def validate_backends():
         tsdb,
     )
 
-    for backend in backends:
+    for service in service_list:
+        if validate:
+            try:
+                service.validate()
+            except AttributeError as exc:
+                reraise_as(ConfigurationError(
+                    '{} service failed to call validate()\n{}'.format(
+                        service.__name__,
+                        six.text_type(exc),
+                    )
+                ))
         try:
-            backend.validate()
+            service.setup()
         except AttributeError as exc:
-            from .importer import ConfigurationError
-            from sentry.utils.settings import reraise_as
-            reraise_as(ConfigurationError(
-                '{} service failed to call validate()\n{}'.format(
-                    backend.__name__,
-                    six.text_type(exc),
-                )
-            ))
+            if not hasattr(service, 'setup') or not callable(service.setup):
+                reraise_as(ConfigurationError(
+                    '{} service failed to call setup()\n{}'.format(
+                        service.__name__,
+                        six.text_type(exc),
+                    )
+                ))
+            raise
 
 
 def validate_options(settings):

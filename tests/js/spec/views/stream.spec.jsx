@@ -1,3 +1,5 @@
+jest.mock('app/stores/groupStore');
+
 import React from 'react';
 import {shallow} from 'enzyme';
 import Cookies from 'js-cookie';
@@ -13,16 +15,23 @@ const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:0>; rel="next"; results="true"; cursor="1443575731:0:0';
 
 describe('Stream', function() {
-
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 
-    this.stubbedApiRequest = this.sandbox.stub(Client.prototype, 'request', (url, options) => {
-      if (url === 'http://127.0.0.1/api/0/projects/sentry/ludic-science/searches/' && options.method === 'GET') {
-        options.success && options.success([{'id': '789', 'query': 'is:unresolved', 'name': 'test'}]);
+    this.stubbedApiRequest = this.sandbox.stub(
+      Client.prototype,
+      'request',
+      (url, options) => {
+        if (
+          url === 'http://127.0.0.1/api/0/projects/sentry/ludic-science/searches/' &&
+          options.method === 'GET'
+        ) {
+          options.success &&
+            options.success([{id: '789', query: 'is:unresolved', name: 'test'}]);
+        }
+        options.complete && options.complete();
       }
-      options.complete && options.complete();
-    });
+    );
 
     this.context = {
       project: {
@@ -38,12 +47,12 @@ describe('Stream', function() {
     };
 
     let props = {
-      setProjectNavSection: function () {},
+      setProjectNavSection: function() {},
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
       params: {orgId: '123', projectId: '456'}
     };
 
-    this.wrapper = shallow(<Stream {...props}/>, {
+    this.wrapper = shallow(<Stream {...props} />, {
       context: this.context
     });
   });
@@ -53,8 +62,8 @@ describe('Stream', function() {
   });
 
   describe('fetchData()', function() {
-    describe('complete handler', function () {
-      beforeEach(function () {
+    describe('complete handler', function() {
+      beforeEach(function() {
         this.sandbox.stub(CursorPoller.prototype, 'setEndpoint');
       });
 
@@ -64,21 +73,23 @@ describe('Stream', function() {
         stream.state.realtimeActive = true;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint
-          .calledWith('http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1'))
-          .to.be.true;
+        expect(
+          CursorPoller.prototype.setEndpoint.calledWith(
+            'http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1'
+          )
+        ).toBe(true);
       });
 
-      it('should not enable the poller if realtimeActive is false', function () {
+      it('should not enable the poller if realtimeActive is false', function() {
         let stream = this.wrapper.instance();
         stream.state.pageLinks = DEFAULT_LINKS_HEADER;
         stream.state.realtimeActive = false;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
       });
 
-      it('should not enable the poller if the \'previous\' link has results', function () {
+      it("should not enable the poller if the 'previous' link has results", function() {
         let stream = this.wrapper.instance();
         stream.state.pageLinks =
           '<http://127.0.0.1:8000/api/0/projects/sentry/ludic-science/issues/?cursor=1443575731:0:1>; rel="previous"; results="true"; cursor="1443575731:0:1", ' +
@@ -87,16 +98,16 @@ describe('Stream', function() {
         stream.state.realtimeActive = true;
         stream.fetchData();
 
-        expect(CursorPoller.prototype.setEndpoint.notCalled).to.be.ok;
+        expect(CursorPoller.prototype.setEndpoint.notCalled).toBeTruthy();
       });
     }); // complete handler
 
-    it('should cancel any previous, unfinished fetches', function () {
+    it('should cancel any previous, unfinished fetches', function() {
       this.stubbedApiRequest.restore();
 
       let requestCancel = this.sandbox.stub();
       let requestOptions;
-      this.sandbox.stub(Client.prototype, 'request', function (url, options) {
+      this.sandbox.stub(Client.prototype, 'request', function(url, options) {
         requestOptions = options;
         return {
           cancel: requestCancel
@@ -110,40 +121,39 @@ describe('Stream', function() {
       stream.fetchData();
       stream.fetchData();
 
-      expect(requestCancel.calledOnce).to.be.ok;
-      expect(stream.lastRequest).to.be.ok;
+      expect(requestCancel.calledOnce).toBeTruthy();
+      expect(stream.lastRequest).toBeTruthy();
 
       // when request "completes", lastRequest is cleared
       requestOptions.complete({
         getResponseHeader: () => DEFAULT_LINKS_HEADER
       });
 
-      expect(stream.lastRequest).to.be.null;
+      expect(stream.lastRequest).toBeNull();
     });
   });
 
   describe('render()', function() {
-
     it('displays a loading indicator when component is loading', function() {
       let wrapper = this.wrapper;
       wrapper.setState({loading: true});
-      expect(wrapper.find('.loading')).to.be.ok;
+      expect(wrapper.find('.loading')).toBeTruthy();
     });
 
     it('displays a loading indicator when data is loading', function() {
       let wrapper = this.wrapper;
       wrapper.setState({dataLoading: true});
-      expect(wrapper.find('.loading')).to.be.ok;
+      expect(wrapper.find('.loading')).toBeTruthy();
     });
 
     it('displays an error when component has errored', function() {
       let wrapper = this.wrapper;
       wrapper.setState({
-        error: true,
+        error: 'Something bad happened',
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
-      expect(wrapper.find(LoadingError).length).to.be.ok;
+      expect(wrapper.find(LoadingError).length).toBeTruthy();
     });
 
     it('displays the group list', function() {
@@ -152,9 +162,9 @@ describe('Stream', function() {
         error: false,
         groupIds: ['1'],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
-      expect(wrapper.find('.group-list').length).to.be.ok;
+      expect(wrapper.find('.group-list').length).toBeTruthy();
     });
 
     it('displays empty with no ids', function() {
@@ -164,9 +174,9 @@ describe('Stream', function() {
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
-      expect(wrapper.find('.empty-stream').length).to.be.ok;
+      expect(wrapper.find('.empty-stream').length).toBeTruthy();
     });
 
     it('shows "awaiting events" message when no events have been sent', function() {
@@ -178,18 +188,16 @@ describe('Stream', function() {
         error: false,
         groupIds: [],
         loading: false,
-        dataLoading: false,
+        dataLoading: false
       });
 
-      expect(this.wrapper.find('.awaiting-events').length).to.equal(1);
+      expect(this.wrapper.find('.awaiting-events').length).toEqual(1);
 
       this.context.project.firstEvent = true; // Reset for other tests
     });
-
   });
 
   describe('componentWillMount()', function() {
-
     afterEach(function() {
       Cookies.remove('realtimeActive');
     });
@@ -198,32 +206,29 @@ describe('Stream', function() {
       Cookies.set('realtimeActive', 'false');
 
       let stream = this.wrapper.instance();
-      expect(stream.getInitialState()).to.have.property('realtimeActive', false);
+      expect(stream.getInitialState()).toHaveProperty('realtimeActive', false);
     });
 
     it('reads the true realtimeActive state from a cookie', function() {
       Cookies.set('realtimeActive', 'true');
 
       let stream = this.wrapper.instance();
-      expect(stream.getInitialState()).to.have.property('realtimeActive', true);
+      expect(stream.getInitialState()).toHaveProperty('realtimeActive', true);
     });
-
   });
 
   describe('onRealtimeChange', function() {
-
     it('sets the realtimeActive state', function() {
       let stream = this.wrapper.instance();
       stream.state.realtimeActive = false;
       stream.onRealtimeChange(true);
-      expect(stream.state.realtimeActive).to.eql(true);
-      expect(Cookies.get('realtimeActive')).to.eql('true');
+      expect(stream.state.realtimeActive).toEqual(true);
+      expect(Cookies.get('realtimeActive')).toEqual('true');
 
       stream.onRealtimeChange(false);
-      expect(stream.state.realtimeActive).to.eql(false);
-      expect(Cookies.get('realtimeActive')).to.eql('false');
+      expect(stream.state.realtimeActive).toEqual(false);
+      expect(Cookies.get('realtimeActive')).toEqual('false');
     });
-
   });
 
   describe('getInitialState', function() {
@@ -241,16 +246,16 @@ describe('Stream', function() {
         error: false,
         searchId: null,
         query: 'is:unresolved',
-        sort: 'date',
+        sort: 'date'
       };
 
       let actual = this.wrapper.instance().getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
     it('handles no searchId or query', function() {
       let props = {
-        setProjectNavSection: function () {},
+        setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456'}
       };
@@ -268,20 +273,20 @@ describe('Stream', function() {
         error: false,
         query: '',
         sort: 'freq',
-        searchId: null,
+        searchId: null
       };
 
-      let stream = shallow(<Stream {...props}/>, {
+      let stream = shallow(<Stream {...props} />, {
         context: this.context
       }).instance();
 
       let actual = stream.getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
     it('handles valid searchId in routing params', function() {
       let props = {
-        setProjectNavSection: function () {},
+        setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456', searchId: '789'}
       };
@@ -299,26 +304,24 @@ describe('Stream', function() {
         error: false,
         query: 'is:unresolved',
         sort: 'freq',
-        searchId: '789',
+        searchId: '789'
       };
 
-      let wrapper = shallow(<Stream {...props}/>, {
+      let wrapper = shallow(<Stream {...props} />, {
         context: this.context
       });
 
       wrapper.setState({
-        savedSearchList: [
-          {id: '789', query: 'is:unresolved', name: 'test'}
-        ]
+        savedSearchList: [{id: '789', query: 'is:unresolved', name: 'test'}]
       });
 
       let actual = wrapper.instance().getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
 
     it('handles invalid searchId in routing params', function() {
       let props = {
-        setProjectNavSection: function () {},
+        setProjectNavSection: function() {},
         location: {query: {sort: 'freq'}, search: 'sort=freq'},
         params: {orgId: '123', projectId: '456', searchId: '799'}
       };
@@ -336,16 +339,15 @@ describe('Stream', function() {
         error: false,
         query: '',
         sort: 'freq',
-        searchId: null,
+        searchId: null
       };
 
-      let stream = shallow(<Stream {...props}/>, {
+      let stream = shallow(<Stream {...props} />, {
         context: this.context
       }).instance();
 
       let actual = stream.getInitialState();
-      expect(_.pick(actual, _.keys(expected))).to.eql(expected);
+      expect(_.pick(actual, _.keys(expected))).toEqual(expected);
     });
   });
-
 });

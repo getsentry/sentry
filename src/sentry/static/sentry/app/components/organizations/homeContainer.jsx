@@ -21,32 +21,35 @@ const HomeContainer = React.createClass({
       <div className="organization-home">
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div>
-            <ProjectSelector
-                organization={org} />
+            <ProjectSelector organization={org} />
           </div>
           <div className="align-right hidden-xs">
-            {access.has('project:write') ?
-              <a href={`/organizations/${org.slug}/projects/new/`} className="btn btn-primary"
-                 style={{marginRight: 5}}>
-                {t('New Project')}
-              </a>
-            :
-              <a className="btn btn-primary btn-disabled tip" data-placement="bottom"
-                 title={t('You do not have enough permission to create new projects')}
-                 style={{marginRight: 5}}>
-                {t('New Project')}
-              </a>
-            }
-            {access.has('team:write') ?
-              <a href={`/organizations/${org.slug}/teams/new/`} className="btn btn-primary">
-                {t('New Team')}
-              </a>
-            :
-              <a className="btn btn-primary btn-disabled tip" data-placement="bottom"
-                 title={t('You do not have enough permission to create new teams')}>
-                {t('New Team')}
-              </a>
-            }
+            {access.has('project:write')
+              ? <a
+                  href={`/organizations/${org.slug}/projects/new/`}
+                  className="btn btn-primary"
+                  style={{marginRight: 5}}>
+                  {t('New Project')}
+                </a>
+              : <a
+                  className="btn btn-primary btn-disabled tip"
+                  data-placement="bottom"
+                  title={t('You do not have enough permission to create new projects')}
+                  style={{marginRight: 5}}>
+                  {t('New Project')}
+                </a>}
+            {access.has('team:write')
+              ? <a
+                  href={`/organizations/${org.slug}/teams/new/`}
+                  className="btn btn-primary">
+                  {t('New Team')}
+                </a>
+              : <a
+                  className="btn btn-primary btn-disabled tip"
+                  data-placement="bottom"
+                  title={t('You do not have enough permission to create new teams')}>
+                  {t('New Team')}
+                </a>}
           </div>
         </div>
         <div className="container">
