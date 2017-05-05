@@ -4248,9 +4248,9 @@ range-parser@^1.0.3:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/range-parser/-/range-parser-1.2.0.tgz#f49be6b487894ddc40dcc94a322f611092e00d5e"
 
-raven-js@3.14.1:
-  version "3.14.1"
-  resolved "https://registry.yarnpkg.com/raven-js/-/raven-js-3.14.1.tgz#9c3c5f570a1b918b5c30c5fad66982e17fe38e39"
+raven-js@3.15.0:
+  version "3.15.0"
+  resolved "https://registry.yarnpkg.com/raven-js/-/raven-js-3.15.0.tgz#ebf95466b7d40fbbc3d6a5085af7c1431607926c"
 
 rc@~1.1.0:
   version "1.1.6"
