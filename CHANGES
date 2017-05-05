@@ -2,6 +2,7 @@ Version 8.17 (Unreleased)
 -------------------------
 
 - Initial (internal) analytics abstraction.
+- The threads interface now contributes to grouping if it contains a single thread.
 
 Version 8.16
 ------------
