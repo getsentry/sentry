@@ -54,7 +54,7 @@ class PendingBuffer(object):
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = 'b:p'
-    incr_batch_size = 10
+    incr_batch_size = 2
 
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
