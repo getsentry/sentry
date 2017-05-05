@@ -11,7 +11,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.models import Repository
+from sentry.models import Commit, Repository
 from sentry.tasks.deletion import delete_repository
 
 delete_logger = logging.getLogger('sentry.deletions.api')
@@ -65,6 +65,19 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
+        # if repo doesn't have commits, delete immediately
+        has_commits = Commit.objects.filter(
+            repository_id=repo.id,
+            organization_id=organization.id,
+        ).exists()
+        if not has_commits:
+            repo.get_provider().delete_repository(
+                repo=repo,
+                actor=request.user,
+            )
+            repo.delete()
+            return Response(status=204)
+
         updated = Repository.objects.filter(
             id=repo.id,
             status=ObjectStatus.VISIBLE,
@@ -73,7 +86,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             repo.status = ObjectStatus.PENDING_DELETION
 
             transaction_id = uuid4().hex
-            countdown = 86400
+            countdown = 3600
 
             delete_repository.apply_async(
                 kwargs={
