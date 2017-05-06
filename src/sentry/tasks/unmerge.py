@@ -11,6 +11,12 @@ from sentry.event_manager import ScoreClause, generate_culprit, get_hashes_for_e
 from sentry.models import Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release, UserReport
 
 
+# cache
+# - Release (organization, version)
+# - GroupRelease (group, environment (instance), release_id)
+# - Environment (organization, name) ... projects?
+
+
 def merge_mappings(values):
     result = {}
     for value in values:
