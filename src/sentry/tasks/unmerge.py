@@ -208,7 +208,6 @@ def collect_tag_data(events):
 
 
 def repair_tag_data(project, events):
-    # Repair `GroupTag{Key,Value}` data.
     for group_id, keys in collect_tag_data(events).items():
         for key, values in keys.items():
             GroupTagKey.objects.get_or_create(
