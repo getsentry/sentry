@@ -17,6 +17,10 @@ from sentry.tasks.deletion import delete_repository
 delete_logger = logging.getLogger('sentry.deletions.api')
 
 
+def get_transaction_id():
+    return uuid4().hex
+
+
 class RepositorySerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=(
         ('visible', 'visible'),
@@ -65,19 +69,6 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         except Repository.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # if repo doesn't have commits, delete immediately
-        has_commits = Commit.objects.filter(
-            repository_id=repo.id,
-            organization_id=organization.id,
-        ).exists()
-        if not has_commits:
-            repo.get_provider().delete_repository(
-                repo=repo,
-                actor=request.user,
-            )
-            repo.delete()
-            return Response(status=204)
-
         updated = Repository.objects.filter(
             id=repo.id,
             status=ObjectStatus.VISIBLE,
@@ -85,8 +76,14 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if updated:
             repo.status = ObjectStatus.PENDING_DELETION
 
-            transaction_id = uuid4().hex
-            countdown = 3600
+            transaction_id = get_transaction_id()
+            # if repo doesn't have commits, delete immediately
+            has_commits = Commit.objects.filter(
+                repository_id=repo.id,
+                organization_id=organization.id,
+            ).exists()
+
+            countdown = 3600 if has_commits else 0
 
             delete_repository.apply_async(
                 kwargs={

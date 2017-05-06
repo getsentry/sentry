@@ -252,15 +252,11 @@ const OrganizationRepositories = React.createClass({
       success: (data, _, jqXHR) => {
         // repo had no commits, so we just deleted immediately
         let itemList = this.state.itemList;
-        if (jqXHR.status === 204) {
-          itemList = itemList.filter(r => r.id !== repo.id);
-        } else {
-          itemList.forEach(item => {
-            if (item.id === data.id) {
-              item.status = data.status;
-            }
-          });
-        }
+        itemList.forEach(item => {
+          if (item.id === data.id) {
+            item.status = data.status;
+          }
+        });
         this.setState({
           itemList: itemList
         });
