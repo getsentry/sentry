@@ -37,7 +37,7 @@ describe('marked', function() {
     }
   });
 
-  it('rejected images shouldn\'t be rendered at all', function() {
+  it("rejected images shouldn't be rendered at all", function() {
     for (let test of [['![x](javascript:foo)', '']]) {
       expectMarkdown(test);
     }

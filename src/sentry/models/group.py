@@ -140,7 +140,7 @@ class GroupManager(BaseManager):
                 'key': key,
                 'value': value,
             }, {
-                'project': project_id,
+                'project_id': project_id,
                 'last_seen': date,
             })
 
@@ -384,7 +384,7 @@ class Group(Model):
         if self.first_release_id is None:
             try:
                 first_release = GroupTagValue.objects.filter(
-                    group=self,
+                    group_id=self.id,
                     key__in=('sentry:release', 'release'),
                 ).order_by('first_seen')[0]
             except IndexError:
@@ -398,7 +398,7 @@ class Group(Model):
         from sentry.models import GroupTagValue
         try:
             last_release = GroupTagValue.objects.filter(
-                group=self,
+                group_id=self.id,
                 key__in=('sentry:release', 'release'),
             ).order_by('-last_seen')[0]
         except IndexError:

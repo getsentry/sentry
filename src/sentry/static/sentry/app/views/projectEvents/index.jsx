@@ -134,7 +134,7 @@ const ProjectEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any events.')}</p>
+        <p>{t("There don't seem to be any events.")}</p>
       </div>
     );
   },

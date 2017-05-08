@@ -128,7 +128,7 @@ describe('RichHttpContent', function() {
       expect(() => shallow(<RichHttpContent data={data} />)).not.toThrow(URIError);
     });
 
-    it('should not cause an invariant violation if data.data isn\'t a string', function() {
+    it("should not cause an invariant violation if data.data isn't a string", function() {
       let data = {
         query: '',
         data: [{foo: 'bar', baz: 1}],

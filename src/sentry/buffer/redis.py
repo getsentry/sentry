@@ -24,9 +24,37 @@ from sentry.utils.imports import import_string
 from sentry.utils.redis import get_cluster_from_options
 
 
+class PendingBuffer(object):
+    def __init__(self, size):
+        assert size > 0
+        self.buffer = [None] * size
+        self.size = size
+        self.pointer = 0
+
+    def full(self):
+        return self.pointer == self.size
+
+    def empty(self):
+        return self.pointer == 0
+
+    def append(self, item):
+        assert not self.full()
+        self.buffer[self.pointer] = item
+        self.pointer += 1
+
+    def clear(self):
+        self.pointer = 0
+
+    def flush(self):
+        rv = self.buffer[:self.pointer]
+        self.clear()
+        return rv
+
+
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = 'b:p'
+    incr_batch_size = 2
 
     def __init__(self, **options):
         self.cluster, options = get_cluster_from_options('SENTRY_BUFFER_OPTIONS', options)
@@ -94,6 +122,8 @@ class RedisBuffer(Buffer):
         if not client.set(lock_key, '1', nx=True, ex=60):
             return
 
+        pending_buffer = PendingBuffer(self.incr_batch_size)
+
         try:
             keycount = 0
             with self.cluster.all() as conn:
@@ -105,15 +135,34 @@ class RedisBuffer(Buffer):
                         continue
                     keycount += len(keys)
                     for key in keys:
-                        process_incr.apply_async(kwargs={
-                            'key': key,
-                        })
+                        pending_buffer.append(key)
+                        if pending_buffer.full():
+                            process_incr.apply_async(kwargs={
+                                'batch_keys': pending_buffer.flush(),
+                            })
                     conn.target([host_id]).zrem(self.pending_key, *keys)
+
+            # queue up remainder of pending keys
+            if not pending_buffer.empty():
+                process_incr.apply_async(kwargs={
+                    'batch_keys': pending_buffer.flush(),
+                })
+
             metrics.timing('buffer.pending-size', keycount)
         finally:
             client.delete(lock_key)
 
-    def process(self, key):
+    def process(self, key=None, batch_keys=None):
+        assert not (key is None and batch_keys is None)
+        assert not (key is not None and batch_keys is not None)
+
+        if key is not None:
+            batch_keys = [key]
+
+        for key in batch_keys:
+            self._process_single_incr(key)
+
+    def _process_single_incr(self, key):
         client = self.cluster.get_routing_client()
         lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate

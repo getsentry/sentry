@@ -231,7 +231,7 @@ class InMemoryTSDB(BaseTSDB):
         for rollup, series in rollups.items():
             for model in models:
                 for key in keys:
-                    data = self.data[model][key]
+                    data = self.frequencies[model][key]
                     for timestamp in series:
                         data.pop(
                             self.normalize_to_rollup(timestamp, rollup),
