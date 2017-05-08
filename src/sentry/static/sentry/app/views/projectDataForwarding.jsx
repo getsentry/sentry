@@ -5,7 +5,90 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
 import ProjectState from '../mixins/projectState';
+import StackedBarChart from '../components/stackedBarChart';
 import {t} from '../locale';
+
+const DataForwardingStats = React.createClass({
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    let until = Math.floor(new Date().getTime() / 1000);
+    let since = until - 3600 * 24 * 30;
+
+    return {
+      since: since,
+      until: until,
+      loading: true,
+      error: false,
+      stats: null,
+      emptyStats: false
+    };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/stats/`, {
+      query: {
+        since: this.state.since,
+        until: this.state.until,
+        resolution: '1d',
+        stat: 'forwarded'
+      },
+      success: data => {
+        let emptyStats = true;
+        let stats = data.map(p => {
+          if (p[0]) emptyStats = false;
+          return {x: p[0], y: [p[1]]};
+        });
+        this.setState({
+          stats: stats,
+          emptyStats: emptyStats,
+          error: false,
+          loading: false
+        });
+      },
+      error: () => {
+        this.setState({error: true, loading: false});
+      }
+    });
+  },
+
+  render() {
+    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+
+    return (
+      <div className="panel panel-default">
+        <div className="panel-heading">
+          <h6>{t('Forwarded events in the last 30 days (by day)')}</h6>
+        </div>
+        <div className="panel-body p-a-0">
+          {!this.state.emptyStats
+            ? <div className="inbound-filters-stats p-a-1">
+                <div className="bar-chart">
+                  <StackedBarChart
+                    points={this.state.stats}
+                    height={50}
+                    barClasses={['accepted']}
+                    className="sparkline m-b-0"
+                  />
+                </div>
+              </div>
+            : <div className="blankslate p-y-2">
+                <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
+                <p className="m-b-0">
+                  {t('Total events forwarded to third party integrations.')}
+                </p>
+              </div>}
+        </div>
+      </div>
+    );
+  }
+});
 
 export default React.createClass({
   mixins: [ApiMixin, ProjectState],
@@ -101,6 +184,7 @@ export default React.createClass({
   },
 
   render() {
+    let {params} = this.props;
     return (
       <div>
         <h1>{t('Data Forwarding')}</h1>
@@ -122,6 +206,7 @@ export default React.createClass({
             </p>
           </div>
         </div>
+        <DataForwardingStats params={params} />
         {this.renderBody()}
       </div>
     );
