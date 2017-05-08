@@ -249,8 +249,7 @@ const OrganizationRepositories = React.createClass({
     let indicator = IndicatorStore.add(t('Saving changes..'));
     this.api.request(`/organizations/${this.props.params.orgId}/repos/${repo.id}/`, {
       method: 'DELETE',
-      success: (data, _, jqXHR) => {
-        // repo had no commits, so we just deleted immediately
+      success: data => {
         let itemList = this.state.itemList;
         itemList.forEach(item => {
           if (item.id === data.id) {
