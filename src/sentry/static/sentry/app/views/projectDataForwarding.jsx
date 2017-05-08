@@ -186,7 +186,7 @@ export default React.createClass({
   render() {
     let {params} = this.props;
     return (
-      <div>
+      <div className="ref-data-forwarding-settings">
         <h1>{t('Data Forwarding')}</h1>
         <div className="panel panel-default">
           <div className="panel-body p-b-0">
