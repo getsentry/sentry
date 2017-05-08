@@ -39,6 +39,16 @@ class GroupNotesEndpoint(GroupEndpoint):
         data = dict(serializer.object)
         mentions = data.pop('mentions', [])
 
+        if Activity.objects.filter(
+            group=group,
+            type=Activity.NOTE,
+            user=request.user,
+            data=data,
+            datetime__gte=timezone.now() - timedelta(hours=1)
+        ).exists():
+            return Response('{"detail": "You have already posted that comment."}',
+                            status=status.HTTP_400_BAD_REQUEST)
+
         GroupSubscription.objects.subscribe(
             group=group,
             user=request.user,
@@ -53,16 +63,6 @@ class GroupNotesEndpoint(GroupEndpoint):
                     user=user,
                     reason=GroupSubscriptionReason.mentioned,
                 )
-
-        if Activity.objects.filter(
-            group=group,
-            type=Activity.NOTE,
-            user=request.user,
-            data=data,
-            datetime__gte=timezone.now() - timedelta(hours=1)
-        ).exists():
-            return Response('{"detail": "You have already posted that comment."}',
-                            status=status.HTTP_400_BAD_REQUEST)
 
         activity = Activity.objects.create(
             group=group,

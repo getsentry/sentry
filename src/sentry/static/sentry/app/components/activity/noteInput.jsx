@@ -210,7 +210,7 @@ const NoteInput = React.createClass({
   },
 
   finalMentions() {
-    //mention = [id, display]
+    // mention = [id, display]
     return this.state.mentions
       .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
       .map(mention => mention[0]);

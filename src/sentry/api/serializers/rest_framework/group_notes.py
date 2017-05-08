@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from rest_framework import serializers
-from sentry.models import Project, User
+from sentry.models import Project
 
 from .list import ListField
 
@@ -17,9 +17,9 @@ class NoteSerializer(serializers.Serializer):
         else:
             mentions = None
         if mentions:
-            users = User.objects.filter(id__in=mentions)
-            for u in users:
-                if not project.member_set.filter(user=u).exists():
-                    raise serializers.ValidationError('Cannot assign to non-team member')
+            member_ids = set(project.member_set.filter(user_id__in=mentions).value_list('user_id', flat=True))
+            invalid_user_ids = [m for m in mentions if m not in member_ids]
+            if invalid_user_ids:
+                    raise serializers.ValidationError('Cannot mention to non-team member')
 
         return attrs
