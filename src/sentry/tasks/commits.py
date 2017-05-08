@@ -4,7 +4,7 @@ import logging
 import six
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Commit, Release, Repository, User
+from sentry.models import Release, ReleaseHeadCommit, Repository, User
 from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
 
@@ -49,11 +49,11 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             start_sha = ref['previousCommit']
         elif prev_release:
             try:
-                start_sha = Commit.objects.filter(
+                start_sha = ReleaseHeadCommit.objects.filter(
                     organization_id=release.organization_id,
-                    releaseheadcommit__release=prev_release,
+                    release=prev_release,
                     repository_id=repo.id,
-                ).values_list('key', flat=True)[0]
+                ).values_list('commit__key', flat=True)[0]
             except IndexError:
                 pass
 
