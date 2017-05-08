@@ -45,7 +45,7 @@ export default React.createClass({
     if (!pluginList.length) {
       return (
         <div className="panel panel-default">
-          <div className="panel-body">
+          <div className="panel-body p-b-0">
             <p>{"Oops! Looks like there aren't any availble integrations installed."}</p>
           </div>
         </div>
