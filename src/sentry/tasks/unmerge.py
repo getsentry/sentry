@@ -8,7 +8,7 @@ from django.db.models import F
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
-from sentry.models import Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release, UserReport
+from sentry.models import Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release, UserReport
 
 
 def cache(function):
@@ -132,7 +132,7 @@ def get_fingerprint(event):
     return md5_from_hash(primary_hash)
 
 
-def migrate_events(caches, project, destination_id, fingerprints, events):
+def migrate_events(caches, project, source_id, destination_id, fingerprints, events, actor_id):
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
     # handle this if there aren't any events? We can't create a group (there
@@ -170,7 +170,28 @@ def migrate_events(caches, project, destination_id, fingerprints, events):
             hash__in=fingerprints,
         ).update(group=destination_id)
 
-        # TODO: Create activity records for the source and destination group.
+        # Create activity records for the source and destination group.
+        Activity.objects.create(
+            project_id=project.id,
+            group_id=destination_id,
+            type=Activity.UNMERGE_DESTINATION,
+            user_id=actor_id,
+            data={
+                'fingerprints': fingerprints,
+                'source_id': source_id,
+            },
+        )
+
+        Activity.objects.create(
+            project_id=project.id,
+            group_id=source_id,
+            type=Activity.UNMERGE_SOURCE,
+            user_id=actor_id,
+            data={
+                'fingerprints': fingerprints,
+                'destination_id': destination_id,
+            },
+        )
     else:
         # Update the existing destination group.
         destination = Group.objects.get(id=destination_id)
@@ -439,7 +460,7 @@ def update_tag_value_counts(id_list):
         )
 
 
-def unmerge(project_id, source_id, destination_id, fingerprints, cursor=None, batch_size=500):
+def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, cursor=None, batch_size=500):
     # XXX: If a ``GroupHash`` is unmerged *again* while this operation is
     # already in progress, some events from the fingerprint associated with the
     # hash may not be migrated to the new destination! We could solve this with
@@ -488,12 +509,14 @@ def unmerge(project_id, source_id, destination_id, fingerprints, cursor=None, ba
     destination_id = migrate_events(
         caches,
         project,
+        source_id,
         destination_id,
         fingerprints,
         filter(
             lambda event: get_fingerprint(event) in fingerprints,
             events,
-        )
+        ),
+        actor_id,
     )
 
     repair_denormalizations(
@@ -507,6 +530,7 @@ def unmerge(project_id, source_id, destination_id, fingerprints, cursor=None, ba
         source_id,
         destination_id,
         fingerprints,
+        actor_id,
         cursor=events[-1].id,
         batch_size=batch_size,
     )

@@ -42,6 +42,8 @@ class Activity(Model):
     SET_RESOLVED_IN_COMMIT = 16
     DEPLOY = 17
     NEW_PROCESSING_ISSUES = 18
+    UNMERGE_SOURCE = 19
+    UNMERGE_DESTINATION = 20
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -63,6 +65,8 @@ class Activity(Model):
         (MERGE, 'merge'),
         (DEPLOY, 'deploy'),
         (NEW_PROCESSING_ISSUES, 'new_processing_issues'),
+        (UNMERGE_SOURCE, 'unmerge_source'),
+        (UNMERGE_DESTINATION, 'unmerge_destination'),
     )
 
     project = FlexibleForeignKey('sentry.Project')

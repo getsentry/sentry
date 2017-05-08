@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
-from sentry.models import Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
+from sentry.models import Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
 from sentry.testutils import TestCase
 from sentry.tasks.unmerge import get_caches, get_fingerprint, unmerge, get_group_creation_attributes, get_group_backfill_attributes, get_event_user_from_interface
 from sentry.utils.dates import to_timestamp
@@ -276,12 +276,29 @@ class UnmergeTestCase(TestCase):
                 source.id,
                 None,
                 [events.keys()[1]],
+                None,
                 batch_size=5,
             ),
         )
 
         assert source.id != destination.id
         assert source.project == destination.project
+
+        assert Activity.objects.get(
+            group_id=destination.id,
+            type=Activity.UNMERGE_DESTINATION,
+        ).data == {
+            'source_id': source.id,
+            'fingerprints': [events.keys()[1]],
+        }
+
+        assert Activity.objects.get(
+            group_id=source.id,
+            type=Activity.UNMERGE_SOURCE,
+        ).data == {
+            'destination_id': destination.id,
+            'fingerprints': [events.keys()[1]],
+        }
 
         source_event_event_ids = map(
             lambda event: event.event_id,
