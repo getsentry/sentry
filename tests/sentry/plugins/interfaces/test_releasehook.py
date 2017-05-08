@@ -16,7 +16,9 @@ from django.utils import timezone
 
 from datetime import timedelta
 
-from sentry.models import Commit, Release, ReleaseCommit, ReleaseHeadCommit, ReleaseProject, Repository, User
+from sentry.models import (Commit,
+    ProjectOption, Release, ReleaseCommit,
+    ReleaseHeadCommit, ReleaseProject, Repository, User)
 from sentry.plugins import ReleaseHook
 from sentry.testutils import TestCase
 
@@ -163,6 +165,11 @@ class SetRefsTest(TestCase):
             organization_id=project.organization_id,
             name=project.name,
             provider='dummy',
+        )
+        ProjectOption.objects.set_value(
+            key='heroku:repository',
+            project=project,
+            value=repo.name
         )
         for data in data_list:
             Commit.objects.create(
