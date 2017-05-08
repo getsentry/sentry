@@ -20,7 +20,7 @@ from pytz import utc
 from sentry import buffer, roles
 from sentry.models import (
     Activity, Broadcast, Commit, CommitAuthor, CommitFileChange, Deploy,
-    Environment, EventUser, File, GroupMeta, GroupRelease, Organization,
+    Environment, File, GroupMeta, GroupRelease, Organization,
     OrganizationAccessRequest, OrganizationMember, Project, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseFile, Repository, Team, User,
     UserReport
@@ -165,6 +165,7 @@ def create_sample_time_series(event, release=None):
         ), now, count)
         tsdb.incr_multi((
             (tsdb.models.organization_total_received, project.organization_id),
+            (tsdb.models.project_total_forwarded, project.id),
             (tsdb.models.project_total_received, project.id),
         ), now, int(count * 1.1))
         tsdb.incr_multi((

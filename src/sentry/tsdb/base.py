@@ -45,6 +45,8 @@ class TSDBModel(Enum):
     project_operation_errors = 103
     # the number of events blocked due to being blacklisted
     project_total_blacklisted = 104
+    # the number of events forwarded to third party processors (data forwarding)
+    project_total_forwarded = 105
 
     # the number of events sent to the server
     organization_total_received = 200
