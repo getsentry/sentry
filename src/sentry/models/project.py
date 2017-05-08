@@ -141,9 +141,9 @@ class Project(Model):
             except Group.DoesNotExist:
                 group.update(project=project)
                 GroupTagValue.objects.filter(
-                    project=self,
-                    group_id=group,
-                ).update(project=project)
+                    project_id=self.id,
+                    group_id=group.id,
+                ).update(project_id=project.id)
             else:
                 Event.objects.filter(
                     group_id=group.id,
@@ -151,8 +151,8 @@ class Project(Model):
 
                 for obj in GroupTagValue.objects.filter(group=group):
                     obj2, created = GroupTagValue.objects.get_or_create(
-                        project=project,
-                        group=group,
+                        project_id=project.id,
+                        group_id=group.id,
                         key=obj.key,
                         value=obj.value,
                         defaults={'times_seen': obj.times_seen}
@@ -259,6 +259,43 @@ class Project(Model):
         if self.team.name not in self.name:
             return '%s %s' % (self.team.name, self.name)
         return self.name
+
+    def get_notification_recipients(self, user_option):
+        from sentry.models import UserOption
+        alert_settings = dict(
+            (o.user_id, int(o.value))
+            for o in UserOption.objects.filter(
+                project=self,
+                key=user_option,
+            )
+        )
+
+        disabled = set(u for u, v in six.iteritems(alert_settings) if v == 0)
+
+        member_set = set(self.member_set.exclude(
+            user__in=disabled,
+        ).values_list('user', flat=True))
+
+        # determine members default settings
+        members_to_check = set(u for u in member_set if u not in alert_settings)
+        if members_to_check:
+            disabled = set((
+                uo.user_id for uo in UserOption.objects.filter(
+                    key='subscribe_by_default',
+                    user__in=members_to_check,
+                )
+                if uo.value == '0'
+            ))
+            member_set = [x for x in member_set if x not in disabled]
+
+        return member_set
+
+    def get_mail_alert_subscribers(self):
+        user_ids = self.get_notification_recipients('mail:alert')
+        if not user_ids:
+            return []
+        from sentry.models import User
+        return list(User.objects.filter(id__in=user_ids))
 
     def is_user_subscribed_to_mail_alerts(self, user):
         from sentry.models import UserOption

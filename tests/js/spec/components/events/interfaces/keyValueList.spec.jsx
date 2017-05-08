@@ -49,7 +49,7 @@ describe('KeyValueList', function() {
       expect(wrapper.find('.value').at(0).text()).toEqual('false');
     });
 
-    it('shouldn\'t blow up on null', function() {
+    it("shouldn't blow up on null", function() {
       let data = [['a', null]];
       let wrapper = shallow(<KeyValueList data={data} />);
 

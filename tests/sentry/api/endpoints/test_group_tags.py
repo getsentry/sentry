@@ -26,8 +26,8 @@ class GroupTagsTest(APITestCase):
                 key=key,
             )
             GroupTagValue.objects.create(
-                project=group.project,
-                group=group,
+                project_id=group.project_id,
+                group_id=group.id,
                 key=key,
                 value=value,
             )

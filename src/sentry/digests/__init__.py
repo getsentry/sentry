@@ -4,13 +4,13 @@ from collections import namedtuple
 from django.conf import settings
 
 from sentry.utils.dates import to_datetime
-from sentry.utils.functional import LazyBackendWrapper
+from sentry.utils.services import LazyServiceWrapper
 
 from .backends.base import Backend  # NOQA
 from .backends.dummy import DummyBackend  # NOQA
 
 
-backend = LazyBackendWrapper(Backend, settings.SENTRY_DIGESTS,
+backend = LazyServiceWrapper(Backend, settings.SENTRY_DIGESTS,
                              settings.SENTRY_DIGESTS_OPTIONS,
                              (DummyBackend,))
 backend.expose(locals())

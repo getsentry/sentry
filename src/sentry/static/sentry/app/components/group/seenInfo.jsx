@@ -88,22 +88,12 @@ const SeenInfo = React.createClass({
         <dt key={4}>{t('Release')}:</dt>
         {defined(release)
           ? <dd key={5}>
-              {new Set(this.context.organization.features).has('release-commits')
-                ? <VersionHoverCard
-                    orgId={orgId}
-                    projectId={projectId}
-                    version={release.version}>
-                    <Version
-                      orgId={orgId}
-                      projectId={projectId}
-                      version={release.version}
-                    />
-                  </VersionHoverCard>
-                : <Version
-                    orgId={orgId}
-                    projectId={projectId}
-                    version={release.version}
-                  />}
+              <VersionHoverCard
+                orgId={orgId}
+                projectId={projectId}
+                version={release.version}>
+                <Version orgId={orgId} projectId={projectId} version={release.version} />
+              </VersionHoverCard>
             </dd>
           : !this.props.hasRelease
               ? <dd key={5}>

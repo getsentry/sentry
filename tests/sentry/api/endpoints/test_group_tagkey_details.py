@@ -32,8 +32,8 @@ class GroupTagDetailsTest(APITestCase):
             values_seen=1,
         )
         GroupTagValue.objects.create(
-            project=group.project,
-            group=group,
+            project_id=group.project_id,
+            group_id=group.id,
             key=key,
             value=value,
             times_seen=3,

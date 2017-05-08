@@ -180,8 +180,8 @@ class GroupTest(TestCase):
         )
 
         GroupTagValue.objects.create(
-            project=project,
-            group=group,
+            project_id=project.id,
+            group_id=group.id,
             key='sentry:release',
             value=release.version
         )
@@ -203,8 +203,8 @@ class GroupTest(TestCase):
         )
 
         GroupTagValue.objects.create(
-            project=project,
-            group=group,
+            project_id=project.id,
+            group_id=group.id,
             key='sentry:release',
             value=release.version
         )

@@ -30,16 +30,16 @@ class OrganizationUserIssuesSearchTest(APITestCase):
 
         GroupTagValue.objects.create(key='sentry:user',
                                      value='email:foo@example.com',
-                                     group=group1,
-                                     project=self.project1)
+                                     group_id=group1.id,
+                                     project_id=self.project1.id)
         GroupTagValue.objects.create(key='sentry:user',
                                      value='email:bar@example.com',
-                                     group=group1,
-                                     project=self.project1)
+                                     group_id=group1.id,
+                                     project_id=self.project1.id)
         GroupTagValue.objects.create(key='sentry:user',
                                      value='email:foo@example.com',
-                                     group=group2,
-                                     project=self.project2)
+                                     group_id=group2.id,
+                                     project_id=self.project2.id)
 
     def get_url(self):
         return reverse('sentry-api-0-organization-issue-search', args=[self.org.slug])

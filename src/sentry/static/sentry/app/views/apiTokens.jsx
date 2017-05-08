@@ -139,7 +139,7 @@ const ApiTokens = React.createClass({
           <tbody>
             <tr colSpan="2">
               <td className="blankslate well">
-                {t('You haven\'t created any authentication tokens yet.')}
+                {t("You haven't created any authentication tokens yet.")}
               </td>
             </tr>
           </tbody>
@@ -176,7 +176,7 @@ const ApiTokens = React.createClass({
         <div>
           <p>
             {t(
-              'Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They\'re the easiest way to get started using the API.'
+              "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
             )}
           </p>
           <p>

@@ -70,6 +70,8 @@ class ReleaseActivityEmail(ActivityEmail):
                         user__sentry_orgmember_set__organization=self.organization,
                     ).select_related('user')
                 }
+                self.user_ids = {u.id for u in six.itervalues(users)}
+
             else:
                 users = {}
 
@@ -132,7 +134,7 @@ class ReleaseActivityEmail(ActivityEmail):
         participants_committed = {
             user: GroupSubscriptionReason.committed
             for user, option in users_with_options
-            if option == UserOptionValue.committed_deploys_only and user.email in self.email_list
+            if option == UserOptionValue.committed_deploys_only and user.id in self.user_ids
         }
 
         # or who opt into all deploy emails:

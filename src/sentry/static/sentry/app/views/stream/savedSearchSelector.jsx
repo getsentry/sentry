@@ -88,7 +88,7 @@ const SaveSearchButton = React.createClass({
               errors: {}
             });
           },
-          error: (err) => {
+          error: err => {
             let errors = err.responseJSON || true;
             errors = errors.detail || true;
             this.setState({
@@ -123,9 +123,7 @@ const SaveSearchButton = React.createClass({
             <div className="modal-body">
               {this.state.state === FormState.ERROR &&
                 <div className="alert alert-error alert-block">
-                  {t(
-                    `Unable to save your changes. ${this.state.errors}`
-                  )}
+                  {t(`Unable to save your changes. ${this.state.errors}`)}
                 </div>}
               <p>
                 {t(
@@ -220,7 +218,7 @@ const SavedSearchSelector = React.createClass({
           {children.length
             ? children
             : <li className="empty">
-                {t('There don\'t seem to be any saved searches yet.')}
+                {t("There don't seem to be any saved searches yet.")}
               </li>}
           {access.has('project:write') && <MenuItem divider={true} />}
           <li>
