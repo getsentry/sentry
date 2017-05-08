@@ -17,8 +17,8 @@ class NoteSerializer(serializers.Serializer):
         else:
             mentions = None
         if mentions:
-            member_ids = set(project.member_set.filter(user_id__in=mentions).value_list('user_id', flat=True))
-            invalid_user_ids = [m for m in mentions if m not in member_ids]
+            member_ids = set(project.member_set.filter(user_id__in=mentions).values_list('user_id', flat=True))
+            invalid_user_ids = [m for m in mentions if int(m) not in member_ids]
             if invalid_user_ids:
                     raise serializers.ValidationError('Cannot mention to non-team member')
 
