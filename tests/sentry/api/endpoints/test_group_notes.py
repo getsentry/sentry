@@ -52,3 +52,24 @@ class GroupNoteCreateTest(APITestCase):
             'text': 'hello world',
         })
         assert response.status_code == 400, response.content
+
+    def test_with_mentions(self):
+        group = self.group
+
+        self.login_as(user=self.user)
+
+        url = '/api/0/issues/{}/comments/'.format(group.id)
+
+        response = self.client.post(url, format='json', data={
+            'text': '**meredith@getsentry.com** is fun',
+            'mentions': [u'1']
+        })
+        assert response.status_code == 400, response.content
+
+        user_id = six.text_type(self.user.id)
+
+        response = self.client.post(url, format='json', data={
+            'text': '**meredith@getsentry.com** is so fun',
+            'mentions': [u'%s' % user_id]
+        })
+        assert response.status_code == 201, response.content

@@ -14,9 +14,6 @@ class NoteSerializer(serializers.Serializer):
         if source in attrs and 'group' in self.context:
             mentions = attrs[source]
             project = Project.objects.get(id=self.context['group'].project_id)
-        else:
-            mentions = None
-        if mentions:
             member_ids = set(project.member_set.filter(user_id__in=mentions).values_list('user_id', flat=True))
             invalid_user_ids = [m for m in mentions if int(m) not in member_ids]
             if invalid_user_ids:
