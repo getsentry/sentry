@@ -39,6 +39,10 @@ from sentry.web.frontend.debug.debug_resolved_in_release_email import (
 from sentry.web.frontend.debug.debug_unassigned_email import (
     DebugUnassignedEmailView
 )
+from sentry.web.frontend.debug.debug_new_processing_issues_email import (
+    DebugNewProcessingIssuesEmailView,
+    DebugNewProcessingIssuesNoReprocessingEmailView,
+)
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeView,
@@ -92,6 +96,10 @@ urlpatterns = patterns(
         DebugMfaAddedEmailView.as_view()),
     url(r'^debug/mail/password-changed/$',
         DebugPasswordChangedEmailView.as_view()),
+    url(r'^debug/mail/new-processing-issues/$',
+        DebugNewProcessingIssuesEmailView.as_view()),
+    url(r'^debug/mail/new-processing-issues-no-reprocessing/$',
+        DebugNewProcessingIssuesNoReprocessingEmailView.as_view()),
     url(r'^debug/embed/error-page/$',
         DebugErrorPageEmbedView.as_view()),
     url(r'^debug/trigger-error/$',

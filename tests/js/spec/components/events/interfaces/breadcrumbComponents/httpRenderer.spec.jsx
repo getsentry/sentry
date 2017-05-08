@@ -28,7 +28,7 @@ describe('HttpRenderer', function() {
       expect(summaryLineWrapper.find('span').text()).toEqual(' [0]');
     });
 
-    it('shouldn\'t blow up if crumb.data is missing', function() {
+    it("shouldn't blow up if crumb.data is missing", function() {
       let httpRendererWrapper = mount(
         <HttpRenderer
           crumb={{

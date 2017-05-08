@@ -89,7 +89,7 @@ def discover_configs():
     )
 
 
-def configure(ctx, py, yaml, skip_backend_validation=False):
+def configure(ctx, py, yaml, skip_service_validation=False):
     """
     Given the two different config files, set up the environment.
 
@@ -150,7 +150,7 @@ def configure(ctx, py, yaml, skip_backend_validation=False):
         'config_path': py,
         'settings': settings,
         'options': yaml,
-    }, skip_backend_validation=skip_backend_validation)
+    }, skip_service_validation=skip_service_validation)
     on_configure({'settings': settings})
 
     __installed = True

@@ -126,7 +126,7 @@ const GroupEvents = React.createClass({
     return (
       <div className="box empty-stream">
         <span className="icon icon-exclamation" />
-        <p>{t('There don\'t seem to be any events yet.')}</p>
+        <p>{t("There don't seem to be any events yet.")}</p>
       </div>
     );
   },

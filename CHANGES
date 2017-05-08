@@ -2,8 +2,12 @@ Version 8.17 (Unreleased)
 -------------------------
 - Added @mentions to comments
 
+- Initial (internal) analytics abstraction.
+- Turned on reprocessing by default
+
 Version 8.16
 ------------
+
 - Added data migration to create UserEmail objects for users whose primary emails did not have them
 - Time series data (used by graphs and other features) is now updated when groups are merged.
 - Added distributions to the release system to better support mobile apps
@@ -20,6 +24,7 @@ Schema Changes
 
 API Changes
 ~~~~~~~~~~~
+
 - Deprecate `dateStarted` in releases endpoints
 
 Version 8.15

@@ -7,7 +7,7 @@ from django.db.models import Count, Q, Sum
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from sentry import features, options, roles
+from sentry import analytics, features, options, roles
 from sentry.app import ratelimiter
 from sentry.api.base import DocSection, Endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -214,6 +214,9 @@ class OrganizationIndexEndpoint(Endpoint):
                 event=AuditLogEntryEvent.ORG_ADD,
                 data=org.get_audit_log_data(),
             )
+
+            analytics.record('organization.created', org,
+                             actor_id=request.user.id if request.user.is_authenticated() else None)
 
             return Response(serialize(org, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

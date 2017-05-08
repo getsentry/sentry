@@ -9,6 +9,7 @@ from .regression import RegressionActivityEmail
 from .resolved import ResolvedActivityEmail
 from .resolved_in_release import ResolvedInReleaseActivityEmail
 from .unassigned import UnassignedActivityEmail
+from .new_processing_issues import NewProcessingIssuesActivityEmail
 
 emails = {
     Activity.ASSIGNED: AssignedActivityEmail,
@@ -18,4 +19,5 @@ emails = {
     Activity.SET_RESOLVED: ResolvedActivityEmail,
     Activity.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityEmail,
     Activity.UNASSIGNED: UnassignedActivityEmail,
+    Activity.NEW_PROCESSING_ISSUES: NewProcessingIssuesActivityEmail,
 }

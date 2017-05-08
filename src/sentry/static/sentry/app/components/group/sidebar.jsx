@@ -170,8 +170,7 @@ const GroupSidebar = React.createClass({
 
     return (
       <div className="group-stats">
-        {new Set(this.context.organization.features).has('release-commits') &&
-          <SuggestedOwners event={this.props.event} />}
+        <SuggestedOwners event={this.props.event} />
 
         <GroupReleaseStats
           group={group}

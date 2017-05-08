@@ -33,7 +33,7 @@ describe('StreamActions', function() {
     });
 
     describe('for all items', function() {
-      it('should invoke the callback with \'undefined\' and deselect all', function() {
+      it("should invoke the callback with 'undefined' and deselect all", function() {
         this.sandbox.stub(SelectedGroupStore, 'deselectAll');
         let callback = this.sandbox.stub();
 
