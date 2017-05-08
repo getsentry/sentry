@@ -151,6 +151,10 @@ class UnmergeTestCase(TestCase):
 
         sequence = itertools.count(0)
         tag_values = itertools.cycle(['red', 'green', 'blue'])
+        user_values = itertools.cycle([
+            {'id': 1},
+            {'id': 2},
+        ])
 
         EnvironmentProject.objects.create(
             environment=Environment.objects.create(
@@ -191,6 +195,7 @@ class UnmergeTestCase(TestCase):
                         'params': parameters,
                         'formatted': template % parameters,
                     },
+                    'sentry.interfaces.User': next(user_values),
                     'tags': [
                         ['color', next(tag_values)],
                         ['environment', 'production'],

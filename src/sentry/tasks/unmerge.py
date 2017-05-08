@@ -309,7 +309,7 @@ def collect_tsdb_data(project, events):
 
     sets = defaultdict(
         lambda: defaultdict(
-            lambda: defaultdict(int),
+            lambda: defaultdict(set),
         ),
     )
 
