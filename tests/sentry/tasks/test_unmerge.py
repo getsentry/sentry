@@ -13,7 +13,7 @@ from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
 from sentry.models import Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
 from sentry.testutils import TestCase
-from sentry.tasks.unmerge import get_fingerprint, unmerge, get_group_creation_attributes, get_group_backfill_attributes, get_event_user_from_interface
+from sentry.tasks.unmerge import get_caches, get_fingerprint, unmerge, get_group_creation_attributes, get_group_backfill_attributes, get_event_user_from_interface
 from sentry.utils.dates import to_timestamp
 
 
@@ -62,7 +62,10 @@ class UnmergeTestCase(TestCase):
             ),
         ]
 
-        assert get_group_creation_attributes(events) == {
+        assert get_group_creation_attributes(
+            get_caches(),
+            events,
+        ) == {
             'active_at': now - timedelta(hours=2),
             'first_seen': now - timedelta(hours=2),
             'last_seen': now,
@@ -84,6 +87,7 @@ class UnmergeTestCase(TestCase):
     def test_get_group_backfill_attributes(self):
         now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=pytz.utc)
         assert get_group_backfill_attributes(
+            get_caches(),
             Group(
                 active_at=now,
                 first_seen=now,

@@ -11,10 +11,48 @@ from sentry.event_manager import ScoreClause, generate_culprit, get_hashes_for_e
 from sentry.models import Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release, UserReport
 
 
-# cache
-# - Release (organization, version)
-# - GroupRelease (group, environment (instance), release_id)
-# - Environment (organization, name) ... projects?
+def cache(function):
+    results = {}
+
+    def fetch(*key):
+        value = results.get(key)
+        if value is None:
+            try:
+                value = results[key] = (True, function(*key))
+            except Exception as error:
+                value = results[key] = (False, error)
+
+        ok, result = value
+        if ok:
+            return result
+        else:
+            raise result
+
+    return fetch
+
+
+def get_caches():
+    return {
+        Environment: cache(
+            lambda organization_id, name: Environment.objects.get(
+                organization_id=organization_id,
+                name=name,
+            ),
+        ),
+        GroupRelease: cache(
+            lambda group_id, environment, release_id: GroupRelease.objects.get(
+                group_id=group_id,
+                environment=environment,
+                release_id=release_id,
+            ),
+        ),
+        Release: cache(
+            lambda organization_id, version: Release.objects.get(
+                organization_id=organization_id,
+                version=version,
+            ),
+        ),
+    }
 
 
 def merge_mappings(values):
@@ -45,41 +83,41 @@ initial_fields = {
 
 
 backfill_fields = {
-    'platform': lambda data, event: event.platform,
-    'logger': lambda data, event: event.get_tag('logger') or DEFAULT_LOGGER_NAME,
-    'first_seen': lambda data, event: event.datetime,
-    'active_at': lambda data, event: event.datetime,
-    'first_release': lambda data, event: Release.objects.get(
-        organization_id=event.project.organization_id,
-        version=event.get_tag('sentry:release')
-    ) if event.get_tag('sentry:release') else data.get('first_release', None),  # XXX: This is wildly inefficient, also double check logic.
-    'times_seen': lambda data, event: data['times_seen'] + 1,
-    'score': lambda data, event: ScoreClause.calculate(
+    'platform': lambda caches, data, event: event.platform,
+    'logger': lambda caches, data, event: event.get_tag('logger') or DEFAULT_LOGGER_NAME,
+    'first_seen': lambda caches, data, event: event.datetime,
+    'active_at': lambda caches, data, event: event.datetime,
+    'first_release': lambda caches, data, event: caches[Release](
+        event.project.organization_id,  # TODO
+        event.get_tag('sentry:release'),
+    ) if event.get_tag('sentry:release') else data.get('first_release', None),  # TODO: double check logic.
+    'times_seen': lambda caches, data, event: data['times_seen'] + 1,
+    'score': lambda caches, data, event: ScoreClause.calculate(
         data['times_seen'] + 1,
         data['last_seen'],
     ),
 }
 
 
-def get_group_creation_attributes(events):
+def get_group_creation_attributes(caches, events):
     latest_event = events[0]
     return reduce(
         lambda data, event: merge_mappings([
             data,
-            {name: f(data, event) for name, f in backfill_fields.items()},
+            {name: f(caches, data, event) for name, f in backfill_fields.items()},
         ]),
         events,
         {name: f(latest_event) for name, f in initial_fields.items()},
     )
 
 
-def get_group_backfill_attributes(group, events):
+def get_group_backfill_attributes(caches, group, events):
     return {
         k: v for k, v in
         reduce(
             lambda data, event: merge_mappings([
                 data,
-                {name: f(data, event) for name, f in backfill_fields.items()},
+                {name: f(caches, data, event) for name, f in backfill_fields.items()},
             ]),
             events,
             {name: getattr(group, name) for name in set(initial_fields.keys()) | set(backfill_fields.keys())},
@@ -94,7 +132,7 @@ def get_fingerprint(event):
     return md5_from_hash(primary_hash)
 
 
-def migrate_events(project, destination_id, fingerprints, events):
+def migrate_events(caches, project, destination_id, fingerprints, events):
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
     # handle this if there aren't any events? We can't create a group (there
@@ -118,7 +156,7 @@ def migrate_events(project, destination_id, fingerprints, events):
         destination = Group.objects.create(
             project_id=project.id,
             short_id=project.next_short_id(),
-            **get_group_creation_attributes(events)
+            **get_group_creation_attributes(caches, events)
         )
 
         destination_id = destination.id
@@ -136,7 +174,7 @@ def migrate_events(project, destination_id, fingerprints, events):
     else:
         # Update the existing destination group.
         destination = Group.objects.get(id=destination_id)
-        destination.update(**get_group_backfill_attributes(destination, events))
+        destination.update(**get_group_backfill_attributes(caches, destination, events))
 
     event_id_set = set(event.id for event in events)
 
@@ -213,7 +251,7 @@ def collect_tag_data(events):
     return results
 
 
-def repair_tag_data(project, events):
+def repair_tag_data(caches, project, events):
     for group_id, keys in collect_tag_data(events).items():
         for key, values in keys.items():
             GroupTagKey.objects.get_or_create(
@@ -282,7 +320,7 @@ def collect_release_data(project, events):
     return results
 
 
-def repair_group_release_data(project, events):
+def repair_group_release_data(caches, project, events):
     attributes = collect_release_data(project, events).items()
     for (group_id, environment, release_id), (first_seen, last_seen) in attributes:
         instance, created = GroupRelease.objects.get_or_create(
@@ -309,7 +347,7 @@ def get_event_user_from_interface(value):
     )
 
 
-def collect_tsdb_data(project, events):
+def collect_tsdb_data(caches, project, events):
     counters = defaultdict(
         lambda: defaultdict(
             lambda: defaultdict(int),
@@ -339,9 +377,9 @@ def collect_tsdb_data(project, events):
                 get_event_user_from_interface(user).tag_value,
             )
 
-        environment = Environment.objects.get(
-            projects=project,
-            name=event.data.get('environment', ''),
+        environment = caches[Environment](
+            project.organization_id,
+            event.data.get('environment', ''),
         )
 
         frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][environment.id] += 1
@@ -349,18 +387,14 @@ def collect_tsdb_data(project, events):
         # TODO: Double check this!
         release = event.get_tag('sentry:release')
         if release:
-            # TODO: I'm also not sure if this is correct, see similar comment
-            # above during creation.
-            environment = event.data.get('environment', '')
-
-            # XXX: This is also inefficient, especially since we have created
-            # or updated the record already in this process.
-            grouprelease = GroupRelease.objects.get(
-                group_id=event.group_id,
-                environment=environment,
-                release_id=Release.objects.get(
-                    organization_id=project.organization_id,
-                    version=release,
+            # TODO: I'm also not sure if "environment" here is correct, see
+            # similar comment above during creation.
+            grouprelease = caches[GroupRelease](
+                event.group_id,
+                event.data.get('environment', ''),
+                caches[Release](
+                    project.organization_id,
+                    release,
                 ).id,
             )
 
@@ -369,8 +403,8 @@ def collect_tsdb_data(project, events):
     return counters, sets, frequencies
 
 
-def repair_tsdb_data(project, events):
-    counters, sets, frequencies = collect_tsdb_data(project, events)
+def repair_tsdb_data(caches, project, events):
+    counters, sets, frequencies = collect_tsdb_data(caches, project, events)
 
     for timestamp, data in counters.items():
         for model, keys in data.items():
@@ -387,10 +421,10 @@ def repair_tsdb_data(project, events):
         tsdb.record_frequency_multi(data.items(), timestamp)
 
 
-def repair_denormalizations(project, events):
-    repair_tag_data(project, events)
-    repair_group_release_data(project, events)
-    repair_tsdb_data(project, events)
+def repair_denormalizations(caches, project, events):
+    repair_tag_data(caches, project, events)
+    repair_group_release_data(caches, project, events)
+    repair_tsdb_data(caches, project, events)
 
 
 def update_tag_value_counts(id_list):
@@ -449,7 +483,10 @@ def unmerge(project_id, source_id, destination_id, fingerprints, cursor=None, ba
 
     Event.objects.bind_nodes(events, 'data')
 
+    caches = get_caches()
+
     destination_id = migrate_events(
+        caches,
         project,
         destination_id,
         fingerprints,
@@ -460,6 +497,7 @@ def unmerge(project_id, source_id, destination_id, fingerprints, cursor=None, ba
     )
 
     repair_denormalizations(
+        caches,
         project,
         events,
     )
