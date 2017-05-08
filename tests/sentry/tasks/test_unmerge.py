@@ -13,7 +13,7 @@ from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
 from sentry.models import Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
 from sentry.testutils import TestCase
-from sentry.tasks.unmerge import get_fingerprint, unmerge, get_group_creation_attributes, get_group_backfill_attributes
+from sentry.tasks.unmerge import get_fingerprint, unmerge, get_group_creation_attributes, get_group_backfill_attributes, get_event_user_from_interface
 from sentry.utils.dates import to_timestamp
 
 
@@ -492,6 +492,50 @@ class UnmergeTestCase(TestCase):
             get_expected_series_values(rollup_duration, events.values()[1]),
             time_series[destination.id],
             0,
+        )
+
+        time_series = tsdb.get_distinct_counts_series(
+            tsdb.models.users_affected_by_group,
+            [source.id, destination.id],
+            now,
+            now + shift(16),
+        )
+
+        rollup_duration = time_series.values()[0][1][0] - time_series.values()[0][0][0]
+
+        def collect_by_user_tag(aggregate, event):
+            aggregate = aggregate if aggregate is not None else set()
+            aggregate.add(
+                get_event_user_from_interface(
+                    event.data['sentry.interfaces.User'],
+                ).tag_value,
+            )
+            return aggregate
+
+        assert_series_contains(
+            {
+                timestamp: len(values)
+                for timestamp, values in
+                get_expected_series_values(
+                    rollup_duration,
+                    events.values()[0],
+                    collect_by_user_tag,
+                ).items()
+            },
+            time_series[source.id],
+        )
+
+        assert_series_contains(
+            {
+                timestamp: len(values)
+                for timestamp, values in
+                get_expected_series_values(
+                    rollup_duration,
+                    events.values()[1],
+                    collect_by_user_tag,
+                ).items()
+            },
+            time_series[destination.id],
         )
 
         time_series = tsdb.get_most_frequent_series(

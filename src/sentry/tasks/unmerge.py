@@ -300,6 +300,15 @@ def repair_group_release_data(project, events):
             instance.update(first_seen=first_seen)
 
 
+def get_event_user_from_interface(value):
+    return EventUser(
+        ident=value.get('id'),
+        email=value.get('email'),
+        username=value.get('valuename'),
+        ip_address=value.get('ip_address'),
+    )
+
+
 def collect_tsdb_data(project, events):
     counters = defaultdict(
         lambda: defaultdict(
@@ -327,13 +336,7 @@ def collect_tsdb_data(project, events):
         user = event.data.get('sentry.interfaces.User')
         if user:
             sets[event.datetime][tsdb.models.users_affected_by_group][event.group_id].add(
-                EventUser(
-                    project=project,
-                    ident=user.get('id'),
-                    email=user.get('email'),
-                    username=user.get('username'),
-                    ip_address=user.get('ip_address'),
-                ).tag_value
+                get_event_user_from_interface(user).tag_value,
             )
 
         environment = Environment.objects.get(
