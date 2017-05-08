@@ -66,7 +66,7 @@ class Endpoint(APIView):
             for k, v in six.iteritems(request.GET)
             if k != 'cursor'
         )
-        base_url = absolute_uri(request.path)
+        base_url = absolute_uri(urlquote(request.path))
         if querystring:
             base_url = '{0}?{1}'.format(base_url, querystring)
         else:
