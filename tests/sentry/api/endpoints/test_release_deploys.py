@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 
 import datetime
@@ -15,7 +17,8 @@ class ReleaseDeploysListTest(APITestCase):
         )
         release = Release.objects.create(
             organization_id=project.organization_id,
-            version='1',
+            # test unicode
+            version='1–0',
         )
         release.add_project(project)
         Deploy.objects.create(
