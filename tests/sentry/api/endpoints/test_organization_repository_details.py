@@ -11,7 +11,7 @@ from sentry.testutils import APITestCase
 
 class OrganizationRepositoryDeleteTest(APITestCase):
     @patch('sentry.api.endpoints.organization_repository_details.get_transaction_id')
-    @patch('sentry.tasks.deletion.delete_repository')
+    @patch('sentry.api.endpoints.organization_repository_details.delete_repository')
     def test_delete_no_commits(self, mock_delete_repository, mock_get_transaction_id):
         mock_get_transaction_id.return_value = '1'
 
