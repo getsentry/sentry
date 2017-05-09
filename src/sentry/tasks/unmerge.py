@@ -304,7 +304,7 @@ def repair_tag_data(caches, project, events):
                     )
 
 
-def collect_release_data(project, events):
+def collect_release_data(caches, project, events):
     results = {}
 
     for event in events:
@@ -326,9 +326,9 @@ def collect_release_data(project, events):
         key = (
             event.group_id,
             environment,
-            Release.objects.get(  # XXX: This lookup should be cached.
-                organization_id=project.organization_id,
-                version=release,
+            caches[Release](
+                project.organization_id,
+                release,
             ).id,
         )
 
@@ -342,7 +342,7 @@ def collect_release_data(project, events):
 
 
 def repair_group_release_data(caches, project, events):
-    attributes = collect_release_data(project, events).items()
+    attributes = collect_release_data(caches, project, events).items()
     for (group_id, environment, release_id), (first_seen, last_seen) in attributes:
         instance, created = GroupRelease.objects.get_or_create(
             project_id=project.id,
