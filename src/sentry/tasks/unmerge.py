@@ -15,6 +15,7 @@ from sentry.models import (
     GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release,
     UserReport
 )
+from sentry.tasks.base import instrumented_task
 
 
 def cache(function):
@@ -466,6 +467,7 @@ def update_tag_value_counts(id_list):
         )
 
 
+@instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
 def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, cursor=None, batch_size=500):
     # XXX: If a ``GroupHash`` is unmerged *again* while this operation is
     # already in progress, some events from the fingerprint associated with the
@@ -531,7 +533,7 @@ def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, curso
         events,
     )
 
-    return unmerge(
+    return unmerge.delay(
         project_id,
         source_id,
         destination_id,

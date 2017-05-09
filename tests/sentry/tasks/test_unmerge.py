@@ -276,16 +276,29 @@ class UnmergeTestCase(TestCase):
             (u'sentry:release', u'version', 17),
         ])
 
-        destination = Group.objects.get(
-            id=unmerge(
+        with self.tasks():
+            unmerge.delay(
                 source.project_id,
                 source.id,
                 None,
                 [events.keys()[1]],
                 None,
                 batch_size=5,
-            ),
+            )
+
+        source_activity = Activity.objects.get(
+            group_id=source.id,
+            type=Activity.UNMERGE_SOURCE,
         )
+
+        destination = Group.objects.get(
+            id=source_activity.data['destination_id'],
+        )
+
+        assert source_activity.data == {
+            'destination_id': destination.id,
+            'fingerprints': [events.keys()[1]],
+        }
 
         assert source.id != destination.id
         assert source.project == destination.project
@@ -295,14 +308,6 @@ class UnmergeTestCase(TestCase):
             type=Activity.UNMERGE_DESTINATION,
         ).data == {
             'source_id': source.id,
-            'fingerprints': [events.keys()[1]],
-        }
-
-        assert Activity.objects.get(
-            group_id=source.id,
-            type=Activity.UNMERGE_SOURCE,
-        ).data == {
-            'destination_id': destination.id,
             'fingerprints': [events.keys()[1]],
         }
 
