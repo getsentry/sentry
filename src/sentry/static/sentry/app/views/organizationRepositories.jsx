@@ -78,6 +78,14 @@ class AddRepositoryLink extends PluginComponentBase {
     );
   }
 
+  parseGitHubRepo(repo) {
+    let re = /github.com\/(.+\/.+)/i;
+    let match = repo.match(re);
+    let parsedRepo;
+    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
+    return parsedRepo;
+  }
+
   changeField(name, value) {
     let formData = this.state.formData;
     formData[name] = value;
