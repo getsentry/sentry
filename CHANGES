@@ -5,6 +5,13 @@ Version 8.17 (Unreleased)
 - Turned on reprocessing by default
 - Added basics for Data Forwarding integrations.
 
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Dropped ``GroupTagValue.group_id`` foreign key constraint
+- Dropped ``GroupTagValue.project_id`` foreign key constraint
+
 Version 8.16
 ------------
 
