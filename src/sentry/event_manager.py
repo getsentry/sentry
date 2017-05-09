@@ -823,6 +823,14 @@ class EventManager(object):
 
             group_is_new = False
 
+        # Keep a set of all of the hashes that are relevant for this event and
+        # belong to the destination group so that we can record this as the
+        # last processed event for each. (We can't just update every
+        # ``GroupHash`` instance, since we only want to record this for events
+        # that not only include the hash but were also placed into the
+        # associated group.)
+        relevant_group_hashes = set([instance for instance in all_hashes if instance.group_id == group.id])
+
         # If all hashes are brand new we treat this event as new
         is_new = False
         new_hashes = [h for h in all_hashes if h.group_id is None]
@@ -842,6 +850,11 @@ class EventManager(object):
 
             if group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
+
+            # XXX: This can lead to invalid results due to a race condition and
+            # lack of referential integrity enforcement, see above comment(s)
+            # about "hash stealing".
+            relevant_group_hashes.update(new_hashes)
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
         # is processed as otherwise values like last_seen will get mutated
@@ -869,6 +882,13 @@ class EventManager(object):
             is_sample = False
         else:
             is_sample = can_sample
+
+        if not is_sample:
+            GroupHash.record_last_processed_event_id(
+                project.id,
+                [h.id for h in relevant_group_hashes],
+                event.event_id,
+            )
 
         return group, is_new, is_regression, is_sample
 
