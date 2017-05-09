@@ -8,14 +8,13 @@ sentry.models.activity
 from __future__ import absolute_import
 
 import six
-
 from django.conf import settings
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
 
 from sentry.db.models import (
-    Model, BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField,
+    BoundedPositiveIntegerField, FlexibleForeignKey, GzippedDictField, Model,
     sane_repr
 )
 from sentry.tasks import activity

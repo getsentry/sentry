@@ -7,8 +7,14 @@ from django.db.models import F
 
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
-from sentry.event_manager import ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
-from sentry.models import Activity, Environment, Event, EventMapping, EventTag, EventUser, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release, UserReport
+from sentry.event_manager import (
+    ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
+)
+from sentry.models import (
+    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group,
+    GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release,
+    UserReport
+)
 
 
 def cache(function):

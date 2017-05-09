@@ -4,16 +4,22 @@ import functools
 import itertools
 import logging
 import uuid
+from collections import OrderedDict
 from datetime import datetime, timedelta
 
 import pytz
-from collections import OrderedDict
 
 from sentry.app import tsdb
 from sentry.event_manager import ScoreClause
-from sentry.models import Activity, Environment, EnvironmentProject, Event, EventMapping, Group, GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
+from sentry.models import (
+    Activity, Environment, EnvironmentProject, Event, EventMapping, Group,
+    GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Release, UserReport
+)
+from sentry.tasks.unmerge import (
+    get_caches, get_event_user_from_interface, get_fingerprint,
+    get_group_backfill_attributes, get_group_creation_attributes, unmerge
+)
 from sentry.testutils import TestCase
-from sentry.tasks.unmerge import get_caches, get_fingerprint, unmerge, get_group_creation_attributes, get_group_backfill_attributes, get_event_user_from_interface
 from sentry.utils.dates import to_timestamp
 
 
