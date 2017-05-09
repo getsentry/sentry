@@ -13,7 +13,7 @@ __all__ = ['ReleaseHook']
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from sentry.models import Activity, ProjectOption, Release, Repository
+from sentry.models import Activity, Release
 
 
 class ReleaseHook(object):
@@ -62,6 +62,9 @@ class ReleaseHook(object):
 
         release.set_commits(commit_list)
 
+    def set_refs(self, release, **values):
+        pass
+
     def finish_release(self, version, **values):
 
         values.setdefault('date_released', timezone.now())
@@ -88,27 +91,7 @@ class ReleaseHook(object):
             data={'version': version},
             datetime=values['date_released'],
         )
-
-        # check if user exists, and then try to get refs based on version
-        if values.get('owner', None):
-            try:
-                repository = Repository.objects.get(
-                    organization_id=self.project.organization_id,
-                    name=ProjectOption.objects.get_value(
-                        project=self.project,
-                        key='heroku:repository'
-                    )
-                )
-            except Repository.DoesNotExist:
-                pass
-            else:
-                release.set_refs(
-                    refs=[{
-                        'commit': version,
-                        'repository': repository.name}],
-                    user=values['owner'],
-                    fetch=True
-                )
+        self.set_refs(release=release, **values)
 
     def handle(self, request):
         raise NotImplementedError
