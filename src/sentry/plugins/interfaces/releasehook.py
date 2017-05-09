@@ -62,7 +62,11 @@ class ReleaseHook(object):
 
         release.set_commits(commit_list)
 
+    def set_refs(self, release, **values):
+        pass
+
     def finish_release(self, version, **values):
+
         values.setdefault('date_released', timezone.now())
         try:
             with transaction.atomic():
@@ -87,6 +91,7 @@ class ReleaseHook(object):
             data={'version': version},
             datetime=values['date_released'],
         )
+        self.set_refs(release=release, **values)
 
     def handle(self, request):
         raise NotImplementedError
