@@ -773,8 +773,7 @@ class EventManager(object):
         # TODO(dcramer): there is a race condition with selecting/updating
         # in that another group could take ownership of the hash
         bad_hashes = GroupHash.objects.filter(
-            project=group.project,
-            hash__in=hash_list,
+            id__in=[h.id for h in hash_list],
         ).exclude(
             group=group,
         )
@@ -803,7 +802,7 @@ class EventManager(object):
         all_hashes = self._find_hashes(project, hashes)
 
         try:
-            existing_group_id = six.next(h[0] for h in all_hashes if h[0])
+            existing_group_id = six.next(h.group_id for h in all_hashes if h.group_id is not None)
         except StopIteration:
             existing_group_id = None
 
@@ -826,38 +825,22 @@ class EventManager(object):
 
         # If all hashes are brand new we treat this event as new
         is_new = False
-        new_hashes = [h[1] for h in all_hashes if h[0] is None]
+        new_hashes = [h for h in all_hashes if h.group_id is None]
         if new_hashes:
-            # This is an attempt at optimizing the lookup against GroupHash
-            # Previously this was doing something like:
-            # UPDATE "sentry_grouphash" SET "group_id" = x WHERE ("sentry_grouphash"."project_id" = x AND "sentry_grouphash"."hash" IN ('x') AND "sentry_grouphash"."group_id" IS NULL)
-            # This query is causing the query planner to choose the sentry_grouphash_group_id index
-            # rather than the expected sentry_grouphash_project_id_4a293f96a363c9a2_uniq index.
-            # So this change to a SELECT/UPDATE instead forces us to hit the expected index.
-            # We then filter in python to check if we need to update, and we update back explicitly
-            # on the primary keys.
-            affected = map(
-                # Extract just the id
-                lambda x: x[0],
-                filter(
-                    # find the rows that have no group id
-                    lambda x: x[1] is None, list(
-                        GroupHash.objects.filter(
-                            project=project,
-                            hash__in=new_hashes,
-                        ).values_list('id', 'group_id')
-                    )
-                )
-            )
+            # XXX: There is a race condition here wherein another process could
+            # create a new group that is associated with one of the new hashes,
+            # add some event(s) to it, and then subsequently have the hash
+            # "stolen" by this process. This then "orphans" those events from
+            # their "siblings" in the group we've created here. We don't have a
+            # way to fix this, since we can't call `_ensure_hashes_merged`
+            # without filtering on `group_id` (which we can't do due to query
+            # planner weirdness.) For more context, see 84c6f75a and d0e22787,
+            # as well as GH-5085.
+            GroupHash.objects.filter(
+                id__in=[h.id for h in new_hashes],
+            ).update(group=group)
 
-            if affected:
-                GroupHash.objects.filter(
-                    id__in=affected,
-                ).update(group=group)
-
-            if len(affected) != len(new_hashes):
-                self._ensure_hashes_merged(group, new_hashes)
-            elif group_is_new and len(new_hashes) == len(all_hashes):
+            if group_is_new and len(new_hashes) == len(all_hashes):
                 is_new = True
 
         # XXX(dcramer): it's important this gets called **before** the aggregate
