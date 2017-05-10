@@ -262,11 +262,17 @@ class Release(Model):
             projects__in=self.projects.all(),
         ).exclude(version=self.version).order_by('-date_added').first()
 
+        names = {r['repository'] for r in refs}
+        repos = list(Repository.objects.filter(
+            organization_id=self.organization_id,
+            name__in=names,
+        ))
+        repos_by_name = {r.name: r for r in repos}
+        if len(repos_by_name) != len(names):
+            raise Repository.DoesNotExist
+
         for ref in refs:
-            repo = Repository.objects.get(
-                organization_id=self.organization_id,
-                name=ref['repository'],
-            )
+            repo = repos_by_name[ref['repository']]
 
             commit = Commit.objects.get_or_create(
                 organization_id=self.organization_id,

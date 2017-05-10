@@ -12,7 +12,7 @@ from sentry.api.serializers.rest_framework import (
     CommitSerializer, ListField, ReleaseHeadCommitSerializerDeprecated,
     ReleaseHeadCommitSerializer,
 )
-from sentry.models import Activity, Group, Release, ReleaseFile
+from sentry.models import Activity, Group, Release, ReleaseFile, Repository
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
@@ -161,14 +161,13 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                 return Response({
                     'refs': ['You must use an authenticated API token to fetch refs']
                 }, status=400)
-            # TODO(jess): move this to serializer when we deprecate
-            # headCommits version
-            if self.has_invalid_repos(refs, organization):
+            fetch_commits = not commit_list
+            try:
+                release.set_refs(refs, request.user, fetch=fetch_commits)
+            except Repository.DoesNotExist:
                 return Response({
                     'refs': ['Invalid repository name']
                 }, status=400)
-            fetch_commits = not commit_list
-            release.set_refs(refs, request.user, fetch=fetch_commits)
 
         if (not was_released and release.date_released):
             for project in release.projects.all():

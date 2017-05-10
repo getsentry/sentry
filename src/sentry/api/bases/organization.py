@@ -9,7 +9,7 @@ from sentry.app import raven
 from sentry.auth import access
 from sentry.models import (
     ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus,
-    Project, ReleaseProject, Repository, Team
+    Project, ReleaseProject, Team
 )
 from sentry.models.apikey import ROOT_KEY
 from sentry.utils import auth
@@ -97,13 +97,6 @@ class OrganizationEndpoint(Endpoint):
 
 class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
-
-    def has_invalid_repos(self, refs, organization):
-        repos = set(Repository.objects.filter(
-            organization_id=organization.id,
-            name__in=[r['repository'] for r in refs],
-        ).values_list('name', flat=True))
-        return bool([r['repository'] for r in refs if r['repository'] not in repos])
 
     def get_allowed_projects(self, request, organization):
         has_valid_api_key = False

@@ -12,7 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
 )
-from sentry.models import Activity, Release
+from sentry.models import Activity, Release, Repository
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -186,14 +186,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         'refs': ['You must use an authenticated API token to fetch refs']
                     }, status=400)
                 fetch_commits = not commit_list
-                # TODO(jess): move this to serializer when we deprecate
-                # headCommits version
-                if self.has_invalid_repos(refs, organization):
+                try:
+                    release.set_refs(refs, request.user, fetch=fetch_commits)
+                except Repository.DoesNotExist:
                     return Response({
                         'refs': ['Invalid repository name']
                     }, status=400)
-
-                release.set_refs(refs, request.user, fetch=fetch_commits)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want
