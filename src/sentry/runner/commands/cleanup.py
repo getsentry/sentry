@@ -149,12 +149,24 @@ def cleanup(days, project, concurrency, silent, model):
         if not silent:
             click.echo('>> Skipping EventMapping')
     else:
-        BulkDeleteQuery(
+        query = BulkDeleteQuery(
             model=EventMapping,
             dtfield='date_added',
             days=min(days, 7),
             project_id=project_id,
-        ).execute()
+        )
+        if concurrency > 1:
+            threads = []
+            for shard_id in range(concurrency):
+                t = Thread(target=lambda shard_id=shard_id: query.execute_sharded(concurrency, shard_id))
+                t.start()
+                threads.append(t)
+
+            for t in threads:
+                t.join()
+        else:
+            query.execute_generic()
+
 
     # Clean up FileBlob instances which are no longer used and aren't super
     # recent (as there could be a race between blob creation and reference)
