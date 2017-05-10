@@ -161,6 +161,10 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
                 return Response({
                     'refs': ['You must use an authenticated API token to fetch refs']
                 }, status=400)
+            if self.has_invalid_repos(refs, organization):
+                return Response({
+                    'refs': ['Invalid repository name']
+                }, status=400)
             fetch_commits = not commit_list
             release.set_refs(refs, request.user, fetch=fetch_commits)
 

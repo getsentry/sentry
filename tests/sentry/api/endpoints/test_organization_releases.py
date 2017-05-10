@@ -757,3 +757,33 @@ class OrganizationReleaseCreateTest(APITestCase):
         )
 
         assert response.status_code == 201
+
+    def test_bad_repo_name(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(
+            name='foo',
+            organization=org,
+            team=team
+        )
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse('sentry-api-0-organization-releases', kwargs={
+            'organization_slug': org.slug
+        })
+        response = self.client.post(url, data={
+            'version': '1.2.1',
+            'projects': [project.slug],
+            'refs': [{
+                'repository': 'not_a_repo',
+                'commit': 'a' * 40,
+            }]
+        })
+        assert response.status_code == 400
+        assert 'Invalid repository name' in response.content

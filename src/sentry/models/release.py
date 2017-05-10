@@ -263,13 +263,10 @@ class Release(Model):
         ).exclude(version=self.version).order_by('-date_added').first()
 
         for ref in refs:
-            try:
-                repo = Repository.objects.get(
-                    organization_id=self.organization_id,
-                    name=ref['repository'],
-                )
-            except Repository.DoesNotExist:
-                continue
+            repo = Repository.objects.get(
+                organization_id=self.organization_id,
+                name=ref['repository'],
+            )
 
             commit = Commit.objects.get_or_create(
                 organization_id=self.organization_id,
