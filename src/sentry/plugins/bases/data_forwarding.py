@@ -21,6 +21,9 @@ class DataForwardingPlugin(Plugin):
         return (50, 1)
 
     def forward_event(self, payload):
+        """
+        Forward the event and return a boolean if it was successful.
+        """
         raise NotImplementedError
 
     def get_event_payload(self, event):
@@ -40,5 +43,8 @@ class DataForwardingPlugin(Plugin):
             return
 
         payload = self.get_event_payload(event)
-        self.forward_event(event, payload)
-        tsdb.incr(tsdb.models.project_total_forwarded, [event.project.id])
+        success = self.forward_event(event, payload)
+        if success is False:
+            # TODO(dcramer): record failure
+            pass
+        tsdb.incr(tsdb.models.project_total_forwarded, event.project.id, count=1)
