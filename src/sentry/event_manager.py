@@ -761,14 +761,13 @@ class EventManager(object):
         return euser
 
     def _find_hashes(self, project, hash_list):
-        matches = []
-        for hash in hash_list:
-            ghash, _ = GroupHash.objects.get_or_create(
+        return map(
+            lambda hash: GroupHash.objects.get_or_create(
                 project=project,
                 hash=hash,
-            )
-            matches.append((ghash.group_id, ghash.hash))
-        return matches
+            )[0],
+            hash_list,
+        )
 
     def _ensure_hashes_merged(self, group, hash_list):
         # TODO(dcramer): there is a race condition with selecting/updating
