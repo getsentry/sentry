@@ -36,8 +36,8 @@ class GroupDetailsTest(APITestCase):
         )
         release.add_project(group.project)
         GroupTagValue.objects.create(
-            group=group,
-            project=group.project,
+            group_id=group.id,
+            project_id=group.project_id,
             key='sentry:release',
             value=release.version,
         )

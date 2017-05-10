@@ -44,13 +44,13 @@ class DjangoSearchBackend(SearchBackend):
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
                     value=v,
-                    project=project,
+                    project_id=project.id,
                 )
 
             else:
                 base_qs = GroupTagValue.objects.filter(
                     key=k,
-                    project=project,
+                    project_id=project.id,
                 ).distinct()
 
             if matches:

@@ -21,7 +21,7 @@ class SentryManagerTest(TestCase):
             Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
 
         results = list(GroupTagValue.objects.filter(
-            group=group, key='foo').order_by('id'))
+            group_id=group.id, key='foo').order_by('id'))
         assert len(results) == 2
         res = results[0]
         self.assertEquals(res.value, 'bar')
@@ -31,7 +31,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.times_seen, 1)
 
         results = list(GroupTagValue.objects.filter(
-            group=group, key='biz').order_by('id'))
+            group_id=group.id, key='biz').order_by('id'))
         assert len(results) == 1
         res = results[0]
         self.assertEquals(res.value, 'boz')
