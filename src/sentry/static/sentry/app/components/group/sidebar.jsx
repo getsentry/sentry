@@ -7,6 +7,7 @@ import GroupReleaseStats from './releaseStats';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import TagDistributionMeter from './tagDistributionMeter';
+import LoadingError from '../../components/loadingError';
 import {t, tct} from '../../locale';
 
 const GroupSidebar = React.createClass({
@@ -21,12 +22,38 @@ const GroupSidebar = React.createClass({
 
   mixins: [ApiMixin, GroupState],
 
+  getInitialState() {
+    return {
+      participants: []
+    };
+  },
+
+  componentWillMount() {
+    let group = this.props.group;
+    this.api.request(`/issues/${group.id}/participants/`, {
+      success: data => {
+        this.setState({
+          participants: data,
+          error: false
+        });
+      },
+      error: () => {
+        this.setState({
+          error: true
+        });
+      }
+    });
+  },
+
   subscriptionReasons: {
     commented: t("You're receiving updates because you have commented on this issue."),
     assigned: t("You're receiving updates because you were assigned to this issue."),
     bookmarked: t("You're receiving updates because you have bookmarked this issue."),
     changed_status: t(
       "You're receiving updates because you have changed the status of this issue."
+    ),
+    mentioned: t(
+      "You're receiving updates because you have been mentioned in this issue."
     )
   },
 
@@ -49,7 +76,16 @@ const GroupSidebar = React.createClass({
         complete: () => {
           this.api.request(`/issues/${group.id}/participants/`, {
             success: data => {
-              this.setState({participants: data});
+              this.setState({
+                participants: data,
+                error: false
+              });
+              IndicatorStore.remove(loadingIndicator);
+            },
+            error: () => {
+              this.setState({
+                error: true
+              });
               IndicatorStore.remove(loadingIndicator);
             }
           });
@@ -65,7 +101,8 @@ const GroupSidebar = React.createClass({
       if (issue) {
         issues.push(
           <dl key={plugin.slug}>
-            <dt>{plugin.title + ': '}</dt><dd><a href={issue.url}>{issue.label}</a></dd>
+            <dt>{plugin.title + ': '}</dt>
+            <dd><a href={issue.url}>{issue.label}</a></dd>
           </dl>
         );
       }
@@ -107,13 +144,29 @@ const GroupSidebar = React.createClass({
     }
   },
 
+  renderParticipantData() {
+    let error = this.state.error;
+    let participants = (this.state || {}).participants || [];
+
+    if (!error) {
+      return (
+        participants.length !== 0 && <GroupParticipants participants={participants} />
+      );
+    } else {
+      return (
+        <LoadingError
+          message={t('There was an error while trying to load participants.')}
+        />
+      );
+    }
+  },
+
   render() {
     let project = this.getProject();
     let projectId = project.slug;
     let orgId = this.getOrganization().slug;
     let defaultEnvironment = project.defaultEnvironment;
     let group = this.getGroup();
-    let participants = (this.state || {}).participants || [];
 
     return (
       <div className="group-stats">
@@ -140,7 +193,8 @@ const GroupSidebar = React.createClass({
             />
           );
         })}
-        {participants.length !== 0 && <GroupParticipants participants={participants} />}
+
+        {this.renderParticipantData()}
 
         <h6><span>{t('Notifications')}</span></h6>
         <p className="help-block">{this.getNotificationText()}</p>

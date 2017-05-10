@@ -1,5 +1,6 @@
 Version 8.17 (Unreleased)
 -------------------------
+- Added @mentions to comments
 
 - Initial (internal) analytics abstraction.
 - Turned on reprocessing by default

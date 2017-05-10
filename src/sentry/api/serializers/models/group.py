@@ -26,6 +26,7 @@ SUBSCRIPTION_REASON_MAP = {
     GroupSubscriptionReason.assigned: 'assigned',
     GroupSubscriptionReason.bookmark: 'bookmarked',
     GroupSubscriptionReason.status_change: 'changed_status',
+    GroupSubscriptionReason.mentioned: 'mentioned',
 }
 
 
