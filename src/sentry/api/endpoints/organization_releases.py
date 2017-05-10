@@ -7,12 +7,13 @@ from rest_framework.response import Response
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializer, ReleaseHeadCommitSerializerDeprecated, ListField
 )
-from sentry.models import Activity, Release, Repository
+from sentry.models import Activity, Release
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 
@@ -188,9 +189,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                 fetch_commits = not commit_list
                 try:
                     release.set_refs(refs, request.user, fetch=fetch_commits)
-                except Repository.DoesNotExist:
+                except InvalidRepository as exc:
                     return Response({
-                        'refs': ['Invalid repository name']
+                        'refs': [exc.message]
                     }, status=400)
 
             if not created and not new_projects:

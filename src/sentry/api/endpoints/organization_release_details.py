@@ -6,13 +6,13 @@ from rest_framework.response import Response
 
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     CommitSerializer, ListField, ReleaseHeadCommitSerializerDeprecated,
     ReleaseHeadCommitSerializer,
 )
-from sentry.models import Activity, Group, Release, ReleaseFile, Repository
+from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
@@ -164,9 +164,9 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             fetch_commits = not commit_list
             try:
                 release.set_refs(refs, request.user, fetch=fetch_commits)
-            except Repository.DoesNotExist:
+            except InvalidRepository as exc:
                 return Response({
-                    'refs': ['Invalid repository name']
+                    'refs': [exc.message]
                 }, status=400)
 
         if (not was_released and release.date_released):

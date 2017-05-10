@@ -252,6 +252,7 @@ class Release(Model):
             return True
 
     def set_refs(self, refs, user, fetch=False):
+        from sentry.api.exceptions import InvalidRepository
         from sentry.models import Commit, ReleaseHeadCommit, Repository
         from sentry.tasks.commits import fetch_commits
 
@@ -268,8 +269,9 @@ class Release(Model):
             name__in=names,
         ))
         repos_by_name = {r.name: r for r in repos}
-        if len(repos_by_name) != len(names):
-            raise Repository.DoesNotExist
+        invalid_repos = names - set(repos_by_name.keys())
+        if invalid_repos:
+            raise InvalidRepository('Invalid repository names: %s' % ','.join(invalid_repos))
 
         for ref in refs:
             repo = repos_by_name[ref['repository']]

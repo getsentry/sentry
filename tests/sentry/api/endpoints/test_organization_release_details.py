@@ -476,4 +476,6 @@ class ReleaseDeleteTest(APITestCase):
             }]
         })
         assert response.status_code == 400
-        assert 'Invalid repository name' in response.content
+        assert response.data == {
+            'refs': [u'Invalid repository names: not_a_repo']
+        }
