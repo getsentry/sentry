@@ -186,6 +186,8 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         'refs': ['You must use an authenticated API token to fetch refs']
                     }, status=400)
                 fetch_commits = not commit_list
+                # TODO(jess): move this to serializer when we deprecate
+                # headCommits version
                 if self.has_invalid_repos(refs, organization):
                     return Response({
                         'refs': ['Invalid repository name']
