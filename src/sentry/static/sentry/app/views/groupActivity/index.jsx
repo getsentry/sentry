@@ -148,6 +148,7 @@ const GroupActivity = React.createClass({
   render() {
     let group = this.props.group;
     let me = ConfigStore.get('user');
+    let memberList = MemberListStore.getAll();
 
     let children = group.activity.map((item, itemIdx) => {
       let avatar = item.user
@@ -167,6 +168,8 @@ const GroupActivity = React.createClass({
             key={itemIdx}
             author={author}
             onDelete={this.onNoteDelete}
+            sessionUser={me}
+            memberList={memberList}
           />
         );
       } else {
@@ -197,7 +200,7 @@ const GroupActivity = React.createClass({
               <li className="activity-note" key="activity-note">
                 <Avatar user={me} size={64} className="avatar" />
                 <div className="activity-bubble">
-                  <NoteInput group={group} />
+                  <NoteInput group={group} memberList={memberList} sessionUser={me} />
                 </div>
               </li>
               {children}

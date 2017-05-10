@@ -8,7 +8,9 @@ const NoteContainer = React.createClass({
     group: React.PropTypes.object.isRequired,
     item: React.PropTypes.object.isRequired,
     author: React.PropTypes.object.isRequired,
-    onDelete: React.PropTypes.func.isRequired
+    onDelete: React.PropTypes.func.isRequired,
+    sessionUser: React.PropTypes.object.isRequired,
+    memberList: React.PropTypes.array.isRequired
   },
 
   getInitialState() {
@@ -30,14 +32,20 @@ const NoteContainer = React.createClass({
   },
 
   render() {
-    let {group, item, author} = this.props;
+    let {group, item, author, sessionUser, memberList} = this.props;
 
     return (
       <li className="activity-note">
         {author.avatar}
         <div className="activity-bubble">
           {this.state.editing
-            ? <NoteInput group={group} item={item} onFinish={this.onFinish} />
+            ? <NoteInput
+                group={group}
+                item={item}
+                onFinish={this.onFinish}
+                sessionUser={sessionUser}
+                memberList={memberList}
+              />
             : <Note
                 item={item}
                 author={author}
