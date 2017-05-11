@@ -22,7 +22,7 @@ class Migration(SchemaMigration):
 
 
     def backwards(self, orm):
-
+        # Removing index on 'Deploy', fields ['notified']
         if is_postgres():
             db.commit_transaction()
             db.execute("DROP INDEX CONCURRENTLY {} ON sentry_deploy (notified)".format(
@@ -30,7 +30,6 @@ class Migration(SchemaMigration):
             ))
             db.start_transaction()
         else:
-            # Removing index on 'Deploy', fields ['notified']
             db.delete_index('sentry_deploy', ['notified'])
 
 
