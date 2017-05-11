@@ -67,8 +67,16 @@ class Quota(Service):
             return int(parent_quota or 0)
         return int(quota or 0)
 
+    def get_key_quota(self, key):
+        from sentry import features
+
+        if features.has('projects:rate-limits', key.project):
+            return key.rate_limit
+        return (0, 0)
+
     def get_project_quota(self, project):
-        from sentry.models import Organization, OrganizationOption
+        from sentry import features
+        from sentry.models import Organization, OrganizationOption, ProjectOption
 
         org = getattr(project, '_organization_cache', None)
         if not org:
@@ -77,9 +85,6 @@ class Quota(Service):
 
         max_quota_share = int(OrganizationOption.objects.get_value(
             org, 'sentry:project-rate-limit', 100))
-
-        if max_quota_share == 100:
-            return (0, 60)
 
         org_quota, window = self.get_organization_quota(org)
 

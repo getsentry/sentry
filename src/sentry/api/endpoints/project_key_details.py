@@ -34,9 +34,15 @@ def update_key_scenario(runner):
     )
 
 
+class RateLimitSerializer(serializers.Serializer):
+    count = serializers.IntegerField(min_value=0, required=False)
+    window = serializers.IntegerField(min_value=0, max_value=60*24, required=False)
+
+
 class KeySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=False)
     isActive = serializers.BooleanField(required=False)
+    rateLimit = RateLimitSerializer(required=False)
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
@@ -54,7 +60,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(key, request.user), status=200)
 
-    @attach_scenarios([update_key_scenario])
     def put(self, request, project, key_id):
         """
         Update a Client Key
@@ -91,6 +96,13 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
                 key.status = ProjectKeyStatus.ACTIVE
             elif result.get('isActive') is False:
                 key.status = ProjectKeyStatus.INACTIVE
+
+            if result.get('rateLimit', -1) is None:
+                key.rate_limit_count = None
+                key.rate_limit_window = None
+            elif result.get('rateLimit'):
+                key.rate_limit_count = result['rateLimit']['count']
+                key.rate_limit_window = result['rateLimit']['window']
 
             key.save()
 

@@ -52,10 +52,12 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
 
-    def get_quotas(self, project):
+    def get_quotas(self, project, key=None):
+        if key:
+            key.project = project
         pquota = self.get_project_quota(project)
         oquota = self.get_organization_quota(project.organization)
-        return (
+        results = [
             BasicRedisQuota(
                 key='p:{}'.format(project.id),
                 limit=pquota[0],
@@ -68,17 +70,26 @@ class RedisQuota(Quota):
                 window=oquota[1],
                 reason_code='org_quota',
             ),
-        )
+        ]
+        if key:
+            kquota = self.get_key_quota(key)
+            results.append(BasicRedisQuota(
+                key='k:{}'.format(key.id),
+                limit=kquota[0],
+                window=kquota[1],
+                reason_code='key_quota',
+            ))
+        return tuple(results)
 
     def get_redis_key(self, key, timestamp, interval):
         return '{}:{}:{}'.format(self.namespace, key, int(timestamp // interval))
 
-    def is_rate_limited(self, project):
+    def is_rate_limited(self, project, key=None):
         timestamp = time()
 
         quotas = [
             quota
-            for quota in self.get_quotas(project)
+            for quota in self.get_quotas(project, key=key)
             # x = (key, limit, interval)
             if quota.limit > 0  # a zero limit means "no limit", not "reject all"
         ]

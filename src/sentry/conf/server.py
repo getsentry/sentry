@@ -749,6 +749,7 @@ SENTRY_FEATURES = {
     'projects:dsym': False,
     'projects:sample-events': True,
     'projects:data-forwarding': True,
+    'projects:rate-limits': True,
 }
 
 # Default time zone for localization in the UI.

@@ -2,6 +2,7 @@ import React from 'react';
 import DocumentTitle from 'react-document-title';
 import underscore from 'underscore';
 import {browserHistory} from 'react-router';
+import idx from 'idx';
 
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
@@ -10,7 +11,13 @@ import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationState from '../mixins/organizationState';
-import {BooleanField, FormState, TextField} from '../components/forms';
+import {
+  BooleanField,
+  FormState,
+  NumberField,
+  Select2Field,
+  TextField
+} from '../components/forms';
 import {t, tct} from '../locale';
 
 const KeySettings = React.createClass({
@@ -34,11 +41,27 @@ const KeySettings = React.createClass({
   },
 
   onFieldChange(name, value) {
-    this.setState({
-      formData: {
-        ...this.state.formData,
-        [name]: value
-      }
+    this.setState(state => {
+      return {
+        formData: {
+          ...state.formData,
+          [name]: value
+        }
+      };
+    });
+  },
+
+  onRateLimitChange(name, value) {
+    this.setState(state => {
+      return {
+        formData: {
+          ...state.formData,
+          rateLimit: {
+            ...(state.formData.rateLimit || {}),
+            [name]: value
+          }
+        }
+      };
     });
   },
 
@@ -101,6 +124,21 @@ const KeySettings = React.createClass({
     });
   },
 
+  getRateLimitWindows() {
+    return [
+      ['', ''],
+      [1, '1 minute'],
+      [5, '5 minutes'],
+      [15, '15 minutes'],
+      [60, '1 hour'],
+      [120, '2 hours'],
+      [240, '4 hours'],
+      [360, '6 hours'],
+      [720, '12 hours'],
+      [1440, '24 hours']
+    ];
+  },
+
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     let {errors, formData} = this.state;
@@ -129,6 +167,7 @@ const KeySettings = React.createClass({
               error={errors.name}
               onChange={this.onFieldChange.bind(this, 'name')}
             />
+
             <BooleanField
               key="isActive"
               name="isActive"
@@ -141,6 +180,44 @@ const KeySettings = React.createClass({
               }
               onChange={this.onFieldChange.bind(this, 'isActive')}
             />
+
+            <div className="form-group">
+              <label>{t('Rate Limit')}</label>
+              <div>
+                <div style={{maxWidth: 150, display: 'inline-block'}}>
+                  <NumberField
+                    key="rateLimit.count"
+                    name="rateLimit.count"
+                    min={0}
+                    value={idx(formData, _ => _.rateLimit.count)}
+                    required={false}
+                    error={errors.rateLimit}
+                    placeholder={t('count')}
+                    onChange={this.onRateLimitChange.bind(this, 'count')}
+                  />
+                </div>
+                <div style={{display: 'inline-block', margin: '0 10px'}}>event(s) in</div>
+                <div style={{maxWidth: 200, display: 'inline-block'}}>
+                  <Select2Field
+                    key="rateLimit.window"
+                    name="rateLimit.window"
+                    choices={this.getRateLimitWindows()}
+                    value={idx(formData, _ => _.rateLimit.window)}
+                    required={false}
+                    error={errors.rateLimit}
+                    placeholder={t('window')}
+                    allowClear={true}
+                    onChange={this.onRateLimitChange.bind(this, 'window')}
+                  />
+                </div>
+              </div>
+              <div className="help-block">
+                {t(
+                  'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                )}
+              </div>
+            </div>
+
             <div className="form-group">
               <label>{t('Created')}</label>
               <div className="controls">
