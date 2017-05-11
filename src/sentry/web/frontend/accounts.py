@@ -74,10 +74,10 @@ def expired(request, user):
 def recover(request):
     from sentry.app import ratelimiter
 
-    extra = {
-        'ip_address': request.META['REMOTE_ADDR'],
-        'user_agent': request.META['HTTP_USER_AGENT'],
-    }
+    extra = {'ip_address': request.META['REMOTE_ADDR']}
+    if request.META.get('HTTP_USER_AGENT'):
+        extra['user_agent'] = request.META['HTTP_USER_AGENT']
+
     if request.method == 'POST' and ratelimiter.is_limited(
         'accounts:recover:{}'.format(extra['ip_address']),
         limit=5, window=60,  # 5 per minute should be enough for anyone
