@@ -59,7 +59,7 @@ class AddRepositoryLink extends PluginComponentBase {
         this.api.request(`/organizations/${this.props.orgId}/repos/`, {
           data: {
             provider: this.props.provider.id,
-            ...this.state.formData
+            name: this.parseGitHubRepo(this.state.formData.name)
           },
           method: 'POST',
           success: this.onSaveSuccess.bind(this, data => {
