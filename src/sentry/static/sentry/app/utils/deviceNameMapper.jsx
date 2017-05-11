@@ -1,7 +1,7 @@
 import iOSDeviceList from 'ios-device-list';
 
 export default function(model) {
-  if (!model) {
+  if (!model || typeof model !== 'string') {
     return null;
   }
   const modelIdentifier = model.split(' ')[0];
