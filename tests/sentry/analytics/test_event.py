@@ -39,6 +39,13 @@ class EventTest(TestCase):
             'optional': None,
         }
 
+    def test_required_cannot_be_none(self):
+        with pytest.raises(ValueError):
+            ExampleEvent(
+                id='1',
+                map={'key': None},
+            )
+
     def test_invalid_map(self):
         with pytest.raises(ValueError):
             ExampleEvent(id='1', map='foo')
