@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 _dotted_path_prefix_re = re.compile(r'^([a-z][a-z0-9-]+)(\.[a-z][a-z0-9-]+)+-')
+BAD_RELEASE_CHARS = '\n\f\t/'
 
 
 class ReleaseProject(Model):
@@ -72,6 +73,13 @@ class Release(Model):
         unique_together = (('organization', 'version'),)
 
     __repr__ = sane_repr('organization', 'version')
+
+    @staticmethod
+    def is_valid_version(value):
+        if any(c in value for c in BAD_RELEASE_CHARS) \
+                or value in ('.', '..') or not value:
+            return False
+        return True
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
