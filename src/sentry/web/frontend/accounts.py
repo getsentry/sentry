@@ -74,9 +74,10 @@ def expired(request, user):
 def recover(request):
     from sentry.app import ratelimiter
 
-    extra = {'ip_address': request.META['REMOTE_ADDR']}
-    if request.META.get('HTTP_USER_AGENT'):
-        extra['user_agent'] = request.META['HTTP_USER_AGENT']
+    extra = {
+        'ip_address': request.META.get('REMOTE_ADDR'),
+        'user_agent': request.META.get('HTTP_USER_AGENT'),
+    }
 
     if request.method == 'POST' and ratelimiter.is_limited(
         'accounts:recover:{}'.format(extra['ip_address']),
@@ -90,9 +91,7 @@ def recover(request):
         logger.warning('recover.rate-limited', extra=extra)
 
     form = RecoverPasswordForm(request.POST or None)
-
-    if form.data.get('user'):
-        extra['user_recovered'] = form.data['user']
+    extra['user_recovered'] = form.data.get('user')
 
     if form.is_valid():
         password_hash = send_password_recovery_mail(request, form.cleaned_data['user'])
