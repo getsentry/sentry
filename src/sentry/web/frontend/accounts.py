@@ -75,7 +75,7 @@ def recover(request):
     from sentry.app import ratelimiter
 
     extra = {
-        'ip_address': request.META.get('REMOTE_ADDR'),
+        'ip_address': request.META['REMOTE_ADDR'],
         'user_agent': request.META.get('HTTP_USER_AGENT'),
     }
 
