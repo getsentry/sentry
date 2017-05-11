@@ -4,6 +4,7 @@ __all__ = ('Attribute', 'Event', 'Map')
 
 import six
 
+from collections import Mapping
 from django.utils import timezone
 
 
@@ -23,20 +24,27 @@ class Map(Attribute):
         self.attributes = attributes
 
     def type(self, value):
-        if not isinstance(value, dict):
+        if not isinstance(value, Mapping):
             raise ValueError('Value must be a dictionary')
+
+        # ensure we dont mutate the original
+        # we dont need to deepcopy as if it recurses into another Map it
+        # will once again copy itself
+        items = value.copy()
 
         data = {}
         for attr in self.attributes:
-            if attr.required:
-                nv = value.pop(attr.name)
-            else:
-                nv = value.pop(attr.name, None)
+            nv = items.pop(attr.name, None)
+            if attr.required and nv is None:
+                raise ValueError(u'{} is required (cannot be None)'.format(
+                    attr.name,
+                ))
+
             data[attr.name] = attr.type(nv) if nv is not None else nv
 
-        if value:
+        if items:
             raise ValueError(u'Unknown attributes: {}'.format(
-                ', '.join(value.keys()),
+                ', '.join(map(six.text_type, six.iterkeys(items))),
             ))
 
         return data
@@ -49,7 +57,7 @@ class Event(object):
 
     attributes = ()
 
-    def __init__(self, type=None, datetime=None, **kwargs):
+    def __init__(self, type=None, datetime=None, **items):
         self.datetime = datetime or timezone.now()
         if type is not None:
             self.type = type
@@ -59,15 +67,16 @@ class Event(object):
 
         data = {}
         for attr in self.attributes:
-            if attr.required:
-                value = kwargs.pop(attr.name)
-            else:
-                value = kwargs.pop(attr.name, None)
-            data[attr.name] = attr.type(value) if value is not None else value
+            nv = items.pop(attr.name, None)
+            if attr.required and nv is None:
+                raise ValueError(u'{} is required (cannot be None)'.format(
+                    attr.name,
+                ))
+            data[attr.name] = attr.type(nv) if nv is not None else nv
 
-        if kwargs:
+        if items:
             raise ValueError(u'Unknown attributes: {}'.format(
-                ', '.join(kwargs.keys()),
+                ', '.join(six.iterkeys(items)),
             ))
 
         self.data = data
