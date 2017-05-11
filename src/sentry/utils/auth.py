@@ -251,6 +251,14 @@ def login(request, user, passed_2fa=None, after_2fa=None,
     if organization_id:
         mark_sso_complete(request, organization_id)
     log_auth_success(request, user.username, organization_id)
+
+    from raven.contrib.django.models import client
+    client.user_context({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+    })
+
     return True
 
 
