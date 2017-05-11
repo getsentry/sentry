@@ -51,6 +51,9 @@ class AddRepositoryLink extends PluginComponentBase {
 
   onSubmit() {
     // TODO(dcramer): set form saving state
+    let repoName = this.props.provider.id === 'github'
+      ? {name: this.parseGitHubRepo(this.state.formData.name)}
+      : this.state.formData;
     this.setState(
       {
         state: FormState.SAVING
@@ -59,7 +62,7 @@ class AddRepositoryLink extends PluginComponentBase {
         this.api.request(`/organizations/${this.props.orgId}/repos/`, {
           data: {
             provider: this.props.provider.id,
-            name: this.parseGitHubRepo(this.state.formData.name)
+            ...repoName
           },
           method: 'POST',
           success: this.onSaveSuccess.bind(this, data => {
