@@ -3,55 +3,14 @@ from __future__ import absolute_import
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Group, Release, ReleaseFile
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 ERR_RELEASE_REFERENCED = "This release is referenced by active issues and cannot be removed."
-
-
-@scenario('RetrieveRelease')
-def retrieve_release_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/releases/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            runner.default_release.version)
-    )
-
-
-@scenario('UpdateRelease')
-def update_release_scenario(runner):
-    release = runner.utils.create_release(runner.default_project,
-                                          runner.me, version='3000')
-    runner.request(
-        method='PUT',
-        path='/projects/%s/%s/releases/%s/' % (
-            runner.org.slug, runner.default_project.slug,
-            release.version),
-        data={
-            'url': 'https://vcshub.invalid/user/project/refs/deadbeef1337',
-            'ref': 'deadbeef1337'
-        }
-    )
-
-# TODO(dcramer): this can't work with the current fixtures
-# as an existing Group references the Release
-# @scenario('DeleteRelease')
-# def delete_release_scenario(runner):
-#     release = runner.utils.create_release(runner.default_project,
-#                                           runner.me, version='4000')
-#     runner.request(
-#         method='DELETE',
-#         path='/projects/%s/%s/releases/%s/' % (
-#             runner.org.slug, runner.default_project.slug,
-#             release.version)
-#     )
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -62,10 +21,8 @@ class ReleaseSerializer(serializers.Serializer):
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
     permission_classes = (ProjectReleasePermission,)
 
-    @attach_scenarios([retrieve_release_scenario])
     def get(self, request, project, version):
         """
         Retrieve a Project's Release
@@ -91,7 +48,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(release, request.user, project=project))
 
-    @attach_scenarios([update_release_scenario])
     def put(self, request, project, version):
         """
         Update a Project's Release
@@ -161,7 +117,6 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(release, request.user))
 
-    # @attach_scenarios([delete_release_scenario])
     def delete(self, request, project, version):
         """
         Delete a Project's Release
