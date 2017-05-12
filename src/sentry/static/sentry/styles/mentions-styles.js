@@ -47,6 +47,8 @@ export default {
 
   suggestions: {
     list: {
+      maxHeight: 150,
+      overflow: 'auto',
       backgroundColor: 'white',
       border: '1px solid rgba(0,0,0,0.15)',
       fontSize: 12
