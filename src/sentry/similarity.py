@@ -304,7 +304,7 @@ class ExceptionFeature(object):
             try:
                 yield self.function(exception)
             except Exception as error:
-                pass
+                logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
 
 
 class MessageFeature(object):
