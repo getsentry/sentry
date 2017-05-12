@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import itertools
 import logging
 import operator
+import six
 import struct
 import time
 from collections import Sequence
@@ -199,19 +200,32 @@ FRAME_FILENAME_KEY = b'\x12'
 FRAME_SIGNATURE_KEY = b'\x13'
 
 
+class InsufficientContext(Exception):
+    """\
+    Exception raised when a signature cannot be generated for a frame due to
+    insufficient context.
+    """
+
+
 def get_frame_signature(frame, lines=5):
     """\
     Creates a "signature" for a frame from the surrounding context lines,
     reading up to ``lines`` values from each side.
     """
+    try:
+        attributes = (frame.get('pre_context') or [])[-lines:] + \
+            [frame['context_line']] + \
+            (frame.get('post_context') or [])[:lines]
+    except KeyError as error:
+        six.raise_from(
+            InsufficientContext(),
+            error,
+        )
+
     return struct.pack(
         '>i',
         mmh3.hash(
-            u'\n'.join(
-                (frame.get('pre_context') or [])[-lines:] +
-                [frame['context_line']] +
-                (frame.get('post_context') or [])[:lines]
-            ).encode('utf8')
+            u'\n'.join(attributes).encode('utf8')
         ),
     )
 
@@ -303,6 +317,8 @@ class ExceptionFeature(object):
         for exception in exceptions:
             try:
                 yield self.function(exception)
+            except InsufficientContext as error:
+                logger.debug('Could not extract characteristic(s) from exception in %r due to expected error: %r', event, error)
             except Exception as error:
                 logger.exception('Could not extract characteristic(s) from exception in %r due to error: %r', event, error)
 
