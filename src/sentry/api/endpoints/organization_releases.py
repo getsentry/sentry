@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from .project_releases import ReleaseSerializer
 from sentry.api.base import DocSection
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.exceptions import InvalidRepository
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -186,7 +187,12 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                         'refs': ['You must use an authenticated API token to fetch refs']
                     }, status=400)
                 fetch_commits = not commit_list
-                release.set_refs(refs, request.user, fetch=fetch_commits)
+                try:
+                    release.set_refs(refs, request.user, fetch=fetch_commits)
+                except InvalidRepository as exc:
+                    return Response({
+                        'refs': [exc.message]
+                    }, status=400)
 
             if not created and not new_projects:
                 # This is the closest status code that makes sense, and we want
