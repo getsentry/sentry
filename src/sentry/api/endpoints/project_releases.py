@@ -54,7 +54,7 @@ class ReleaseSerializer(serializers.Serializer):
 
     def validate_version(self, attrs, source):
         value = attrs[source]
-        if any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..'):
+        if not Release.is_valid_version(value):
             raise serializers.ValidationError('Invalid value for release')
         return attrs
 
