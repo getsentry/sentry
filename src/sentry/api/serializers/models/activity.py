@@ -47,8 +47,8 @@ class ActivitySerializer(Serializer):
         return {
             item: {
                 'user': users[six.text_type(item.user_id)] if item.user_id else None,
-                'source': groups[item.data['source_id']] if item.type == Activity.UNMERGE_DESTINATION else None,
-                'destination': groups[item.data['destination_id']] if item.type == Activity.UNMERGE_SOURCE else None,
+                'source': groups.get(item.data['source_id']) if item.type == Activity.UNMERGE_DESTINATION else None,
+                'destination': groups.get(item.data['destination_id']) if item.type == Activity.UNMERGE_SOURCE else None,
                 'commit': commits.get(item),
             } for item in item_list
         }
