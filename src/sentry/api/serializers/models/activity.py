@@ -1,9 +1,11 @@
 from __future__ import absolute_import
 
+import functools
 import six
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Activity, Commit
+from sentry.models import Activity, Commit, Group
+from sentry.utils.functional import apply_values
 
 
 @register(Activity)
@@ -34,9 +36,19 @@ class ActivitySerializer(Serializer):
         else:
             commits = {}
 
+        groups = apply_values(
+            functools.partial(serialize, user=user),
+            Group.objects.in_bulk(
+                set(i.data['source_id'] for i in item_list if i.type == Activity.UNMERGE_DESTINATION) |
+                set(i.data['destination_id'] for i in item_list if i.type == Activity.UNMERGE_SOURCE)
+            )
+        )
+
         return {
             item: {
                 'user': users[six.text_type(item.user_id)] if item.user_id else None,
+                'source': groups[item.data['source_id']] if item.type == Activity.UNMERGE_DESTINATION else None,
+                'destination': groups[item.data['destination_id']] if item.type == Activity.UNMERGE_SOURCE else None,
                 'commit': commits.get(item),
             } for item in item_list
         }
@@ -45,6 +57,16 @@ class ActivitySerializer(Serializer):
         if obj.type == Activity.SET_RESOLVED_IN_COMMIT:
             data = {
                 'commit': attrs['commit'],
+            }
+        elif obj.type == Activity.UNMERGE_DESTINATION:
+            data = {
+                'fingerprints': obj.data['fingerprints'],
+                'source': attrs['source'],
+            }
+        elif obj.type == Activity.UNMERGE_SOURCE:
+            data = {
+                'fingerprints': obj.data['fingerprints'],
+                'destination': attrs['destination'],
             }
         else:
             data = obj.data
