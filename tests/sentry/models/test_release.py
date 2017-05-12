@@ -178,6 +178,13 @@ class SetCommitsTestCase(TestCase):
         }, {
             'id': commit2.key,
             'repository': repo.name,
+        }, {
+            'id': 'a' * 40,
+            'repository': repo.name,
+        }, {
+            'id': 'b' * 40,
+            'repository': repo.name,
+            'message': '#skipsentry',
         }])
 
         assert ReleaseCommit.objects.filter(commit=commit, release=release).exists()
@@ -188,3 +195,6 @@ class SetCommitsTestCase(TestCase):
             release=release,
         ).status == GroupResolutionStatus.RESOLVED
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        # test that backfilling works
+        assert Commit.objects.filter(key='a' * 40, repository_id=repo.id).exists()
+        assert not Commit.objects.filter(key='b' * 40, repository_id=repo.id).exists()

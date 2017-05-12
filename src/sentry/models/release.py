@@ -295,6 +295,12 @@ class Release(Model):
             Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
             GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
         )
+        from sentry.plugins.providers.repository import RepositoryProvider
+
+        commit_list = [
+            c for c in commit_list
+            if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
+        ]
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these
