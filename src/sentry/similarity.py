@@ -3,12 +3,12 @@ from __future__ import absolute_import
 import itertools
 import logging
 import operator
-import six
 import struct
 import time
 from collections import Sequence
 
 import mmh3
+import six
 from django.conf import settings
 
 from sentry.utils import redis
@@ -16,7 +16,6 @@ from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.dates import to_timestamp
 from sentry.utils.iterators import shingle
 from sentry.utils.redis import load_script
-
 
 index = load_script('similarity/index.lua')
 

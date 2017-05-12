@@ -7,8 +7,8 @@ import pytest
 
 from sentry.models import Event
 from sentry.similarity import (
-    InsufficientContext, MinHashIndex, get_exception_frames, get_frame_signature,
-    serialize_frame, ExceptionFeature
+    ExceptionFeature, InsufficientContext, MinHashIndex, get_exception_frames,
+    get_frame_signature, serialize_frame
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
