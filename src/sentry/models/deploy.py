@@ -8,9 +8,11 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
+from sentry.app import locks
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model
 )
+from sentry.utils.retries import TimedRetryPolicy
 
 
 class Deploy(Model):
@@ -28,3 +30,64 @@ class Deploy(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_deploy'
+
+    @staticmethod
+    def get_lock_key(deploy_id):
+        return 'deploy-notify:%s' % deploy_id
+
+    @classmethod
+    def notify_maybe(cls, deploy_id, fetch_complete=False):
+        """
+        create activity and send deploy notifications
+        if they haven't been sent
+        """
+        from sentry.models import Activity, Environment, ReleaseCommit, ReleaseHeadCommit
+
+        lock_key = cls.get_lock_key(deploy_id)
+        lock = locks.get(lock_key, duration=5)
+        with TimedRetryPolicy(10)(lock.acquire):
+            deploy = cls.objects.get(
+                id=deploy_id,
+            ).select_related('release')
+            if deploy.notified:
+                return
+
+            release = deploy.release
+            environment = Environment.objects.get(
+                organization_id=deploy.organization_id,
+                id=deploy.environment_id,
+            )
+
+            if not fetch_complete:
+                release_has_commits = ReleaseCommit.objects.filter(
+                    organization_id=release.organization_id,
+                    release=release,
+                ).exists()
+
+                if not release_has_commits:
+                    # check if we have head commits, which
+                    # would indicate that we're waiting for
+                    # fetch_commits to complete
+                    if ReleaseHeadCommit.objects.filter(
+                        organization_id=release.organization_id,
+                        release=release,
+                    ).exists():
+                        return
+
+            activity = None
+            for project in deploy.release.projects.all():
+                activity = Activity.objects.create(
+                    type=Activity.DEPLOY,
+                    project=project,
+                    ident=release.version,
+                    data={
+                        'version': release.version,
+                        'deploy_id': deploy.id,
+                        'environment': environment.name,
+                    },
+                    datetime=deploy.date_finished,
+                )
+            # Somewhat hacky, only send notification for one
+            # Deploy Activity record because it will cover all projects
+            if activity is not None:
+                activity.send_notification()

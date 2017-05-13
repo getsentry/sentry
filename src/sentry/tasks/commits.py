@@ -72,3 +72,10 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
     if commit_list:
         release.set_commits(commit_list)
+        deploys = Deploy.objects.filter(
+            organization_id=release.organization_id,
+            release=release,
+            notified=False,
+        ).values_list('id', flat=True)
+        for d_id in deploys:
+            Deploy.notify_maybe(d_id, fetch_complete=True)
