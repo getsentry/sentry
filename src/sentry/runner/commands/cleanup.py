@@ -60,6 +60,7 @@ def cleanup(days, project, concurrency, silent, model, router):
     from sentry.models import (
         ApiGrant, ApiToken, Event, EventMapping, Group, GroupRuleStatus,
         GroupTagValue, LostPasswordHash, TagValue, GroupEmailThread, FileBlob,
+        EventTag,
     )
 
     models = {m.lower() for m in model}
@@ -77,6 +78,7 @@ def cleanup(days, project, concurrency, silent, model, router):
         (GroupTagValue, 'last_seen'),
         (TagValue, 'last_seen'),
         (GroupEmailThread, 'date'),
+        (EventTag, 'date_added'),
     )
 
     GENERIC_DELETES = (
