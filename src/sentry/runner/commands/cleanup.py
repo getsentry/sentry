@@ -155,6 +155,7 @@ def cleanup(days, project, concurrency, silent, model, router):
             dtfield='date_added',
             days=min(days, 7),
             project_id=project_id,
+            order_by='-date_added'
         ).execute()
 
     # Clean up FileBlob instances which are no longer used and aren't super
