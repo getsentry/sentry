@@ -21,8 +21,9 @@ class BulkDeleteQuery(object):
 
         where = []
         if self.dtfield and self.days is not None:
-            where.append("{} < now() - interval '{} days'".format(
+            where.append("{} < timestamp '{}'".format(
                 quote_name(self.dtfield),
+                (timezone.now() - timedelta(days=self.days)).isoformat(),
                 self.days,
             ))
         if self.project_id:
