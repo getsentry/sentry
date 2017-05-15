@@ -55,6 +55,8 @@ import ProjectInstallPlatform from './views/projectInstall/platform';
 import ProjectReleases from './views/projectReleases';
 import ProjectSavedSearches from './views/projectSavedSearches';
 import ProjectDebugSymbols from './views/projectDebugSymbols';
+import ProjectKeys from './views/projectKeys';
+import ProjectKeyDetails from './views/projectKeyDetails';
 import ProjectProcessingIssues from './views/projectProcessingIssues';
 import ProjectSettings from './views/projectSettings';
 import ProjectUserReports from './views/projectUserReports';
@@ -225,12 +227,14 @@ function routes() {
               path="data-forwarding/"
               component={errorHandler(ProjectDataForwarding)}
             />
+            <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
             <Route path="filters/" component={errorHandler(ProjectFilters)} />
             <Route
               path="saved-searches/"
               component={errorHandler(ProjectSavedSearches)}
             />
-            <Route path="debug-symbols/" component={errorHandler(ProjectDebugSymbols)} />
+            <Route path="keys/" component={errorHandler(ProjectKeys)} />
+            <Route path="keys/:keyId/" component={errorHandler(ProjectKeyDetails)} />
             <Route
               path="processing-issues/"
               component={errorHandler(ProjectProcessingIssues)}
