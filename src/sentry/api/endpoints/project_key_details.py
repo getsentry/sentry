@@ -36,10 +36,23 @@ def update_key_scenario(runner):
 
 class KeySerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=False)
+    isActive = serializers.BooleanField(required=False)
 
 
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     doc_section = DocSection.PROJECTS
+
+    def get(self, request, project, key_id):
+        try:
+            key = ProjectKey.objects.get(
+                project=project,
+                public_key=key_id,
+                roles=ProjectKey.roles.store,
+            )
+        except ProjectKey.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return Response(serialize(key, request.user), status=200)
 
     @attach_scenarios([update_key_scenario])
     def put(self, request, project, key_id):
@@ -61,7 +74,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             key = ProjectKey.objects.get(
                 project=project,
                 public_key=key_id,
-                status=ProjectKeyStatus.ACTIVE,
                 roles=ProjectKey.roles.store,
             )
         except ProjectKey.DoesNotExist:
@@ -74,6 +86,11 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
             if result.get('name'):
                 key.label = result['name']
+
+            if result.get('isActive') is True:
+                key.status = ProjectKeyStatus.ACTIVE
+            elif result.get('isActive') is False:
+                key.status = ProjectKeyStatus.INACTIVE
 
             key.save()
 
@@ -107,7 +124,6 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             key = ProjectKey.objects.get(
                 project=project,
                 public_key=key_id,
-                status=ProjectKeyStatus.ACTIVE,
                 roles=ProjectKey.roles.store,
             )
         except ProjectKey.DoesNotExist:
