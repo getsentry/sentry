@@ -479,13 +479,8 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     `create_files_from_macho_zip` for doing everything.
     """
     extra = {}
-    if project is None:
-        cls = GlobalDSymFile
-        file_type = 'global.dsym'
-    else:
-        cls = ProjectDSymFile
-        extra['project'] = project
-        file_type = 'project.dsym'
+    extra['project'] = project
+    file_type = 'project.dsym'
 
     h = hashlib.sha1()
     while 1:
@@ -497,10 +492,10 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     fileobj.seek(0, 0)
 
     try:
-        rv = cls.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
         if rv.file.checksum == checksum:
             return rv
-    except cls.DoesNotExist:
+    except ProjectDSymFile.DoesNotExist:
         pass
     else:
         # The checksum mismatches.  In this case we delete the old object
@@ -517,7 +512,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     file.putfile(fileobj)
     try:
         with transaction.atomic():
-            rv = cls.objects.create(
+            rv = ProjectDSymFile.objects.create(
                 file=file,
                 uuid=uuid,
                 cpu_name=cpu_name,
@@ -526,7 +521,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
             )
     except IntegrityError:
         file.delete()
-        rv = cls.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
 
     resolve_processing_issue(
         project=project,
