@@ -104,4 +104,5 @@ def loads(value, **kwargs):
 
 
 def dumps_htmlsafe(value):
-    return mark_safe(_default_escaped_encoder.encode(value))
+    return mark_safe(_default_escaped_encoder.encode(value)
+                     .replace("'", '\\u0027'))
