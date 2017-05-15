@@ -46,9 +46,9 @@ class Deploy(Model):
         lock_key = cls.get_lock_key(deploy_id)
         lock = locks.get(lock_key, duration=5)
         with TimedRetryPolicy(10)(lock.acquire):
-            deploy = cls.objects.get(
+            deploy = cls.objects.filter(
                 id=deploy_id,
-            ).select_related('release')
+            ).select_related('release').get()
             if deploy.notified:
                 return
 
@@ -91,3 +91,4 @@ class Deploy(Model):
             # Deploy Activity record because it will cover all projects
             if activity is not None:
                 activity.send_notification()
+                deploy.update(notified=True)
