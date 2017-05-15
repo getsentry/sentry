@@ -5,6 +5,7 @@ Version 8.17 (Unreleased)
 - Initial (internal) analytics abstraction.
 - Turned on reprocessing by default
 - Added basics for Data Forwarding integrations.
+- Changed the grouping and default `in_app` values for cocoa events.
 
 
 Schema Changes
