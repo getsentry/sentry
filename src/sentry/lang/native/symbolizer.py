@@ -155,9 +155,18 @@ class Symbolizer(object):
         """Given a frame derives the value of `in_app` by discarding the
         original value of the frame.
         """
+        # Anything that is outside the app bundle is definitely not a
+        # frame from out app.
         if not self.is_image_from_app_bundle(img):
             return False
-        return not self._is_app_bundled_framework(img)
+
+        # We also do not consider known support frameworks to be part of
+        # the app
+        if self._is_support_framework(img):
+            return False
+
+        # Otherwise, yeah, let's just say it's in_app
+        return True
 
     def _is_optional_dsym(self, img):
         """Checks if this is a dsym that is optional."""
