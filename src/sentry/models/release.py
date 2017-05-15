@@ -351,16 +351,25 @@ class Release(Model):
                 else:
                     author = authors[author_email]
 
-                commit = Commit.objects.get_or_create(
+                defaults = {
+                    'message': data.get('message'),
+                    'author': author,
+                    'date_added': data.get('timestamp') or timezone.now(),
+                }
+                commit, created = Commit.objects.get_or_create(
                     organization_id=self.organization_id,
                     repository_id=repo.id,
                     key=data['id'],
-                    defaults={
-                        'message': data.get('message'),
-                        'author': author,
-                        'date_added': data.get('timestamp') or timezone.now(),
-                    }
-                )[0]
+                    defaults=defaults,
+                )
+                if not created:
+                    update_kwargs = {}
+                    if commit.message is None and defaults['message'] is not None:
+                        update_kwargs['message'] = defaults['message']
+                    if commit.author_id is None and defaults['author'] is not None:
+                        update_kwargs['author'] = defaults['author']
+                    if update_kwargs:
+                        commit.update(**update_kwargs)
 
                 ReleaseCommit.objects.create(
                     organization_id=self.organization_id,
