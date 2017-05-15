@@ -59,7 +59,8 @@ A developer need not worry about directly setting data via ``nodestore`` methods
 
 Deleting Node Data
 ``````````````````
-Node data is deleted as part of the ``delete_events()`` in ``sentry.tasks.deletion``. The
+
+Node data is deleted as part of ``sentry.tasks.deletion``. The
 deletion process of node data is different from other Node Storage operations because it is
 entirely optional for a backend to actually delete the data. This concept can be leveraged by
 backends that support time-to-live(TTL) fields, taking the responsibility of deleting data

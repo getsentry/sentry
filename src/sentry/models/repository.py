@@ -43,7 +43,7 @@ class Repository(Model):
         return provider_cls(self.provider)
 
 
-def on_delete(instance, actor, **kwargs):
+def on_delete(instance, actor=None, **kwargs):
     instance.get_provider().delete_repository(
         repo=instance,
         actor=actor,

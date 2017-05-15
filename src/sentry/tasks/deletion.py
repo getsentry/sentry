@@ -1,380 +1,94 @@
-"""
-sentry.tasks.deletion
-~~~~~~~~~~~~~~~~~~~~~
-
-:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
-:license: BSD, see LICENSE for more details.
-"""
-
 from __future__ import absolute_import
 
-import logging
+from uuid import uuid4
 
+from django.conf import settings
+from django.db import transaction
 from django.db.models import get_model
+from django.utils import timezone
 
-from sentry import nodestore
 from sentry.constants import ObjectStatus
 from sentry.exceptions import DeleteAborted
 from sentry.signals import pending_delete
-from sentry.similarity import features
 from sentry.tasks.base import instrumented_task, retry
-from sentry.utils.query import bulk_delete_objects
 
-logger = logging.getLogger('sentry.deletions.async')
+# in prod we run with infinite retries to recover from errors
+# in debug/development, we assume these tasks generally shouldn't fail
+MAX_RETRIES = 1 if settings.DEBUG else None
+MAX_RETRIES = 1
 
 
-@instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
-@retry(exclude=(DeleteAborted,))
-def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
-    from sentry.models import (
-        Organization, OrganizationMember, OrganizationStatus, Team, TeamStatus,
-        Commit, CommitAuthor, CommitFileChange, Environment, Release, ReleaseCommit,
-        ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit, Repository
+@instrumented_task(name='sentry.tasks.deletion.run_scheduled_deletions', queue='cleanup')
+def run_scheduled_deletions():
+    from sentry.models import ScheduledDeletion
+
+    queryset = ScheduledDeletion.objects.filter(
+        in_progress=False,
+        aborted=False,
+        date_scheduled__lte=timezone.now(),
     )
+    for item in queryset:
+        with transaction.atomic():
+            affected = ScheduledDeletion.objects.filter(
+                id=item.id,
+                in_progress=False,
+                aborted=False,
+            ).update(
+                in_progress=True,
+            )
+            if not affected:
+                continue
+
+            run_deletion.delay(deletion_id=item.id)
+
+
+@instrumented_task(name='sentry.tasks.deletion.run_deletion', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def run_deletion(deletion_id):
+    from sentry import deletions
+    from sentry.models import ScheduledDeletion
 
     try:
-        o = Organization.objects.get(id=object_id)
-    except Organization.DoesNotExist:
+        deletion = ScheduledDeletion.objects.get(
+            id=deletion_id,
+        )
+    except ScheduledDeletion.DoesNotExist:
         return
 
-    if o.status == OrganizationStatus.VISIBLE:
-        raise DeleteAborted('Aborting organization deletion as status is invalid')
-
-    if o.status != OrganizationStatus.DELETION_IN_PROGRESS:
-        o.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
-        pending_delete.send(sender=Organization, instance=o)
-
-    for team in Team.objects.filter(organization=o).order_by('id')[:1]:
-        team.update(status=TeamStatus.DELETION_IN_PROGRESS)
-        delete_team(team.id, transaction_id=transaction_id, continuous=False)
-        if continuous:
-            delete_organization.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
-            )
-        return
-
-    model_list = (
-        OrganizationMember, CommitFileChange, Commit, CommitAuthor,
-        Environment, Repository, Release, ReleaseCommit,
-        ReleaseEnvironment, ReleaseFile, Distribution, ReleaseHeadCommit
-    )
-
-    has_more = delete_objects(
-        model_list,
-        transaction_id=transaction_id,
-        relation={'organization_id': o.id},
-        logger=logger,
-    )
-    if has_more:
-        if continuous:
-            delete_organization.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
-            )
-        return
-    o_id = o.id
-    o.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': o_id,
-        'transaction_id': transaction_id,
-        'model': Organization.__name__,
-    })
-
-
-@instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
-@retry(exclude=(DeleteAborted,))
-def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
-    from sentry.models import Team, TeamStatus, Project, ProjectStatus
-
-    try:
-        t = Team.objects.get(id=object_id)
-    except Team.DoesNotExist:
-        return
-
-    if t.status == TeamStatus.VISIBLE:
-        raise DeleteAborted('Aborting team deletion as status is invalid')
-
-    if t.status != TeamStatus.DELETION_IN_PROGRESS:
-        pending_delete.send(sender=Team, instance=t)
-        t.update(status=TeamStatus.DELETION_IN_PROGRESS)
-
-    # Delete 1 project at a time since this is expensive by itself
-    for project in Project.objects.filter(team=t).order_by('id')[:1]:
-        project.update(status=ProjectStatus.DELETION_IN_PROGRESS)
-        delete_project(project.id, transaction_id=transaction_id, continuous=False)
-        if continuous:
-            delete_team.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
-            )
-        return
-
-    t_id = t.id
-    t.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': t_id,
-        'transaction_id': transaction_id,
-        'model': Team.__name__,
-    })
-
-
-@instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
-@retry(exclude=(DeleteAborted,))
-def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
-    from sentry.models import (
-        Activity, EventMapping, EventUser, Group, GroupAssignee, GroupBookmark,
-        GroupEmailThread, GroupHash, GroupMeta, GroupRelease, GroupResolution,
-        GroupRuleStatus, GroupSeen, GroupSubscription, GroupSnooze, GroupTagKey,
-        GroupTagValue, Project, ProjectBookmark, ProjectKey, ProjectStatus,
-        ReleaseProject, SavedSearchUserDefault, SavedSearch,
-        TagKey, TagValue, UserReport, EnvironmentProject
-    )
-
-    try:
-        p = Project.objects.get(id=object_id)
-    except Project.DoesNotExist:
-        return
-
-    if p.status == ProjectStatus.VISIBLE:
-        raise DeleteAborted('Aborting project deletion as status is invalid')
-
-    if p.status != ProjectStatus.DELETION_IN_PROGRESS:
-        pending_delete.send(sender=Project, instance=p)
-        p.update(status=ProjectStatus.DELETION_IN_PROGRESS)
-
-    # Immediately revoke keys
-    project_keys = list(ProjectKey.objects.filter(project_id=object_id).values_list('id', flat=True))
-    ProjectKey.objects.filter(project_id=object_id).delete()
-    for key_id in project_keys:
-        logger.info('object.delete.executed', extra={
-            'object_id': key_id,
-            'transaction_id': transaction_id,
-            'model': ProjectKey.__name__,
-        })
-
-    model_list = (
-        Activity, EventMapping, EventUser, GroupAssignee, GroupBookmark,
-        GroupEmailThread, GroupHash, GroupRelease, GroupRuleStatus, GroupSeen,
-        GroupSubscription, GroupTagKey, GroupTagValue, ProjectBookmark,
-        ProjectKey, TagKey, TagValue, SavedSearchUserDefault, SavedSearch,
-        UserReport, EnvironmentProject
-    )
-    for model in model_list:
-        has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
-        if has_more:
-            if continuous:
-                delete_project.apply_async(
-                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                    countdown=15,
-                )
-            return
-
-    # TODO(dcramer): no project relation so we cant easily bulk
-    # delete today
-    has_more = delete_objects([GroupMeta, GroupResolution, GroupSnooze],
-                              relation={'group__project': p},
-                              transaction_id=transaction_id,
-                              logger=logger)
-    if has_more:
-        if continuous:
-            delete_project.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
-            )
-        return
-
-    has_more = delete_events(relation={'project_id': p.id}, transaction_id=transaction_id, logger=logger)
-    if has_more:
-        if continuous:
-            delete_project.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-            )
-        return
-
-    # Release needs to handle deletes after Group is cleaned up as the foreign
-    # key is protected
-    model_list = (Group, ReleaseProject)
-    for model in model_list:
-        has_more = bulk_delete_objects(model, project_id=p.id, transaction_id=transaction_id, logger=logger)
-        if has_more:
-            if continuous:
-                delete_project.apply_async(
-                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                    countdown=15,
-                )
-            return
-
-    p_id = p.id
-    p.delete()
-    logger.info('object.delete.queued', extra={
-        'object_id': p_id,
-        'transaction_id': transaction_id,
-        'model': Project.__name__,
-    })
-
-
-@instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
-@retry(exclude=(DeleteAborted,))
-def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
-    from sentry.models import (
-        EventMapping, Group, GroupAssignee, GroupBookmark, GroupCommitResolution,
-        GroupHash, GroupMeta, GroupRelease, GroupResolution, GroupRuleStatus,
-        GroupSnooze, GroupSubscription, GroupStatus, GroupTagKey, GroupTagValue,
-        GroupEmailThread, GroupRedirect, UserReport
-    )
-
-    try:
-        group = Group.objects.get(id=object_id)
-    except Group.DoesNotExist:
-        return
-
-    if group.status != GroupStatus.DELETION_IN_PROGRESS:
-        group.update(status=GroupStatus.DELETION_IN_PROGRESS)
-
-    bulk_model_list = (
-        # prioritize GroupHash
-        GroupHash, GroupAssignee, GroupCommitResolution, GroupBookmark,
-        GroupMeta, GroupRelease, GroupResolution, GroupRuleStatus, GroupSnooze,
-        GroupTagValue, GroupTagKey, EventMapping, GroupEmailThread, GroupRedirect,
-        GroupSubscription, UserReport,
-    )
-    for model in bulk_model_list:
-        has_more = bulk_delete_objects(model, group_id=object_id, logger=logger)
-        if has_more:
-            if continuous:
-                delete_group.apply_async(
-                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                    countdown=15,
-                )
-            return
-
-    has_more = delete_events(relation={'group_id': object_id}, logger=logger)
-    if has_more:
-        if continuous:
-            delete_group.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-            )
-        return
-
-    features.delete(group)
-    g_id = group.id
-    group.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': g_id,
-        'transaction_id': transaction_id,
-        'model': Group.__name__,
-    })
-
-
-@instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
-@retry(exclude=(DeleteAborted,))
-def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
-    from sentry.models import (
-        EventTag, GroupTagKey, GroupTagValue, TagKey, TagKeyStatus, TagValue
-    )
-
-    try:
-        tagkey = TagKey.objects.get(id=object_id)
-    except TagKey.DoesNotExist:
-        return
-
-    if tagkey.status != TagKeyStatus.DELETION_IN_PROGRESS:
-        tagkey.update(status=TagKeyStatus.DELETION_IN_PROGRESS)
-
-    bulk_model_list = (
-        GroupTagValue, GroupTagKey, TagValue
-    )
-    for model in bulk_model_list:
-        has_more = bulk_delete_objects(model, project_id=tagkey.project_id,
-                                       key=tagkey.key, logger=logger)
-        if has_more:
-            if continuous:
-                delete_tag_key.apply_async(
-                    kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                    countdown=15,
-                )
-            return
-
-    has_more = bulk_delete_objects(EventTag, project_id=tagkey.project_id,
-                                   key_id=tagkey.id, logger=logger)
-    if has_more:
-        if continuous:
-            delete_tag_key.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
-            )
-        return
-
-    tagkey_id = tagkey.id
-    tagkey.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': tagkey_id,
-        'transaction_id': transaction_id,
-        'model': TagKey.__name__,
-    })
-
-
-@instrumented_task(name='sentry.tasks.deletion.delete_api_application', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
-@retry(exclude=(DeleteAborted,))
-def delete_api_application(object_id, transaction_id=None, continuous=True,
-                           **kwargs):
-    from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant
-
-    try:
-        app = ApiApplication.objects.get(id=object_id)
-    except ApiApplication.DoesNotExist:
-        return
-
-    if app.status == ApiApplicationStatus.active:
+    if deletion.aborted:
         raise DeleteAborted
 
-    if app.status != ApiApplicationStatus.deletion_in_progress:
-        app.update(status=ApiApplicationStatus.deletion_in_progress)
-
-    has_more = revoke_api_tokens(object_id)
-    if has_more:
-        if continuous:
-            delete_api_application.apply_async(
-                kwargs={
-                    'object_id': object_id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=15,
+    if not deletion.in_progress:
+        actor = deletion.get_actor()
+        instance = deletion.get_instance()
+        with transaction.atomc():
+            deletion.update(in_progress=True)
+            pending_delete.send(
+                sender=type(instance),
+                instance=instance,
+                actor=actor,
             )
-        return
 
-    bulk_model_list = (ApiGrant,)
-    for model in bulk_model_list:
-        has_more = bulk_delete_objects(model, application_id=app.id,
-                                       logger=logger)
-        if has_more:
-            if continuous:
-                delete_api_application.apply_async(
-                    kwargs={
-                        'object_id': object_id,
-                        'transaction_id': transaction_id,
-                    },
-                    countdown=15,
-                )
-            return
-
-    app.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': object_id,
-        'transaction_id': transaction_id,
-        'model': ApiApplication.__name__,
-    })
+    task = deletions.get(
+        model=deletion.get_model(),
+        query={
+            'id': deletion.object_id,
+        },
+        transaction_id=deletion.guid,
+        actor_id=deletion.actor_id,
+    )
+    has_more = task.chunk()
+    if has_more:
+        run_deletion.apply_async(
+            kwargs={'deletion_id': deletion_id},
+            countdown=15,
+        )
+    deletion.delete()
 
 
 @instrumented_task(name='sentry.tasks.deletion.revoke_api_tokens', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
 @retry(exclude=(DeleteAborted,))
 def revoke_api_tokens(object_id, transaction_id=None, continuous=True,
                       timestamp=None, **kwargs):
@@ -405,12 +119,177 @@ def revoke_api_tokens(object_id, transaction_id=None, continuous=True,
     return has_more
 
 
+@instrumented_task(name='sentry.tasks.deletion.delete_organization', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def delete_organization(object_id, transaction_id=None, continuous=True, **kwargs):
+    from sentry import deletions
+    from sentry.models import Organization, OrganizationStatus
+
+    try:
+        instance = Organization.objects.get(id=object_id)
+    except Organization.DoesNotExist:
+        return
+
+    if instance.status == OrganizationStatus.VISIBLE:
+        raise DeleteAborted
+
+    task = deletions.get(
+        model=Organization,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_organization.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=15,
+        )
+
+
+@instrumented_task(name='sentry.tasks.deletion.delete_team', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def delete_team(object_id, transaction_id=None, continuous=True, **kwargs):
+    from sentry import deletions
+    from sentry.models import Team, TeamStatus
+
+    try:
+        instance = Team.objects.get(id=object_id)
+    except Team.DoesNotExist:
+        return
+
+    if instance.status == TeamStatus.VISIBLE:
+        raise DeleteAborted
+
+    task = deletions.get(
+        model=Team,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_team.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=15,
+        )
+
+
+@instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def delete_project(object_id, transaction_id=None, continuous=True, **kwargs):
+    from sentry import deletions
+    from sentry.models import Project, ProjectStatus
+
+    try:
+        instance = Project.objects.get(id=object_id)
+    except Project.DoesNotExist:
+        return
+
+    if instance.status == ProjectStatus.VISIBLE:
+        raise DeleteAborted
+
+    task = deletions.get(
+        model=Project,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_project.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=15,
+        )
+
+
+@instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def delete_group(object_id, transaction_id=None, continuous=True, **kwargs):
+    from sentry import deletions
+    from sentry.models import Group
+
+    task = deletions.get(
+        model=Group,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_group.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=15,
+        )
+
+
+@instrumented_task(name='sentry.tasks.deletion.delete_tag_key', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def delete_tag_key(object_id, transaction_id=None, continuous=True, **kwargs):
+    from sentry import deletions
+    from sentry.models import TagKey
+
+    task = deletions.get(
+        model=TagKey,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_tag_key.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=15,
+        )
+
+
+@instrumented_task(name='sentry.tasks.deletion.delete_api_application', queue='cleanup',
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
+@retry(exclude=(DeleteAborted,))
+def delete_api_application(object_id, transaction_id=None, continuous=True,
+                           **kwargs):
+    from sentry import deletions
+    from sentry.models import ApiApplication, ApiApplicationStatus
+
+    try:
+        instance = ApiApplication.objects.get(id=object_id)
+    except ApiApplication.DoesNotExist:
+        return
+
+    if instance.status == ApiApplicationStatus.active:
+        raise DeleteAborted
+
+    task = deletions.get(
+        model=ApiApplication,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        delete_api_application.apply_async(
+            kwargs={'object_id': object_id, 'transaction_id': transaction_id},
+            countdown=15,
+        )
+
+
 @instrumented_task(name='sentry.tasks.deletion.generic_delete', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
 @retry(exclude=(DeleteAborted,))
 def generic_delete(app_label, model_name, object_id, transaction_id=None,
                    continuous=True, actor_id=None, **kwargs):
-    from sentry.models import User
+    from sentry import deletions
 
     model = get_model(app_label, model_name)
 
@@ -422,131 +301,59 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None,
     if instance.status == ObjectStatus.VISIBLE:
         raise DeleteAborted
 
-    if instance.status == ObjectStatus.PENDING_DELETION:
-        if actor_id:
-            actor = User.objects.get(id=actor_id)
-        else:
-            actor = None
-        instance.update(status=ObjectStatus.DELETION_IN_PROGRESS)
-        pending_delete.send(sender=model, instance=instance, actor=actor)
-
-    # TODO(dcramer): it'd be nice if we could collect relations here and
-    # cascade efficiently
-    instance_id = instance.id
-    instance.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': instance_id,
-        'transaction_id': transaction_id,
-        'model': model.__name__,
-    })
-
-
-def delete_events(relation, transaction_id=None, limit=10000, chunk_limit=100, logger=None):
-    from sentry.models import Event, EventTag
-
-    while limit > 0:
-        result_set = list(Event.objects.filter(**relation)[:chunk_limit])
-        if not bool(result_set):
-            return False
-
-        # delete objects from nodestore first
-        node_ids = set(r.data.id for r in result_set if r.data.id)
-        if node_ids:
-            nodestore.delete_multi(node_ids)
-
-        event_ids = [r.id for r in result_set]
-
-        # bulk delete by id
-        EventTag.objects.filter(event_id__in=event_ids).delete()
-        if logger is not None:
-            # The only reason this is a different log statement is that logging every
-            # single event that gets deleted in the relation will destroy disks.
-            logger.info('object.delete.bulk_executed', extra=dict(
-                relation.items() + [
-                    ('transaction_id', transaction_id),
-                    ('model', 'EventTag'),
-                ],
-            ))
-
-        # bulk delete by id
-        Event.objects.filter(id__in=event_ids).delete()
-        if logger is not None:
-            # The only reason this is a different log statement is that logging every
-            # single event that gets deleted in the relation will destroy disks.
-            logger.info('object.delete.bulk_executed', extra=dict(
-                relation.items() + [
-                    ('transaction_id', transaction_id),
-                    ('model', 'Event'),
-                ],
-            ))
-
-        limit -= chunk_limit
-
-    return True
-
-
-def delete_objects(models, relation, transaction_id=None, limit=100, logger=None):
-    # This handles cascades properly
-    has_more = False
-    for model in models:
-        for obj in model.objects.filter(**relation)[:limit]:
-            obj_id = obj.id
-            model_name = type(obj).__name__
-            obj.delete()
-            if logger is not None:
-                logger.info('object.delete.executed', extra={
-                    'object_id': obj_id,
-                    'transaction_id': transaction_id,
-                    'model': model_name,
-                })
-            has_more = True
-
-        if has_more:
-            return True
-    return has_more
+    task = deletions.get(
+        model=model,
+        actor_id=actor_id,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
+    )
+    has_more = task.chunk()
+    if has_more:
+        generic_delete.apply_async(
+            kwargs={
+                'app_label': app_label,
+                'model_name': model_name,
+                'object_id': object_id,
+                'transaction_id': transaction_id,
+                'actor_id': actor_id,
+            },
+            countdown=15,
+        )
 
 
 @instrumented_task(name='sentry.tasks.deletion.delete_repository', queue='cleanup',
-                   default_retry_delay=60 * 5, max_retries=None)
+                   default_retry_delay=60 * 5, max_retries=MAX_RETRIES)
 @retry(exclude=(DeleteAborted,))
 def delete_repository(object_id, transaction_id=None, continuous=True,
                       actor_id=None, **kwargs):
-    from sentry.models import Commit, Repository, User
+    from sentry import deletions
+    from sentry.models import Repository
 
     try:
-        repo = Repository.objects.get(id=object_id)
+        instance = Repository.objects.get(id=object_id)
     except Repository.DoesNotExist:
         return
 
-    if repo.status == ObjectStatus.VISIBLE:
+    if instance.status == ObjectStatus.VISIBLE:
         raise DeleteAborted
 
-    if repo.status == ObjectStatus.PENDING_DELETION:
-        if actor_id:
-            actor = User.objects.get(id=actor_id)
-        else:
-            actor = None
-        repo.update(status=ObjectStatus.DELETION_IN_PROGRESS)
-        pending_delete.send(sender=Repository, instance=repo, actor=actor)
-
-    has_more = delete_objects(
-        (Commit,),
-        transaction_id=transaction_id,
-        relation={'repository_id': repo.id},
-        logger=logger,
+    task = deletions.get(
+        model=Repository,
+        actor_id=actor_id,
+        query={
+            'id': object_id,
+        },
+        transaction_id=transaction_id or uuid4().hex,
     )
+    has_more = task.chunk()
     if has_more:
-        if continuous:
-            delete_repository.apply_async(
-                kwargs={'object_id': object_id, 'transaction_id': transaction_id},
-                countdown=15,
-            )
-        return
-
-    repo_id = repo.id
-    repo.delete()
-    logger.info('object.delete.executed', extra={
-        'object_id': repo_id,
-        'transaction_id': transaction_id,
-        'model': Repository.__name__,
-    })
+        delete_repository.apply_async(
+            kwargs={
+                'object_id': object_id,
+                'transaction_id': transaction_id,
+                'actor_id': actor_id,
+            },
+            countdown=15,
+        )
