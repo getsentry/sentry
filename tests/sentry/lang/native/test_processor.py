@@ -13,6 +13,16 @@ OBJECT_NAME = (
     "SentryTest.app/SentryTest"
 )
 
+FRAMEWORK_OBJECT_NAME = (
+    "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
+    "SentryTest.app/Frameworks/foo.dylib"
+)
+
+SWIFT_OBJECT_NAME = (
+    "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
+    "SentryTest.app/Frameworks/libswiftCore.dylib"
+)
+
 SDK_INFO = {
     "dsym_type": "macho",
     "sdk_name": "iOS",
@@ -199,6 +209,26 @@ class BasicInAppTest(TestCase):
             {
                 "type": "apple",
                 "cpu_subtype": 0,
+                "uuid": "619FA17B-124F-4CBF-901F-6CE88B52B0BF",
+                "image_vmaddr": 4295000064,
+                "image_addr": 4295154528,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                "name": FRAMEWORK_OBJECT_NAME,
+            },
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "uuid": "2DA67FF5-2643-44D6-8FFF-1B6BC78C9912",
+                "image_vmaddr": 4295032832,
+                "image_addr": 4295187296,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                "name": SWIFT_OBJECT_NAME,
+            },
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
                 "cpu_type": 16777228,
                 "uuid": "B78CB4FB-3A90-4039-9EFD-C58932803AE5",
                 "image_vmaddr": 0,
@@ -210,7 +240,11 @@ class BasicInAppTest(TestCase):
         ], referenced_images=set([
             'C05B4DDD-69A7-3840-A649-32180D341587',
             'B78CB4FB-3A90-4039-9EFD-C58932803AE5',
+            '619FA17B-124F-4CBF-901F-6CE88B52B0BF',
+            '2DA67FF5-2643-44D6-8FFF-1B6BC78C9912',
         ]), cpu_name='arm64')
 
         assert sym.is_in_app(4295121764)
         assert not sym.is_in_app(6042)
+        assert sym.is_in_app(4295154570)
+        assert not sym.is_in_app(4295032874)
