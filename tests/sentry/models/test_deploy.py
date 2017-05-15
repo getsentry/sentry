@@ -113,7 +113,7 @@ class DeployNotifyTest(TestCase):
             project=project,
             ident=release.version,
         ).exists()
-        assert Deploy.objects.get(id=deploy.id).notified is None
+        assert Deploy.objects.get(id=deploy.id).notified is False
 
     def test_no_commits_fetch_complete(self):
         # case where they've created a deploy and
