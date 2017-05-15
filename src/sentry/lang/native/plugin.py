@@ -191,7 +191,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # backend.  We only assemble the bare minimum we need here.
             instruction_addr = processable_frame.data['instruction_addr']
             in_app = self.sym.is_in_app(instruction_addr)
-            raw_frame['in_app'] = in_app
+            if raw_frame.get('in_app') is None:
+                raw_frame['in_app'] = in_app
             img_uuid = processable_frame.data['image_uuid']
             if img_uuid is not None:
                 self.dsyms_referenced.add(img_uuid)
@@ -258,7 +259,8 @@ class NativeStacktraceProcessor(StacktraceProcessor):
                 new_frame['colno'] = sfrm['colno']
             if sfrm.get('package'):
                 new_frame['package'] = sfrm['package']
-            new_frame['in_app'] = in_app
+            if new_frame.get('in_app') is None:
+                new_frame['in_app'] = in_app
             new_frames.append(new_frame)
 
         return new_frames, [raw_frame], []
