@@ -4,7 +4,7 @@ import logging
 import six
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.models import Release, ReleaseHeadCommit, Repository, User
+from sentry.models import Deploy, Release, ReleaseHeadCommit, Repository, User
 from sentry.plugins import bindings
 from sentry.tasks.base import instrumented_task, retry
 
