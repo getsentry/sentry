@@ -636,8 +636,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True,
-                  raw=False):
+    def to_python(cls, data, slim_frames=True, raw=False):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
@@ -649,15 +648,6 @@ class Stacktrace(Interface):
             Frame.to_python(f or {}, raw=raw)
             for f in data['frames']
         ]
-
-        if not raw:
-            if has_system_frames is None:
-                has_system_frames = cls.data_has_system_frames(data)
-            for frame in frame_list:
-                if not has_system_frames:
-                    frame.in_app = False
-                elif frame.in_app is None:
-                    frame.in_app = False
 
         kwargs = {
             'frames': frame_list,
@@ -674,26 +664,17 @@ class Stacktrace(Interface):
         else:
             kwargs['frames_omitted'] = None
 
-        kwargs['has_system_frames'] = has_system_frames
-
         instance = cls(**kwargs)
         if slim_frames:
             slim_frame_data(instance)
         return instance
 
-    @classmethod
-    def data_has_system_frames(cls, data):
-        system_frames = 0
-        for frame in data['frames']:
-            # XXX(dcramer): handle PHP sending an empty array for a frame
-            if not isinstance(frame, dict):
-                continue
-            if not frame.get('in_app'):
-                system_frames += 1
-
-        if len(data['frames']) == system_frames:
-            return False
-        return bool(system_frames)
+    def get_has_system_frames(self):
+        # This is a simplified logic from how the normalizer works.
+        # Because this always works on normalized data we do not have to
+        # consider the "all frames are in_app" case.  The normalizer lives
+        # in stacktraces.normalize_in_app which will take care of that.
+        return any(frame.in_app for frame in self.frames)
 
     def get_longest_address(self):
         rv = None
@@ -714,7 +695,7 @@ class Stacktrace(Interface):
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
             'registers': self.registers,
-            'hasSystemFrames': self.has_system_frames,
+            'hasSystemFrames': self.get_has_system_frames(),
         }
 
     def to_json(self):
@@ -722,7 +703,6 @@ class Stacktrace(Interface):
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
-            'has_system_frames': self.has_system_frames,
         }
 
     def get_path(self):

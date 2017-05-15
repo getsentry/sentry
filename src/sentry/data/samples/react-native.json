@@ -4161,7 +4161,6 @@
           "symbol_addr": "0x100620974",
           "instruction_addr": "0x100620a18"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x80000000",
           "pc": "0x100620a18",
@@ -4661,7 +4660,6 @@
           "symbol_addr": "0x100620974",
           "instruction_addr": "0x100620a18"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x80000000",
           "pc": "0x100620a18",
@@ -5340,7 +5338,6 @@
           "symbol_addr": "0x100620974",
           "instruction_addr": "0x100620a18"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x80000000",
           "pc": "0x100620a18",
@@ -5825,7 +5822,6 @@
           "symbol_addr": "0x100620974",
           "instruction_addr": "0x100620a18"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x80000000",
           "pc": "0x100620a18",
@@ -5889,7 +5885,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x0",
           "pc": "0x183a4fa88",
@@ -5948,7 +5943,6 @@
           "symbol_addr": "0x183a4fa80",
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x0",
           "pc": "0x183a4fa88",
@@ -6012,7 +6006,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4fa88",
@@ -6071,7 +6064,6 @@
           "symbol_addr": "0x183a4fa80",
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4fa88",
@@ -6135,7 +6127,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4fa88",
@@ -6194,7 +6185,6 @@
           "symbol_addr": "0x183a4fa80",
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4fa88",
@@ -6848,7 +6838,6 @@
           "symbol_addr": "0x1007c51f0",
           "instruction_addr": "0x1007c5208"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x20000000",
           "pc": "0x1007c5208",
@@ -7222,7 +7211,6 @@
           "symbol_addr": "0x1007c51f0",
           "instruction_addr": "0x1007c5208"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x20000000",
           "pc": "0x1007c5208",
@@ -7286,7 +7274,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4fa88",
@@ -7345,7 +7332,6 @@
           "symbol_addr": "0x183a4fa80",
           "instruction_addr": "0x183a4fa88"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4fa88",
@@ -7499,7 +7485,6 @@
           "colno": 0,
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -7621,7 +7606,6 @@
           "symbol_addr": "0x183a31180",
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -7756,7 +7740,6 @@
           "colno": 0,
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -7864,7 +7847,6 @@
           "symbol_addr": "0x183a31180",
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -8028,7 +8010,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4f314"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4f314",
@@ -8157,7 +8138,6 @@
           "symbol_addr": "0x183a4f30c",
           "instruction_addr": "0x183a4f314"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4f314",
@@ -8301,7 +8281,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4ee1c"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4ee1c",
@@ -8416,7 +8395,6 @@
           "symbol_addr": "0x183a4ee14",
           "instruction_addr": "0x183a4ee1c"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4ee1c",
@@ -8560,7 +8538,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4ee1c"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4ee1c",
@@ -8675,7 +8652,6 @@
           "symbol_addr": "0x183a4ee14",
           "instruction_addr": "0x183a4ee1c"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4ee1c",
@@ -8780,7 +8756,6 @@
           "colno": 0,
           "instruction_addr": "0x183a4f314"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4f314",
@@ -8867,7 +8842,6 @@
           "symbol_addr": "0x183a4f30c",
           "instruction_addr": "0x183a4f314"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x40000000",
           "pc": "0x183a4f314",
@@ -8962,7 +8936,6 @@
           "colno": 0,
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -9042,7 +9015,6 @@
           "symbol_addr": "0x183a31180",
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -9182,7 +9154,6 @@
           "colno": 0,
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
@@ -9290,7 +9261,6 @@
           "symbol_addr": "0x183a31180",
           "instruction_addr": "0x183a31188"
         }],
-        "has_system_frames": false,
         "registers": {
           "cpsr": "0x60000000",
           "pc": "0x183a31188",
