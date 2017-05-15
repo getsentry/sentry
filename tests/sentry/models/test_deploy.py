@@ -29,7 +29,7 @@ class DeployNotifyTest(TestCase):
             notified=True,
         )
 
-        Deploy.notify_maybe(deploy.id)
+        Deploy.notify_if_ready(deploy.id)
 
         # make sure no activity has been created
         assert not Activity.objects.filter(
@@ -59,7 +59,7 @@ class DeployNotifyTest(TestCase):
             environment_id=env.id,
         )
 
-        Deploy.notify_maybe(deploy.id)
+        Deploy.notify_if_ready(deploy.id)
 
         # make sure activity has been created
         assert Activity.objects.filter(
@@ -105,7 +105,7 @@ class DeployNotifyTest(TestCase):
             environment_id=env.id,
         )
 
-        Deploy.notify_maybe(deploy.id)
+        Deploy.notify_if_ready(deploy.id)
 
         # make sure activity has been created
         assert not Activity.objects.filter(
@@ -137,7 +137,7 @@ class DeployNotifyTest(TestCase):
             environment_id=env.id,
         )
 
-        Deploy.notify_maybe(deploy.id, fetch_complete=True)
+        Deploy.notify_if_ready(deploy.id, fetch_complete=True)
 
         # make sure activity has been created
         assert Activity.objects.filter(

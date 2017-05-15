@@ -36,7 +36,7 @@ class Deploy(Model):
         return 'deploy-notify:%s' % deploy_id
 
     @classmethod
-    def notify_maybe(cls, deploy_id, fetch_complete=False):
+    def notify_if_ready(cls, deploy_id, fetch_complete=False):
         """
         create activity and send deploy notifications
         if they haven't been sent

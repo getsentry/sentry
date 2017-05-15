@@ -78,4 +78,4 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
             notified=False,
         ).values_list('id', flat=True)
         for d_id in deploys:
-            Deploy.notify_maybe(d_id, fetch_complete=True)
+            Deploy.notify_if_ready(d_id, fetch_complete=True)

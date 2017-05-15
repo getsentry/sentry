@@ -138,7 +138,7 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     date_started=result.get('dateStarted'),
                 )
 
-            Deploy.notify_maybe(deploy.id)
+            Deploy.notify_if_ready(deploy.id)
 
             # This is the closest status code that makes sense, and we want
             # a unique 2xx response code so people can understand when
