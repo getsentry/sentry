@@ -49,3 +49,7 @@ class PluginIdentityRequired(PluginError):
 
 class InvalidIdentity(Exception):
     pass
+
+
+class HookValidationError(Exception):
+    pass

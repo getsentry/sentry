@@ -748,6 +748,7 @@ SENTRY_FEATURES = {
     'projects:plugins': True,
     'projects:dsym': False,
     'projects:sample-events': True,
+    'projects:data-forwarding': True,
 }
 
 # Default time zone for localization in the UI.
@@ -1179,7 +1180,7 @@ SUDO_URL = 'sentry-sudo'
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
     'raven-java': '8.0.0',
-    'raven-js': '3.12.0',
+    'raven-js': '3.15.0',
     'raven-node': '1.1.4',
     'raven-python': '6.0.0',
     'raven-ruby': '2.4.0',

@@ -45,7 +45,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint):
                                             value__in=tag_values,
                                             project_id__in=projects)
 
-        group_ids = tags.values_list('group_id', flat=True)
+        group_ids = set(tags.values_list('group_id', flat=True))
 
         groups = Group.objects.filter(id__in=group_ids,
                                       project_id__in=projects).order_by('-last_seen')[:limit]

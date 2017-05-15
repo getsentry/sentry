@@ -192,6 +192,19 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
+    def get_most_frequent_series(self, model, keys, start, end=None, rollup=None, limit=None):
+        rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        results = {}
+        for key in keys:
+            result = results[key] = []
+            source = self.frequencies[model][key]
+            for timestamp in series:
+                data = source[self.normalize_ts_to_rollup(timestamp, rollup)]
+                result.append((timestamp, dict(data.most_common(limit))))
+
+        return results
+
     def get_frequency_series(self, model, items, start, end=None, rollup=None):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 

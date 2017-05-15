@@ -74,8 +74,13 @@ def expired(request, user):
 def recover(request):
     from sentry.app import ratelimiter
 
+    extra = {
+        'ip_address': request.META['REMOTE_ADDR'],
+        'user_agent': request.META.get('HTTP_USER_AGENT'),
+    }
+
     if request.method == 'POST' and ratelimiter.is_limited(
-        'accounts:recover:{}'.format(request.META['REMOTE_ADDR']),
+        'accounts:recover:{}'.format(extra['ip_address']),
         limit=5, window=60,  # 5 per minute should be enough for anyone
     ):
         return HttpResponse(
@@ -83,11 +88,18 @@ def recover(request):
             content_type='text/plain',
             status=429,
         )
+        logger.warning('recover.rate-limited', extra=extra)
 
     form = RecoverPasswordForm(request.POST or None)
+    extra['user_recovered'] = form.data.get('user')
+
     if form.is_valid():
         password_hash = send_password_recovery_mail(request, form.cleaned_data['user'])
 
+        extra['passwordhash_id'] = password_hash.id
+        extra['user_id'] = password_hash.user_id
+
+        logger.info('recover.sent', extra=extra)
         return render_to_response('sentry/account/recover/sent.html', {
             'email': password_hash.user.email,
         }, request)
@@ -95,6 +107,8 @@ def recover(request):
     context = {
         'form': form,
     }
+    if form._errors:
+        logger.warning('recover.error', extra=extra)
     return render_to_response('sentry/account/recover/index.html', context, request)
 
 

@@ -5,7 +5,6 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.fields.user import UserField
@@ -13,35 +12,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CommitSerializer, ListField
 from sentry.models import Activity, Release
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.utils.apidocs import scenario, attach_scenarios
 
 
 BAD_RELEASE_CHARS = '\n\f\t/'
-
-
-@scenario('CreateNewRelease')
-def create_new_release_scenario(runner):
-    runner.request(
-        method='POST',
-        path='/projects/%s/%s/releases/' % (
-            runner.org.slug, runner.default_project.slug),
-        data={
-            'version': '2.0rc2',
-            'ref': '6ba09a7c53235ee8a8fa5ee4c1ca8ca886e7fdbb',
-            # TODO(dcramer): once we improve fixtures we should show the
-            # commits attribute being used, as well as 'dateReleased'
-            # 'commits': [{'id': 'a' * 40}, {'id': 'b' * 40}],
-        }
-    )
-
-
-@scenario('ListReleases')
-def list_releases_scenario(runner):
-    runner.request(
-        method='GET',
-        path='/projects/%s/%s/releases/' % (
-            runner.org.slug, runner.default_project.slug)
-    )
 
 
 class ReleaseSerializer(serializers.Serializer):
@@ -54,16 +27,14 @@ class ReleaseSerializer(serializers.Serializer):
 
     def validate_version(self, attrs, source):
         value = attrs[source]
-        if any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..'):
+        if not Release.is_valid_version(value):
             raise serializers.ValidationError('Invalid value for release')
         return attrs
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint):
-    doc_section = DocSection.RELEASES
     permission_classes = (ProjectReleasePermission,)
 
-    @attach_scenarios([list_releases_scenario])
     def get(self, request, project):
         """
         List a Project's Releases
@@ -102,7 +73,6 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(x, request.user, project=project),
         )
 
-    @attach_scenarios([create_new_release_scenario])
     def post(self, request, project):
         """
         Create a New Release for a Project

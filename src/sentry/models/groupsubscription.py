@@ -22,6 +22,7 @@ class GroupSubscriptionReason(object):
     bookmark = 3
     status_change = 4
     deploy_setting = 5
+    mentioned = 6
 
     descriptions = {
         implicit: u"have opted to receive updates for all issues within "
@@ -33,6 +34,7 @@ class GroupSubscriptionReason(object):
         bookmark: u"have bookmarked this issue",
         status_change: u"have changed the resolution status of this issue",
         deploy_setting: u"opted to receive all deploy notifications for this organization",
+        mentioned: u"have been mentioned in this issue",
     }
 
 
