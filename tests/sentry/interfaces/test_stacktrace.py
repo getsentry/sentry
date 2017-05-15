@@ -410,18 +410,6 @@ class StacktraceTest(TestCase):
         ]))
         assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
 
-    def test_exclude_libswiftCore_from_in_app(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/libswiftCore.dylib',
-                'lineno': 1,
-                'in_app': True,
-                'function': 'fooBar',
-            }
-        ]))
-        assert stacktrace.frames[0].in_app is False
-
     def test_cocoa_strict_stacktrace(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
             {
