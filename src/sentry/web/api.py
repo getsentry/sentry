@@ -338,11 +338,11 @@ class StoreView(APIView):
         if helper.should_filter(project, data, ip_address=remote_addr):
             tsdb.incr_multi([
                 (tsdb.models.project_total_received, project.id),
-                (tsdb.models.project_total_blacklisted, project.id),
+                (tsdb.models.project_total_filtered, project.id),
                 (tsdb.models.organization_total_received, project.organization_id),
-                (tsdb.models.organization_total_blacklisted, project.organization_id),
+                (tsdb.models.organization_total_filtered, project.organization_id),
             ])
-            metrics.incr('events.blacklisted')
+            metrics.incr('events.filtered')
             event_filtered.send_robust(
                 ip=remote_addr,
                 project=project,
@@ -382,6 +382,7 @@ class StoreView(APIView):
             tsdb.incr_multi([
                 (tsdb.models.project_total_received, project.id),
                 (tsdb.models.organization_total_received, project.organization_id),
+                (tsdb.models.organization_total_accepted, project.organization_id),
             ])
 
         org_options = OrganizationOption.objects.get_all_values(project.organization_id)
