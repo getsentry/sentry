@@ -4,6 +4,7 @@ from mock import patch
 
 from sentry.testutils import TestCase
 from sentry.lang.native.plugin import NativeStacktraceProcessor
+from sentry.lang.native.symbolizer import Symbolizer
 from sentry.stacktraces import process_stacktraces
 
 
@@ -179,3 +180,37 @@ class BasicResolvingFileTest(TestCase):
         assert frames[2]['function'] == 'whatever_system'
         assert frames[2]['package'] == '/usr/lib/whatever.dylib'
         assert frames[2]['instruction_addr'] == 6020
+
+
+class BasicInAppTest(TestCase):
+
+    def test_in_app_detection(self):
+        sym = Symbolizer(self.project, [
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
+                "image_vmaddr": 4294967296,
+                "image_addr": 4295121760,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                "name": OBJECT_NAME,
+            },
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "cpu_type": 16777228,
+                "uuid": "B78CB4FB-3A90-4039-9EFD-C58932803AE5",
+                "image_vmaddr": 0,
+                "image_addr": 6000,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                'name': '/usr/lib/whatever.dylib',
+            }
+        ], referenced_images=set([
+            'C05B4DDD-69A7-3840-A649-32180D341587',
+            'B78CB4FB-3A90-4039-9EFD-C58932803AE5',
+        ]), cpu_name='arm64')
+
+        assert sym.is_in_app(4295121764)
+        assert not sym.is_in_app(6042)
