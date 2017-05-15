@@ -1,8 +1,19 @@
 Version 8.17 (Unreleased)
 -------------------------
+- Added @mentions to comments
 
 - Initial (internal) analytics abstraction.
 - Turned on reprocessing by default
+- Added basics for Data Forwarding integrations.
+
+
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Dropped ``GroupTagValue.group_id`` foreign key constraint
+- Dropped ``GroupTagValue.project_id`` foreign key constraint
+- Added ``Deploy.notified`` column
+- Added index on ``EventTag.date_added``
 
 Version 8.16
 ------------

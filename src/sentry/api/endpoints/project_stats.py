@@ -59,6 +59,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, StatsMixin):
             stat_model = tsdb.models.project_total_blacklisted
         elif stat == 'generated':
             stat_model = tsdb.models.project
+        elif stat == 'forwarded':
+            stat_model = tsdb.models.project_total_forwarded
         else:
             raise ValueError('Invalid stat: %s' % stat)
 

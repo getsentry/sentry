@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
 _dotted_path_prefix_re = re.compile(r'^([a-z][a-z0-9-]+)(\.[a-z][a-z0-9-]+)+-')
+BAD_RELEASE_CHARS = '\n\f\t/'
 
 
 class ReleaseProject(Model):
@@ -72,6 +73,10 @@ class Release(Model):
         unique_together = (('organization', 'version'),)
 
     __repr__ = sane_repr('organization', 'version')
+
+    @staticmethod
+    def is_valid_version(value):
+        return not (any(c in value for c in BAD_RELEASE_CHARS) or value in ('.', '..') or not value)
 
     @classmethod
     def get_cache_key(cls, organization_id, version):
@@ -247,6 +252,7 @@ class Release(Model):
             return True
 
     def set_refs(self, refs, user, fetch=False):
+        from sentry.api.exceptions import InvalidRepository
         from sentry.models import Commit, ReleaseHeadCommit, Repository
         from sentry.tasks.commits import fetch_commits
 
@@ -257,14 +263,18 @@ class Release(Model):
             projects__in=self.projects.all(),
         ).exclude(version=self.version).order_by('-date_added').first()
 
+        names = {r['repository'] for r in refs}
+        repos = list(Repository.objects.filter(
+            organization_id=self.organization_id,
+            name__in=names,
+        ))
+        repos_by_name = {r.name: r for r in repos}
+        invalid_repos = names - set(repos_by_name.keys())
+        if invalid_repos:
+            raise InvalidRepository('Invalid repository names: %s' % ','.join(invalid_repos))
+
         for ref in refs:
-            try:
-                repo = Repository.objects.get(
-                    organization_id=self.organization_id,
-                    name=ref['repository'],
-                )
-            except Repository.DoesNotExist:
-                continue
+            repo = repos_by_name[ref['repository']]
 
             commit = Commit.objects.get_or_create(
                 organization_id=self.organization_id,
@@ -295,6 +305,12 @@ class Release(Model):
             Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
             GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
         )
+        from sentry.plugins.providers.repository import RepositoryProvider
+
+        commit_list = [
+            c for c in commit_list
+            if not RepositoryProvider.should_ignore_commit(c.get('message', ''))
+        ]
 
         with transaction.atomic():
             # TODO(dcramer): would be good to optimize the logic to avoid these

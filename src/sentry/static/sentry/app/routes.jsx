@@ -44,6 +44,7 @@ import ProjectAlertRules from './views/projectAlertRules';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
+import ProjectDataForwarding from './views/projectDataForwarding';
 import ProjectDetails from './views/projectDetails';
 import ProjectEvents from './views/projectEvents';
 import ProjectFilters from './views/projectFilters';
@@ -220,6 +221,10 @@ function routes() {
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Route path="alerts/" component={errorHandler(ProjectAlertSettings)} />
             <Route path="alerts/rules/" component={errorHandler(ProjectAlertRules)} />
+            <Route
+              path="data-forwarding/"
+              component={errorHandler(ProjectDataForwarding)}
+            />
             <Route path="filters/" component={errorHandler(ProjectFilters)} />
             <Route
               path="saved-searches/"

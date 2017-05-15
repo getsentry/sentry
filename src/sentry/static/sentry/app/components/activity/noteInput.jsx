@@ -7,6 +7,9 @@ import IndicatorStore from '../../stores/indicatorStore';
 import {logException} from '../../utils/logging';
 import localStorage from '../../utils/localStorage';
 import {t} from '../../locale';
+import mentionsStyle from '../../../styles/mentions-styles';
+
+import {MentionsInput, Mention} from 'react-mentions';
 
 import PureRenderMixin from 'react-addons-pure-render-mixin';
 const localStorageKey = 'noteinput:latest';
@@ -19,7 +22,9 @@ const NoteInput = React.createClass({
   propTypes: {
     item: React.PropTypes.object,
     group: React.PropTypes.object.isRequired,
-    onFinish: React.PropTypes.func
+    onFinish: React.PropTypes.func,
+    memberList: React.PropTypes.array.isRequired,
+    sessionUser: React.PropTypes.object.isRequired
   },
 
   mixins: [PureRenderMixin, ApiMixin],
@@ -28,6 +33,14 @@ const NoteInput = React.createClass({
     let {item, group} = this.props;
     let updating = !!item;
     let defaultText = '';
+
+    let mentionsList = this.props.memberList
+      .filter(member => this.props.sessionUser.id !== member.id)
+      .map(member => ({
+        id: member.id,
+        display: member.name,
+        email: member.email
+      }));
 
     if (updating) {
       defaultText = item.data.text;
@@ -48,7 +61,9 @@ const NoteInput = React.createClass({
       expanded: false,
       preview: false,
       updating: updating,
-      value: defaultText
+      value: defaultText,
+      mentionsList: mentionsList,
+      mentions: []
     };
   },
 
@@ -102,13 +117,15 @@ const NoteInput = React.createClass({
 
   create() {
     let {group} = this.props;
+    let mentions = this.finalMentions();
 
     let loadingIndicator = IndicatorStore.add(t('Posting comment..'));
 
     this.api.request('/issues/' + group.id + '/comments/', {
       method: 'POST',
       data: {
-        text: this.state.value
+        text: this.state.value,
+        mentions: mentions
       },
       error: error => {
         this.setState({
@@ -123,7 +140,8 @@ const NoteInput = React.createClass({
           value: '',
           preview: false,
           expanded: false,
-          loading: false
+          loading: false,
+          mentions: []
         });
         GroupStore.addActivity(group.id, data);
         this.finish();
@@ -182,8 +200,20 @@ const NoteInput = React.createClass({
     this.finish();
   },
 
+  onAdd(id, display) {
+    let mentions = this.state.mentions.concat([[id, display]]);
+    this.setState({mentions});
+  },
+
   finish() {
     this.props.onFinish && this.props.onFinish();
+  },
+
+  finalMentions() {
+    // mention = [id, display]
+    return this.state.mentions
+      .filter(mention => this.state.value.indexOf(mention[1]) !== -1)
+      .map(mention => mention[0]);
   },
 
   expand(e) {
@@ -207,7 +237,7 @@ const NoteInput = React.createClass({
   },
 
   render() {
-    let {error, errorJSON, loading, preview, updating, value} = this.state;
+    let {error, errorJSON, loading, preview, updating, value, mentionsList} = this.state;
     let classNames = 'activity-field';
     if (error) {
       classNames += ' error';
@@ -223,7 +253,9 @@ const NoteInput = React.createClass({
         <div className="activity-notes">
           <ul className="nav nav-tabs">
             <li className={!preview ? 'active' : ''}>
-              <a onClick={this.toggleEdit}>{updating ? t('Edit') : t('Write')}</a>
+              <a onClick={this.toggleEdit}>
+                {updating ? t('Edit') : t('Write')}
+              </a>
             </li>
             <li className={preview ? 'active' : ''}>
               <a onClick={this.togglePreview}>{t('Preview')}</a>
@@ -239,16 +271,23 @@ const NoteInput = React.createClass({
                 className="note-preview"
                 dangerouslySetInnerHTML={{__html: marked(value)}}
               />
-            : <textarea
+            : <MentionsInput
+                style={mentionsStyle}
                 placeholder={t('Add details or updates to this event')}
                 onChange={this.onChange}
-                onKeyDown={this.onKeyDown}
-                onFocus={this.expand}
-                onBlur={this.maybeCollapse}
+                onBlur={this.onBlur}
+                value={value}
                 required={true}
                 autoFocus={true}
-                value={value}
-              />}
+                displayTransform={(id, display) => `@${display}`}
+                markup="**__display__**">
+                <Mention
+                  trigger="@"
+                  data={mentionsList}
+                  onAdd={this.onAdd}
+                  appendSpaceOnAdd={true}
+                />
+              </MentionsInput>}
           <div className="activity-actions">
             {errorJSON &&
               errorJSON.detail &&
