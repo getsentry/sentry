@@ -10,7 +10,8 @@ from sentry.models import (
     OrganizationOnboardingTask,
     OrganizationOption
 )
-from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2, NotificationPlugin
+from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
     event_processed,
     project_created,
