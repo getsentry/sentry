@@ -594,6 +594,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60 * 25,
         },
     },
+    'schedule-deletions': {
+        'task': 'sentry.tasks.deletion.run_scheduled_deletions',
+        'schedule': timedelta(minutes=15),
+        'options': {
+            'expires': 60 * 25,
+        },
+    },
     'schedule-weekly-organization-reports': {
         'task': 'sentry.tasks.reports.prepare_reports',
         'schedule': crontab(

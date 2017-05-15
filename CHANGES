@@ -8,6 +8,7 @@ Version 8.17 (Unreleased)
 - The threads interface now contributes to grouping if it contains a single thread.
 - Added per-key (DSN) rate limits (``project:rate-limits`` feature).
 - Added tsdb statistics for events per-key.
+- Added ``sentry.deletions`` abstraction to improve bulk deletions.
 
 Schema Changes
 ~~~~~~~~~~~~~~
