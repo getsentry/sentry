@@ -425,7 +425,6 @@ class Fixtures(object):
                     "exc_omitted": null,
                     "values": [{
                         "stacktrace": {
-                            "has_system_frames": false,
                             "frames": [{
                                 "function": "batchedUpdates",
                                 "abs_path": "webpack:////usr/src/getsentry/src/sentry/~/react/lib/ReactUpdates.js",

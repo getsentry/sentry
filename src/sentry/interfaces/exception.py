@@ -42,14 +42,13 @@ class SingleException(Interface):
     score = 2000
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True):
+    def to_python(cls, data, slim_frames=True):
         if not (data.get('type') or data.get('value')):
             raise InterfaceValidationError("No 'type' or 'value' present")
 
         if data.get('stacktrace') and data['stacktrace'].get('frames'):
             stacktrace = Stacktrace.to_python(
                 data['stacktrace'],
-                has_system_frames=has_system_frames,
                 slim_frames=slim_frames,
             )
         else:
@@ -58,7 +57,6 @@ class SingleException(Interface):
         if data.get('raw_stacktrace') and data['raw_stacktrace'].get('frames'):
             raw_stacktrace = Stacktrace.to_python(
                 data['raw_stacktrace'],
-                has_system_frames=has_system_frames,
                 slim_frames=slim_frames,
                 raw=True
             )
@@ -207,13 +205,10 @@ class Exception(Interface):
         if not isinstance(data['values'], list):
             raise InterfaceValidationError("Invalid value for 'values'")
 
-        has_system_frames = cls.data_has_system_frames(data)
-
         kwargs = {
             'values': [
                 SingleException.to_python(
                     v,
-                    has_system_frames=has_system_frames,
                     slim_frames=False,
                 )
                 for v in data['values']
@@ -231,31 +226,6 @@ class Exception(Interface):
         # we want to wait to slim things til we've reconciled in_app
         slim_exception_data(instance)
         return instance
-
-    @classmethod
-    def data_has_system_frames(cls, data):
-        system_frames = 0
-        app_frames = 0
-        for exc in data['values']:
-            if not exc.get('stacktrace'):
-                continue
-
-            frames = exc['stacktrace'].get('frames')
-            if not frames:
-                continue
-
-            for frame in frames:
-                # XXX(dcramer): handle PHP sending an empty array for a frame
-                if not isinstance(frame, dict):
-                    continue
-                if frame.get('in_app') is True:
-                    app_frames += 1
-                else:
-                    system_frames += 1
-
-        # if there is a mix of frame styles then we indicate that system frames
-        # are present and should be represented as a split
-        return bool(app_frames and system_frames)
 
     def to_json(self):
         return {
@@ -308,7 +278,7 @@ class Exception(Interface):
                 for v in self.values
             ],
             'hasSystemFrames': any(
-                v.stacktrace.has_system_frames
+                v.stacktrace.get_has_system_frames()
                 for v in self.values
                 if v.stacktrace
             ),
