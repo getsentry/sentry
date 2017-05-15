@@ -6,7 +6,8 @@ Version 8.17 (Unreleased)
 - Turned on reprocessing by default
 - Added basics for Data Forwarding integrations.
 - Changed the grouping and default `in_app` values for cocoa events.
-- Removed global dsym support
+- Removed global dsym support.
+- Removed support for legacy apple report format.
 
 
 Schema Changes
