@@ -15,6 +15,7 @@ from sentry.db.models import (
     sane_repr
 )
 from sentry.db.models.manager import BaseManager
+from sentry.signals import alert_rule_created
 from sentry.utils.cache import cache
 
 
@@ -74,6 +75,7 @@ class Rule(Model):
         rv = super(Rule, self).save(*args, **kwargs)
         cache_key = 'project:{}:rules'.format(self.project_id)
         cache.delete(cache_key)
+        alert_rule_created.send(project=self.project, rule=self, sender=Rule)
         return rv
 
     def get_audit_log_data(self):
