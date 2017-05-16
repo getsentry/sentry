@@ -44,6 +44,8 @@ class ListField(WritableField):
 
         if self.child:
             for item in value:
+                if item is None:
+                    raise ValidationError('Incorrect type. Expected value, but got null')
                 self.child.validate(item)
 
     def run_validators(self, value):
