@@ -2176,6 +2176,45 @@ ul.faces {
   }
 }
 
+.box-clippable {
+  position: relative;
+  margin-left: -20px;
+  margin-right: -20px;
+  padding: 16px 20px 0;
+  border-top: 1px solid #f1f2f3;
+  .transition(all 5s ease-in-out);
+
+  &.revealed {
+    /* For "Show More" animation */
+    max-height: 50000px;
+  }
+
+  &:first-of-type {
+    margin-top: -20px;
+    border: 0;
+  }
+
+  h5 {
+    margin-bottom: 15px;
+  }
+
+  .clip-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -15px;
+    padding: 40px 0 0;
+    #gradient > .vertical(rgba(255,255,255, .15), rgba(255,255,255, 1));
+    text-align: center;
+    border-bottom: 15px solid #fff;
+  }
+
+  &.clipped {
+    max-height: 200px;
+    overflow: hidden;
+  }
+}
+
 /**
  * Global Messages
  * ============================================================================
