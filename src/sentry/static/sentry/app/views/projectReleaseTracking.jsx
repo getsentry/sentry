@@ -118,6 +118,7 @@ const ProjectReleaseTracking = React.createClass({
     return (
       'curl ' +
       webhookUrl +
+      ' \\' +
       '\n  ' +
       '-X POST \\' +
       '\n  ' +
