@@ -43,7 +43,10 @@ class Environment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environment'
-        unique_together = (('organization_id', 'name'),)
+        unique_together = (
+            ('project_id', 'name'),
+            ('organization_id', 'name'),
+        )
 
     __repr__ = sane_repr('organization_id', 'name')
 
