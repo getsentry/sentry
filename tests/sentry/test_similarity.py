@@ -5,9 +5,10 @@ import time
 import msgpack
 import pytest
 
+from sentry.models import Event
 from sentry.similarity import (
-    MinHashIndex, get_exception_frames, get_frame_signature,
-    serialize_frame,
+    ExceptionFeature, InsufficientContext, MinHashIndex, get_exception_frames,
+    get_frame_signature, serialize_frame
 )
 from sentry.testutils import TestCase
 from sentry.utils import redis
@@ -106,6 +107,69 @@ def test_get_frame_signature():
         'context_line': u'\N{SNOWMAN}',
         'post_context': [u'\N{BLACK SNOWMAN}'],
     })
+
+    with pytest.raises(InsufficientContext):
+        get_frame_signature({})
+
+    with pytest.raises(InsufficientContext):
+        get_frame_signature({
+            'pre_context': ['pre'],
+            'post_context': ['post'],
+        })
+
+
+def test_exception_feature():
+    good_frame = {
+        'function': 'name',
+        'module': 'module',
+    }
+
+    bad_frame = {}
+
+    assert serialize_frame(good_frame)
+    with pytest.raises(InsufficientContext):
+        serialize_frame(bad_frame)
+
+    feature = ExceptionFeature(
+        lambda exception: map(
+            serialize_frame,
+            get_exception_frames(exception),
+        ),
+    )
+
+    def build_event(frames):
+        return Event(
+            data={
+                'sentry.interfaces.Exception': {
+                    'values': [
+                        {
+                            'stacktrace': {
+                                'frames': frames,
+                            },
+                        },
+                    ],
+                },
+            },
+        )
+
+    assert list(
+        feature.extract(
+            build_event([
+                good_frame,
+            ]),
+        )
+    ) == [
+        [serialize_frame(good_frame)],
+    ]
+
+    assert list(
+        feature.extract(
+            build_event([
+                good_frame,
+                bad_frame,
+            ]),
+        )
+    ) == []
 
 
 class MinHashIndexTestCase(TestCase):
