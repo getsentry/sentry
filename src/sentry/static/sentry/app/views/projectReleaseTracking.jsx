@@ -1,14 +1,14 @@
 import React from 'react';
+import _ from 'underscore';
+
 import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
 import PluginList from '../components/pluginList';
-// import PluginConfig from '../components/pluginConfig';
+import LoadingError from '../components/loadingError';
+import LoadingIndicator from '../components/loadingIndicator';
 
 const ProjectReleaseTracking = React.createClass({
   propTypes: {
-    // these are not declared as required of issues with cloned elements
-    // not initially defining them (though they are bound before) ever
-    // rendered
     organization: React.PropTypes.object,
     project: React.PropTypes.object
   },
@@ -30,8 +30,11 @@ const ProjectReleaseTracking = React.createClass({
     this.fetchToken();
   },
 
-  fetchToken() {
+  fetchData() {
     let {orgId, projectId} = this.props.params;
+    let done = _.after(2, () => {
+      this.setState({loading: false});
+    });
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'GET',
       success: data =>
@@ -43,26 +46,21 @@ const ProjectReleaseTracking = React.createClass({
         this.setState({
           error: true
         });
-      }
+      },
+      complete: done
     });
-  },
-
-  fetchData() {
-    let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
-      success: (data, _, jqXHR) => {
+      success: data => {
         this.setState({
-          error: false,
-          loading: false,
           pluginList: data.filter(p => p.type === 'release-tracking')
         });
       },
       error: () => {
         this.setState({
-          error: true,
-          loading: false
+          error: true
         });
-      }
+      },
+      complete: done
     });
   },
 
@@ -142,9 +140,11 @@ const ProjectReleaseTracking = React.createClass({
   },
 
   render() {
-    // let {orgId, projectId} = this.props.params;
     let {organization, project} = this.props;
     let {pluginList} = this.state;
+    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+
     return (
       <div>
         <h2>{t('Release Tracking')}</h2>

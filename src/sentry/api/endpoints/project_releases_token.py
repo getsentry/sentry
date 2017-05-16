@@ -38,7 +38,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
 
         if token is None:
-            self._regenerate_token(project)
+            token = self._regenerate_token(project)
 
         return Response({
             'token': token,
