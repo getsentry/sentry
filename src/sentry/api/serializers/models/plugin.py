@@ -5,6 +5,7 @@ import six
 from sentry.api.serializers import Serializer
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
+from sentry.models import ProjectOption
 
 
 class PluginSerializer(Serializer):
@@ -12,6 +13,17 @@ class PluginSerializer(Serializer):
         self.project = project
 
     def serialize(self, obj, attrs, user):
+        from sentry.api.endpoints.project_releases_token import _get_webhook_url
+
+        release_token = ProjectOption.objects.get_value(self.project, 'sentry:release-token')
+        webhook_url = _get_webhook_url(self.project, release_token)
+        doc = ''
+        if hasattr(obj, 'get_release_doc_html'):
+            try:
+                doc = obj.get_release_doc_html(webhook_url)
+            except NotImplementedError:
+                pass
+
         contexts = []
         if hasattr(obj, 'get_custom_contexts'):
             contexts.extend(x.type for x in obj.get_custom_contexts() or ())
@@ -30,6 +42,7 @@ class PluginSerializer(Serializer):
                 }
                 for asset in obj.get_assets()
             ],
+            'doc': doc,
         }
         if self.project:
             d['enabled'] = obj.is_enabled(self.project)

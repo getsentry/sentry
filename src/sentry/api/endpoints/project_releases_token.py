@@ -11,28 +11,30 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models import ProjectOption
 
 
+def _get_signature(project_id, plugin_id, token):
+    return hmac.new(
+        key=token.encode('utf-8'),
+        msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
+        digestmod=sha256,
+    ).hexdigest()
+
+
+def _get_webhook_url(project, token):
+
+    return absolute_uri(reverse('sentry-release-hook', kwargs={
+        'plugin_id': 'builtin',
+        'project_id': project.id,
+        'signature': _get_signature(project.id, 'builtin', token),
+    }))
+
+
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
-
-    def _get_signature(self, project_id, plugin_id, token):
-        return hmac.new(
-            key=token.encode('utf-8'),
-            msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
-            digestmod=sha256,
-        ).hexdigest()
 
     def _regenerate_token(self, project):
         token = uuid1().hex
         ProjectOption.objects.set_value(project, 'sentry:release-token', token)
         return token
-
-    def _get_webhook_url(self, project, token):
-
-        return absolute_uri(reverse('sentry-release-hook', kwargs={
-            'plugin_id': 'builtin',
-            'project_id': project.id,
-            'signature': self._get_signature(project.id, 'builtin', token),
-        }))
 
     def get(self, request, project):
         token = ProjectOption.objects.get_value(project, 'sentry:release-token')
@@ -42,7 +44,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({
             'token': token,
-            'webhookUrl': self._get_webhook_url(project, token)
+            'webhookUrl': _get_webhook_url(project, token)
         })
 
     def post(self, request, project):
@@ -50,5 +52,5 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({
             'token': token,
-            'webhookUrl': self._get_webhook_url(project, token)
+            'webhookUrl': _get_webhook_url(project, token)
         })

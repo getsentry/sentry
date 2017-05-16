@@ -27,7 +27,6 @@ const ProjectReleaseTracking = React.createClass({
 
   componentDidMount() {
     this.fetchData();
-    this.fetchToken();
   },
 
   fetchData() {
