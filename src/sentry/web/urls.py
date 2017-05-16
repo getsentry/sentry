@@ -56,8 +56,6 @@ from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
 from sentry.web.frontend.project_plugin_enable import ProjectPluginEnableView
 from sentry.web.frontend.project_plugin_reset import ProjectPluginResetView
 from sentry.web.frontend.project_plugins import ProjectPluginsView
-from sentry.web.frontend.project_release_tracking import \
-    ProjectReleaseTrackingView
 from sentry.web.frontend.project_rule_edit import ProjectRuleEditView
 from sentry.web.frontend.project_settings import ProjectSettingsView
 from sentry.web.frontend.project_tags import ProjectTagsView
@@ -299,7 +297,7 @@ urlpatterns += patterns(
         ProjectIssueTrackingView.as_view(),
         name='sentry-project-issue-tracking'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/release-tracking/$',
-        ProjectReleaseTrackingView.as_view(),
+        react_page_view,
         name='sentry-project-release-tracking'),
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/$',
         ProjectPluginsView.as_view(),

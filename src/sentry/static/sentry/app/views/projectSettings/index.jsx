@@ -99,9 +99,11 @@ const ProjectSettings = React.createClass({
             <li>
               <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
             </li>
-            <li>
-              <a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a>
-            </li>
+            <ListLink
+              to={`/${orgId}/${projectId}/settings/release-tracking/`}
+              isActive={loc => path.indexOf(loc.pathname) === 0}>
+              {t('Release Tracking')}
+            </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>
