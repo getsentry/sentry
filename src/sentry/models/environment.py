@@ -10,13 +10,11 @@ from __future__ import absolute_import, print_function
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry.app import locks
 from sentry.db.models import (
     BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
-from sentry.utils.retries import TimedRetryPolicy
 
 
 class EnvironmentProject(Model):
@@ -51,50 +49,32 @@ class Environment(Model):
     __repr__ = sane_repr('organization_id', 'name')
 
     @classmethod
-    def get_cache_key(cls, project_id, name):
-        return 'env:1:%s:%s' % (project_id, md5_text(name).hexdigest())
-
-    @classmethod
-    def get_lock_key(cls, organization_id, name):
-        return 'environment:%s:%s' % (organization_id, md5_text(name).hexdigest())
+    def get_cache_key(cls, organization_id, name):
+        return 'env:2:%s:%s' % (organization_id, md5_text(name).hexdigest())
 
     @classmethod
     def get_or_create(cls, project, name):
         name = name or ''
 
-        cache_key = cls.get_cache_key(project.id, name)
+        cache_key = cls.get_cache_key(project.organization_id, name)
 
         env = cache.get(cache_key)
         if env is None:
             try:
+                with transaction.atomic():
+                    env = cls.objects.create(
+                        name=name,
+                        organization_id=project.organization_id,
+                    )
+            except IntegrityError:
                 env = cls.objects.get(
-                    projects=project,
-                    organization_id=project.organization_id,
                     name=name,
+                    organization_id=project.organization_id,
                 )
-            except cls.DoesNotExist:
-                env = cls.objects.filter(
-                    organization_id=project.organization_id,
-                    name=name,
-                ).order_by('date_added').first()
-                if not env:
-                    lock_key = cls.get_lock_key(project.organization_id, name)
-                    lock = locks.get(lock_key, duration=5)
-                    with TimedRetryPolicy(10)(lock.acquire):
-                        try:
-                            env = cls.objects.get(
-                                organization_id=project.organization_id,
-                                name=name,
-                            )
-                        except cls.DoesNotExist:
-                            env = cls.objects.create(
-                                project_id=project.id,
-                                name=name,
-                                organization_id=project.organization_id
-                            )
-                env.add_project(project)
 
             cache.set(cache_key, env, 3600)
+
+        env.add_project(project)
 
         return env
 

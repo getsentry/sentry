@@ -12,9 +12,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.app import locks
 from sentry.models import Deploy, Environment, Release
-from sentry.utils.retries import TimedRetryPolicy
 
 
 class DeploySerializer(serializers.Serializer):
@@ -94,27 +92,23 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
         serializer = DeploySerializer(data=request.DATA)
 
         if serializer.is_valid():
+            projects = list(release.projects.all())
             result = serializer.object
+
             try:
+                with transaction.atomic():
+                    env = Environment.objects.create(
+                        name=result['environment'],
+                        organization_id=organization.id,
+                    )
+            except IntegrityError:
                 env = Environment.objects.get(
-                    organization_id=organization.id,
                     name=result['environment'],
+                    organization_id=organization.id,
                 )
-            except Environment.DoesNotExist:
-                # TODO(jess): clean up when changing unique constraint
-                lock_key = Environment.get_lock_key(organization.id, result['environment'])
-                lock = locks.get(lock_key, duration=5)
-                with TimedRetryPolicy(10)(lock.acquire):
-                    try:
-                        env = Environment.objects.get(
-                            organization_id=organization.id,
-                            name=result['environment'],
-                        )
-                    except Environment.DoesNotExist:
-                        env = Environment.objects.create(
-                            organization_id=organization.id,
-                            name=result['environment'],
-                        )
+
+            for project in projects:
+                env.add_project(project)
 
             try:
                 with transaction.atomic():

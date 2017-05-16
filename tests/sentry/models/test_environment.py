@@ -13,8 +13,8 @@ class GetOrCreateTest(TestCase):
             name='prod',
         )
 
-        assert env.project_id == project.id
         assert env.name == 'prod'
+        assert env.projects.first().id == project.id
 
         env2 = Environment.get_or_create(
             project=project,
