@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from sentry.api.serializers import serialize
-from sentry.models import GroupHash
+from sentry.models import Event, GroupHash
 from sentry.testutils import TestCase
 
 
@@ -63,7 +63,7 @@ class GroupHashSerializerTest(TestCase):
             group=group,
             hash='xyz',
         )
-        event = self.create_event(group=group)
+        event = Event.objects.get(id=self.create_event(group=group).id)
 
         GroupHash.record_last_processed_event_id(
             group.project_id,
