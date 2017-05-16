@@ -43,9 +43,9 @@ class Environment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environment'
-        unique_together = (('project_id', 'name'),)
+        unique_together = (('organization_id', 'name'),)
 
-    __repr__ = sane_repr('project_id', 'name')
+    __repr__ = sane_repr('organization_id', 'name')
 
     @classmethod
     def get_cache_key(cls, project_id, name):
