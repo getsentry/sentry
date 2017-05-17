@@ -11,14 +11,6 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models import ProjectOption
 
 
-def _get_signature(project_id, plugin_id, token):
-    return hmac.new(
-        key=token.encode('utf-8'),
-        msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
-        digestmod=sha256,
-    ).hexdigest()
-
-
 def _get_webhook_url(project, token):
 
     return absolute_uri(reverse('sentry-release-hook', kwargs={
@@ -26,6 +18,14 @@ def _get_webhook_url(project, token):
         'project_id': project.id,
         'signature': _get_signature(project.id, 'builtin', token),
     }))
+
+
+def _get_signature(project_id, plugin_id, token):
+    return hmac.new(
+        key=token.encode('utf-8'),
+        msg=('{}-{}'.format(plugin_id, project_id)).encode('utf-8'),
+        digestmod=sha256,
+    ).hexdigest()
 
 
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
