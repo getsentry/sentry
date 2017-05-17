@@ -23,7 +23,7 @@ class ReleaseSerializer(serializers.Serializer):
     url = serializers.URLField(required=False)
     owner = UserField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False)
+    commits = ListField(child=CommitSerializer(), required=False, allow_none=False)
 
     def validate_version(self, attrs, source):
         value = attrs[source]

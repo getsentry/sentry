@@ -17,7 +17,7 @@ class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False)
+    commits = ListField(child=CommitSerializer(), required=False, allow_none=False)
 
 
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint):

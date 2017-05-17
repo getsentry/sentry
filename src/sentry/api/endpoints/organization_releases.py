@@ -40,8 +40,16 @@ def list_org_releases_scenario(runner):
 
 class ReleaseSerializerWithProjects(ReleaseSerializer):
     projects = ListField()
-    headCommits = ListField(child=ReleaseHeadCommitSerializerDeprecated(), required=False)
-    refs = ListField(child=ReleaseHeadCommitSerializer(), required=False)
+    headCommits = ListField(
+        child=ReleaseHeadCommitSerializerDeprecated(),
+        required=False,
+        allow_none=False,
+    )
+    refs = ListField(
+        child=ReleaseHeadCommitSerializer(),
+        required=False,
+        allow_none=False,
+    )
 
 
 class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
