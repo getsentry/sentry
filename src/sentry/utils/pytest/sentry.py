@@ -23,7 +23,6 @@ def pytest_configure(config):
                 'HOST': '127.0.0.1',
             })
             # mysql requires running full migration all the time
-            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'postgres':
             settings.DATABASES['default'].update({
                 'ENGINE': 'sentry.db.postgres',
@@ -33,13 +32,11 @@ def pytest_configure(config):
             # postgres requires running full migration all the time
             # since it has to install stored functions which come from
             # an actual migration.
-            settings.SOUTH_TESTS_MIGRATE = True
         elif test_db == 'sqlite':
             settings.DATABASES['default'].update({
                 'ENGINE': 'django.db.backends.sqlite3',
                 'NAME': ':memory:',
             })
-            settings.SOUTH_TESTS_MIGRATE = os.environ.get('SENTRY_SOUTH_TESTS_MIGRATE', '1') == '1'
         else:
             raise RuntimeError('oops, wrong database: %r' % test_db)
 
