@@ -53,6 +53,9 @@ def get_caches():
                 release_id=release_id,
             ),
         ),
+        Project: cache(
+            lambda id: Project.objects.get(id=id),
+        ),
         Release: cache(
             lambda organization_id, version: Release.objects.get(
                 organization_id=organization_id,
@@ -95,7 +98,7 @@ backfill_fields = {
     'first_seen': lambda caches, data, event: event.datetime,
     'active_at': lambda caches, data, event: event.datetime,
     'first_release': lambda caches, data, event: caches[Release](
-        event.project.organization_id,  # TODO
+        caches[Project](event.project_id).organization_id,
         event.get_tag('sentry:release'),
     ) if event.get_tag('sentry:release') else data.get('first_release', None),
     'times_seen': lambda caches, data, event: data['times_seen'] + 1,
