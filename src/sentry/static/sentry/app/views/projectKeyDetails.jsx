@@ -23,6 +23,7 @@ import {t, tct} from '../locale';
 const KeySettings = React.createClass({
   propTypes: {
     access: React.PropTypes.object.isRequired,
+    keyId: React.PropTypes.string.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
@@ -77,8 +78,8 @@ const KeySettings = React.createClass({
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {orgId, projectId} = this.props;
-        this.api.request(`/projects/${orgId}/${projectId}/`, {
+        let {keyId, orgId, projectId} = this.props;
+        this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
           method: 'PUT',
           data: this.state.formData,
           success: data => {
@@ -107,8 +108,8 @@ const KeySettings = React.createClass({
     if (this.state.loading) return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {orgId, projectId, data} = this.props;
-    this.api.request(`/projects/${orgId}/${projectId}/keys/${data.id}/`, {
+    let {keyId, orgId, projectId} = this.props;
+    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
         this.props.onRemove();
@@ -184,7 +185,7 @@ const KeySettings = React.createClass({
             <div className="form-group">
               <label>{t('Rate Limit')}</label>
               <div>
-                <div style={{maxWidth: 150, display: 'inline-block'}}>
+                <div style={{width: 80, display: 'inline-block'}}>
                   <NumberField
                     key="rateLimit.count"
                     name="rateLimit.count"
@@ -196,9 +197,12 @@ const KeySettings = React.createClass({
                     onChange={this.onRateLimitChange.bind(this, 'count')}
                   />
                 </div>
-                <div style={{display: 'inline-block', margin: '0 10px'}}>event(s) in</div>
-                <div style={{maxWidth: 200, display: 'inline-block'}}>
+                <div style={{display: 'inline-block', margin: '0 10px'}}>
+                  <small>event(s) in</small>
+                </div>
+                <div style={{width: 150, display: 'inline-block'}}>
                   <Select2Field
+                    width="100%"
                     key="rateLimit.window"
                     name="rateLimit.window"
                     choices={this.getRateLimitWindows()}
@@ -387,7 +391,7 @@ export default React.createClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let {data} = this.state;
-    let {orgId, projectId} = this.props.params;
+    let {keyId, orgId, projectId} = this.props.params;
 
     return (
       <DocumentTitle title={t('Key Details')}>
@@ -395,11 +399,13 @@ export default React.createClass({
           <h2>{t('Key Details')}</h2>
           <KeySettings
             access={this.getAccess()}
+            keyId={keyId}
             orgId={orgId}
             projectId={projectId}
             initialData={{
               isActive: data.isActive,
-              name: data.name
+              name: data.name,
+              rateLimit: data.rateLimit
             }}
             data={data}
             onSave={this.handleSave}

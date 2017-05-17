@@ -52,7 +52,8 @@ class Select2Field extends InputField {
   componentDidMount() {
     jQuery(this.refs.input)
       .select2({
-        allowClear: this.props.allowClear
+        allowClear: this.props.allowClear,
+        width: 'element'
       })
       .on('change', this.onChange);
   }

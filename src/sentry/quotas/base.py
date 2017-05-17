@@ -53,7 +53,7 @@ class Quota(Service):
     def __init__(self, **options):
         pass
 
-    def is_rate_limited(self, project):
+    def is_rate_limited(self, project, key=None):
         return NotRateLimited()
 
     def get_time_remaining(self):
@@ -75,8 +75,7 @@ class Quota(Service):
         return (0, 0)
 
     def get_project_quota(self, project):
-        from sentry import features
-        from sentry.models import Organization, OrganizationOption, ProjectOption
+        from sentry.models import Organization, OrganizationOption
 
         org = getattr(project, '_organization_cache', None)
         if not org:
