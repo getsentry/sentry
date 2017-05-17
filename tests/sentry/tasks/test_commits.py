@@ -1,6 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.models import Commit, Release, ReleaseHeadCommit, Repository
+from mock import patch
+
+from sentry.models import Commit, Deploy, Release, ReleaseHeadCommit, Repository
 from sentry.tasks.commits import fetch_commits
 from sentry.testutils import TestCase
 
@@ -43,13 +45,20 @@ class FetchCommits(TestCase):
             version='12345678',
         )
 
+        deploy = Deploy.objects.create(
+            organization_id=org.id,
+            release=release2,
+            environment_id=5,
+        )
+
         with self.tasks():
-            fetch_commits(
-                release_id=release2.id,
-                user_id=self.user.id,
-                refs=refs,
-                previous_release_id=release.id,
-            )
+            with patch.object(Deploy, 'notify_if_ready') as mock_notify_if_ready:
+                fetch_commits(
+                    release_id=release2.id,
+                    user_id=self.user.id,
+                    refs=refs,
+                    previous_release_id=release.id,
+                )
 
         commit_list = list(Commit.objects.filter(
             releasecommit__release=release2,
@@ -66,3 +75,5 @@ class FetchCommits(TestCase):
         assert commit_list[2].repository_id == repo.id
         assert commit_list[2].organization_id == org.id
         assert commit_list[2].key == 'b' * 40
+
+        mock_notify_if_ready.assert_called_with(deploy.id, fetch_complete=True)
