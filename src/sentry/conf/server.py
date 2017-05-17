@@ -1213,3 +1213,5 @@ DEPRECATED_SDKS = {
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }
+
+SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'
