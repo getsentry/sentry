@@ -99,7 +99,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             elif result.get('isActive') is False:
                 key.status = ProjectKeyStatus.INACTIVE
 
-            if features.has('project:rate-limits', project):
+            if features.has('projects:rate-limits', project):
                 if result.get('rateLimit', -1) is None:
                     key.rate_limit_count = None
                     key.rate_limit_window = None

@@ -141,7 +141,7 @@ const KeySettings = React.createClass({
 
   getInitialState() {
     let hooksDisabled = [];
-    HookStore.get('project:rate-limits-disabled').forEach(cb => {
+    HookStore.get('project:rate-limits:disabled').forEach(cb => {
       hooksDisabled.push(cb());
     });
     return {
