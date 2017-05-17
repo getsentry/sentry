@@ -97,7 +97,7 @@ backfill_fields = {
     'first_release': lambda caches, data, event: caches[Release](
         event.project.organization_id,  # TODO
         event.get_tag('sentry:release'),
-    ) if event.get_tag('sentry:release') else data.get('first_release', None),  # TODO: double check logic.
+    ) if event.get_tag('sentry:release') else data.get('first_release', None),
     'times_seen': lambda caches, data, event: data['times_seen'] + 1,
     'score': lambda caches, data, event: ScoreClause.calculate(
         data['times_seen'] + 1,
@@ -317,7 +317,6 @@ def collect_release_data(caches, project, events):
     for event in events:
         release = event.get_tag('sentry:release')
 
-        # TODO: Double check this!
         if not release:
             continue
 
@@ -412,7 +411,6 @@ def collect_tsdb_data(caches, project, events):
 
         frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][environment.id] += 1
 
-        # TODO: Double check this!
         release = event.get_tag('sentry:release')
         if release:
             # TODO: I'm also not sure if "environment" here is correct, see
