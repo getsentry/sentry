@@ -487,8 +487,8 @@ class CspReportView(StoreView):
         # `sentry_version` to be set in querystring
         auth = helper.auth_from_request(request)
 
-        project_id = helper.project_id_from_auth(auth)
-        if project_id != project.id:
+        key = helper.project_key_from_auth(auth)
+        if key.project_id != project.id:
             raise APIError('Two different projects were specified')
 
         helper.context.bind_auth(auth)
@@ -499,6 +499,7 @@ class CspReportView(StoreView):
             project=project,
             auth=auth,
             helper=helper,
+            key=key,
             **kwargs
         )
 
