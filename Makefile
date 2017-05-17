@@ -120,7 +120,7 @@ test-acceptance:
 
 test-python-coverage:
 	@echo "--> Running Python tests"
-	coverage run --source=src/sentry -m py.test tests/integration tests/sentry
+	SOUTH_TESTS_MIGRATE=1 coverage run --source=src/sentry -m py.test tests/integration tests/sentry
 	@echo ""
 
 lint: lint-python lint-js
