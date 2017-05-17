@@ -36,8 +36,8 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                 keys=[key.id],
                 **stat_args
             )[key.id]
-            for ts, count in result:
-                stats[ts][name] = count
+            for ts, count in reversed(result):
+                stats[int(ts)][name] = count
 
         return Response([
             {

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -36,7 +37,8 @@ def update_key_scenario(runner):
 
 class RateLimitSerializer(serializers.Serializer):
     count = serializers.IntegerField(min_value=0, required=False)
-    window = serializers.IntegerField(min_value=0, max_value=60*24, required=False)
+    window = serializers.IntegerField(min_value=0, max_value=60 * 24,
+                                      required=False)
 
 
 class KeySerializer(serializers.Serializer):
@@ -97,12 +99,13 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             elif result.get('isActive') is False:
                 key.status = ProjectKeyStatus.INACTIVE
 
-            if result.get('rateLimit', -1) is None:
-                key.rate_limit_count = None
-                key.rate_limit_window = None
-            elif result.get('rateLimit'):
-                key.rate_limit_count = result['rateLimit']['count']
-                key.rate_limit_window = result['rateLimit']['window']
+            if features.has('project:rate-limits', project):
+                if result.get('rateLimit', -1) is None:
+                    key.rate_limit_count = None
+                    key.rate_limit_window = None
+                elif result.get('rateLimit'):
+                    key.rate_limit_count = result['rateLimit']['count']
+                    key.rate_limit_window = result['rateLimit']['window']
 
             key.save()
 

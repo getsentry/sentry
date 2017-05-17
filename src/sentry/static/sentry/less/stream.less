@@ -1244,16 +1244,19 @@
 * ============================================================================
 */
 
-.alert-box, .empty-stream {
+.alert-box, .empty-stream, .disabled-feature {
   border: 1px solid @trim;
   border-radius: 0 0 2px 2px;
   text-align: center;
   font-size: 22px;
-  padding: 48px 0 48px;
+  padding: 48px 0;
 
   p {
     line-height: 1.2;
-    margin: 0 auto 10px;
+    margin: 0 auto 20px;
+    &:last-child {
+      margin-bottom: 0;
+    }
   }
 
   .icon {
@@ -1265,6 +1268,15 @@
   }
 }
 
+.disabled-feature {
+  padding: 30px 0;
+  border-radius: 2px;
+  font-size: 18px;
+
+  h5 {
+    font-size: 22px;
+  }
+}
 
 
 /**

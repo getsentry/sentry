@@ -7,10 +7,11 @@ import idx from 'idx';
 import ApiMixin from '../mixins/apiMixin';
 import AutoSelectText from '../components/autoSelectText';
 import DateTime from '../components/dateTime';
+import HookStore from '../stores/hookStore';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import OrganizationState from '../mixins/organizationState';
+import ProjectState from '../mixins/projectState';
 import StackedBarChart from '../components/stackedBarChart';
 import {
   BooleanField,
@@ -132,15 +133,21 @@ const KeySettings = React.createClass({
     data: React.PropTypes.object.isRequired,
     initialData: React.PropTypes.object,
     onRemove: React.PropTypes.func.isRequired,
-    onSave: React.PropTypes.func.isRequired
+    onSave: React.PropTypes.func.isRequired,
+    rateLimitsEnabled: React.PropTypes.bool
   },
 
   mixins: [ApiMixin],
 
   getInitialState() {
+    let hooksDisabled = [];
+    HookStore.get('project:rate-limits-disabled').forEach(cb => {
+      hooksDisabled.push(cb());
+    });
     return {
       formData: Object.assign({}, this.props.initialData),
-      errors: {}
+      errors: {},
+      hooksDisabled: hooksDisabled
     };
   },
 
@@ -247,8 +254,7 @@ const KeySettings = React.createClass({
     let isSaving = this.state.state === FormState.SAVING;
     let {errors, formData} = this.state;
     let hasChanges = !underscore.isEqual(this.props.initialData, formData);
-    let {access, data} = this.props;
-
+    let {access, data, rateLimitsEnabled, params} = this.props;
     return (
       <form onSubmit={this.onSubmit} className="form-stacked">
         {this.state.state === FormState.ERROR &&
@@ -285,45 +291,56 @@ const KeySettings = React.createClass({
               onChange={this.onFieldChange.bind(this, 'isActive')}
             />
 
-            <div className="form-group">
-              <label>{t('Rate Limit')}</label>
-              <div>
-                <div style={{width: 80, display: 'inline-block'}}>
-                  <NumberField
-                    key="rateLimit.count"
-                    name="rateLimit.count"
-                    min={0}
-                    value={idx(formData, _ => _.rateLimit.count)}
-                    required={false}
-                    error={errors.rateLimit}
-                    placeholder={t('count')}
-                    onChange={this.onRateLimitChange.bind(this, 'count')}
-                  />
-                </div>
-                <div style={{display: 'inline-block', margin: '0 10px'}}>
-                  <small>event(s) in</small>
-                </div>
-                <div style={{width: 150, display: 'inline-block'}}>
-                  <Select2Field
-                    width="100%"
-                    key="rateLimit.window"
-                    name="rateLimit.window"
-                    choices={this.getRateLimitWindows()}
-                    value={idx(formData, _ => _.rateLimit.window)}
-                    required={false}
-                    error={errors.rateLimit}
-                    placeholder={t('window')}
-                    allowClear={true}
-                    onChange={this.onRateLimitChange.bind(this, 'window')}
-                  />
-                </div>
-              </div>
-              <div className="help-block">
-                {t(
-                  'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
-                )}
-              </div>
-            </div>
+            {!rateLimitsEnabled
+              ? this.state.hooksDisabled
+                  .map(hook => {
+                    return hook({
+                      projectKey: data,
+                      ...params
+                    });
+                  })
+                  .find(() => true)
+              : <div className="form-group">
+                  <label>{t('Rate Limit')}</label>
+                  <div>
+                    <div style={{width: 80, display: 'inline-block'}}>
+                      <NumberField
+                        key="rateLimit.count"
+                        name="rateLimit.count"
+                        min={0}
+                        value={idx(formData, _ => _.rateLimit.count)}
+                        required={false}
+                        error={errors.rateLimit}
+                        placeholder={t('count')}
+                        onChange={this.onRateLimitChange.bind(this, 'count')}
+                        className=""
+                      />
+                    </div>
+                    <div style={{display: 'inline-block', margin: '0 10px'}}>
+                      <small>event(s) in</small>
+                    </div>
+                    <div style={{width: 150, display: 'inline-block'}}>
+                      <Select2Field
+                        width="100%"
+                        key="rateLimit.window"
+                        name="rateLimit.window"
+                        choices={this.getRateLimitWindows()}
+                        value={idx(formData, _ => _.rateLimit.window)}
+                        required={false}
+                        error={errors.rateLimit}
+                        placeholder={t('window')}
+                        allowClear={true}
+                        onChange={this.onRateLimitChange.bind(this, 'window')}
+                        className=""
+                      />
+                    </div>
+                    <div className="help-block">
+                      {t(
+                        'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                      )}
+                    </div>
+                  </div>
+                </div>}
 
             <div className="form-group">
               <label>{t('Created')}</label>
@@ -439,7 +456,7 @@ const KeySettings = React.createClass({
 });
 
 export default React.createClass({
-  mixins: [ApiMixin, OrganizationState],
+  mixins: [ApiMixin, ProjectState],
 
   getInitialState() {
     return {
@@ -511,6 +528,7 @@ export default React.createClass({
               name: data.name,
               rateLimit: data.rateLimit
             }}
+            rateLimitsEnabled={this.getProjectFeatures().has('rate-limits')}
             data={data}
             onSave={this.handleSave}
             onRemove={this.handleRemove}
