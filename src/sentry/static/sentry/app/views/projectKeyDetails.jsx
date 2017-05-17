@@ -11,6 +11,7 @@ import IndicatorStore from '../stores/indicatorStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationState from '../mixins/organizationState';
+import StackedBarChart from '../components/stackedBarChart';
 import {
   BooleanField,
   FormState,
@@ -20,12 +21,114 @@ import {
 } from '../components/forms';
 import {t, tct} from '../locale';
 
+const KeyStats = React.createClass({
+  mixins: [ApiMixin],
+
+  getInitialState() {
+    let until = Math.floor(new Date().getTime() / 1000);
+    let since = until - 3600 * 24 * 30;
+
+    return {
+      since: since,
+      until: until,
+      loading: true,
+      error: false,
+      stats: null,
+      emptyStats: false
+    };
+  },
+
+  componentWillMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
+    let {keyId, orgId, projectId} = this.props.params;
+    this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/stats/`, {
+      query: {
+        since: this.state.since,
+        until: this.state.until,
+        resolution: '1d'
+      },
+      success: data => {
+        let emptyStats = true;
+        let stats = data.map(p => {
+          if (p.total) emptyStats = false;
+          return {
+            x: p.ts,
+            y: [p.accepted, p.dropped, p.filtered]
+          };
+        });
+        this.setState({
+          stats: stats,
+          emptyStats: emptyStats,
+          error: false,
+          loading: false
+        });
+      },
+      error: () => {
+        this.setState({error: true, loading: false});
+      }
+    });
+  },
+
+  renderTooltip(point, pointIdx, chart) {
+    let timeLabel = chart.getTimeLabel(point);
+    let [accepted, dropped, filtered] = point.y;
+
+    let value = `${accepted.toLocaleString()} accepted`;
+    if (dropped) {
+      value += `<br>${dropped.toLocaleString()} rate limited`;
+    }
+    if (filtered) {
+      value += `<br>${filtered.toLocaleString()} filtered`;
+    }
+
+    return (
+      '<div style="width:150px">' +
+      `<div class="time-label">${timeLabel}</div>` +
+      `<div class="value-label">${value}</div>` +
+      '</div>'
+    );
+  },
+
+  render() {
+    if (this.state.loading) return <div className="box"><LoadingIndicator /></div>;
+    else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
+
+    return (
+      <div className="panel panel-default">
+        <div className="panel-heading">
+          <h6>{t('Key usage in the last 30 days (by day)')}</h6>
+        </div>
+        <div className="panel-body p-a-0">
+          {!this.state.emptyStats
+            ? <div className="inbound-filters-stats p-a-1">
+                <div className="bar-chart">
+                  <StackedBarChart
+                    points={this.state.stats}
+                    height={100}
+                    barClasses={['accepted', 'rate-limited', 'black-listed']}
+                    className="sparkline m-b-0"
+                    tooltip={this.renderTooltip}
+                  />
+                </div>
+              </div>
+            : <div className="blankslate p-y-2">
+                <h5>{t('Nothing recorded in the last 30 days.')}</h5>
+                <p className="m-b-0">
+                  {t('Total events captured using these credentials.')}
+                </p>
+              </div>}
+        </div>
+      </div>
+    );
+  }
+});
+
 const KeySettings = React.createClass({
   propTypes: {
     access: React.PropTypes.object.isRequired,
-    keyId: React.PropTypes.string.isRequired,
-    orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired,
     data: React.PropTypes.object.isRequired,
     initialData: React.PropTypes.object,
     onRemove: React.PropTypes.func.isRequired,
@@ -78,7 +181,7 @@ const KeySettings = React.createClass({
       },
       () => {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {keyId, orgId, projectId} = this.props;
+        let {keyId, orgId, projectId} = this.props.params;
         this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
           method: 'PUT',
           data: this.state.formData,
@@ -108,7 +211,7 @@ const KeySettings = React.createClass({
     if (this.state.loading) return;
 
     let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-    let {keyId, orgId, projectId} = this.props;
+    let {keyId, orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/keys/${keyId}/`, {
       method: 'DELETE',
       success: (d, _, jqXHR) => {
@@ -391,17 +494,18 @@ export default React.createClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     let {data} = this.state;
-    let {keyId, orgId, projectId} = this.props.params;
+    let {params} = this.props;
 
     return (
       <DocumentTitle title={t('Key Details')}>
         <div className="ref-key-details">
           <h2>{t('Key Details')}</h2>
+
+          <KeyStats params={params} />
+
           <KeySettings
             access={this.getAccess()}
-            keyId={keyId}
-            orgId={orgId}
-            projectId={projectId}
+            params={params}
             initialData={{
               isActive: data.isActive,
               name: data.name,
