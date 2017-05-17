@@ -463,6 +463,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.reports',
     'sentry.tasks.reprocessing',
     'sentry.tasks.store',
+    'sentry.tasks.unmerge',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
@@ -487,6 +488,7 @@ CELERY_QUEUES = [
     Queue('reports.prepare', routing_key='reports.prepare'),
     Queue('search', routing_key='search'),
     Queue('stats', routing_key='stats'),
+    Queue('unmerge', routing_key='unmerge'),
     Queue('update', routing_key='update'),
 ]
 
