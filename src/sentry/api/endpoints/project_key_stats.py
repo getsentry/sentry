@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import six
 
-from collections import defaultdict
+from collections import OrderedDict
 from rest_framework.response import Response
 
 from sentry import tsdb
@@ -25,7 +25,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         stat_args = self._parse_args(request)
 
-        stats = defaultdict(lambda: {'total': 0, 'filtered': 0, 'dropped': 0})
+        stats = OrderedDict()
         for model, name in (
             (tsdb.models.key_total_received, 'total'),
             (tsdb.models.key_total_blacklisted, 'filtered'),
@@ -37,7 +37,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                 **stat_args
             )[key.id]
             for ts, count in reversed(result):
-                stats[int(ts)][name] = count
+                stats.setdefault(int(ts), {})[name] = count
 
         return Response([
             {
