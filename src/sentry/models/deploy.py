@@ -44,7 +44,7 @@ class Deploy(Model):
         from sentry.models import Activity, Environment, ReleaseCommit, ReleaseHeadCommit
 
         lock_key = cls.get_lock_key(deploy_id)
-        lock = locks.get(lock_key, duration=5)
+        lock = locks.get(lock_key, duration=30)
         with TimedRetryPolicy(10)(lock.acquire):
             deploy = cls.objects.filter(
                 id=deploy_id,
