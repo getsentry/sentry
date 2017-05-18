@@ -456,7 +456,7 @@ class CliTestCase(TestCase):
 class AcceptanceTestCase(TransactionTestCase):
     def setUp(self):
         patcher = patch('django.utils.timezone.now', return_value=(
-            datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.UTC)
+            datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=timezone.utc)
         ))
         patcher.start()
         self.addCleanup(patcher.stop)
