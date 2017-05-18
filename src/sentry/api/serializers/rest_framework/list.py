@@ -4,11 +4,11 @@ from rest_framework.serializers import WritableField, ValidationError
 
 
 class ListField(WritableField):
-    def __init__(self, child=None, allow_none=True, **kwargs):
+    def __init__(self, child=None, allow_null=True, **kwargs):
         if child:
             assert isinstance(child, WritableField)
         self.child = child
-        self.allow_none = allow_none
+        self.allow_null = allow_null
         super(ListField, self).__init__(**kwargs)
 
     def initialize(self, parent, field_name):
@@ -45,7 +45,7 @@ class ListField(WritableField):
 
         if self.child:
             for item in value:
-                if item is None and not self.allow_none:
+                if item is None and not self.allow_null:
                     raise ValidationError('Incorrect type. Expected value, but got null')
                 self.child.validate(item)
 

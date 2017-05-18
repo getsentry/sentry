@@ -46,16 +46,16 @@ class ReleaseSerializer(serializers.Serializer):
     ref = serializers.CharField(max_length=64, required=False)
     url = serializers.URLField(required=False)
     dateReleased = serializers.DateTimeField(required=False)
-    commits = ListField(child=CommitSerializer(), required=False, allow_none=False)
+    commits = ListField(child=CommitSerializer(), required=False, allow_null=False)
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,
-        allow_none=False
+        allow_null=False
     )
     refs = ListField(
         child=ReleaseHeadCommitSerializer(),
         required=False,
-        allow_none=False,
+        allow_null=False,
     )
 
 

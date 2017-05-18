@@ -43,12 +43,12 @@ class ReleaseSerializerWithProjects(ReleaseSerializer):
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,
-        allow_none=False,
+        allow_null=False,
     )
     refs = ListField(
         child=ReleaseHeadCommitSerializer(),
         required=False,
-        allow_none=False,
+        allow_null=False,
     )
 
 
