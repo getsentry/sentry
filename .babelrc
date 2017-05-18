@@ -19,7 +19,10 @@
           "Array"
         ]
       }
-    ]
+    ],
+    ["styled-components", {
+      "displayName": true
+    }]
   ],
   "env": {
     "test": {
