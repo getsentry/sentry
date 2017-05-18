@@ -534,7 +534,7 @@ def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, curso
         events,
     )
 
-    return unmerge.delay(
+    unmerge.delay(
         project_id,
         source_id,
         destination_id,
