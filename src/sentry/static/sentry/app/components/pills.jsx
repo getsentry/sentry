@@ -1,13 +1,8 @@
-import React from 'react';
+import styled from 'styled-components';
 
-const Pills = React.createClass({
-  render() {
-    return (
-      <div className={this.props.className + ' pills'}>
-        {this.props.children}
-      </div>
-    );
-  }
-});
+const Pills = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+`;
 
 export default Pills;
