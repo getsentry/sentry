@@ -108,7 +108,7 @@ class RiakClient(object):
         """
         # Each request is paired with a thread.Event to signal when it is finished
         requests = [
-            (key, self.build_url(bucket, key, {'foo': 'bar'}), Event())
+            (key, self.build_url(bucket, key, kwargs), Event())
             for key in keys
         ]
 
