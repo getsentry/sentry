@@ -11,6 +11,7 @@ from __future__ import absolute_import
 import six
 import sys
 import socket
+from base64 import b64encode
 from random import shuffle
 from six.moves.queue import Queue
 from time import time
@@ -28,6 +29,11 @@ from urllib3.exceptions import HTTPError
 DEFAULT_NODES = (
     {'host': '127.0.0.1', 'port': 8098},
 )
+
+
+def encode_basic_auth(auth):
+    auth = ':'.join(auth)
+    return 'Basic ' + b64encode(auth).decode('utf-8')
 
 
 class RiakClient(object):
@@ -194,7 +200,12 @@ class ConnectionManager(object):
             # block=False
             'maxsize': host.get('maxsize', 5),
             'block': False,
+            'headers': host.get('headers', {})
         }
+
+        if 'basic_auth' in host:
+            options['headers']['authorization'] = encode_basic_auth(host['basic_auth'])
+
         if self.tcp_keepalive:
             options['socket_options'] = HTTPConnection.default_socket_options + [
                 (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
@@ -222,7 +233,7 @@ class ConnectionManager(object):
                 })
         return connection_cls(addr, port, **options)
 
-    def urlopen(self, method, path, **kwargs):
+    def urlopen(self, method, path, headers=None, **kwargs):
         """
         Make a request using the next server according to the connection
         strategy, and retries up to max_retries attempts. Ultimately,
@@ -248,8 +259,10 @@ class ConnectionManager(object):
                     self.force_revive()
 
                 conn = self.strategy.next(self.connections)  # NOQA
+                if headers is not None:
+                    headers = dict(conn.headers, **headers)
                 try:
-                    return conn.urlopen(method, path, **kwargs)
+                    return conn.urlopen(method, path, headers=headers, **kwargs)
                 except HTTPError:
                     self.mark_dead(conn)
                     last_error = sys.exc_info()

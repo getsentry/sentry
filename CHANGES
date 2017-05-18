@@ -1,7 +1,7 @@
 Version 8.17 (Unreleased)
 -------------------------
-- Added @mentions to comments
 
+- Added @mentions to comments
 - Initial (internal) analytics abstraction.
 - Turned on reprocessing by default
 - Added basics for Data Forwarding integrations.
@@ -9,6 +9,7 @@ Version 8.17 (Unreleased)
 - Removed global dsym support.
 - Removed support for legacy apple report format.
 
+- The threads interface now contributes to grouping if it contains a single thread.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -17,6 +18,7 @@ Schema Changes
 - Dropped ``GroupTagValue.project_id`` foreign key constraint
 - Added ``Deploy.notified`` column
 - Added index on ``EventTag.date_added``
+- Added unique index on ``Environment(organization_id, name)``
 
 Version 8.16
 ------------
