@@ -148,7 +148,9 @@ const ProjectReleaseTracking = React.createClass({
       <div>
         <h2>{t('Release Tracking')}</h2>
         <p>
-          Configure release tracking for this project to automatically record new releases of your application.
+          {t(
+            'Configure release tracking for this project to automatically record new releases of your application.'
+          )}
         </p>
         <div className="box">
           <div className="box-header">
@@ -156,16 +158,20 @@ const ProjectReleaseTracking = React.createClass({
           </div>
           <div className="box-content with-padding">
             <p>
-              Start by binding the <code>release</code> attribute in your application:
+              {t(
+                'Start by binding the <code>release</code> attribute in your application:'
+              )}
             </p>
             <pre>{this.getReleaseClientConfigurationIntructions()}</pre>
             <p>
-              This will annotate each event with the version of your application, as well as
-              automatically create a release entity in the system the first time it's seen.
+              {t(
+                "This will annotate each event with the version of your application, as well as automatically create a release entity in the system the first time it's seen."
+              )}
             </p>
             <p>
-              In addition you may configure a release hook (or use our API) to push a release
-              and include additional metadata with it.
+              {t(
+                'In addition you may configure a release hook (or use our API) to push a release and include additional metadata with it.'
+              )}
             </p>
           </div>
         </div>
@@ -177,7 +183,9 @@ const ProjectReleaseTracking = React.createClass({
           <div className="box-content with-padding">
             <form>
               <p>
-                Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.
+                {t(
+                  'Your token is a unique secret which is used to generate deploy hook URLs. If a service becomes compromised, you should regenerate the token and re-configure any deploy hooks with the newly generated URL.'
+                )}
               </p>
               <p>
                 <code style={{display: 'inlineBlock'}} className="auto-select">
@@ -203,13 +211,17 @@ const ProjectReleaseTracking = React.createClass({
           <div className="box-content with-padding">
             <form>
               <p>
-                If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.
+                {t(
+                  'If you simply want to integrate with an existing system, sometimes its easiest just to use a webhook.'
+                )}
               </p>
 
               <pre className="auto-select">{this.state.webhookUrl}</pre>
 
               <p>
-                The release webhook accepts the same parameters as the "Create a new Release" API endpoint, for example:
+                {t(
+                  'The release webhook accepts the same parameters as the "Create a new Release" API endpoint, for example:'
+                )}
               </p>
 
               <pre className="auto-select">{this.getReleaseWebhookIntructions()}</pre>
@@ -230,17 +242,18 @@ const ProjectReleaseTracking = React.createClass({
           </div>
           <div className="box-content with-padding">
             <p>
-              You can notify Sentry when you release new versions of your application via our HTTP API.
+              {t(
+                'You can notify Sentry when you release new versions of your application via our HTTP API.'
+              )}
             </p>
 
             <p>
-              See the
-              {' '}
+              {t('See the ')}
               <a href="https://docs.sentry.io/hosted/api/releases/">
-                Releases API documentation
+                {t('Releases API documentation')}
               </a>
               {' '}
-              for more information.
+              {t('for more information.')}
             </p>
           </div>
         </div>

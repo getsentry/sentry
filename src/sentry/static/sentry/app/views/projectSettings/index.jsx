@@ -69,6 +69,7 @@ const ProjectSettings = React.createClass({
   },
 
   render() {
+    let access = this.getAccess();
     // TODO(dcramer): move sidebar into component
     if (this.state.loading) return <LoadingIndicator />;
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
@@ -99,11 +100,12 @@ const ProjectSettings = React.createClass({
             <li>
               <a href={`${settingsUrlRoot}/issue-tracking/`}>{t('Issue Tracking')}</a>
             </li>
-            <ListLink
-              to={`/${orgId}/${projectId}/settings/release-tracking/`}
-              isActive={loc => path.indexOf(loc.pathname) === 0}>
-              {t('Release Tracking')}
-            </ListLink>
+            {access.has('project:write') &&
+              <ListLink
+                to={`/${orgId}/${projectId}/settings/release-tracking/`}
+                isActive={loc => path.indexOf(loc.pathname) === 0}>
+                {t('Release Tracking')}
+              </ListLink>}
             <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
               {t('Data Forwarding')}
             </ListLink>

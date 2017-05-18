@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.core.urlresolvers import reverse
 from sentry.utils.http import absolute_uri
 
-from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models import ProjectOption
 
 
@@ -29,7 +29,7 @@ def _get_signature(project_id, plugin_id, token):
 
 
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission,)
+    permission_classes = (StrictProjectPermission,)
 
     def _regenerate_token(self, project):
         token = uuid1().hex
