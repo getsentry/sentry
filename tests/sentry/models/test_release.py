@@ -1,9 +1,9 @@
 from __future__ import absolute_import
 
 from sentry.models import (
-    Commit, Group, GroupCommitResolution, GroupRelease, GroupResolution,
-    GroupResolutionStatus, GroupStatus, Release, ReleaseCommit,
-    ReleaseEnvironment, ReleaseProject, Repository
+    Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease,
+    GroupResolution, GroupResolutionStatus, GroupStatus, Release,
+    ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 
 from sentry.testutils import TestCase
@@ -198,3 +198,96 @@ class SetCommitsTestCase(TestCase):
         # test that backfilling works
         assert Commit.objects.filter(key='a' * 40, repository_id=repo.id).exists()
         assert not Commit.objects.filter(key='b' * 40, repository_id=repo.id).exists()
+
+    def test_backfilling_commits(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name='foo')
+        group = self.create_group(project=project)
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+
+        commit = Commit.objects.create(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='b' * 40,
+        )
+
+        release = Release.objects.create(version='abcdabc', organization=org)
+        release.add_project(project)
+        release.set_commits([{
+            'id': 'a' * 40,
+            'repository': repo.name,
+            'author_email': 'foo@example.com',
+            'author_name': 'foo bar baz',
+            'message': 'i fixed a bug',
+        }, {
+            'id': 'b' * 40,
+            'repository': repo.name,
+            'author_email': 'foo@example.com',
+            'author_name': 'foo bar baz',
+            'message': 'i fixed another bug',
+        }, {
+            'id': 'c' * 40,
+            'repository': repo.name,
+            'author_email': 'foo@example.com',
+            'author_name': 'foo bar baz',
+            'message': 'fixes %s' % (group.qualified_short_id),
+        }])
+
+        assert Commit.objects.filter(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='a' * 40,
+        ).exists()
+        assert Commit.objects.filter(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='c' * 40,
+        ).exists()
+
+        assert CommitAuthor.objects.filter(
+            name='foo bar baz',
+            email='foo@example.com',
+            organization_id=org.id,
+        ).exists()
+
+        # test that backfilling fills in missing message and author
+        commit = Commit.objects.get(id=commit.id)
+        assert commit.message == 'i fixed another bug'
+        assert commit.author
+        assert commit.author.email == 'foo@example.com'
+        assert commit.author.name == 'foo bar baz'
+
+        assert ReleaseCommit.objects.filter(
+            commit__key='a' * 40,
+            commit__repository_id=repo.id,
+            release=release,
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__key='b' * 40,
+            commit__repository_id=repo.id,
+            release=release,
+        ).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__key='c' * 40,
+            commit__repository_id=repo.id,
+            release=release,
+        ).exists()
+
+        assert GroupCommitResolution.objects.filter(
+            group_id=group.id,
+            commit_id=Commit.objects.get(
+                key='c' * 40,
+                repository_id=repo.id,
+            ).id,
+        ).exists()
+
+        assert GroupResolution.objects.filter(group=group, release=release).exists()
+        assert GroupResolution.objects.get(
+            group=group,
+            release=release,
+        ).status == GroupResolutionStatus.RESOLVED
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED

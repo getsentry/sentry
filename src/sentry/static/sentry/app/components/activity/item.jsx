@@ -9,7 +9,7 @@ import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
 import Version from '../../components/version';
 
-import {tct} from '../../locale';
+import {t, tn, tct} from '../../locale';
 
 const ActivityItem = React.createClass({
   propTypes: {
@@ -150,6 +150,19 @@ const ActivityItem = React.createClass({
           provider: data.provider,
           issue: issueLink
         });
+      case 'unmerge_destination':
+        return tn(
+          '%2$s migrated %1$d fingerprint from %3$s to %4$s',
+          '%2$s migrated %1$d fingerprints from %3$s to %4$s',
+          data.fingerprints.length,
+          author,
+          data.source
+            ? <a href={`/${orgId}/${project.slug}/issues/${data.source.id}`}>
+                {data.source.shortId}
+              </a>
+            : t('a group'),
+          issueLink
+        );
       case 'first_seen':
         return tct('[author] saw [link:issue]', {
           author: author,

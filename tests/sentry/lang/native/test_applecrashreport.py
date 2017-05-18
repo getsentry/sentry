@@ -411,3 +411,20 @@ Exception Codes: BUS_NOOP at 0x10\n\
 Crashed Thread: 0\n\n\
 Application Specific Information:\n\
 Attempted to dereference garbage pointer 0x10.'
+
+
+def test__get_exception_info_partial():
+    acr = AppleCrashReport(exception=[{
+        "value": "Attempted to dereference garbage pointer 0x10.",
+        "mechanism": {
+            "posix_signal": None,
+            "mach_exception": None,
+        },
+        "type": "EXC_BAD_ACCESS",
+        "thread_id": 0
+    }])
+    exception_info = acr._get_exception_info()
+    assert exception_info == '\
+Crashed Thread: 0\n\n\
+Application Specific Information:\n\
+Attempted to dereference garbage pointer 0x10.'

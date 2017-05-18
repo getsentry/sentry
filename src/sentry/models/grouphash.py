@@ -10,6 +10,7 @@ from __future__ import absolute_import
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model
+from sentry.utils import redis
 
 
 class GroupHash(Model):
@@ -23,3 +24,38 @@ class GroupHash(Model):
         app_label = 'sentry'
         db_table = 'sentry_grouphash'
         unique_together = (('project', 'hash'),)
+
+    @staticmethod
+    def fetch_last_processed_event_id(project_id, group_hash_ids):
+        prefix = 'last-processed-event:{}'.format(project_id)
+        with redis.clusters.get('default').map() as client:
+            results = map(
+                lambda group_hash_id: client.hget(
+                    '{}:{}'.format(prefix, group_hash_id % 16),
+                    group_hash_id,
+                ),
+                group_hash_ids,
+            )
+
+        return map(
+            lambda result: result.value,
+            results,
+        )
+
+    @staticmethod
+    def record_last_processed_event_id(project_id, group_hash_ids, event_id):
+        prefix = 'last-processed-event:{}'.format(project_id)
+        with redis.clusters.get('default').map() as client:
+            results = map(
+                lambda group_hash_id: client.hset(
+                    '{}:{}'.format(prefix, group_hash_id % 16),
+                    group_hash_id,
+                    event_id,
+                ),
+                group_hash_ids,
+            )
+
+        return map(
+            lambda result: result.value,
+            results,
+        )

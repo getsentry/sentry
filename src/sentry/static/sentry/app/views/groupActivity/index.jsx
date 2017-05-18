@@ -88,6 +88,30 @@ const GroupActivity = React.createClass({
           provider: data.provider,
           title: <a href={data.location}>{data.title}</a>
         });
+      case 'unmerge_source':
+        return tn(
+          '%2$s migrated %1$d fingerprint to %3$s',
+          '%2$s migrated %1$d fingerprints to %3$s',
+          data.fingerprints.length,
+          author,
+          data.destination
+            ? <a href={`/${orgId}/${projectId}/issues/${data.destination.id}`}>
+                {data.destination.shortId}
+              </a>
+            : t('a group')
+        );
+      case 'unmerge_destination':
+        return tn(
+          '%2$s migrated %1$d fingerprint from %3$s',
+          '%2$s migrated %1$d fingerprints from %3$s',
+          data.fingerprints.length,
+          author,
+          data.source
+            ? <a href={`/${orgId}/${projectId}/issues/${data.source.id}`}>
+                {data.source.shortId}
+              </a>
+            : t('a group')
+        );
       case 'first_seen':
         return t('%s first saw this issue', author);
       case 'assigned':
