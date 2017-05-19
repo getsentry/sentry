@@ -299,6 +299,15 @@ const KeySettings = React.createClass({
                 <DateTime date={data.dateCreated} />
               </div>
             </div>
+
+            <fieldset className="form-actions">
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={isSaving || !hasChanges}>
+                {t('Save Changes')}
+              </button>
+            </fieldset>
           </div>
         </div>
 
@@ -354,6 +363,14 @@ const KeySettings = React.createClass({
                     </div>
                   </div>
                 </div>
+                <fieldset className="form-actions">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={isSaving || !hasChanges}>
+                    {t('Save Changes')}
+                  </button>
+                </fieldset>
               </div>
             </div>}
         <div className="box dsn-credentials">
@@ -445,15 +462,6 @@ const KeySettings = React.createClass({
               </fieldset>
             </div>
           </div>}
-
-        <div className="form-actions">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isSaving || !hasChanges}>
-            {t('Save Changes')}
-          </button>
-        </div>
       </form>
     );
   }
