@@ -142,7 +142,7 @@ const KeySettings = React.createClass({
   getInitialState() {
     let hooksDisabled = [];
     HookStore.get('project:rate-limits:disabled').forEach(cb => {
-      hooksDisabled.push(cb());
+      hooksDisabled.push(cb);
     });
     return {
       formData: Object.assign({}, this.props.initialData),
