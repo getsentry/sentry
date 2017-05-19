@@ -18,7 +18,7 @@ class PluginSerializer(Serializer):
 
         release_token = ProjectOption.objects.get_value(self.project, 'sentry:release-token')
         if release_token is not None:
-            webhook_url = _get_webhook_url(self.project, release_token)
+            webhook_url = _get_webhook_url(self.project, obj.slug, release_token)
 
             if hasattr(obj, 'get_release_doc_html'):
                 try:

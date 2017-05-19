@@ -1,5 +1,5 @@
 import React from 'react';
-
+import OrganizationState from '../../mixins/organizationState';
 import ApiMixin from '../../mixins/apiMixin';
 import Badge from '../../components/badge';
 import ListLink from '../../components/listLink';
@@ -17,7 +17,7 @@ const ProjectSettings = React.createClass({
     organization: React.PropTypes.object
   },
 
-  mixins: [ApiMixin],
+  mixins: [ApiMixin, OrganizationState],
 
   getInitialState() {
     return {

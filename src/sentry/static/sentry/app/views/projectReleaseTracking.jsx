@@ -48,6 +48,11 @@ const ProjectReleaseTracking = React.createClass({
       },
       complete: done
     });
+    this.getPluginConfig(done);
+  },
+
+  getPluginConfig(done) {
+    let {orgId, projectId} = this.props.params;
     this.api.request(`/projects/${orgId}/${projectId}/plugins/`, {
       success: data => {
         this.setState({
@@ -97,11 +102,13 @@ const ProjectReleaseTracking = React.createClass({
     this.api.request(`/projects/${orgId}/${projectId}/releases/token/`, {
       method: 'POST',
       data: {project: projectId},
-      success: data =>
+      success: data => {
         this.setState({
           token: data.token,
           webhookUrl: data.webhookUrl
-        }),
+        });
+        this.getPluginConfig();
+      },
       error: () => {
         this.setState({
           error: true

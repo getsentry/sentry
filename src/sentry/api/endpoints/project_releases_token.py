@@ -11,12 +11,12 @@ from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.models import ProjectOption
 
 
-def _get_webhook_url(project, token):
+def _get_webhook_url(project, plugin_id, token):
 
     return absolute_uri(reverse('sentry-release-hook', kwargs={
-        'plugin_id': 'builtin',
+        'plugin_id': plugin_id,
         'project_id': project.id,
-        'signature': _get_signature(project.id, 'builtin', token),
+        'signature': _get_signature(project.id, plugin_id, token),
     }))
 
 
@@ -44,7 +44,7 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({
             'token': token,
-            'webhookUrl': _get_webhook_url(project, token)
+            'webhookUrl': _get_webhook_url(project, 'builtin', token)
         })
 
     def post(self, request, project):
@@ -52,5 +52,5 @@ class ProjectReleasesTokenEndpoint(ProjectEndpoint):
 
         return Response({
             'token': token,
-            'webhookUrl': _get_webhook_url(project, token)
+            'webhookUrl': _get_webhook_url(project, 'builtin', token)
         })
