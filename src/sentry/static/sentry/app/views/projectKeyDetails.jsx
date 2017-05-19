@@ -322,8 +322,12 @@ const KeySettings = React.createClass({
                 <h3>{t('Rate Limit')}</h3>
               </div>
               <div className="box-content with-padding">
+                <p>
+                  {
+                    'Rate limits provide a flexible way to manage your event volume. If you have a noisy project or environment you can configure a rate limit for this key to reduce the number of events processed.'
+                  }
+                </p>
                 <div className="form-group">
-                  <label>{t('Rate Limit')}</label>
                   <div>
                     <div style={{width: 80, display: 'inline-block'}}>
                       <NumberField
