@@ -87,8 +87,8 @@ const KeyStats = React.createClass({
 
     return (
       '<div style="width:150px">' +
-      `<div class="time-label">${timeLabel}</div>` +
-      `<div class="value-label">${value}</div>` +
+      `<div class="time-label">${underscore.escape(timeLabel)}</div>` +
+      `<div class="value-label">${underscore.escape(value)}</div>` +
       '</div>'
     );
   },
@@ -142,14 +142,10 @@ const KeySettings = React.createClass({
   mixins: [ApiMixin],
 
   getInitialState() {
-    let hooksDisabled = [];
-    HookStore.get('project:rate-limits:disabled').forEach(cb => {
-      hooksDisabled.push(cb);
-    });
     return {
       formData: Object.assign({}, this.props.initialData),
       errors: {},
-      hooksDisabled: hooksDisabled
+      hooksDisabled: HookStore.get('project:rate-limits:disabled')
     };
   },
 
@@ -316,7 +312,7 @@ const KeySettings = React.createClass({
               .map(hook => {
                 return hook(organization, project, data);
               })
-              .find(() => true)
+              .shift()
           : <div className="box">
               <div className="box-header">
                 <h3>{t('Rate Limits')}</h3>
