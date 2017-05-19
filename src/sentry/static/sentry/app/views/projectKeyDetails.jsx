@@ -129,6 +129,7 @@ const KeyStats = React.createClass({
 
 const KeySettings = React.createClass({
   propTypes: {
+    project: React.PropTypes.object.isRequired,
     access: React.PropTypes.object.isRequired,
     data: React.PropTypes.object.isRequired,
     initialData: React.PropTypes.object,
@@ -254,7 +255,7 @@ const KeySettings = React.createClass({
     let isSaving = this.state.state === FormState.SAVING;
     let {errors, formData} = this.state;
     let hasChanges = !underscore.isEqual(this.props.initialData, formData);
-    let {access, data, rateLimitsEnabled, params} = this.props;
+    let {access, data, rateLimitsEnabled, project} = this.props;
     return (
       <form onSubmit={this.onSubmit} className="form-stacked">
         {this.state.state === FormState.ERROR &&
@@ -301,10 +302,7 @@ const KeySettings = React.createClass({
             {!rateLimitsEnabled
               ? this.state.hooksDisabled
                   .map(hook => {
-                    return hook({
-                      projectKey: data,
-                      ...params
-                    });
+                    return hook(project, data);
                   })
                   .find(() => true)
               : <div className="form-group">
@@ -521,6 +519,7 @@ export default React.createClass({
           <KeyStats params={params} />
 
           <KeySettings
+            project={this.getProject()}
             access={this.getAccess()}
             params={params}
             initialData={{
