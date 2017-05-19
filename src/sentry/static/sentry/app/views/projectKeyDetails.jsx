@@ -291,6 +291,13 @@ const KeySettings = React.createClass({
               onChange={this.onFieldChange.bind(this, 'isActive')}
             />
 
+            <div className="form-group">
+              <label>{t('Created')}</label>
+              <div className="controls">
+                <DateTime date={data.dateCreated} />
+              </div>
+            </div>
+
             {!rateLimitsEnabled
               ? this.state.hooksDisabled
                   .map(hook => {
@@ -341,13 +348,6 @@ const KeySettings = React.createClass({
                     </div>
                   </div>
                 </div>}
-
-            <div className="form-group">
-              <label>{t('Created')}</label>
-              <div className="controls">
-                <DateTime date={data.dateCreated} />
-              </div>
-            </div>
 
             <fieldset className="form-actions">
               <button
