@@ -319,7 +319,7 @@ const KeySettings = React.createClass({
               .find(() => true)
           : <div className="box">
               <div className="box-header">
-                <h3>{t('Rate Limit')}</h3>
+                <h3>{t('Rate Limits')}</h3>
               </div>
               <div className="box-content with-padding">
                 <p>
@@ -328,6 +328,7 @@ const KeySettings = React.createClass({
                   }
                 </p>
                 <div className="form-group">
+                  <label>{t('Rate Limit')}</label>
                   <div>
                     <div style={{width: 80, display: 'inline-block'}}>
                       <NumberField
