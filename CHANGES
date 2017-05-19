@@ -6,6 +6,8 @@ Version 8.17 (Unreleased)
 - Turned on reprocessing by default
 - Added basics for Data Forwarding integrations.
 - The threads interface now contributes to grouping if it contains a single thread.
+- Added per-key (DSN) rate limits (``project:rate-limits`` feature).
+- Added tsdb statistics for events per-key.
 
 Schema Changes
 ~~~~~~~~~~~~~~
