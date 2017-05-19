@@ -1433,6 +1433,7 @@ table.integrations {
 
   figure {
     .clearfix();
+    height: 90px;
     margin-bottom: 20px;
     position: relative;
 
@@ -1444,6 +1445,38 @@ table.integrations {
       span {
         display: block;
         min-height: 2px;
+
+        &.accepted {
+          background: @gray-lightest;
+        }
+
+        &.rate-limited,
+        &.dropped {
+          background: @red;
+          min-height: 0;
+        }
+
+        &.black-listed,
+        &.filtered {
+          background: @orange-light;
+          min-height: 0;
+        }
+      }
+
+      &:hover span {
+        &.accepted {
+          background: @gray-light;
+        }
+
+        &.rate-limited,
+        &.dropped {
+          background: @red-dark;
+        }
+
+        &.black-listed,
+        &.filtered {
+          background: @orange-dark;
+        }
       }
     }
   }

@@ -104,7 +104,7 @@ const KeyRow = React.createClass({
     let editUrl = `/${orgId}/${projectId}/settings/keys/${data.id}/`;
     let controls = [
       <Link key="edit" to={editUrl} className="btn btn-default btn-sm">
-        <span className="icon icon-settings" />
+        {t('Details')}
       </Link>
     ];
     if (access.has('project:write')) {
