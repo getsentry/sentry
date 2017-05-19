@@ -7,7 +7,8 @@ let validHookNames = new Set([
   'organization:sidebar',
   'routes',
   'routes:admin',
-  'routes:organization'
+  'routes:organization',
+  'project:rate-limits:disabled'
 ]);
 
 const HookStore = Reflux.createStore({
