@@ -299,14 +299,21 @@ const KeySettings = React.createClass({
                 <DateTime date={data.dateCreated} />
               </div>
             </div>
+          </div>
+        </div>
 
-            {!rateLimitsEnabled
-              ? this.state.hooksDisabled
-                  .map(hook => {
-                    return hook(organization, project, data);
-                  })
-                  .find(() => true)
-              : <div className="form-group">
+        {!rateLimitsEnabled
+          ? this.state.hooksDisabled
+              .map(hook => {
+                return hook(organization, project, data);
+              })
+              .find(() => true)
+          : <div className="box">
+              <div className="box-header">
+                <h3>{t('Rate Limit')}</h3>
+              </div>
+              <div className="box-content with-padding">
+                <div className="form-group">
                   <label>{t('Rate Limit')}</label>
                   <div>
                     <div style={{width: 80, display: 'inline-block'}}>
@@ -346,19 +353,9 @@ const KeySettings = React.createClass({
                       )}
                     </div>
                   </div>
-                </div>}
-
-            <fieldset className="form-actions">
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSaving || !hasChanges}>
-                {t('Save Changes')}
-              </button>
-            </fieldset>
-          </div>
-        </div>
-
+                </div>
+              </div>
+            </div>}
         <div className="box dsn-credentials">
           <div className="box-header">
             <h3>{t('Credentials')}</h3>
@@ -449,6 +446,14 @@ const KeySettings = React.createClass({
             </div>
           </div>}
 
+        <div className="form-actions">
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={isSaving || !hasChanges}>
+            {t('Save Changes')}
+          </button>
+        </div>
       </form>
     );
   }
