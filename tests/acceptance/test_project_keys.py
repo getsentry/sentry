@@ -28,6 +28,13 @@ class ProjectKeysTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
+        ProjectKey.objects.filter(project=self.project).delete()
+        ProjectKey.objects.create(
+            project=self.project,
+            public_key='5cc0482a13d248ff99f9717101dd6356',
+            secret_key='410fd998318844b8894775f36184ec28',
+        )
+
         self.login_as(self.user)
         self.path = '/{}/{}/settings/keys/'.format(self.org.slug, self.project.slug)
 
@@ -62,7 +69,11 @@ class ProjectKeyDetailsTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-        self.pk = ProjectKey.objects.create(project=self.project)
+        self.pk = ProjectKey.objects.create(
+            project=self.project,
+            public_key='5cc0482a13d248ff99f9717101dd6356',
+            secret_key='410fd998318844b8894775f36184ec28',
+        )
 
         self.login_as(self.user)
         self.path = '/{}/{}/settings/keys/{}/'.format(
