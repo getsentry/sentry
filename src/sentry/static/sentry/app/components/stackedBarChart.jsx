@@ -182,7 +182,11 @@ const StackedBarChart = React.createClass({
     let key = ['m', marker.className, marker.x].join('-');
 
     return (
-      <a key={key} className={className} height={this.props.height} data-title={title}>
+      <a
+        key={key}
+        className={className}
+        style={{height: this.props.height}}
+        data-title={title}>
         <span>{marker.label}</span>
       </a>
     );
