@@ -504,7 +504,7 @@ export default React.createClass({
 
   handleRemove(data) {
     let {orgId, projectId} = this.props.params;
-    browserHistory.push(null, `/${orgId}/${projectId}/settings/keys/`);
+    browserHistory.pushState(null, `/${orgId}/${projectId}/settings/keys/`);
   },
 
   handleSave(data) {
