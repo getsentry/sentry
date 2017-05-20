@@ -210,6 +210,12 @@ export default React.createClass({
               }
             </p>
             <p>
+              Learn more about this functionality in our
+              {' '}
+              <a href="https://docs.sentry.io/learn/data-forwarding/">documentation</a>
+              .
+            </p>
+            <p>
               <small>
                 Note: Sentry will forward
                 {' '}
