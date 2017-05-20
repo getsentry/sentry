@@ -57,7 +57,7 @@ const KeyStats = React.createClass({
           if (p.total) emptyStats = false;
           return {
             x: p.ts,
-            y: [p.accepted, p.dropped, p.filtered]
+            y: [p.accepted, p.dropped]
           };
         });
         this.setState({
@@ -109,7 +109,7 @@ const KeyStats = React.createClass({
                   <StackedBarChart
                     points={this.state.stats}
                     height={100}
-                    barClasses={['accepted', 'rate-limited', 'black-listed']}
+                    barClasses={['accepted', 'rate-limited']}
                     className="sparkline m-b-0"
                     tooltip={this.renderTooltip}
                   />
