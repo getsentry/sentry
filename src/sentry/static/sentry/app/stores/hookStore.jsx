@@ -8,6 +8,7 @@ let validHookNames = new Set([
   'routes',
   'routes:admin',
   'routes:organization',
+  'project:data-forwarding:disabled',
   'project:rate-limits:disabled'
 ]);
 
