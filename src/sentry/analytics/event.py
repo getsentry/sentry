@@ -14,27 +14,24 @@ class Attribute(object):
         self.type = type
         self.required = required
 
-    def serialize(self, value):
+    def extract(self, value):
         if value is None:
             return value
         return self.type(value)
 
 
 class Map(Attribute):
-    attributes = ()
-
     def __init__(self, name, attributes=None, required=True):
         self.name = name
         self.required = required
-        if attributes:
-            self.attributes = attributes
+        self.attributes = attributes
 
-    def serialize(self, value):
+    def extract(self, value):
         """
         If passed a non dictionary we assume we can pull attributes from it.
 
-        This will hard error in some situations if you're passing some obscure
-        value (like an int).
+        This will hard error in some situations if you're passing a bad type
+        (like an int).
         """
         if value is None:
             return value
@@ -42,15 +39,15 @@ class Map(Attribute):
         if not isinstance(value, Mapping):
             new_value = {}
             for attr in self.attributes:
-                new_value[attr.name] = attr.serialize(
+                new_value[attr.name] = attr.extract(
                     getattr(value, attr.name, None)
                 )
-            value = new_value
-
-        # ensure we dont mutate the original
-        # we dont need to deepcopy as if it recurses into another Map it
-        # will once again copy itself
-        items = value.copy()
+            items = new_value
+        else:
+            # ensure we dont mutate the original
+            # we dont need to deepcopy as if it recurses into another Map it
+            # will once again copy itself
+            items = value.copy()
 
         data = {}
         for attr in self.attributes:
@@ -60,7 +57,7 @@ class Map(Attribute):
                     attr.name,
                 ))
 
-            data[attr.name] = attr.serialize(nv)
+            data[attr.name] = attr.extract(nv)
 
         if items:
             raise ValueError(u'Unknown attributes: {}'.format(
@@ -92,7 +89,7 @@ class Event(object):
                 raise ValueError(u'{} is required (cannot be None)'.format(
                     attr.name,
                 ))
-            data[attr.name] = attr.serialize(nv)
+            data[attr.name] = attr.extract(nv)
 
         if items:
             raise ValueError(u'Unknown attributes: {}'.format(
