@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+from django.utils import timezone
+
 from sentry.models import ProjectKey
 from sentry.testutils import AcceptanceTestCase
 
@@ -75,6 +78,7 @@ class ProjectKeyDetailsTest(AcceptanceTestCase):
             label='Default',
             public_key='5cc0482a13d248ff99f9717101dd6356',
             secret_key='410fd998318844b8894775f36184ec28',
+            date_added=datetime(2015, 10, 1, 21, 19, 5, 648517, tzinfo=timezone.utc),
         )
 
         self.login_as(self.user)
