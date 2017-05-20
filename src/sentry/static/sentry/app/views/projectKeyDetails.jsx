@@ -87,8 +87,8 @@ const KeyStats = React.createClass({
 
     return (
       '<div style="width:150px">' +
-      `<div class="time-label">${underscore.escape(timeLabel)}</div>` +
-      `<div class="value-label">${underscore.escape(value)}</div>` +
+      `<div class="time-label">${timeLabel}</div>` +
+      `<div class="value-label">${value}</div>` +
       '</div>'
     );
   },
