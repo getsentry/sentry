@@ -31,6 +31,7 @@ class ProjectKeysTest(AcceptanceTestCase):
         ProjectKey.objects.filter(project=self.project).delete()
         ProjectKey.objects.create(
             project=self.project,
+            label='Default',
             public_key='5cc0482a13d248ff99f9717101dd6356',
             secret_key='410fd998318844b8894775f36184ec28',
         )
@@ -71,6 +72,7 @@ class ProjectKeyDetailsTest(AcceptanceTestCase):
 
         self.pk = ProjectKey.objects.create(
             project=self.project,
+            label='Default',
             public_key='5cc0482a13d248ff99f9717101dd6356',
             secret_key='410fd998318844b8894775f36184ec28',
         )
