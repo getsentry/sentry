@@ -11,6 +11,7 @@ import ApiApplicationDetails from './views/apiApplicationDetails';
 import ApiLayout from './views/apiLayout';
 import ApiNewToken from './views/apiNewToken';
 import ApiTokens from './views/apiTokens';
+import Dsns from './views/dsns';
 import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
 import AdminOrganizations from './views/adminOrganizations';
@@ -110,6 +111,7 @@ function routes() {
       <Route path="/api/" component={errorHandler(ApiLayout)}>
         <IndexRoute component={errorHandler(ApiTokens)} />
         <Route path="applications/" component={errorHandler(ApiApplications)} />
+        <Route path="keys/" component={errorHandler(Dsns)} />
         <Route
           path="applications/:appId/"
           component={errorHandler(ApiApplicationDetails)}

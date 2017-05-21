@@ -12,6 +12,7 @@ const ApiDashboard = React.createClass({
         <ul className="nav nav-tabs border-bottom">
           <ListLink to="/api/" index={true}>{t('Auth Tokens')}</ListLink>
           <ListLink to="/api/applications/">{t('Applications')}</ListLink>
+          <ListLink to="/api/keys/">{t('Client Keys (DSN)')}</ListLink>
         </ul>
         {this.props.children}
       </NarrowLayout>
