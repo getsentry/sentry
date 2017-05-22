@@ -78,6 +78,7 @@ const ProjectReleaseTracking = React.createClass({
         };
       })
     });
+    this.getPluginConfig();
   },
 
   onDisablePlugin(plugin) {
