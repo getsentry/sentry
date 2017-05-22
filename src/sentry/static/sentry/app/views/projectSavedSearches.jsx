@@ -262,7 +262,7 @@ const ProjectSavedSearches = React.createClass({
     // TODO(dcramer): localize when language is final
     return (
       <div>
-        <h1>{t('Saved Searches')}</h1>
+        <h2>{t('Saved Searches')}</h2>
         {this.renderBody()}
       </div>
     );

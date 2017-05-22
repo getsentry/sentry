@@ -30,11 +30,7 @@ from sentry.web.frontend.create_organization import CreateOrganizationView
 from sentry.web.frontend.create_organization_member import \
     CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
-from sentry.web.frontend.create_project_key import CreateProjectKeyView
 from sentry.web.frontend.create_team import CreateTeamView
-from sentry.web.frontend.disable_project_key import DisableProjectKeyView
-from sentry.web.frontend.edit_project_key import EditProjectKeyView
-from sentry.web.frontend.enable_project_key import EnableProjectKeyView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -54,7 +50,6 @@ from sentry.web.frontend.organization_member_settings import \
 from sentry.web.frontend.out import OutView
 from sentry.web.frontend.organization_members import OrganizationMembersView
 from sentry.web.frontend.project_issue_tracking import ProjectIssueTrackingView
-from sentry.web.frontend.project_keys import ProjectKeysView
 from sentry.web.frontend.project_plugin_configure import \
     ProjectPluginConfigureView
 from sentry.web.frontend.project_plugin_disable import ProjectPluginDisableView
@@ -73,7 +68,6 @@ from sentry.web.frontend.remove_account import RemoveAccountView
 from sentry.web.frontend.remove_organization import RemoveOrganizationView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.remove_project import RemoveProjectView
-from sentry.web.frontend.remove_project_key import RemoveProjectKeyView
 from sentry.web.frontend.remove_team import RemoveTeamView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.unsubscribe_issue_notifications import \
@@ -309,25 +303,6 @@ urlpatterns += patterns(
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/release-tracking/$',
         ProjectReleaseTrackingView.as_view(),
         name='sentry-project-release-tracking'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/$',
-        ProjectKeysView.as_view(),
-        name='sentry-manage-project-keys'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/new/$',
-        CreateProjectKeyView.as_view(),
-        name='sentry-new-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/edit/$',
-        EditProjectKeyView.as_view(),
-        name='sentry-edit-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/remove/$',
-        RemoveProjectKeyView.as_view(),
-        name='sentry-remove-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/disable/$',
-        DisableProjectKeyView.as_view(),
-        name='sentry-disable-project-key'),
-    url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/keys/(?P<key_id>\d+)/enable/$',
-        EnableProjectKeyView.as_view(),
-        name='sentry-enable-project-key'),
-
     url(r'^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/plugins/$',
         ProjectPluginsView.as_view(),
         name='sentry-manage-project-plugins'),

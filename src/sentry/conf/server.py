@@ -447,14 +447,13 @@ CELERY_IMPORTS = (
     'sentry.tasks.auth',
     'sentry.tasks.auto_resolve_issues',
     'sentry.tasks.beacon',
-    'sentry.tasks.commits',
     'sentry.tasks.check_auth',
     'sentry.tasks.clear_expired_snoozes',
     'sentry.tasks.collect_project_platforms',
+    'sentry.tasks.commits',
     'sentry.tasks.deletion',
     'sentry.tasks.digests',
     'sentry.tasks.dsymcache',
-    'sentry.tasks.reprocessing',
     'sentry.tasks.email',
     'sentry.tasks.merge',
     'sentry.tasks.options',
@@ -462,7 +461,9 @@ CELERY_IMPORTS = (
     'sentry.tasks.post_process',
     'sentry.tasks.process_buffer',
     'sentry.tasks.reports',
+    'sentry.tasks.reprocessing',
     'sentry.tasks.store',
+    'sentry.tasks.unmerge',
 )
 CELERY_QUEUES = [
     Queue('alerts', routing_key='alerts'),
@@ -487,6 +488,7 @@ CELERY_QUEUES = [
     Queue('reports.prepare', routing_key='reports.prepare'),
     Queue('search', routing_key='search'),
     Queue('stats', routing_key='stats'),
+    Queue('unmerge', routing_key='unmerge'),
     Queue('update', routing_key='update'),
 ]
 
@@ -749,6 +751,7 @@ SENTRY_FEATURES = {
     'projects:dsym': False,
     'projects:sample-events': True,
     'projects:data-forwarding': True,
+    'projects:rate-limits': True,
 }
 
 # Default time zone for localization in the UI.
@@ -1213,3 +1216,5 @@ DEPRECATED_SDKS = {
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }
+
+SOUTH_TESTS_MIGRATE = os.environ.get('SOUTH_TESTS_MIGRATE', '0') == '1'

@@ -135,6 +135,8 @@ def create_sample_time_series(event, release=None):
     group = event.group
     project = group.project
 
+    key = project.key_set.all()[0]
+
     now = datetime.utcnow().replace(tzinfo=utc)
 
     environment = Environment.get_or_create(
@@ -167,10 +169,12 @@ def create_sample_time_series(event, release=None):
             (tsdb.models.organization_total_received, project.organization_id),
             (tsdb.models.project_total_forwarded, project.id),
             (tsdb.models.project_total_received, project.id),
+            (tsdb.models.key_total_received, key.id),
         ), now, int(count * 1.1))
         tsdb.incr_multi((
             (tsdb.models.organization_total_rejected, project.organization_id),
             (tsdb.models.project_total_rejected, project.id),
+            (tsdb.models.key_total_rejected, key.id),
         ), now, int(count * 0.1))
 
         frequencies = [
@@ -210,12 +214,14 @@ def create_sample_time_series(event, release=None):
             (tsdb.models.group, group.id),
         ), now, count)
         tsdb.incr_multi((
-            (tsdb.models.organization_total_received, group.project.organization_id),
-            (tsdb.models.project_total_received, group.project.id),
+            (tsdb.models.organization_total_received, project.organization_id),
+            (tsdb.models.project_total_received, project.id),
+            (tsdb.models.key_total_received, key.id),
         ), now, int(count * 1.1))
         tsdb.incr_multi((
-            (tsdb.models.organization_total_rejected, group.project.organization_id),
-            (tsdb.models.project_total_rejected, group.project.id),
+            (tsdb.models.organization_total_rejected, project.organization_id),
+            (tsdb.models.project_total_rejected, project.id),
+            (tsdb.models.key_total_rejected, key.id),
         ), now, int(count * 0.1))
 
         frequencies = [

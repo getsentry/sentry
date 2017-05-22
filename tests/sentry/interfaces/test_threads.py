@@ -41,3 +41,46 @@ class ThreadsTest(TestCase):
         assert context['values'][0]['name'] == 'Main Thread'
         assert context['values'][0]['crashed'] is False
         assert context['values'][0]['current'] is True
+
+    def test_get_hash(self):
+        result = self.interface.get_hash()
+        self.assertEquals(result, [['foo/baz.c', 'main']])
+
+    def test_no_hash(self):
+        interface = Threads.to_python(dict(values=[{
+            'id': 42,
+            'crashed': False,
+            'current': True,
+            'name': 'Main Thread',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.c',
+                'function': 'main',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+            'raw_stacktrace': {'frames': [{
+                'filename': None,
+                'lineno': 1,
+                'function': '<redacted>',
+                'in_app': True,
+            }]},
+        }, {
+            'id': 43,
+            'crashed': False,
+            'current': True,
+            'name': 'Main Thread',
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.c',
+                'function': 'main',
+                'lineno': 1,
+                'in_app': True,
+            }]},
+            'raw_stacktrace': {'frames': [{
+                'filename': None,
+                'lineno': 1,
+                'function': '<redacted>',
+                'in_app': True,
+            }]},
+        }]))
+        result = interface.get_hash()
+        assert not result

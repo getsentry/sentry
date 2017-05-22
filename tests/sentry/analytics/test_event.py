@@ -18,6 +18,10 @@ class ExampleEvent(Event):
     )
 
 
+class DummyType(object):
+    key = 'value'
+
+
 class EventTest(TestCase):
     def test_simple(self):
         result = ExampleEvent(id='1', map={'key': 'value'}, optional=False)
@@ -49,3 +53,9 @@ class EventTest(TestCase):
     def test_invalid_map(self):
         with pytest.raises(ValueError):
             ExampleEvent(id='1', map='foo')
+
+    def test_map_with_instance(self):
+        result = ExampleEvent(id='1', map=DummyType())
+        assert result.data['map'] == {
+            'key': 'value',
+        }

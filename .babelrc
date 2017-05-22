@@ -20,6 +20,7 @@
         ]
       }
     ],
+    "idx",
     ["styled-components", {
       "displayName": true
     }]
