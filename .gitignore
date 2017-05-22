@@ -21,6 +21,10 @@ sentry-package.json
 /node_modules/
 /docs/_build
 example/db.sqlite
+/snap/*.snap
+/snap/parts/
+/snap/prime/
+/snap/stage/
 /src/sentry/assets.json
 /src/sentry/static/version
 /src/sentry/static/sentry/dist/
