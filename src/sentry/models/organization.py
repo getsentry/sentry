@@ -299,3 +299,9 @@ class Organization(Model):
             type='org.confirm_delete',
             context=context,
         ).send_async([o.email for o in owners])
+
+
+class FakeModel(Model):
+    __core__ = True
+
+    testing = models.CharField(max_length=30)
