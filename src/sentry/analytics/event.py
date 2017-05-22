@@ -9,28 +9,45 @@ from django.utils import timezone
 
 
 class Attribute(object):
-    __slots__ = ['name', 'type', 'required']
-
     def __init__(self, name, type=six.text_type, required=True):
         self.name = name
         self.type = type
         self.required = required
 
+    def extract(self, value):
+        if value is None:
+            return value
+        return self.type(value)
+
 
 class Map(Attribute):
-    def __init__(self, name, attributes, required=True):
+    def __init__(self, name, attributes=None, required=True):
         self.name = name
         self.required = required
         self.attributes = attributes
 
-    def type(self, value):
-        if not isinstance(value, Mapping):
-            raise ValueError('Value must be a dictionary')
+    def extract(self, value):
+        """
+        If passed a non dictionary we assume we can pull attributes from it.
 
-        # ensure we dont mutate the original
-        # we dont need to deepcopy as if it recurses into another Map it
-        # will once again copy itself
-        items = value.copy()
+        This will hard error in some situations if you're passing a bad type
+        (like an int).
+        """
+        if value is None:
+            return value
+
+        if not isinstance(value, Mapping):
+            new_value = {}
+            for attr in self.attributes:
+                new_value[attr.name] = attr.extract(
+                    getattr(value, attr.name, None)
+                )
+            items = new_value
+        else:
+            # ensure we dont mutate the original
+            # we dont need to deepcopy as if it recurses into another Map it
+            # will once again copy itself
+            items = value.copy()
 
         data = {}
         for attr in self.attributes:
@@ -40,7 +57,7 @@ class Map(Attribute):
                     attr.name,
                 ))
 
-            data[attr.name] = attr.type(nv) if nv is not None else nv
+            data[attr.name] = attr.extract(nv)
 
         if items:
             raise ValueError(u'Unknown attributes: {}'.format(
@@ -72,7 +89,7 @@ class Event(object):
                 raise ValueError(u'{} is required (cannot be None)'.format(
                     attr.name,
                 ))
-            data[attr.name] = attr.type(nv) if nv is not None else nv
+            data[attr.name] = attr.extract(nv)
 
         if items:
             raise ValueError(u'Unknown attributes: {}'.format(
