@@ -10,7 +10,7 @@ import MenuItem from '../components/menuItem';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
 import PluginComponentBase from '../components/bases/pluginComponentBase';
 import {t, tct} from '../locale';
-import {sortArray} from '../utils';
+import {sortArray, parseGitHubRepo} from '../utils';
 
 const UNKNOWN_ERROR = {
   error_type: 'unknown'
@@ -52,7 +52,7 @@ class AddRepositoryLink extends PluginComponentBase {
   onSubmit() {
     // TODO(dcramer): set form saving state
     let repoName = this.props.provider.id === 'github'
-      ? {name: this.parseGitHubRepo(this.state.formData.name)}
+      ? {name: parseGitHubRepo(this.state.formData.name)}
       : this.state.formData;
     this.setState(
       {
@@ -79,14 +79,6 @@ class AddRepositoryLink extends PluginComponentBase {
         });
       }
     );
-  }
-
-  parseGitHubRepo(repo) {
-    let re = /github.com\/(.+\/.+)/i;
-    let match = repo.match(re);
-    let parsedRepo;
-    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-    return parsedRepo;
   }
 
   changeField(name, value) {
