@@ -25,9 +25,12 @@ class ReleaseEnvironment(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_environmentrelease'
-        unique_together = (('project_id', 'release_id', 'environment_id'),)
+        unique_together = (
+            ('project_id', 'release_id', 'environment_id'),
+            ('organization_id', 'release_id', 'environment_id'),
+        )
 
-    __repr__ = sane_repr('project_id', 'release_id', 'environment_id')
+    __repr__ = sane_repr('organization_id', 'release_id', 'environment_id')
 
     @classmethod
     def get_cache_key(cls, project_id, release_id, environment_id):
