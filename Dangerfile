@@ -108,7 +108,7 @@ end
 
 if git.added_files.grep(@S_MIGRATIONS).any?
     warn("PR includes migrations")
-    markdown("## Migration Checklist\n\n"
+    markdown("## Migration Checklist\n\n" +
              "- [ ] new columns need to be nullable (unless table is new)\n" +
              "- [ ] migration with unique index needs to be done concurrently\n" +
              "- [ ] data migrations should not be done inside a transaction\n" +
