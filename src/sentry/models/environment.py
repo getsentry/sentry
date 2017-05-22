@@ -60,18 +60,10 @@ class Environment(Model):
 
         env = cache.get(cache_key)
         if env is None:
-            try:
-                with transaction.atomic():
-                    env = cls.objects.create(
-                        name=name,
-                        organization_id=project.organization_id,
-                    )
-            except IntegrityError:
-                env = cls.objects.get(
-                    name=name,
-                    organization_id=project.organization_id,
-                )
-
+            env = cls.objects.get_or_create(
+                name=name,
+                organization_id=project.organization_id,
+            )[0]
             cache.set(cache_key, env, 3600)
 
         env.add_project(project)

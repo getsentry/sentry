@@ -95,18 +95,10 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             projects = list(release.projects.all())
             result = serializer.object
 
-            try:
-                with transaction.atomic():
-                    env = Environment.objects.create(
-                        name=result['environment'],
-                        organization_id=organization.id,
-                    )
-            except IntegrityError:
-                env = Environment.objects.get(
-                    name=result['environment'],
-                    organization_id=organization.id,
-                )
-
+            env = Environment.objects.get_or_create(
+                name=result['environment'],
+                organization_id=organization.id,
+            )[0]
             for project in projects:
                 env.add_project(project)
 
