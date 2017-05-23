@@ -3,6 +3,7 @@ import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
+import AlertActions from '../actions/alertActions';
 import PluginList from '../components/pluginList';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
@@ -109,6 +110,12 @@ const ProjectReleaseTracking = React.createClass({
           webhookUrl: data.webhookUrl
         });
         this.getPluginConfig();
+        AlertActions.addAlert({
+          message: t(
+            'Your deploy token has been regenerated. You will need to update any pre-existing deploy hooks.'
+          ),
+          type: 'success'
+        });
       },
       error: () => {
         this.setState({
