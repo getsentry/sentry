@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
 from .base import Filter
-import re
+from six.moves.urllib.parse import urlparse
 
 LOCAL_IPS = frozenset(['127.0.0.1', '::1'])
 LOCAL_DOMAINS = frozenset(['127.0.0.1', 'localhost'])
-DOMAIN_FROM_URL = re.compile(r'.*?\:\/\/?([^\/\?#:]+).*')
 
 
 class LocalhostFilter(Filter):
@@ -21,18 +20,12 @@ class LocalhostFilter(Filter):
 
     def get_url(self, data):
         try:
-            http = data['sentry.interfaces.Http']
-            if http and http['url']:
-                return http['url']
-            return ''
+            return data['sentry.interfaces.Http']['url']
         except KeyError:
             return ''
 
     def get_domain(self, data):
-        matchObj = DOMAIN_FROM_URL.match(self.get_url(data))
-        if matchObj:
-            return matchObj.group(1) or ''
-        return ''
+        return urlparse(self.get_url(data)).netloc
 
     def test(self, data):
         return self.get_ip_address(data) in LOCAL_IPS or self.get_domain(data) in LOCAL_DOMAINS
