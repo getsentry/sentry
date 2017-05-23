@@ -24,6 +24,7 @@ class ReleaseFile(Model):
     __core__ = False
 
     organization = FlexibleForeignKey('sentry.Organization')
+    # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     release = FlexibleForeignKey('sentry.Release')
     file = FlexibleForeignKey('sentry.File')
