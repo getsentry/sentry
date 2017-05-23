@@ -42,7 +42,7 @@ class LocalhostFilterTest(TestCase):
         data = self.get_mock_data(url='https://localhost')
         assert self.apply_filter(data)
 
-        data = self.get_mock_data(url='http://localhost?domain_in_args=example.com')
+        data = self.get_mock_data(url='https://127.0.0.1')
         assert self.apply_filter(data)
 
     def test_does_not_filter_non_localhost_domain(self):

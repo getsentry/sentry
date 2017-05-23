@@ -20,7 +20,7 @@ class LocalhostFilter(Filter):
 
     def get_url(self, data):
         try:
-            return data['sentry.interfaces.Http']['url']
+            return data['sentry.interfaces.Http']['url'] or ''
         except KeyError:
             return ''
 
