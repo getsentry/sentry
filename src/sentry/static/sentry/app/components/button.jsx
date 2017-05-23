@@ -5,16 +5,16 @@ import {Link} from 'react-router';
 /*
 
   Usage:
-    <Button kind="primary" size="lg" to="/stream">Stream</Button>
+    <Button priority="primary" size="lg" to="/stream">Stream</Button>
     <Button size="xs" href="http://sentry.io/">Home</Button>
-    <Button kind="danger" onClick={()=> { alert("💥") }}>Careful!</Button>
+    <Button priority="danger" onClick={()=> { alert("💥") }}>Careful!</Button>
     <Button disabled>Not Available</Button>
 
 */
 
 const BaseButton = React.createClass({
   propTypes: {
-    kind: PropTypes.oneOf(['primary', 'danger']),
+    priority: PropTypes.oneOf(['primary', 'danger']),
     size: PropTypes.oneOf(['xs', 'sm', 'lg']),
     to: PropTypes.string,
     href: PropTypes.string
@@ -22,7 +22,7 @@ const BaseButton = React.createClass({
 
   render() {
     let renderedButton;
-    const {kind, size, to, href, children, ...buttonProps} = this.props;
+    const {priority, size, to, href, children, ...buttonProps} = this.props;
 
     // Buttons come in 3 flavors: Link, anchor, and regular buttons. Let's
     // use props to determine which to serve up, so we don't have to think
@@ -49,8 +49,9 @@ let Button = styled(BaseButton)`
   /* Base styles for all buttons */
 
   display: inline-block;
+  line-height: 1;
   font-weight: 600;
-  border-radius: 3px;
+  border-radius: ${props => props.theme.borderRadius};
   box-shadow: ${props => props.theme.outerShadow};
   cursor: pointer;
 
@@ -61,10 +62,10 @@ let Button = styled(BaseButton)`
     outline: none;
   }
 
-  /* Use props for kind instead of classes */
+  /* Use props for priority instead of classes */
 
   ${props => {
-  switch (props.kind) {
+  switch (props.priority) {
     case 'primary':
       return css`
           color: #fff;
@@ -106,44 +107,44 @@ let Button = styled(BaseButton)`
   switch (props.size) {
     case 'xs':
       return css`
-          padding: 1px 6px;
+          padding: 6px 10px;
           font-size: 12px;
         `;
     case 'sm':
       return css`
-          padding: 4px 10px;
+          padding: 8px 12px;
           font-size: 12px;
         `;
     case 'lg':
       return css`
           font-size: 16px;
-          padding: 10px 20px;
+          padding: 14px 20px;
         `;
     default:
       return css`
           font-size: 14px;
-          padding: 6px 16px;
+          padding: 12px 16px;
         `;
   }
 }}
 
-    /* Utilize disabled attribute */
+  /* Utilize disabled attribute */
 
-    ${props => {
+  ${props => {
   if (props.disabled) {
     return css`
-              color: ${props.theme.gray50};
-              border: 1px solid ${props.theme.borderColor};
-              background: #fff;
-              text-shadow: none;
-              box-shadow: none;
-              cursor: not-allowed;
-              &:hover, &:focus, &:active {
-                color: ${props.theme.gray50};
-                border: 1px solid ${props.theme.borderColor};
-                background: #fff;
-              }
-            `;
+        color: ${props.theme.gray50};
+        border: 1px solid ${props.theme.borderColor};
+        background: #fff;
+        text-shadow: none;
+        box-shadow: none;
+        cursor: not-allowed;
+        &:hover, &:focus, &:active {
+          color: ${props.theme.gray50};
+          border: 1px solid ${props.theme.borderColor};
+          background: #fff;
+        }
+      `;
   }
 }}
 

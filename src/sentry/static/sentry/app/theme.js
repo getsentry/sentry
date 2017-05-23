@@ -2,6 +2,8 @@ export default {
   outerShadow: '0 2px 0px 0 rgba(0, 0, 0, 0.06)',
   innerShadow: 'inset 0 2px 0px 0 rgba(0, 0, 0, 0.07)',
 
+  borderRadius: '4px',
+
   blue: '#4674ca',
   blueLight: '#6E92D5',
   blueDark: '#315CAC',

@@ -19,7 +19,10 @@ const StyleguideComponents = React.createClass({
           <Hr />
           <Row>
             <Column>
-              <Button kind="primary" size="lg" to="/sup">Click it</Button> <br /><br />
+              <Button priority="primary" size="lg" to="/sup">Click it</Button>
+              {' '}
+              <br />
+              <br />
               <Button
                 onClick={() => {
                   alert('hiya');
@@ -27,7 +30,7 @@ const StyleguideComponents = React.createClass({
                 Click it
               </Button> <br /><br />
               <Button
-                kind="danger"
+                priority="danger"
                 size="sm"
                 onClick={() => {
                   alert('💥');
@@ -47,7 +50,7 @@ const StyleguideComponents = React.createClass({
             <Column>
               <SyntaxHighlighter style={docco}>
                 {jsxToString(
-                  <Button kind="primary" size="lg" to="/sup">Click it</Button>,
+                  <Button priority="primary" size="lg" to="/sup">Click it</Button>,
                   {
                     displayName: 'Button'
                   }
