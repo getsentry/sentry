@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+from datetime import datetime
+from django.utils import timezone
+
 from sentry.models import ProjectKey
 from sentry.testutils import AcceptanceTestCase
 
@@ -26,6 +29,14 @@ class ProjectKeysTest(AcceptanceTestCase):
             organization=self.org,
             role='owner',
             teams=[self.team],
+        )
+
+        ProjectKey.objects.filter(project=self.project).delete()
+        ProjectKey.objects.create(
+            project=self.project,
+            label='Default',
+            public_key='5cc0482a13d248ff99f9717101dd6356',
+            secret_key='410fd998318844b8894775f36184ec28',
         )
 
         self.login_as(self.user)
@@ -62,7 +73,13 @@ class ProjectKeyDetailsTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-        self.pk = ProjectKey.objects.create(project=self.project)
+        self.pk = ProjectKey.objects.create(
+            project=self.project,
+            label='Default',
+            public_key='5cc0482a13d248ff99f9717101dd6356',
+            secret_key='410fd998318844b8894775f36184ec28',
+            date_added=datetime(2015, 10, 1, 21, 19, 5, 648517, tzinfo=timezone.utc),
+        )
 
         self.login_as(self.user)
         self.path = '/{}/{}/settings/keys/{}/'.format(

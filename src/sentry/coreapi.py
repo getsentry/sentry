@@ -222,7 +222,7 @@ class ClientApiHelper(object):
         """
         return origin_from_request(request)
 
-    def project_id_from_auth(self, auth):
+    def project_key_from_auth(self, auth):
         if not auth.public_key:
             raise APIUnauthorized('Invalid api key')
 
@@ -247,7 +247,10 @@ class ClientApiHelper(object):
         if not pk.roles.store:
             raise APIUnauthorized('Key does not allow event storage access')
 
-        return pk.project_id
+        return pk
+
+    def project_id_from_auth(self, auth):
+        return self.project_key_from_auth(auth).project_id
 
     def decode_data(self, encoded_data):
         try:

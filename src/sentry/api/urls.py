@@ -70,6 +70,7 @@ from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
+from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
@@ -320,6 +321,8 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/$',
         ProjectKeyDetailsEndpoint.as_view(),
         name='sentry-api-0-project-key-details'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/keys/(?P<key_id>[^\/]+)/stats/$',
+        ProjectKeyStatsEndpoint.as_view()),
     url(r'^projects/(?P<organization_slug>[^/]+)/(?P<project_slug>[^/]+)/members/$',
         ProjectMemberIndexEndpoint.as_view(),
         name='sentry-api-0-project-member-index'),

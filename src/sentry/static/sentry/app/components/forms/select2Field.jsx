@@ -50,7 +50,12 @@ class Select2Field extends InputField {
   }
 
   componentDidMount() {
-    jQuery(this.refs.input).select2().on('change', this.onChange);
+    jQuery(this.refs.input)
+      .select2({
+        allowClear: this.props.allowClear,
+        width: 'element'
+      })
+      .on('change', this.onChange);
   }
 
   componentWillUnmount() {
@@ -60,7 +65,8 @@ class Select2Field extends InputField {
 
 Select2Field.propTypes = Object.assign(
   {
-    choices: React.PropTypes.array.isRequired
+    choices: React.PropTypes.array.isRequired,
+    allowClear: React.PropTypes.bool
   },
   InputField.propTypes
 );

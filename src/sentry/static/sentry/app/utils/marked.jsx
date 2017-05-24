@@ -19,7 +19,7 @@ function Renderer() {
 Object.assign(Renderer.prototype, marked.Renderer.prototype);
 
 // Anythign except javascript, vbscript, data protocols
-const safeLinkPattern = /^(?!javascript|vbscript|data:)/i;
+const safeLinkPattern = /^(https?:|mailto:)/i;
 
 Renderer.prototype.link = function(href, title, text) {
   // For a bad link, just return the plain text href
