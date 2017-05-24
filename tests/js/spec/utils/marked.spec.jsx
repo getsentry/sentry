@@ -20,6 +20,7 @@ describe('marked', function() {
   it('rejected links should be rendered as plain text', function() {
     for (let test of [
       ['[x](javascript:foo)', 'javascript:foo'],
+      ['[x](java\nscript:foo)', 'java\nscript:foo'],
       ['[x](data:foo)', 'data:foo'],
       ['[x](vbscript:foo)', 'vbscript:foo']
     ]) {
