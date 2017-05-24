@@ -13,6 +13,6 @@ class ProjectPluginsEndpoint(ProjectEndpoint):
         context = serialize([
             plugin
             for plugin in plugins.configurable_for_project(project, version=None)
-            if plugin.has_project_conf() or plugin.get_plugin_type() == 'release-tracking'
+            if plugin.has_plugin_conf()
         ], request.user, PluginSerializer(project))
         return Response(context)
