@@ -102,10 +102,9 @@ const ProjectSettings = React.createClass({
             <li>
               <a href={`${settingsUrlRoot}/release-tracking/`}>{t('Release Tracking')}</a>
             </li>
-            {features.has('data-forwarding') &&
-              <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
-                {t('Data Forwarding')}
-              </ListLink>}
+            <ListLink to={`/${orgId}/${projectId}/settings/data-forwarding/`}>
+              {t('Data Forwarding')}
+            </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/saved-searches/`}>
               {t('Saved Searches')}
             </ListLink>

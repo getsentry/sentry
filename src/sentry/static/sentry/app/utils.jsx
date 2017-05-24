@@ -232,6 +232,14 @@ export function getShortVersion(version) {
   return version;
 }
 
+export function parseGitHubRepo(repo) {
+  let re = /github\.com\/([^\/]+\/[^\/]+)/i;
+  let match = repo.match(re);
+  let parsedRepo;
+  match ? (parsedRepo = match[1]) : (parsedRepo = repo);
+  return parsedRepo;
+}
+
 /**
  * Converts a multi-line textarea input value into an array,
  * eliminating empty lines

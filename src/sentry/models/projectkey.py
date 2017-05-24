@@ -56,6 +56,9 @@ class ProjectKey(Model):
     ), db_index=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
+    rate_limit_count = BoundedPositiveIntegerField(null=True)
+    rate_limit_window = BoundedPositiveIntegerField(null=True)
+
     objects = BaseManager(cache_fields=(
         'public_key',
         'secret_key',
@@ -122,6 +125,12 @@ class ProjectKey(Model):
     def is_active(self):
         return self.status == ProjectKeyStatus.ACTIVE
 
+    @property
+    def rate_limit(self):
+        if self.rate_limit_count and self.rate_limit_window:
+            return (self.rate_limit_count, self.rate_limit_window)
+        return (0, 0)
+
     def save(self, *args, **kwargs):
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
@@ -182,6 +191,8 @@ class ProjectKey(Model):
             'secret_key': self.secret_key,
             'roles': int(self.roles),
             'status': self.status,
+            'rate_limit_count': self.rate_limit_count,
+            'rate_limit_window': self.rate_limit_window,
         }
 
     def get_scopes(self):

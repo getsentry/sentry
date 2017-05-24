@@ -76,6 +76,13 @@ class TSDBModel(Enum):
     # number of events seen for an environment, by issue
     frequent_environments_by_group = 408
 
+    # the number of events sent to the server
+    key_total_received = 500
+    # the number of events rejected due to rate limiting
+    key_total_rejected = 501
+    # the number of events blocked due to being blacklisted
+    key_total_blacklisted = 502
+
 
 class BaseTSDB(Service):
     __all__ = (

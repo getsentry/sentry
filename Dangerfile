@@ -43,6 +43,9 @@
     "src/sentry/auth/password_validation.py",
 ]
 
+# warn if there are migrations
+@S_MIGRATIONS ||= /south_migrations/
+
 # determine if any of the files were modified
 def checkFiles(files_array)
     files_array.select { |f| git.modified_files.include?(f) }
@@ -101,4 +104,14 @@ warn("This change includes modification to a file that was backported from newer
 # Reasonable commits must update CHANGES
 if !github.pr_body.include?("#nochanges") && @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
     fail("You need to update CHANGES due to the size of this PR")
+end
+
+if git.added_files.grep(@S_MIGRATIONS).any?
+    warn("PR includes migrations")
+    markdown("## Migration Checklist\n\n" +
+             "- [ ] new columns need to be nullable (unless table is new)\n" +
+             "- [ ] migration with any new index needs to be done concurrently\n" +
+             "- [ ] data migrations should not be done inside a transaction\n" +
+             "- [ ] before merging, check to make sure there aren't conflicting migration ids\n"
+    )
 end

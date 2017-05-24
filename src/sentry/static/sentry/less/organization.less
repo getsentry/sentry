@@ -525,40 +525,6 @@ table.project-list {
 .organization-stats {
   height: 150px;
   margin-bottom: 20px;
-
-  .bar-chart figure a {
-    height: 150px;
-
-    span {
-      &.accepted {
-        background: @gray-lightest;
-      }
-
-      &.rate-limited {
-        background: @red;
-        min-height: 0;
-      }
-
-      &.black-listed {
-        background: @orange-light;
-        min-height: 0;
-      }
-    }
-
-    &:hover span {
-      &.accepted {
-        background: @gray-light;
-      }
-
-      &.rate-limited {
-        background: @red-dark;
-      }
-
-      &.black-listed {
-        background: @orange-dark;
-      }
-    }
-  }
 }
 
 /**

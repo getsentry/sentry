@@ -1,6 +1,7 @@
 import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
+import HookStore from '../stores/hookStore';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import PluginList from '../components/pluginList';
@@ -97,7 +98,8 @@ export default React.createClass({
     return {
       loading: true,
       error: false,
-      pluginList: []
+      pluginList: [],
+      hooksDisabled: HookStore.get('project:data-forwarding:disabled')
     };
   },
 
@@ -155,6 +157,18 @@ export default React.createClass({
     let organization = this.getOrganization();
     let project = this.getProject();
     let {pluginList} = this.state;
+    let features = this.getProjectFeatures();
+
+    if (!features.has('data-forwarding')) {
+      return (
+        this.state.hooksDisabled
+          .map(hook => {
+            return hook(organization, project);
+          })
+          .shift() || this.renderEmpty()
+      );
+    }
+
     return (
       <PluginList
         organization={organization}
@@ -194,6 +208,12 @@ export default React.createClass({
               {
                 "Enable Data Forwarding to send processed events to your favorite business intelligence tools. The exact payload and types of data depend on the integration you're using."
               }
+            </p>
+            <p>
+              Learn more about this functionality in our
+              {' '}
+              <a href="https://docs.sentry.io/learn/data-forwarding/">documentation</a>
+              .
             </p>
             <p>
               <small>

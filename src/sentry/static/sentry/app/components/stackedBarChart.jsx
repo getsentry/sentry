@@ -182,7 +182,11 @@ const StackedBarChart = React.createClass({
     let key = ['m', marker.className, marker.x].join('-');
 
     return (
-      <a key={key} className={className} data-title={title}>
+      <a
+        key={key}
+        className={className}
+        style={{height: this.props.height}}
+        data-title={title}>
         <span>{marker.label}</span>
       </a>
     );
@@ -231,7 +235,7 @@ const StackedBarChart = React.createClass({
         key={point.x}
         className="chart-column tip"
         data-point-index={pointIdx}
-        style={{width: pointWidth}}>
+        style={{width: pointWidth, height: this.props.height}}>
         {pts}
       </a>
     );
@@ -268,7 +272,9 @@ const StackedBarChart = React.createClass({
     let maxval = this.maxPointValue();
 
     return (
-      <figure className={figureClass} height={this.props.height} width={this.props.width}>
+      <figure
+        className={figureClass}
+        style={{height: this.props.height, width: this.props.width}}>
         <span className="max-y">{maxval}</span>
         <span className="min-y">0</span>
         <span>{this.renderChart()}</span>

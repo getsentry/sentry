@@ -62,7 +62,7 @@ class MergeReleasesTest(TestCase):
             organization_id=org.id,
             project_id=project2.id,
             release_id=release2.id,
-            environment_id=2
+            environment_id=3,
         )
         group_release2 = GroupRelease.objects.create(
             project_id=project2.id,
@@ -89,7 +89,7 @@ class MergeReleasesTest(TestCase):
             organization_id=org.id,
             project_id=project3.id,
             release_id=release3.id,
-            environment_id=2
+            environment_id=4,
         )
         group_release3 = GroupRelease.objects.create(
             project_id=project3.id,

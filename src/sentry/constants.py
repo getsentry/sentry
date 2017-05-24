@@ -174,6 +174,7 @@ DEFAULT_SCRUBBED_FIELDS = (
     'auth',
     'credentials',
     'mysql_pwd',
+    'stripeToken',
 )
 
 NOT_SCRUBBED_VALUES = set([
