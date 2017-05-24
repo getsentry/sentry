@@ -215,6 +215,9 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         return self.project_conf_form is not None
 
     def has_plugin_conf(self):
+        """
+        Checks if the plugin should be returned in the ProjectPluginsEndpoint
+        """
         return self.has_project_conf()
 
     def can_configure_for_project(self, project):
