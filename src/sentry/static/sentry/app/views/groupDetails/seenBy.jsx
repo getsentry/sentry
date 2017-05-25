@@ -52,7 +52,9 @@ const GroupSeenBy = React.createClass({
     return (
       <div className="seen-by">
         <ul>
-          <li><span className="icon-eye" /></li>
+          <li>
+            <span className="icon-eye tip" data-title="People who've viewed this issue" />
+          </li>
           {seenByNodes}
         </ul>
       </div>
