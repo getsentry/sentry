@@ -25,7 +25,14 @@ class RedisTSDBTest(TestCase):
             ),
             vnodes=64,
             enable_frequency_sketches=True,
+            hosts={
+                i - 6: {'db': i} for i in xrange(6, 9)
+            },
         )
+
+    def tearDown(self):
+        with self.db.cluster.fanout('all') as client:
+            client.flushdb()
 
     def test_make_counter_key(self):
         result = self.db.make_counter_key(TSDBModel.project, 1368889980, 1)
