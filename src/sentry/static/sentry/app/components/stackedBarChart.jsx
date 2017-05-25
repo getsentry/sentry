@@ -172,6 +172,14 @@ const StackedBarChart = React.createClass({
     return maxval;
   },
 
+  useZeroColorBar(pct, idx) {
+    const colClass = this.props.barClasses[idx];
+    if (pct === 0) {
+      return colClass + ' zero-bar';
+    }
+    return colClass;
+  },
+
   renderMarker(marker) {
     let timeLabel = moment(marker.x * 1000).format('lll');
     let title =
@@ -222,7 +230,8 @@ const StackedBarChart = React.createClass({
       let pt = (
         <span
           key={i}
-          className={this.props.barClasses[i]}
+          // className={this.props.barClasses[i]}
+          className={this.barClass(pct, i)}
           style={{height: pct + '%', bottom: prevPct + '%'}}>
           {y}
         </span>
