@@ -73,6 +73,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
     project_conf_form = None
     project_conf_template = 'sentry/plugins/project_configuration.html'
+    has_config_options = True
 
     site_conf_form = None
     site_conf_template = 'sentry/plugins/site_configuration.html'

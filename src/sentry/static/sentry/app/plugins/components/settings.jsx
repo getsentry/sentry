@@ -109,6 +109,7 @@ class PluginSettings extends PluginComponentBase {
     let hasChanges = !underscore.isEqual(this.state.initialData, this.state.formData);
 
     let data = this.state.rawData;
+
     if (!this.props.hasConfigOptions) {
       return null;
     }

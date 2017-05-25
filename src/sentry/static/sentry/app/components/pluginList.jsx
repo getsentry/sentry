@@ -62,7 +62,6 @@ export default React.createClass({
               project={project}
               key={data.id}
               onDisablePlugin={this.onDisablePlugin.bind(this, data)}
-              hasConfigOptions={data.hasConfigOptions}
             />
           );
         })}

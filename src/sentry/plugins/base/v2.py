@@ -70,6 +70,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
 
     project_conf_form = None
     project_conf_template = 'sentry/plugins/project_configuration.html'
+    has_config_options = True
 
     # Global enabled state
     enabled = True

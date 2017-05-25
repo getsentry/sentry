@@ -12,8 +12,7 @@ const PluginConfig = React.createClass({
     organization: React.PropTypes.object.isRequired,
     project: React.PropTypes.object.isRequired,
     data: React.PropTypes.object.isRequired,
-    onDisablePlugin: React.PropTypes.func,
-    hasConfigOptions: React.PropTypes.bool
+    onDisablePlugin: React.PropTypes.func
   },
 
   mixins: [ApiMixin],
@@ -115,7 +114,7 @@ const PluginConfig = React.createClass({
             : plugins.get(data).renderSettings({
                 organization: this.props.organization,
                 project: this.props.project,
-                hasConfigOptions: this.props.hasConfigOptions
+                hasConfigOptions: data.hasConfigOptions
               })}
         </div>
       </div>
