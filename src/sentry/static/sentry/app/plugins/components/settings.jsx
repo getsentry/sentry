@@ -109,7 +109,6 @@ class PluginSettings extends PluginComponentBase {
     let hasChanges = !underscore.isEqual(this.state.initialData, this.state.formData);
 
     let data = this.state.rawData;
-
     if (data.config_error) {
       let authUrl = data.auth_url;
       if (authUrl.indexOf('?') === -1) {

@@ -44,7 +44,7 @@ class PluginSerializer(Serializer):
                 }
                 for asset in obj.get_assets()
             ],
-            'doc': doc
+            'doc': doc,
         }
         if self.project:
             d['enabled'] = obj.is_enabled(self.project)
