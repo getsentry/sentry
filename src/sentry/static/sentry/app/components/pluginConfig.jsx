@@ -113,8 +113,7 @@ const PluginConfig = React.createClass({
             ? <LoadingIndicator />
             : plugins.get(data).renderSettings({
                 organization: this.props.organization,
-                project: this.props.project,
-                hasConfigOptions: data.hasConfigOptions
+                project: this.props.project
               })}
         </div>
       </div>

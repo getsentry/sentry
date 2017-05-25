@@ -110,9 +110,6 @@ class PluginSettings extends PluginComponentBase {
 
     let data = this.state.rawData;
 
-    if (!this.props.hasConfigOptions) {
-      return null;
-    }
     if (data.config_error) {
       let authUrl = data.auth_url;
       if (authUrl.indexOf('?') === -1) {
@@ -140,6 +137,10 @@ class PluginSettings extends PluginComponentBase {
           })}
         </div>
       );
+    }
+
+    if (!(this.state.fieldList || []).length) {
+      return null;
     }
     return (
       <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
