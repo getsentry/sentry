@@ -58,16 +58,7 @@ const ReleaseCommit = React.createClass({
     }
 
     let firstLine = message.split(/\n/)[0];
-    if (firstLine.length > 100) {
-      let truncated = firstLine.substr(0, 90);
-      let words = truncated.split(/ /);
-      // try to not have elipsis mid-word
-      if (words.length > 1) {
-        words.pop();
-        truncated = words.join(' ');
-      }
-      return truncated + '...';
-    }
+
     return firstLine;
   },
 
@@ -78,7 +69,7 @@ const ReleaseCommit = React.createClass({
         <div className="row row-center-vertically">
           <div className="col-xs-10 list-group-avatar">
             <Avatar user={this.props.author} />
-            <h5>
+            <h5 className="truncate">
               {this.renderMessage(commitMessage)}
             </h5>
             <p>
