@@ -90,7 +90,7 @@ class ReleaseSerializerTest(TestCase):
         # Make sure a sha1 value gets truncated
         release.version = '0' * 40
         result = serialize(release, user)
-        assert result['shortVersion'] == '0' * 12
+        assert result['shortVersion'] == '0' * 7
 
     def test_no_tag_data(self):
         user = self.create_user()
