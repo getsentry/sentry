@@ -52,13 +52,35 @@ const ReleaseCommit = React.createClass({
     repository: React.PropTypes.object
   },
 
+  renderMessage(message) {
+    if (!message) {
+      return t('No message provided');
+    }
+
+    let firstLine = message.split(/\n/)[0];
+    if (firstLine.length > 100) {
+      let truncated = firstLine.substr(0, 90);
+      let words = truncated.split(/ /);
+      // try to not have elipsis mid-word
+      if (words.length > 1) {
+        words.pop();
+        truncated = words.join(' ');
+      }
+      return truncated + '...';
+    }
+    return firstLine;
+  },
+
   render() {
+    let {commitMessage} = this.props;
     return (
       <li className="list-group-item" key={this.props.commitId}>
         <div className="row row-center-vertically">
           <div className="col-xs-10 list-group-avatar">
             <Avatar user={this.props.author} />
-            <h5>{this.props.commitMessage || t('No message provided')}</h5>
+            <h5>
+              {this.renderMessage(commitMessage)}
+            </h5>
             <p>
               <strong>{this.props.author.name || t('Unknown author')}</strong>
               {' '}
