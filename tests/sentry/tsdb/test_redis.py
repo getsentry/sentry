@@ -31,7 +31,7 @@ class RedisTSDBTest(TestCase):
         )
 
     def tearDown(self):
-        with self.db.cluster.fanout('all') as client:
+        with self.db.cluster.all() as client:
             client.flushdb()
 
     def test_make_counter_key(self):
