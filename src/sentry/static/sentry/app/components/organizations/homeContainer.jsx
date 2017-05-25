@@ -5,6 +5,8 @@ import ProjectSelector from '../projectHeader/projectSelector';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
+import Button from '../../components/buttons/button';
+
 const HomeContainer = React.createClass({
   mixins: [
     OrganizationState,
@@ -25,31 +27,31 @@ const HomeContainer = React.createClass({
           </div>
           <div className="align-right hidden-xs">
             {access.has('project:write')
-              ? <a
+              ? <Button
                   href={`/organizations/${org.slug}/projects/new/`}
                   className="btn btn-primary"
                   style={{marginRight: 5}}>
                   {t('New Project')}
-                </a>
-              : <a
+                </Button>
+              : <Button
                   className="btn btn-primary btn-disabled tip"
                   data-placement="bottom"
                   title={t('You do not have enough permission to create new projects')}
                   style={{marginRight: 5}}>
                   {t('New Project')}
-                </a>}
+                </Button>}
             {access.has('team:write')
-              ? <a
+              ? <Button
                   href={`/organizations/${org.slug}/teams/new/`}
                   className="btn btn-primary">
                   {t('New Team')}
-                </a>
-              : <a
+                </Button>
+              : <Button
                   className="btn btn-primary btn-disabled tip"
                   data-placement="bottom"
                   title={t('You do not have enough permission to create new teams')}>
                   {t('New Team')}
-                </a>}
+                </Button>}
           </div>
         </div>
         <div className="container">

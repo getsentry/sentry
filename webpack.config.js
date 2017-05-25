@@ -62,12 +62,12 @@ var entry = {
     'vendor/simple-slider/simple-slider',
     'underscore',
     'ios-device-list'
-  ],
+  ]
 
   // css
   // NOTE: this will also create an empty 'sentry.js' file
   // TODO: figure out how to not generate this
-  sentry: 'less/sentry.less'
+  // sentry: 'less/sentry.less'
 };
 
 // dynamically iterate over locale files and add to `entry` config
@@ -111,13 +111,18 @@ var config = {
         test: /\.json$/,
         loader: 'json-loader'
       },
+      // {
+      //   test: /\.less$/,
+      //   include: path.join(__dirname, staticPrefix),
+      //   loader: ExtractTextPlugin.extract({
+      //     fallbackLoader: 'style-loader?sourceMap=false',
+      //     loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
+      //   })
+      // },
       {
         test: /\.less$/,
         include: path.join(__dirname, staticPrefix),
-        loader: ExtractTextPlugin.extract({
-          fallbackLoader: 'style-loader?sourceMap=false',
-          loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
-        })
+        loader: 'css-loader' + (IS_PRODUCTION ? '?minimize=true' : '') + '!less-loader'
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
