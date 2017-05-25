@@ -229,6 +229,12 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
     def has_project_conf(self):
         return self.project_conf_form is not None
 
+    def has_plugin_conf(self):
+        """
+        Checks if the plugin should be returned in the ProjectPluginsEndpoint
+        """
+        return self.has_project_conf()
+
     def can_enable_for_projects(self):
         """
         Returns a boolean describing whether this plugin can be enabled for
