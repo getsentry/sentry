@@ -92,6 +92,9 @@ class GithubAuth(BaseOAuth2):
     SCOPE_SEPARATOR = ','
     # Look at http://developer.github.com/v3/oauth/
     SCOPE_VAR_NAME = 'GITHUB_EXTENDED_PERMISSIONS'
+    # TODO(jess): make sure this doesn't break any existing functionality
+    # but it was causing a redirect_uri mismatch error from github
+    REDIRECT_STATE = False
 
     GITHUB_ORGANIZATION = getattr(settings, 'GITHUB_ORGANIZATION', None)
 

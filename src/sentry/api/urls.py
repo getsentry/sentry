@@ -54,6 +54,7 @@ from .endpoints.organization_release_files import OrganizationReleaseFilesEndpoi
 from .endpoints.organization_release_file_details import OrganizationReleaseFileDetailsEndpoint
 from .endpoints.organization_release_commits import OrganizationReleaseCommitsEndpoint
 from .endpoints.organization_repositories import OrganizationRepositoriesEndpoint
+from .endpoints.organization_installations import OrganizationInstallationEndpoint
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_repository_commits import OrganizationRepositoryCommitsEndpoint
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
@@ -221,8 +222,11 @@ urlpatterns = patterns(
         OrganizationIssuesNewEndpoint.as_view(),
         name='sentry-api-0-organization-issues-new'
     ),
-    url(
-        r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/installations/$',
+        OrganizationInstallationEndpoint.as_view(),
+        name='sentry-api-0-organization-installations'
+    ),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/members/$',
         OrganizationMemberIndexEndpoint.as_view(),
         name='sentry-api-0-organization-member-index'
     ),

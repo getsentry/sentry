@@ -25,6 +25,9 @@ class ProviderManager(object):
     def get(self, id):
         return self._items[id]
 
+    def all(self):
+        return [(k, v) for k, v in six.iteritems(self._items)]
+
 
 class RepositoryProviderManager(ProviderManager):
     type = providers.RepositoryProvider
