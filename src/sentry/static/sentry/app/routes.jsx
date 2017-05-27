@@ -70,6 +70,8 @@ import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
+import Styleguide from './views/styleguide';
+import StyleguideComponents from './views/styleguide/styleguideComponents';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
@@ -126,6 +128,12 @@ function routes() {
         <Route path="settings/" component={errorHandler(AdminSettings)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}
+      </Route>
+
+      <Route path="/styleguide/" component={errorHandler(Styleguide)}>
+        <IndexRoute component={errorHandler(StyleguideComponents)} />
+        {/* StyleguideColors */}
+        {/* StyleguideIcons */}
       </Route>
 
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />

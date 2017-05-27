@@ -174,7 +174,7 @@ var appConfig = {
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
 
-let minificationPlugins = [
+var minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
   // server as well as nginx when paired with the gzip_static module.

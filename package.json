@@ -31,6 +31,7 @@
     "jquery": "2.1.4",
     "js-cookie": "2.0.4",
     "json-loader": "0.5.3",
+    "jsx-to-string": "^1.1.0",
     "less": "2.5.3",
     "less-loader": "^4.0.3",
     "marked": "0.3.5",
@@ -56,6 +57,7 @@
     "react-router": "2.8.1",
     "react-sparklines": "1.6.0",
     "react-sticky": "5.0.4",
+    "react-syntax-highlighter": "^5.6.1",
     "reflux": "0.4.1",
     "select2": "3.5.1",
     "sprintf-js": "^1.0.3",
@@ -100,6 +102,7 @@
     "phantomjs-prebuilt": "2.1.14",
     "prettier": "1.2.2",
     "sinon": "1.17.2",
-    "sinon-chai": "2.8.0"
+    "sinon-chai": "2.8.0",
+    "styled-components": "^2.0.0"
   }
 }

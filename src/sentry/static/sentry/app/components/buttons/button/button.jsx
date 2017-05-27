@@ -1,7 +1,7 @@
 import React, {PropTypes} from 'react';
 import {Link} from 'react-router';
 
-import 'style-loader!./style.less';
+import 'style-loader!./button.less';
 
 /*
 
@@ -35,10 +35,18 @@ const Button = React.createClass({
       ...buttonProps
     } = this.props;
 
-    let classNames = className + ' button';
+    let classNames;
 
-    if (priority) {
+    if (className) {
+      classNames = className + ' button';
+    } else {
+      classNames = 'button';
+    }
+
+    if (priority == 'primary' || priority == 'danger') {
       classNames += ' button-' + priority;
+    } else {
+      classNames += ' button-default';
     }
 
     if (size) {

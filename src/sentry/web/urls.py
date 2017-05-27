@@ -239,9 +239,10 @@ urlpatterns += patterns(
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin,
         name='sentry-admin-configure-plugin'),
 
-
     url(r'^manage/', react_page_view,
         name='sentry-admin-overview'),
+
+    url(r'^styleguide/$', react_page_view),
 
     # Legacy Redirects
     url(r'^docs/?$',
