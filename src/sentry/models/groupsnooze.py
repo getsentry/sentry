@@ -1,20 +1,110 @@
 from __future__ import absolute_import
 
+from datetime import timedelta
+
 from django.db import models
-from sentry.db.models import Model, FlexibleForeignKey, sane_repr
+from django.utils import timezone
+from jsonfield import JSONField
+
+from sentry.db.models import (
+    BaseManager, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
+)
 
 
 class GroupSnooze(Model):
     """
-    A snooze marks an issue as ignored for a duration (specified by ``until``).
+    A snooze marks an issue as ignored until a condition is hit.
+
+    - If ``until`` is set, the snooze is lifted at the given datetime.
+    - If ``count`` is set, the snooze is lifted when total occurances match.
+    - If ``window`` is set (in addition to count), the snooze is lifted when
+      the rate of events matches.
+    - If ``user_count`` is set, the snooze is lfited when unique users match.
+    - If ``user_window`` is set (in addition to count), the snooze is lifted
+      when the rate unique users matches.
     """
     __core__ = False
 
     group = FlexibleForeignKey('sentry.Group', unique=True)
-    until = models.DateTimeField()
+    until = models.DateTimeField(null=True)
+    count = BoundedPositiveIntegerField(null=True)
+    window = BoundedPositiveIntegerField(null=True)
+    user_count = BoundedPositiveIntegerField(null=True)
+    user_window = BoundedPositiveIntegerField(null=True)
+    state = JSONField(null=True)
+
+    objects = BaseManager(cache_fields=(
+        'group',
+    ))
 
     class Meta:
         db_table = 'sentry_groupsnooze'
         app_label = 'sentry'
 
     __repr__ = sane_repr('group_id')
+
+    def is_valid(self, group=None, test_rates=False):
+        if group is None:
+            group = self.group
+        elif group.id != self.group_id:
+            raise ValueError
+
+        if self.until:
+            if self.until > timezone.now():
+                return True
+
+        if self.count:
+            if self.window:
+                if test_rates:
+                    if self.test_frequency_rates():
+                        return True
+                else:
+                    return True
+            elif self.count > group.times_seen - self.state['times_seen']:
+                return True
+
+        if self.user_count:
+            if not test_rates:
+                return True
+            if self.user_window:
+                if self.test_user_rates():
+                    return True
+            elif self.user_count > group.count_users_seen() - self.state['users_seen']:
+                return True
+        return False
+
+    def test_frequency_rates(self):
+        from sentry.tsdb import backend as tsdb
+
+        end = timezone.now()
+        start = end - timedelta(minutes=self.window)
+
+        rate = tsdb.get_sums(
+            model=tsdb.models.group,
+            keys=[self.group_id],
+            start=start,
+            end=end,
+        )[self.group_id]
+        if rate > self.count:
+            return False
+
+        return True
+
+    def test_user_rates(self):
+        from sentry.tsdb import backend as tsdb
+
+        end = timezone.now()
+        start = end - timedelta(minutes=self.user_window)
+
+        rate = tsdb.get_distinct_counts_totals(
+            model=tsdb.models.users_affected_by_group,
+            keys=[self.group_id],
+            start=start,
+            end=end,
+        )[self.group_id]
+
+        if rate > self.user_count:
+            return False
+
+        return True

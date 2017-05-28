@@ -3,7 +3,7 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../locale';
 import {sprintf} from 'sprintf-js';
 
-const CustomSnoozeModal = React.createClass({
+export default React.createClass({
   propTypes: {
     onSelected: React.PropTypes.func,
     onCanceled: React.PropTypes.func,
@@ -16,7 +16,7 @@ const CustomSnoozeModal = React.createClass({
     };
   },
 
-  selectedSnoozeMinutes() {
+  selectedIgnoreMinutes() {
     const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD
     const timeStr = this.refs.snoozeTimeInput.value; // HH:MM
     if (dateStr && timeStr) {
@@ -32,7 +32,7 @@ const CustomSnoozeModal = React.createClass({
   },
 
   snoozeClicked() {
-    const minutes = this.selectedSnoozeMinutes();
+    const minutes = this.selectedIgnoreMinutes();
 
     this.setState({
       dateWarning: minutes <= 0
@@ -118,5 +118,3 @@ const CustomSnoozeModal = React.createClass({
     );
   }
 });
-
-export default CustomSnoozeModal;

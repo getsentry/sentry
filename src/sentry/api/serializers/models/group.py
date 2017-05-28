@@ -128,11 +128,12 @@ class GroupSerializer(Serializer):
             ).values_list('group', 'values_seen')
         )
 
-        ignore_durations = dict(
-            GroupSnooze.objects.filter(
+        ignore_items = {
+            g.group_id: g
+            for g in GroupSnooze.objects.filter(
                 group__in=item_list,
-            ).values_list('group', 'until')
-        )
+            )
+        }
 
         pending_resolutions = dict(
             GroupResolution.objects.filter(
@@ -160,7 +161,7 @@ class GroupSerializer(Serializer):
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
-                'ignore_duration': ignore_durations.get(item.id),
+                'ignore_until': ignore_items.get(item.id),
                 'pending_resolution': pending_resolutions.get(item.id),
             }
         return result
@@ -168,12 +169,28 @@ class GroupSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         status = obj.status
         status_details = {}
-        if attrs['ignore_duration']:
-            if attrs['ignore_duration'] < timezone.now() and status == GroupStatus.IGNORED:
-                status = GroupStatus.UNRESOLVED
+        if attrs['ignore_until']:
+            snooze = attrs['ignore_until']
+            if snooze.is_valid(group=obj):
+                # counts return the delta remaining when window is not set
+                status_details.update({
+                    'ignoreCount': (
+                        snooze.count - (obj.times_seen - snooze.state['times_seen'])
+                        if snooze.count and not snooze.window
+                        else snooze.count
+                    ),
+                    'ignoreUntil': snooze.until,
+                    'ignoreUserCount': (
+                        snooze.user_count - (attrs['user_count'] - snooze.state['users_seen'])
+                        if snooze.user_count and not snooze.user_window
+                        else snooze.user_count
+                    ),
+                    'ignoreUserWindow': snooze.user_window,
+                    'ignoreWindow': snooze.window,
+                })
             else:
-                status_details['ignoreUntil'] = attrs['ignore_duration']
-        elif status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
+                status = GroupStatus.UNRESOLVED
+        if status == GroupStatus.UNRESOLVED and obj.is_over_resolve_age():
             status = GroupStatus.RESOLVED
             status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:

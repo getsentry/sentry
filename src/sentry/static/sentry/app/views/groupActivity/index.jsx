@@ -16,7 +16,7 @@ import GroupStore from '../../stores/groupStore';
 import IndicatorStore from '../../stores/indicatorStore';
 import MemberListStore from '../../stores/memberListStore';
 
-import {t, tn} from '../../locale';
+import {t, tct, tn} from '../../locale';
 
 const GroupActivity = React.createClass({
   // TODO(dcramer): only re-render on group/activity change
@@ -66,6 +66,34 @@ const GroupActivity = React.createClass({
           return t('%(author)s ignored this issue for %(duration)s', {
             author: author,
             duration: <Duration seconds={data.ignoreDuration * 60} />
+          });
+        } else if (data.ignoreCount && data.ignoreWindow) {
+          return tct(
+            '[author] ignored this issue until it happens [count] time(s) in [duration]',
+            {
+              author: author,
+              count: data.ignoreCount,
+              interval: <Duration seconds={data.ignoreWindow * 60} />
+            }
+          );
+        } else if (data.ignoreCount) {
+          return tct('[author] ignored this issue until it happens [count] time(s)', {
+            author: author,
+            count: data.ignoreCount
+          });
+        } else if (data.ignoreUserCount && data.ignoreUserWindow) {
+          return tct(
+            '[author] ignored this issue until it affects [count] user(s) in [duration]',
+            {
+              author: author,
+              count: data.ignoreUserCount,
+              interval: <Duration seconds={data.ignoreUserWindow * 60} />
+            }
+          );
+        } else if (data.ignoreUserCount) {
+          return tct('[author] ignored this issue until it affects [count] user(s)', {
+            author: author,
+            count: data.ignoreUserCount
           });
         }
         return t('%s ignored this issue', author);

@@ -1,8 +1,9 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
+import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import DropdownLink from '../../components/dropdownLink';
-import CustomSnoozeModal from '../../components/customSnoozeModal';
+import Duration from '../../components/duration';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
@@ -11,15 +12,7 @@ import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
 
-const Snooze = {
-  // all values in minutes
-  '30MINUTES': 30,
-  '2HOURS': 60 * 2,
-  '24HOURS': 60 * 24,
-  ONEWEEK: 60 * 24 * 7
-};
-
-const GroupActions = React.createClass({
+export default React.createClass({
   mixins: [
     ApiMixin,
     GroupState,
@@ -76,28 +69,36 @@ const GroupActions = React.createClass({
     this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
   },
 
-  onSnooze(duration) {
+  onIgnore(params) {
     this.onUpdate({
       status: 'ignored',
-      ignoreDuration: duration
+      ...params
     });
   },
 
-  customSnoozeClicked() {
+  customIgnoreDurationClicked() {
     this.setState({
-      isCustomSnoozeModalOpen: true
+      isCustomIgnoreDurationModalOpen: true
     });
   },
 
-  customSnoozeSelected(duration) {
-    this.onSnooze(duration);
-    this.customSnoozeCanceled();
+  customIgnoreDurationSelected(duration) {
+    this.onIgnore({ignoreDuration: duration});
+    this.customIgnoreDurationCanceled();
   },
 
-  customSnoozeCanceled() {
+  customIgnoreDurationCanceled() {
     this.setState({
-      isCustomSnoozeModalOpen: false
+      isCustomIgnoreDurationModalOpen: false
     });
+  },
+
+  getIgnoreDurations() {
+    return [30, 120, 60 * 24, 60 * 24 * 7];
+  },
+
+  getIgnoreCounts() {
+    return [100, 1000, 10000, 100000];
   },
 
   render() {
@@ -133,10 +134,10 @@ const GroupActions = React.createClass({
 
     return (
       <div className="group-actions">
-        <CustomSnoozeModal
-          show={this.state && this.state.isCustomSnoozeModalOpen}
-          onSelected={this.customSnoozeSelected}
-          onCanceled={this.customSnoozeCanceled}
+        <CustomIgnoreDurationModal
+          show={this.state && this.state.isCustomIgnoreDurationModalOpen}
+          onSelected={this.customIgnoreDurationSelected}
+          onCanceled={this.customIgnoreDurationCanceled}
         />
         <div className="btn-group">
           {group.status === 'resolved'
@@ -178,7 +179,7 @@ const GroupActions = React.createClass({
                           <strong>{t('Resolved in next release')}</strong>
                           <div className="help-text">
                             {t(
-                              'Snooze notifications until this issue reoccurs in a future release.'
+                              'Ignore notifications until this issue reoccurs in a future release.'
                             )}
                           </div>
                         </a>
@@ -191,7 +192,7 @@ const GroupActions = React.createClass({
                           <strong>{t('Resolved in next release.')}</strong>
                           <div className="help-text">
                             {t(
-                              'Snooze notifications until this issue reoccurs in a future release.'
+                              'Ignore notifications until this issue reoccurs in a future release.'
                             )}
                           </div>
                         </a>}
@@ -219,32 +220,81 @@ const GroupActions = React.createClass({
                     />
                   </span>
                 }>
-                <MenuItem noAnchor={true}>
-                  <a onClick={this.onSnooze.bind(this, Snooze['30MINUTES'])}>
-                    {t('for 30 minutes')}
-                  </a>
-                </MenuItem>
-                <MenuItem noAnchor={true}>
-                  <a onClick={this.onSnooze.bind(this, Snooze['2HOURS'])}>
-                    {t('for 2 hours')}
-                  </a>
-                </MenuItem>
-                <MenuItem noAnchor={true}>
-                  <a onClick={this.onSnooze.bind(this, Snooze['24HOURS'])}>
-                    {t('for 24 hours')}
-                  </a>
-                </MenuItem>
-                <MenuItem noAnchor={true}>
-                  <a onClick={this.onSnooze.bind(this, Snooze.ONEWEEK)}>
-                    {t('for 1 week')}
-                  </a>
-                </MenuItem>
-                <MenuItem noAnchor={true}>
-                  <a onClick={this.customSnoozeClicked}>{t('until custom date...')}</a>
-                </MenuItem>
+                <MenuItem header={true}>Ignore Until</MenuItem>
+                <li className="dropdown-submenu">
+                  <DropdownLink title="This occurs again after .." caret={false}>
+                    {this.getIgnoreDurations().map(duration => {
+                      return (
+                        <MenuItem noAnchor={true} key={duration}>
+                          <a
+                            onClick={this.onIgnore.bind(this, {
+                              ignoreDuration: duration
+                            })}>
+                            <Duration seconds={duration * 60} />
+                          </a>
+                        </MenuItem>
+                      );
+                    })}
+                    <MenuItem divider={true} />
+                    <MenuItem noAnchor={true}>
+                      <a onClick={this.customIgnoreDurationClicked}>{t('custom')}</a>
+                    </MenuItem>
+                  </DropdownLink>
+                </li>
+                <li className="dropdown-submenu">
+                  <DropdownLink title="This occurs again .." caret={false}>
+                    <li className="dropdown-submenu">
+                      {this.getIgnoreCounts().map(count => {
+                        return (
+                          <DropdownLink
+                            title={t('%s times', count.toLocaleString())}
+                            caret={false}
+                            key={count}>
+                            <MenuItem noAnchor={true}>
+                              <a onClick={this.onIgnore.bind(this, {ignoreCount: count})}>
+                                {t('ever')}
+                              </a>
+                            </MenuItem>
+                          </DropdownLink>
+                        );
+                      })}
+                    </li>
+                    <MenuItem divider={true} />
+                    <MenuItem noAnchor={true}>
+                      <a>{t('custom')}</a>
+                    </MenuItem>
+                  </DropdownLink>
+                </li>
+                <li className="dropdown-submenu">
+                  <DropdownLink title="Users affected reaches .." caret={false}>
+                    <li className="dropdown-submenu">
+                      {this.getIgnoreCounts().map(count => {
+                        return (
+                          <DropdownLink
+                            title={t('%s times', count.toLocaleString())}
+                            caret={false}
+                            key={count}>
+                            <MenuItem noAnchor={true}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreUserCount: count
+                                })}>
+                                {t('ever')}
+                              </a>
+                            </MenuItem>
+                          </DropdownLink>
+                        );
+                      })}
+                    </li>
+                    <MenuItem divider={true} />
+                    <MenuItem noAnchor={true}>
+                      <a>{t('custom')}</a>
+                    </MenuItem>
+                  </DropdownLink>
+                </li>
                 <MenuItem noAnchor={true}>
                   <a onClick={this.onUpdate.bind(this, {status: 'ignored'})}>
-                    {t('forever')}
+                    {t('Forever')}
                   </a>
                 </MenuItem>
               </DropdownLink>}
@@ -304,5 +354,3 @@ const GroupActions = React.createClass({
     );
   }
 });
-
-export default GroupActions;
