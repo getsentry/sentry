@@ -1,3 +1,8 @@
+Version 8.16.1
+--------------
+
+- Fixed issue in migration 0302 that prevented upgrading
+
 Version 8.16
 ------------
 - Added data migration to create UserEmail objects for users whose primary emails did not have them
