@@ -20,6 +20,11 @@ Schema Changes
 - Added unique index on ``Environment(organization_id, name)``
 - Added unique index on ``ReleaseEnvironment(organization_id, release_id, environment_id)``
 
+Version 8.16.1
+--------------
+
+- Fixed issue in migration 0302 that prevented upgrading
+
 Version 8.16
 ------------
 
