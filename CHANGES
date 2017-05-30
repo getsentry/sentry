@@ -48,7 +48,6 @@ API Changes
 ~~~~~~~~~~~
 
 - Deprecate `dateStarted` in releases endpoints
-- Added ``CommitAuthor.external_id`` column
 
 Version 8.15
 ------------
