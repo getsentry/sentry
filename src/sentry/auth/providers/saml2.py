@@ -135,10 +135,10 @@ class SAML2Provider(Provider):
         elif state and 'data' in state and 'attributes' in state['data']:
             data = state['data']
             # TODO apply attribute mapping
-            identity['id'] = data['attributes']['mail'][0];
-            identity['email'] = data['attributes']['mail'][0];
-            identity['name'] = data['attributes']['sn'][0];
-            identity['data'] = self.get_saml_data(data);
+            identity['id'] = data['attributes']['User.email'][0]
+            identity['email'] = data['attributes']['User.email'][0]
+            identity['name'] = data['attributes']['User.FirstName'][0]
+            identity['data'] = self.get_saml_data(data)
         return identity
 
     @staticmethod
