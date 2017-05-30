@@ -2,10 +2,11 @@ from __future__ import absolute_import
 
 import logging
 import hashlib
+from datetime import datetime
 
 from collections import namedtuple
 
-from sentry.models import Project
+from sentry.models import Project, Release
 from sentry.utils.safe import safe_execute
 from sentry.utils.cache import cache
 
@@ -119,6 +120,30 @@ class StacktraceProcessor(object):
 
     def close(self):
         pass
+
+    def get_release(self, create=False):
+        """Convenient helper to return the release for the current data
+        and optionally creates the release if it's missing.  In case there
+        is no release info it will return `None`.
+        """
+        release = self.data.get('release')
+        if not release:
+            return None
+        if not create:
+            return Release.get(
+                project=self.project,
+                version=self.data['release']
+            )
+        timestamp = self.data.get('timestamp')
+        if timestamp is not None:
+            date = datetime.fromtimestamp(timestamp)
+        else:
+            date = None
+        return Release.get_or_create(
+            project=self.project,
+            version=self.data['release'],
+            date_added=date,
+        )
 
     def handles_frame(self, frame, stacktrace_info):
         """Returns true if this processor can handle this frame.  This is the
