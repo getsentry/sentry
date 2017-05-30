@@ -1,9 +1,13 @@
 import React from 'react';
+import styled from 'styled-components';
+
 import OrganizationHomeSidebar from './homeSidebar';
 import OrganizationState from '../../mixins/organizationState';
 import ProjectSelector from '../projectHeader/projectSelector';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+
+import Button from '../button';
 
 const HomeContainer = React.createClass({
   mixins: [
@@ -25,31 +29,33 @@ const HomeContainer = React.createClass({
           </div>
           <div className="align-right hidden-xs">
             {access.has('project:write')
-              ? <a
+              ? <HomeContainerButton
                   href={`/organizations/${org.slug}/projects/new/`}
-                  className="btn btn-primary"
-                  style={{marginRight: 5}}>
+                  priority="primary">
                   {t('New Project')}
-                </a>
-              : <a
-                  className="btn btn-primary btn-disabled tip"
+                </HomeContainerButton>
+              : <HomeContainerButton
+                  disabled
+                  priority="primary"
+                  className="tip"
                   data-placement="bottom"
-                  title={t('You do not have enough permission to create new projects')}
-                  style={{marginRight: 5}}>
+                  title={t('You do not have enough permission to create new projects')}>
                   {t('New Project')}
-                </a>}
+                </HomeContainerButton>}
             {access.has('team:write')
-              ? <a
-                  href={`/organizations/${org.slug}/teams/new/`}
-                  className="btn btn-primary">
+              ? <HomeContainerButton
+                  priority="primary"
+                  href={`/organizations/${org.slug}/teams/new/`}>
                   {t('New Team')}
-                </a>
-              : <a
-                  className="btn btn-primary btn-disabled tip"
+                </HomeContainerButton>
+              : <HomeContainerButton
+                  disabled
+                  priority="primary"
+                  className="tip"
                   data-placement="bottom"
                   title={t('You do not have enough permission to create new teams')}>
                   {t('New Team')}
-                </a>}
+                </HomeContainerButton>}
           </div>
         </div>
         <div className="container">
@@ -66,5 +72,13 @@ const HomeContainer = React.createClass({
     );
   }
 });
+
+// Customize Button in this component
+
+const HomeContainerButton = styled(Button)`
+  padding-top: 10px;
+  padding-bottom: 10px;
+  margin-left: 5px;
+`;
 
 export default HomeContainer;

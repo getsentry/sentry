@@ -54,6 +54,7 @@ const AssignedIssues = React.createClass({
             <span className="icon icon-refresh" />
           </a>
         </div>
+
         <h4>Assigned to me</h4>
         <IssueList
           endpoint={this.getEndpoint()}

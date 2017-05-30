@@ -20,7 +20,10 @@
         ]
       }
     ],
-    "idx"
+    "idx",
+    ["styled-components", {
+      "displayName": true
+    }]
   ],
   "env": {
     "test": {

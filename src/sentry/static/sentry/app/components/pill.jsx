@@ -1,42 +1,89 @@
 import React from 'react';
+import styled from 'styled-components';
 
-const Pill = React.createClass({
-  propTypes: {
-    className: React.PropTypes.string,
-    name: React.PropTypes.string,
-    value: React.PropTypes.any
-  },
+/*
+<Pills>
+  <Pill name="id" value={data.id} />
+  <Pill name="name" value={data.name} />
+  <Pill name="was active" value={data.current} />
+  <Pill name="crashed" value={!data.crashed}>{data.crashed ? 'yes' : 'no'}</Pill>
+</Pills>
+*/
 
-  renderValue() {
-    const {value} = this.props;
-    if (value === undefined) {
-      return [null, null];
-    }
-    let extraClass = null;
-    let renderedValue;
-    if (value === true || value === false) {
-      extraClass = value ? 'true' : 'false';
-      renderedValue = value ? 'yes' : 'no';
-    } else if (value === null) {
-      extraClass = 'false';
-      renderedValue = 'n/a';
-    } else {
-      renderedValue = value.toString();
-    }
-    return [extraClass, renderedValue];
-  },
+export default function Pill({name, value, children}) {
+  let valueElement = <PillValue>{children}</PillValue>;
 
-  render() {
-    const {name, children, className, ...props} = this.props;
-    let [extraClass, renderedValue] = this.renderValue();
+  // If there's a value set rather than children
 
-    return (
-      <li className={(className || '') + (extraClass ? ' ' + extraClass : '')} {...props}>
-        <span className="key">{name}</span>
-        <span className="value">{renderedValue}{children}</span>
-      </li>
-    );
+  if (value === true) {
+    valueElement = <PillValueTrue>{children || 'yes'}</PillValueTrue>;
+  } else if (value === false) {
+    valueElement = <PillValueFalse>{children || 'no'}</PillValueFalse>;
+  } else if (value === null) {
+    valueElement = <PillValueFalse>{children || 'n/a'}</PillValueFalse>;
+  } else if (typeof value !== 'undefined') {
+    valueElement = <PillValue>{value.toString()}</PillValue>;
   }
-});
 
-export default Pill;
+  return (
+    <PillContainer>
+      <PillKey>{name}</PillKey>
+      {valueElement}
+    </PillContainer>
+  );
+}
+
+Pill.propTypes = {
+  name: React.PropTypes.string,
+  value: React.PropTypes.any
+};
+
+const PillKey = styled.div`
+  padding: 4px 8px;
+  min-width: 0;
+  white-space: nowrap;
+`;
+
+const PillValue = styled.div`
+  padding: 4px 8px;
+  min-width: 0;
+  white-space: nowrap;
+  background: ${props => props.theme.gray10};
+  border-left: 1px solid ${props => props.theme.borderColor};
+  border-radius: 0 3px 3px 0;
+  font-family: Monaco, monospace;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const PillValueTrue = styled(PillValue)`
+  background: #FBFEFA;
+  border: 1px solid #C7DBBD;
+  margin: -1px;
+  color: #6A726C;
+`;
+
+const PillValueFalse = styled(PillValue)`
+  background: #FFF9F9;
+  border: 1px solid #E5C4C4;
+  margin: -1px;
+  color: #766A6A;
+`;
+
+const PillContainer = styled.div`
+  font-size: 13px;
+  white-space: nowrap;
+  margin: 0 10px 10px 0;
+  border-radius: 1px;
+  display: flex;
+  border: 1px solid ${props => props.theme.borderColor};
+  border-radius: 3px;
+  box-shadow: 0 1px 2px rgba(0,0,0, .04);
+  line-height: 1.2;
+  max-width: 100%;
+
+  &:last-child {
+    margin-right: 0;
+  }
+`;
