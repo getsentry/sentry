@@ -295,7 +295,6 @@ class EventSubjectTemplate(string.Template):
 class EventSubjectTemplateData(object):
     tag_aliases = {
         'release': 'sentry:release',
-        'dist': 'sentry:dist',
     }
 
     def __init__(self, event):
