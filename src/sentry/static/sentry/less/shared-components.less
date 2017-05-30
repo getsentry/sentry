@@ -447,24 +447,16 @@ table.integrations {
     padding-left: 78px !important;
   }
 
-  .integration-icon {
-    position: absolute;
-    top: 15px;
-    left: 16px;
-    background: @blue-light;
-    .square(48px);
-    border-radius: 2px;
-    color: #fff;
-
-    &:after {
-      display: block;
-      font-family: "sentry-simple";
-      content: "\e622";
-      font-size: 24px;
+  .icon-integration {
+      position: absolute;
+      top: 15px;
+      left: 16px;
       .square(48px);
-      text-align: center;
-      line-height: 48px;
-    }
+      border-radius: 2px;
+      border: 0;
+      /* this is so that there aren't gray boxes before load */
+      background-color: #fff;
+      display: inline-block;
   }
 
   .auto-tag-browsers,
@@ -472,12 +464,8 @@ table.integrations {
   .auto-tag-interface-types,
   .auto-tag-operating-systems,
   .auto-tag-urls {
-    .integration-icon {
-      background: @orange;
-
-      &:after {
-        content: "\e603";
-      }
+    .icon-integration {
+      .icon-sentry;
     }
   }
 
