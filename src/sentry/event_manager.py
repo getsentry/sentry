@@ -19,6 +19,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
+from operator import or_
 from uuid import uuid4
 
 from sentry import eventtypes, features, buffer
@@ -756,9 +757,11 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
+                filters = [Q(project=project, hash=euser.hash)]
+                if euser.ident:
+                    filters.append(Q(project=project, hash=euser.ident))
                 euser = EventUser.objects.filter(
-                    Q(project=project, hash=euser.hash) |
-                    Q(project=project, ident=euser.ident)
+                    reduce(or_, filters),
                 )[0]
                 if euser.name != (user_data.get('name') or euser.name):
                     euser.update(
