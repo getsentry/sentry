@@ -101,6 +101,10 @@ export default React.createClass({
     return [100, 1000, 10000, 100000];
   },
 
+  getIgnoreWindows() {
+    return [[60, 'per hr'], [60 * 24, 'per day'], [60 * 24 * 7, 'per week']];
+  },
+
   render() {
     let group = this.getGroup();
 
@@ -249,6 +253,19 @@ export default React.createClass({
                           <DropdownLink
                             title={t('%s times', count.toLocaleString())}
                             caret={false}>
+                            {this.getIgnoreWindows().map(([minutes, label]) => {
+                              return (
+                                <MenuItem noAnchor={true} key={minutes}>
+                                  <a
+                                    onClick={this.onIgnore.bind(this, {
+                                      ignoreCount: count,
+                                      ignoreWindow: minutes
+                                    })}>
+                                    {label}
+                                  </a>
+                                </MenuItem>
+                              );
+                            })}
                             <MenuItem noAnchor={true}>
                               <a onClick={this.onIgnore.bind(this, {ignoreCount: count})}>
                                 {t('ever')}
@@ -270,8 +287,21 @@ export default React.createClass({
                       return (
                         <li className="dropdown-submenu" key={count}>
                           <DropdownLink
-                            title={t('%s times', count.toLocaleString())}
+                            title={t('%s users', count.toLocaleString())}
                             caret={false}>
+                            {this.getIgnoreWindows().map(([minutes, label]) => {
+                              return (
+                                <MenuItem noAnchor={true} key={minutes}>
+                                  <a
+                                    onClick={this.onIgnore.bind(this, {
+                                      ignoreUserCount: count,
+                                      ignoreUserWindow: minutes
+                                    })}>
+                                    {label}
+                                  </a>
+                                </MenuItem>
+                              );
+                            })}
                             <MenuItem noAnchor={true}>
                               <a
                                 onClick={this.onIgnore.bind(this, {
