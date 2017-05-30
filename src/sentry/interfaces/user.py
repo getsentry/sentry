@@ -98,6 +98,7 @@ class User(Interface):
             'email': self.email,
             'username': self.username,
             'ipAddress': self.ip_address,
+            'name': self.name,
             'data': self.data,
         }
 
