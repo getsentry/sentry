@@ -102,7 +102,7 @@ export default React.createClass({
   },
 
   getIgnoreWindows() {
-    return [[60, 'per hr'], [60 * 24, 'per day'], [60 * 24 * 7, 'per week']];
+    return [[1, 'per hr'], [24, 'per day'], [24 * 7, 'per week']];
   },
 
   render() {
@@ -253,13 +253,13 @@ export default React.createClass({
                           <DropdownLink
                             title={t('%s times', count.toLocaleString())}
                             caret={false}>
-                            {this.getIgnoreWindows().map(([minutes, label]) => {
+                            {this.getIgnoreWindows().map(([hours, label]) => {
                               return (
-                                <MenuItem noAnchor={true} key={minutes}>
+                                <MenuItem noAnchor={true} key={hours}>
                                   <a
                                     onClick={this.onIgnore.bind(this, {
                                       ignoreCount: count,
-                                      ignoreWindow: minutes
+                                      ignoreWindow: hours
                                     })}>
                                     {label}
                                   </a>
@@ -289,13 +289,13 @@ export default React.createClass({
                           <DropdownLink
                             title={t('%s users', count.toLocaleString())}
                             caret={false}>
-                            {this.getIgnoreWindows().map(([minutes, label]) => {
+                            {this.getIgnoreWindows().map(([hours, label]) => {
                               return (
-                                <MenuItem noAnchor={true} key={minutes}>
+                                <MenuItem noAnchor={true} key={hours}>
                                   <a
                                     onClick={this.onIgnore.bind(this, {
                                       ignoreUserCount: count,
-                                      ignoreUserWindow: minutes
+                                      ignoreUserWindow: hours
                                     })}>
                                     {label}
                                   </a>
