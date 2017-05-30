@@ -11,7 +11,6 @@ from sentry.models import (
     ApiKey, Organization, OrganizationMemberTeam, OrganizationStatus,
     Project, ReleaseProject, Team
 )
-from sentry.models.apikey import ROOT_KEY
 from sentry.utils import auth
 
 
@@ -41,8 +40,6 @@ class OrganizationPermission(ScopedPermission):
             )
 
         elif request.auth:
-            if request.auth is ROOT_KEY:
-                return True
             return request.auth.organization_id == organization.id
 
         else:
