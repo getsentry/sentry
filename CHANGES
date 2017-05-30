@@ -19,6 +19,8 @@ Schema Changes
 - Added index on ``EventTag.date_added``
 - Added unique index on ``Environment(organization_id, name)``
 - Added unique index on ``ReleaseEnvironment(organization_id, release_id, environment_id)``
+- Added ``EventUser.name`` column
+- Added ``UserReport.event_user_id`` column
 
 Version 8.16.1
 --------------
