@@ -19,7 +19,6 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
-from operator import or_
 from uuid import uuid4
 
 from sentry import eventtypes, features, buffer
@@ -40,7 +39,6 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
-from sentry.utils.hashlib import md5_text
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
@@ -743,13 +741,13 @@ class EventManager(object):
             ip_address=user_data.get('ip_address'),
             name=user_data.get('name'),
         )
-
-        if not euser.tag_value:
+        euser.set_hash()
+        if not euser.hash:
             return
 
-        cache_key = 'euserid:{}:{}'.format(
+        cache_key = 'euserid:1:{}:{}'.format(
             project.id,
-            md5_text(euser.tag_value).hexdigest(),
+            euser.hash,
         )
         euser_id = default_cache.get(cache_key)
         if euser_id is None:
@@ -757,17 +755,20 @@ class EventManager(object):
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
-                filters = [Q(project=project, hash=euser.hash)]
-                if euser.ident:
-                    filters.append(Q(project=project, hash=euser.ident))
-                euser = EventUser.objects.filter(
-                    reduce(or_, filters),
-                )[0]
-                if euser.name != (user_data.get('name') or euser.name):
-                    euser.update(
-                        name=user_data['name'],
+                try:
+                    euser = EventUser.objects.get(
+                        project=project,
+                        hash=euser.hash,
                     )
-                e_userid = euser.id
+                except EventUser.DoesNotExist:
+                    # why???
+                    e_userid = -1
+                else:
+                    if euser.name != (user_data.get('name') or euser.name):
+                        euser.update(
+                            name=user_data['name'],
+                        )
+                    e_userid = euser.id
                 default_cache.set(cache_key, e_userid, 3600)
         return euser
 
