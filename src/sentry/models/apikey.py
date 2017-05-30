@@ -10,7 +10,6 @@ from __future__ import absolute_import, print_function
 import six
 
 from bitfield import BitField
-from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -106,29 +105,3 @@ class ApiKey(Model):
 
     def has_scope(self, scope):
         return scope in self.get_scopes()
-
-
-class SystemKey(object):
-    is_active = True
-    organization = None
-
-    def get_allowed_origins(self):
-        return []
-
-    def get_audit_log_data(self):
-        return {
-            'label': 'System',
-            'key': '<system>',
-            'scopes': -1,
-            'status': ApiKeyStatus.ACTIVE
-        }
-
-    def get_scopes(self):
-        # All scopes!
-        return list(settings.SENTRY_SCOPES)
-
-    def has_scope(self, scope):
-        return True
-
-
-ROOT_KEY = SystemKey()
