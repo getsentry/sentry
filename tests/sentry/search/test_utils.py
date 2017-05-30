@@ -333,10 +333,6 @@ class ParseQueryTest(TestCase):
         result = self.parse_query('release:bar')
         assert result == {'tags': {'sentry:release': 'bar'}, 'query': ''}
 
-    def test_dist(self):
-        result = self.parse_query('dist:123')
-        assert result == {'tags': {'sentry:dist': '123'}, 'query': ''}
-
     def test_release_latest(self):
         old = Release.objects.create(
             organization_id=self.project.organization_id,
