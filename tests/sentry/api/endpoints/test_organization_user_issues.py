@@ -34,16 +34,16 @@ class OrganizationUserIssuesTest(APITestCase):
 
         GroupTagValue.objects.create(key='sentry:user',
                                      value=self.euser1.tag_value,
-                                     group=self.group1,
-                                     project=self.project1)
+                                     group_id=self.group1.id,
+                                     project_id=self.project1.id)
         GroupTagValue.objects.create(key='sentry:user',
                                      value=self.euser2.tag_value,
-                                     group=self.group1,
-                                     project=self.project1)
+                                     group_id=self.group1.id,
+                                     project_id=self.project1.id)
         GroupTagValue.objects.create(key='sentry:user',
                                      value=self.euser3.tag_value,
-                                     group=self.group2,
-                                     project=self.project2)
+                                     group_id=self.group2.id,
+                                     project_id=self.project2.id)
         self.path = reverse('sentry-api-0-organization-user-issues', args=[
             self.org.slug,
             self.euser1.id,

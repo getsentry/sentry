@@ -115,28 +115,29 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
             # something wrong with the SDK, but this behavior is
             # more reasonable than just hard erroring and is more
             # expected.
-            report = UserReport.objects.get(
+            existing_report = UserReport.objects.get(
                 project=report.project,
                 event_id=report.event_id,
             )
-            euser = self.find_event_user(report)
+            euser = self.find_event_user(existing_report)
             if euser and not euser.uname and report.name:
                 euser.update(report.name)
 
-            report.update(
+            existing_report.update(
                 name=report.name,
                 email=report.email,
                 comments=report.comments,
                 date_added=timezone.now(),
                 event_user_id=euser.id if euser else None,
             )
+            report = existing_report
 
         return Response(serialize(report, request.user, ProjectUserReportSerializer()))
 
     def find_event_user(self, report):
         try:
             event = Event.objects.get(
-                group=report.group,
+                group_id=report.group_id,
                 event_id=report.event_id,
             )
         except Event.DoesNotExist:
