@@ -194,7 +194,7 @@
         <a href="{% url 'sentry-project-issue-tracking' project.organization.slug project.slug %}">{% trans "Issue Tracking" %}</a>
     </li>
     <li{% if page == 'release-tracking' %} class="active"{% endif %}>
-        <a href="{% url 'sentry-project-release-tracking' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
+        <a href="{% absolute_uri '/{}/{}/settings/release-tracking/' project.organization.slug project.slug %}">{% trans "Release Tracking" %}</a>
     </li>
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/data-forwarding/' project.organization.slug project.slug %}">{% trans "Data Forwarding" %}</a>

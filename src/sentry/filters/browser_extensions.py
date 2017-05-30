@@ -7,7 +7,7 @@ import re
 EXTENSION_EXC_VALUES = re.compile('|'.join((re.escape(x) for x in (
     # Random plugins/extensions
     'top.GLOBALS',
-    # See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error. html
+    # See: http://blog.errorception.com/2012/03/tale-of-unfindable-js-error.html
     'originalCreateNotification',
     'canvas.contentDocument',
     'MyApp_RemoveAllHighlights',

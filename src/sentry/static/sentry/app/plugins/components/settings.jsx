@@ -137,6 +137,10 @@ class PluginSettings extends PluginComponentBase {
         </div>
       );
     }
+
+    if (!(this.state.fieldList || []).length) {
+      return null;
+    }
     return (
       <Form onSubmit={this.onSubmit} submitDisabled={isSaving || !hasChanges}>
         {this.state.errors.__all__ &&

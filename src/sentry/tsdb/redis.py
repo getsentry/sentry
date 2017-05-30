@@ -506,12 +506,12 @@ class RedisTSDB(BaseTSDB):
     def delete_distinct_counts(self, models, keys, start=None, end=None, timestamp=None):
         rollups = self.get_active_series(start, end, timestamp)
 
-        with self.cluster.map() as client:
+        with self.cluster.fanout() as client:
             for rollup, series in rollups.items():
                 for timestamp in series:
                     for model in models:
                         for key in keys:
-                            client.delete(
+                            client.target_key(key).delete(
                                 self.make_key(
                                     model,
                                     rollup,
@@ -722,10 +722,11 @@ class RedisTSDB(BaseTSDB):
     def delete_frequencies(self, models, keys, start=None, end=None, timestamp=None):
         rollups = self.get_active_series(start, end, timestamp)
 
-        with self.cluster.map() as client:
+        with self.cluster.fanout() as client:
             for rollup, series in rollups.items():
                 for timestamp in series:
                     for model in models:
                         for key in keys:
+                            c = client.target_key(key)
                             for k in self.make_frequency_table_keys(model, rollup, to_timestamp(timestamp), key):
-                                client.delete(k)
+                                c.delete(k)

@@ -12,6 +12,7 @@ Version 8.17 (Unreleased)
 - The threads interface now contributes to grouping if it contains a single thread.
 - Added per-key (DSN) rate limits (``project:rate-limits`` feature).
 - Added tsdb statistics for events per-key.
+- Added basic workspace for Visual Studio Code.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -22,6 +23,11 @@ Schema Changes
 - Added index on ``EventTag.date_added``
 - Added unique index on ``Environment(organization_id, name)``
 - Added unique index on ``ReleaseEnvironment(organization_id, release_id, environment_id)``
+
+Version 8.16.1
+--------------
+
+- Fixed issue in migration 0302 that prevented upgrading
 
 Version 8.16
 ------------
