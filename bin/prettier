@@ -1,0 +1,10 @@
+#!/bin/bash -eu
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+${DIR}/../node_modules/.bin/prettier \
+    --write \
+    --single-quote \
+    --bracket-spacing=false \
+    --print-width=90 \
+    --jsx-bracket-same-line=true $@
