@@ -243,22 +243,21 @@ export default React.createClass({
                 </li>
                 <li className="dropdown-submenu">
                   <DropdownLink title="This occurs again .." caret={false}>
-                    <li className="dropdown-submenu">
-                      {this.getIgnoreCounts().map(count => {
-                        return (
+                    {this.getIgnoreCounts().map(count => {
+                      return (
+                        <li className="dropdown-submenu" key={count}>
                           <DropdownLink
                             title={t('%s times', count.toLocaleString())}
-                            caret={false}
-                            key={count}>
+                            caret={false}>
                             <MenuItem noAnchor={true}>
                               <a onClick={this.onIgnore.bind(this, {ignoreCount: count})}>
                                 {t('ever')}
                               </a>
                             </MenuItem>
                           </DropdownLink>
-                        );
-                      })}
-                    </li>
+                        </li>
+                      );
+                    })}
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
                       <a>{t('custom')}</a>
@@ -267,13 +266,12 @@ export default React.createClass({
                 </li>
                 <li className="dropdown-submenu">
                   <DropdownLink title="Users affected reaches .." caret={false}>
-                    <li className="dropdown-submenu">
-                      {this.getIgnoreCounts().map(count => {
-                        return (
+                    {this.getIgnoreCounts().map(count => {
+                      return (
+                        <li className="dropdown-submenu" key={count}>
                           <DropdownLink
                             title={t('%s times', count.toLocaleString())}
-                            caret={false}
-                            key={count}>
+                            caret={false}>
                             <MenuItem noAnchor={true}>
                               <a
                                 onClick={this.onIgnore.bind(this, {
@@ -283,9 +281,9 @@ export default React.createClass({
                               </a>
                             </MenuItem>
                           </DropdownLink>
-                        );
-                      })}
-                    </li>
+                        </li>
+                      );
+                    })}
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
                       <a>{t('custom')}</a>
