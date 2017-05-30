@@ -10,7 +10,9 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+)
 
 
 class UserReport(Model):
@@ -18,6 +20,7 @@ class UserReport(Model):
 
     project = FlexibleForeignKey('sentry.Project')
     group = FlexibleForeignKey('sentry.Group', null=True)
+    event_user_id = BoundedBigIntegerField(null=True)
     event_id = models.CharField(max_length=32)
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)

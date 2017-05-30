@@ -112,3 +112,41 @@ class CreateProjectUserReportTest(APITestCase):
         assert report.email == 'foo@example.com'
         assert report.name == 'Foo Bar'
         assert report.comments == 'It broke!'
+
+    def test_already_present(self):
+        self.login_as(user=self.user)
+
+        project = self.create_project()
+        group = self.create_group(project=project)
+        event = self.create_event(group=group)
+        UserReport.objects.create(
+            group=group,
+            project=project,
+            event_id=event.event_id,
+            name='foo',
+            email='bar@example.com',
+            comments='',
+        )
+
+        url = '/api/0/projects/{}/{}/user-feedback/'.format(
+            project.organization.slug,
+            project.slug,
+        )
+
+        response = self.client.post(url, data={
+            'event_id': event.event_id,
+            'email': 'foo@example.com',
+            'name': 'Foo Bar',
+            'comments': 'It broke!',
+        })
+
+        assert response.status_code == 200, response.content
+
+        report = UserReport.objects.get(
+            id=response.data['id'],
+        )
+        assert report.project == project
+        assert report.group == group
+        assert report.email == 'foo@example.com'
+        assert report.name == 'Foo Bar'
+        assert report.comments == 'It broke!'

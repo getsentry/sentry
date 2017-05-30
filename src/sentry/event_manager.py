@@ -740,24 +740,32 @@ class EventManager(object):
             email=user_data.get('email'),
             username=user_data.get('username'),
             ip_address=user_data.get('ip_address'),
+            name=user_data.get('name'),
         )
 
         if not euser.tag_value:
             return
 
-        cache_key = 'euser:{}:{}'.format(
+        cache_key = 'euserid:{}:{}'.format(
             project.id,
             md5_text(euser.tag_value).hexdigest(),
         )
-        cached = default_cache.get(cache_key)
-        if cached is None:
+        euser_id = default_cache.get(cache_key)
+        if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
-                pass
-            default_cache.set(cache_key, '', 3600)
-
+                euser = EventUser.objects.filter(
+                    Q(project=project, hash=euser.hash) |
+                    Q(project=project, ident=euser.ident)
+                )[0]
+                if euser.name != (user_data.get('name') or euser.name):
+                    euser.update(
+                        name=user_data['name'],
+                    )
+                e_userid = euser.id
+                default_cache.set(cache_key, e_userid, 3600)
         return euser
 
     def _find_hashes(self, project, hash_list):

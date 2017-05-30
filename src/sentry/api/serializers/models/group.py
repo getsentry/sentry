@@ -290,6 +290,18 @@ class StreamGroupSerializer(GroupSerializer):
         return result
 
 
+class TagBasedStreamGroupSerializer(StreamGroupSerializer):
+    def __init__(self, tags, **kwargs):
+        super(TagBasedStreamGroupSerializer, self).__init__(**kwargs)
+        self.tags = tags
+
+    def serialize(self, obj, attrs, user):
+        result = super(TagBasedStreamGroupSerializer, self).serialize(obj, attrs, user)
+        result['tagLastSeen'] = self.tags[obj.id].last_seen
+        result['tagFirstSeen'] = self.tags[obj.id].first_seen
+        return result
+
+
 class SharedGroupSerializer(GroupSerializer):
     def serialize(self, obj, attrs, user):
         result = super(SharedGroupSerializer, self).serialize(obj, attrs, user)
