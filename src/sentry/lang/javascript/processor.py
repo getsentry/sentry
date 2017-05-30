@@ -23,7 +23,7 @@ except ImportError:
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
-from sentry.models import EventError, ReleaseFile
+from sentry.models import EventError, Release, ReleaseFile
 from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
@@ -491,10 +491,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                          'fetch remote source', self.data['event_id'])
             return False
 
-        self.release = self.get_release(create=True)
-        if self.data.get('dist') and self.release:
-            self.dist = self.release.get_dist(self.data['dist'])
-
+        if self.data.get('release'):
+            self.release = Release.get(
+                project=self.project,
+                version=self.data['release'],
+            )
+            if self.data.get('dist'):
+                self.dist = self.release.get_dist(self.data['dist'])
         self.populate_source_cache(frames)
         return True
 
