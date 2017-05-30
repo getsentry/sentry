@@ -58,7 +58,7 @@
     "react-sticky": "5.0.4",
     "reflux": "0.4.1",
     "select2": "3.5.1",
-    "sprintf-js": "^1.0.3",
+    "sprintf-js": "1.0.3",
     "style-loader": "0.12.4",
     "u2f-api": "0.0.8",
     "underscore": "1.8.3",
