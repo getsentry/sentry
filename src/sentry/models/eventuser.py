@@ -68,11 +68,16 @@ class EventUser(Model):
         assert self.ident or self.username or self.email or self.ip_address, \
             'No identifying value found for user'
         if not self.hash:
-            self.hash = self.get_hash()
+            self.set_hash()
         super(EventUser, self).save(*args, **kwargs)
 
-    def get_hash(self):
+    def set_hash(self):
+        self.hash = self.build_hash()
+
+    def build_hash(self):
         value = self.ident or self.username or self.email or self.ip_address
+        if not value:
+            return None
         return md5_text(value).hexdigest()
 
     @property
