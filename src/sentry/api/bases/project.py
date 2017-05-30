@@ -21,6 +21,15 @@ class ProjectPermission(TeamPermission):
             request, view, project.team)
 
 
+class StrictProjectPermission(ProjectPermission):
+    scope_map = {
+        'GET': ['project:write', 'project:admin'],
+        'POST': ['project:write', 'project:admin'],
+        'PUT': ['project:write', 'project:admin'],
+        'DELETE': ['project:admin'],
+    }
+
+
 class ProjectReleasePermission(ProjectPermission):
     scope_map = {
         'GET': ['project:read', 'project:write', 'project:admin', 'project:releases'],

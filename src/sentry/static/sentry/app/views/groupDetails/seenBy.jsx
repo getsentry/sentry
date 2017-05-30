@@ -7,6 +7,7 @@ import Avatar from '../../components/avatar';
 import GroupState from '../../mixins/groupState';
 import {userDisplayName} from '../../utils/formatters';
 import TooltipMixin from '../../mixins/tooltip';
+import {t} from '../../locale';
 
 const GroupSeenBy = React.createClass({
   mixins: [
@@ -52,7 +53,9 @@ const GroupSeenBy = React.createClass({
     return (
       <div className="seen-by">
         <ul>
-          <li><span className="icon-eye" /></li>
+          <li>
+            <span className="icon-eye tip" title={t("People who've viewed this issue")} />
+          </li>
           {seenByNodes}
         </ul>
       </div>

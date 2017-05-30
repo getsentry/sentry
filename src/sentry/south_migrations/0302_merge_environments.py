@@ -48,7 +48,9 @@ class Migration(DataMigration):
                 for ep in orm.EnvironmentProject.objects.filter(environment__in=from_envs):
                     try:
                         with transaction.atomic():
-                            ep.update(environment=to_env)
+                            orm.EnvironmentProject.objects.filter(
+                                id=ep.id,
+                            ).update(environment=to_env)
                     except IntegrityError:
                         ep.delete()
 
@@ -62,7 +64,9 @@ class Migration(DataMigration):
                 for re in orm.ReleaseEnvironment.objects.filter(environment_id__in=from_env_ids):
                     try:
                         with transaction.atomic():
-                            re.update(environment_id=to_env.id)
+                            orm.ReleaseEnvironment.objects.filter(
+                                id=re.id,
+                            ).update(environment_id=to_env.id)
                     except IntegrityError:
                         re.delete()
 
@@ -86,7 +90,9 @@ class Migration(DataMigration):
             to_renv = renvs[0]
             from_renvs = renvs[1:]
             last_seen = max([re.last_seen for re in renvs])
-            to_renv.update(last_seen=last_seen)
+            orm.ReleaseEnvironment.objects.filter(
+                id=to_renv.id,
+            ).update(last_seen=last_seen)
             orm.ReleaseEnvironment.objects.filter(
                 id__in=[re.id for re in from_renvs],
             ).delete()

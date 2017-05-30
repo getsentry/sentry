@@ -13,6 +13,6 @@ class ProjectPluginsEndpoint(ProjectEndpoint):
         context = serialize([
             plugin
             for plugin in plugins.configurable_for_project(project, version=None)
-            if plugin.has_project_conf()
+            if plugin.has_plugin_conf()
         ], request.user, PluginSerializer(project))
         return Response(context)

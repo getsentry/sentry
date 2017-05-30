@@ -7,6 +7,7 @@ from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import RuleSerializer
 from sentry.models import AuditLogEntryEvent, Rule, RuleStatus
+from sentry.signals import alert_rule_created
 
 
 class ProjectRulesEndpoint(ProjectEndpoint):
@@ -60,6 +61,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 event=AuditLogEntryEvent.RULE_ADD,
                 data=rule.get_audit_log_data(),
             )
+            alert_rule_created.send(project=project, rule=rule, sender=self)
 
             return Response(serialize(rule, request.user))
 

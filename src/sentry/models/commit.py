@@ -47,7 +47,7 @@ class Commit(Model):
     @memoize
     def short_id(self):
         if len(self.key) == 40:
-            return self.key[:12]
+            return self.key[:7]
         return self.key
 
     def find_referenced_groups(self):
