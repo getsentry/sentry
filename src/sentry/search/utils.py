@@ -360,6 +360,8 @@ def parse_query(project, query, user):
                 results['first_release'] = parse_release(project, value)
             elif key == 'release':
                 results['tags']['sentry:release'] = parse_release(project, value)
+            elif key == 'dist':
+                results['tags']['sentry:dist'] = value
             elif key == 'user':
                 if ':' in value:
                     comp, value = value.split(':', 1)
