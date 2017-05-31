@@ -4,6 +4,7 @@ import React from 'react';
 import {CommitLink} from '../../views/releases/releaseCommits';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
+import IssueLink from '../../components/issueLink';
 import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
@@ -52,8 +53,11 @@ const ActivityItem = React.createClass({
     let orgId = this.props.orgId;
     let project = item.project;
     let issue = item.issue;
+
     let issueLink = issue
-      ? <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>
+      ? (<IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+          {issue.shortId}
+        </IssueLink>)
       : null;
 
     switch (item.type) {
