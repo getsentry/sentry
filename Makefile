@@ -128,6 +128,8 @@ lint: lint-python lint-js
 lint-python:
 	@echo "--> Linting python"
 	bin/lint --python
+	@echo "--> Verifying there are no overlapping migrations"
+	./bin/verify-migrations
 	@echo ""
 
 lint-js:

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if ls src/sentry/south_migrations/*.py | cut -d/ -f4 | cut -d _ -f1 | sort | uniq -c | grep -v ' 1' | grep -v 0014 | grep -v 0034 | grep -v 0212
+then
+	exit 1
+else
+	exit 0
+fi
