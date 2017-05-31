@@ -38,14 +38,9 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} bsSize="sm">
         <div className="modal-header">
-          <h4>{t('Custom Ignore Rule')}</h4>
+          <h4>{t('Ignore Until')}</h4>
         </div>
         <div className="modal-body">
-          <p>
-            <small>
-              Create a custom rule to ignore this issue until conditions are met.
-            </small>
-          </p>
           <form className="m-b-1">
             <div className="control-group form-group">
               <label className="control-label">
@@ -69,9 +64,6 @@ export default React.createClass({
                   style={{padding: '3px 10px'}}
                   choices={this.props.windowChoices}
                 />
-                <div className="help-block">
-                  (Optional) Trigger this rule only when the condition matches in a given time window.
-                </div>
               </div>
             </div>
           </form>

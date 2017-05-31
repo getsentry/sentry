@@ -155,7 +155,7 @@ export default React.createClass({
           show={this.state.ignoreModal === 'count'}
           onSelected={this.customIgnoreModalSelected}
           onCanceled={this.customIgnoreModalCanceled.bind(this, 'count')}
-          label={t('Number of events')}
+          label={t('This occurs again ..')}
           countName="ignoreCount"
           windowName="ignoreWindow"
           windowChoices={this.getIgnoreWindows()}
@@ -164,7 +164,7 @@ export default React.createClass({
           show={this.state.ignoreModal === 'users'}
           onSelected={this.customIgnoreModalSelected}
           onCanceled={this.customIgnoreModalCanceled.bind(this, 'users')}
-          label={t('Number of users')}
+          label={t('This affects an additional ..')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}
@@ -307,7 +307,7 @@ export default React.createClass({
                   </DropdownLink>
                 </li>
                 <li className="dropdown-submenu">
-                  <DropdownLink title="Users affected reaches .." caret={false}>
+                  <DropdownLink title="This affects an additional .." caret={false}>
                     {this.getIgnoreCounts().map(count => {
                       return (
                         <li className="dropdown-submenu" key={count}>
