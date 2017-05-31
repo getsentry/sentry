@@ -4,12 +4,23 @@ from mock import patch
 
 from sentry.testutils import TestCase
 from sentry.lang.native.plugin import NativeStacktraceProcessor
+from sentry.lang.native.symbolizer import Symbolizer
 from sentry.stacktraces import process_stacktraces
 
 
 OBJECT_NAME = (
     "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
     "SentryTest.app/SentryTest"
+)
+
+FRAMEWORK_OBJECT_NAME = (
+    "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
+    "SentryTest.app/Frameworks/foo.dylib"
+)
+
+SWIFT_OBJECT_NAME = (
+    "/var/containers/Bundle/Application/B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
+    "SentryTest.app/Frameworks/libswiftCore.dylib"
 )
 
 SDK_INFO = {
@@ -21,36 +32,35 @@ SDK_INFO = {
 }
 
 
-def patched_symbolize_app_frame(self, frame, img, symbolize_inlined=False):
-    assert symbolize_inlined
+def patched_symbolize_app_frame(self, instruction_addr, img):
     return [{
         'filename': 'Foo.swift',
-        'line': 42,
-        'column': 23,
-        'object_name': OBJECT_NAME,
-        'symbol_name': 'real_main',
+        'abs_path': 'Foo.swift',
+        'lineno': 42,
+        'colno': 23,
+        'package': OBJECT_NAME,
+        'function': 'real_main',
     }]
 
 
-def patched_symbolize_system_frame(self, frame, img, sdk_info,
-                                   symbolize_inlined=False,
-                                   symbolserver_match=None):
-    assert symbolize_inlined
-    assert sdk_info == SDK_INFO
-    if 6016 <= frame['instruction_addr'] < 6020:
+def patched_convert_symbolserver_match(self, instruction_addr,
+                                       symbolserver_match, img):
+    if 6016 <= instruction_addr < 6020:
         return [{
-            'object_name': '/usr/lib/whatever.dylib',
-            'symbol_name': 'whatever_system',
+            'abs_path': None,
+            'filename': None,
+            'package': '/usr/lib/whatever.dylib',
+            'function': 'whatever_system',
         }]
     return []
 
 
 class BasicResolvingFileTest(TestCase):
 
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_app_frame',
+    @patch('sentry.lang.native.symbolizer.Symbolizer._symbolize_app_frame',
            new=patched_symbolize_app_frame)
-    @patch('sentry.lang.native.symbolizer.Symbolizer.symbolize_system_frame',
-           new=patched_symbolize_system_frame)
+    @patch('sentry.lang.native.symbolizer.Symbolizer._convert_symbolserver_match',
+           new=patched_convert_symbolserver_match)
     def test_frame_resolution(self):
         event_data = {
             "sentry.interfaces.User": {
@@ -180,3 +190,61 @@ class BasicResolvingFileTest(TestCase):
         assert frames[2]['function'] == 'whatever_system'
         assert frames[2]['package'] == '/usr/lib/whatever.dylib'
         assert frames[2]['instruction_addr'] == 6020
+
+
+class BasicInAppTest(TestCase):
+
+    def test_in_app_detection(self):
+        sym = Symbolizer(self.project, [
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
+                "image_vmaddr": 4294967296,
+                "image_addr": 4295121760,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                "name": OBJECT_NAME,
+            },
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "uuid": "619FA17B-124F-4CBF-901F-6CE88B52B0BF",
+                "image_vmaddr": 4295000064,
+                "image_addr": 4295154528,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                "name": FRAMEWORK_OBJECT_NAME,
+            },
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "uuid": "2DA67FF5-2643-44D6-8FFF-1B6BC78C9912",
+                "image_vmaddr": 4295032832,
+                "image_addr": 4295187296,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                "name": SWIFT_OBJECT_NAME,
+            },
+            {
+                "type": "apple",
+                "cpu_subtype": 0,
+                "cpu_type": 16777228,
+                "uuid": "B78CB4FB-3A90-4039-9EFD-C58932803AE5",
+                "image_vmaddr": 0,
+                "image_addr": 6000,
+                "cpu_type": 16777228,
+                "image_size": 32768,
+                'name': '/usr/lib/whatever.dylib',
+            }
+        ], referenced_images=set([
+            'C05B4DDD-69A7-3840-A649-32180D341587',
+            'B78CB4FB-3A90-4039-9EFD-C58932803AE5',
+            '619FA17B-124F-4CBF-901F-6CE88B52B0BF',
+            '2DA67FF5-2643-44D6-8FFF-1B6BC78C9912',
+        ]), cpu_name='arm64')
+
+        assert sym.is_in_app(4295121764)
+        assert not sym.is_in_app(6042)
+        assert sym.is_in_app(4295154570)
+        assert not sym.is_in_app(4295032874)

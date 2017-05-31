@@ -24,19 +24,14 @@ class DSymCache(object):
     def get_project_path(self, project):
         return os.path.join(self.dsym_cache_path, six.text_type(project.id))
 
-    def get_global_path(self):
-        return os.path.join(self.dsym_cache_path, 'global')
-
     def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
-        bases = set()
-        loaded = set()
+        rv = {}
         for image_uuid in uuids:
-            base = self.fetch_dsym(project, image_uuid,
+            path = self.fetch_dsym(project, image_uuid,
                 on_dsym_file_referenced=on_dsym_file_referenced)
-            if base is not None:
-                loaded.add(image_uuid)
-                bases.add(base)
-        return list(bases), loaded
+            if path is not None:
+                rv[image_uuid] = path
+        return rv
 
     def try_bump_timestamp(self, path, old_stat):
         now = int(time.time())
@@ -46,31 +41,24 @@ class DSymCache(object):
 
     def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
         image_uuid = image_uuid.lower()
-        for path in self.get_project_path(project), self.get_global_path():
-            base = self.get_project_path(project)
-            dsym = os.path.join(base, image_uuid)
-            try:
-                os.stat(dsym)
-            except OSError as e:
-                if e.errno != errno.ENOENT:
-                    raise
-            else:
-                return base
+        dsym_path = os.path.join(self.get_project_path(project), image_uuid)
+        try:
+            os.stat(dsym_path)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+        else:
+            return dsym_path
 
         dsf = find_dsym_file(project, image_uuid)
         if dsf is None:
             return None
 
-        if dsf.is_global:
-            base = self.get_global_path()
-        else:
-            if on_dsym_file_referenced is not None:
-                on_dsym_file_referenced(dsf)
-            base = self.get_project_path(project)
-        dsym = os.path.join(base, image_uuid)
+        if on_dsym_file_referenced is not None:
+            on_dsym_file_referenced(dsf)
 
         try:
-            os.makedirs(base)
+            os.makedirs(os.path.dirname(dsym_path))
         except OSError:
             pass
 
@@ -78,20 +66,20 @@ class DSymCache(object):
             suffix = '_%s' % uuid.uuid4()
             done = False
             try:
-                with open(dsym + suffix, 'w') as df:
+                with open(dsym_path + suffix, 'w') as df:
                     shutil.copyfileobj(sf, df)
-                os.rename(dsym + suffix, dsym)
+                os.rename(dsym_path + suffix, dsym_path)
                 done = True
             finally:
                 # Use finally here because it does not lie about the
                 # error on exit
                 if not done:
                     try:
-                        os.remove(dsym + suffix)
+                        os.remove(dsym_path + suffix)
                     except Exception:
                         pass
 
-        return base
+        return dsym_path
 
     def clear_old_entries(self):
         try:

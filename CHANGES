@@ -5,6 +5,10 @@ Version 8.17 (Unreleased)
 - Initial (internal) analytics abstraction.
 - Turned on reprocessing by default
 - Added basics for Data Forwarding integrations.
+- Changed the grouping and default `in_app` values for cocoa events.
+- Removed global dsym support.
+- Removed support for legacy apple report format.
+
 - The threads interface now contributes to grouping if it contains a single thread.
 - Added per-key (DSN) rate limits (``project:rate-limits`` feature).
 - Added tsdb statistics for events per-key.

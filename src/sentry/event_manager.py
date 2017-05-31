@@ -42,6 +42,7 @@ from sentry.utils.db import get_db_engine
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
+from sentry.stacktraces import normalize_in_app
 
 
 def count_limit(count):
@@ -495,6 +496,10 @@ class EventManager(object):
             if 'user' in tags:
                 del tags['user']
             tags['sentry:user'] = event_user.tag_value
+
+        # At this point we want to normalize the in_app values in case the
+        # clients did not set this appropriately so far.
+        normalize_in_app(data)
 
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
