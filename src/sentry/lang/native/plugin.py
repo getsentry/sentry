@@ -22,7 +22,7 @@ from sentry.reprocessing import report_processing_issue
 logger = logging.getLogger(__name__)
 
 
-FRAME_CACHE_VERSION = 4
+FRAME_CACHE_VERSION = 5
 
 
 class NativeStacktraceProcessor(StacktraceProcessor):
