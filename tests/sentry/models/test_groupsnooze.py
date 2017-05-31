@@ -101,6 +101,17 @@ class GroupSnoozeTest(TestCase):
         assert snooze.is_valid(test_rates=True)
 
     @mock.patch('django.utils.timezone.now')
+    def test_user_rate_without_test(self, mock_now):
+        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+
+        snooze = GroupSnooze.objects.create(
+            group=self.group,
+            count=100,
+            window=60,
+        )
+        assert snooze.is_valid(test_rates=False)
+
+    @mock.patch('django.utils.timezone.now')
     def test_rate_not_reached(self, mock_now):
         mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -125,4 +136,15 @@ class GroupSnoozeTest(TestCase):
             self.group.id,
             count=100,
         )
-        assert snooze.is_valid(test_rates=True)
+        assert not snooze.is_valid(test_rates=True)
+
+    @mock.patch('django.utils.timezone.now')
+    def test_rate_without_test(self, mock_now):
+        mock_now.return_value = datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+
+        snooze = GroupSnooze.objects.create(
+            group=self.group,
+            count=100,
+            window=60,
+        )
+        assert snooze.is_valid(test_rates=False)

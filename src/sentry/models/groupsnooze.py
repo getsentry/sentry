@@ -86,7 +86,7 @@ class GroupSnooze(Model):
             start=start,
             end=end,
         )[self.group_id]
-        if rate > self.count:
+        if rate >= self.count:
             return False
 
         return True
@@ -104,7 +104,7 @@ class GroupSnooze(Model):
             end=end,
         )[self.group_id]
 
-        if rate > self.user_count:
+        if rate >= self.user_count:
             return False
 
         return True
