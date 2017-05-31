@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -35,3 +37,44 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
             })
 
         return Response(results)
+
+    def post(self, request, organization):
+        # TODO(jess): validation
+        provider_id = request.DATA.get('provider')
+        installation_id = request.DATA.get('installation_id')
+
+        try:
+            provider_cls = bindings.get('repository.provider').get(provider_id)
+        except KeyError:
+            return Response({
+                'error_type': 'validation',
+            }, status=400)
+
+        provider = provider_cls(id=provider_id)
+        installations = {
+            six.text_type(i['installation_id']): i for i in
+            provider.get_installations(request.user)
+        }
+
+        try:
+            installation = installations[installation_id]
+        except KeyError:
+            # They don't have access
+            return Response({
+                'error_type': 'validation',
+            }, status=400)
+
+        try:
+            installation = Installation.objects.get(
+                installation_id=installation_id,
+            )
+        except Installation.DoesNotExist:
+            # they need to install via provider first
+            # this maybe should never happen though
+            return Response({
+                'error_type': 'validation',
+            }, status=400)
+
+        installation.add_organization(organization)
+
+        return Response(status=201)

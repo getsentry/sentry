@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from django.db import models
+from django.db import models, IntegrityError, transaction
 
 from sentry.db.models import Model, FlexibleForeignKey
 
@@ -34,3 +34,20 @@ class Installation(Model):
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_installation'
+
+    def add_organization(self, organization):
+        """
+        Add an organization to this installation.
+
+        Returns True if the OrganizationInstallation was created
+        """
+        try:
+            with transaction.atomic():
+                OrganizationInstallation.objects.create(
+                    organization=organization,
+                    installation=self,
+                )
+        except IntegrityError:
+            return False
+        else:
+            return True
