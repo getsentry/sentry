@@ -86,6 +86,17 @@ def get_hashes_for_event_with_reason(event):
         result = interface.compute_hashes(event.platform)
         if not result:
             continue
+
+        # HACK: if the top scoring interface is stacktrace then we also use the
+        # message interface so that events with the same stacktrace but differing
+        # messages will not be grouped, which is common if a single method can
+        # cause multiple separate error messages (that don't have exceptions attached).
+        message_key = 'sentry.interfaces.Message'
+        if interface.get_slug() == 'stacktrace' and message_key in interfaces:
+            message_hash = interfaces.get(message_key).compute_hashes(event.platform)
+            if message_hash:
+                result[0] = message_hash[0] + result[0]
+
         return (interface.get_path(), result)
     return ('message', [event.message])
 
