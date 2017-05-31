@@ -9,6 +9,7 @@ Version 8.17 (Unreleased)
 - Added per-key (DSN) rate limits (``project:rate-limits`` feature).
 - Added tsdb statistics for events per-key.
 - Added basic workspace for Visual Studio Code.
+- Added hovercards for Issue IDs in activity entries.
 
 Schema Changes
 ~~~~~~~~~~~~~~
