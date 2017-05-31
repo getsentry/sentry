@@ -331,7 +331,7 @@
     <tr class="mobile-full-width">
       <td width="125px">
         <h1>
-          <a href="{% absolute_uri %}"><img src="{% absolute_asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
+          <a href="{% absolute_uri %}"><img src="{% asset_url 'sentry' 'images/email/sentry_logo_full.png' %}" width="125px" height="29px" alt="Sentry"></a>
         </h1>
       </td>
       <td class="align-right">
@@ -400,9 +400,9 @@
                   {% if change %}
                     <div class="stat">
                     {% if change >= 0 %}
-                        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
+                        <img src="{% asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
                     {% else %}
-                        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
+                        <img src="{% asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
                     {% endif %}
                     {% with change|multiply:"100"|absolute_value as percentage %}
                         {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
@@ -602,35 +602,35 @@
                 <table>
                   <tr>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
                     </td>
                     <td width="64px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
                     </td>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
                     </td>
                   </tr>
                   <tr>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
                     </td>
                     <td class="count">
                       {{ personal.resolved|small_count:0 }}
                     </td>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
                     </td>
                   </tr>
                   <tr>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
                     </td>
                     <td width="64px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
                     </td>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
                     </td>
                   </tr>
                 </table>
@@ -646,35 +646,35 @@
                 <table>
                   <tr>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
                     </td>
                     <td>
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
                     </td>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
                     </td>
                   </tr>
                   <tr>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
                     </td>
                     <td class="count">
                       {{ personal.users|small_count:0 }}
                     </td>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
                     </td>
                   </tr>
                   <tr>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
                     </td>
                     <td>
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
                     </td>
                     <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
+                      <img src="{% asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
                     </td>
                   </tr>
                 </table>
