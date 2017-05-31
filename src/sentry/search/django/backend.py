@@ -64,6 +64,38 @@ class DjangoSearchBackend(SearchBackend):
                 return None
         return matches
 
+    def _tag_count_to_filter(self, project, tag, lower, upper,
+                             lower_inclusive, upper_inclusive):
+        # Django doesnt support union, so we limit results and try to find
+        # reasonable matches
+        from sentry.models import GroupTagValue
+
+        params = {
+            'key': tag,
+            'project_id': project.id,
+        }
+        if lower is not None:
+            if lower_inclusive:
+                params['values_seen__gte'] = lower
+            else:
+                params['values_seen__gt'] = lower
+        if upper is not None:
+            if upper_inclusive:
+                params['values_seen__lte'] = upper
+            else:
+                params['values_seen__lt'] = upper
+
+        # for each remaining tag, find matches contained in our
+        # existing set, pruning it down each iteration
+        base_qs = GroupTagValue.objects.filter(
+            **params
+        ).order_by('-last_seen')
+
+        matches = list(base_qs.values_list('group_id', flat=True)[:1000])
+        if not matches:
+            return None
+        return matches
+
     def _build_queryset(self, project, query=None, status=None, tags=None,
                         bookmarked_by=None, assigned_to=None, first_release=None,
                         sort_by='date', unassigned=None, subscribed_by=None,
@@ -78,6 +110,11 @@ class DjangoSearchBackend(SearchBackend):
                         times_seen=None,
                         times_seen_lower=None, times_seen_lower_inclusive=True,
                         times_seen_upper=None, times_seen_upper_inclusive=True,
+                        users_affected=None,
+                        users_affected_lower=None,
+                        users_affected_lower_inclusive=True,
+                        users_affected_upper=None,
+                        users_affected_upper_inclusive=True,
                         cursor=None, limit=None):
         from sentry.models import Event, Group, GroupSubscription, GroupStatus
 
@@ -140,6 +177,38 @@ class DjangoSearchBackend(SearchBackend):
 
         if tags:
             matches = self._tags_to_filter(project, tags)
+            if not matches:
+                return queryset.none()
+            queryset = queryset.filter(
+                id__in=matches,
+            )
+
+        if users_affected is not None:
+            matches = self._tag_counts_to_filter(
+                project=project,
+                tag='sentry:user',
+                lower=users_affected,
+                upper=users_affected,
+                lower_inclusive=True,
+                upper_inclusive=True,
+            )
+            if not matches:
+                return queryset.none()
+            queryset = queryset.filter(
+                id__in=matches,
+            )
+        elif (
+            users_affected_lower is not None or
+            users_affected_upper is not None
+        ):
+            matches = self._tag_counts_to_filter(
+                project=project,
+                tag='sentry:user',
+                lower=users_affected_lower,
+                upper=users_affected_upper,
+                lower_inclusive=users_affected_upper_inclusive,
+                upper_inclusive=users_affected_upper_inclusive,
+            )
             if not matches:
                 return queryset.none()
             queryset = queryset.filter(
