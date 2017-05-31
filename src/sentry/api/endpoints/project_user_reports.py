@@ -94,6 +94,15 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
 
         report = serializer.object
         report.project = project
+
+        # TODO(dcramer): we should probably create the user if they dont
+        # exist, and ideally we'd also associate that with the event
+        euser = self.find_event_user(report)
+        if euser and not euser.name and report.name:
+            euser.update(name=report.name)
+        if euser:
+            report.event_user_id = euser.id
+
         try:
             mapping = EventMapping.objects.get(
                 event_id=report.event_id,
@@ -119,9 +128,6 @@ class ProjectUserReportsEndpoint(ProjectEndpoint):
                 project=report.project,
                 event_id=report.event_id,
             )
-            euser = self.find_event_user(existing_report)
-            if euser and not euser.uname and report.name:
-                euser.update(report.name)
 
             existing_report.update(
                 name=report.name,
