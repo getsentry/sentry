@@ -588,6 +588,37 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
 
+    def test_basic_ignore(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+
+        snooze = GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now(),
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'ignored',
+        }, format='json')
+
+        assert response.status_code == 200
+
+        # existing snooze objects should be cleaned up
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.IGNORED
+
+        assert response.data == {
+            'status': 'ignored',
+            'statusDetails': {},
+        }
+
     def test_snooze_duration(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
 
