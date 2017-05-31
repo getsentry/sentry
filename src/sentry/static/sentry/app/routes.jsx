@@ -41,6 +41,7 @@ import OrganizationTeams from './views/organizationTeams';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
+import ProjectReleaseTracking from './views/projectReleaseTracking';
 import ProjectChooser from './views/projectChooser';
 import ProjectCspSettings from './views/projectCspSettings';
 import ProjectDashboard from './views/projectDashboard';
@@ -223,6 +224,10 @@ function routes() {
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Route path="alerts/" component={errorHandler(ProjectAlertSettings)} />
             <Route path="alerts/rules/" component={errorHandler(ProjectAlertRules)} />
+            <Route
+              path="release-tracking/"
+              component={errorHandler(ProjectReleaseTracking)}
+            />
             <Route
               path="data-forwarding/"
               component={errorHandler(ProjectDataForwarding)}

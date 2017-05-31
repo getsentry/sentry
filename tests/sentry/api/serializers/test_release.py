@@ -7,6 +7,7 @@ import datetime
 from django.utils import timezone
 from uuid import uuid4
 
+from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
 from sentry.models import (Commit, CommitAuthor,
     Release, ReleaseCommit, ReleaseProject, TagValue, User, UserEmail,)
@@ -89,7 +90,7 @@ class ReleaseSerializerTest(TestCase):
         # Make sure a sha1 value gets truncated
         release.version = '0' * 40
         result = serialize(release, user)
-        assert result['shortVersion'] == '0' * 12
+        assert result['shortVersion'] == '0' * 7
 
     def test_no_tag_data(self):
         user = self.create_user()
@@ -336,3 +337,34 @@ class ReleaseSerializerTest(TestCase):
         result = serialize(release, user)
         assert len(result['authors']) == 1
         assert result['authors'][0]['email'] == 'stebe@sentry.io'
+
+
+class ReleaseRefsSerializerTest(TestCase):
+    def test_simple(self):
+        # test bad refs
+        data = {
+            'version': 'a' * 40,
+            'projects': ['earth'],
+            'refs': [None]
+        }
+
+        serializer = ReleaseSerializerWithProjects(data=data)
+
+        assert not serializer.is_valid()
+        assert serializer.errors == {
+            'refs': [u'Incorrect type. Expected value, but got null'],
+        }
+
+        # test good refs
+        data = {
+            'version': 'a' * 40,
+            'projects': ['earth'],
+            'refs': [{
+                'repository': 'my-repo',
+                'commit': 'b' * 40,
+            }]
+        }
+
+        serializer = ReleaseSerializerWithProjects(data=data)
+
+        assert serializer.is_valid()

@@ -1,0 +1,20 @@
+{
+    "files.exclude": {
+        "**/*.pyc": true,
+        "static": true,
+        "node_modules": true,
+        "src/sentry/static/dist": true
+    },
+    
+    "prettier.bracketSpacing": false,
+    "prettier.singleQuote": true,
+    "prettier.printWidth": 90,
+
+    "eslint.options": {
+        "configFile": ".eslintrc"
+    },
+
+    "[javascript]": {
+        "editor.formatOnSave": true
+    }
+}

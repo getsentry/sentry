@@ -6,6 +6,7 @@ import warnings
 
 from django.conf import settings
 
+from sentry import roles
 from sentry.models import AuthIdentity, AuthProvider, OrganizationMember
 
 
@@ -35,6 +36,18 @@ def _sso_params(member):
                 )
             except AuthIdentity.DoesNotExist:
                 sso_is_valid = False
+                # If an owner is trying to gain access,
+                # allow bypassing SSO if there are no other
+                # owners with SSO enabled.
+                if member.role == roles.get_top_dog().id:
+                    requires_sso = AuthIdentity.objects.filter(
+                        auth_provider=auth_provider,
+                        user__in=OrganizationMember.objects.filter(
+                            organization=member.organization_id,
+                            role=roles.get_top_dog().id,
+                            user__is_active=True,
+                        ).exclude(id=member.id).values_list('user_id')
+                    ).exists()
             else:
                 sso_is_valid = auth_identity.is_valid(member)
     return requires_sso, sso_is_valid

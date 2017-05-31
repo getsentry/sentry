@@ -9,6 +9,7 @@ Version 8.17 (Unreleased)
 - Added per-key (DSN) rate limits (``project:rate-limits`` feature).
 - Added tsdb statistics for events per-key.
 - Added ``sentry.deletions`` abstraction to improve bulk deletions.
+- Added basic workspace for Visual Studio Code.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -18,6 +19,14 @@ Schema Changes
 - Added ``Deploy.notified`` column
 - Added index on ``EventTag.date_added``
 - Added unique index on ``Environment(organization_id, name)``
+- Added unique index on ``ReleaseEnvironment(organization_id, release_id, environment_id)``
+- Added ``EventUser.name`` column
+- Added ``UserReport.event_user_id`` column
+
+Version 8.16.1
+--------------
+
+- Fixed issue in migration 0302 that prevented upgrading
 
 Version 8.16
 ------------
