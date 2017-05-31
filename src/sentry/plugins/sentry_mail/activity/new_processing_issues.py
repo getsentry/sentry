@@ -52,7 +52,7 @@ class NewProcessingIssuesActivityEmail(ActivityEmail):
         }
 
     def get_subject(self):
-        return u'Processing Isuses on {}'.format(
+        return u'Processing Issues on {}'.format(
             self.project.name,
         )
 

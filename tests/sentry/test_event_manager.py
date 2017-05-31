@@ -556,7 +556,8 @@ class EventManagerTest(TransactionTestCase):
             }
         }))
         manager.normalize()
-        event = manager.save(self.project.id)
+        with self.tasks():
+            event = manager.save(self.project.id)
 
         assert tsdb.get_distinct_counts_totals(
             tsdb.models.users_affected_by_group,
@@ -576,26 +577,27 @@ class EventManagerTest(TransactionTestCase):
             event.project.id: 1,
         }
 
-        assert EventUser.objects.filter(
+        euser = EventUser.objects.get(
             project=self.project,
             ident='1',
-        ).exists()
-        assert 'sentry:user' in dict(event.tags)
+        )
+        assert event.get_tag('sentry:user') == euser.tag_value
 
         # ensure event user is mapped to tags in second attempt
         manager = EventManager(self.make_event(**{
             'sentry.interfaces.User': {
                 'id': '1',
+                'name': 'jane',
             }
         }))
         manager.normalize()
-        event = manager.save(self.project.id)
+        with self.tasks():
+            event = manager.save(self.project.id)
 
-        assert EventUser.objects.filter(
-            project=self.project,
-            ident='1',
-        ).exists()
-        assert 'sentry:user' in dict(event.tags)
+        euser = EventUser.objects.get(id=euser.id)
+        assert event.get_tag('sentry:user') == euser.tag_value
+        assert euser.name == 'jane'
+        assert euser.ident == '1'
 
     def test_event_user_unicode_identifier(self):
         manager = EventManager(self.make_event(**{
@@ -604,7 +606,8 @@ class EventManagerTest(TransactionTestCase):
             }
         }))
         manager.normalize()
-        manager.save(self.project.id)
+        with self.tasks():
+            manager.save(self.project.id)
         euser = EventUser.objects.get(
             project=self.project,
         )

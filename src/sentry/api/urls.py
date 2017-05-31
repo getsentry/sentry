@@ -56,6 +56,7 @@ from .endpoints.organization_repository_commits import OrganizationRepositoryCom
 from .endpoints.organization_repository_details import OrganizationRepositoryDetailsEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
+from .endpoints.organization_user_issues import OrganizationUserIssuesEndpoint
 from .endpoints.organization_user_issues_search import OrganizationUserIssuesSearchEndpoint
 from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs import ProjectDocsEndpoint
@@ -75,6 +76,7 @@ from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
+from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_rules import ProjectRulesEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_searches import ProjectSearchesEndpoint
@@ -83,11 +85,13 @@ from .endpoints.project_stats import ProjectStatsEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
 from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
-from .endpoints.project_users import ProjectUsersEndpoint
-from .endpoints.project_user_reports import ProjectUserReportsEndpoint
 from .endpoints.project_processingissues import ProjectProcessingIssuesEndpoint, \
     ProjectProcessingIssuesFixEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
+from .endpoints.project_user_details import ProjectUserDetailsEndpoint
+from .endpoints.project_user_reports import ProjectUserReportsEndpoint
+from .endpoints.project_user_stats import ProjectUserStatsEndpoint
+from .endpoints.project_users import ProjectUsersEndpoint
 from .endpoints.filechange import CommitFileChangeEndpoint
 from .endpoints.issues_resolved_in_release import IssuesResolvedInReleaseEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
@@ -195,6 +199,9 @@ urlpatterns = patterns(
     url(r'^organizations/(?P<organization_slug>[^\/]+)/users/issues/$',
         OrganizationUserIssuesSearchEndpoint.as_view(),
         name='sentry-api-0-organization-issue-search'),
+    url(r'^organizations/(?P<organization_slug>[^\/]+)/users/(?P<user_id>[^\/]+)/issues/$',
+        OrganizationUserIssuesEndpoint.as_view(),
+        name='sentry-api-0-organization-user-issues'),
     url(r'^organizations/(?P<organization_slug>[^\/]+)/members/(?P<member_id>[^\/]+)/$',
         OrganizationMemberDetailsEndpoint.as_view(),
         name='sentry-api-0-organization-member-details'),
@@ -329,6 +336,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/$',
         ProjectReleasesEndpoint.as_view(),
         name='sentry-api-0-project-releases'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/token/$',
+        ProjectReleasesTokenEndpoint.as_view(),
+        name='sentry-api-0-project-releases-token'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/$',
         ProjectReleaseDetailsEndpoint.as_view(),
         name='sentry-api-0-project-release-details'),
@@ -380,9 +390,15 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/$',
         ProjectUsersEndpoint.as_view(),
         name='sentry-api-0-project-users'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/users/(?P<user_hash>[^/]+)/$',
+        ProjectUserDetailsEndpoint.as_view(),
+        name='sentry-api-0-project-user-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/(?:user-feedback|user-reports)/$',
         ProjectUserReportsEndpoint.as_view(),
         name='sentry-api-0-project-user-reports'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/user-stats/$',
+        ProjectUserStatsEndpoint.as_view(),
+        name='sentry-api-0-project-userstats'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/processingissues/$',
         ProjectProcessingIssuesEndpoint.as_view(),
         name='sentry-api-0-project-processing-issues'),

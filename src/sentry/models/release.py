@@ -205,7 +205,7 @@ class Release(Model):
         if match is not None:
             version = version[match.end():]
         if _sha1_re.match(version):
-            return version[:12]
+            return version[:7]
         return version
 
     def add_dist(self, name, date_added=None):

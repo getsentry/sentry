@@ -81,6 +81,10 @@ const PluginConfig = React.createClass({
     });
   },
 
+  createMarkup() {
+    return {__html: this.props.data.doc};
+  },
+
   render() {
     let data = this.props.data;
 
@@ -104,7 +108,7 @@ const PluginConfig = React.createClass({
                 </strong>
               </div>
             : null}
-
+          <div dangerouslySetInnerHTML={this.createMarkup()} />
           {this.state.loading
             ? <LoadingIndicator />
             : plugins.get(data).renderSettings({
