@@ -105,7 +105,12 @@ export default React.createClass({
   },
 
   getIgnoreWindows() {
-    return [[1, 'per hr'], [24, 'per day'], [24 * 7, 'per week']];
+    return [
+      ['', 'from current value'],
+      [1, 'per hour'],
+      [24, 'per day'],
+      [24 * 7, 'per week']
+    ];
   },
 
   render() {
@@ -150,19 +155,19 @@ export default React.createClass({
           show={this.state.ignoreModal === 'count'}
           onSelected={this.customIgnoreModalSelected}
           onCanceled={this.customIgnoreModalCanceled.bind(this, 'count')}
-          noun={t('time(s)')}
-          label={t('This occurs again ..')}
-          countName="count"
-          windowName="window"
+          label={t('Number of events')}
+          countName="ignoreCount"
+          windowName="ignoreWindow"
+          windowChoices={this.getIgnoreWindows()}
         />
         <CustomIgnoreCountModal
           show={this.state.ignoreModal === 'users'}
           onSelected={this.customIgnoreModalSelected}
           onCanceled={this.customIgnoreModalCanceled.bind(this, 'users')}
-          noun={t('users(s)')}
-          label={t('This affects ..')}
-          countName="userCount"
-          windowName="userWindow"
+          label={t('Number of users')}
+          countName="ignoreUserCount"
+          windowName="ignoreUserWindow"
+          windowChoices={this.getIgnoreWindows()}
         />
         <div className="btn-group">
           {group.status === 'resolved'
@@ -289,11 +294,6 @@ export default React.createClass({
                                 </MenuItem>
                               );
                             })}
-                            <MenuItem noAnchor={true}>
-                              <a onClick={this.onIgnore.bind(this, {ignoreCount: count})}>
-                                {t('ever')}
-                              </a>
-                            </MenuItem>
                           </DropdownLink>
                         </li>
                       );
@@ -327,14 +327,6 @@ export default React.createClass({
                                 </MenuItem>
                               );
                             })}
-                            <MenuItem noAnchor={true}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreUserCount: count
-                                })}>
-                                {t('ever')}
-                              </a>
-                            </MenuItem>
                           </DropdownLink>
                         </li>
                       );

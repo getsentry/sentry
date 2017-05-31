@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from 'react-bootstrap/lib/Modal';
+import {Select2Field} from './forms';
 import {t} from '../locale';
 
 export default React.createClass({
@@ -10,7 +11,8 @@ export default React.createClass({
     label: React.PropTypes.string.isRequired,
     noun: React.PropTypes.string.isRequired,
     countName: React.PropTypes.string.isRequired,
-    windowName: React.PropTypes.string.isRequired
+    windowName: React.PropTypes.string.isRequired,
+    windowChoices: React.PropTypes.array.isRequired
   },
 
   getInitialState() {
@@ -36,42 +38,40 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} bsSize="sm">
         <div className="modal-header">
-          <h4>{t('Ignore until...')}</h4>
+          <h4>{t('Custom Ignore Rule')}</h4>
         </div>
         <div className="modal-body">
+          <p>
+            <small>
+              Create a custom rule to ignore this issue until conditions are met.
+            </small>
+          </p>
           <form className="m-b-1">
             <div className="control-group form-group">
               <label className="control-label">
                 {this.props.label}
               </label>
-              <div className="row row-flex row-center-vertically">
-                <div className="col-xs-9">
-                  <input
-                    className="form-control"
-                    type="number"
-                    value={count}
-                    onChange={e => this.onChange('count', e.target.value)}
-                    style={{padding: '3px 10px'}}
-                  />
-                </div>
-                <div className="col-xs-3">{this.props.noun}</div>
-              </div>
+              <input
+                className="form-control"
+                type="number"
+                value={count}
+                onChange={e => this.onChange('count', e.target.value)}
+                style={{padding: '3px 10px'}}
+              />
             </div>
             <div className="control-group form-group m-b-1">
-              <label className="control-label">
-                {t('Within a time window (optional) ..')}
-              </label>
-              <div className="row row-flex row-center-vertically">
-                <div className="col-xs-9">
-                  <input
-                    className="form-control"
-                    type="number"
-                    value={window}
-                    onChange={e => this.onChange('window', e.target.value)}
-                    style={{padding: '3px 10px'}}
-                  />
+              <div>
+                <Select2Field
+                  className="form-control"
+                  value={window}
+                  name="window"
+                  onChange={v => this.onChange('window', v)}
+                  style={{padding: '3px 10px'}}
+                  choices={this.props.windowChoices}
+                />
+                <div className="help-block">
+                  (Optional) Trigger this rule only when the condition matches in a given time window.
                 </div>
-                <div className="col-xs-3">hour(s)</div>
               </div>
             </div>
           </form>

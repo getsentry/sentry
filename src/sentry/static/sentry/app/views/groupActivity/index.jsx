@@ -73,7 +73,7 @@ const GroupActivity = React.createClass({
             {
               author: author,
               count: data.ignoreCount,
-              interval: <Duration seconds={data.ignoreWindow * 60} />
+              interval: <Duration seconds={data.ignoreWindow * 3600} />
             }
           );
         } else if (data.ignoreCount) {
@@ -87,7 +87,7 @@ const GroupActivity = React.createClass({
             {
               author: author,
               count: data.ignoreUserCount,
-              interval: <Duration seconds={data.ignoreUserWindow * 60} />
+              interval: <Duration seconds={data.ignoreUserWindow * 3600} />
             }
           );
         } else if (data.ignoreUserCount) {

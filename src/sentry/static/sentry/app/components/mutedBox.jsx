@@ -23,7 +23,7 @@ const MutedBox = React.createClass({
       return t(
         'This issue has been ignored until it occurs %s time(s) in %s',
         <strong>{details.ignoreCount.toLocaleString()}</strong>,
-        <strong><Duration seconds={details.ignoreWindow * 60} /></strong>
+        <strong><Duration seconds={details.ignoreWindow * 3600} /></strong>
       );
     } else if (details.ignoreCount) {
       return t(
@@ -34,7 +34,7 @@ const MutedBox = React.createClass({
       return t(
         'This issue has been ignored until it affects %s user(s) in %s',
         <strong>{details.ignoreUserCount.toLocaleString()}</strong>,
-        <strong><Duration seconds={details.ignoreUserWindow * 60} /></strong>
+        <strong><Duration seconds={details.ignoreUserWindow * 3600} /></strong>
       );
     } else if (details.ignoreUserCount) {
       return t(
