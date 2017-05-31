@@ -790,34 +790,6 @@ class GetHashesFromEventTest(TestCase):
         assert not http_comp_hash.called
         assert hash_one == ['foo', 'bar']
 
-    @patch('sentry.interfaces.stacktrace.Stacktrace.compute_hashes')
-    @patch('sentry.interfaces.message.Message.compute_hashes')
-    def test_stacktrace_hash_also_includes_message(self, message_comp_hash, stack_comp_hash):
-        # this tests the temporary hack in get_hashes_for_event_with_reason
-        message_comp_hash.return_value = [['baz']]
-        stack_comp_hash.return_value = [['foo', 'bar']]
-        event = Event(
-            data={
-                'sentry.interfaces.Stacktrace': {
-                    'frames': [{
-                        'lineno': 1,
-                        'filename': 'foo.py',
-                    }],
-                },
-                'sentry.interfaces.Message': {
-                    'message': 'abc'
-                },
-            },
-            platform='python',
-            message='Foo bar',
-        )
-        hashes = get_hashes_for_event(event)
-        assert len(hashes) == 1
-        hash_one = hashes[0]
-        stack_comp_hash.assert_called_once_with('python')
-        message_comp_hash.assert_called_once_with('python')
-        assert hash_one == ['baz', 'foo', 'bar']
-
 
 class GetHashesFromFingerprintTest(TestCase):
     def test_default_value(self):
