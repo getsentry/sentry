@@ -1,6 +1,7 @@
 import React from 'react';
 import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
+import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
@@ -21,6 +22,10 @@ export default React.createClass({
       container: 'body'
     })
   ],
+
+  getInitialState() {
+    return {ignoreModal: null};
+  },
 
   onDelete() {
     let group = this.getGroup();
@@ -76,21 +81,19 @@ export default React.createClass({
     });
   },
 
-  customIgnoreDurationClicked() {
+  customIgnoreModalClicked(modal) {
     this.setState({
-      isCustomIgnoreDurationModalOpen: true
+      ignoreModal: modal
     });
   },
 
-  customIgnoreDurationSelected(duration) {
-    this.onIgnore({ignoreDuration: duration});
-    this.customIgnoreDurationCanceled();
+  customIgnoreModalSelected(data) {
+    this.onIgnore(data);
+    this.customIgnoreModalCanceled();
   },
 
-  customIgnoreDurationCanceled() {
-    this.setState({
-      isCustomIgnoreDurationModalOpen: false
-    });
+  customIgnoreModalCanceled() {
+    this.setState({ignoreModal: null});
   },
 
   getIgnoreDurations() {
@@ -139,9 +142,27 @@ export default React.createClass({
     return (
       <div className="group-actions">
         <CustomIgnoreDurationModal
-          show={this.state && this.state.isCustomIgnoreDurationModalOpen}
-          onSelected={this.customIgnoreDurationSelected}
-          onCanceled={this.customIgnoreDurationCanceled}
+          show={this.state.ignoreModal === 'duration'}
+          onSelected={this.customIgnoreModalSelected}
+          onCanceled={this.customIgnoreModalCanceled.bind(this, 'duration')}
+        />
+        <CustomIgnoreCountModal
+          show={this.state.ignoreModal === 'count'}
+          onSelected={this.customIgnoreModalSelected}
+          onCanceled={this.customIgnoreModalCanceled.bind(this, 'count')}
+          noun={t('time(s)')}
+          label={t('This occurs again ..')}
+          countName="count"
+          windowName="window"
+        />
+        <CustomIgnoreCountModal
+          show={this.state.ignoreModal === 'users'}
+          onSelected={this.customIgnoreModalSelected}
+          onCanceled={this.customIgnoreModalCanceled.bind(this, 'users')}
+          noun={t('users(s)')}
+          label={t('This affects ..')}
+          countName="userCount"
+          windowName="userWindow"
         />
         <div className="btn-group">
           {group.status === 'resolved'
@@ -241,7 +262,9 @@ export default React.createClass({
                     })}
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
-                      <a onClick={this.customIgnoreDurationClicked}>{t('custom')}</a>
+                      <a onClick={this.customIgnoreModalClicked.bind(this, 'duration')}>
+                        {t('custom')}
+                      </a>
                     </MenuItem>
                   </DropdownLink>
                 </li>
@@ -277,7 +300,9 @@ export default React.createClass({
                     })}
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
-                      <a>{t('custom')}</a>
+                      <a onClick={this.customIgnoreModalClicked.bind(this, 'count')}>
+                        {t('custom')}
+                      </a>
                     </MenuItem>
                   </DropdownLink>
                 </li>
@@ -316,7 +341,9 @@ export default React.createClass({
                     })}
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
-                      <a>{t('custom')}</a>
+                      <a onClick={this.customIgnoreModalClicked.bind(this, 'users')}>
+                        {t('custom')}
+                      </a>
                     </MenuItem>
                   </DropdownLink>
                 </li>

@@ -39,7 +39,7 @@ export default React.createClass({
     });
 
     if (minutes > 0) {
-      this.props.onSelected(minutes);
+      this.props.onSelected({ignoreDuration: minutes});
     }
   },
 
@@ -63,9 +63,10 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} bsSize="sm">
         <div className="modal-header">
-          <h4>{t('Ignore until:')}</h4>
+          <h4>{t('Custom Ignore Rule')}</h4>
         </div>
         <div className="modal-body">
+          <h6>{t('Ignore Until')}</h6>
           <form className="form-horizontal">
             <div className="form-group">
               <label htmlFor="snooze-until-date" className="col-sm-4 control-label">
