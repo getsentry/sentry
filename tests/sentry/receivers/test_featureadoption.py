@@ -1,22 +1,24 @@
+from __future__ import absolute_import
+
 from django.utils import timezone
 
-from sentry.models import FeatureAdoption, features
+from sentry.models import FeatureAdoption
 from sentry.signals import (
-    alert_rule_created,
+    # alert_rule_created,
     event_processed,
     first_event_received,
-    project_created,
-    member_joined,
-    plugin_enabled,
-    user_feedback_received,
-    api_called,
-    issue_assigned,
-    issue_resolved_in_release,
-    advanced_search,
-    save_search_created,
-    inbound_filter_toggled,
-    sso_enabled,
-    data_scrubber_enabled,
+    # project_created,
+    # member_joined,
+    # plugin_enabled,
+    # user_feedback_received,
+    # api_called,
+    # issue_assigned,
+    # issue_resolved_in_release,
+    # advanced_search,
+    # save_search_created,
+    # inbound_filter_toggled,
+    # sso_enabled,
+    # data_scrubber_enabled,
 )
 from sentry.testutils import TestCase
 
