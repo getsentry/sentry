@@ -36,44 +36,47 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} bsSize="sm">
         <div className="modal-header">
-          <h4>{t('Custom Ignore Rule')}</h4>
+          <h4>{t('Ignore until...')}</h4>
         </div>
         <div className="modal-body">
-          <h6>{t('Ignore Until')}</h6>
-          <form className="form-horizontal">
+          <form className="m-b-1">
             <div className="control-group form-group">
               <label className="control-label">
                 {this.props.label}
               </label>
-              <div className="col-xs-6">
-                <input
-                  className="form-control"
-                  type="number"
-                  value={count}
-                  onChange={e => this.onChange('count', e.target.value)}
-                  style={{padding: '0 10px'}}
-                />
+              <div className="row row-flex row-center-vertically">
+                <div className="col-xs-9">
+                  <input
+                    className="form-control"
+                    type="number"
+                    value={count}
+                    onChange={e => this.onChange('count', e.target.value)}
+                    style={{padding: '3px 10px'}}
+                  />
+                </div>
+                <div className="col-xs-3">{this.props.noun}</div>
               </div>
-              <div className="col-xs-6">{this.props.noun}</div>
             </div>
             <div className="control-group form-group m-b-1">
               <label className="control-label">
                 {t('Within a time window (optional) ..')}
               </label>
-              <div className="col-xs-6">
-                <input
-                  className="form-control"
-                  type="number"
-                  value={window}
-                  onChange={e => this.onChange('window', e.target.value)}
-                  style={{padding: '0 10px'}}
-                />
+              <div className="row row-flex row-center-vertically">
+                <div className="col-xs-9">
+                  <input
+                    className="form-control"
+                    type="number"
+                    value={window}
+                    onChange={e => this.onChange('window', e.target.value)}
+                    style={{padding: '3px 10px'}}
+                  />
+                </div>
+                <div className="col-xs-3">hour(s)</div>
               </div>
-              <div className="col-xs-6">hour(s)</div>
             </div>
           </form>
         </div>
-        <div className="modal-footer">
+        <div className="modal-footer m-t-1">
           <button
             type="button"
             className="btn btn-default"
