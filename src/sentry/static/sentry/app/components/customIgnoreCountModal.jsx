@@ -9,7 +9,7 @@ export default React.createClass({
     onCanceled: React.PropTypes.func,
     show: React.PropTypes.bool,
     label: React.PropTypes.string.isRequired,
-    noun: React.PropTypes.string.isRequired,
+    countLabel: React.PropTypes.string.isRequired,
     countName: React.PropTypes.string.isRequired,
     windowName: React.PropTypes.string.isRequired,
     windowChoices: React.PropTypes.array.isRequired
@@ -36,15 +36,22 @@ export default React.createClass({
   render() {
     let {count, window} = this.state;
     return (
-      <Modal show={this.props.show} animation={false} bsSize="sm">
+      <Modal
+        show={this.props.show}
+        animation={false}
+        bsSize="sm"
+        onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{t('Ignore Until')}</h4>
+          <h4>{t('Custom Ignore Rule')}</h4>
         </div>
         <div className="modal-body">
+          <p>
+            <small>{this.props.label}</small>
+          </p>
           <form className="m-b-1">
             <div className="control-group form-group">
               <label className="control-label">
-                {this.props.label}
+                {this.props.countLabel}
               </label>
               <input
                 className="form-control"
@@ -55,16 +62,21 @@ export default React.createClass({
               />
             </div>
             <div className="control-group form-group m-b-1">
-              <div>
-                <Select2Field
-                  className="form-control"
-                  value={window}
-                  name="window"
-                  onChange={v => this.onChange('window', v)}
-                  style={{padding: '3px 10px'}}
-                  choices={this.props.windowChoices}
-                />
-              </div>
+              <label className="control-label">
+                {t('Time window')}
+              </label>
+              <Select2Field
+                className="form-control"
+                value={window}
+                name="window"
+                onChange={v => this.onChange('window', v)}
+                style={{padding: '3px 10px'}}
+                choices={[['', ''], ...this.props.windowChoices]}
+                allowClear={true}
+                help={t(
+                  '(Optional) If supplied, this rule will apply as a rate of change.'
+                )}
+              />
             </div>
           </form>
         </div>

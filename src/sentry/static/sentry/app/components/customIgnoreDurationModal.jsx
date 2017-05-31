@@ -61,7 +61,11 @@ export default React.createClass({
     const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
 
     return (
-      <Modal show={this.props.show} animation={false} bsSize="sm">
+      <Modal
+        show={this.props.show}
+        animation={false}
+        bsSize="sm"
+        onHide={this.props.onCanceled}>
         <div className="modal-header">
           <h4>{t('Ignore Until')}</h4>
         </div>

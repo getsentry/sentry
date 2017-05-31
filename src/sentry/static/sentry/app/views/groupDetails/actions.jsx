@@ -97,7 +97,7 @@ export default React.createClass({
   },
 
   getIgnoreDurations() {
-    return [30, 120, 60 * 24, 60 * 24 * 7];
+    return [30, 120, 360, 60 * 24, 60 * 24 * 7];
   },
 
   getIgnoreCounts() {
@@ -105,12 +105,7 @@ export default React.createClass({
   },
 
   getIgnoreWindows() {
-    return [
-      ['', 'from current value'],
-      [1, 'per hour'],
-      [24, 'per day'],
-      [24 * 7, 'per week']
-    ];
+    return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
   },
 
   render() {
@@ -155,7 +150,8 @@ export default React.createClass({
           show={this.state.ignoreModal === 'count'}
           onSelected={this.customIgnoreModalSelected}
           onCanceled={this.customIgnoreModalCanceled.bind(this, 'count')}
-          label={t('This occurs again ..')}
+          label={t('Ignore this issue until it occurs again .. ')}
+          countLabel={t('Number of times')}
           countName="ignoreCount"
           windowName="ignoreWindow"
           windowChoices={this.getIgnoreWindows()}
@@ -164,7 +160,8 @@ export default React.createClass({
           show={this.state.ignoreModal === 'users'}
           onSelected={this.customIgnoreModalSelected}
           onCanceled={this.customIgnoreModalCanceled.bind(this, 'users')}
-          label={t('This affects an additional ..')}
+          label={t('Ignore this issue until it affects an additional .. ')}
+          countLabel={t('Numbers of users')}
           countName="ignoreUserCount"
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}
@@ -268,7 +265,7 @@ export default React.createClass({
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
                       <a onClick={this.customIgnoreModalClicked.bind(this, 'duration')}>
-                        {t('custom')}
+                        {t('Custom')}
                       </a>
                     </MenuItem>
                   </DropdownLink>
@@ -294,6 +291,14 @@ export default React.createClass({
                                 </MenuItem>
                               );
                             })}
+                            <MenuItem noAnchor={true}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreCount: count
+                                })}>
+                                {t('from now')}
+                              </a>
+                            </MenuItem>
                           </DropdownLink>
                         </li>
                       );
@@ -301,7 +306,7 @@ export default React.createClass({
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
                       <a onClick={this.customIgnoreModalClicked.bind(this, 'count')}>
-                        {t('custom')}
+                        {t('Custom')}
                       </a>
                     </MenuItem>
                   </DropdownLink>
@@ -327,6 +332,14 @@ export default React.createClass({
                                 </MenuItem>
                               );
                             })}
+                            <MenuItem noAnchor={true}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreUserCount: count
+                                })}>
+                                {t('from now')}
+                              </a>
+                            </MenuItem>
                           </DropdownLink>
                         </li>
                       );
@@ -334,7 +347,7 @@ export default React.createClass({
                     <MenuItem divider={true} />
                     <MenuItem noAnchor={true}>
                       <a onClick={this.customIgnoreModalClicked.bind(this, 'users')}>
-                        {t('custom')}
+                        {t('Custom')}
                       </a>
                     </MenuItem>
                   </DropdownLink>
