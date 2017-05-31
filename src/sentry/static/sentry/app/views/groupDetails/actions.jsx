@@ -278,6 +278,14 @@ export default React.createClass({
                           <DropdownLink
                             title={t('%s times', count.toLocaleString())}
                             caret={false}>
+                            <MenuItem noAnchor={true}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreCount: count
+                                })}>
+                                {t('from now')}
+                              </a>
+                            </MenuItem>
                             {this.getIgnoreWindows().map(([hours, label]) => {
                               return (
                                 <MenuItem noAnchor={true} key={hours}>
@@ -291,14 +299,6 @@ export default React.createClass({
                                 </MenuItem>
                               );
                             })}
-                            <MenuItem noAnchor={true}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreCount: count
-                                })}>
-                                {t('from now')}
-                              </a>
-                            </MenuItem>
                           </DropdownLink>
                         </li>
                       );
@@ -319,6 +319,14 @@ export default React.createClass({
                           <DropdownLink
                             title={t('%s users', count.toLocaleString())}
                             caret={false}>
+                            <MenuItem noAnchor={true}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreUserCount: count
+                                })}>
+                                {t('from now')}
+                              </a>
+                            </MenuItem>
                             {this.getIgnoreWindows().map(([hours, label]) => {
                               return (
                                 <MenuItem noAnchor={true} key={hours}>
@@ -332,14 +340,6 @@ export default React.createClass({
                                 </MenuItem>
                               );
                             })}
-                            <MenuItem noAnchor={true}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreUserCount: count
-                                })}>
-                                {t('from now')}
-                              </a>
-                            </MenuItem>
                           </DropdownLink>
                         </li>
                       );

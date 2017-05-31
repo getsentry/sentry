@@ -53,6 +53,7 @@ class Select2Field extends InputField {
     jQuery(this.refs.input)
       .select2({
         allowClear: this.props.allowClear,
+        allowEmpty: true,
         width: 'element'
       })
       .on('change', this.onChange);
@@ -66,9 +67,14 @@ class Select2Field extends InputField {
 Select2Field.propTypes = Object.assign(
   {
     choices: React.PropTypes.array.isRequired,
-    allowClear: React.PropTypes.bool
+    allowClear: React.PropTypes.bool,
+    allowEmpty: React.PropTypes.bool
   },
   InputField.propTypes
 );
+
+Select2Field.defaultProps = Object.assign({}, InputField.defaultProps, {
+  allowEmpty: false
+});
 
 export default Select2Field;

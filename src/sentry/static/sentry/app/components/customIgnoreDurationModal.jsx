@@ -64,42 +64,36 @@ export default React.createClass({
       <Modal
         show={this.props.show}
         animation={false}
-        bsSize="sm"
+        bsSize="md"
         onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{t('Ignore Until')}</h4>
+          <h4>{t('Ignore this issue until it occurs after ..')}</h4>
         </div>
         <div className="modal-body">
           <form className="form-horizontal">
-            <div className="form-group">
-              <label htmlFor="snooze-until-date" className="col-sm-4 control-label">
-                {t('Date:')}
-              </label>
-              <div className="col-sm-8">
-                <input
-                  className="form-control"
-                  type="date"
-                  id="snooze-until-date"
-                  defaultValue={defaultDateVal}
-                  ref="snoozeDateInput"
-                  style={{padding: '0 10px'}}
-                />
-              </div>
+            <div className="control-group">
+              <h6 className="nav-header">{t('Date')}</h6>
+              <input
+                className="form-control"
+                type="date"
+                id="snooze-until-date"
+                defaultValue={defaultDateVal}
+                ref="snoozeDateInput"
+                required={true}
+                style={{padding: '0 10px'}}
+              />
             </div>
-            <div className="form-group m-b-1">
-              <label htmlFor="snooze-until-time" className="col-sm-4 control-label">
-                {t('Time (UTC):')}
-              </label>
-              <div className="col-sm-8">
-                <input
-                  className="form-control"
-                  type="time"
-                  id="snooze-until-time"
-                  defaultValue={defaultTimeVal}
-                  ref="snoozeTimeInput"
-                  style={{padding: '0 10px'}}
-                />
-              </div>
+            <div className="control-group m-b-1">
+              <h6 className="nav-header">{t('Time (UTC)')}</h6>
+              <input
+                className="form-control"
+                type="time"
+                id="snooze-until-time"
+                defaultValue={defaultTimeVal}
+                ref="snoozeTimeInput"
+                style={{padding: '0 10px'}}
+                required={true}
+              />
             </div>
           </form>
         </div>

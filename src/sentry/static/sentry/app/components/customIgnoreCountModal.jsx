@@ -18,7 +18,7 @@ export default React.createClass({
   getInitialState() {
     return {
       count: 100,
-      window: 1
+      window: ''
     };
   },
 
@@ -39,39 +39,39 @@ export default React.createClass({
       <Modal
         show={this.props.show}
         animation={false}
-        bsSize="sm"
+        bsSize="md"
         onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{t('Custom Ignore Rule')}</h4>
+          <h4>{this.props.label}</h4>
         </div>
         <div className="modal-body">
-          <p>
-            <small>{this.props.label}</small>
-          </p>
           <form className="m-b-1">
-            <div className="control-group form-group">
-              <label className="control-label">
+            <div className="control-group">
+              <h6 className="nav-header">
                 {this.props.countLabel}
-              </label>
+              </h6>
               <input
                 className="form-control"
                 type="number"
                 value={count}
                 onChange={e => this.onChange('count', e.target.value)}
                 style={{padding: '3px 10px'}}
+                required={true}
+                placeholder={t('e.g. 100')}
               />
             </div>
-            <div className="control-group form-group m-b-1">
-              <label className="control-label">
+            <div className="control-group m-b-1">
+              <h6 className="nav-header">
                 {t('Time window')}
-              </label>
+              </h6>
               <Select2Field
                 className="form-control"
                 value={window}
                 name="window"
                 onChange={v => this.onChange('window', v)}
                 style={{padding: '3px 10px'}}
-                choices={[['', ''], ...this.props.windowChoices]}
+                choices={[['', ' '], ...this.props.windowChoices]}
+                placeholder={t('e.g. per hour')}
                 allowClear={true}
                 help={t(
                   '(Optional) If supplied, this rule will apply as a rate of change.'
