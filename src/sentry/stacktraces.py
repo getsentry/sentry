@@ -151,16 +151,18 @@ class StacktraceProcessor(object):
         return False
 
 
-def find_stacktraces_in_data(data):
+def find_stacktraces_in_data(data, include_raw=False):
     """Finds all stracktraces in a given data blob and returns it
     together with some meta information.
+
+    If `include_raw` is True, then also raw stacktraces are included.
     """
     rv = []
 
     def _report_stack(stacktrace, container):
         platforms = set()
         for frame in stacktrace.get('frames') or ():
-            platforms.add(frame.get('platform') or data['platform'])
+            platforms.add(frame.get('platform') or data.get('platform'))
         rv.append(StacktraceInfo(
             stacktrace=stacktrace,
             container=container,
@@ -185,7 +187,33 @@ def find_stacktraces_in_data(data):
             if stacktrace:
                 _report_stack(stacktrace, thread)
 
+    if include_raw:
+        for stacktrace_info in rv[:]:
+            if stacktrace_info.container is None:
+                continue
+            raw = stacktrace_info.container.get('raw_stacktrace')
+            if raw:
+                _report_stack(raw, stacktrace_info.container)
+
     return rv
+
+
+def normalize_in_app(data):
+    def _get_has_system_frames(frames):
+        system_frames = 0
+        for frame in frames:
+            if not frame.get('in_app'):
+                system_frames += 1
+        return bool(system_frames) and len(frames) != system_frames
+
+    for stacktrace_info in find_stacktraces_in_data(data, include_raw=True):
+        frames = stacktrace_info.stacktrace.get('frames') or ()
+        has_system_frames = _get_has_system_frames(frames)
+        for frame in frames:
+            if not has_system_frames:
+                frame['in_app'] = False
+            elif frame.get('in_app') is None:
+                frame['in_app'] = False
 
 
 def should_process_for_stacktraces(data):

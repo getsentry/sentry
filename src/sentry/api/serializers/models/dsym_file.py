@@ -4,12 +4,11 @@ import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
-    ProjectDSymFile, GlobalDSymFile, VersionDSymFile, DSymApp
+    ProjectDSymFile, VersionDSymFile, DSymApp
 )
 
 
 @register(ProjectDSymFile)
-@register(GlobalDSymFile)
 class DSymFileSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         d = {

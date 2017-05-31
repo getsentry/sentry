@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import posixpath
+
 from sentry.utils.compat import implements_to_string
 from sentry.utils.native import parse_addr
 from sentry.constants import NATIVE_UNKNOWN_STRING
@@ -121,7 +123,7 @@ class AppleCrashReport(object):
             file = ''
             if frame.get('filename') and frame.get('lineno'):
                 file = ' (%s:%s)' % (
-                    frame.get('filename') or NATIVE_UNKNOWN_STRING,
+                    posixpath.basename(frame.get('filename') or NATIVE_UNKNOWN_STRING),
                     frame['lineno']
                 )
             symbol = '%s%s' % (

@@ -12,6 +12,7 @@ __all__ = ('Stacktrace',)
 
 import re
 import six
+import posixpath
 
 from django.conf import settings
 from django.utils.translation import ugettext as _
@@ -153,12 +154,20 @@ def remove_function_outliers(function):
     return _ruby_anon_func.sub('_<anon>', function)
 
 
-def remove_filename_outliers(filename):
+def remove_filename_outliers(filename, platform=None):
     """
     Attempt to normalize filenames by removing common platform outliers.
 
     - Sometimes filename paths contain build numbers
     """
+    # On cocoa we generally only want to use the last path component as
+    # the filename.  The reason for this is that the chances are very high
+    # that full filenames contain information we do want to strip but
+    # currently can't (for instance because the information we get from
+    # the dwarf files does not contain prefix information) and that might
+    # contain things like /Users/foo/Dropbox/...
+    if platform == 'cocoa':
+        return posixpath.basename(filename)
     return _filename_version_re.sub('<version>/', filename)
 
 
@@ -356,7 +365,7 @@ class Frame(Interface):
 
         return cls(**kwargs)
 
-    def get_hash(self):
+    def get_hash(self, platform=None):
         """
         The hash of the frame varies depending on the data available.
 
@@ -366,6 +375,7 @@ class Frame(Interface):
 
         This is one of the few areas in Sentry that isn't platform-agnostic.
         """
+        platform = self.platform or platform
         output = []
         # Safari throws [native code] frames in for calls like ``forEach``
         # whereas Chrome ignores these. Let's remove it from the hashing algo
@@ -379,7 +389,7 @@ class Frame(Interface):
             else:
                 output.append(remove_module_outliers(self.module))
         elif self.filename and not self.is_url() and not self.is_caused_by():
-            output.append(remove_filename_outliers(self.filename))
+            output.append(remove_filename_outliers(self.filename, platform))
 
         if self.context_line is None:
             can_use_context = False
@@ -626,8 +636,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data, has_system_frames=None, slim_frames=True,
-                  raw=False):
+    def to_python(cls, data, slim_frames=True, raw=False):
         if not data.get('frames'):
             raise InterfaceValidationError("No 'frames' present")
 
@@ -639,15 +648,6 @@ class Stacktrace(Interface):
             Frame.to_python(f or {}, raw=raw)
             for f in data['frames']
         ]
-
-        if not raw:
-            if has_system_frames is None:
-                has_system_frames = cls.data_has_system_frames(data)
-            for frame in frame_list:
-                if not has_system_frames:
-                    frame.in_app = False
-                elif frame.in_app is None:
-                    frame.in_app = False
 
         kwargs = {
             'frames': frame_list,
@@ -664,26 +664,17 @@ class Stacktrace(Interface):
         else:
             kwargs['frames_omitted'] = None
 
-        kwargs['has_system_frames'] = has_system_frames
-
         instance = cls(**kwargs)
         if slim_frames:
             slim_frame_data(instance)
         return instance
 
-    @classmethod
-    def data_has_system_frames(cls, data):
-        system_frames = 0
-        for frame in data['frames']:
-            # XXX(dcramer): handle PHP sending an empty array for a frame
-            if not isinstance(frame, dict):
-                continue
-            if not frame.get('in_app'):
-                system_frames += 1
-
-        if len(data['frames']) == system_frames:
-            return False
-        return bool(system_frames)
+    def get_has_system_frames(self):
+        # This is a simplified logic from how the normalizer works.
+        # Because this always works on normalized data we do not have to
+        # consider the "all frames are in_app" case.  The normalizer lives
+        # in stacktraces.normalize_in_app which will take care of that.
+        return any(frame.in_app for frame in self.frames)
 
     def get_longest_address(self):
         rv = None
@@ -704,7 +695,7 @@ class Stacktrace(Interface):
             'frames': frame_list,
             'framesOmitted': self.frames_omitted,
             'registers': self.registers,
-            'hasSystemFrames': self.has_system_frames,
+            'hasSystemFrames': self.get_has_system_frames(),
         }
 
     def to_json(self):
@@ -712,24 +703,23 @@ class Stacktrace(Interface):
             'frames': [f.to_json() for f in self.frames],
             'frames_omitted': self.frames_omitted,
             'registers': self.registers,
-            'has_system_frames': self.has_system_frames,
         }
 
     def get_path(self):
         return 'sentry.interfaces.Stacktrace'
 
     def compute_hashes(self, platform):
-        system_hash = self.get_hash(system_frames=True)
+        system_hash = self.get_hash(platform, system_frames=True)
         if not system_hash:
             return []
 
-        app_hash = self.get_hash(system_frames=False)
+        app_hash = self.get_hash(platform, system_frames=False)
         if system_hash == app_hash or not app_hash:
             return [system_hash]
 
         return [system_hash, app_hash]
 
-    def get_hash(self, system_frames=True):
+    def get_hash(self, platform=None, system_frames=True):
         frames = self.frames
 
         # TODO(dcramer): this should apply only to platform=javascript
@@ -756,7 +746,7 @@ class Stacktrace(Interface):
 
         output = []
         for frame in frames:
-            output.extend(frame.get_hash())
+            output.extend(frame.get_hash(platform))
         return output
 
     def to_string(self, event, is_public=False, **kwargs):
