@@ -37,12 +37,25 @@ def record_first_event(project, group, **kwargs):
 @event_processed.connect(weak=False)
 def record_event_processed(project, group, event, **kwargs):
     # Platform
-    platform_feature_map = {feature.name: feature.slug for feature in features if feature.location == 'language'}
-    if platform_feature_map.get(group.platform):
+    languages = [f.slug for f in features if f.location == 'language']
+    if group.platform in languages:
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
-            feature_slug=platform_feature_map.get(group.platform),
+            feature_slug=group.platform,
             complete=True)
+
+        # Frameworks
+        if event.data.get('sdk'):
+            if len(event.data.get('sdk').get('name').split(':')) == 2:
+                framework = event.data.get('sdk').get('name').split(':')[1]
+
+                frameworks = {f.slug: f.prerequisite for f in features if f.location == 'framework'}
+                if framework in frameworks and group.platform in frameworks[framework]:
+                    FeatureAdoption.objects.record(
+                        organization_id=project.organization_id,
+                        feature_slug=framework,
+                        complete=True)
+
     elif event.data.get(get_interface('csp')):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,

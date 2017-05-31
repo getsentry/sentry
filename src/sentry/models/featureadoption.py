@@ -54,6 +54,12 @@ features = [
     # Frameworks
     Feature("flask", "Flask", "framework", prerequisite=["python"]),
     Feature("django", "Django", "framework", prerequisite=["python"]),
+    Feature("celery", "Celery", "framework", prerequisite=["python"]),
+    Feature("bottle", "Bottle", "framework", prerequisite=["python"]),
+    Feature("pylons", "Pylons", "framework", prerequisite=["python"]),
+    Feature("tornado", "Tornado", "framework", prerequisite=["python"]),
+    Feature("webpy", "web.py", "framework", prerequisite=["python"]),
+    Feature("zope", "Zope", "framework", prerequisite=["python"]),
 
     # Configuration
     Feature("first_event", "First Event", "code", prerequisite=["first_project"]),
