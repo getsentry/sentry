@@ -15,6 +15,8 @@ Version 8.17 (Unreleased)
 - Added ``sentry.deletions`` abstraction to improve bulk deletions.
 - Added basic workspace for Visual Studio Code.
 - Added hovercards for Issue IDs in activity entries.
+- Added event count options to ignore.
+- Added user frequency options to ignore.
 
 Schema Changes
 ~~~~~~~~~~~~~~
