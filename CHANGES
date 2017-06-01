@@ -8,13 +8,14 @@ Version 8.17 (Unreleased)
 - Changed the grouping and default `in_app` values for cocoa events.
 - Removed global dsym support.
 - Removed support for legacy apple report format.
-
 - The threads interface now contributes to grouping if it contains a single thread.
 - Added per-key (DSN) rate limits (``project:rate-limits`` feature).
 - Added tsdb statistics for events per-key.
 - Added ``sentry.deletions`` abstraction to improve bulk deletions.
 - Added basic workspace for Visual Studio Code.
 - Added hovercards for Issue IDs in activity entries.
+- Added event count options to ignore.
+- Added user frequency options to ignore.
 
 Schema Changes
 ~~~~~~~~~~~~~~

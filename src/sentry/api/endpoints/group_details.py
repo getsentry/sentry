@@ -5,14 +5,12 @@ import logging
 from uuid import uuid4
 
 from django.utils import timezone
-from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api import client
 from sentry.api.base import DocSection
 from sentry.api.bases import GroupEndpoint
-from sentry.api.fields import UserField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
@@ -64,20 +62,6 @@ STATUS_CHOICES = {
     # TODO(dcramer): remove in 9.0
     'muted': GroupStatus.IGNORED,
 }
-
-
-class GroupSerializer(serializers.Serializer):
-    status = serializers.ChoiceField(choices=zip(
-        STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
-    ))
-    isBookmarked = serializers.BooleanField()
-    isSubscribed = serializers.BooleanField()
-    hasSeen = serializers.BooleanField()
-    assignedTo = UserField()
-    ignoreDuration = serializers.IntegerField()
-
-    # TODO(dcramer): remove in 9.0
-    snoozeDuration = serializers.IntegerField()
 
 
 class GroupDetailsEndpoint(GroupEndpoint):
@@ -269,10 +253,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         """
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
-        serializer = GroupSerializer(data=request.DATA, partial=True)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
         response = client.put(
             path='/projects/{}/{}/issues/'.format(
                 group.project.organization.slug,

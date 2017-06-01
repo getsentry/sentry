@@ -57,47 +57,44 @@ def cleanup(days, project, concurrency, silent, model, router):
     from django.db import router as db_router
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
-    from sentry.models import (
-        ApiGrant, ApiToken, Event, EventMapping, Group, GroupRuleStatus,
-        GroupTagValue, LostPasswordHash, TagValue, GroupEmailThread, FileBlob,
-        EventTag,
-    )
+    from sentry import models
 
-    models = {m.lower() for m in model}
+    # list of models which this query is restricted to
+    model_list = {m.lower() for m in model}
 
     def is_filtered(model):
         if router is not None and db_router.db_for_write(model) != router:
             return True
-        if not models:
+        if not model_list:
             return False
-        return model.__name__.lower() not in models
+        return model.__name__.lower() not in model_list
 
     # these models should be safe to delete without cascades, in order
     BULK_DELETES = (
-        (GroupRuleStatus, 'date_added'),
-        (GroupTagValue, 'last_seen'),
-        (TagValue, 'last_seen'),
-        (GroupEmailThread, 'date'),
-        (EventTag, 'date_added'),
+        (models.GroupEmailThread, 'date'),
+        (models.GroupRuleStatus, 'date_added'),
+        (models.GroupTagValue, 'last_seen'),
+        (models.TagValue, 'last_seen'),
+        (models.EventTag, 'date_added'),
     )
 
     GENERIC_DELETES = (
-        (Event, 'datetime'),
-        (Group, 'last_seen'),
+        (models.Event, 'datetime'),
+        (models.Group, 'last_seen'),
     )
 
     if not silent:
         click.echo('Removing expired values for LostPasswordHash')
 
-    if is_filtered(LostPasswordHash):
+    if is_filtered(models.LostPasswordHash):
         if not silent:
             click.echo('>> Skipping LostPasswordHash')
     else:
-        LostPasswordHash.objects.filter(
+        models.LostPasswordHash.objects.filter(
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
 
-    for model in [ApiGrant, ApiToken]:
+    for model in [models.ApiGrant, models.ApiToken]:
         if not silent:
             click.echo('Removing expired values for {}'.format(model.__name__))
 
@@ -143,17 +140,16 @@ def cleanup(days, project, concurrency, silent, model, router):
                 days=days,
                 project_id=project_id,
             ).execute()
-
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
     if not silent:
         click.echo("Removing expired values for EventMapping")
-    if is_filtered(EventMapping):
+    if is_filtered(models.EventMapping):
         if not silent:
             click.echo('>> Skipping EventMapping')
     else:
         BulkDeleteQuery(
-            model=EventMapping,
+            model=models.EventMapping,
             dtfield='date_added',
             days=min(days, 7),
             project_id=project_id,
@@ -164,7 +160,7 @@ def cleanup(days, project, concurrency, silent, model, router):
     # recent (as there could be a race between blob creation and reference)
     if not silent:
         click.echo("Cleaning up unused FileBlob references")
-    if is_filtered(FileBlob):
+    if is_filtered(models.FileBlob):
         if not silent:
             click.echo('>> Skipping FileBlob')
     else:
