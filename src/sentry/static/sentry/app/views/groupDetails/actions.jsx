@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
+import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
 import GroupState from '../../mixins/groupState';
@@ -12,6 +13,136 @@ import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+
+const ResolveActions = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object.isRequired,
+    hasRelease: React.PropTypes.bool.isRequired,
+    onUpdate: React.PropTypes.func.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
+  },
+
+  getInitialState() {
+    return {
+      modal: false
+    };
+  },
+
+  onCustomResolution(data) {
+    this.setState({
+      modal: false
+    });
+    this.props.onUpdate(data);
+  },
+
+  render() {
+    let {group, hasRelease, onUpdate} = this.props;
+    let resolveClassName = 'group-resolve btn btn-default btn-sm';
+    if (group.status === 'resolved') {
+      resolveClassName += ' active';
+    }
+
+    if (group.status === 'resolved' && group.statusDetails.autoResolved) {
+      return (
+        <div className="btn-group">
+          <a
+            className={resolveClassName + ' tip'}
+            title={t(
+              'This event is resolved due to the Auto Resolve configuration for this project'
+            )}>
+            <span className="icon-checkmark" />
+          </a>
+        </div>
+      );
+    } else if (group.status === 'resolved') {
+      return (
+        <div className="btn-group">
+          <a
+            className={resolveClassName}
+            title={t('Unresolve')}
+            onClick={() => onUpdate({status: 'unresolved'})}>
+            <span className="icon-checkmark" />
+          </a>
+        </div>
+      );
+    }
+
+    let actionClassName = `tip ${!hasRelease ? 'disabled' : ''}`;
+    let actionTitle = !hasRelease
+      ? t('Set up release tracking in order to use this feature.')
+      : '';
+
+    return (
+      <div style={{display: 'inline-block'}}>
+        <CustomResolutionModal
+          show={this.state.modal}
+          onSelected={this.onCustomResolution}
+          onCanceled={() => this.setState({modal: false})}
+          orgId={this.props.orgId}
+          projectId={this.props.projectId}
+        />
+        <div className="btn-group">
+          <a
+            key="resolve-button"
+            className={resolveClassName}
+            title={t('Resolve')}
+            onClick={() => onUpdate({status: 'resolved'})}>
+            <span className="icon-checkmark" style={{marginRight: 5}} />
+            {t('Resolve')}
+          </a>
+          <DropdownLink
+            key="resolve-dropdown"
+            caret={true}
+            className={resolveClassName}
+            title="">
+            <MenuItem header={true}>Resolved In</MenuItem>
+            <MenuItem noAnchor={true}>
+              <a
+                onClick={() => {
+                  return (
+                    hasRelease &&
+                    onUpdate({
+                      status: 'resolved',
+                      statusDetails: {
+                        inNextRelease: true
+                      }
+                    })
+                  );
+                }}
+                className={actionClassName}
+                title={actionTitle}>
+                {t('The next release')}
+              </a>
+              <a
+                onClick={() => {
+                  return (
+                    hasRelease &&
+                    onUpdate({
+                      status: 'resolved',
+                      statusDetails: {
+                        inRelease: 'latest'
+                      }
+                    })
+                  );
+                }}
+                className={actionClassName}
+                title={actionTitle}>
+                {t('The current release')}
+              </a>
+              <a
+                onClick={() => hasRelease && this.setState({modal: true})}
+                className={actionClassName}
+                title={actionTitle}>
+                {t('Another version ...')}
+              </a>
+            </MenuItem>
+          </DropdownLink>
+        </div>
+      </div>
+    );
+  }
+});
 
 export default React.createClass({
   mixins: [
@@ -110,13 +241,8 @@ export default React.createClass({
 
   render() {
     let group = this.getGroup();
-
-    let resolveClassName = 'group-resolve btn btn-default btn-sm';
-    if (group.status === 'resolved') {
-      resolveClassName += ' active';
-    }
-
-    let resolveDropdownClasses = 'resolve-dropdown';
+    let project = this.getProject();
+    let org = this.getOrganization();
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
@@ -129,12 +255,6 @@ export default React.createClass({
     }
 
     let hasRelease = this.getProjectFeatures().has('releases');
-    let releaseTrackingUrl =
-      '/' +
-      this.getOrganization().slug +
-      '/' +
-      this.getProject().slug +
-      '/settings/release-tracking/';
 
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
@@ -166,67 +286,13 @@ export default React.createClass({
           windowName="ignoreUserWindow"
           windowChoices={this.getIgnoreWindows()}
         />
-        <div className="btn-group">
-          {group.status === 'resolved'
-            ? group.statusDetails.autoResolved
-                ? <a
-                    className={resolveClassName + ' tip'}
-                    title={t(
-                      'This event is resolved due to the Auto Resolve configuration for this project'
-                    )}>
-                    <span className="icon-checkmark" />
-                  </a>
-                : <a
-                    className={resolveClassName}
-                    title={t('Unresolve')}
-                    onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-                    <span className="icon-checkmark" />
-                  </a>
-            : [
-                <a
-                  key="resolve-button"
-                  className={resolveClassName}
-                  title={t('Resolve')}
-                  onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
-                  <span className="icon-checkmark" style={{marginRight: 5}} />
-                  {t('Resolve')}
-                </a>,
-                <DropdownLink
-                  key="resolve-dropdown"
-                  caret={true}
-                  className={resolveClassName}
-                  topLevelClasses={resolveDropdownClasses}
-                  title="">
-                  <MenuItem noAnchor={true}>
-                    {hasRelease
-                      ? <a
-                          onClick={this.onUpdate.bind(this, {
-                            status: 'resolvedInNextRelease'
-                          })}>
-                          <strong>{t('Resolved in next release')}</strong>
-                          <div className="help-text">
-                            {t(
-                              'Ignore notifications until this issue reoccurs in a future release.'
-                            )}
-                          </div>
-                        </a>
-                      : <a
-                          href={releaseTrackingUrl}
-                          className="disabled tip"
-                          title={t(
-                            'Set up release tracking in order to use this feature.'
-                          )}>
-                          <strong>{t('Resolved in next release.')}</strong>
-                          <div className="help-text">
-                            {t(
-                              'Ignore notifications until this issue reoccurs in a future release.'
-                            )}
-                          </div>
-                        </a>}
-                  </MenuItem>
-                </DropdownLink>
-              ]}
-        </div>
+        <ResolveActions
+          group={group}
+          hasRelease={hasRelease}
+          onUpdate={this.onUpdate}
+          orgId={org.slug}
+          projectId={project.slug}
+        />
         <div className="btn-group">
           {group.status === 'ignored'
             ? <a

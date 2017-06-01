@@ -1,31 +1,37 @@
-import ReactDOM from 'react-dom';
-import InputField from './inputField';
+import React from 'react';
+import Select2Field from './select2Field';
 
-export default class Select2FieldAutocomplete extends InputField {
-  getType() {
-    return 'text';
+class Select2FieldAutocomplete extends Select2Field {
+  getField() {
+    return (
+      <input
+        id={this.getId()}
+        className="form-control"
+        ref="input"
+        type="text"
+        placeholder={this.props.placeholder}
+        onChange={this.onChange.bind(this)}
+        disabled={this.props.disabled}
+        required={this.props.required}
+        value={this.state.value}
+      />
+    );
   }
 
-  componentDidMount() {
-    let $el = $('input', ReactDOM.findDOMNode(this));
-    $el.on('change.autocomplete', this.onChange.bind(this));
-    let separator = this.props.url.includes('?') ? '&' : '?';
-    let url = this.props.url + separator + 'autocomplete_field=' + this.props.name;
-
-    $el.select2({
+  getSelect2Options() {
+    return Object.assign(super.getSelect2Options(), {
       placeholder: this.props.placeholder || 'Start typing to search for an issue',
-      minimumInputLength: 1,
+      minimumInputLength: this.props.minimumInputLength,
       ajax: {
-        quietMillis: 100,
-        url: url,
+        url: this.props.url,
         dataType: 'json',
-        data: q => {
-          return {autocomplete_query: q};
-        },
-        results: data => {
-          return {results: data[this.props.name]};
-        }
+        data: this.props.onQuery,
+        cache: true,
+        results: this.props.onResults,
+        delay: this.props.ajaxDelay
       },
+      formatResult: this.props.formatResult,
+      formatSelection: this.props.formatSelection,
       formatAjaxError: error => {
         let resp = error.responseJSON;
         if (resp && resp.error_type === 'validation') {
@@ -38,9 +44,32 @@ export default class Select2FieldAutocomplete extends InputField {
       }
     });
   }
-
-  componentWillUnmount() {
-    let $el = $('input', ReactDOM.findDOMNode(this));
-    $el.off('change.autocomplete');
-  }
 }
+
+Select2FieldAutocomplete.defaultProps = Object.assign(
+  {
+    onResults: (data, page) => {
+      return data[this.props.name];
+    },
+    onQuery: (query, page) => {
+      return {autocomplete_query: query, autocomplete_field: this.props.name};
+    },
+    minimumInputLength: 0,
+    ajaxDelay: 250
+  },
+  Select2Field.defaultProps
+);
+
+Select2FieldAutocomplete.propTypes = Object.assign({}, Select2Field.propTypes, {
+  ajaxDelay: React.PropTypes.number,
+  minimumInputLength: React.PropTypes.number,
+  formatResult: React.PropTypes.func,
+  formatSelection: React.PropTypes.func,
+  onResults: React.PropTypes.func,
+  onQuery: React.PropTypes.func,
+  url: React.PropTypes.string.isRequired
+});
+
+delete Select2FieldAutocomplete.propTypes.choices;
+
+export default Select2FieldAutocomplete;
