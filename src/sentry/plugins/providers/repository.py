@@ -95,6 +95,9 @@ class RepositoryProvider(ProviderMixin):
     def get_installations(self, actor):
         raise NotImplementedError
 
+    def get_repositories(self, installation):
+        raise NotImplementedError
+
     @staticmethod
     def should_ignore_commit(message):
         return '#skipsentry' in message

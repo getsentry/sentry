@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 import six
 
+from django.db import IntegrityError, transaction
+
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.plugins import bindings
-from sentry.models import Installation, OrganizationInstallation
+from sentry.models import Installation, OrganizationInstallation, Repository
 
 
 class OrganizationInstallationEndpoint(OrganizationEndpoint):
@@ -76,5 +78,14 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
             }, status=400)
 
         installation.add_organization(organization)
+
+        repositories = provider.get_repositories(installation)
+
+        for repo in repositories:
+            try:
+                with transaction.atomic():
+                    Repository.objects.create(organization_id=organization.id, **repo)
+            except IntegrityError:
+                pass
 
         return Response(status=201)

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import Installation, OrganizationInstallation
+from sentry.models import Installation, OrganizationInstallation, Repository
 from sentry.testutils import APITestCase
 
 
@@ -57,4 +57,8 @@ class OrganizationInstallationsCreateTest(APITestCase):
         assert OrganizationInstallation.objects.filter(
             installation_id=inst.id,
             organization_id=org.id,
+        ).exists()
+        assert Repository.objects.filter(
+            organization_id=org.id,
+            name='dummyorg/dummyrepo',
         ).exists()
