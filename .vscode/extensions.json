@@ -5,7 +5,6 @@
         "dzannotti.vscode-babel-coloring",
         "esbenp.prettier-vscode",
         "donjayamanne.python",
-        "jaysonsantos.vscode-flake8",
         "dbaeumer.vscode-eslint"
     ]
 }
