@@ -49,7 +49,10 @@
                     {% csrf_token %}
                     <input type="hidden" name="op" value="enable" />
                     <input type="hidden" name="plugin" value="{{ plugin.slug }}" />
-                    <button type="submit">{{ plugin.get_title }}</button>
+                    <button type="submit">
+                      <div class="icon-integration icon-{{ plugin.slug }}"></div>
+                      {{ plugin.get_title }}
+                    </button>
                   </form>
                 </li>
               {% endfor %}
