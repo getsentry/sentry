@@ -1,0 +1,668 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GroupActions render() renders correctly 1`] = `
+<div
+  className="group-actions"
+>
+  <customIgnoreDurationModal
+    onCanceled={[Function]}
+    onSelected={[Function]}
+    show={false}
+  />
+  <customIgnoreCountModal
+    countLabel="Number of times"
+    countName="ignoreCount"
+    label="Ignore this issue until it occurs again .. "
+    onCanceled={[Function]}
+    onSelected={[Function]}
+    show={false}
+    windowChoices={
+      Array [
+        Array [
+          1,
+          "per hour",
+        ],
+        Array [
+          24,
+          "per day",
+        ],
+        Array [
+          168,
+          "per week",
+        ],
+      ]
+    }
+    windowName="ignoreWindow"
+  />
+  <customIgnoreCountModal
+    countLabel="Numbers of users"
+    countName="ignoreUserCount"
+    label="Ignore this issue until it affects an additional .. "
+    onCanceled={[Function]}
+    onSelected={[Function]}
+    show={false}
+    windowChoices={
+      Array [
+        Array [
+          1,
+          "per hour",
+        ],
+        Array [
+          24,
+          "per day",
+        ],
+        Array [
+          168,
+          "per week",
+        ],
+      ]
+    }
+    windowName="ignoreUserWindow"
+  />
+  <div
+    className="btn-group"
+  >
+    <a
+      className="group-resolve btn btn-default btn-sm"
+      onClick={[Function]}
+      title="Resolve"
+    >
+      <span
+        className="icon-checkmark"
+        style={
+          Object {
+            "marginRight": 5,
+          }
+        }
+      />
+      Resolve
+    </a>
+    <DropdownLink
+      caret={true}
+      className="group-resolve btn btn-default btn-sm"
+      disabled={false}
+      title=""
+      topLevelClasses="resolve-dropdown"
+    >
+      <MenuItem
+        noAnchor={true}
+      >
+        <a
+          className="disabled tip"
+          href="/org/project/settings/release-tracking/"
+          title="Set up release tracking in order to use this feature."
+        >
+          <strong>
+            Resolved in next release.
+          </strong>
+          <div
+            className="help-text"
+          >
+            Ignore notifications until this issue reoccurs in a future release.
+          </div>
+        </a>
+      </MenuItem>
+    </DropdownLink>
+  </div>
+  <div
+    className="btn-group"
+  >
+    <DropdownLink
+      caret={false}
+      className="group-ignore btn btn-default btn-sm"
+      disabled={false}
+      title={
+        <span>
+          Ignore
+          <span
+            className="icon-arrow-down"
+            style={
+              Object {
+                "marginLeft": 3,
+                "marginRight": -3,
+              }
+            }
+          />
+        </span>
+      }
+    >
+      <MenuItem
+        header={true}
+      >
+        Ignore Until
+      </MenuItem>
+      <li
+        className="dropdown-submenu"
+      >
+        <DropdownLink
+          caret={false}
+          disabled={false}
+          title="This occurs again after .."
+        >
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              <Duration
+                seconds={1800}
+              />
+            </a>
+          </MenuItem>
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              <Duration
+                seconds={7200}
+              />
+            </a>
+          </MenuItem>
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              <Duration
+                seconds={21600}
+              />
+            </a>
+          </MenuItem>
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              <Duration
+                seconds={86400}
+              />
+            </a>
+          </MenuItem>
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              <Duration
+                seconds={604800}
+              />
+            </a>
+          </MenuItem>
+          <MenuItem
+            divider={true}
+          />
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              Custom
+            </a>
+          </MenuItem>
+        </DropdownLink>
+      </li>
+      <li
+        className="dropdown-submenu"
+      >
+        <DropdownLink
+          caret={false}
+          disabled={false}
+          title="This occurs again .."
+        >
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="100 times"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="1,000 times"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="10,000 times"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="100,000 times"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <MenuItem
+            divider={true}
+          />
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              Custom
+            </a>
+          </MenuItem>
+        </DropdownLink>
+      </li>
+      <li
+        className="dropdown-submenu"
+      >
+        <DropdownLink
+          caret={false}
+          disabled={false}
+          title="This affects an additional .."
+        >
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="100 users"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="1,000 users"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="10,000 users"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <li
+            className="dropdown-submenu"
+          >
+            <DropdownLink
+              caret={false}
+              disabled={false}
+              title="100,000 users"
+            >
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  from now
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per hour
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per day
+                </a>
+              </MenuItem>
+              <MenuItem
+                noAnchor={true}
+              >
+                <a
+                  onClick={[Function]}
+                >
+                  per week
+                </a>
+              </MenuItem>
+            </DropdownLink>
+          </li>
+          <MenuItem
+            divider={true}
+          />
+          <MenuItem
+            noAnchor={true}
+          >
+            <a
+              onClick={[Function]}
+            >
+              Custom
+            </a>
+          </MenuItem>
+        </DropdownLink>
+      </li>
+      <MenuItem
+        noAnchor={true}
+      >
+        <a
+          onClick={[Function]}
+        >
+          Forever
+        </a>
+      </MenuItem>
+    </DropdownLink>
+  </div>
+  <div
+    className="btn-group"
+  >
+    <a
+      className="group-bookmark btn btn-default btn-sm"
+      onClick={[Function]}
+      title="Bookmark"
+    >
+      <span
+        className="icon-star-solid"
+      />
+    </a>
+  </div>
+  <div
+    className="btn-group"
+  >
+    <LinkWithConfirmation
+      className="group-remove btn btn-default btn-sm"
+      message="Deleting this event is permanent. Are you sure you wish to continue?"
+      onConfirm={[Function]}
+      title="Delete"
+    >
+      <span
+        className="icon-trash"
+      />
+    </LinkWithConfirmation>
+  </div>
+  <a
+    className="btn btn-default btn-sm btn-config-issue-tracking"
+    href="/org/project/settings/issue-tracking/"
+  >
+    Link Issue Tracker
+  </a>
+</div>
+`;

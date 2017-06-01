@@ -119,6 +119,38 @@ const ActivityItem = React.createClass({
             duration: <Duration seconds={data.ignoreDuration * 60} />,
             issue: issueLink
           });
+        } else if (data.ignoreCount && data.ignoreWindow) {
+          return tct(
+            '[author] ignored [issue] until it happens [count] time(s) in [duration]',
+            {
+              author: author,
+              count: data.ignoreCount,
+              interval: <Duration seconds={data.ignoreWindow * 3600} />,
+              issue: issueLink
+            }
+          );
+        } else if (data.ignoreCount) {
+          return tct('[author] ignored [issue] until it happens [count] time(s)', {
+            author: author,
+            count: data.ignoreCount,
+            issue: issueLink
+          });
+        } else if (data.ignoreUserCount && data.ignoreUserWindow) {
+          return tct(
+            '[author] ignored [issue] until it affects [count] user(s) in [duration]',
+            {
+              author: author,
+              count: data.ignoreUserCount,
+              interval: <Duration seconds={data.ignoreUserWindow * 3600} />,
+              issue: issueLink
+            }
+          );
+        } else if (data.ignoreUserCount) {
+          return tct('[author] ignored [issue] until it affects [count] user(s)', {
+            author: author,
+            count: data.ignoreUserCount,
+            issue: issueLink
+          });
         }
         return tct('[author] ignored [issue]', {
           author: author,

@@ -3,7 +3,7 @@ import Modal from 'react-bootstrap/lib/Modal';
 import {t} from '../locale';
 import {sprintf} from 'sprintf-js';
 
-const CustomSnoozeModal = React.createClass({
+export default React.createClass({
   propTypes: {
     onSelected: React.PropTypes.func,
     onCanceled: React.PropTypes.func,
@@ -16,7 +16,7 @@ const CustomSnoozeModal = React.createClass({
     };
   },
 
-  selectedSnoozeMinutes() {
+  selectedIgnoreMinutes() {
     const dateStr = this.refs.snoozeDateInput.value; // YYYY-MM-DD
     const timeStr = this.refs.snoozeTimeInput.value; // HH:MM
     if (dateStr && timeStr) {
@@ -32,14 +32,14 @@ const CustomSnoozeModal = React.createClass({
   },
 
   snoozeClicked() {
-    const minutes = this.selectedSnoozeMinutes();
+    const minutes = this.selectedIgnoreMinutes();
 
     this.setState({
       dateWarning: minutes <= 0
     });
 
     if (minutes > 0) {
-      this.props.onSelected(minutes);
+      this.props.onSelected({ignoreDuration: minutes});
     }
   },
 
@@ -61,41 +61,39 @@ const CustomSnoozeModal = React.createClass({
     const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
 
     return (
-      <Modal show={this.props.show} animation={false} bsSize="sm">
+      <Modal
+        show={this.props.show}
+        animation={false}
+        bsSize="md"
+        onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{t('Ignore until:')}</h4>
+          <h4>{t('Ignore this issue until it occurs after ..')}</h4>
         </div>
         <div className="modal-body">
           <form className="form-horizontal">
-            <div className="form-group">
-              <label htmlFor="snooze-until-date" className="col-sm-4 control-label">
-                {t('Date:')}
-              </label>
-              <div className="col-sm-8">
-                <input
-                  className="form-control"
-                  type="date"
-                  id="snooze-until-date"
-                  defaultValue={defaultDateVal}
-                  ref="snoozeDateInput"
-                  style={{padding: '0 10px'}}
-                />
-              </div>
+            <div className="control-group">
+              <h6 className="nav-header">{t('Date')}</h6>
+              <input
+                className="form-control"
+                type="date"
+                id="snooze-until-date"
+                defaultValue={defaultDateVal}
+                ref="snoozeDateInput"
+                required={true}
+                style={{padding: '0 10px'}}
+              />
             </div>
-            <div className="form-group m-b-1">
-              <label htmlFor="snooze-until-time" className="col-sm-4 control-label">
-                {t('Time (UTC):')}
-              </label>
-              <div className="col-sm-8">
-                <input
-                  className="form-control"
-                  type="time"
-                  id="snooze-until-time"
-                  defaultValue={defaultTimeVal}
-                  ref="snoozeTimeInput"
-                  style={{padding: '0 10px'}}
-                />
-              </div>
+            <div className="control-group m-b-1">
+              <h6 className="nav-header">{t('Time (UTC)')}</h6>
+              <input
+                className="form-control"
+                type="time"
+                id="snooze-until-time"
+                defaultValue={defaultTimeVal}
+                ref="snoozeTimeInput"
+                style={{padding: '0 10px'}}
+                required={true}
+              />
             </div>
           </form>
         </div>
@@ -118,5 +116,3 @@ const CustomSnoozeModal = React.createClass({
     );
   }
 });
-
-export default CustomSnoozeModal;

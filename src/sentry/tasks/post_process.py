@@ -75,6 +75,8 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
     for callback, futures in rp.apply():
         safe_execute(callback, event, futures)
 
+    process_snoozes(event.group)
+
     for plugin in plugins.for_project(event.project):
         plugin_post_process_group(
             plugin_slug=plugin.slug,
@@ -100,6 +102,20 @@ def record_additional_tags(event):
         added_tags.extend(safe_execute(plugin.get_tags, event, _with_transaction=False) or ())
     if added_tags:
         Group.objects.add_tags(event.group, added_tags)
+
+
+def process_snoozes(group):
+    from sentry.models import GroupSnooze
+
+    try:
+        snooze = GroupSnooze.objects.get_from_cache(
+            group=group,
+        )
+    except GroupSnooze.DoesNotExist:
+        return
+
+    if not snooze.is_valid(group, test_rates=True):
+        snooze.delete()
 
 
 @instrumented_task(

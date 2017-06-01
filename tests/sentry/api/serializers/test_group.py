@@ -45,7 +45,13 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['status'] == 'ignored'
-        assert result['statusDetails'] == {'ignoreUntil': snooze.until}
+        assert result['statusDetails'] == {
+            'ignoreCount': snooze.count,
+            'ignoreUntil': snooze.until,
+            'ignoreUserCount': snooze.user_count,
+            'ignoreUserWindow': snooze.user_window,
+            'ignoreWindow': snooze.window,
+        }
 
     def test_resolved_in_next_release(self):
         release = Release.objects.create(
