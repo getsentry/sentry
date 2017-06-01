@@ -133,6 +133,13 @@ def delete_organization(object_id, transaction_id=None, **kwargs):
     if instance.status == OrganizationStatus.VISIBLE:
         raise DeleteAborted
 
+    # compat: can be removed after we switch to scheduled deletions
+    if instance.status != OrganizationStatus.DELETION_IN_PROGRESS:
+        pending_delete.send(
+            sender=type(instance),
+            instance=instance,
+        )
+
     task = deletions.get(
         model=Organization,
         query={
@@ -326,7 +333,7 @@ def generic_delete(app_label, model_name, object_id, transaction_id=None,
 @retry(exclude=(DeleteAborted,))
 def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
     from sentry import deletions
-    from sentry.models import Repository
+    from sentry.models import Repository, User
 
     try:
         instance = Repository.objects.get(id=object_id)
@@ -335,6 +342,14 @@ def delete_repository(object_id, transaction_id=None, actor_id=None, **kwargs):
 
     if instance.status == ObjectStatus.VISIBLE:
         raise DeleteAborted
+
+    # compat: can be removed after we switch to scheduled deletions
+    if instance.status != ObjectStatus.DELETION_IN_PROGRESS:
+        pending_delete.send(
+            sender=type(instance),
+            instance=instance,
+            actor=User.objects.get(id=actor_id) if actor_id else None,
+        )
 
     task = deletions.get(
         model=Repository,
