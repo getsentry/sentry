@@ -5,7 +5,8 @@ var path = require('path'),
   webpack = require('webpack'),
   ExtractTextPlugin = require('extract-text-webpack-plugin');
 
-var staticPrefix = 'src/sentry/static/sentry', distPath = staticPrefix + '/dist';
+var staticPrefix = 'src/sentry/static/sentry',
+  distPath = path.join(__dirname, staticPrefix, 'dist');
 
 // this is set by setup.py sdist
 if (process.env.SENTRY_STATIC_DIST_PATH) {
@@ -165,7 +166,7 @@ var appConfig = {
     extensions: ['.less', '.jsx', '.js', '.json']
   },
   output: {
-    path: path.join(__dirname, distPath),
+    path: distPath,
     filename: '[name].js',
     libraryTarget: 'var',
     library: 'exports',

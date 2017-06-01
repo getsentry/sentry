@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 import pytest
 
@@ -9,14 +10,15 @@ from sentry.exceptions import DeleteAborted
 from sentry.models import (
     ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, Commit,
     CommitAuthor, Environment, EnvironmentProject, Event, EventMapping,
-    EventTag, Group, GroupAssignee, GroupMeta, GroupRedirect, GroupResolution,
-    GroupStatus, GroupTagKey, GroupTagValue, Organization, OrganizationStatus,
-    Project, ProjectStatus, Release, ReleaseCommit, ReleaseEnvironment,
-    Repository, TagKey, TagValue, Team, TeamStatus
+    EventTag, Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect,
+    GroupResolution, GroupStatus, GroupTagKey, GroupTagValue, Organization,
+    OrganizationStatus, Project, ProjectStatus, Release, ReleaseCommit,
+    ReleaseEnvironment, Repository, TagKey, TagValue, Team, TeamStatus
 )
 from sentry.tasks.deletion import (
     delete_api_application, delete_group, delete_organization, delete_project,
-    delete_repository, delete_tag_key, delete_team, generic_delete, revoke_api_tokens
+    delete_repository, delete_tag_key, delete_team, generic_delete,
+    revoke_api_tokens
 )
 from sentry.testutils import TestCase
 
@@ -218,8 +220,8 @@ class DeleteTagKeyTest(TestCase):
             assert not GroupTagValue.objects.filter(key=tk.key, project_id=project.id).exists()
             assert not GroupTagKey.objects.filter(key=tk.key, project=project).exists()
             assert not TagValue.objects.filter(key=tk.key, project=project).exists()
-            assert not TagKey.objects.filter(id=tk.id).exists()
             assert not EventTag.objects.filter(key_id=tk.id).exists()
+            assert not TagKey.objects.filter(id=tk.id).exists()
 
         assert TagKey.objects.filter(id=tk2.id).exists()
         assert GroupTagKey.objects.filter(id=gtk2.id).exists()
@@ -251,6 +253,11 @@ class DeleteGroupTest(TestCase):
             project=project,
             user=self.user,
         )
+        GroupHash.objects.create(
+            project=project,
+            group=group,
+            hash=uuid4().hex,
+        )
         GroupMeta.objects.create(
             group=group,
             key='foo',
@@ -264,7 +271,6 @@ class DeleteGroupTest(TestCase):
         with self.tasks():
             delete_group(object_id=group.id)
 
-        assert not Group.objects.filter(id=group.id).exists()
         assert not Event.objects.filter(id=event.id).exists()
         assert not EventMapping.objects.filter(
             event_id='a' * 32,
@@ -272,6 +278,8 @@ class DeleteGroupTest(TestCase):
         ).exists()
         assert not EventTag.objects.filter(event_id=event.id).exists()
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
+        assert not GroupHash.objects.filter(group_id=group.id).exists()
+        assert not Group.objects.filter(id=group.id).exists()
 
 
 class DeleteApplicationTest(TestCase):

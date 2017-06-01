@@ -4,10 +4,8 @@ from rest_framework.response import Response
 from rest_framework import serializers
 
 from sentry.api.base import DocSection
-from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
-from sentry.api.permissions import SystemPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
 from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
@@ -95,13 +93,6 @@ class DSymFilesEndpoint(ProjectEndpoint):
         :auth: required
         """
         return upload_from_request(request, project=project)
-
-
-class GlobalDSymFilesEndpoint(Endpoint):
-    permission_classes = (SystemPermission,)
-
-    def post(self, request):
-        return upload_from_request(request, project=None)
 
 
 class UnknownDSymFilesEndpoint(ProjectEndpoint):

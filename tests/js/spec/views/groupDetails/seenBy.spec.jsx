@@ -4,7 +4,7 @@ import {shallow} from 'enzyme';
 import GroupSeenBy from 'app/views/groupDetails/seenBy';
 import ConfigStore from 'app/stores/configStore';
 
-describe('OrganizationTeams', function() {
+describe('GroupSeenBy', function() {
   beforeEach(function() {
     this.sandbox = sinon.sandbox.create();
 

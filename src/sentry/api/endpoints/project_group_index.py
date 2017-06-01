@@ -101,6 +101,12 @@ class GroupValidator(serializers.Serializer):
     isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
+    ignoreCount = serializers.IntegerField()
+    # in hours, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    ignoreUserCount = serializers.IntegerField()
+    # in hours, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
     assignedTo = UserField()
 
     # TODO(dcramer): remove in 9.0
@@ -461,16 +467,17 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('status') == 'resolved':
             now = timezone.now()
 
-            happened = queryset.exclude(
-                status=GroupStatus.RESOLVED,
-            ).update(
-                status=GroupStatus.RESOLVED,
-                resolved_at=now,
-            )
+            with transaction.atomic():
+                happened = queryset.exclude(
+                    status=GroupStatus.RESOLVED,
+                ).update(
+                    status=GroupStatus.RESOLVED,
+                    resolved_at=now,
+                )
 
-            GroupResolution.objects.filter(
-                group__in=group_ids,
-            ).delete()
+                GroupResolution.objects.filter(
+                    group__in=group_ids,
+                ).delete()
 
             if group_list and happened:
                 for group in group_list:
@@ -495,43 +502,65 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         elif result.get('status'):
             new_status = STATUS_CHOICES[result['status']]
 
-            happened = queryset.exclude(
-                status=new_status,
-            ).update(
-                status=new_status,
-            )
-
-            GroupResolution.objects.filter(
-                group__in=group_ids,
-            ).delete()
-
-            if new_status == GroupStatus.IGNORED:
-                ignore_duration = (
-                    result.pop('ignoreDuration', None)
-                    or result.pop('snoozeDuration', None)
+            with transaction.atomic():
+                happened = queryset.exclude(
+                    status=new_status,
+                ).update(
+                    status=new_status,
                 )
-                if ignore_duration:
-                    ignore_until = timezone.now() + timedelta(
-                        minutes=ignore_duration,
-                    )
-                    for group in group_list:
-                        GroupSnooze.objects.create_or_update(
-                            group=group,
-                            values={
-                                'until': ignore_until,
+
+                GroupResolution.objects.filter(
+                    group__in=group_ids,
+                ).delete()
+
+                if new_status == GroupStatus.IGNORED:
+                    ignore_duration = (
+                        result.pop('ignoreDuration', None)
+                        or result.pop('snoozeDuration', None)
+                    ) or None
+                    ignore_count = result.pop('ignoreCount', None) or None
+                    ignore_window = result.pop('ignoreWindow', None) or None
+                    ignore_user_count = result.pop('ignoreUserCount', None) or None
+                    ignore_user_window = result.pop('ignoreUserWindow', None) or None
+                    if ignore_duration or ignore_count or ignore_user_count:
+                        if ignore_duration:
+                            ignore_until = timezone.now() + timedelta(
+                                minutes=ignore_duration,
+                            )
+                        else:
+                            ignore_until = None
+                        for group in group_list:
+                            state = {}
+                            if ignore_count and not ignore_window:
+                                state['times_seen'] = group.times_seen
+                            if ignore_user_count and not ignore_user_window:
+                                state['users_seen'] = group.count_users_seen()
+                            GroupSnooze.objects.create_or_update(
+                                group=group,
+                                values={
+                                    'until': ignore_until,
+                                    'count': ignore_count,
+                                    'window': ignore_window,
+                                    'user_count': ignore_user_count,
+                                    'user_window': ignore_user_window,
+                                    'state': state,
+                                }
+                            )
+                            result['statusDetails'] = {
+                                'ignoreCount': ignore_count,
+                                'ignoreUntil': ignore_until,
+                                'ignoreUserCount': ignore_user_count,
+                                'ignoreUserWindow': ignore_user_window,
+                                'ignoreWindow': ignore_window,
                             }
-                        )
-                        result['statusDetails'] = {
-                            'ignoreUntil': ignore_until,
-                        }
+                    else:
+                        GroupSnooze.objects.filter(
+                            group__in=group_ids,
+                        ).delete()
+                        ignore_until = None
+                        result['statusDetails'] = {}
                 else:
-                    GroupSnooze.objects.filter(
-                        group__in=group_ids,
-                    ).delete()
-                    ignore_until = None
                     result['statusDetails'] = {}
-            else:
-                result['statusDetails'] = {}
 
             if group_list and happened:
                 if new_status == GroupStatus.UNRESOLVED:
@@ -540,8 +569,12 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 elif new_status == GroupStatus.IGNORED:
                     activity_type = Activity.SET_IGNORED
                     activity_data = {
-                        'ignoreUntil': ignore_until,
+                        'ignoreCount': ignore_count,
                         'ignoreDuration': ignore_duration,
+                        'ignoreUntil': ignore_until,
+                        'ignoreUserCount': ignore_user_count,
+                        'ignoreUserWindow': ignore_user_window,
+                        'ignoreWindow': ignore_window,
                     }
 
                 for group in group_list:

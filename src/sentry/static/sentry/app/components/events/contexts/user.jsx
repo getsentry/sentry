@@ -29,6 +29,7 @@ const UserContextType = React.createClass({
       ]);
     user.username && builtins.push(['Username', <pre>{user.username}</pre>]);
     user.ip_address && builtins.push(['IP Address', <pre>{user.ip_address}</pre>]);
+    user.name && builtins.push(['Name', <pre>{user.name}</pre>]);
 
     // We also attach user supplied data as 'user.data'
     _.each(user.data, function(value, key) {

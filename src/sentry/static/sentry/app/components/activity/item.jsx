@@ -4,6 +4,7 @@ import React from 'react';
 import {CommitLink} from '../../views/releases/releaseCommits';
 import Duration from '../../components/duration';
 import Avatar from '../../components/avatar';
+import IssueLink from '../../components/issueLink';
 import {Link} from 'react-router';
 import MemberListStore from '../../stores/memberListStore';
 import TimeSince from '../../components/timeSince';
@@ -52,8 +53,11 @@ const ActivityItem = React.createClass({
     let orgId = this.props.orgId;
     let project = item.project;
     let issue = item.issue;
+
     let issueLink = issue
-      ? <Link to={`/${orgId}/${project.slug}/issues/${issue.id}/`}>{issue.shortId}</Link>
+      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+          {issue.shortId}
+        </IssueLink>
       : null;
 
     switch (item.type) {
@@ -113,6 +117,38 @@ const ActivityItem = React.createClass({
           return tct('[author] ignored [issue] for [duration]', {
             author: author,
             duration: <Duration seconds={data.ignoreDuration * 60} />,
+            issue: issueLink
+          });
+        } else if (data.ignoreCount && data.ignoreWindow) {
+          return tct(
+            '[author] ignored [issue] until it happens [count] time(s) in [duration]',
+            {
+              author: author,
+              count: data.ignoreCount,
+              interval: <Duration seconds={data.ignoreWindow * 3600} />,
+              issue: issueLink
+            }
+          );
+        } else if (data.ignoreCount) {
+          return tct('[author] ignored [issue] until it happens [count] time(s)', {
+            author: author,
+            count: data.ignoreCount,
+            issue: issueLink
+          });
+        } else if (data.ignoreUserCount && data.ignoreUserWindow) {
+          return tct(
+            '[author] ignored [issue] until it affects [count] user(s) in [duration]',
+            {
+              author: author,
+              count: data.ignoreUserCount,
+              interval: <Duration seconds={data.ignoreUserWindow * 3600} />,
+              issue: issueLink
+            }
+          );
+        } else if (data.ignoreUserCount) {
+          return tct('[author] ignored [issue] until it affects [count] user(s)', {
+            author: author,
+            count: data.ignoreUserCount,
             issue: issueLink
           });
         }

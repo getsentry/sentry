@@ -254,22 +254,20 @@ class Group(Model):
         # XXX(dcramer): GroupSerializer reimplements this logic
         from sentry.models import GroupSnooze
 
-        if self.status == GroupStatus.IGNORED:
+        status = self.status
+
+        if status == GroupStatus.IGNORED:
             try:
                 snooze = GroupSnooze.objects.get(group=self)
             except GroupSnooze.DoesNotExist:
                 pass
             else:
-                # XXX(dcramer): if the snooze row exists then we need
-                # to confirm its still valid
-                if snooze.until > timezone.now():
-                    return GroupStatus.IGNORED
-                else:
-                    return GroupStatus.UNRESOLVED
+                if not snooze.is_valid(group=self):
+                    status = GroupStatus.UNRESOLVED
 
-        if self.status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
+        if status == GroupStatus.UNRESOLVED and self.is_over_resolve_age():
             return GroupStatus.RESOLVED
-        return self.status
+        return status
 
     def get_share_id(self):
         return b16encode(
@@ -470,3 +468,11 @@ class Group(Model):
             six.text_type(self.get_level_display()).upper().encode('utf-8'),
             self.title.encode('utf-8')
         )
+
+    def count_users_seen(self):
+        from sentry.models import GroupTagKey
+
+        return GroupTagKey.objects.filter(
+            group=self,
+            key='sentry:user',
+        ).aggregate(t=models.Sum('values_seen'))['t'] or 0

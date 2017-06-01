@@ -1,0 +1,28 @@
+{
+    "files.exclude": {
+        "**/*.pyc": true,
+        "static": true,
+        "node_modules": true,
+        "src/sentry/static/dist": true
+    },
+    
+    "prettier.bracketSpacing": false,
+    "prettier.singleQuote": true,
+    "prettier.printWidth": 90,
+
+    "eslint.options": {
+        "configFile": ".eslintrc"
+    },
+
+    "[javascript]": {
+        "editor.formatOnSave": true
+    },
+
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+
+    "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python",
+    "python.unitTest.pyTestEnabled": true,
+    "python.unitTest.unittestEnabled": false,
+    "python.unitTest.nosetestsEnabled": false
+}

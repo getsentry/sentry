@@ -21,7 +21,7 @@ from django.db import models, router, transaction, connection, IntegrityError
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from symsynd.macho.arch import get_macho_uuids
+from symsynd import DebugInfo, DebugInfoError
 
 from sentry.db.models import FlexibleForeignKey, Model, BoundedBigIntegerField, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
@@ -479,13 +479,8 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     `create_files_from_macho_zip` for doing everything.
     """
     extra = {}
-    if project is None:
-        cls = GlobalDSymFile
-        file_type = 'global.dsym'
-    else:
-        cls = ProjectDSymFile
-        extra['project'] = project
-        file_type = 'project.dsym'
+    extra['project'] = project
+    file_type = 'project.dsym'
 
     h = hashlib.sha1()
     while 1:
@@ -497,10 +492,10 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     fileobj.seek(0, 0)
 
     try:
-        rv = cls.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
         if rv.file.checksum == checksum:
             return rv
-    except cls.DoesNotExist:
+    except ProjectDSymFile.DoesNotExist:
         pass
     else:
         # The checksum mismatches.  In this case we delete the old object
@@ -517,7 +512,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     file.putfile(fileobj)
     try:
         with transaction.atomic():
-            rv = cls.objects.create(
+            rv = ProjectDSymFile.objects.create(
                 file=file,
                 uuid=uuid,
                 cpu_name=cpu_name,
@@ -526,7 +521,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
             )
     except IntegrityError:
         file.delete()
-        rv = cls.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
 
     resolve_processing_issue(
         project=project,
@@ -550,13 +545,17 @@ def create_files_from_macho_zip(fileobj, project=None):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
                 try:
-                    uuids = get_macho_uuids(fn)
-                except (IOError, ValueError):
+                    di = DebugInfo.open_path(fn)
+                except DebugInfoError:
                     # Whatever was contained there, was probably not a
                     # macho file.
                     continue
-                for cpu, uuid in uuids:
-                    to_create.append((cpu, uuid, fn))
+                for variant in di.get_variants():
+                    to_create.append((
+                        variant.cpu_name,
+                        str(variant.uuid),  # noqa: B308
+                        fn,
+                    ))
 
         rv = []
         for cpu, uuid, filename in to_create:
@@ -569,9 +568,7 @@ def create_files_from_macho_zip(fileobj, project=None):
 
 
 def find_dsym_file(project, image_uuid):
-    """Finds a dsym file for the given uuid.  Looks both within the project
-    as well the global store.
-    """
+    """Finds a dsym file for the given uuid."""
     image_uuid = image_uuid.lower()
     try:
         return ProjectDSymFile.objects.filter(
@@ -580,9 +577,3 @@ def find_dsym_file(project, image_uuid):
         ).select_related('file').get()
     except ProjectDSymFile.DoesNotExist:
         pass
-    try:
-        return GlobalDSymFile.objects.filter(
-            uuid=image_uuid
-        ).select_related('file').get()
-    except GlobalDSymFile.DoesNotExist:
-        return None

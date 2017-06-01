@@ -1,25 +1,23 @@
 from __future__ import absolute_import
 
 import json
-
 from datetime import timedelta
 from uuid import uuid4
 
 import six
-from six.moves.urllib.parse import quote
-
 from django.utils import timezone
 from exam import fixture
 from mock import patch
 
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
-    GroupTagValue, GroupResolution, GroupSeen, GroupSnooze, GroupStatus,
-    GroupSubscription, Release, UserOption
+    GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
+    GroupTagKey, GroupTagValue, Release, UserOption
 )
 from sentry.models.event import Event
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import parse_link_header
+from six.moves.urllib.parse import quote
 
 
 class GroupListTest(APITestCase):
@@ -590,6 +588,37 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
 
+    def test_basic_ignore(self):
+        group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+
+        snooze = GroupSnooze.objects.create(
+            group=group,
+            until=timezone.now(),
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'ignored',
+        }, format='json')
+
+        assert response.status_code == 200
+
+        # existing snooze objects should be cleaned up
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.IGNORED
+
+        assert response.data == {
+            'status': 'ignored',
+            'statusDetails': {},
+        }
+
     def test_snooze_duration(self):
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
 
@@ -612,8 +641,12 @@ class GroupUpdateTest(APITestCase):
         # Drop microsecond value for MySQL
         now = timezone.now().replace(microsecond=0)
 
+        assert snooze.count is None
         assert snooze.until > now + timedelta(minutes=29)
         assert snooze.until < now + timedelta(minutes=31)
+        assert snooze.user_count is None
+        assert snooze.user_window is None
+        assert snooze.window is None
 
         # Drop microsecond value for MySQL
         response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(microsecond=0)
@@ -621,12 +654,95 @@ class GroupUpdateTest(APITestCase):
         assert response.data == {
             'status': 'ignored',
             'statusDetails': {
+                'ignoreCount': snooze.count,
+                'ignoreWindow': snooze.window,
                 'ignoreUntil': snooze.until,
+                'ignoreUserCount': snooze.user_count,
+                'ignoreUserWindow': snooze.user_window,
             },
         }
 
-        group = Group.objects.get(id=group.id)
-        assert group.get_status() == GroupStatus.IGNORED
+    def test_snooze_count(self):
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.RESOLVED,
+            times_seen=1,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'ignored',
+            'ignoreCount': 100,
+        }, format='json')
+
+        assert response.status_code == 200
+
+        snooze = GroupSnooze.objects.get(group=group)
+        assert snooze.count == 100
+        assert snooze.until is None
+        assert snooze.user_count is None
+        assert snooze.user_window is None
+        assert snooze.window is None
+        assert snooze.state['times_seen'] == 1
+
+        assert response.data == {
+            'status': 'ignored',
+            'statusDetails': {
+                'ignoreCount': snooze.count,
+                'ignoreWindow': snooze.window,
+                'ignoreUntil': snooze.until,
+                'ignoreUserCount': snooze.user_count,
+                'ignoreUserWindow': snooze.user_window,
+            },
+        }
+
+    def test_snooze_user_count(self):
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.RESOLVED,
+        )
+        GroupTagKey.objects.create(
+            group=group,
+            key='sentry:user',
+            values_seen=100,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'ignored',
+            'ignoreUserCount': 100,
+        }, format='json')
+
+        assert response.status_code == 200
+
+        snooze = GroupSnooze.objects.get(group=group)
+        assert snooze.count is None
+        assert snooze.until is None
+        assert snooze.user_count == 100
+        assert snooze.user_window is None
+        assert snooze.window is None
+        assert snooze.state['users_seen'] == 100
+
+        assert response.data == {
+            'status': 'ignored',
+            'statusDetails': {
+                'ignoreCount': snooze.count,
+                'ignoreWindow': snooze.window,
+                'ignoreUntil': snooze.until,
+                'ignoreUserCount': snooze.user_count,
+                'ignoreUserWindow': snooze.user_window,
+            },
+        }
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)

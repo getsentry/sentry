@@ -39,10 +39,10 @@ from sentry.tasks.merge import merge_group
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import default_cache
 from sentry.utils.db import get_db_engine
-from sentry.utils.hashlib import md5_text
 from sentry.utils.safe import safe_execute, trim, trim_dict
 from sentry.utils.strings import truncatechars
 from sentry.utils.validators import validate_ip
+from sentry.stacktraces import normalize_in_app
 
 
 def count_limit(count):
@@ -486,6 +486,10 @@ class EventManager(object):
                 del tags['user']
             tags['sentry:user'] = event_user.tag_value
 
+        # At this point we want to normalize the in_app values in case the
+        # clients did not set this appropriately so far.
+        normalize_in_app(data)
+
         for plugin in plugins.for_project(project, version=None):
             added_tags = safe_execute(plugin.get_tags, event,
                                       _with_transaction=False)
@@ -740,24 +744,37 @@ class EventManager(object):
             email=user_data.get('email'),
             username=user_data.get('username'),
             ip_address=user_data.get('ip_address'),
+            name=user_data.get('name'),
         )
-
-        if not euser.tag_value:
+        euser.set_hash()
+        if not euser.hash:
             return
 
-        cache_key = 'euser:{}:{}'.format(
+        cache_key = 'euserid:1:{}:{}'.format(
             project.id,
-            md5_text(euser.tag_value).hexdigest(),
+            euser.hash,
         )
-        cached = default_cache.get(cache_key)
-        if cached is None:
+        euser_id = default_cache.get(cache_key)
+        if euser_id is None:
             try:
                 with transaction.atomic(using=router.db_for_write(EventUser)):
                     euser.save()
             except IntegrityError:
-                pass
-            default_cache.set(cache_key, '', 3600)
-
+                try:
+                    euser = EventUser.objects.get(
+                        project=project,
+                        hash=euser.hash,
+                    )
+                except EventUser.DoesNotExist:
+                    # why???
+                    e_userid = -1
+                else:
+                    if euser.name != (user_data.get('name') or euser.name):
+                        euser.update(
+                            name=user_data['name'],
+                        )
+                    e_userid = euser.id
+                default_cache.set(cache_key, e_userid, 3600)
         return euser
 
     def _find_hashes(self, project, hash_list):

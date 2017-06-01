@@ -130,15 +130,28 @@ class StacktraceTest(TestCase):
     def test_compute_hashes(self):
         interface = Stacktrace.to_python(dict(frames=[{
             'lineno': 1,
-            'filename': 'foo.py',
+            'filename': 'a/foo.py',
             'in_app': True,
         }, {
             'lineno': 1,
-            'filename': 'bar.py',
+            'filename': 'a/bar.py',
             'in_app': None,
         }]))
         result = interface.compute_hashes('python')
-        assert result == [['foo.py', 1, 'bar.py', 1], ['foo.py', 1]]
+        assert result == [['a/foo.py', 1, 'a/bar.py', 1], ['a/foo.py', 1]]
+
+    def test_compute_hashes_cocoa(self):
+        interface = Stacktrace.to_python(dict(frames=[{
+            'lineno': 1,
+            'filename': '/foo/bar/bar.m',
+            'in_app': True,
+        }, {
+            'lineno': 1,
+            'filename': '/foo/bar/baz.m',
+            'in_app': None,
+        }]))
+        result = interface.compute_hashes('cocoa')
+        assert result == [['bar.m', 1, 'baz.m', 1], ['bar.m', 1]]
 
     def test_get_hash_with_minimal_app_frames(self):
         frames = [{
@@ -409,18 +422,6 @@ class StacktraceTest(TestCase):
             }
         ]))
         assert stacktrace.get_culprit_string(platform='javascript') == u'\U0001f60d(\U0001f62d)'
-
-    def test_exclude_libswiftCore_from_in_app(self):
-        stacktrace = Stacktrace.to_python(dict(frames=[
-            {
-                'filename': 'foo/baz.c',
-                'package': '/foo/bar/libswiftCore.dylib',
-                'lineno': 1,
-                'in_app': True,
-                'function': 'fooBar',
-            }
-        ]))
-        assert stacktrace.frames[0].in_app is False
 
     def test_cocoa_strict_stacktrace(self):
         stacktrace = Stacktrace.to_python(dict(frames=[
