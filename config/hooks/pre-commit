@@ -9,17 +9,18 @@ import json
 from glob import glob
 from click import echo, style
 
-from sentry.lint.engine import check_files, get_js_files
+from sentry.lint.engine import check_files, get_js_files, get_python_files
 
 text_type = type(u'')
 
 # git usurbs your bin path for hooks and will always run system python
 if 'VIRTUAL_ENV' in os.environ:
-    site_packages = glob(
-        '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
+    site_packages = glob('%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV']
+                        )[0]
     sys.path.insert(0, site_packages)
 
 PRETTIER_VERSION = "1.2.2"
+
 
 def yarn_check(file_list):
     """
@@ -33,17 +34,40 @@ def yarn_check(file_list):
         return False
 
     if 'package.json' in file_list and 'yarn.lock' not in file_list:
-        echo(style("""
+        echo(
+            style(
+                """
 Warning: package.json modified without accompanying yarn.lock modifications.
 
 If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
 
 To skip this check, run:
 
-$ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
+$ SKIP_YARN_CHECK=1 git commit [options]""",
+                fg='yellow'
+            )
+        )
         return True
 
     return False
+
+
+def python_format(file_list=None):
+    file_list = get_python_files(file_list)
+
+    has_errors = False
+    if file_list:
+        status = subprocess.Popen(['yapf', '-i'] + file_list).wait()
+        has_errors = status != 0
+
+        if not has_errors:
+            # stage modifications
+            status = subprocess.Popen(
+                ['git', 'update-index', '--add'] + file_list
+            ).wait()
+            has_errors = status != 0
+
+    return has_errors
 
 
 def js_format(file_list=None):
@@ -52,10 +76,15 @@ def js_format(file_list=None):
     of the lint engine.
     """
     project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-    prettier_path = os.path.join(project_root, 'node_modules', '.bin', 'prettier')
+    prettier_path = os.path.join(
+        project_root, 'node_modules', '.bin', 'prettier'
+    )
 
     if not os.path.exists(prettier_path):
-        echo('!! Skipping JavaScript formatting because prettier is not installed.', err=True)
+        echo(
+            '!! Skipping JavaScript formatting because prettier is not installed.',
+            err=True
+        )
         return False
 
     # Get Prettier version from package.json
@@ -63,33 +92,44 @@ def js_format(file_list=None):
     package_json_path = os.path.join(project_root, 'package.json')
     with open(package_json_path) as package_json:
         try:
-            package_version = json.load(package_json)['devDependencies']['prettier']
+            package_version = json.load(package_json)['devDependencies'
+                                                     ]['prettier']
         except KeyError:
             echo('!! Prettier missing from package.json', err=True)
             return False
 
-    prettier_version = subprocess.check_output([prettier_path, '--version']).rstrip()
+    prettier_version = subprocess.check_output([prettier_path,
+                                                '--version']).rstrip()
     if prettier_version != package_version:
-        echo('!! Prettier is out of date: %s (expected %s). Please run `yarn install`.' \
-            % (prettier_version, package_version), err=True)
+        echo(
+            '!! Prettier is out of date: %s (expected %s). Please run `yarn install`.'
+            % (prettier_version, package_version, ),
+            err=True
+        )
         return False
 
     js_file_list = get_js_files(file_list)
 
     has_errors = False
     if js_file_list:
-        status = subprocess.Popen([prettier_path, '--write', '--single-quote',
-            '--bracket-spacing=false', '--print-width=90', '--jsx-bracket-same-line=true'] +
-            js_file_list
+        status = subprocess.Popen(
+            [
+                prettier_path, '--write', '--single-quote',
+                '--bracket-spacing=false', '--print-width=90',
+                '--jsx-bracket-same-line=true'
+            ] + js_file_list
         ).wait()
         has_errors = status != 0
 
         if not has_errors:
             # Stage modifications by Prettier
-            status = subprocess.Popen(['git', 'update-index', '--add'] + file_list).wait()
+            status = subprocess.Popen(
+                ['git', 'update-index', '--add'] + file_list
+            ).wait()
             has_errors = status != 0
 
     return has_errors
+
 
 def main():
     from flake8.hooks import run
@@ -98,13 +138,10 @@ def main():
 
     _, files_modified, _ = run(gitcmd)
 
-    files_modified = [
-        text_type(f)
-        for f in files_modified
-        if os.path.exists(f)
-    ]
+    files_modified = [text_type(f) for f in files_modified if os.path.exists(f)]
 
-    # Prettier formatting must take place before linting
+    # formatting must take place before linting
+    python_format(files_modified)
     js_format(files_modified)
 
     if yarn_check(files_modified):

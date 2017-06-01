@@ -52,15 +52,19 @@ def get_files_for_list(file_list):
     return files_to_check
 
 
-def py_lint(file_list):
-    from flake8.engine import get_style_guide
-
+def get_python_files(file_list=None):
     if file_list is None:
         file_list = ['src/sentry', 'tests']
     file_list = get_files_for_list(file_list)
 
     # remove non-py files and files which no longer exist
-    file_list = [x for x in file_list if x.endswith('.py')]
+    return [x for x in file_list if x.endswith('.py')]
+
+
+def py_lint(file_list):
+    from flake8.engine import get_style_guide
+
+    file_list = get_python_files(file_list)
 
     flake8_style = get_style_guide(parse_argv=True)
     report = flake8_style.check_files(file_list)
@@ -72,17 +76,15 @@ def get_js_files(file_list=None):
     if file_list is None:
         file_list = ['tests/js', 'src/sentry/static/sentry/app']
     file_list = get_files_for_list(file_list)
-    file_list = [
-        x for x in file_list
-        if x.endswith(('.js', '.jsx'))
-    ]
+    file_list = [x for x in file_list if x.endswith(('.js', '.jsx'))]
     return file_list
 
 
 def js_lint(file_list=None):
 
-    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir,
-                                os.pardir)
+    project_root = os.path.join(
+        os.path.dirname(__file__), os.pardir, os.pardir, os.pardir
+    )
     eslint_path = os.path.join(project_root, 'node_modules', '.bin', 'eslint')
 
     if not os.path.exists(eslint_path):
@@ -95,8 +97,10 @@ def js_lint(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix']
-                       + js_file_list).wait()
+        status = Popen(
+            [eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix'] +
+            js_file_list
+        ).wait()
         has_errors = status != 0
 
     return has_errors
@@ -106,7 +110,9 @@ def check_files(file_list=None, js=True, py=True):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
     sys.argv = [
-        os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
+        os.path.join(
+            os.path.dirname(__file__), os.pardir, os.pardir, os.pardir
+        )
     ]
 
     linters = []
