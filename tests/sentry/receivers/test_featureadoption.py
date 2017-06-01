@@ -36,33 +36,30 @@ class FeatureAdoptionTest(TestCase):
         group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
         first_event_received.send(project=self.project, group=group, sender=type(self.project))
 
-        first_event = FeatureAdoption.objects.get(
+        first_event = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="first_event",
-            complete=True)
-        assert first_event is not None
+            slug="first_event")
+        assert first_event.complete
 
     def test_javascript(self):
         group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        js = FeatureAdoption.objects.get(
+        js = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="javascript",
-            complete=True)
-        assert js is not None
+            slug="javascript")
+        assert js.complete
 
     def test_python(self):
         group = self.create_group(project=self.project, platform='python', message='python error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        python = FeatureAdoption.objects.get(
+        python = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="python",
-            complete=True)
-        assert python is not None
+            slug="python")
+        assert python.complete
 
     def test_flask(self):
         group = self.create_group(project=self.project, platform='python', message='python error message')
@@ -70,157 +67,142 @@ class FeatureAdoptionTest(TestCase):
         event.data['sdk'] = {'name': 'raven-python:flask'}
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        python = FeatureAdoption.objects.get(
+        python = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="python",
-            complete=True)
-        assert python is not None
+            slug="python")
+        assert python.complete
 
-        flask = FeatureAdoption.objects.get(
+        flask = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="flask",
-            complete=True)
-        assert flask is not None
+            slug="flask")
+        assert flask.complete
 
     def test_node(self):
         group = self.create_group(project=self.project, platform='node', message='node error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        node = FeatureAdoption.objects.get(
+        node = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="node",
-            complete=True)
-        assert node is not None
+            slug="node")
+        assert node.complete
 
     def test_ruby(self):
         group = self.create_group(project=self.project, platform='ruby', message='ruby error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        ruby = FeatureAdoption.objects.get(
+        ruby = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="ruby",
-            complete=True)
-        assert ruby is not None
+            slug="ruby")
+        assert ruby.complete
 
     def test_java(self):
         group = self.create_group(project=self.project, platform='java', message='java error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        java = FeatureAdoption.objects.get(
+        java = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="java",
-            complete=True)
-        assert java is not None
+            slug="java")
+        assert java.complete
 
     def test_cocoa(self):
         group = self.create_group(project=self.project, platform='cocoa', message='cocoa error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        cocoa = FeatureAdoption.objects.get(
+        cocoa = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="cocoa",
-            complete=True)
-        assert cocoa is not None
+            slug="cocoa")
+        assert cocoa.complete
 
     def test_objc(self):
         group = self.create_group(project=self.project, platform='objc', message='objc error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        objc = FeatureAdoption.objects.get(
+        objc = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="objc",
-            complete=True)
-        assert objc is not None
+            slug="objc")
+        assert objc.complete
 
     def test_php(self):
         group = self.create_group(project=self.project, platform='php', message='php error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        php = FeatureAdoption.objects.get(
+        php = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="php",
-            complete=True)
-        assert php is not None
+            slug="php")
+        assert php.complete
 
     def test_go(self):
         group = self.create_group(project=self.project, platform='go', message='go error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        go = FeatureAdoption.objects.get(
+        go = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="go",
-            complete=True)
-        assert go is not None
+            slug="go")
+        assert go.complete
 
     def test_csharp(self):
         group = self.create_group(project=self.project, platform='csharp', message='C# error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        csharp = FeatureAdoption.objects.get(
+        csharp = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="csharp",
-            complete=True)
-        assert csharp is not None
+            slug="csharp")
+        assert csharp.complete
 
     def test_perl(self):
         group = self.create_group(project=self.project, platform='perl', message='C# error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        perl = FeatureAdoption.objects.get(
+        perl = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="perl",
-            complete=True)
-        assert perl is not None
+            slug="perl")
+        assert perl.complete
 
     def test_elixir(self):
         group = self.create_group(project=self.project, platform='elixir', message='C# error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        elixir = FeatureAdoption.objects.get(
+        elixir = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="elixir",
-            complete=True)
-        assert elixir is not None
+            slug="elixir")
+        assert elixir.complete
 
     def test_cfml(self):
         group = self.create_group(project=self.project, platform='cfml', message='C# error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        cfml = FeatureAdoption.objects.get(
+        cfml = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="cfml",
-            complete=True)
-        assert cfml is not None
+            slug="cfml")
+        assert cfml.complete
 
     def test_groovy(self):
         group = self.create_group(project=self.project, platform='groovy', message='C# error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        groovy = FeatureAdoption.objects.get(
+        groovy = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="groovy",
-            complete=True)
-        assert groovy is not None
+            slug="groovy")
+        assert groovy.complete
 
     def test_csp(self):
         group = self.create_group(project=self.project, platform='csp', message='C# error message')
         event = self.create_event()
         event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
 
-        csp = FeatureAdoption.objects.get(
+        csp = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
-            feature_slug="csp",
-            complete=True)
-        assert csp is not None
+            slug="csp")
+        assert csp.complete

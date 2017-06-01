@@ -1,7 +1,8 @@
 from __future__ import absolute_import
 
+from sentry.adoption import manager
 from sentry.interfaces.base import get_interface
-from sentry.models import FeatureAdoption, features
+from sentry.models import FeatureAdoption
 from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
@@ -37,8 +38,7 @@ def record_first_event(project, group, **kwargs):
 @event_processed.connect(weak=False)
 def record_event_processed(project, group, event, **kwargs):
     # Platform
-    languages = [f.slug for f in features if f.location == 'language']
-    if group.platform in languages:
+    if group.platform in manager.location_slugs('language'):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug=group.platform,
@@ -49,8 +49,7 @@ def record_event_processed(project, group, event, **kwargs):
             if len(event.data.get('sdk').get('name').split(':')) == 2:
                 framework = event.data.get('sdk').get('name').split(':')[1]
 
-                frameworks = {f.slug: f.prerequisite for f in features if f.location == 'framework'}
-                if framework in frameworks and group.platform in frameworks[framework]:
+                if framework in manager.integration_slugs(group.platform):
                     FeatureAdoption.objects.record(
                         organization_id=project.organization_id,
                         feature_slug=framework,
@@ -199,7 +198,7 @@ def record_alert_rule_created(project, rule, **kwargs):
 
 @plugin_enabled.connect(weak=False)
 def record_plugin_enabled(plugin, project, user, **kwargs):
-    if isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2):
+    if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="issue_tracker_integration",
