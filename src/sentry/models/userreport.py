@@ -10,9 +10,8 @@ from __future__ import absolute_import
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import (
-    BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
-)
+from sentry.db.models import (BoundedBigIntegerField, FlexibleForeignKey,
+                              Model, sane_repr)
 
 
 class UserReport(Model):
@@ -31,6 +30,6 @@ class UserReport(Model):
         app_label = 'sentry'
         db_table = 'sentry_userreport'
         index_together = (('project', 'event_id'), ('project', 'date_added'))
-        unique_together = (('project', 'event_id'),)
+        unique_together = (('project', 'event_id'), )
 
     __repr__ = sane_repr('event_id', 'name', 'email')

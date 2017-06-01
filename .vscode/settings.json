@@ -3,18 +3,31 @@
         "**/*.pyc": true,
         "static": true,
         "node_modules": true,
-        "src/sentry/static/dist": true
+        "src/sentry/static/dist": true,
+        "env": true
     },
-    
     "prettier.bracketSpacing": false,
     "prettier.singleQuote": true,
     "prettier.printWidth": 90,
-
+    "prettier.jsxBracketSameLine": true,
     "eslint.options": {
         "configFile": ".eslintrc"
     },
-
     "[javascript]": {
         "editor.formatOnSave": true
-    }
+    },
+    // we have certain config files with comments, and the auto
+    // formatter does not accept them
+    "[json]": {
+        "editor.formatOnSave": false
+    },
+    // autoformatting is currently broken in Python
+    // https://github.com/DonJayamanne/pythonVSCode/issues/992
+    "[python]": {
+        "editor.formatOnSave": false
+    },
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "yapf",
+    "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python"
 }
