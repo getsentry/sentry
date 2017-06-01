@@ -3,9 +3,9 @@ import DocumentTitle from 'react-document-title';
 
 import ApiMixin from '../../mixins/apiMixin';
 
-import Info from './info';
-import Project from './project';
-import Setup from './setup';
+import Project from './project/';
+import Configure from './configure/';
+import Next from './next/';
 
 import ProgressNodes from './progress';
 import {onboardingSteps} from './utils';
@@ -17,36 +17,58 @@ const OnboardingWizard = React.createClass({
     return {
       loading: true,
       error: false,
-      options: {},
-      step: onboardingSteps.ready
+      step: onboardingSteps.project,
+      platform: '',
+      projectName: '',
+      project: null
     };
   },
 
-  componentWillMount() {
-    this.fetchData();
-  },
-
   renderStep() {
-    //eslint-disable-next-line react/jsx-key
-    const component = [<Info />, <Project />, <Setup />][this.state.step];
+    const stepProps = {
+      next: this.next,
+      platform: this.state.platform,
+      setPlatform: p => this.setState({platform: p}),
+      name: this.state.projectName,
+      setName: n => this.setState({projectName: n}),
+      project: this.state.project,
+      params: this.props.params
+    };
     return (
       <div>
-        {component}
+        {
+          [
+            //eslint-disable-next-line react/jsx-key
+            <Project {...stepProps} />,
+            //eslint-disable-next-line react/jsx-key
+            <Configure {...stepProps} />,
+            //eslint-disable-next-line react/jsx-key
+            <Next {...stepProps} />
+          ][this.state.step]
+        }
       </div>
     );
   },
 
-  fetchData(callback) {
-    this.api.request('/internal/options/?query=is:required', {
-      method: 'GET',
+  createProject(callback) {
+    let org = this.props.params.orgId;
+    this.api.request(`/teams/${org}/${org}/projects/`, {
+      method: 'POST',
+      data: {
+        name: this.state.projectName,
+        platform: this.state.platform
+      },
       success: data => {
+        console.log(data);
         this.setState({
-          options: data,
+          project: data,
           loading: false,
           error: false
         });
+        callback();
       },
-      error: () => {
+      error: err => {
+        console.log(err);
         this.setState({
           loading: false,
           error: true
@@ -56,16 +78,19 @@ const OnboardingWizard = React.createClass({
   },
 
   next() {
-    this.setState({step: this.state.step + 1});
+    if (this.state.step === onboardingSteps.project) {
+      this.createProject(() => {
+        this.setState({step: this.state.step + 1}); //TODO(maxbittker) clean this up
+      });
+    } else this.setState({step: this.state.step + 1});
   },
 
   render() {
     return (
-      <div>
+      <div className="onboarding-container">
         <DocumentTitle title={'Sentry'} />
         <h1>ONBOARDING</h1>
-        <div className="onboarding-container">
-
+        <div className="step-container">
           <ProgressNodes step={this.state.step} />
           <div
             className="btn"
@@ -75,9 +100,6 @@ const OnboardingWizard = React.createClass({
           />
           <div>
             <this.renderStep />
-            <div className="btn btn-primary" onClick={this.next}>
-              next step
-            </div>
           </div>
         </div>
       </div>

@@ -257,7 +257,7 @@ urlpatterns += patterns(
     url(r'^account/settings/social/', include('social_auth.urls')),
     url(r'^account/', generic_react_page_view),
 
-    url(r'^onboarding/', generic_react_page_view),
+    # url(r'^onboarding/', generic_react_page_view),
 
     # Admin
     url(r'^manage/status/environment/$', admin.status_env, name='sentry-admin-status'),
@@ -335,6 +335,8 @@ urlpatterns += patterns(
         react_page_view,
         name='sentry-organization-stats'
     ),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/onboarding/$', react_page_view,
+    name='sentry-organization-stats'),
     url(
         r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$',
         RemoveTeamView.as_view(),

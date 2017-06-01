@@ -1,40 +1,86 @@
 .onboarding-container{
+  margin-left: 250px;
+}
+
+.step-container{
   display: flex;
   padding: 10px;
 }
 
-.progress-nodes{
+.onboarding-sidebar{
+  width: 250px;
+  height: 100%;
+  position: fixed;
+  z-index: 10000;
+  top: 0;
+  left:0;
+  color: whitesmoke;
+  background: url(../../../images/sentry-pattern.png);
+  background-color: #493e54;
+  background-size: 400px;
 
-  .node{
-    background-color: #98a;
-    border-radius: 100%;
+  .sentry-flag{
+    margin: 50px 0px;
+    background-color: #e03e2f;
     width: 100px;
-    height: 100px;
-    margin-bottom: 30px;
+    padding:5px 15px;
 
-    display: flex;
-    justify-content: center;
-    align-content: flex-end;
+  }
+  .progress-nodes{
+    .node{
+      width: 190px;
+      margin:auto;
+      margin-bottom: 30px;
+      display: flex;
+      color: #ccc;      
+      // justify-content: center;
+      // align-content: flex-end;
+      &::before{
+        content:'';
+        // background-color: black;
+        border-radius: 100%;
+        width:30px;
+        height:30px;      
+        margin-right: 8px;
+        border: 3px solid #ccc;      
+      }
 
-    &:not(:last-child){
-      &:after{
-        content: '';
-        position: absolute;
-        z-index: -10;
-        height: 150px;
-        width: 10px;
-        border: solid 2px black;
+      &.active{
+        color: white;
+        &::before{
+          border-color: white;      
+        }
+      }
+      &.done{
+        &::before{
+          content: '●';
+          text-align: center;
+        }
       }
     }
+  }
+  .stuck{
+    padding: 20px;
+    position: absolute;
+    bottom: 0px;
+  }
+}
 
-    &.active{
-      background-color: #aeb;
-    }
+.platformicon-stack{
+  background-color: white;
+  position: absolute;
+}
 
-    h5 {
-      position: relative;
-      top: 40%;
-    }
+.platform-picker{
+  
+  .platform-tiles{
+    display: flex;
+    flex-wrap: wrap;
   }
 
+  .platform-tile{
+    &.selected{
+      background-color:  #aeb;
+    }
+  }
 }

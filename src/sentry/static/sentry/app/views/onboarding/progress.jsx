@@ -10,18 +10,31 @@ const ProgressNodes = React.createClass({
   steps: Object.keys(onboardingSteps),
 
   node(step, i) {
-    let nodeClass = classNames('node', {active: i === this.props.step});
+    let nodeClass = classNames('node', {
+      done: i < this.props.step,
+      active: i === this.props.step
+    });
 
     return (
       <div className={nodeClass} key={i}>
-        <h5>{step}</h5>
+        {step}
       </div>
     );
   },
   render() {
     return (
-      <div className="progress-nodes">
-        {this.steps.map(this.node)}
+      <div className="onboarding-sidebar">
+        <div className="sentry-flag">
+          <span href="/" className="icon-sentry-logo"> Sentry</span>
+        </div>
+        <div className="progress-nodes">
+          {this.steps.map(this.node)}
+        </div>
+        <div className="stuck">
+          <p> Stuck?</p>
+          <p> Chat with a real person</p>
+        </div>
+
       </div>
     );
   }
