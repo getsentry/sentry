@@ -8,6 +8,7 @@ sentry.nodestore.riak.client
 
 from __future__ import absolute_import
 
+import functools
 import six
 import sys
 import socket
@@ -36,6 +37,46 @@ def encode_basic_auth(auth):
     return 'Basic ' + b64encode(auth).decode('utf-8')
 
 
+class SimpleThreadedWorkerPool(object):
+    """\
+    Manages a simple threaded worker pool. The pool will be started when the
+    first job is submitted, and will run to process completion.
+    """
+    def __init__(self, size):
+        assert size > 0, 'pool must have at laest one worker thread'
+
+        self.__started = False
+        self.__size = size
+
+    def __start(self):
+        self.__tasks = tasks = Queue()
+
+        def consumer():
+            while True:
+                func, args, kwargs, cb = tasks.get()
+                try:
+                    rv = func(*args, **kwargs)
+                except Exception as e:
+                    rv = e
+                finally:
+                    cb(rv)
+                    tasks.task_done()
+
+        for _ in range(self.__size):
+            t = Thread(target=consumer)
+            t.setDaemon(True)
+            t.start()
+
+    def submit(self, (func, arg, kwargs, cb)):
+        """\
+        Submit a task to the worker pool.
+        """
+        if not self.__started:
+            self.__start()
+
+        self.__tasks.put((func, arg, kwargs, cb))
+
+
 class RiakClient(object):
     """
     A thread-safe simple light-weight riak client that does only
@@ -43,30 +84,7 @@ class RiakClient(object):
     """
     def __init__(self, multiget_pool_size=5, **kwargs):
         self.manager = ConnectionManager(**kwargs)
-        self.queue = Queue()
-
-        # TODO: maybe start this lazily? Probably not valuable though
-        # since we definitely will need it.
-        self._start(multiget_pool_size)
-
-    def _start(self, size):
-        assert size > 0
-        for _ in range(size):
-            t = Thread(target=self._target)
-            t.setDaemon(True)
-            t.start()
-
-    def _target(self):
-        q = self.queue
-        while True:
-            func, args, kwargs, cb = q.get()
-            try:
-                rv = func(*args, **kwargs)
-            except Exception as e:
-                rv = e
-            finally:
-                cb(rv)
-                q.task_done()
+        self.pool = SimpleThreadedWorkerPool(multiget_pool_size)
 
     def build_url(self, bucket, key, qs):
         url = '/buckets/%s/keys/%s' % tuple(map(quote_plus, (bucket, key)))
@@ -108,22 +126,27 @@ class RiakClient(object):
         """
         # Each request is paired with a thread.Event to signal when it is finished
         requests = [
-            (key, self.build_url(bucket, key, {'foo': 'bar'}), Event())
+            (key, self.build_url(bucket, key, kwargs), Event())
             for key in keys
         ]
 
         results = {}
-        for key, url, event in requests:
-            def callback(rv, key=key, event=event):
-                results[key] = rv
-                # Signal that this request is finished
-                event.set()
 
-            self.queue.put((
+        def callback(key, event, rv):
+            results[key] = rv
+            # Signal that this request is finished
+            event.set()
+
+        for key, url, event in requests:
+            self.pool.submit((
                 self.manager.urlopen,  # func
                 ('GET', url),  # args
                 {'headers': headers},  # kwargs
-                callback,  # callback
+                functools.partial(
+                    callback,
+                    key,
+                    event,
+                ),  # callback
             ))
 
         # Now we wait for all of the callbacks to be finished
