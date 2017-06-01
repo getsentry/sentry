@@ -1,0 +1,40 @@
+.onboarding-container{
+  display: flex;
+  padding: 10px;
+}
+
+.progress-nodes{
+
+  .node{
+    background-color: #98a;
+    border-radius: 100%;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 30px;
+
+    display: flex;
+    justify-content: center;
+    align-content: flex-end;
+
+    &:not(:last-child){
+      &:after{
+        content: '';
+        position: absolute;
+        z-index: -10;
+        height: 150px;
+        width: 10px;
+        border: solid 2px black;
+      }
+    }
+
+    &.active{
+      background-color: #aeb;
+    }
+
+    h5 {
+      position: relative;
+      top: 40%;
+    }
+  }
+
+}

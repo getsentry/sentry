@@ -40,6 +40,7 @@ import OrganizationRepositories from './views/organizationRepositories';
 import OrganizationSettings from './views/organizationSettings';
 import OrganizationStats from './views/organizationStats';
 import OrganizationTeams from './views/organizationTeams';
+import OnboardingWizard from './views/onboarding/index';
 import AllTeamsList from './views/organizationTeams/allTeamsList';
 import ProjectAlertSettings from './views/projectAlertSettings';
 import ProjectAlertRules from './views/projectAlertRules';
@@ -107,9 +108,12 @@ function routes() {
 
   return (
     <Route path="/" component={errorHandler(App)}>
+
       <Route path="/account/" component={errorHandler(AccountLayout)}>
         <Route path="authorizations/" component={errorHandler(AccountAuthorizations)} />
       </Route>
+
+      <Route path="/onboarding/" component={errorHandler(OnboardingWizard)} />
 
       <Route path="/api/" component={errorHandler(ApiLayout)}>
         <IndexRoute component={errorHandler(ApiTokens)} />
