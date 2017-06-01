@@ -362,7 +362,7 @@ def bind_cache_to_option_store():
     # settings and/or configuration values. Those options should have been
     # loaded at this point, so we can plug in the cache backend before
     # continuing to initialize the remainder of the application.
-    from sentry.cache import default_cache
+    from django.core.cache import cache as default_cache
     from sentry.options import default_store
 
     default_store.cache = default_cache
