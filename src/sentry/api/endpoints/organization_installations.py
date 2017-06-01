@@ -29,6 +29,7 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
 
             installations = [{
                 'installation_id': i.installation_id,
+                'external_organization': i.external_organization,
                 'linked': i.id in linked_installations,
             } for i in installations]
 
