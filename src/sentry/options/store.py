@@ -101,9 +101,10 @@ class OptionsStore(object):
             if not silent:
                 logger.warn(CACHE_FETCH_ERR, key.name, exc_info=True)
             value = None
-        else:
-            if key.ttl > 0:
-                self._local_cache[cache_key] = _make_cache_value(key, value)
+
+        if value is not None and key.ttl > 0:
+            self._local_cache[cache_key] = _make_cache_value(key, value)
+
         return value
 
     def get_local_cache(self, key, force_grace=False):
