@@ -24,10 +24,7 @@ export default React.createClass({
 
   onSubmit() {
     this.props.onSelected({
-      status: 'resolved',
-      statusDetails: {
-        inRelease: this.state.version
-      }
+      inRelease: this.state.version
     });
   },
 
