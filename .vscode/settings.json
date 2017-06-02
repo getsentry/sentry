@@ -9,6 +9,7 @@
     "prettier.bracketSpacing": false,
     "prettier.singleQuote": true,
     "prettier.printWidth": 90,
+    "prettier.jsxBracketSameLine": true,
 
     "eslint.options": {
         "configFile": ".eslintrc"
