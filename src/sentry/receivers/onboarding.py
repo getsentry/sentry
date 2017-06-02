@@ -167,6 +167,8 @@ def record_release_received(project, group, event, **kwargs):
 def record_user_context_received(project, group, event, **kwargs):
     if not event.data.get('sentry.interfaces.User'):
         return
+    elif event.data.get('sentry.interfaces.User')[:3] == 'ip:':
+        return
 
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,

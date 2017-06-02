@@ -87,7 +87,7 @@ def record_event_processed(project, group, event, **kwargs):
             complete=True)
 
     # User Tracking
-    if event.data.get('sentry.interfaces.User'):
+    if event.data.get('sentry.interfaces.User') and event.data.get('sentry.interfaces.User')[:3] != "ip:":
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="user_tracking",
