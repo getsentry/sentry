@@ -25,14 +25,18 @@ class Select2FieldAutocomplete extends Select2Field {
       ajax: {
         url: this.props.url,
         dataType: 'json',
-        data: this.props.onQuery,
+        data: this.props.onQuery.bind(this),
         cache: true,
-        results: this.props.onResults,
+        results: this.props.onResults.bind(this),
         delay: this.props.ajaxDelay
       },
       id: this.props.id,
-      formatResult: this.props.formatResult,
-      formatSelection: this.props.formatSelection,
+      formatResult: this.props.formatResult
+        ? this.props.formatResult.bind(this)
+        : undefined,
+      formatSelection: this.props.formatSelection
+        ? this.props.formatResult.bind(this)
+        : undefined,
       formatAjaxError: error => {
         let resp = error.responseJSON;
         if (resp && resp.error_type === 'validation') {
@@ -49,10 +53,10 @@ class Select2FieldAutocomplete extends Select2Field {
 
 Select2FieldAutocomplete.defaultProps = Object.assign(
   {
-    onResults: (data, page) => {
-      return data[this.props.name];
+    onResults: function(data, page) {
+      return {results: data[this.props.name]};
     },
-    onQuery: (query, page) => {
+    onQuery: function(query, page) {
       return {autocomplete_query: query, autocomplete_field: this.props.name};
     },
     minimumInputLength: null,
