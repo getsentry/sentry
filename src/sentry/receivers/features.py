@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import six
 
 from sentry.adoption import manager
 from sentry.interfaces.base import get_interface
@@ -25,10 +26,11 @@ from sentry.signals import (
 )
 from sentry.utils.javascript import has_sourcemap
 
-DEFAULT_TAGS = frozenset(['sentry_version', 'environment', 'level', 'logger',
-        'browser', 'browser.name', 'device', 'os', 'os.name', 'device', 'device.name',
-        'app.device', 'url', 'server_name', 'sentry:user', 'sentry:release', 'transaction',
-        'react', 'device.family'])
+DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 'sentry:user',
+    'os', 'server_name', 'device', 'os.name', 'browser.name', 'sentry:release', 'environment',
+    'device.family', 'site', 'version', 'interface_type', 'rake_task', 'runtime', 'runtime.name',
+    'type', 'php_version', 'app', 'app.device', 'locale', 'os_version', 'device_model',
+    'deviceModel', 'sentry_version'])
 
 
 # First Event
@@ -87,7 +89,8 @@ def record_event_processed(project, group, event, **kwargs):
             complete=True)
 
     # User Tracking
-    if event.data.get('sentry.interfaces.User') and event.data.get('sentry.interfaces.User')[:3] != "ip:":
+    user_context = event.data.get('sentry.interfaces.User')
+    if user_context and isinstance(user_context, six.string_types) and user_context[:3] != "ip:":
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="user_tracking",
