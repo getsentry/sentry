@@ -30,6 +30,7 @@ class OrganizationInstallationsListTest(APITestCase):
             'installations': [{
                 'installation_id': '54321',
                 'linked': False,
+                'external_organization': 'dummyorg',
             }]
         }
 
