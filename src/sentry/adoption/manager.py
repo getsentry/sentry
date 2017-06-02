@@ -25,10 +25,10 @@ class AdoptionManager(object):
         self._slug_registry[slug] = feature
         self._slugs.add(slug)
         self._ids.add(id)
-        self._location_slugs.get(location).add(slug)
+        self._location_slugs[location].add(slug)
 
         if location == 'integration':
-            self._integration_slugs.get(prerequisite[0]).add(slug)
+            self._integration_slugs[prerequisite[0]].add(slug)
 
     def get_by_id(self, id):
         return self._id_registry[id]
