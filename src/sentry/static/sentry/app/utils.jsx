@@ -227,7 +227,7 @@ export function getShortVersion(version) {
     version = match[1];
   }
   if (version.match(/^[a-f0-9]{40}$/)) {
-    version = version.substr(0, 12);
+    version = version.substr(0, 7);
   }
   return version;
 }
