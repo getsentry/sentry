@@ -527,10 +527,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             ident=resolution.id if resolution else None,
                             data=activity_data,
                         )
-                # TODO(dcramer): we need a solution for activity rollups
-                # before sending notifications on bulk changes
-                if not is_bulk:
-                    activity.send_notification()
+                        # TODO(dcramer): we need a solution for activity rollups
+                        # before sending notifications on bulk changes
+                        if not is_bulk:
+                            activity.send_notification()
 
                 issue_resolved_in_release.send(
                     group=group,
