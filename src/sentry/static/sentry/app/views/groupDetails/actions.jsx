@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import ApiMixin from '../../mixins/apiMixin';
 import CustomIgnoreCountModal from '../../components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModal';
+import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
 import GroupState from '../../mixins/groupState';
@@ -12,6 +13,345 @@ import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+
+const ResolveActions = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object.isRequired,
+    hasRelease: React.PropTypes.bool.isRequired,
+    onUpdate: React.PropTypes.func.isRequired,
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
+  },
+
+  getInitialState() {
+    return {
+      modal: false
+    };
+  },
+
+  onCustomResolution(statusDetails) {
+    this.setState({
+      modal: false
+    });
+    this.props.onUpdate({
+      status: 'resolved',
+      statusDetails: statusDetails
+    });
+  },
+
+  render() {
+    let {group, hasRelease, onUpdate} = this.props;
+    let resolveClassName = 'group-resolve btn btn-default btn-sm';
+    if (group.status === 'resolved') {
+      resolveClassName += ' active';
+    }
+
+    if (group.status === 'resolved' && group.statusDetails.autoResolved) {
+      return (
+        <div className="btn-group">
+          <a
+            className={resolveClassName + ' tip'}
+            title={t(
+              'This event is resolved due to the Auto Resolve configuration for this project'
+            )}>
+            <span className="icon-checkmark" />
+          </a>
+        </div>
+      );
+    } else if (group.status === 'resolved') {
+      return (
+        <div className="btn-group">
+          <a
+            className={resolveClassName}
+            title={t('Unresolve')}
+            onClick={() => onUpdate({status: 'unresolved'})}>
+            <span className="icon-checkmark" />
+          </a>
+        </div>
+      );
+    }
+
+    let actionClassName = `tip ${!hasRelease ? 'disabled' : ''}`;
+    let actionTitle = !hasRelease
+      ? t('Set up release tracking in order to use this feature.')
+      : '';
+
+    return (
+      <div style={{display: 'inline-block'}}>
+        <CustomResolutionModal
+          show={this.state.modal}
+          onSelected={this.onCustomResolution}
+          onCanceled={() => this.setState({modal: false})}
+          orgId={this.props.orgId}
+          projectId={this.props.projectId}
+        />
+        <div className="btn-group">
+          <a
+            key="resolve-button"
+            className={resolveClassName}
+            title={t('Resolve')}
+            onClick={() => onUpdate({status: 'resolved'})}>
+            <span className="icon-checkmark" style={{marginRight: 5}} />
+            {t('Resolve')}
+          </a>
+          <DropdownLink
+            key="resolve-dropdown"
+            caret={true}
+            className={resolveClassName}
+            title="">
+            <MenuItem header={true}>Resolved In</MenuItem>
+            <MenuItem noAnchor={true}>
+              <a
+                onClick={() => {
+                  return (
+                    hasRelease &&
+                    onUpdate({
+                      status: 'resolved',
+                      statusDetails: {
+                        inNextRelease: true
+                      }
+                    })
+                  );
+                }}
+                className={actionClassName}
+                title={actionTitle}>
+                {t('The next release')}
+              </a>
+              <a
+                onClick={() => {
+                  return (
+                    hasRelease &&
+                    onUpdate({
+                      status: 'resolved',
+                      statusDetails: {
+                        inRelease: 'latest'
+                      }
+                    })
+                  );
+                }}
+                className={actionClassName}
+                title={actionTitle}>
+                {t('The current release')}
+              </a>
+              <a
+                onClick={() => hasRelease && this.setState({modal: true})}
+                className={actionClassName}
+                title={actionTitle}>
+                {t('Another version ...')}
+              </a>
+            </MenuItem>
+          </DropdownLink>
+        </div>
+      </div>
+    );
+  }
+});
+
+const IgnoreActions = React.createClass({
+  propTypes: {
+    group: React.PropTypes.object.isRequired,
+    onUpdate: React.PropTypes.func.isRequired
+  },
+
+  getInitialState() {
+    return {
+      modal: false
+    };
+  },
+
+  getIgnoreDurations() {
+    return [30, 120, 360, 60 * 24, 60 * 24 * 7];
+  },
+
+  getIgnoreCounts() {
+    return [100, 1000, 10000, 100000];
+  },
+
+  getIgnoreWindows() {
+    return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
+  },
+
+  onCustomIgnore(statusDetails) {
+    this.setState({
+      modal: false
+    });
+    this.onIgnore(statusDetails);
+  },
+
+  onIgnore(statusDetails) {
+    return this.props.onUpdate({
+      status: 'ignored',
+      statusDetails: statusDetails || {}
+    });
+  },
+
+  render() {
+    let {group, onUpdate} = this.props;
+    let linkClassName = 'group-ignore btn btn-default btn-sm';
+    if (group.status === 'ignored') {
+      linkClassName += ' active';
+    }
+
+    if (group.status === 'ignored') {
+      return (
+        <div className="btn-group">
+          <a
+            className={linkClassName + ' tip'}
+            title={t('Change status to unresolved')}
+            onClick={() => onUpdate({status: 'unresolved'})}>
+            <span className="icon-ban" />
+          </a>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{display: 'inline-block'}}>
+        <CustomIgnoreDurationModal
+          show={this.state.modal === 'duration'}
+          onSelected={this.onCustomIgnore}
+          onCanceled={() => this.setState({modal: null})}
+        />
+        <CustomIgnoreCountModal
+          show={this.state.modal === 'count'}
+          onSelected={this.onCustomIgnore}
+          onCanceled={() => this.setState({modal: null})}
+          label={t('Ignore this issue until it occurs again .. ')}
+          countLabel={t('Number of times')}
+          countName="ignoreCount"
+          windowName="ignoreWindow"
+          windowChoices={this.getIgnoreWindows()}
+        />
+        <CustomIgnoreCountModal
+          show={this.state.modal === 'users'}
+          onSelected={this.onCustomIgnore}
+          onCanceled={() => this.setState({modal: null})}
+          label={t('Ignore this issue until it affects an additional .. ')}
+          countLabel={t('Numbers of users')}
+          countName="ignoreUserCount"
+          windowName="ignoreUserWindow"
+          windowChoices={this.getIgnoreWindows()}
+        />
+        <div className="btn-group">
+          <a
+            className={linkClassName}
+            title={t('Ignore')}
+            onClick={() => onUpdate({status: 'ignored'})}>
+            <span className="icon-ban" style={{marginRight: 5}} />
+            {t('Ignore')}
+          </a>
+          <DropdownLink caret={true} className={linkClassName} title="">
+            <MenuItem header={true}>Ignore Until</MenuItem>
+            <li className="dropdown-submenu">
+              <DropdownLink title="This occurs again after .." caret={false}>
+                {this.getIgnoreDurations().map(duration => {
+                  return (
+                    <MenuItem noAnchor={true} key={duration}>
+                      <a
+                        onClick={this.onIgnore.bind(this, {
+                          ignoreDuration: duration
+                        })}>
+                        <Duration seconds={duration * 60} />
+                      </a>
+                    </MenuItem>
+                  );
+                })}
+                <MenuItem divider={true} />
+                <MenuItem noAnchor={true}>
+                  <a onClick={() => this.setState({modal: 'duration'})}>
+                    {t('Custom')}
+                  </a>
+                </MenuItem>
+              </DropdownLink>
+            </li>
+            <li className="dropdown-submenu">
+              <DropdownLink title="This occurs again .." caret={false}>
+                {this.getIgnoreCounts().map(count => {
+                  return (
+                    <li className="dropdown-submenu" key={count}>
+                      <DropdownLink
+                        title={t('%s times', count.toLocaleString())}
+                        caret={false}>
+                        <MenuItem noAnchor={true}>
+                          <a
+                            onClick={this.onIgnore.bind(this, {
+                              ignoreCount: count
+                            })}>
+                            {t('from now')}
+                          </a>
+                        </MenuItem>
+                        {this.getIgnoreWindows().map(([hours, label]) => {
+                          return (
+                            <MenuItem noAnchor={true} key={hours}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreCount: count,
+                                  ignoreWindow: hours
+                                })}>
+                                {label}
+                              </a>
+                            </MenuItem>
+                          );
+                        })}
+                      </DropdownLink>
+                    </li>
+                  );
+                })}
+                <MenuItem divider={true} />
+                <MenuItem noAnchor={true}>
+                  <a onClick={() => this.setState({modal: 'count'})}>
+                    {t('Custom')}
+                  </a>
+                </MenuItem>
+              </DropdownLink>
+            </li>
+            <li className="dropdown-submenu">
+              <DropdownLink title="This affects an additional .." caret={false}>
+                {this.getIgnoreCounts().map(count => {
+                  return (
+                    <li className="dropdown-submenu" key={count}>
+                      <DropdownLink
+                        title={t('%s users', count.toLocaleString())}
+                        caret={false}>
+                        <MenuItem noAnchor={true}>
+                          <a
+                            onClick={this.onIgnore.bind(this, {
+                              ignoreUserCount: count
+                            })}>
+                            {t('from now')}
+                          </a>
+                        </MenuItem>
+                        {this.getIgnoreWindows().map(([hours, label]) => {
+                          return (
+                            <MenuItem noAnchor={true} key={hours}>
+                              <a
+                                onClick={this.onIgnore.bind(this, {
+                                  ignoreUserCount: count,
+                                  ignoreUserWindow: hours
+                                })}>
+                                {label}
+                              </a>
+                            </MenuItem>
+                          );
+                        })}
+                      </DropdownLink>
+                    </li>
+                  );
+                })}
+                <MenuItem divider={true} />
+                <MenuItem noAnchor={true}>
+                  <a onClick={() => this.setState({modal: 'users'})}>
+                    {t('Custom')}
+                  </a>
+                </MenuItem>
+              </DropdownLink>
+            </li>
+          </DropdownLink>
+        </div>
+      </div>
+    );
+  }
+});
 
 export default React.createClass({
   mixins: [
@@ -74,291 +414,32 @@ export default React.createClass({
     this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
   },
 
-  onIgnore(params) {
-    this.onUpdate({
-      status: 'ignored',
-      ...params
-    });
-  },
-
-  customIgnoreModalClicked(modal) {
-    this.setState({
-      ignoreModal: modal
-    });
-  },
-
-  customIgnoreModalSelected(data) {
-    this.onIgnore(data);
-    this.customIgnoreModalCanceled();
-  },
-
-  customIgnoreModalCanceled() {
-    this.setState({ignoreModal: null});
-  },
-
-  getIgnoreDurations() {
-    return [30, 120, 360, 60 * 24, 60 * 24 * 7];
-  },
-
-  getIgnoreCounts() {
-    return [100, 1000, 10000, 100000];
-  },
-
-  getIgnoreWindows() {
-    return [[1, 'per hour'], [24, 'per day'], [24 * 7, 'per week']];
-  },
-
   render() {
     let group = this.getGroup();
-
-    let resolveClassName = 'group-resolve btn btn-default btn-sm';
-    if (group.status === 'resolved') {
-      resolveClassName += ' active';
-    }
-
-    let resolveDropdownClasses = 'resolve-dropdown';
+    let project = this.getProject();
+    let org = this.getOrganization();
 
     let bookmarkClassName = 'group-bookmark btn btn-default btn-sm';
     if (group.isBookmarked) {
       bookmarkClassName += ' active';
     }
 
-    let ignoreClassName = 'group-ignore btn btn-default btn-sm';
-    if (group.status === 'ignored') {
-      ignoreClassName += ' active';
-    }
-
     let hasRelease = this.getProjectFeatures().has('releases');
-    let releaseTrackingUrl =
-      '/' +
-      this.getOrganization().slug +
-      '/' +
-      this.getProject().slug +
-      '/settings/release-tracking/';
 
     // account for both old and new style plugins
     let hasIssueTracking = group.pluginActions.length || group.pluginIssues.length;
 
     return (
       <div className="group-actions">
-        <CustomIgnoreDurationModal
-          show={this.state.ignoreModal === 'duration'}
-          onSelected={this.customIgnoreModalSelected}
-          onCanceled={this.customIgnoreModalCanceled.bind(this, 'duration')}
+        <ResolveActions
+          group={group}
+          hasRelease={hasRelease}
+          onUpdate={this.onUpdate}
+          orgId={org.slug}
+          projectId={project.slug}
         />
-        <CustomIgnoreCountModal
-          show={this.state.ignoreModal === 'count'}
-          onSelected={this.customIgnoreModalSelected}
-          onCanceled={this.customIgnoreModalCanceled.bind(this, 'count')}
-          label={t('Ignore this issue until it occurs again .. ')}
-          countLabel={t('Number of times')}
-          countName="ignoreCount"
-          windowName="ignoreWindow"
-          windowChoices={this.getIgnoreWindows()}
-        />
-        <CustomIgnoreCountModal
-          show={this.state.ignoreModal === 'users'}
-          onSelected={this.customIgnoreModalSelected}
-          onCanceled={this.customIgnoreModalCanceled.bind(this, 'users')}
-          label={t('Ignore this issue until it affects an additional .. ')}
-          countLabel={t('Numbers of users')}
-          countName="ignoreUserCount"
-          windowName="ignoreUserWindow"
-          windowChoices={this.getIgnoreWindows()}
-        />
-        <div className="btn-group">
-          {group.status === 'resolved'
-            ? group.statusDetails.autoResolved
-                ? <a
-                    className={resolveClassName + ' tip'}
-                    title={t(
-                      'This event is resolved due to the Auto Resolve configuration for this project'
-                    )}>
-                    <span className="icon-checkmark" />
-                  </a>
-                : <a
-                    className={resolveClassName}
-                    title={t('Unresolve')}
-                    onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-                    <span className="icon-checkmark" />
-                  </a>
-            : [
-                <a
-                  key="resolve-button"
-                  className={resolveClassName}
-                  title={t('Resolve')}
-                  onClick={this.onUpdate.bind(this, {status: 'resolved'})}>
-                  <span className="icon-checkmark" style={{marginRight: 5}} />
-                  {t('Resolve')}
-                </a>,
-                <DropdownLink
-                  key="resolve-dropdown"
-                  caret={true}
-                  className={resolveClassName}
-                  topLevelClasses={resolveDropdownClasses}
-                  title="">
-                  <MenuItem noAnchor={true}>
-                    {hasRelease
-                      ? <a
-                          onClick={this.onUpdate.bind(this, {
-                            status: 'resolvedInNextRelease'
-                          })}>
-                          <strong>{t('Resolved in next release')}</strong>
-                          <div className="help-text">
-                            {t(
-                              'Ignore notifications until this issue reoccurs in a future release.'
-                            )}
-                          </div>
-                        </a>
-                      : <a
-                          href={releaseTrackingUrl}
-                          className="disabled tip"
-                          title={t(
-                            'Set up release tracking in order to use this feature.'
-                          )}>
-                          <strong>{t('Resolved in next release.')}</strong>
-                          <div className="help-text">
-                            {t(
-                              'Ignore notifications until this issue reoccurs in a future release.'
-                            )}
-                          </div>
-                        </a>}
-                  </MenuItem>
-                </DropdownLink>
-              ]}
-        </div>
-        <div className="btn-group">
-          {group.status === 'ignored'
-            ? <a
-                className={ignoreClassName}
-                title={t('Remove Ignored Status')}
-                onClick={this.onUpdate.bind(this, {status: 'unresolved'})}>
-                {t('Ignore')}
-              </a>
-            : <DropdownLink
-                caret={false}
-                className={ignoreClassName}
-                title={
-                  <span>
-                    {t('Ignore')}
-                    <span
-                      className="icon-arrow-down"
-                      style={{marginLeft: 3, marginRight: -3}}
-                    />
-                  </span>
-                }>
-                <MenuItem header={true}>Ignore Until</MenuItem>
-                <li className="dropdown-submenu">
-                  <DropdownLink title="This occurs again after .." caret={false}>
-                    {this.getIgnoreDurations().map(duration => {
-                      return (
-                        <MenuItem noAnchor={true} key={duration}>
-                          <a
-                            onClick={this.onIgnore.bind(this, {
-                              ignoreDuration: duration
-                            })}>
-                            <Duration seconds={duration * 60} />
-                          </a>
-                        </MenuItem>
-                      );
-                    })}
-                    <MenuItem divider={true} />
-                    <MenuItem noAnchor={true}>
-                      <a onClick={this.customIgnoreModalClicked.bind(this, 'duration')}>
-                        {t('Custom')}
-                      </a>
-                    </MenuItem>
-                  </DropdownLink>
-                </li>
-                <li className="dropdown-submenu">
-                  <DropdownLink title="This occurs again .." caret={false}>
-                    {this.getIgnoreCounts().map(count => {
-                      return (
-                        <li className="dropdown-submenu" key={count}>
-                          <DropdownLink
-                            title={t('%s times', count.toLocaleString())}
-                            caret={false}>
-                            <MenuItem noAnchor={true}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreCount: count
-                                })}>
-                                {t('from now')}
-                              </a>
-                            </MenuItem>
-                            {this.getIgnoreWindows().map(([hours, label]) => {
-                              return (
-                                <MenuItem noAnchor={true} key={hours}>
-                                  <a
-                                    onClick={this.onIgnore.bind(this, {
-                                      ignoreCount: count,
-                                      ignoreWindow: hours
-                                    })}>
-                                    {label}
-                                  </a>
-                                </MenuItem>
-                              );
-                            })}
-                          </DropdownLink>
-                        </li>
-                      );
-                    })}
-                    <MenuItem divider={true} />
-                    <MenuItem noAnchor={true}>
-                      <a onClick={this.customIgnoreModalClicked.bind(this, 'count')}>
-                        {t('Custom')}
-                      </a>
-                    </MenuItem>
-                  </DropdownLink>
-                </li>
-                <li className="dropdown-submenu">
-                  <DropdownLink title="This affects an additional .." caret={false}>
-                    {this.getIgnoreCounts().map(count => {
-                      return (
-                        <li className="dropdown-submenu" key={count}>
-                          <DropdownLink
-                            title={t('%s users', count.toLocaleString())}
-                            caret={false}>
-                            <MenuItem noAnchor={true}>
-                              <a
-                                onClick={this.onIgnore.bind(this, {
-                                  ignoreUserCount: count
-                                })}>
-                                {t('from now')}
-                              </a>
-                            </MenuItem>
-                            {this.getIgnoreWindows().map(([hours, label]) => {
-                              return (
-                                <MenuItem noAnchor={true} key={hours}>
-                                  <a
-                                    onClick={this.onIgnore.bind(this, {
-                                      ignoreUserCount: count,
-                                      ignoreUserWindow: hours
-                                    })}>
-                                    {label}
-                                  </a>
-                                </MenuItem>
-                              );
-                            })}
-                          </DropdownLink>
-                        </li>
-                      );
-                    })}
-                    <MenuItem divider={true} />
-                    <MenuItem noAnchor={true}>
-                      <a onClick={this.customIgnoreModalClicked.bind(this, 'users')}>
-                        {t('Custom')}
-                      </a>
-                    </MenuItem>
-                  </DropdownLink>
-                </li>
-                <MenuItem noAnchor={true}>
-                  <a onClick={this.onUpdate.bind(this, {status: 'ignored'})}>
-                    {t('Forever')}
-                  </a>
-                </MenuItem>
-              </DropdownLink>}
-        </div>
+        <IgnoreActions group={group} onUpdate={this.onUpdate} />
+
         <div className="btn-group">
           <a
             className={bookmarkClassName}

@@ -61,11 +61,7 @@ export default React.createClass({
     const defaultTimeVal = sprintf('%02d:00', defaultDate.getUTCHours());
 
     return (
-      <Modal
-        show={this.props.show}
-        animation={false}
-        bsSize="md"
-        onHide={this.props.onCanceled}>
+      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
           <h4>{t('Ignore this issue until it occurs after ..')}</h4>
         </div>

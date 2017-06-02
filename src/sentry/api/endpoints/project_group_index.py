@@ -91,10 +91,54 @@ class ValidationError(Exception):
     pass
 
 
+class StatusDetailsValidator(serializers.Serializer):
+    inNextRelease = serializers.BooleanField()
+    inRelease = serializers.CharField()
+    ignoreDuration = serializers.IntegerField()
+    ignoreCount = serializers.IntegerField()
+    # in hours, max of one week
+    ignoreWindow = serializers.IntegerField(max_value=7 * 24)
+    ignoreUserCount = serializers.IntegerField()
+    # in hours, max of one week
+    ignoreUserWindow = serializers.IntegerField(max_value=7 * 24)
+
+    def validate_inRelease(self, attrs, source):
+        value = attrs[source]
+        project = self.context['project']
+        if value == 'latest':
+            try:
+                attrs[source] = Release.objects.filter(
+                    projects=project,
+                    organization_id=project.organization_id,
+                ).order_by('-date_added')[0]
+            except IndexError:
+                raise serializers.ValidationError('No release data present in the system to form a basis for \'Next Release\'')
+        else:
+            try:
+                attrs[source] = Release.objects.get(
+                    projects=project,
+                    organization_id=project.organization_id,
+                    version=value,
+                )
+            except Release.DoesNotExist:
+                raise serializers.ValidationError('Unable to find a release with the given version.')
+        return attrs
+
+    def validate_inNextRelease(self, attrs, source):
+        project = self.context['project']
+        if not Release.objects.filter(
+            projects=project,
+            organization_id=project.organization_id,
+        ).exists():
+            raise serializers.ValidationError('No release data present in the system to form a basis for \'Next Release\'')
+        return attrs
+
+
 class GroupValidator(serializers.Serializer):
     status = serializers.ChoiceField(choices=zip(
         STATUS_CHOICES.keys(), STATUS_CHOICES.keys()
     ))
+    statusDetails = StatusDetailsValidator()
     hasSeen = serializers.BooleanField()
     isBookmarked = serializers.BooleanField()
     isPublic = serializers.BooleanField()
@@ -406,100 +450,100 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             id__in=group_ids,
         )
 
-        if result.get('status') == 'resolvedInNextRelease':
-            try:
+        statusDetails = result.pop('statusDetails', result)
+        status = result.get('status')
+        if status in ('resolved', 'resolvedInNextRelease'):
+            if status == 'resolvedInNextRelease' or statusDetails.get('inNextRelease'):
                 release = Release.objects.filter(
                     projects=project,
-                    organization_id=project.organization_id
+                    organization_id=project.organization_id,
                 ).order_by('-date_added')[0]
-            except IndexError:
-                return Response('{"detail": "No release data present in the system to form a basis for \'Next Release\'"}', status=400)
+                activity_type = Activity.SET_RESOLVED_IN_RELEASE
+                activity_data = {
+                    # no version yet
+                    'version': '',
+                }
+                status_details = {
+                    'inNextRelease': True,
+                }
+            elif statusDetails.get('inRelease'):
+                release = statusDetails['inRelease']
+                activity_type = Activity.SET_RESOLVED_IN_RELEASE
+                activity_data = {
+                    # no version yet
+                    'version': release.version,
+                }
+                status_details = {
+                    'inRelease': release.version,
+                }
+            else:
+                release = None
+                activity_type = Activity.SET_RESOLVED
+                activity_data = {}
+                status_details = {}
 
             now = timezone.now()
 
             for group in group_list:
-                try:
-                    with transaction.atomic():
-                        resolution, created = GroupResolution.objects.create(
-                            group=group,
-                            release=release,
-                        ), True
-                except IntegrityError:
-                    resolution, created = GroupResolution.objects.get(
-                        group=group,
-                    ), False
+                with transaction.atomic():
+                    if release:
+                        try:
+                            with transaction.atomic():
+                                resolution, created = GroupResolution.objects.create(
+                                    group=group,
+                                    release=release,
+                                ), True
+                        except IntegrityError:
+                            resolution, created = GroupResolution.objects.get(
+                                group=group,
+                            ), False
+                    else:
+                        resolution = None
 
-                self._subscribe_and_assign_issue(
-                    acting_user, group, result
-                )
-
-                if created:
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_RESOLVED_IN_RELEASE,
-                        user=acting_user,
-                        ident=resolution.id,
-                        data={
-                            # no version yet
-                            'version': '',
-                        }
+                    affected = Group.objects.filter(
+                        id=group.id,
+                    ).exclude(
+                        status=GroupStatus.RESOLVED,
+                    ).update(
+                        status=GroupStatus.RESOLVED,
+                        resolved_at=now,
                     )
-                    # TODO(dcramer): we need a solution for activity rollups
-                    # before sending notifications on bulk changes
-                    if not is_bulk:
-                        activity.send_notification()
+                    if not resolution:
+                        created = affected
 
-                    issue_resolved_in_release.send(project=project, sender=acting_user)
-
-            queryset.update(
-                status=GroupStatus.RESOLVED,
-                resolved_at=now,
-            )
-
-            result.update({
-                'status': 'resolved',
-                'statusDetails': {
-                    'inNextRelease': True,
-                },
-            })
-
-        elif result.get('status') == 'resolved':
-            now = timezone.now()
-
-            with transaction.atomic():
-                happened = queryset.exclude(
-                    status=GroupStatus.RESOLVED,
-                ).update(
-                    status=GroupStatus.RESOLVED,
-                    resolved_at=now,
-                )
-
-                GroupResolution.objects.filter(
-                    group__in=group_ids,
-                ).delete()
-
-            if group_list and happened:
-                for group in group_list:
                     group.status = GroupStatus.RESOLVED
                     group.resolved_at = now
+
                     self._subscribe_and_assign_issue(
                         acting_user, group, result
                     )
-                    activity = Activity.objects.create(
-                        project=group.project,
-                        group=group,
-                        type=Activity.SET_RESOLVED,
-                        user=acting_user,
-                    )
-                    # TODO(dcramer): we need a solution for activity rollups
-                    # before sending notifications on bulk changes
-                    if not is_bulk:
-                        activity.send_notification()
 
-            result['statusDetails'] = {}
+                    if created:
+                        activity = Activity.objects.create(
+                            project=group.project,
+                            group=group,
+                            type=activity_type,
+                            user=acting_user,
+                            ident=resolution.id if resolution else None,
+                            data=activity_data,
+                        )
+                # TODO(dcramer): we need a solution for activity rollups
+                # before sending notifications on bulk changes
+                if not is_bulk:
+                    activity.send_notification()
 
-        elif result.get('status'):
+                issue_resolved_in_release.send(
+                    group=group,
+                    project=project,
+                    sender=acting_user,
+                )
+
+            result.update({
+                'status': 'resolved',
+                'statusDetails': status_details,
+            })
+
+        elif status:
             new_status = STATUS_CHOICES[result['status']]
 
             with transaction.atomic():
@@ -515,13 +559,13 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
                 if new_status == GroupStatus.IGNORED:
                     ignore_duration = (
-                        result.pop('ignoreDuration', None)
-                        or result.pop('snoozeDuration', None)
+                        statusDetails.pop('ignoreDuration', None)
+                        or statusDetails.pop('snoozeDuration', None)
                     ) or None
-                    ignore_count = result.pop('ignoreCount', None) or None
-                    ignore_window = result.pop('ignoreWindow', None) or None
-                    ignore_user_count = result.pop('ignoreUserCount', None) or None
-                    ignore_user_window = result.pop('ignoreUserWindow', None) or None
+                    ignore_count = statusDetails.pop('ignoreCount', None) or None
+                    ignore_window = statusDetails.pop('ignoreWindow', None) or None
+                    ignore_user_count = statusDetails.pop('ignoreUserCount', None) or None
+                    ignore_user_window = statusDetails.pop('ignoreUserWindow', None) or None
                     if ignore_duration or ignore_count or ignore_user_count:
                         if ignore_duration:
                             ignore_until = timezone.now() + timedelta(

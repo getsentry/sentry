@@ -488,7 +488,160 @@ class GroupUpdateTest(APITestCase):
         assert new_group4.resolved_at is None
         assert new_group4.status == GroupStatus.UNRESOLVED
 
+    def test_set_resolved_in_current_release(self):
+        release = Release.objects.create(organization_id=self.project.organization_id,
+                                         version='a')
+        release.add_project(self.project)
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolved',
+            'statusDetails': {
+                'inRelease': 'latest',
+            },
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inRelease': release.version,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == release.version
+
+    def test_set_resolved_in_explicit_release(self):
+        release = Release.objects.create(organization_id=self.project.organization_id,
+                                         version='a')
+        release.add_project(self.project)
+        release2 = Release.objects.create(organization_id=self.project.organization_id,
+                                         version='b')
+        release2.add_project(self.project)
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolved',
+            'statusDetails': {
+                'inRelease': release.version,
+            },
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inRelease': release.version,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == release.version
+
     def test_set_resolved_in_next_release(self):
+        release = Release.objects.create(organization_id=self.project.organization_id,
+                                         version='a')
+        release.add_project(self.project)
+
+        group = self.create_group(
+            checksum='a' * 32,
+            status=GroupStatus.UNRESOLVED,
+        )
+
+        self.login_as(user=self.user)
+
+        url = '{url}?id={group.id}'.format(
+            url=self.path,
+            group=group,
+        )
+        response = self.client.put(url, data={
+            'status': 'resolved',
+            'statusDetails': {
+                'inNextRelease': True,
+            },
+        }, format='json')
+        assert response.status_code == 200
+        assert response.data == {
+            'status': 'resolved',
+            'statusDetails': {
+                'inNextRelease': True,
+            },
+        }
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == GroupStatus.RESOLVED
+
+        assert GroupResolution.objects.filter(
+            group=group,
+            release=release,
+        ).exists()
+
+        assert GroupSubscription.objects.filter(
+            user=self.user,
+            group=group,
+            is_active=True,
+        ).exists()
+
+        activity = Activity.objects.get(
+            group=group,
+            type=Activity.SET_RESOLVED_IN_RELEASE,
+        )
+        assert activity.data['version'] == ''
+
+    def test_set_resolved_in_next_release_legacy(self):
         release = Release.objects.create(organization_id=self.project.organization_id,
                                          version='a')
         release.add_project(self.project)

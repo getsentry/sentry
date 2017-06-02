@@ -14,7 +14,7 @@ class Select2Field extends InputField {
         onChange={this.onChange.bind(this)}
         disabled={this.props.disabled}
         required={this.props.required}
-        multiple={this.props.multiple || false}
+        multiple={this.props.multiple}
         value={this.state.value}>
         {(this.props.choices || []).map(choice => {
           return (
@@ -49,14 +49,17 @@ class Select2Field extends InputField {
     super.onChange(e);
   }
 
+  getSelect2Options() {
+    return {
+      allowClear: this.props.allowClear,
+      allowEmpty: this.props.allowEmpty,
+      width: 'element',
+      escapeMarkup: !this.props.escapeMarkup ? m => m : undefined
+    };
+  }
+
   componentDidMount() {
-    jQuery(this.refs.input)
-      .select2({
-        allowClear: this.props.allowClear,
-        allowEmpty: true,
-        width: 'element'
-      })
-      .on('change', this.onChange);
+    jQuery(this.refs.input).select2(this.getSelect2Options()).on('change', this.onChange);
   }
 
   componentWillUnmount() {
@@ -68,13 +71,18 @@ Select2Field.propTypes = Object.assign(
   {
     choices: React.PropTypes.array.isRequired,
     allowClear: React.PropTypes.bool,
-    allowEmpty: React.PropTypes.bool
+    allowEmpty: React.PropTypes.bool,
+    multiple: React.PropTypes.bool,
+    escapeMarkup: React.PropTypes.bool
   },
   InputField.propTypes
 );
 
 Select2Field.defaultProps = Object.assign({}, InputField.defaultProps, {
-  allowEmpty: false
+  allowEmpty: false,
+  placeholder: '--',
+  escapeMarkup: true,
+  multiple: false
 });
 
 export default Select2Field;
