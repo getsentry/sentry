@@ -27,7 +27,8 @@ from sentry.utils.javascript import has_sourcemap
 
 DEFAULT_TAGS = frozenset(['sentry_version', 'environment', 'level', 'logger',
         'browser', 'browser.name', 'device', 'os', 'os.name', 'device', 'device.name',
-        'app.device', 'url', 'server_name', 'react'])
+        'app.device', 'url', 'server_name', 'sentry:user', 'sentry:release', 'transaction',
+        'react', 'device.family'])
 
 
 # First Event
