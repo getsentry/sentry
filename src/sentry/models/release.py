@@ -20,6 +20,9 @@ from sentry.db.models import (
     ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
+
+from sentry.models import CommitFileChange
+
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -381,6 +384,17 @@ class Release(Model):
                     key=data['id'],
                     defaults=defaults,
                 )
+
+                patch_set = data.get('patch_set', [])
+
+                for patched_file in patch_set:
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=self.organization.id,
+                        commit=commit,
+                        filename=patched_file['path'],
+                        type=patched_file['type'],
+                    )
+
                 if not created:
                     update_kwargs = {}
                     if commit.message is None and defaults['message'] is not None:
