@@ -17,10 +17,11 @@ from sentry.runner.decorators import configuration, log_options
 @click.option('--reload/--no-reload', default=True, help='Autoreloading of python files.')
 @click.option('--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.')
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
+@click.option('--refresh/--no-refresh', default=False, help='Automatic browser refreshing on webpack builds')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, bind):
+def devserver(reload, watchers, workers, refresh, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -116,6 +117,8 @@ def devserver(reload, watchers, workers, bind):
     from honcho.manager import Manager
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
+    if refresh:
+        os.environ['REFRESH'] = 'true'
 
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc
