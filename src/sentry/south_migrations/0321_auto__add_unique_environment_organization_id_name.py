@@ -13,12 +13,12 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Environment', fields ['organization_id', 'name']
         if is_postgres():
             db.commit_transaction()
-            db.execute("CREATE UNIQUE INDEX CONCURRENTLY {} ON sentry_environment (organization_id, name)".format(
-                db.create_index_name('sentry_environment', ['organization_id', 'name']),
+            db.execute("CREATE UNIQUE INDEX CONCURRENTLY {} ON sentry_environment (organization_id, name, project_id)".format(
+                db.create_index_name('sentry_environment', ['organization_id', 'name', 'project_id']),
             ))
             db.start_transaction()
         else:
-            db.create_unique('sentry_environment', ['organization_id', 'name'])
+            db.create_unique('sentry_environment', ['organization_id', 'name', 'project_id'])
 
 
     def backwards(self, orm):
@@ -26,11 +26,11 @@ class Migration(SchemaMigration):
         if is_postgres():
             db.commit_transaction()
             db.execute("DROP INDEX CONCURRENTLY {}".format(
-                db.create_index_name('sentry_environment', ['organization_id', 'name']),
+                db.create_index_name('sentry_environment', ['organization_id', 'name', 'project_id']),
             ))
             db.start_transaction()
         else:
-            db.delete_unique('sentry_environment', ['organization_id', 'name'])
+            db.delete_unique('sentry_environment', ['organization_id', 'name', 'project_id'])
 
 
     models = {
