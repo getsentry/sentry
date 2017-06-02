@@ -233,11 +233,15 @@ export function getShortVersion(version) {
 }
 
 export function parseGitHubRepo(repo) {
-  let re = /github\.com\/([^\/]+\/[^\/]+)/i;
-  let match = repo.match(re);
-  let parsedRepo;
-  match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-  return parsedRepo;
+  if (repo) {
+    let re = /github\.com\/([^\/]+\/[^\/]+)/i;
+    let match = repo.match(re);
+    let parsedRepo;
+    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
+    return parsedRepo;
+  } else {
+    return repo;
+  }
 }
 
 /**
