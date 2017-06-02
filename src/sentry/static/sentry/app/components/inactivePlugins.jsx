@@ -28,6 +28,7 @@ export default React.createClass({
                   <button
                     onClick={this.enablePlugin.bind(this, plugin)}
                     className={`ref-plugin-enable-${plugin.id}`}>
+                    <div className={'icon-integration icon-' + plugin.id} />
                     {plugin.name}
                   </button>
                 </li>
