@@ -150,5 +150,8 @@ describe('utils.parseGitHubRepo', function() {
     expect(parseGitHubRepo('github.com/example/example/commits/adsadsa')).toEqual(
       'example/example'
     );
+    it('should work for nothing passed', function() {
+      expect(parseGitHubRepo().toEqual());
+    });
   });
 });
