@@ -329,6 +329,17 @@ def repair_tag_data(caches, project, events):
                     )
 
 
+def get_environment(event):
+    environment = event.get_tag('environment')
+
+    # NOTE: ``GroupRelease.environment`` is not nullable, but an empty
+    # string is OK.
+    if environment is None:
+        environment = ''
+
+    return environment
+
+
 def collect_release_data(caches, project, events):
     results = {}
 
@@ -338,18 +349,9 @@ def collect_release_data(caches, project, events):
         if not release:
             continue
 
-        # XXX: It's not really clear what the canonical source is for
-        # environment between the tag and the data attribute, but I'm going
-        # with data attribute for now. Right now it seems like they are
-        # intended to both be present and the same value, but I'm not really
-        # sure that has always been the case for existing values.
-        # NOTE: ``GroupRelease.environment`` is not nullable, but an empty
-        # string is OK.
-        environment = event.data.get('environment', '')
-
         key = (
             event.group_id,
-            environment,
+            get_environment(event),
             caches['Release'](
                 project.organization_id,
                 release,
@@ -428,7 +430,7 @@ def collect_tsdb_data(caches, project, events):
 
         environment = caches['Environment'](
             project.organization_id,
-            event.data.get('environment', ''),
+            get_environment(event),
         )
 
         frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][environment.id] += 1
@@ -439,7 +441,7 @@ def collect_tsdb_data(caches, project, events):
             # similar comment above during creation.
             grouprelease = caches['GroupRelease'](
                 event.group_id,
-                event.data.get('environment', ''),
+                get_environment(event),
                 caches['Release'](
                     project.organization_id,
                     release,
