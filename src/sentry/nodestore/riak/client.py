@@ -67,6 +67,8 @@ class SimpleThreadedWorkerPool(object):
             t.setDaemon(True)
             t.start()
 
+        self.__started = True
+
     def submit(self, (func, arg, kwargs, cb)):
         """\
         Submit a task to the worker pool.
