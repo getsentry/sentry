@@ -16,5 +16,13 @@
 
     "[javascript]": {
         "editor.formatOnSave": true
-    }
+    },
+
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+
+    "python.pythonPath": "${env.WORKON_HOME}/sentry/bin/python",
+    "python.unitTest.pyTestEnabled": true,
+    "python.unitTest.unittestEnabled": false,
+    "python.unitTest.nosetestsEnabled": false
 }
