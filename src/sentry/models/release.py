@@ -9,6 +9,7 @@ from __future__ import absolute_import, print_function
 
 import logging
 import re
+import six
 
 from django.db import models, IntegrityError, transaction
 from django.db.models import F
@@ -16,7 +17,8 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.db.models import (
-    BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+    ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
+    sane_repr
 )
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -66,6 +68,13 @@ class Release(Model):
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey('sentry.User', null=True, blank=True)
+
+    # materialized stats
+    commit_count = BoundedPositiveIntegerField(null=True)
+    last_commit_id = BoundedPositiveIntegerField(null=True)
+    authors = ArrayField(null=True)
+    total_deploys = BoundedPositiveIntegerField(null=True)
+    last_deploy_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:
         app_label = 'sentry'
@@ -321,6 +330,7 @@ class Release(Model):
 
             authors = {}
             repos = {}
+            last_commit = None
             for idx, data in enumerate(commit_list):
                 repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
                 if repo_name not in repos:
@@ -377,6 +387,13 @@ class Release(Model):
                     commit=commit,
                     order=idx,
                 )
+                last_commit = commit
+
+            self.update(
+                commit_count=len(commit_list),
+                authors=[a.id for a in six.itervalues(authors)],
+                last_commit_id=last_commit.id if last_commit else None,
+            )
 
         group_ids = list(GroupCommitResolution.objects.filter(
             commit_id__in=ReleaseCommit.objects.filter(
@@ -392,6 +409,7 @@ class Release(Model):
                 },
             )
 
-        Group.objects.filter(
-            id__in=group_ids,
-        ).update(status=GroupStatus.RESOLVED)
+        if group_ids:
+            Group.objects.filter(
+                id__in=group_ids,
+            ).update(status=GroupStatus.RESOLVED)
