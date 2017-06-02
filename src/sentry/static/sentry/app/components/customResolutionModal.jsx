@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOMServer from 'react-dom/server';
+import jQuery from 'jquery';
 import Modal from 'react-bootstrap/lib/Modal';
 import underscore from 'underscore';
 
@@ -20,6 +21,13 @@ export default React.createClass({
 
   getInitialState() {
     return {version: ''};
+  },
+
+  componentDidUpdate(prevProps, prevState) {
+    if (this.props.show) {
+      // XXX(cramer): this is incorrect but idgaf
+      jQuery('.modal').attr('tabindex', null);
+    }
   },
 
   onSubmit() {

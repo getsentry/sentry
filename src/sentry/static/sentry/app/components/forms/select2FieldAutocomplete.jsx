@@ -55,7 +55,7 @@ Select2FieldAutocomplete.defaultProps = Object.assign(
     onQuery: (query, page) => {
       return {autocomplete_query: query, autocomplete_field: this.props.name};
     },
-    minimumInputLength: 0,
+    minimumInputLength: null,
     ajaxDelay: 250
   },
   Select2Field.defaultProps
