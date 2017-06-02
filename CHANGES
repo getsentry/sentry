@@ -1,5 +1,5 @@
-Version 8.17 (Unreleased)
--------------------------
+Version 8.17
+------------
 
 - Added @mentions to comments
 - Initial (internal) analytics abstraction.
