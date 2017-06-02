@@ -53,6 +53,7 @@ export default React.createClass({
                 placeholder={t('e.g. 1.0.4')}
                 url={`/api/0/projects/${orgId}/${projectId}/releases/`}
                 value={version}
+                id={'version'}
                 onResults={results => {
                   return {results};
                 }}

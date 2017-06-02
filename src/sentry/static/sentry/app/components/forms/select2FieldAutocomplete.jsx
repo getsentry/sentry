@@ -30,6 +30,7 @@ class Select2FieldAutocomplete extends Select2Field {
         results: this.props.onResults,
         delay: this.props.ajaxDelay
       },
+      id: this.props.id,
       formatResult: this.props.formatResult,
       formatSelection: this.props.formatSelection,
       formatAjaxError: error => {
@@ -67,7 +68,8 @@ Select2FieldAutocomplete.propTypes = Object.assign({}, Select2Field.propTypes, {
   formatSelection: React.PropTypes.func,
   onResults: React.PropTypes.func,
   onQuery: React.PropTypes.func,
-  url: React.PropTypes.string.isRequired
+  url: React.PropTypes.string.isRequired,
+  id: React.PropTypes.any
 });
 
 delete Select2FieldAutocomplete.propTypes.choices;
