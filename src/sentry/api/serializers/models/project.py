@@ -9,7 +9,7 @@ from django.db.models.aggregates import Count
 from sentry.api.serializers import register, serialize, Serializer
 from sentry.models import (
     Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus,
-    UserOption
+    Release, UserOption
 )
 
 STATUS_LABELS = {
@@ -77,6 +77,32 @@ class ProjectSerializer(Serializer):
         for project_id, num_issues in num_issues_projects:
             processing_issues_by_project[project_id] = num_issues
 
+        latest_release_list = list(Release.objects.raw("""
+            SELECT lr.project_id as actual_project_id, r.*
+            FROM (
+                SELECT (
+                    SELECT lrr.id FROM sentry_release lrr
+                    JOIN sentry_release_project lrp
+                    ON lrp.release_id = lrr.id
+                    WHERE lrp.project_id = p.id
+                    ORDER BY lrr.date_added DESC
+                    LIMIT 1
+                ) as release_id,
+                p.id as project_id
+                FROM sentry_project p
+                WHERE p.id IN ({})
+            ) as lr
+            JOIN sentry_release r
+            ON r.id = lr.release_id
+        """.format(
+            ', '.join(six.text_type(i.id) for i in item_list),
+        )))
+
+        latest_releases = {
+            r.actual_project_id: d
+            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
+        }
+
         result = {}
         for item in item_list:
             result[item] = {
@@ -85,6 +111,7 @@ class ProjectSerializer(Serializer):
                     (item.id, 'mail:alert'),
                     default_subscribe,
                 )),
+                'latest_release': latest_releases.get(item.id),
                 'default_environment': default_environments.get(item.id),
                 'reviewed-callsign': reviewed_callsigns.get(item.id),
                 'platforms': platforms_by_project[item.id],
@@ -119,6 +146,7 @@ class ProjectSerializer(Serializer):
             'callSignReviewed': bool(attrs['reviewed-callsign']),
             'dateCreated': obj.date_added,
             'firstEvent': obj.first_event,
+            'latestRelease': attrs['latest_release'],
             'features': feature_list,
             'status': status_label,
             'platforms': attrs['platforms'],
