@@ -35,7 +35,7 @@ class Select2FieldAutocomplete extends Select2Field {
         ? this.props.formatResult.bind(this)
         : undefined,
       formatSelection: this.props.formatSelection
-        ? this.props.formatResult.bind(this)
+        ? this.props.formatSelection.bind(this)
         : undefined,
       formatAjaxError: error => {
         let resp = error.responseJSON;
