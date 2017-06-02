@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
+
 
 FEATURE_LOCATION = {'language', 'integration', 'code', 'web', 'admin'}
 
@@ -11,8 +12,8 @@ class AdoptionManager(object):
     def __init__(self):
         self._id_registry = {}
         self._slug_registry = {}
-        self._integration_slugs = {}
-        self._location_slugs = {}
+        self._integration_slugs = defaultdict(set)
+        self._location_slugs = defaultdict(set)
         self._slugs = set()
         self._ids = set()
 
@@ -24,10 +25,10 @@ class AdoptionManager(object):
         self._slug_registry[slug] = feature
         self._slugs.add(slug)
         self._ids.add(id)
-        self._location_slugs.setdefault(location, set()).add(slug)
+        self._location_slugs.get(location).add(slug)
 
         if location == 'integration':
-            self._integration_slugs.setdefault(prerequisite[0], set()).add(slug)
+            self._integration_slugs.get(prerequisite[0]).add(slug)
 
     def get_by_id(self, id):
         return self._id_registry[id]

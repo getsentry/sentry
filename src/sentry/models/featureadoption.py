@@ -14,27 +14,6 @@ from sentry.db.models import (
 from sentry.adoption import manager
 
 
-class Feature(object):
-    """
-    prerequesites: list of feature_id's that are requirements or tuples (which are ORs)
-    """
-    def __init__(self, slug, name, location, prerequisite=None):
-        """
-        Args:
-            slug(str): unique
-            name(str): Human readable
-            type(str): what kind of feature: language, framework, code, webui, admin
-            prerequesite(list): list of feature slugs or tuples. Tuples indicate OR relationships.
-        """
-        self.slug = slug
-        self.name = name
-        self.location = location
-        self.prerequisite = prerequisite
-
-    def __repr__(self):
-        return self.name
-
-
 # Languages
 manager.add(0, "python", "Python", "language")
 manager.add(1, "javascript", "JavaScript", "language")
@@ -72,7 +51,7 @@ manager.add(45, "source_maps", "Source Maps", "code", prerequisite=["first_event
 manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
 manager.add(47, "api", "API", "code", prerequisite=["first_event"])
 manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=["first_event", ("python", "javascript", "node", "php")])
-# manager.add("resolve_in_commit", "Resolve in Commit", "code", prerequisite=["first_event", "releases"])
+# TODO(ehfeng) manager.add("resolve_in_commit", "Resolve in Commit", "code", prerequisite=["first_event", "releases"])
 
 # Web UI
 manager.add(60, "first_project", "First Project", "web")
@@ -85,18 +64,13 @@ manager.add(66, "inbound_filters", "Inbound Filters", "web", prerequisite=["firs
 manager.add(67, "alert_rules", "Alert Rules", "web", prerequisite=["first_event"])
 manager.add(68, "issue_tracker_integration", "Issue Tracker Integration", "web", prerequisite=["first_project"])
 manager.add(69, "notification_integration", "Notification Integration", "web", prerequisite=["first_project"])
-# manager.add("snooze", "Snooze Issue", "web", prerequisite=["first_event"])
-# manager.add("merge", "Merge Issues", "web", prerequisite=["first_event"])
-# manager.add("releases", "Releases", "web", prerequisite=["first_project"])
+# TODO(ehfeng) manager.add("snooze", "Snooze Issue", "web", prerequisite=["first_event"])
+# TODO(ehfeng) manager.add("merge", "Merge Issues", "web", prerequisite=["first_event"])
+# TODO(ehfeng) manager.add("releases", "Releases", "web", prerequisite=["first_project"])
 
 # Admin UI
 manager.add(80, "sso", "SSO", "admin", prerequisite=["invite_team"])
 manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["first_event"])
-
-# Future features
-# manager.add("Customer Support Integration", "web", prerequisite=["User Tracking"])
-# manager.add("ETL Integration", "web", prerequesite=["First Event"])
-# manager.add("2-Factor Auth", "web", prerequisite=["Invite Team"])
 
 
 class FeatureAdoptionManager(BaseManager):

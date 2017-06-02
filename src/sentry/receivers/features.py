@@ -25,6 +25,10 @@ from sentry.signals import (
 )
 from sentry.utils.javascript import has_sourcemap
 
+DEFAULT_TAGS = frozenset(['sentry_version', 'environment', 'level', 'logger',
+        'browser', 'browser.name', 'device', 'os', 'os.name', 'device', 'device.name',
+        'app.device', 'url', 'server_name', 'react'])
+
 
 # First Event
 @first_event_received.connect(weak=False)
@@ -89,10 +93,7 @@ def record_event_processed(project, group, event, **kwargs):
             complete=True)
 
     # Custom Tags
-    default_tags = set(['sentry_version', 'environment', 'level', 'logger',
-        'browser', 'browser.name', 'device', 'os', 'os.name', 'device', 'device.name',
-        'app.device', 'url', 'server_name', 'react'])
-    if set(tag[0] for tag in event.tags) - default_tags:
+    if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="custom_tags",
