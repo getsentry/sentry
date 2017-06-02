@@ -470,7 +470,21 @@ class Fixtures(object):
                     "id": "41656",
                     "email": "test@example.com"
                 },
-                "version": "7"
+                "version": "7",
+                "sentry.interfaces.Breadcrumbs": {
+                    "values": [
+                        {
+                            "category": "xhr",
+                            "timestamp": 1496395011.63,
+                            "type": "http",
+                            "data": {
+                                "url": "/api/path/here",
+                                "status_code": "500",
+                                "method": "POST"
+                            }
+                        }
+                    ]
+                }
             }"""
         return self.create_event(event_id=event_id, platform='javascript', data=json.loads(payload))
 

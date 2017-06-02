@@ -81,7 +81,7 @@ class FeatureAdoptionManager(BaseManager):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
         except KeyError:
-            logger('Invalid feature slug: %s' % feature_slug)
+            logger.info('Invalid feature slug: %s' % feature_slug)
             return
 
         cache_key = 'featureadoption:%s:%s' % (

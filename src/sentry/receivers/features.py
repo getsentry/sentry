@@ -111,7 +111,7 @@ def record_event_processed(project, group, event, **kwargs):
             complete=True)
 
     # Breadcrumbs
-    if event.data.get(get_interface('breadcrumbs')):
+    if event.data.get('sentry.interfaces.Breadcrumbs'):
         FeatureAdoption.objects.record(
             organization_id=project.organization_id,
             feature_slug="breadcrumbs",
@@ -192,7 +192,7 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 @alert_rule_created.connect(weak=False)
 def record_alert_rule_created(project, rule, **kwargs):
-    if rule.label == DEFAULT_RULE_LABEL or rule.data == DEFAULT_RULE_DATA:
+    if rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
         return
 
     FeatureAdoption.objects.record(
