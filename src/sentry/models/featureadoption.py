@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
@@ -13,6 +15,7 @@ from sentry.db.models import (
 )
 from sentry.adoption import manager
 
+logger = logging.getLogger(__name__)
 
 # Languages
 manager.add(0, "python", "Python", "language")
@@ -75,7 +78,12 @@ manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["firs
 
 class FeatureAdoptionManager(BaseManager):
     def record(self, organization_id, feature_slug, **kwargs):
-        feature_id = manager.get_by_slug(feature_slug).id
+        try:
+            feature_id = manager.get_by_slug(feature_slug).id
+        except KeyError:
+            logger('Invalid feature slug: %s' % feature_slug)
+            return
+
         cache_key = 'featureadoption:%s:%s' % (
             organization_id,
             feature_id,
