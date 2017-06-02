@@ -12,8 +12,8 @@ import {t} from '../locale';
 
 export default React.createClass({
   propTypes: {
-    onSelected: React.PropTypes.func,
-    onCanceled: React.PropTypes.func,
+    onSelected: React.PropTypes.func.isRequired,
+    onCanceled: React.PropTypes.func.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired,
     show: React.PropTypes.bool
@@ -24,7 +24,7 @@ export default React.createClass({
   },
 
   componentDidUpdate(prevProps, prevState) {
-    if (this.props.show) {
+    if (!prevProps.show && this.props.show) {
       // XXX(cramer): this is incorrect but idgaf
       jQuery('.modal').attr('tabindex', null);
     }
