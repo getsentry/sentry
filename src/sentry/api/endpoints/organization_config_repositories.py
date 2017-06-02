@@ -13,11 +13,12 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
         providers = []
         for provider_id in provider_bindings:
             provider = provider_bindings.get(provider_id)(id=provider_id)
-            providers.append({
-                'id': provider_id,
-                'name': provider.name,
-                'config': provider.get_config(),
-            })
+            if provider.name != 'Bitbucket' or bool(organization.flags.early_adopter):
+                providers.append({
+                    'id': provider_id,
+                    'name': provider.name,
+                    'config': provider.get_config(),
+                })
 
         return Response({
             'providers': providers,
