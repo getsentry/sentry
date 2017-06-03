@@ -17,6 +17,7 @@ a full API for sending events from any language, in any application.
 Official Sentry SDKs
 ~~~~~~~~~~~~~~~~~~~~
 * `JavaScript <https://github.com/getsentry/raven-js>`_
+* `React-Native <https://github.com/getsentry/react-native-sentry>`_
 * `Python <https://github.com/getsentry/raven-python>`_
 * `Ruby <https://github.com/getsentry/raven-ruby>`_
 * `Node <https://github.com/getsentry/raven-node>`_
