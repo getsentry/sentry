@@ -118,7 +118,7 @@ def devserver(reload, watchers, workers, refresh, bind):
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
     if refresh:
-        os.environ['REFRESH'] = 'true'
+        os.environ['WEBPACK_LIVERELOAD'] = '1'
 
     # Make sure that the environment is prepared before honcho takes over
     # This sets all the appropriate uwsgi env vars, etc

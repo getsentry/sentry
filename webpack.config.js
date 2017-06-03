@@ -14,7 +14,7 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
-var REFRESH = process.env.REFRESH === 'true';
+var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
