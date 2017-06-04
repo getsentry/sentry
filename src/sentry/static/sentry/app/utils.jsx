@@ -227,17 +227,21 @@ export function getShortVersion(version) {
     version = match[1];
   }
   if (version.match(/^[a-f0-9]{40}$/)) {
-    version = version.substr(0, 12);
+    version = version.substr(0, 7);
   }
   return version;
 }
 
 export function parseGitHubRepo(repo) {
-  let re = /github\.com\/([^\/]+\/[^\/]+)/i;
-  let match = repo.match(re);
-  let parsedRepo;
-  match ? (parsedRepo = match[1]) : (parsedRepo = repo);
-  return parsedRepo;
+  if (repo) {
+    let re = /github\.com\/([^\/]+\/[^\/]+)/i;
+    let match = repo.match(re);
+    let parsedRepo;
+    match ? (parsedRepo = match[1]) : (parsedRepo = repo);
+    return parsedRepo;
+  } else {
+    return repo;
+  }
 }
 
 /**

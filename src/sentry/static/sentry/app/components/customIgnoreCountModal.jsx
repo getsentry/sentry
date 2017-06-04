@@ -36,11 +36,7 @@ export default React.createClass({
   render() {
     let {count, window} = this.state;
     return (
-      <Modal
-        show={this.props.show}
-        animation={false}
-        bsSize="md"
-        onHide={this.props.onCanceled}>
+      <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
           <h4>{this.props.label}</h4>
         </div>
