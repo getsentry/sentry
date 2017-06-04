@@ -8,7 +8,6 @@ import 'style-loader!./button.less';
   Usage:
     <Button priority="primary" size="lg" to="/stream">Stream</Button>
     <Button size="xs" href="http://sentry.io/">Home</Button>
-    <Button priority="danger" onClick={()=> { alert("💥") }}>Careful!</Button>
     <Button disabled>Not Available</Button>
 
 */

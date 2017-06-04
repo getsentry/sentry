@@ -1,2 +1,2 @@
-import _ from './button';
+import _ from './_button';
 export default _;
