@@ -492,8 +492,8 @@ def update_tag_value_counts(id_list):
 
 
 @instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
-def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, cursor=None, batch_size=500):
-    from sentry.models import Event
+def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, cursor=None, batch_size=500, source_fields_reset=False):
+    from sentry.models import Event, Group
 
     # XXX: If a ``GroupHash`` is unmerged *again* while this operation is
     # already in progress, some events from the fingerprint associated with the
@@ -517,9 +517,10 @@ def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, curso
 
     project = caches['Project'](project_id)
 
-    # TODO: It might make sense to fetch the source group to assert that it is
-    # contained within the project, even though we don't actually directy use
-    # it anywhere.
+    source = Group.objects.get(
+        project_id=project_id,
+        id=source_id,
+    )
 
     # We fetch the events in descending order by their primary key to get the
     # best approximation of the most recently received events.
@@ -540,16 +541,37 @@ def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, curso
 
     Event.objects.bind_nodes(events, 'data')
 
+    source_events = []
+    destination_events = []
+
+    for event in events:
+        (destination_events if get_fingerprint(event) in fingerprints else source_events).append(event)
+
+    if source_events:
+        if not source_fields_reset:
+            source.update(
+                **get_group_creation_attributes(
+                    caches,
+                    source_events,
+                )
+            )
+            source_fields_reset = True
+        else:
+            source.update(
+                **get_group_backfill_attributes(
+                    caches,
+                    source,
+                    source_events,
+                )
+            )
+
     destination_id = migrate_events(
         caches,
         project,
         source_id,
         destination_id,
         fingerprints,
-        filter(
-            lambda event: get_fingerprint(event) in fingerprints,
-            events,
-        ),
+        destination_events,
         actor_id,
     )
 
@@ -567,4 +589,5 @@ def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, curso
         actor_id,
         cursor=events[-1].id,
         batch_size=batch_size,
+        source_fields_reset=source_fields_reset,
     )
