@@ -142,7 +142,8 @@ class Release(Model):
                         release = cls.objects.create(
                             organization_id=project.organization_id,
                             version=version,
-                            date_added=date_added
+                            date_added=date_added,
+                            total_deploys=0,
                         )
                 except IntegrityError:
                     release = cls.objects.get(
@@ -310,6 +311,14 @@ class Release(Model):
             )
 
     def set_commits(self, commit_list):
+        """
+        Bind a list of commits to this release.
+
+        These should be ordered from newest to oldest.
+
+        This will clear any existing commit log and replace it with the given
+        commits.
+        """
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
             GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
@@ -330,7 +339,7 @@ class Release(Model):
 
             authors = {}
             repos = {}
-            last_commit = None
+            latest_commit = None
             for idx, data in enumerate(commit_list):
                 repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
                 if repo_name not in repos:
@@ -387,12 +396,13 @@ class Release(Model):
                     commit=commit,
                     order=idx,
                 )
-                last_commit = commit
+                if latest_commit is None:
+                    latest_commit = commit
 
             self.update(
                 commit_count=len(commit_list),
                 authors=[a.id for a in six.itervalues(authors)],
-                last_commit_id=last_commit.id if last_commit else None,
+                last_commit_id=latest_commit.id if latest_commit else None,
             )
 
         group_ids = list(GroupCommitResolution.objects.filter(

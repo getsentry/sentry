@@ -199,6 +199,11 @@ class SetCommitsTestCase(TestCase):
         assert Commit.objects.filter(key='a' * 40, repository_id=repo.id).exists()
         assert not Commit.objects.filter(key='b' * 40, repository_id=repo.id).exists()
 
+        release = Release.objects.get(id=release.id)
+        assert release.commit_count == 4
+        assert release.authors == []
+        assert release.last_commit_id == commit.id
+
     def test_backfilling_commits(self):
         org = self.create_organization()
         project = self.create_project(organization=org, name='foo')
@@ -248,11 +253,11 @@ class SetCommitsTestCase(TestCase):
             key='c' * 40,
         ).exists()
 
-        assert CommitAuthor.objects.filter(
+        author = CommitAuthor.objects.get(
             name='foo bar baz',
             email='foo@example.com',
             organization_id=org.id,
-        ).exists()
+        )
 
         # test that backfilling fills in missing message and author
         commit = Commit.objects.get(id=commit.id)
@@ -291,3 +296,8 @@ class SetCommitsTestCase(TestCase):
             release=release,
         ).status == GroupResolutionStatus.RESOLVED
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+
+        release = Release.objects.get(id=release.id)
+        assert release.commit_count == 3
+        assert release.authors == [author.id]
+        assert release.last_commit_id == commit.id
