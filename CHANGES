@@ -3,6 +3,15 @@ Version 8.18 (Unreleased)
 
 - Expanded resolution options to allow current and explicit versions.
 
+Schema Changes
+~~~~~~~~~~~~~~
+
+- Added Release.commit_count
+- Added Release.last_commit_id
+- Added Release.authors
+- Added Release.total_deploys
+- Added Release.last_deploy_id
+
 Version 8.17
 ------------
 

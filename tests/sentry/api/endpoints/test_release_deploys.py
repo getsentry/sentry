@@ -61,10 +61,11 @@ class ReleaseDeploysCreateTest(APITestCase):
         release = Release.objects.create(
             organization_id=project.organization_id,
             version='1',
+            total_deploys=0,
         )
         release.add_project(project)
 
-        Environment.objects.create(
+        environment = Environment.objects.create(
             organization_id=project.organization_id,
             name='production',
         )
@@ -85,3 +86,14 @@ class ReleaseDeploysCreateTest(APITestCase):
         assert response.data['name'] == 'foo'
         assert response.data['url'] == 'https://www.example.com'
         assert response.data['environment'] == 'production'
+
+        deploy = Deploy.objects.get(id=response.data['id'])
+
+        assert deploy.name == 'foo'
+        assert deploy.environment_id == environment.id
+        assert deploy.url == 'https://www.example.com'
+        assert deploy.release == release
+
+        release = Release.objects.get(id=release.id)
+        assert release.total_deploys == 1
+        assert release.last_deploy_id == deploy.id

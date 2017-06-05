@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import IntegrityError, transaction
+from django.db.models import F
 from django.utils import timezone
 
 from rest_framework import serializers
@@ -123,6 +124,13 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
                     date_finished=result.get('dateFinished', timezone.now()),
                     date_started=result.get('dateStarted'),
                 )
+
+            # XXX(dcramer): this has a race for most recent deploy, but
+            # should be unlikely to hit in the real world
+            Release.objects.filter(id=release.id).update(
+                total_deploys=F('total_deploys') + 1,
+                last_deploy_id=deploy.id,
+            )
 
             Deploy.notify_if_ready(deploy.id)
 
