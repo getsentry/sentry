@@ -14,6 +14,7 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
+var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
@@ -179,6 +180,14 @@ var config = {
   },
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
+
+// We only need to use the webpack-livereload-plugin for development builds. Production
+// builds don't have this module.
+if (!IS_PRODUCTION && REFRESH) {
+  config.plugins.push(
+    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
+  );
+}
 
 if (IS_PRODUCTION) {
   // This compression-webpack-plugin generates pre-compressed files
