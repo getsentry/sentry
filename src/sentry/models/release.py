@@ -401,7 +401,7 @@ class Release(Model):
 
             self.update(
                 commit_count=len(commit_list),
-                authors=[a.id for a in six.itervalues(authors)],
+                authors=[six.text_type(a.id) for a in six.itervalues(authors)],
                 last_commit_id=latest_commit.id if latest_commit else None,
             )
 
