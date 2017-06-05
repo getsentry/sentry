@@ -17,7 +17,7 @@ from sentry.runner.decorators import configuration, log_options
 @click.option('--reload/--no-reload', default=True, help='Autoreloading of python files.')
 @click.option('--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.')
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
-@click.option('--refresh/--no-refresh', default=False, help='Automatic browser refreshing on webpack builds')
+@click.option('--browser-reload/--no-browser-reload', default=False, help='Automatic browser refreshing on webpack builds')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
