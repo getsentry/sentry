@@ -486,6 +486,7 @@ class Fixtures(object):
                     ]
                 }
             }"""
+
         return self.create_event(event_id=event_id, platform='javascript', data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):

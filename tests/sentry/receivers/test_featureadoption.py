@@ -66,22 +66,6 @@ class FeatureAdoptionTest(TestCase):
             slug="python")
         assert python.complete
 
-    def test_flask(self):
-        group = self.create_group(project=self.project, platform='python', message='python error message')
-        event = self.create_event()
-        event.data['sdk'] = {'name': 'raven-python:flask'}
-        event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
-
-        python = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization,
-            slug="python")
-        assert python.complete
-
-        flask = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization,
-            slug="flask")
-        assert flask.complete
-
     def test_node(self):
         group = self.create_group(project=self.project, platform='node', message='node error message')
         event = self.create_event()
@@ -231,6 +215,16 @@ class FeatureAdoptionTest(TestCase):
             organization=self.organization,
             slug="environment_tracking")
         assert environment_tracking
+
+    def test_user_tracking(self):
+        group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
+        event = self.create_full_event()
+        event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
+
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="user_tracking")
+        assert feature_complete
 
     def test_custom_tags(self):
         group = self.create_group(project=self.project, platform='javascript', message='javascript error message')

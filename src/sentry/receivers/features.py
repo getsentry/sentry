@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import six
 
 from sentry.adoption import manager
 from sentry.interfaces.base import get_interface
@@ -44,78 +43,47 @@ def record_first_event(project, group, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_event_processed(project, group, event, **kwargs):
+    feature_slugs = []
+
     # Platform
     if group.platform in manager.location_slugs('language'):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug=group.platform,
-            complete=True)
-
-        # Frameworks
-        if event.data.get('sdk'):
-            if len(event.data.get('sdk').get('name').split(':')) == 2:
-                framework = event.data.get('sdk').get('name').split(':')[1]
-
-                if framework in manager.integration_slugs(group.platform):
-                    FeatureAdoption.objects.record(
-                        organization_id=project.organization_id,
-                        feature_slug=framework,
-                        complete=True)
+        feature_slugs.append(group.platform)
 
     elif event.data.get(get_interface('csp')):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="csp",
-            complete=True)
+        feature_slugs.append('csp')
 
     # First Event
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id,
-        feature_slug="first_event",
-        complete=True)
+    feature_slugs.append('first_event')
 
     # Release Tracking
     if event.get_tag('sentry:release'):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="release_tracking",
-            complete=True)
+        feature_slugs.append('release_tracking')
 
     # Environment Tracking
     if event.get_tag('environment'):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="environment_tracking",
-            complete=True)
+        feature_slugs.append('environment_tracking')
 
     # User Tracking
     user_context = event.data.get('sentry.interfaces.User')
-    if user_context and isinstance(user_context, six.string_types) and user_context[:3] != "ip:":
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="user_tracking",
-            complete=True)
+    # We'd like them to tag with id or email.
+    # Certain SDKs automatically tag with ip address.
+    # Check to make sure more the ip address is being sent.
+    if user_context and isinstance(user_context, dict) and user_context.keys() != ['ip_address']:
+        feature_slugs.append('user_tracking')
 
     # Custom Tags
     if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="custom_tags",
-            complete=True)
+        feature_slugs.append('custom_tags')
 
     # Sourcemaps
     if has_sourcemap(event):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="source_maps",
-            complete=True)
+        feature_slugs.append('source_maps')
 
     # Breadcrumbs
     if event.data.get('sentry.interfaces.Breadcrumbs'):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="breadcrumbs",
-            complete=True)
+        feature_slugs.append('breadcrumbs')
+
+    FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
 
 
 @user_feedback_received.connect(weak=False)
