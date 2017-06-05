@@ -286,6 +286,18 @@ class UnmergeTestCase(TestCase):
                 batch_size=5,
             )
 
+        assert list(
+            Group.objects.filter(id=source.id).values_list(
+                'times_seen',
+                'first_seen',
+                'last_seen',
+            )
+        ) == [(
+            10,
+            now + shift(0),
+            now + shift(9),
+        )]
+
         source_activity = Activity.objects.get(
             group_id=source.id,
             type=Activity.UNMERGE_SOURCE,
@@ -294,6 +306,18 @@ class UnmergeTestCase(TestCase):
         destination = Group.objects.get(
             id=source_activity.data['destination_id'],
         )
+
+        assert list(
+            Group.objects.filter(id=destination.id).values_list(
+                'times_seen',
+                'first_seen',
+                'last_seen',
+            )
+        ) == [(
+            7,
+            now + shift(10),
+            now + shift(16),
+        )]
 
         assert source_activity.data == {
             'destination_id': destination.id,
