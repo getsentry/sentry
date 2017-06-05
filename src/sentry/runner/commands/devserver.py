@@ -21,7 +21,7 @@ from sentry.runner.decorators import configuration, log_options
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, refresh, bind):
+def devserver(reload, watchers, workers, browser_reload, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -117,7 +117,7 @@ def devserver(reload, watchers, workers, refresh, bind):
     from honcho.manager import Manager
 
     os.environ['PYTHONUNBUFFERED'] = 'true'
-    if refresh:
+    if browser_reload:
         os.environ['WEBPACK_LIVERELOAD'] = '1'
 
     # Make sure that the environment is prepared before honcho takes over
