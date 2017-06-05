@@ -34,6 +34,11 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
                 name=ref['repository'],
             )
         except Repository.DoesNotExist:
+            logger.info('repository.missing', extra={
+                'organization_id': release.organization_id,
+                'user_id': user_id,
+                'repository': ref['repository'],
+            })
             continue
 
         try:
@@ -59,6 +64,15 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
 
         end_sha = ref['commit']
         provider = provider_cls(id=repo.provider)
+
+        logger.info('fetch_commits.start', extra={
+            'organization_id': repo.organization_id,
+            'user_id': user_id,
+            'repository': repo.name,
+            'end_sha': end_sha,
+            'start_sha': start_sha,
+        })
+
         try:
             repo_commits = provider.compare_commits(
                 repo, start_sha, end_sha, actor=user
@@ -66,8 +80,22 @@ def fetch_commits(release_id, user_id, refs, prev_release_id=None, **kwargs):
         except NotImplementedError:
             pass
         except (PluginError, InvalidIdentity) as e:
-            logger.exception(six.text_type(e))
+            logger.exception(six.text_type(e), extra={
+                'organization_id': repo.organization_id,
+                'user_id': user_id,
+                'repository': repo.name,
+                'end_sha': end_sha,
+                'start_sha': start_sha,
+            })
         else:
+            logger.info('fetch_commits.end', extra={
+                'organization_id': repo.organization_id,
+                'user_id': user_id,
+                'repository': repo.name,
+                'end_sha': end_sha,
+                'start_sha': start_sha,
+                'num_commits': len(repo_commits or []),
+            })
             commit_list.extend(repo_commits)
 
     if commit_list:
