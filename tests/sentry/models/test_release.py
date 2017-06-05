@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import six
+
 from sentry.models import (
     Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease,
     GroupResolution, GroupResolutionStatus, GroupStatus, Release,
@@ -200,7 +202,7 @@ class SetCommitsTestCase(TestCase):
         assert not Commit.objects.filter(key='b' * 40, repository_id=repo.id).exists()
 
         release = Release.objects.get(id=release.id)
-        assert release.commit_count == 4
+        assert release.commit_count == 3
         assert release.authors == []
         assert release.last_commit_id == commit.id
 
@@ -297,7 +299,12 @@ class SetCommitsTestCase(TestCase):
         ).status == GroupResolutionStatus.RESOLVED
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
+        latest_commit = Commit.objects.get(
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+
         release = Release.objects.get(id=release.id)
         assert release.commit_count == 3
-        assert release.authors == [author.id]
-        assert release.last_commit_id == commit.id
+        assert release.authors == [six.text_type(author.id)]
+        assert release.last_commit_id == latest_commit.id
