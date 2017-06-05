@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import logging
-import re
 
 from django.core.cache import cache
 from django.db import models
@@ -17,8 +16,6 @@ from sentry.db.models import (
 from sentry.adoption import manager
 
 logger = logging.getLogger(__name__)
-
-FEATURE_ADOPTION_KEY_PATTERN = re.compile('featureadoption:(\d+):(\d+)')
 
 # Languages
 manager.add(0, "python", "Python", "language")
@@ -111,28 +108,22 @@ class FeatureAdoptionManager(BaseManager):
 
     def bulk_record(self, organization_id, feature_slugs, **kwargs):
         try:
-            cache_keys = []
+            cache_keys_map = {}
             for feature_slug in feature_slugs:
                 feature_id = manager.get_by_slug(feature_slug).id
-                cache_keys.append('featureadoption:%s:%s' % (
-                    organization_id,
-                    feature_id,
-                ))
+                key = 'featureadoption:%s:%s' % (organization_id, feature_id)
+                cache_keys_map[key] = feature_id
 
             features = []
-            keys_in_cache = cache.get_many(cache_keys)
-            keys_not_in_cache = set(cache_keys) - set(keys_in_cache.keys())
+            keys_in_cache = cache.get_many(cache_keys_map.keys())
+            keys_not_in_cache = set(cache_keys_map.keys()) - set(keys_in_cache.keys())
             if keys_not_in_cache:
                 for key in keys_not_in_cache:
-                    match = FEATURE_ADOPTION_KEY_PATTERN.match(key)
-                    if match:
-                        features.append(FeatureAdoption(
-                            organization_id=int(match.group(1)),
-                            feature_id=int(match.group(2)),
-                            complete=True,
-                            date_modified=timezone.now()))
-                    else:
-                        logger.info("Invalid feature key found in cache %s" % key)
+                    features.append(FeatureAdoption(
+                        organization_id=organization_id,
+                        feature_id=cache_keys_map[key],
+                        complete=True,
+                        date_modified=timezone.now()))
 
                 self.bulk_create(features)
                 cache.set_many({key: 1 for key in keys_not_in_cache}, 3600)
