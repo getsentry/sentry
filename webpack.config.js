@@ -208,7 +208,10 @@ var minificationPlugins = [
 ];
 
 if (IS_PRODUCTION) {
-  appConfig.plugins.push(minificationPlugins);
+  // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
+  minificationPlugins.forEach(function(plugin) {
+    appConfig.plugins.push(plugin);
+  });
 }
 
 /**
@@ -249,7 +252,10 @@ var legacyCssConfig = {
 };
 
 if (IS_PRODUCTION) {
-  legacyCssConfig.plugins.push(minificationPlugins);
+  // NOTE: can't do plugins.push(Array) because webpack/webpack#2217
+  minificationPlugins.forEach(function(plugin) {
+    legacyCssConfig.plugins.push(plugin);
+  });
 }
 
 module.exports = [appConfig, legacyCssConfig];
