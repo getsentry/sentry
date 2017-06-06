@@ -221,7 +221,7 @@ var legacyCssConfig = {
   },
   context: path.join(__dirname, staticPrefix),
   output: {
-    path: path.join(__dirname, distPath),
+    path: distPath,
     filename: '[name].css'
   },
   plugins: [new ExtractTextPlugin('[name].css')],
