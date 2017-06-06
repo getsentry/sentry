@@ -34,8 +34,9 @@ class Sdk(Interface):
     The SDK used to transmit this event.
 
     >>> {
-    >>>     "name": "sentry-unity",
-    >>>     "version": "1.0"
+    >>>     "name": "sentry-java",
+    >>>     "version": "1.0",
+    >>>     "integrations": ["log4j"]
     >>> }
     """
     @classmethod
@@ -48,10 +49,15 @@ class Sdk(Interface):
         if not version:
             raise InterfaceValidationError("No 'version' value")
 
+        integrations = data.get('integrations')
+        if integrations and not isinstance(integrations, list):
+            raise InterfaceValidationError("'integrations' must be a list")
+
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
             'client_ip': data.get('client_ip'),
+            'integrations': integrations,
         }
         return cls(**kwargs)
 

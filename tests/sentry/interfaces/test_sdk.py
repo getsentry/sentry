@@ -12,11 +12,13 @@ from sentry.testutils import TestCase
 class SdkTest(TestCase):
     def test_serialize_behavior(self):
         assert Sdk.to_python({
-            'name': 'sentry-unity',
+            'name': 'sentry-java',
             'version': '1.0',
+            'integrations': ['log4j']
         }).to_json() == {
-            'name': 'sentry-unity',
+            'name': 'sentry-java',
             'version': '1.0',
+            'integrations': ['log4j']
         }
 
     def test_missing_name(self):
