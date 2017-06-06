@@ -172,7 +172,7 @@ const StackedBarChart = React.createClass({
     return maxval;
   },
 
-  useZeroColorBar(pct, idx) {
+  barColorClass(pct, idx) {
     const colClass = this.props.barClasses[idx];
     if (pct === 0) {
       return colClass + ' zero-bar';
@@ -231,7 +231,7 @@ const StackedBarChart = React.createClass({
         <span
           key={i}
           // className={this.props.barClasses[i]}
-          className={this.barClass(pct, i)}
+          className={this.barColorClass(pct, i)}
           style={{height: pct + '%', bottom: prevPct + '%'}}>
           {y}
         </span>
