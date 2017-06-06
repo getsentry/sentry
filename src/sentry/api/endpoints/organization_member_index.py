@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
 from django.db.models import Q
-from rest_framework.response import Response
 
 from sentry.api.bases.organization import (
     OrganizationEndpoint, OrganizationPermission
 )
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import OrganizationMember
 
@@ -26,13 +26,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         queryset = OrganizationMember.objects.filter(
             Q(user__is_active=True) | Q(user__isnull=True),
             organization=organization,
-        ).select_related('user')
+        ).select_related('user').order_by('email', 'user__email')
 
-        member_list = sorted(
-            queryset,
-            key=lambda x: x.user.get_display_name() if x.user_id else x.email
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda x: serialize(x, request.user),
+            paginator_cls=OffsetPaginator,
         )
-
-        context = serialize(member_list, request.user)
-
-        return Response(context)
