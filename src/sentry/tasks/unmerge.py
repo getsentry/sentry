@@ -72,12 +72,11 @@ def merge_mappings(values):
     return result
 
 
-def get_culprit(event):
-    return generate_culprit(event.data, event.platform)
-
-
 initial_fields = {
-    'culprit': get_culprit,
+    'culprit': lambda event: generate_culprit(
+        event.data,
+        event.platform,
+    ),
     'data': lambda event: {
         'last_received': event.data.get('received') or float(event.datetime.strftime('%s')),
         'type': event.data['type'],
@@ -93,13 +92,6 @@ initial_fields = {
 }
 
 
-def get_event_score(caches, data, event):
-    return ScoreClause.calculate(
-        data['times_seen'] + 1,
-        data['last_seen'],
-    )
-
-
 backfill_fields = {
     'platform': lambda caches, data, event: event.platform,
     'logger': lambda caches, data, event: event.get_tag('logger') or DEFAULT_LOGGER_NAME,
@@ -110,7 +102,10 @@ backfill_fields = {
         event.get_tag('sentry:release'),
     ) if event.get_tag('sentry:release') else data.get('first_release', None),
     'times_seen': lambda caches, data, event: data['times_seen'] + 1,
-    'score': get_event_score,
+    'score': lambda caches, data, event: ScoreClause.calculate(
+        data['times_seen'] + 1,
+        data['last_seen'],
+    ),
 }
 
 
