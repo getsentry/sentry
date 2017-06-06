@@ -5,10 +5,24 @@ import {docco} from 'react-syntax-highlighter/dist/styles';
 
 import 'style-loader!./styleguide.less';
 
-import Button from '../../components/buttons/button';
 import {NavHeader, NavStacked, NavItem} from '../../components/navigation';
 import Pills from '../../components/pills';
 import Pill from '../../components/pill';
+
+import buttonExamples from '../../components/buttons/button/__examples';
+
+const Example = function(props) {
+  return (
+    <Row>
+      <Column>{props.children}</Column>
+      <Column>
+        <SyntaxHighlighter style={docco}>
+          {jsxToString(props.children)}
+        </SyntaxHighlighter>
+      </Column>
+    </Row>
+  );
+};
 
 const StyleguideComponents = React.createClass({
   render() {
@@ -18,52 +32,8 @@ const StyleguideComponents = React.createClass({
           <h2>Button</h2>
           <p>Sometimes you just need to click it.</p>
           <Hr />
-          <Row>
-            <Column>
-              <Button priority="primary" size="lg" to="/sup">Click it</Button>
-              {' '}
-              <br />
-              <br />
-              <Button
-                onClick={() => {
-                  alert('hiya');
-                }}>
-                Click it
-              </Button> <br /><br />
-              <Button
-                priority="danger"
-                size="sm"
-                onClick={() => {
-                  alert('💥');
-                }}>
-                Click it
-              </Button> <br /><br />
-              <Button size="xs" href="http://example.com">Click it</Button> <br /><br />
-              <Button
-                disabled
-                size="xs"
-                onClick={() => {
-                  alert('💥');
-                }}>
-                Don't click it!
-              </Button>
-            </Column>
-            <Column>
-              <SyntaxHighlighter style={docco}>
-                {jsxToString(
-                  <Button priority="primary" size="lg" to="/sup">Click it</Button>,
-                  {
-                    displayName: 'Button'
-                  }
-                )}
-              </SyntaxHighlighter>
-              <SyntaxHighlighter style={docco}>
-                {jsxToString(<Button href="http://example.com">Click it</Button>, {
-                  displayName: 'Button'
-                })}
-              </SyntaxHighlighter>
-            </Column>
-          </Row>
+
+          {buttonExamples.map(ex => Example({children: ex}))}
         </Section>
 
         <Section>
