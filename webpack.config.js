@@ -177,11 +177,11 @@ var appConfig = {
 };
 
 if (!IS_PRODUCTION && REFRESH) {
-  config.plugins.push(
+  appConfig.plugins.push(
     new (require('webpack-livereload-plugin'))({appendScriptTag: true})
   );
 }
-  
+
 var minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media

@@ -1,16 +1,9 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import DocumentTitle from 'react-document-title';
 import React from 'react';
-import styled, {injectGlobal} from 'styled-components';
+import 'style-loader!./styleguide.less';
 
 import {NavHeader, NavItem} from '../../components/navigation';
-
-injectGlobal`
-  body {
-    background: #fbfbfc;
-    padding: 0;
-  }
-`;
 
 const Styleguide = React.createClass({
   componentWillMount() {
@@ -29,13 +22,17 @@ const Styleguide = React.createClass({
     return (
       <DocumentTitle title={this.getTitle()}>
         <div className="app">
-          <Wrapper>
-            <Header>
-              <Container>
-                <Logo><span className="icon-sentry-logo" /></Logo> Styleguide
-              </Container>
-            </Header>
-            <Container>
+          <div className="styleguide-wrapper">
+            <div className="styleguide-header">
+              <div className="styleguide-container">
+                <span className="styleguide-logo">
+                  <span className="icon-sentry-logo" />
+                </span>
+                {' '}
+                Styleguide
+              </div>
+            </div>
+            <div className="styleguide-container">
               <div className="row">
                 <div className="col-md-2">
                   <NavHeader>Sections</NavHeader>
@@ -48,38 +45,12 @@ const Styleguide = React.createClass({
                   {this.props.children}
                 </div>
               </div>
-            </Container>
-          </Wrapper>
+            </div>
+          </div>
         </div>
       </DocumentTitle>
     );
   }
 });
-
-const Wrapper = styled.div`
-  padding-bottom: 40px;
-`;
-
-const Container = styled.div`
-  max-width: 1024px;
-  margin: 0 auto;
-`;
-
-const Header = styled.div`
-  color: #161319;
-  padding: 50px 0;
-  font-size: 19px;
-  line-height: 1;
-`;
-
-const Logo = styled.span`
-  color: #625471;
-  opacity: .75;
-  font-size: 20px;
-  margin-right: 4px;
-  line-height: 1;
-  position: relative;
-  top: 2px;
-`;
 
 export default Styleguide;

@@ -104,7 +104,6 @@
     "prettier": "1.2.2",
     "sinon": "1.17.2",
     "sinon-chai": "2.8.0",
-    "styled-components": "^2.0.0"
     "webpack-livereload-plugin": "^0.11.0"
   }
 }

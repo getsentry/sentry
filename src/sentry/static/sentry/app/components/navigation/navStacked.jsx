@@ -1,7 +1,8 @@
-import styled from 'styled-components';
+import React from 'react';
+import 'style-loader!./navigation.less';
 
-const NavStacked = styled.div`
-  margin-bottom: 30px;
-`;
+const NavStacked = function(props) {
+  return <div className="nav-stacked">{props.children}</div>;
+};
 
 export default NavStacked;

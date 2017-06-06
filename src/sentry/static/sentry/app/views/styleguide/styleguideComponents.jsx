@@ -1,8 +1,9 @@
 import React from 'react';
 import jsxToString from 'jsx-to-string';
-import styled from 'styled-components';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import {docco} from 'react-syntax-highlighter/dist/styles';
+
+import 'style-loader!./styleguide.less';
 
 import Button from '../../components/buttons/button';
 import {NavHeader, NavStacked, NavItem} from '../../components/navigation';
@@ -127,30 +128,20 @@ const StyleguideComponents = React.createClass({
 
 // Styleguide Styles
 
-const Hr = styled.hr`
-  border-top-color: #e2dee6;
-  margin: 24px -40px 30px;
-  opacity: .6;
-`;
+const Hr = function() {
+  return <hr className="styleguide-hr" />;
+};
 
-const Section = styled.div`
-  background: #fff;
-  border-radius: 7px;
-  box-shadow: 0 15px 50px rgba(0,0,0, .05), 0 4px 10px rgba(0,0,0, .05);
-  margin: 0 0 40px;
-  padding: 30px 40px;
-`;
+const Section = function(props) {
+  return <div className="styleguide-section">{props.children}</div>;
+};
 
-const Row = styled.div`
-  display: flex;
-  margin-left: -15px;
-  margin-right: -15px;
-`;
+const Row = function(props) {
+  return <div className="styleguide-row">{props.children}</div>;
+};
 
-const Column = styled.div`
-  margin-left: 15px;
-  margin-right: 15px;
-  width: 50%;
-`;
+const Column = function(props) {
+  return <div className="styleguide-column">{props.children}</div>;
+};
 
 export default StyleguideComponents;
