@@ -49,11 +49,15 @@ class Sdk(Interface):
         if not version:
             raise InterfaceValidationError("No 'version' value")
 
+        integrations = data.get('integrations')
+        if integrations and not isinstance(integrations, list):
+            raise InterfaceValidationError("'integrations' must be a list")
+
         kwargs = {
             'name': trim(name, 128),
             'version': trim(version, 128),
             'client_ip': data.get('client_ip'),
-            'integrations': data.get('integrations'),
+            'integrations': integrations,
         }
         return cls(**kwargs)
 
