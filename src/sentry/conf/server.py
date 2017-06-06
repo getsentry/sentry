@@ -753,6 +753,7 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': True,
     'organizations:callsigns': True,
+    'organizations:group-unmerge': True,  # FIX ME BEFORE PUBLISHING
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
