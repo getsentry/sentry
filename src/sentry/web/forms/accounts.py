@@ -321,6 +321,8 @@ class AccountSettingsForm(forms.Form):
 
     def clean_email(self):
         value = self._clean_managed_field('email').lower()
+        if self.user.email.lower() == value:
+            return value
         if User.objects.filter(Q(email__iexact=value) | Q(username__iexact=value)).exclude(id=self.user.id).exists():
             raise forms.ValidationError(
                 _("There was an error adding %s: that email is already in use")
