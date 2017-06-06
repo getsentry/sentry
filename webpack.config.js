@@ -14,6 +14,7 @@ if (process.env.SENTRY_STATIC_DIST_PATH) {
 }
 
 var IS_PRODUCTION = process.env.NODE_ENV === 'production';
+var REFRESH = process.env.WEBPACK_LIVERELOAD === '1';
 
 var babelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '.babelrc')));
 babelConfig.cacheDirectory = true;
@@ -175,6 +176,12 @@ var appConfig = {
   devtool: IS_PRODUCTION ? '#source-map' : '#cheap-source-map'
 };
 
+if (!IS_PRODUCTION && REFRESH) {
+  config.plugins.push(
+    new (require('webpack-livereload-plugin'))({appendScriptTag: true})
+  );
+}
+  
 var minificationPlugins = [
   // This compression-webpack-plugin generates pre-compressed files
   // ending in .gz, to be picked up and served by our internal static media
