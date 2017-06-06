@@ -148,6 +148,28 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
         return data
 
 
+class ProjectWithTeamSerializer(ProjectSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectWithTeamSerializer, self).get_attrs(
+            item_list, user
+        )
+
+        orgs = {
+            d['id']: d
+            for d in serialize(list(set(i.team for i in item_list)), user)
+        }
+        for item in item_list:
+            attrs[item]['team'] = orgs[six.text_type(item.team_id)]
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        data = super(ProjectWithTeamSerializer, self).serialize(
+            obj, attrs, user
+        )
+        data['team'] = attrs['team']
+        return data
+
+
 class SharedProjectSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry import features
