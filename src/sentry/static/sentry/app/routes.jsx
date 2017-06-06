@@ -71,8 +71,6 @@ import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
-import Styleguide from './views/styleguide';
-import StyleguideComponents from './views/styleguide/styleguideComponents';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
@@ -86,6 +84,10 @@ function appendTrailingSlash(nextState, replaceState) {
   if (lastChar !== '/') {
     replaceState(nextState, nextState.location.pathname + '/');
   }
+}
+
+function loadRoute(cb) {
+  return module => cb(null, module.default);
 }
 
 function routes() {
@@ -131,8 +133,18 @@ function routes() {
         {hooksAdminRoutes}
       </Route>
 
-      <Route path="/styleguide/" component={errorHandler(Styleguide)}>
-        <IndexRoute component={errorHandler(StyleguideComponents)} />
+      <Route
+        path="/styleguide/"
+        getComponent={(loc, cb) => {
+          import('./views/styleguide').then(loadRoute(cb));
+        }}>
+        {
+          <IndexRoute
+            getComponent={(loc, cb) => {
+              import('./views/styleguide/styleguideComponents').then(loadRoute(cb));
+            }}
+          />
+        }
         {/* StyleguideColors */}
         {/* StyleguideIcons */}
       </Route>
