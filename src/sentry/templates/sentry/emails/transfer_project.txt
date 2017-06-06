@@ -1,0 +1,3 @@
+{{ requester }} has requested the transfer of {{ project_name }} to another organziation
+
+Click this: {{url}}

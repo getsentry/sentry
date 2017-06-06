@@ -6,16 +6,15 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.api import client
+from sentry import roles, options
 from sentry.web.frontend.base import ProjectView
+from sentry.utils.email import MessageBuilder
+from sentry.models import OrganizationMember
 
 
 class TransferProjectForm(forms.Form):
-    name = forms.CharField(
-        label=_('Organization Owner'),
-        max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('user@company.com')})
-    )
+    email = forms.CharField(label=_('Organization Owner'), max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('user@company.com')}))
 
 
 class TransferProjectView(ProjectView):
@@ -31,16 +30,30 @@ class TransferProjectView(ProjectView):
         form = self.get_form(request)
 
         if form.is_valid():
-            client.delete(
-                '/projects/{}/{}/'.format(organization.slug, project.slug),
-                request=request,
-                is_sudo=True
-            )
+            email = form.cleaned_data.get('email')
+
+            if OrganizationMember.objects.filter(
+                role=roles.get_top_dog().id,
+                user__is_active=True,
+                user__email=email,
+            ).exists():
+                context = {
+                    'email': email,
+                    'project_name': project.name,
+                    'url': 'https://google.com',
+                    'requester': request.user
+                }
+                MessageBuilder(
+                    subject='%sRequest for Project Transfer' % (options.get('mail.subject-prefix'),),
+                    template='sentry/emails/transfer_project.txt',
+                    html_template='sentry/emails/transfer_project.html',
+                    type='org.confirm_delete',
+                    context=context,
+                ).send_async([email])
 
             messages.add_message(
                 request, messages.SUCCESS,
-                _(u'The project %r was scheduled for deletion.') % (project.name.encode('utf-8'), )
-            )
+                _(u'A request was sent to move project %r to a different organization') % (project.name.encode('utf-8'),))
 
             return HttpResponseRedirect(
                 reverse('sentry-organization-home', args=[team.organization.slug])

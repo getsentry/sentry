@@ -1,0 +1,10 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block main %}
+    <h3>Request for Project Transfer</h3>
+    <p>The <strong>{{ project_name }}</strong> project has been requested to move by:</p>
+    <p><pre>User: {{ requester }}</pre></p>
+    <p><a href="{{ url }}" class="btn">Click Here</a></p>
+{% endblock %}
