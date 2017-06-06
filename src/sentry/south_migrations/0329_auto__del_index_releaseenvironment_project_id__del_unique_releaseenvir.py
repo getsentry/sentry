@@ -3,6 +3,7 @@ from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from django.db.utils import ProgrammingError
 
 from sentry.utils.db import is_postgres
 
@@ -23,9 +24,15 @@ class Migration(SchemaMigration):
                 db.execute("DROP INDEX CONCURRENTLY {}".format(
                     db.create_index_name('sentry_releasecommit', ['project_id']),
                 ))
-            except Exception:
-                db.start_transaction()
-                raise
+            except ProgrammingError:
+                # Removing index on 'ReleaseEnvironment', fields ['project_id']
+                db.execute("DROP INDEX {}".format(
+                    db.create_index_name('sentry_environmentrelease', ['project_id']),
+                ))
+                # Removing index on 'ReleaseCommit', fields ['project_id']
+                db.execute("DROP INDEX {}".format(
+                    db.create_index_name('sentry_releasecommit', ['project_id']),
+                ))
 
             db.start_transaction()
         else:
