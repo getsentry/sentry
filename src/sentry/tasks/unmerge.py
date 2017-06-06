@@ -7,6 +7,14 @@ from django.db.models import F
 
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
+from sentry.event_manager import (
+    ScoreClause, generate_culprit, get_hashes_for_event, md5_from_hash
+)
+from sentry.models import (
+    Activity, Environment, Event, EventMapping, EventTag, EventUser, Group,
+    GroupHash, GroupRelease, GroupTagKey, GroupTagValue, Project, Release,
+    UserReport
+)
 from sentry.tasks.base import instrumented_task
 
 
@@ -31,8 +39,6 @@ def cache(function):
 
 
 def get_caches():
-    from sentry.models import Environment, GroupRelease, Project, Release
-
     return {
         'Environment': cache(
             lambda organization_id, name: Environment.objects.get(
@@ -67,8 +73,6 @@ def merge_mappings(values):
 
 
 def get_culprit(event):
-    from sentry.event_manager import generate_culprit
-
     return generate_culprit(event.data, event.platform)
 
 
@@ -90,8 +94,6 @@ initial_fields = {
 
 
 def get_event_score(caches, data, event):
-    from sentry.event_manager import ScoreClause
-
     return ScoreClause.calculate(
         data['times_seen'] + 1,
         data['last_seen'],
@@ -140,8 +142,6 @@ def get_group_backfill_attributes(caches, group, events):
 
 
 def get_fingerprint(event):
-    from sentry.event_manager import get_hashes_for_event, md5_from_hash
-
     # TODO: This *might* need to be protected from an IndexError?
     primary_hash = get_hashes_for_event(event)[0]
     return md5_from_hash(primary_hash)
@@ -156,11 +156,7 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
     if not events:
         return destination_id
 
-    from sentry.models import Group
-
     if destination_id is None:
-        from sentry.models import Activity, GroupHash
-
         # XXX: There is a race condition here between the (wall clock) time
         # that the migration is started by the user and when we actually
         # get to this block where the new destination is created and we've
@@ -218,8 +214,6 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
     event_id_set = set(event.id for event in events)
 
-    from sentry.models import Event, EventTag, EventMapping, UserReport
-
     Event.objects.filter(
         project_id=project.id,
         id__in=event_id_set,
@@ -249,8 +243,6 @@ def migrate_events(caches, project, source_id, destination_id, fingerprints, eve
 
 
 def truncate_denormalizations(group_id):
-    from sentry.models import GroupTagKey, GroupTagValue, GroupRelease
-
     GroupTagKey.objects.filter(
         group_id=group_id,
     ).delete()
@@ -296,8 +288,6 @@ def collect_tag_data(events):
 
 
 def repair_tag_data(caches, project, events):
-    from sentry.models import GroupTagKey, GroupTagValue
-
     for group_id, keys in collect_tag_data(events).items():
         for key, values in keys.items():
             GroupTagKey.objects.get_or_create(
@@ -368,8 +358,6 @@ def collect_release_data(caches, project, events):
 
 
 def repair_group_release_data(caches, project, events):
-    from sentry.models import GroupRelease
-
     attributes = collect_release_data(caches, project, events).items()
     for (group_id, environment, release_id), (first_seen, last_seen) in attributes:
         instance, created = GroupRelease.objects.get_or_create(
@@ -388,8 +376,6 @@ def repair_group_release_data(caches, project, events):
 
 
 def get_event_user_from_interface(value):
-    from sentry.models import EventUser
-
     return EventUser(
         ident=value.get('id'),
         email=value.get('email'),
@@ -478,8 +464,6 @@ def repair_denormalizations(caches, project, events):
 
 
 def update_tag_value_counts(id_list):
-    from sentry.models import GroupTagKey, GroupTagValue
-
     instances = GroupTagKey.objects.filter(group_id__in=id_list)
     for instance in instances:
         instance.update(
@@ -493,8 +477,6 @@ def update_tag_value_counts(id_list):
 
 @instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
 def unmerge(project_id, source_id, destination_id, fingerprints, actor_id, cursor=None, batch_size=500, source_fields_reset=False):
-    from sentry.models import Event, Group
-
     # XXX: If a ``GroupHash`` is unmerged *again* while this operation is
     # already in progress, some events from the fingerprint associated with the
     # hash may not be migrated to the new destination! We could solve this with
