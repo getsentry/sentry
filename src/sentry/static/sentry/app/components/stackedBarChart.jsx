@@ -176,7 +176,7 @@ const StackedBarChart = React.createClass({
   barColorClass(pct, idx) {
     const colClass = this.props.barClasses[idx];
     if (pct === 0) {
-      return classNames(colClass + ' zero-bar');
+      return classNames(colClass, 'zero-bar');
     }
     return colClass;
   },
