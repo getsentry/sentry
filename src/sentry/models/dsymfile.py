@@ -181,7 +181,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
                                  object_name):
     """This creates a mach dsym file from the given uuid and open file
     object to a dsym file.  This will not verify the uuid.  Use
-    `create_files_from_macho_zip` for doing everything.
+    `create_files_from_dsym_zip` for doing everything.
     """
     extra = {}
     extra['project'] = project
@@ -237,7 +237,7 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     return rv
 
 
-def create_files_from_macho_zip(fileobj, project=None):
+def create_files_from_dsym_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
