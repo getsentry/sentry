@@ -13,6 +13,7 @@ import {t} from '../locale';
 
 const GroupHashRow = React.createClass({
   propTypes: {
+    disabled: React.PropTypes.bool,
     hash: React.PropTypes.object.isRequired,
     onChange: React.PropTypes.func.isRequired
   },
@@ -30,7 +31,7 @@ const GroupHashRow = React.createClass({
   },
 
   render() {
-    let {hash} = this.props;
+    let {hash, disabled} = this.props;
     return (
       <tr
         key={hash.id}
@@ -45,6 +46,7 @@ const GroupHashRow = React.createClass({
           <input
             type="checkbox"
             className="chk-select"
+            disabled={disabled}
             checked={this.state.checked}
             onChange={this.toggleCheckbox}
           />
@@ -63,7 +65,7 @@ const GroupHashes = React.createClass({
       loading: true,
       error: false,
       pageLinks: '',
-      toggledHashList: new Set()
+      selectedSet: new Set()
     };
   },
 
@@ -76,7 +78,7 @@ const GroupHashes = React.createClass({
       this.setState(
         {
           hashList: [],
-          toggledHashList: new Set(),
+          selectedSet: new Set(),
           loading: true,
           error: false
         },
@@ -124,23 +126,23 @@ const GroupHashes = React.createClass({
   },
 
   handleHashToggle(hash, enabled) {
-    let {toggledHashList} = this.state;
+    let {selectedSet} = this.state;
     if (enabled) {
-      toggledHashList.add(hash.id);
+      selectedSet.add(hash.id);
     } else {
-      toggledHashList.delete(hash.id);
+      selectedSet.delete(hash.id);
     }
 
     this.setState({
-      toggledHashList: new Set(toggledHashList)
+      selectedSet: new Set(selectedSet)
     });
   },
 
   handleUnmerge() {
     let {params} = this.props;
-    let {toggledHashList} = this.state;
+    let {selectedSet} = this.state;
 
-    let ids = toggledHashList.values();
+    let ids = selectedSet.values();
 
     let loadingIndicator = IndicatorStore.add(t('Unmerging issues..'));
     this.api.request(`/issues/${params.groupId}/hashes/`, {
@@ -148,7 +150,7 @@ const GroupHashes = React.createClass({
       data: ids,
       success: (data, _, jqXHR) => {
         this.setState({
-          hashList: this.state.hashList.filter(hash => !toggledHashList.has(hash.id)),
+          hashList: this.state.hashList.filter(hash => !selectedSet.has(hash.id)),
           error: false
         });
         IndicatorStore.add(t('Issues successfully queued for unmerging.'), 'success', {
@@ -175,8 +177,22 @@ const GroupHashes = React.createClass({
   },
 
   renderResults() {
-    let children = this.state.hashList.map(hash => {
-      return <GroupHashRow hash={hash} key={hash.id} onChange={this.handleHashToggle} />;
+    let {hashList, selectedSet} = this.state;
+
+    // Need to always leave at least one hash; disable remaining checkboxes
+    // if remaining count is 1
+    let hashesCount = hashList.length;
+    let selectedCount = selectedSet.size;
+    let isRemainingDisabled = hashesCount - selectedCount === 1;
+    let children = hashList.map(hash => {
+      return (
+        <GroupHashRow
+          hash={hash}
+          key={hash.id}
+          disabled={isRemainingDisabled && !selectedSet.has(hash.id)}
+          onChange={this.handleHashToggle}
+        />
+      );
     });
 
     return (
@@ -190,7 +206,7 @@ const GroupHashes = React.createClass({
                   className="pull-right"
                   style={{borderBottom: 'none', padding: '8px 20px'}}>
                   <button
-                    disabled={this.state.toggledHashList.size === 0}
+                    disabled={this.state.selectedSet.size === 0}
                     ref="unmerge"
                     className="btn btn-sm btn-default"
                     onClick={this.handleUnmerge}>
