@@ -38,10 +38,11 @@ class UserReportSerializer(Serializer):
                 )
             ),
             'email': (
-                obj.email or
-                attrs['event_user'].email
-                if attrs['event_user'] else
-                None
+                obj.email or (
+                    attrs['event_user'].email
+                    if attrs['event_user']
+                    else None
+                )
             ),
             'comments': obj.comments,
             'dateCreated': obj.date_added,
