@@ -111,7 +111,7 @@ install_requires = [
     'lxml>=3.4.1',
 
     'ipaddress>=1.0.16,<1.1.0',
-    'libsourcemap>=0.5.0,<0.6.0',
+    'libsourcemap>=0.7.1,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
