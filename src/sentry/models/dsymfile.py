@@ -188,8 +188,6 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
     object to a dsym file.  This will not verify the uuid.  Use
     `create_files_from_dsym_zip` for doing everything.
     """
-    extra = {'project': project}
-
     if dsym_type == 'proguard':
         object_name = 'proguard-mapping'
     elif dsym_type == 'macho':
@@ -207,7 +205,7 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
     fileobj.seek(0, 0)
 
     try:
-        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
         if rv.file.checksum == checksum:
             return rv
     except ProjectDSymFile.DoesNotExist:
@@ -232,11 +230,11 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
                 uuid=uuid,
                 cpu_name=cpu_name,
                 object_name=object_name,
-                **extra
+                project=project,
             )
     except IntegrityError:
         file.delete()
-        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
 
     resolve_processing_issue(
         project=project,
