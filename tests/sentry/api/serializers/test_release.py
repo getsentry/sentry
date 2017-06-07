@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import datetime
+import six
 
 from django.utils import timezone
 from uuid import uuid4
@@ -67,6 +68,11 @@ class ReleaseSerializerTest(TestCase):
             release=release,
             commit=commit,
             order=1,
+        )
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
         )
 
         result = serialize(release, user)
@@ -155,6 +161,11 @@ class ReleaseSerializerTest(TestCase):
             commit=commit,
             order=1,
         )
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
+        )
 
         result = serialize(release, user)
         result_author = result['authors'][0]
@@ -199,6 +210,12 @@ class ReleaseSerializerTest(TestCase):
             order=1,
         )
 
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
+        )
+
         result = serialize(release, user)
         assert len(result['authors']) == 1
         result_author = result['authors'][0]
@@ -241,6 +258,12 @@ class ReleaseSerializerTest(TestCase):
             release=release,
             commit=commit,
             order=1,
+        )
+
+        release.update(
+            authors=[six.text_type(commit_author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
         )
 
         assert email.id < otheremail.id
@@ -333,6 +356,14 @@ class ReleaseSerializerTest(TestCase):
             release=release,
             commit=commit2,
             order=2,
+        )
+        release.update(
+            authors=[
+                six.text_type(commit_author1.id),
+                six.text_type(commit_author2.id),
+            ],
+            commit_count=2,
+            last_commit_id=commit2.id,
         )
         result = serialize(release, user)
         assert len(result['authors']) == 1
