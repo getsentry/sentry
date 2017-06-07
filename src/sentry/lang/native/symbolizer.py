@@ -200,10 +200,16 @@ class Symbolizer(object):
                 type = EventError.NATIVE_MISSING_DSYM
             raise SymbolicationFailed(type=type, image=img)
 
+        # cputype of image might be a variation of self.cpu_name
+        # e.g.: armv7 instead of armv7f
+        # (example error fat file does not contain armv7f)
+        cpu_name = get_cpu_name(img['cpu_type'],
+                                img['cpu_subtype'])
+
         try:
             rv = self._symbolizer.symbolize(
                 dsym_path, img['image_vmaddr'], img['image_addr'],
-                instruction_addr, self.cpu_name, symbolize_inlined=True)
+                instruction_addr, cpu_name, symbolize_inlined=True)
         except SymbolicationError as e:
             raise SymbolicationFailed(
                 type=EventError.NATIVE_BAD_DSYM,
