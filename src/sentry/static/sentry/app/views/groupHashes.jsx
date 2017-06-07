@@ -6,6 +6,7 @@ import GroupState from '../mixins/groupState';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
+import LinkWithConfirmation from '../components/linkWithConfirmation';
 
 import IndicatorStore from '../stores/indicatorStore';
 
@@ -205,13 +206,14 @@ const GroupHashes = React.createClass({
                 <th
                   className="pull-right"
                   style={{borderBottom: 'none', padding: '8px 20px'}}>
-                  <button
+                  <LinkWithConfirmation
                     disabled={this.state.selectedSet.size === 0}
                     ref="unmerge"
+                    message={t('Are you sure you want to unmerge these issues?')}
                     className="btn btn-sm btn-default"
-                    onClick={this.handleUnmerge}>
+                    onConfirm={this.handleUnmerge}>
                     {t('Unmerge')}
-                  </button>
+                  </LinkWithConfirmation>
                 </th>
               </tr>
             </thead>
