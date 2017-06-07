@@ -198,6 +198,11 @@ const GroupHashes = React.createClass({
 
     return (
       <div>
+        <div className="alert alert-block alert-warning">
+          <strong>Warning:</strong>
+          {' '}
+          This is an experimental feature. Data may become temporarily unavailable when unmerging issues.
+        </div>
         <div className="event-list">
           <table className="table">
             <thead>
