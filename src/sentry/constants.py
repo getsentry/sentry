@@ -226,7 +226,8 @@ MAX_SYM = 256
 
 # Known dsym mimetypes
 KNOWN_DSYM_TYPES = {
-    'application/x-mach-binary': 'macho'
+    'application/x-mach-binary': 'macho',
+    'text/x-proguard+plain': 'proguard',
 }
 
 NATIVE_UNKNOWN_STRING = '<unknown>'

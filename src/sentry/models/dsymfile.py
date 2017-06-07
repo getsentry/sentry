@@ -9,6 +9,8 @@ sentry.models.dsymfile
 from __future__ import absolute_import
 
 import os
+import six
+import uuid
 import shutil
 import hashlib
 import tempfile
@@ -27,6 +29,9 @@ from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
+
+
+DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
 
 
 class VersionDSymFile(Model):
@@ -160,8 +165,6 @@ class ProjectDSymFile(Model):
     file = FlexibleForeignKey('sentry.File')
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-
-    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
     project = FlexibleForeignKey('sentry.Project', null=True)
     uuid = models.CharField(max_length=36)
     objects = ProjectDSymFileManager()
@@ -171,21 +174,28 @@ class ProjectDSymFile(Model):
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
+    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
+
     @property
     def dsym_type(self):
         ct = self.file.headers.get('Content-Type').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
 
-def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
-                                 object_name):
+def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
+                           basename):
     """This creates a mach dsym file from the given uuid and open file
     object to a dsym file.  This will not verify the uuid.  Use
     `create_files_from_dsym_zip` for doing everything.
     """
-    extra = {}
-    extra['project'] = project
-    file_type = 'project.dsym'
+    extra = {'project': project}
+
+    if dsym_type == 'proguard':
+        object_name = 'proguard-mapping'
+    elif dsym_type == 'macho':
+        object_name = basename
+    else:
+        raise TypeError('unknown dsym type %r' % (dsym_type,))
 
     h = hashlib.sha1()
     while 1:
@@ -209,9 +219,9 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
 
     file = File.objects.create(
         name=uuid,
-        type=file_type,
+        type='project.dsym',
         headers={
-            'Content-Type': 'application/x-mach-binary'
+            'Content-Type': DSYM_MIMETYPES[dsym_type]
         },
     )
     file.putfile(fileobj)
@@ -237,6 +247,21 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     return rv
 
 
+def _analyze_progard_filename(filename):
+    if not filename.startswith('proguard/') or \
+       not filename.endswith('.txt'):
+        return None
+
+    ident = filename[9:-4]
+    if ident.startswith('mapping-'):
+        ident = ident[8:]
+
+    try:
+        return six.text_type(uuid.UUID(ident))
+    except Exception:
+        pass
+
+
 def create_files_from_dsym_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
@@ -249,24 +274,41 @@ def create_files_from_dsym_zip(fileobj, project=None):
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
+
+                # proguard files (proguard/UUID.txt) or
+                # (proguard/mapping-UUID.txt).
+                proguard_uuid = _analyze_progard_filename(fn)
+                if proguard_uuid is not None:
+                    to_create.append((
+                        'proguard',
+                        'any',
+                        proguard_uuid,
+                        fn,
+                    ))
+
+                # macho style debug symbols
                 try:
                     di = DebugInfo.open_path(fn)
                 except DebugInfoError:
                     # Whatever was contained there, was probably not a
                     # macho file.
+                    pass
+                else:
+                    for variant in di.get_variants():
+                        to_create.append((
+                            'macho',
+                            variant.cpu_name,
+                            str(variant.uuid),  # noqa: B308
+                            fn,
+                        ))
                     continue
-                for variant in di.get_variants():
-                    to_create.append((
-                        variant.cpu_name,
-                        str(variant.uuid),  # noqa: B308
-                        fn,
-                    ))
 
         rv = []
-        for cpu, uuid, filename in to_create:
+        for dsym_type, cpu, file_uuid, filename in to_create:
             with open(filename, 'rb') as f:
-                rv.append((_create_macho_dsym_from_uuid(
-                    project, cpu, uuid, f, os.path.basename(filename))))
+                rv.append((_create_dsym_from_uuid(
+                    project, dsym_type, cpu, file_uuid, f,
+                    os.path.basename(filename))))
         return rv
     finally:
         shutil.rmtree(scratchpad)
