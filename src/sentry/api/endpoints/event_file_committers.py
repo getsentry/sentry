@@ -3,13 +3,14 @@ from __future__ import absolute_import
 from rest_framework.response import Response
 
 import operator
+import six
 
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import (
     Release, ReleaseCommit, Commit, CommitFileChange, Event, Group
 )
-from sentry.api.serializers.models.release import get_users_for_commits
+from sentry.api.serializers.models.commit import get_users_for_commits
 
 from django.db.models import Q
 
@@ -54,7 +55,7 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
                         version=version,
                     ),
                 )
-            )
+            ).select_related('author')
         except Release.DoesNotExist:
             return None
 
@@ -120,11 +121,14 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
 
         # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
         sorted_committers = sorted(committers, key=committers.get)
-        sentry_user_dict = get_users_for_commits(commits)
+        users_by_author = get_users_for_commits(commits)
 
         user_dicts = [{
-            'author': sentry_user_dict[author_id],
-            'commits': self._get_commits_committer(commits, author_id)
+            'author': users_by_author.get(six.text_type(author_id)),
+            'commits': self._get_commits_committer(
+                commits,
+                author_id,
+            )
         } for author_id in sorted_committers]
 
         return user_dicts
