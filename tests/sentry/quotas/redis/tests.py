@@ -135,3 +135,34 @@ class RedisQuotaTest(TestCase):
         )
 
         assert self.quota.is_rate_limited(self.project).is_limited
+
+    def test_get_usage(self):
+        timestamp = time.time()
+
+        self.get_project_quota.return_value = (200, 60)
+        self.get_organization_quota.return_value = (300, 60)
+
+        n = 10
+        for _ in xrange(n):
+            self.quota.is_rate_limited(self.project, timestamp=timestamp)
+
+        quotas = self.quota.get_quotas(self.project)
+
+        assert self.quota.get_usage(
+            self.project,
+            quotas + [
+                BasicRedisQuota(
+                    key='unlimited',
+                    limit=0,
+                    window=60,
+                    reason_code='unlimited',
+                ),
+                BasicRedisQuota(
+                    key='dummy',
+                    limit=10,
+                    window=60,
+                    reason_code='dummy',
+                ),
+            ],
+            timestamp=timestamp,
+        ) == [n for _ in quotas] + [None, 0]
