@@ -2,9 +2,13 @@ import React from 'react';
 
 import ApiMixin from '../mixins/apiMixin';
 import GroupState from '../mixins/groupState';
+
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
+
+import IndicatorStore from '../stores/indicatorStore';
+
 import {t} from '../locale';
 
 const GroupHashRow = React.createClass({
@@ -132,6 +136,35 @@ const GroupHashes = React.createClass({
     });
   },
 
+  handleUnmerge() {
+    let {params} = this.props;
+    let {toggledHashList} = this.state;
+
+    let ids = toggledHashList.values();
+
+    let loadingIndicator = IndicatorStore.add(t('Unmerging issues..'));
+    this.api.request(`/issues/${params.groupId}/hashes/`, {
+      method: 'DELETE',
+      data: ids,
+      success: (data, _, jqXHR) => {
+        this.setState({
+          hashList: this.state.hashList.filter(hash => !toggledHashList.has(hash.id)),
+          error: false
+        });
+        IndicatorStore.add(t('Issues successfully queued for unmerging.'), 'success', {
+          duration: 5000
+        });
+      },
+      error: error => {
+        this.setState({error: true});
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+        this.setState({loading: false});
+      }
+    });
+  },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -159,8 +192,9 @@ const GroupHashes = React.createClass({
                   <button
                     disabled={this.state.toggledHashList.size === 0}
                     ref="unmerge"
-                    className="btn btn-sm btn-default">
-                    Unmerge
+                    className="btn btn-sm btn-default"
+                    onClick={this.handleUnmerge}>
+                    {t('Unmerge')}
                   </button>
                 </th>
               </tr>
