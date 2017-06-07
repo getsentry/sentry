@@ -79,7 +79,6 @@ const ProjectSettings = React.createClass({
     let project = this.state.project;
     let features = new Set(project.features);
     let rootInstallPath = `/${orgId}/${projectId}/settings/install/`;
-    let isEarlyAdopter = this.context.organization.isEarlyAdopter;
     let path = this.props.location.pathname;
     let processingIssues = this.state.project.processingIssues;
 
@@ -136,10 +135,9 @@ const ProjectSettings = React.createClass({
               }}>
               {t('Error Tracking')}
             </ListLink>
-            {isEarlyAdopter &&
-              <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>
-                {t('CSP Reports')}
-              </ListLink>}
+            <ListLink to={`/${orgId}/${projectId}/settings/csp/`}>
+              {t('CSP Reports')}
+            </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/user-feedback/`}>
               {t('User Feedback')}
             </ListLink>
