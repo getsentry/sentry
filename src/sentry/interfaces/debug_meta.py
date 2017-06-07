@@ -1,5 +1,8 @@
 from __future__ import absolute_import
 
+import six
+import uuid
+
 __all__ = ('DebugMeta',)
 
 from sentry.interfaces.base import Interface, InterfaceValidationError
@@ -28,7 +31,7 @@ def process_apple_image(image):
             'image_size': image['image_size'],
             'image_vmaddr': _addr(image.get('image_vmaddr') or 0),
             'name': image['name'],
-            'uuid': image['uuid']
+            'uuid': six.text_type(uuid.UUID(image['uuid'])),
         }
         if image.get('major_version') is not None:
             apple_image['major_version'] = image['major_version']
@@ -102,7 +105,6 @@ class DebugMeta(Interface):
             return None
         try:
             return {
-                'dsym_type': sdk_info.get('dsym_type') or 'none',
                 'sdk_name': sdk_info['sdk_name'],
                 'version_major': sdk_info['version_major'],
                 'version_minor': sdk_info['version_minor'],
