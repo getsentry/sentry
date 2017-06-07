@@ -255,7 +255,7 @@ def _analyze_progard_filename(filename):
         ident = ident[8:]
 
     try:
-        return six.text_type(uuid.UUID(ident))
+        return uuid.UUID(ident)
     except Exception:
         pass
 
@@ -280,7 +280,7 @@ def create_files_from_dsym_zip(fileobj, project=None):
                     to_create.append((
                         'proguard',
                         'any',
-                        proguard_uuid,
+                        six.text_type(proguard_uuid),
                         fn,
                     ))
 
@@ -296,7 +296,7 @@ def create_files_from_dsym_zip(fileobj, project=None):
                         to_create.append((
                             'macho',
                             variant.cpu_name,
-                            str(variant.uuid),  # noqa: B308
+                            six.text_type(variant.uuid),
                             fn,
                         ))
                     continue
