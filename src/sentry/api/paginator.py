@@ -19,11 +19,15 @@ quote_name = connections['default'].ops.quote_name
 
 
 class BasePaginator(object):
-    def __init__(self, queryset, order_by, max_limit=100):
-        if order_by.startswith('-'):
-            self.key, self.desc = order_by[1:], True
+    def __init__(self, queryset, order_by=None, max_limit=100):
+        if order_by:
+            if order_by.startswith('-'):
+                self.key, self.desc = order_by[1:], True
+            else:
+                self.key, self.desc = order_by, False
         else:
-            self.key, self.desc = order_by, False
+            self.key = None
+            self.desc = False
         self.queryset = queryset
         self.max_limit = max_limit
 
@@ -41,21 +45,23 @@ class BasePaginator(object):
         # We need to reverse the ORDER BY if we're using a cursor for a
         # previous page so we know exactly where we ended last page.  The
         # results will get reversed back to the requested order below.
-        if self.key in queryset.query.order_by:
-            if not asc:
-                index = queryset.query.order_by.index(self.key)
-                queryset.query.order_by[index] = '-%s' % (queryset.query.order_by[index])
-        elif ('-%s' % self.key) in queryset.query.order_by:
-            if asc:
-                index = queryset.query.order_by.index('-%s' % (self.key))
-                queryset.query.order_by[index] = queryset.query.order_by[index][1:]
-        else:
-            if asc:
-                queryset = queryset.order_by(self.key)
+        if self.key:
+            if self.key in queryset.query.order_by:
+                if not asc:
+                    index = queryset.query.order_by.index(self.key)
+                    queryset.query.order_by[index] = '-%s' % (queryset.query.order_by[index])
+            elif ('-%s' % self.key) in queryset.query.order_by:
+                if asc:
+                    index = queryset.query.order_by.index('-%s' % (self.key))
+                    queryset.query.order_by[index] = queryset.query.order_by[index][1:]
             else:
-                queryset = queryset.order_by('-%s' % self.key)
+                if asc:
+                    queryset = queryset.order_by(self.key)
+                else:
+                    queryset = queryset.order_by('-%s' % self.key)
 
         if value:
+            assert self.key
             if self.key in queryset.query.extra:
                 col_query, col_params = queryset.query.extra[self.key]
                 col_params = col_params[:]
@@ -155,10 +161,11 @@ class OffsetPaginator(BasePaginator):
         limit = min(limit, self.max_limit)
 
         queryset = self.queryset
-        if self.desc:
-            queryset = queryset.order_by('-{}'.format(self.key))
-        else:
-            queryset = queryset.order_by(self.key)
+        if self.key:
+            if self.desc:
+                queryset = queryset.order_by('-{}'.format(self.key))
+            else:
+                queryset = queryset.order_by(self.key)
 
         page = cursor.offset
         offset = cursor.offset * cursor.value
