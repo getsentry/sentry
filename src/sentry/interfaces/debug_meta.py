@@ -42,6 +42,17 @@ def process_apple_image(image):
                                        % e.args[0])
 
 
+@imagetype('proguard')
+def process_proguard_image(image):
+    try:
+        return {
+            'uuid': image['uuid'],
+        }
+    except KeyError as e:
+        raise InterfaceValidationError('Missing value for proguard image: %s'
+                                       % e.args[0])
+
+
 class DebugMeta(Interface):
     """
     Holds debug meta information information for processing stacktraces
@@ -82,8 +93,6 @@ class DebugMeta(Interface):
             raise InterfaceValidationError('Unknown image type %r' % image)
         rv = func(image)
         assert 'uuid' in rv, 'debug image normalizer did not produce a UUID'
-        assert 'image_addr' in rv, 'debug image normalizer did not ' \
-            'produce an object address'
         rv['type'] = ty
         return rv
 
