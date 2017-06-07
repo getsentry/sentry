@@ -203,7 +203,12 @@ def fetch_release_file(filename, release, dist=None):
         # Reconstruct url without protocol + host
         # e.g. http://example.com/foo?bar => ~/foo?bar
         parsed_url = urlparse(filename)
-        filename_path = '~' + parsed_url.path
+        prefix = '~'
+
+        if(parsed_url.path[0] != '/'):
+            prefix = '~/'
+
+        filename_path = prefix + parsed_url.path
         if parsed_url.query:
             filename_path += '?' + parsed_url.query
 
