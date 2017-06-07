@@ -8,6 +8,9 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
+        db.delete_index(u'sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
+
         # Removing unique constraint on 'DSymSymbol', fields ['object', 'address']
         db.delete_unique(u'sentry_dsymsymbol', ['object_id', 'address'])
 
@@ -25,10 +28,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'DSymSDK'
         db.delete_table(u'sentry_dsymsdk')
-
-        # Removing index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
-        db.delete_index(u'sentry_dsymsdk', ['version_major', 'version_minor', 'version_patchlevel', 'version_build'])
-
 
     def backwards(self, orm):
         # Adding index on 'DSymSDK', fields ['version_major', 'version_minor', 'version_patchlevel', 'version_build']
