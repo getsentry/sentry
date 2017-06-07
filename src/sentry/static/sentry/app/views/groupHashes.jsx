@@ -7,6 +7,49 @@ import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import {t} from '../locale';
 
+const GroupHashRow = React.createClass({
+  propTypes: {
+    hash: React.PropTypes.object.isRequired,
+    onChange: React.PropTypes.func.isRequired
+  },
+
+  getInitialState() {
+    return {
+      checked: false
+    };
+  },
+
+  toggleCheckbox() {
+    this.setState({checked: !this.state.checked}, () => {
+      this.props.onChange(this.props.hash, this.state.checked);
+    });
+  },
+
+  render() {
+    let {hash} = this.props;
+    return (
+      <tr
+        key={hash.id}
+        onClick={e => {
+          // clicking anywhere in the row will toggle the checkbox
+          if (e.currentTarget.type !== 'input') this.toggleCheckbox();
+        }}>
+        <td>
+          <h5>{hash.id}</h5>
+        </td>
+        <td style={{textAlign: 'right'}}>
+          <input
+            type="checkbox"
+            className="chk-select"
+            checked={this.state.checked}
+            onChange={this.toggleCheckbox}
+          />
+        </td>
+      </tr>
+    );
+  }
+});
+
 const GroupHashes = React.createClass({
   mixins: [ApiMixin, GroupState],
 
@@ -15,7 +58,8 @@ const GroupHashes = React.createClass({
       hashList: [],
       loading: true,
       error: false,
-      pageLinks: ''
+      pageLinks: '',
+      toggledHashList: new Set()
     };
   },
 
@@ -28,6 +72,7 @@ const GroupHashes = React.createClass({
       this.setState(
         {
           hashList: [],
+          toggledHashList: new Set(),
           loading: true,
           error: false
         },
@@ -74,6 +119,19 @@ const GroupHashes = React.createClass({
     });
   },
 
+  handleHashToggle(hash, enabled) {
+    let {toggledHashList} = this.state;
+    if (enabled) {
+      toggledHashList.add(hash.id);
+    } else {
+      toggledHashList.delete(hash.id);
+    }
+
+    this.setState({
+      toggledHashList: new Set(toggledHashList)
+    });
+  },
+
   renderEmpty() {
     return (
       <div className="box empty-stream">
@@ -85,27 +143,33 @@ const GroupHashes = React.createClass({
 
   renderResults() {
     let children = this.state.hashList.map(hash => {
-      return (
-        <tr key={hash.id}>
-          <td>
-            <h5>{hash.id}</h5>
-          </td>
-        </tr>
-      );
+      return <GroupHashRow hash={hash} key={hash.id} onChange={this.handleHashToggle} />;
     });
 
     return (
       <div>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t('ID')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {children}
-          </tbody>
-        </table>
+        <div className="event-list">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t('ID')}</th>
+                <th
+                  className="pull-right"
+                  style={{borderBottom: 'none', padding: '8px 20px'}}>
+                  <button
+                    disabled={this.state.toggledHashList.size === 0}
+                    ref="unmerge"
+                    className="btn btn-sm btn-default">
+                    Unmerge
+                  </button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {children}
+            </tbody>
+          </table>
+        </div>
         <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
