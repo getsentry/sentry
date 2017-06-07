@@ -8,7 +8,6 @@ def test_get_sdk_from_event():
     sdk_info = get_sdk_from_event({
         'debug_meta': {
             'sdk_info': {
-                'dsym_type': 'macho',
                 'sdk_name': 'iOS',
                 'version_major': 9,
                 'version_minor': 3,
@@ -16,7 +15,6 @@ def test_get_sdk_from_event():
             }
         }
     })
-    assert sdk_info['dsym_type'] == 'macho'
     assert sdk_info['sdk_name'] == 'iOS'
     assert sdk_info['version_major'] == 9
     assert sdk_info['version_minor'] == 3
@@ -32,7 +30,6 @@ def test_get_sdk_from_event():
         }
     })
 
-    assert sdk_info['dsym_type'] == 'macho'
     assert sdk_info['sdk_name'] == 'iOS'
     assert sdk_info['version_major'] == 9
     assert sdk_info['version_minor'] == 3

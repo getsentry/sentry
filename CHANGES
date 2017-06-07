@@ -2,6 +2,7 @@ Version 8.18 (Unreleased)
 -------------------------
 
 - Expanded resolution options to allow current and explicit versions.
+- Removed support for global dsyms
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -11,6 +12,11 @@ Schema Changes
 - Added Release.authors
 - Added Release.total_deploys
 - Added Release.last_deploy_id
+- Removed DSymBundle
+- Removed DSymObject
+- Removed DSymSDK
+- Removed DSymSymbol
+- Removed GlobalDSymFile
 
 Version 8.17
 ------------

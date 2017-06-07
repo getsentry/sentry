@@ -24,7 +24,6 @@ SWIFT_OBJECT_NAME = (
 )
 
 SDK_INFO = {
-    "dsym_type": "macho",
     "sdk_name": "iOS",
     "version_major": 9,
     "version_minor": 3,
