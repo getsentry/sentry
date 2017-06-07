@@ -2,7 +2,7 @@
 from south.utils import datetime_utils as datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
+from django.db import models, transaction
 
 from sentry.utils.db import is_postgres
 
@@ -21,7 +21,13 @@ class Migration(SchemaMigration):
             db.create_unique('sentry_messagefiltervalue', ['group_id', 'key', 'value'])
 
         # Removing unique constraint on 'GroupTagValue', fields ['project', 'key', 'value', 'group']
-        db.delete_unique('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'group_id'])
+        if is_postgres():
+            with transaction.atomic():
+                db.delete_unique('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'group_id'])
+            except Exception:
+                pass
+        else:
+            db.delete_unique('sentry_messagefiltervalue', ['project_id', 'key', 'value', 'group_id'])
 
         # Adding index on 'GroupTagValue', fields ['project', 'key', 'value']
         if is_postgres():
