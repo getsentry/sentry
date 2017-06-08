@@ -4,7 +4,7 @@ import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
 import LoadingIndicator from '../components/loadingIndicator';
 import OrganizationHomeContainer from '../components/organizations/homeContainer';
-import {t} from '../locale';
+import {t, tct} from '../locale';
 
 const OrganizationInstallations = React.createClass({
   mixins: [ApiMixin],
@@ -12,7 +12,7 @@ const OrganizationInstallations = React.createClass({
   getInitialState() {
     return {
       loading: true,
-      error: false,
+      error: null,
       installationList: null
     };
   },
@@ -30,10 +30,10 @@ const OrganizationInstallations = React.createClass({
           loading: false
         });
       },
-      error: () => {
+      error: err => {
         this.setState({
           loading: false,
-          error: true
+          error: err.responseJSON
         });
       }
     });
@@ -48,10 +48,10 @@ const OrganizationInstallations = React.createClass({
           provider: providerId,
           installation_id: installation.installation_id
         },
-        error: () => {
+        error: err => {
           this.setState({
             loading: false,
-            error: true
+            error: err.responseJSON
           });
         },
         complete: () => {
@@ -65,8 +65,17 @@ const OrganizationInstallations = React.createClass({
 
   renderProvider(provider) {
     return (
-      <div>
-        <h3>{provider.name}</h3>
+      <div key={provider.id}>
+        <div className="row">
+          <div className="col-md-6">
+            <h3>{provider.name}</h3>
+          </div>
+          <div className="col-md-6">
+            <a className="btn btn-primary" href={provider.install_url}>
+              Install on Another Account
+            </a>
+          </div>
+        </div>
         {provider.installations.map(inst => {
           return (
             <div className="row" key={inst.installation_id}>
@@ -74,11 +83,13 @@ const OrganizationInstallations = React.createClass({
                 {inst.external_organization}
               </div>
               <div className="col-md-6">
-                <button
-                  className="btn btn-sm btn-default"
-                  onClick={this.toggleInstallation.bind(this, provider.id, inst)}>
-                  {inst.linked ? 'Disable' : 'Enable'}
-                </button>
+                {inst.linked
+                  ? 'Linked'
+                  : <button
+                      className="btn btn-sm btn-default"
+                      onClick={this.toggleInstallation.bind(this, provider.id, inst)}>
+                      Enable
+                    </button>}
               </div>
             </div>
           );
@@ -87,13 +98,62 @@ const OrganizationInstallations = React.createClass({
     );
   },
 
-  render() {
+  renderBody() {
     if (this.state.loading) return <LoadingIndicator />;
+
+    let error = this.state.error;
+    if (error) {
+      if (error.error_type === 'auth') {
+        let authUrl = error.auth_url;
+        // TODO(jess): github apps are showing a redirect uri mismatch when doing
+        // this :-/ but without it, we never redirect to the right place
+        // if (authUrl.indexOf('?') === -1) {
+        //   authUrl += '?next=' + encodeURIComponent(document.location.pathname);
+        // } else {
+        //   authUrl += '&next=' + encodeURIComponent(document.location.pathname);
+        // }
+        return (
+          <div>
+            <div className="alert alert-warning m-b-1">
+              {'You need to associate an identity with ' +
+                error.title +
+                ' before you can create issues with this service.'}
+            </div>
+            <a className="btn btn-primary" href={authUrl}>
+              Associate Identity
+            </a>
+          </div>
+        );
+      } else {
+        return (
+          <div className="alert alert-error alert-block">
+            <p>
+              {error.message
+                ? error.message
+                : tct(
+                    'An unknown error occurred. Need help with this? [link:Contact support]',
+                    {
+                      link: <a href="https://sentry.io/support/" />
+                    }
+                  )}
+            </p>
+          </div>
+        );
+      }
+    }
 
     let {installationList} = this.state;
     return (
-      <OrganizationHomeContainer>
+      <div>
         {installationList.map(this.renderProvider)}
+      </div>
+    );
+  },
+
+  render() {
+    return (
+      <OrganizationHomeContainer>
+        {this.renderBody()}
       </OrganizationHomeContainer>
     );
   }

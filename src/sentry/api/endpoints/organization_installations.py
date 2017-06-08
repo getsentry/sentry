@@ -2,11 +2,13 @@ from __future__ import absolute_import
 
 import six
 
+from django.core.urlresolvers import reverse
 from django.db import IntegrityError, transaction
 
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.exceptions import PluginError
 from sentry.plugins import bindings
 from sentry.models import Installation, OrganizationInstallation, Repository
 
@@ -17,6 +19,18 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
         results = []
         for provider_id, provider_cls in bindings.get('repository.provider').all():
             provider = provider_cls(id=provider_id)
+
+            if not provider.has_installations:
+                continue
+
+            if provider.needs_auth(request.user, for_installation=True):
+                return Response({
+                    'error_type': 'auth',
+                    'title': provider.name,
+                    'auth_url': reverse('socialauth_associate', args=[
+                        provider.installation_auth_provider or provider.auth_provider]),
+                }, status=400)
+
             user_installations = provider.get_installations(request.user)
             installations = list(Installation.objects.filter(
                 installation_id__in=[i['installation_id'] for i in user_installations],
@@ -36,6 +50,7 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
             results.append({
                 'id': provider_id,
                 'name': provider.name,
+                'install_url': provider.get_install_url(),
                 'installations': installations,
             })
 
@@ -54,9 +69,16 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
             }, status=400)
 
         provider = provider_cls(id=provider_id)
+
+        try:
+            installations = provider.get_installations(request.user)
+        except PluginError as e:
+            return Response({
+                'errors': {'__all__': e.message},
+            }, status=400)
         installations = {
             six.text_type(i['installation_id']): i for i in
-            provider.get_installations(request.user)
+            installations
         }
 
         try:
@@ -80,7 +102,12 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
 
         installation.add_organization(organization)
 
-        repositories = provider.get_repositories(installation)
+        try:
+            repositories = provider.get_repositories(installation)
+        except PluginError as e:
+            return Response({
+                'errors': {'__all__': e.message},
+            }, status=400)
 
         for repo in repositories:
             try:

@@ -13,6 +13,8 @@ from .base import ProviderMixin
 
 class RepositoryProvider(ProviderMixin):
     name = None
+    installation_auth_provider = None
+    has_installations = False
 
     def __init__(self, id):
         self.id = id
@@ -97,6 +99,9 @@ class RepositoryProvider(ProviderMixin):
 
     def get_repositories(self, installation):
         raise NotImplementedError
+
+    def get_install_url(self):
+        pass
 
     @staticmethod
     def should_ignore_commit(message):
