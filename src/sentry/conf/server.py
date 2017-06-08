@@ -287,6 +287,7 @@ INSTALLED_APPS = (
     'sentry.analytics.events',
     'sentry.nodestore',
     'sentry.search',
+    'sentry.lang.java',
     'sentry.lang.javascript',
     'sentry.lang.native',
     'sentry.plugins.sentry_interface_types',
