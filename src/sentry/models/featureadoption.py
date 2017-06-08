@@ -17,6 +17,8 @@ from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
 
+FEATURE_ADOPTION_REDIS_KEY = 'organization-feature-adoption:{}'
+
 # Languages
 manager.add(0, "python", "Python", "language")
 manager.add(1, "javascript", "JavaScript", "language")
@@ -80,7 +82,7 @@ class FeatureAdoptionManager(BaseManager):
 
     @staticmethod
     def in_cache(organization_id, feature_id):
-        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         feature_matches = []
         with redis.clusters.get('default').map() as client:
             feature_matches.append(client.sismember(org_key, feature_id))
@@ -89,13 +91,13 @@ class FeatureAdoptionManager(BaseManager):
 
     @staticmethod
     def set_cache(organization_id, feature_id):
-        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, feature_id)
 
     @staticmethod
     def get_all_cache(organization_id):
-        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         result = []
         with redis.clusters.get('default').map() as client:
             result.append(client.smembers(org_key))
@@ -104,7 +106,7 @@ class FeatureAdoptionManager(BaseManager):
 
     @staticmethod
     def bulk_set_cache(organization_id, *args):
-        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, *args)
 
