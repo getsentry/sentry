@@ -1,0 +1,37 @@
+{% load i18n %}{% load static from staticfiles %}
+<div class="djDebugPanelTitle">
+	<a class="djDebugClose djDebugBack" href=""></a>
+	<h3>{% trans "SQL explained" %}</h3>
+</div>
+<div class="djDebugPanelContent">
+	<div class="djdt-scroll">
+		<dl>
+			<dt>{% trans "Executed SQL" %}</dt>
+			<dd>{{ sql|safe }}</dd>
+			<dt>{% trans "Time" %}</dt>
+			<dd>{{ duration }} ms</dd>
+			<dt>{% trans "Database" %}</dt>
+			<dd>{{ alias }}</dd>
+		</dl>
+		<table class="djSqlExplain">
+			<thead>
+				<tr>
+					{% for h in headers %}
+						<th>{{ h|upper }}</th>
+					{% endfor %}
+				</tr>
+			</thead>
+			<tbody>
+				{% for row in result %}
+					<tr class="{% cycle 'djDebugOdd' 'djDebugEven' %}">
+						{% for column in row %}
+							<td>{{ column|escape }}</td>
+						{% endfor %}
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<script src="{% static 'debug_toolbar/js/toolbar.sql.js' %}"></script>
