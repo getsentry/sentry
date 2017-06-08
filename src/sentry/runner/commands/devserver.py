@@ -18,10 +18,11 @@ from sentry.runner.decorators import configuration, log_options
 @click.option('--watchers/--no-watchers', default=True, help='Watch static files and recompile on changes.')
 @click.option('--workers/--no-workers', default=False, help='Run asynchronous workers.')
 @click.option('--browser-reload/--no-browser-reload', default=False, help='Automatic browser refreshing on webpack builds')
+@click.option('--environment', default='development', help='The environment name.')
 @click.argument('bind', default='127.0.0.1:8000', metavar='ADDRESS')
 @log_options()
 @configuration
-def devserver(reload, watchers, workers, browser_reload, bind):
+def devserver(reload, watchers, workers, browser_reload, environment, bind):
     "Starts a lightweight web server for development."
     if ':' in bind:
         host, port = bind.split(':', 1)
@@ -31,6 +32,9 @@ def devserver(reload, watchers, workers, browser_reload, bind):
         port = None
 
     import os
+
+    os.environ['SENTRY_ENVIRONMENT'] = environment
+
     from django.conf import settings
     from sentry import options
     from sentry.services.http import SentryHTTPServer

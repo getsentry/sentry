@@ -29,6 +29,17 @@ the ``sentry config`` CLI helper.
 General
 -------
 
+.. describe:: SENTRY_ENVIRONMENT
+
+    Declared in system environment.
+
+    The environment name for this installation. This will also control defaults
+    for things like ``DEBUG``.
+
+    ::
+
+        SENTRY_ENVIRONMENT=production sentry ...
+
 .. describe:: system.admin-email
 
     Declared in ``config.yml``.
