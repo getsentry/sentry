@@ -29,11 +29,7 @@ const ReleaseList = React.createClass({
                       version={release.version}
                     />
                   </h2>
-                  <LatestDeployOrReleaseTime
-                    orgId={orgId}
-                    releaseDateCreated={release.dateCreated}
-                    version={release.version}
-                  />
+                  <LatestDeployOrReleaseTime orgId={orgId} release={release} />
                 </div>
                 <div className="col-sm-4 hidden-xs">
                   <ReleaseStats release={release} />

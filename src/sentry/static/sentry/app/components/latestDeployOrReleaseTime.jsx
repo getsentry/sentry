@@ -1,16 +1,13 @@
 import React from 'react';
 import ApiMixin from '../mixins/apiMixin';
 import TooltipMixin from '../mixins/tooltip';
-import LoadingIndicator from './loadingIndicator';
-import LoadingError from './loadingError';
 import TimeSince from './timeSince';
 import {t} from '../locale';
 
 const LatestDeployOrReleaseTime = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    version: React.PropTypes.string.isRequired,
-    releaseDateCreated: React.PropTypes.string.isRequired
+    release: React.PropTypes.object.isRequired
   },
 
   mixins: [
@@ -20,59 +17,21 @@ const LatestDeployOrReleaseTime = React.createClass({
     })
   ],
 
-  getInitialState() {
-    return {
-      deploys: [],
-      loading: true
-    };
-  },
-
-  componentWillMount() {
-    this.fetchData();
-  },
-
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.loading && !this.state.loading) {
-      this.removeTooltips();
-      this.attachTooltips();
-    }
+    this.removeTooltips();
+    this.attachTooltips();
   },
 
-  fetchData() {
-    let deployPath = `/organizations/${this.props.orgId}/releases/${encodeURIComponent(this.props.version)}/deploys/`;
-    this.api.request(deployPath, {
-      method: 'GET',
-      success: data => {
-        this.setState({
-          deploys: data,
-          loading: false
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true,
-          loading: false
-        });
-      }
-    });
-  },
   render() {
-    if (this.state.loading) {
-      return <LoadingIndicator mini={true} />;
-    }
-    if (this.state.error) {
-      return <LoadingError />;
-    }
-    let {releaseDateCreated} = this.props;
-    let {deploys} = this.state;
-    let earlierDeploysNum = deploys.length - 1;
-    let latestDeploy = deploys[0];
+    let {release} = this.props;
+    let earlierDeploysNum = release.totalDeploys - 1;
+    let latestDeploy = release.lastDeploy;
     // if there are deploys associated with the release
     // render the most recent deploy (API will return data ordered by dateFinished)
     // otherwise, render the dateCreated associated with release
     return (
       <div>
-        {deploys.length > 0 && latestDeploy.dateFinished
+        {latestDeploy && latestDeploy.dateFinished
           ? <div className="deploy">
               <p className="m-b-0 text-light">
                 <span
@@ -100,7 +59,7 @@ const LatestDeployOrReleaseTime = React.createClass({
           : <p className="m-b-0 text-light">
               <span className="icon icon-clock" />
               {' '}
-              <TimeSince date={releaseDateCreated} />
+              <TimeSince date={release.dateCreated} />
             </p>}
       </div>
     );
