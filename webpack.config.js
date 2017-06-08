@@ -69,7 +69,10 @@ var entry = {
   // css
   // NOTE: this will also create an empty 'sentry.js' file
   // TODO: figure out how to not generate this
-  sentry: 'less/sentry.less'
+  sentry: 'less/sentry.less',
+
+  // debug toolbar
+  debugger: 'less/debugger.less'
 };
 
 // dynamically iterate over locale files and add to `entry` config
