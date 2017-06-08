@@ -52,9 +52,6 @@ def record_event_processed(project, group, event, **kwargs):
     elif event.data.get(get_interface('csp')):
         feature_slugs.append('csp')
 
-    # First Event
-    feature_slugs.append('first_event')
-
     # Release Tracking
     if event.get_tag('sentry:release'):
         feature_slugs.append('release_tracking')

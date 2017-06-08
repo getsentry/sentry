@@ -2,18 +2,18 @@ from __future__ import absolute_import
 
 import logging
 
-from django.core.cache import cache
 from django.db import models
 from django.utils import timezone
 from jsonfield import JSONField
 
+from sentry.adoption import manager
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
     Model,
     sane_repr
 )
-from sentry.adoption import manager
+from sentry.utils import redis
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,37 @@ manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["firs
 
 
 class FeatureAdoptionManager(BaseManager):
+
+    @staticmethod
+    def in_cache(organization_id, feature_id):
+        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        feature_matches = []
+        with redis.clusters.get('default').map() as client:
+            feature_matches.append(client.sismember(org_key, feature_id))
+
+        return any([p.value for p in feature_matches])
+
+    @staticmethod
+    def set_cache(organization_id, feature_id):
+        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        with redis.clusters.get('default').map() as client:
+            client.sadd(org_key, feature_id)
+
+    @staticmethod
+    def get_all_cache(organization_id):
+        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        result = []
+        with redis.clusters.get('default').map() as client:
+            result.append(client.smembers(org_key))
+
+        return set.union(*[p.value for p in result])
+
+    @staticmethod
+    def bulk_set_cache(organization_id, *args):
+        org_key = 'organization-feature-adoption:{}'.format(organization_id)
+        with redis.clusters.get('default').map() as client:
+            client.sadd(org_key, *args)
+
     def record(self, organization_id, feature_slug, **kwargs):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
@@ -84,51 +115,35 @@ class FeatureAdoptionManager(BaseManager):
             logger.info('Invalid feature slug: %s' % feature_slug)
             return
 
-        cache_key = 'featureadoption:%s:%s' % (
-            organization_id,
-            feature_id,
-        )
-        if cache.get(cache_key) is None:
+        if not self.in_cache(organization_id, feature_id):
             row, created = self.create_or_update(
                 organization_id=organization_id,
                 feature_id=feature_id,
-                values={
-                    'date_modified': timezone.now(),
-                    'complete': True,
-                },
-                defaults={
-                    'applicable': True,  # Only on the first time should override CS
-                },
+                date_modified=timezone.now(),
+                complete=True,
             )
-            # Store marker to prevent running all the time
-            cache.set(cache_key, 1, 3600)
+            self.set_cache(organization_id, feature_id)
             return created
 
         return False
 
     def bulk_record(self, organization_id, feature_slugs, **kwargs):
         try:
-            cache_keys_map = {}
-            for feature_slug in feature_slugs:
-                feature_id = manager.get_by_slug(feature_slug).id
-                key = 'featureadoption:%s:%s' % (organization_id, feature_id)
-                cache_keys_map[key] = feature_id
-
             features = []
-            keys_in_cache = cache.get_many(cache_keys_map.keys())
-            keys_not_in_cache = set(cache_keys_map.keys()) - set(keys_in_cache.keys())
-            if keys_not_in_cache:
-                for key in keys_not_in_cache:
-                    features.append(FeatureAdoption(
-                        organization_id=organization_id,
-                        feature_id=cache_keys_map[key],
-                        complete=True,
-                        date_modified=timezone.now()))
+            incomplete_feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs]) - self.get_all_cache(organization_id)
 
-                self.bulk_create(features)
-                cache.set_many({key: 1 for key in keys_not_in_cache}, 3600)
+            for feature_id in incomplete_feature_ids:
+                features.append(FeatureAdoption(
+                    organization_id=organization_id,
+                    feature_id=feature_id,
+                    complete=True,
+                    date_modified=timezone.now()))
+
+            self.bulk_create(features)
+            self.bulk_set_cache(organization_id, *incomplete_feature_ids)
+
         except KeyError:
-            logger.info('Invalid feature slug: %s' % feature_slug)
+            logger.info('Invalid feature slug: %s' % feature_slugs)
             return
 
     def get_by_slug(self, organization, slug):
