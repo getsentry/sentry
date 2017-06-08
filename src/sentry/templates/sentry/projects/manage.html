@@ -224,11 +224,9 @@
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/install/' project.organization.slug project.slug %}">{% trans "Error Tracking" %}</a>
     </li>
-    {% if organization.flags.early_adopter %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/csp/' project.organization.slug project.slug %}">{% trans "CSP Reports" %}</a>
     </li>
-    {% endif %}
     <li>
         <a href="{% absolute_uri '/{}/{}/settings/user-feedback/' project.organization.slug project.slug %}">{% trans "User Feedback" %}</a>
     </li>
