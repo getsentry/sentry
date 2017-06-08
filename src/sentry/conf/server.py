@@ -748,7 +748,7 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 SENTRY_CLIENT = 'sentry.utils.raven.SentryInternalClient'
 
 SENTRY_FEATURES = {
-    'auth:register': True,
+    'auth:register': False,
     'organizations:api-keys': False,
     'organizations:create': True,
     'organizations:sso': True,
