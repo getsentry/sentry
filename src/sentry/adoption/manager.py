@@ -5,7 +5,7 @@ from collections import defaultdict, namedtuple
 
 FEATURE_LOCATION = {'language', 'integration', 'code', 'web', 'admin'}
 
-Feature = namedtuple('Feature', ['id', 'slug', 'name', 'location', 'prerequesite'])
+Feature = namedtuple('Feature', ['id', 'slug', 'name', 'location', 'prerequisite'])
 
 
 class AdoptionManager(object):
