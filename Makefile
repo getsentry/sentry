@@ -199,7 +199,7 @@ travis-lint-django-18: travis-lint-postgres
 
 # Test steps
 travis-test-danger:
-	bundle exec danger
+	[[ -z "${DANGER_GITHUB_API_TOKEN}" ]] && echo "Skipping danger on PR." || bundle exec danger
 travis-test-sqlite: test-python-coverage
 travis-test-postgres: test-python-coverage
 travis-test-mysql: test-python-coverage
