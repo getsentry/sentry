@@ -65,7 +65,7 @@ class MailPlugin(NotificationPlugin):
         subject = force_text(subject)
 
         msg = MessageBuilder(
-            subject='%s%s' % (subject_prefix, subject),
+            subject=u'%s%s' % (subject_prefix, subject.decode('utf-8')),
             template=template,
             html_template=html_template,
             body=body,
