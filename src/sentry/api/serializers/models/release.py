@@ -108,7 +108,7 @@ class ReleaseSerializer(Serializer):
         if commit_ids:
             commit_list = list(Commit.objects.filter(
                 id__in=commit_ids,
-            ))
+            ).select_related('author'))
             commits = {
                 c.id: d for c, d in izip(commit_list, serialize(commit_list, user))
             }
