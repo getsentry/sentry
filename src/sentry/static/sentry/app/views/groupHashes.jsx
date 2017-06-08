@@ -143,12 +143,14 @@ const GroupHashes = React.createClass({
     let {params} = this.props;
     let {selectedSet} = this.state;
 
-    let ids = selectedSet.values();
+    let ids = Array.from(selectedSet.values());
 
     let loadingIndicator = IndicatorStore.add(t('Unmerging issues..'));
     this.api.request(`/issues/${params.groupId}/hashes/`, {
       method: 'DELETE',
-      data: ids,
+      query: {
+        id: ids
+      },
       success: (data, _, jqXHR) => {
         this.setState({
           hashList: this.state.hashList.filter(hash => !selectedSet.has(hash.id)),
