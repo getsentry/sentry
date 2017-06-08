@@ -119,9 +119,7 @@ class FeatureAdoptionManager(BaseManager):
             row, created = self.create_or_update(
                 organization_id=organization_id,
                 feature_id=feature_id,
-                date_modified=timezone.now(),
-                complete=True,
-            )
+                complete=True)
             self.set_cache(organization_id, feature_id)
             return created
 
@@ -136,8 +134,7 @@ class FeatureAdoptionManager(BaseManager):
                 features.append(FeatureAdoption(
                     organization_id=organization_id,
                     feature_id=feature_id,
-                    complete=True,
-                    date_modified=timezone.now()))
+                    complete=True))
 
             self.bulk_create(features)
             self.bulk_set_cache(organization_id, *incomplete_feature_ids)
@@ -156,7 +153,6 @@ class FeatureAdoption(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     feature_id = models.PositiveIntegerField(choices=[(f.id, f.name) for f in manager.all()])
     date_completed = models.DateTimeField(default=timezone.now)
-    date_modified = models.DateTimeField(null=True)
     complete = models.BooleanField(default=False)
     applicable = models.BooleanField(default=True)  # Is this feature applicable to this team?
     data = JSONField()
