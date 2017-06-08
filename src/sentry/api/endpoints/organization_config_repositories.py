@@ -4,6 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.plugins import bindings
+from sentry import features
 
 
 class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
@@ -13,7 +14,7 @@ class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
         providers = []
         for provider_id in provider_bindings:
             provider = provider_bindings.get(provider_id)(id=provider_id)
-            if provider.name != 'Bitbucket' or bool(organization.flags.early_adopter):
+            if provider.name != 'Bitbucket' or features.has('organizations:bitbucket-repos'):
                 providers.append({
                     'id': provider_id,
                     'name': provider.name,

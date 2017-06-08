@@ -367,8 +367,8 @@ const SearchBar = React.createClass({
 
       searchItems[state.activeSearchItem].active = true;
       this.setState({searchItems: searchItems.slice(0)});
-    } else if (evt.key === 'Tab' && !this.isDefaultDropdown()) {
-      evt.preventDefault();
+    } else if ((evt.key === 'Tab' || evt.key === 'Enter') && !this.isDefaultDropdown()) {
+      if (evt.key === 'Tab') evt.preventDefault();
 
       this.onAutoComplete(searchItems[state.activeSearchItem].value);
     }
