@@ -6,10 +6,9 @@ import six
 from symsynd import demangle_symbol, SymbolicationError, get_cpu_name, \
     ImageLookup, Symbolizer as SymsyndSymbolizer
 
-from sentry.lang.native.dsymcache import dsymcache
 from sentry.utils.safe import trim
 from sentry.utils.compat import implements_to_string
-from sentry.models import EventError
+from sentry.models import EventError, ProjectDSymFile
 from sentry.constants import MAX_SYM, NATIVE_UNKNOWN_STRING
 
 
@@ -109,7 +108,7 @@ class Symbolizer(object):
         if to_load is None:
             to_load = self.image_lookup.get_uuids()
 
-        self.dsym_paths = dsymcache.fetch_dsyms(
+        self.dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(
             project, to_load, on_dsym_file_referenced=on_dsym_file_referenced)
 
         self.cpu_name = cpu_name
