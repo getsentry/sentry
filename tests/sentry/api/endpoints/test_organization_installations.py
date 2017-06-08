@@ -27,6 +27,7 @@ class OrganizationInstallationsListTest(APITestCase):
         assert response.data[0] == {
             'id': 'dummy',
             'name': 'Example',
+            'install_url': None,
             'installations': [{
                 'installation_id': '54321',
                 'linked': False,
