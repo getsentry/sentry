@@ -24,7 +24,7 @@ from sentry.coreapi import (
 )
 from sentry.models import Project, OrganizationOption, Organization
 from sentry.signals import (
-    event_accepted, event_dropped, event_filtered, event_received, api_called
+    event_accepted, event_dropped, event_filtered, event_received
 )
 from sentry.quotas.base import RateLimit
 from sentry.utils import json, metrics
@@ -240,7 +240,6 @@ class APIView(BaseView):
             else:
                 response['Access-Control-Allow-Origin'] = origin
 
-        api_called.send(project=project, sender=self)
         return response
 
     # XXX: backported from Django 1.5

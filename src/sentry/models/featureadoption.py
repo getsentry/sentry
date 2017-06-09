@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -54,7 +54,7 @@ manager.add(43, "user_tracking", "User Tracking", "code", prerequisite=["first_e
 manager.add(44, "custom_tags", "Custom Tags", "code", prerequisite=["first_event"])
 manager.add(45, "source_maps", "Source Maps", "code", prerequisite=["first_event", "javascript"])
 manager.add(46, "user_feedback", "User Feedback", "code", prerequisite=["user_tracking"])
-manager.add(47, "api", "API", "code", prerequisite=["first_event"])
+# manager.add(47, "api", "API", "code", prerequisite=["first_event"])  # Challenging to determine what organization (i.e. api/0/organizations/)
 manager.add(48, "breadcrumbs", "Breadcrumbs", "code", prerequisite=["first_event", ("python", "javascript", "node", "php")])
 # TODO(ehfeng) manager.add("resolve_in_commit", "Resolve in Commit", "code", prerequisite=["first_event", "releases"])
 
@@ -102,7 +102,7 @@ class FeatureAdoptionManager(BaseManager):
         with redis.clusters.get('default').map() as client:
             result.append(client.smembers(org_key))
 
-        return set.union(*[p.value for p in result])
+        return {int(x) for x in set.union(*[p.value for p in result])}
 
     @staticmethod
     def bulk_set_cache(organization_id, *args):
@@ -143,6 +143,10 @@ class FeatureAdoptionManager(BaseManager):
 
         except KeyError:
             logger.info('Invalid feature slug: %s' % feature_slugs)
+            return
+        except IntegrityError:
+            # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
+            logger.info('IntegrityError, cannot insert: %s' % feature_slugs)
             return
 
     def get_by_slug(self, organization, slug):

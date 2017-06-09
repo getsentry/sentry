@@ -14,7 +14,6 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     user_feedback_received,
-    api_called,
     issue_assigned,
     issue_resolved_in_release,
     advanced_search,
@@ -88,14 +87,6 @@ def record_user_feedback(project, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id,
         feature_slug="user_feedback",
-        complete=True)
-
-
-@api_called.connect(weak=False)
-def record_api_called(project, **kwargs):
-    FeatureAdoption.objects.record(
-        organization_id=project.organization_id,
-        feature_slug="api",
         complete=True)
 
 

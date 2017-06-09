@@ -12,7 +12,6 @@ from sentry.signals import (
     member_joined,
     plugin_enabled,
     user_feedback_received,
-    api_called,
     issue_assigned,
     issue_resolved_in_release,
     advanced_search,
@@ -264,13 +263,6 @@ class FeatureAdoptionTest(TestCase):
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization,
             slug="user_feedback")
-        assert feature_complete
-
-    def test_api_called(self):
-        api_called.send(project=self.project, sender=type(self.project))
-        feature_complete = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization,
-            slug="api")
         assert feature_complete
 
     def test_project_created(self):
