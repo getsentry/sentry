@@ -55,9 +55,9 @@ const ActivityItem = React.createClass({
     let issue = item.issue;
 
     let issueLink = issue
-      ? (<IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
+      ? <IssueLink orgId={orgId} projectId={project.slug} issue={issue}>
           {issue.shortId}
-        </IssueLink>)
+        </IssueLink>
       : null;
 
     switch (item.type) {
