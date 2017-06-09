@@ -7,7 +7,8 @@ import GroupState from '../mixins/groupState';
 import MutedBox from '../components/mutedBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import {t} from '../locale';
+import Version from '../components/version';
+import {t, tct} from '../locale';
 
 const GroupEventDetails = React.createClass({
   mixins: [ApiMixin, GroupState],
@@ -89,14 +90,22 @@ const GroupEventDetails = React.createClass({
                 {group.status === 'ignored' &&
                   <MutedBox statusDetails={group.statusDetails} />}
                 {group.status === 'resolved' &&
-                  group.statusDetails.inNextRelease &&
+                  group.statusDetails.inRelease &&
                   <div className="box">
                     <span className="icon icon-checkmark" />
                     <p>
-                      {t(
-                        `This issue has been marked as being resolved in the next
-                      release. Until then, you will not get notified about new
-                      occurrences.`
+                      {tct(
+                        `This issue has been marked as being resolved in version
+                         [version].`,
+                        {
+                          version: (
+                            <Version
+                              version={group.statusDetails.inRelease}
+                              orgId={params.orgId}
+                              projectId={params.projectId}
+                            />
+                          )
+                        }
                       )}
                     </p>
                   </div>}

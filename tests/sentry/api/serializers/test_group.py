@@ -70,7 +70,7 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {'inNextRelease': True}
+        assert result['statusDetails'] == {'inRelease': 'a'}
 
     def test_resolved_in_next_release_expired_resolution(self):
         release = Release.objects.create(
