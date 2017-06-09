@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+from six.moves.urllib.parse import urlencode
+
 from sentry.models import GroupHash
 from sentry.testutils import APITestCase
 
@@ -21,3 +23,26 @@ class GroupHashesTest(APITestCase):
             'a' * 32,
             'b' * 32,
         ])
+
+    def test_unmerge(self):
+        self.login_as(user=self.user)
+
+        group = self.create_group()
+
+        hashes = [
+            GroupHash.objects.create(
+                project=group.project,
+                group=group,
+                hash=hash,
+            ) for hash in ['a' * 32, 'b' * 32]
+        ]
+
+        url = '?'.join([
+            '/api/0/issues/{}/hashes/'.format(group.id),
+            urlencode({
+                'id': [h.hash for h in hashes],
+            }, True),
+        ])
+
+        response = self.client.delete(url, format='json')
+        assert response.status_code == 202, response.content
