@@ -95,8 +95,7 @@ const GroupEventDetails = React.createClass({
                     <span className="icon icon-checkmark" />
                     <p>
                       {tct(
-                        `This issue has been marked as being resolved in version
-                         [version].`,
+                        'This issue has been marked as resolved as of version [version].',
                         {
                           version: (
                             <Version
