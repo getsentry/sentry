@@ -257,6 +257,51 @@ class FeatureAdoptionTest(TestCase):
             slug="breadcrumbs")
         assert breadcrumbs
 
+    def test_multiple_events(self):
+        group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
+        simple_event = self.create_event()
+        first_event_received.send(project=self.project, group=group, sender=type(self.project))
+        event_processed.send(project=self.project, group=group, event=simple_event, sender=type(self.project))
+
+        first_event = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="first_event")
+
+        assert first_event.complete
+
+        js = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="javascript")
+        assert js.complete
+
+        full_event = self.create_full_event()
+        event_processed.send(project=self.project, group=group, event=full_event, sender=type(self.project))
+
+        release_tracking = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="release_tracking")
+        assert release_tracking
+
+        environment_tracking = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="environment_tracking")
+        assert environment_tracking
+
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="user_tracking")
+        assert feature_complete
+
+        source_maps = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="source_maps")
+        assert source_maps
+
+        breadcrumbs = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="breadcrumbs")
+        assert breadcrumbs
+
     def test_user_feedback(self):
         user_feedback_received.send(project=self.project, sender=type(self.project))
 
