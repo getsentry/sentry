@@ -18,6 +18,12 @@ Schema Changes
 - Removed DSymSymbol
 - Removed GlobalDSymFile
 
+API Changes
+~~~~~~~~~~~
+
+- Project keys endpoint will include all available keys by default. Use
+  ``status=active`` to retain the old behavior.
+
 Version 8.17
 ------------
 
