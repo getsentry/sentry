@@ -19,16 +19,16 @@ class GroupHash(Model):
 
     class State:
         ACTIVE = 0
-        MIGRATION_IN_PROGRESS = 1
+        LOCKED_IN_MIGRATION = 1
 
     project = FlexibleForeignKey('sentry.Project', null=True)
     hash = models.CharField(max_length=32)
     group = FlexibleForeignKey('sentry.Group', null=True)
     state = BoundedPositiveIntegerField(
-        choices=(
+        choices=[
             (State.ACTIVE, _('Active')),
-            (State.MIGRATION_IN_PROGRESS, _('Migration in Progress')),
-        ),
+            (State.LOCKED_IN_MIGRATION, _('Locked (Migration in Progress)')),
+        ],
         default=State.ACTIVE,
     )
 

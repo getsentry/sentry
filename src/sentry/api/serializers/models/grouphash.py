@@ -38,6 +38,11 @@ def get_latest_events(group_hash_list):
 
 @register(GroupHash)
 class GroupHashSerializer(Serializer):
+    state_text_map = {
+        GroupHash.State.ACTIVE: 'active',
+        GroupHash.State.LOCKED_IN_MIGRATION: 'locked',
+    }
+
     def get_attrs(self, item_list, user, *args, **kwargs):
         return {
             item: {'latest_event': latest_event}
@@ -55,4 +60,5 @@ class GroupHashSerializer(Serializer):
         return {
             'id': obj.hash,
             'latest_event': attrs['latest_event'],
+            'state': self.state_text_map[obj.state],
         }
