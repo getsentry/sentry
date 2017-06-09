@@ -13,7 +13,6 @@ class OrganizationInstallationsListTest(APITestCase):
         org = self.create_organization(owner=self.user, name='baz')
         Installation.objects.create(
             provider='dummy',
-            app_id='12345',
             installation_id='54321',
             external_id='987612345',
             external_organization='dummyorg',
@@ -43,7 +42,6 @@ class OrganizationInstallationsCreateTest(APITestCase):
         org = self.create_organization(owner=self.user, name='baz')
         inst = Installation.objects.create(
             provider='dummy',
-            app_id='12345',
             installation_id='54321',
             external_id='987612345',
             external_organization='dummyorg',

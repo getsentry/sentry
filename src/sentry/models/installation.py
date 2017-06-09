@@ -24,16 +24,14 @@ class Installation(Model):
                                            related_name='installations',
                                            through=OrganizationInstallation)
     provider = models.CharField(max_length=64)
-    # TODO(jess) maybe this is not necessary bc it's our integration
-    # id and therefore the same for all (across a provider)
-    app_id = models.CharField(max_length=64)
-    installation_id = models.CharField(max_length=64, unique=True)
+    installation_id = models.CharField(max_length=64)
     external_organization = models.CharField(max_length=64, null=True)
     external_id = models.CharField(max_length=64, null=True)
 
     class Meta:
         app_label = 'sentry'
         db_table = 'sentry_installation'
+        unique_together = (('provider', 'installation_id'),)
 
     def add_organization(self, organization):
         """
