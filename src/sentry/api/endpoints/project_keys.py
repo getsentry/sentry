@@ -53,12 +53,28 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project the client keys
                                      belong to.
         """
-        keys = list(ProjectKey.objects.filter(
+        queryset = ProjectKey.objects.filter(
             project=project,
-            status=ProjectKeyStatus.ACTIVE,
             roles=ProjectKey.roles.store,
-        ))
-        return Response(serialize(keys, request.user))
+        )
+        status = request.GET.get('status')
+        if status == 'active':
+            queryset = queryset.filter(
+                status=ProjectKeyStatus.ACTIVE,
+            )
+        elif status == 'inactive':
+            queryset = queryset.filter(
+                status=ProjectKeyStatus.INACTIVE,
+            )
+        elif status:
+            queryset = queryset.none()
+
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by='-id',
+            on_results=lambda x: serialize(x, request.user),
+        )
 
     @attach_scenarios([create_key_scenario])
     def post(self, request, project):
