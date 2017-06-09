@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from rest_framework import serializers
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
-from sentry.models import Environment
 from sentry.models import ProjectPlatform
 
 
@@ -17,7 +16,7 @@ class ProjectPlatformSerializer(serializers.Serializer):
 class ProjectPlatformsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         queryset = ProjectPlatform.objects.filter(
-            project_id = project.id
+            project_id=project.id
         ).values('project_id', 'platform', 'date_added', 'last_seen', 'date_chosen')
         return Response(serialize(list(queryset), request.user))
 
@@ -27,10 +26,7 @@ class ProjectPlatformsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = dict(serializer.object)
-        queryset = ProjectPlatform.objects.filter(
-            project_id = project.id
-        )
-        values={
+        values = {
             'date_chosen': now,
             'date_added': None,
             'last_seen': None
