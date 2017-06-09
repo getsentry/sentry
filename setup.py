@@ -37,8 +37,9 @@ from setuptools import setup, find_packages
 from setuptools.command.sdist import sdist as SDistCommand
 from setuptools.command.develop import develop as DevelopCommand
 
-ROOT = os.path.realpath(os.path.join(os.path.dirname(
-    sys.modules['__main__'].__file__)))
+ROOT = os.path.realpath(
+    os.path.join(os.path.dirname(sys.modules['__main__'].__file__))
+)
 
 # Add Sentry to path so we can import distutils
 sys.path.insert(0, os.path.join(ROOT, 'src'))
@@ -67,6 +68,7 @@ dev_requires = [
     'flake8>=2.6,<2.7',
     'pycodestyle>=2.0,<2.1',
     'isort>=4.2.2,<4.3.0',
+    'yapf>=0.16.2,<1.0.0',
 ]
 
 tests_require = [
@@ -85,7 +87,6 @@ tests_require = [
     'python-coveralls',
     'responses',
 ]
-
 
 install_requires = [
     'boto3>=1.4.1,<1.5',
@@ -108,7 +109,6 @@ install_requires = [
     'honcho>=0.7.0,<0.8.0',
     'kombu==3.0.35',
     'lxml>=3.4.1',
-
     'ipaddress>=1.0.16,<1.1.0',
     'libsourcemap>=0.7.1,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
@@ -158,7 +158,6 @@ class SentrySDistCommand(SDistCommand):
 
 
 class SentryBuildCommand(BuildCommand):
-
     def run(self):
         BuildCommand.run(self)
         if not IS_LIGHT_BUILD:
@@ -167,12 +166,12 @@ class SentryBuildCommand(BuildCommand):
 
 
 class SentryDevelopCommand(DevelopCommand):
-
     def run(self):
         DevelopCommand.run(self)
         if not IS_LIGHT_BUILD:
             self.run_command('build_assets')
             self.run_command('build_integration_docs')
+
 
 cmdclass = {
     'sdist': SentrySDistCommand,
@@ -181,7 +180,6 @@ cmdclass = {
     'build_assets': BuildAssetsCommand,
     'build_integration_docs': BuildIntegrationDocsCommand,
 }
-
 
 setup(
     name='sentry',
@@ -207,12 +205,10 @@ setup(
         'console_scripts': [
             'sentry = sentry.runner:main',
         ],
-        'flake8.extension': [
-        ],
+        'flake8.extension': [],
     },
     classifiers=[
-        'Framework :: Django',
-        'Intended Audience :: Developers',
+        'Framework :: Django', 'Intended Audience :: Developers',
         'Intended Audience :: System Administrators',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 2',
