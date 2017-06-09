@@ -32,7 +32,6 @@ class DebugMiddleware(object):
     _body_regexp = re.compile(re.escape('</body>'), flags=re.IGNORECASE)
 
     def show_toolbar_for_request(self, request):
-        # TODO(dcramer): support VPN via INTERNAL_IPS + ipaddr maps
         if not settings.SENTRY_DEBUGGER:
             return False
         if not request.is_superuser():
