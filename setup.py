@@ -95,7 +95,6 @@ install_requires = [
     'cssutils>=0.9.9,<0.10.0',
     'Django>=1.6.0,<1.7',
     'django-crispy-forms>=1.4.0,<1.5.0',
-    'django-debug-toolbar>=1.3.2,<1.4.0',
     'django-jsonfield>=0.9.13,<0.9.14',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-sudo>=2.1.0,<3.0.0',
