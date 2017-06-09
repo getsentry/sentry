@@ -139,7 +139,7 @@ class GroupSerializer(Serializer):
             GroupResolution.objects.filter(
                 group__in=item_list,
                 status=GroupResolutionStatus.PENDING,
-            ).values_list('group', 'release')
+            ).values_list('group', 'release__version')
         )
 
         result = {}
@@ -196,7 +196,7 @@ class GroupSerializer(Serializer):
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
             if attrs['pending_resolution']:
-                status_details['inNextRelease'] = True
+                status_details['inRelease'] = attrs['pending_resolution']
         elif status == GroupStatus.IGNORED:
             status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
