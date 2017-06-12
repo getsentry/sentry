@@ -17,6 +17,30 @@ export const User = PropTypes.shape({
   id: PropTypes.string.isRequired,
 });
 
+export const Config = PropTypes.shape({
+  dsn: PropTypes.string,
+  features: PropTypes.instanceOf(Set),
+  gravatarBaseUrl: PropTypes.string,
+  invitesEnabled: PropTypes.bool,
+  isAuthenticated: PropTypes.bool,
+  isOnPremise: PropTypes.bool,
+  mediaUrl: PropTypes.string,
+  messages: PropTypes.array,
+  needsUpgrade: PropTypes.bool,
+  privacyUrl: PropTypes.string,
+  singleOrganization: PropTypes.bool,
+  supportEmail: PropTypes.string,
+  termsUrl: PropTypes.string,
+  urlPrefix: PropTypes.string,
+  user: User,
+  version: PropTypes.shape({
+    current: PropTypes.string,
+    build: PropTypes.string,
+    latest: PropTypes.string,
+    upgradeAvailable: PropTypes.bool,
+  }),
+});
+
 /**
  * A Member is someone that was invited to Sentry but may
  * not have registered for an account yet
@@ -236,6 +260,7 @@ let SentryTypes = {
     id: PropTypes.string.isRequired,
   }),
   Actor,
+  Config,
   Group,
   Environment,
   Event,

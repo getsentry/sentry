@@ -115,7 +115,20 @@ class BaseAvatar extends React.Component {
   }
 
   render() {
-    let {hasTooltip, size, tooltip} = this.props;
+    let {
+      className,
+      hasTooltip,
+      size,
+      tooltip,
+      style,
+      remoteImageSize, // eslint-disable-line no-unused-vars
+      title, // eslint-disable-line no-unused-vars
+      uploadId, // eslint-disable-line no-unused-vars
+      gravatarId, // eslint-disable-line no-unused-vars
+      letterId, // eslint-disable-line no-unused-vars
+      type, // eslint-disable-line no-unused-vars
+      ...props
+    } = this.props;
     let sizeStyle = {};
 
     if (size) {
@@ -128,11 +141,12 @@ class BaseAvatar extends React.Component {
     return (
       <Tooltip title={tooltip} disabled={!hasTooltip}>
         <StyledBaseAvatar
-          className={classNames('avatar', this.props.className)}
+          className={classNames('avatar', className)}
           style={{
             ...sizeStyle,
-            ...this.props.style,
+            ...style,
           }}
+          {...props}
         >
           {this.state.showBackupAvatar && this.renderLetterAvatar()}
           {this.renderImg()}

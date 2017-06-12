@@ -2,6 +2,7 @@
 
 exports[`SettingsLayout renders 1`] = `
 <React.Fragment>
+  <withOrganizations />
   <SettingsHeader>
     <SettingsSubheader>
       <Container>

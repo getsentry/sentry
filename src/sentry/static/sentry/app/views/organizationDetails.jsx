@@ -133,7 +133,7 @@ class OrganizationDetailsBody extends Component {
       }
     return (
       <React.Fragment>
-        <Sidebar />
+        <Sidebar organization={organization} />
         {this.props.children}
         <Footer />
       </React.Fragment>
