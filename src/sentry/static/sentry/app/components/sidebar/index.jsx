@@ -17,6 +17,9 @@ import ConfigStore from '../../stores/configStore';
 
 import {t} from '../../locale';
 
+import IssueSidebarOverview from '../../icons/icon-sidebar-overview';
+import IssueSidebarUser from '../../icons/icon-sidebar-user';
+
 const OnboardingStatus = React.createClass({
   propTypes: {
     org: React.PropTypes.object.isRequired,
@@ -70,7 +73,7 @@ function getFirstRequiredAdminAction(org) {
   return null;
 }
 
-const Sidebar = React.createClass({
+const OldSidebar = React.createClass({
   contextTypes: {
     location: React.PropTypes.object
   },
@@ -173,6 +176,7 @@ const Sidebar = React.createClass({
                 className="icon icon-user"
                 onClick={() => this.togglePanel('assigned')}
               />
+              <span className="navbar-label">Assigned to me</span>
             </a>
           </li>
           <li className={this.state.currentPanel == 'bookmarks' ? 'active' : null}>
@@ -181,6 +185,7 @@ const Sidebar = React.createClass({
                 className="icon icon-star-solid"
                 onClick={() => this.togglePanel('bookmarks')}
               />
+              <span className="navbar-label">Starred issues</span>
             </a>
           </li>
           <li className={this.state.currentPanel == 'history' ? 'active' : null}>
@@ -189,6 +194,7 @@ const Sidebar = React.createClass({
                 className="icon icon-av_timer"
                 onClick={() => this.togglePanel('history')}
               />
+              <span className="navbar-label">Recently viewed</span>
             </a>
           </li>
         </ul>
@@ -199,6 +205,7 @@ const Sidebar = React.createClass({
             onShowPanel={() => this.togglePanel('broadcasts')}
             hidePanel={() => this.hidePanel()}
           />
+          <span className="navbar-label">What's new</span>
           <Incidents
             showPanel={this.state.showPanel}
             currentPanel={this.state.currentPanel}
@@ -214,6 +221,7 @@ const Sidebar = React.createClass({
                   : 'https://forum.sentry.io/'
               }>
               <span className="icon icon-support" />
+              <span className="navbar-label">Support</span>
             </a>
           </li>
         </ul>
@@ -336,6 +344,100 @@ const Sidebar = React.createClass({
 
         {this.renderRequiredActions()}
       </nav>
+    );
+  }
+});
+
+const SidebarSection = React.createClass({
+  render() {
+    return (
+      <div className="sidebar-section">
+        {this.props.children}
+      </div>
+    );
+  }
+});
+
+const SidebarItem = React.createClass({
+  render() {
+    return (
+      <div className="sidebar-item">
+        <span className="sidebar-item-icon">
+          {this.props.icon}
+        </span>
+        <span className="sidebar-item-label">{this.props.label}</span>
+      </div>
+    );
+  }
+});
+
+const Sidebar = React.createClass({
+  render() {
+    return (
+      <div className="sidebar">
+        <div className="sidebar-top">
+          <SidebarSection>
+            <SidebarItem
+              icon={<IssueSidebarOverview size={22} />}
+              label={t('Overview')}
+              onClick={() => this.togglePanel('assigned')}
+            />
+            <SidebarItem
+              label={t('Issues')}
+              onClick={() => this.togglePanel('bookmarks')}
+            />
+            <SidebarItem
+              label={t('User feedback')}
+              onClick={() => this.togglePanel('history')}
+            />
+            <SidebarItem
+              label={t('Releases')}
+              onClick={() => this.togglePanel('history')}
+            />
+            <SidebarItem
+              label={t('Settings')}
+              onClick={() => this.togglePanel('history')}
+            />
+          </SidebarSection>
+          <SidebarSection>
+            <SidebarItem
+              icon={<IssueSidebarUser size={22} />}
+              label={t('Assigned to me')}
+              onClick={() => this.togglePanel('assigned')}
+            />
+            <SidebarItem
+              label={t('Starred issues')}
+              onClick={() => this.togglePanel('bookmarks')}
+            />
+            <SidebarItem
+              label={t('Recently viewed')}
+              onClick={() => this.togglePanel('history')}
+            />
+          </SidebarSection>
+          <SidebarSection>
+            <SidebarItem
+              label={t("What's new")}
+              onClick={() => this.togglePanel('assigned')}
+            />
+            <SidebarItem
+              label={t('Support')}
+              onClick={() => this.togglePanel('bookmarks')}
+            />
+            <SidebarItem
+              label={t('Service status')}
+              onClick={() => this.togglePanel('history')}
+            />
+          </SidebarSection>
+        </div>
+        <div className="sidebar-bottom">
+          <SidebarSection>
+            <SidebarItem
+              label={t('Collapse')}
+              onClick={() => this.togglePanel('history')}
+            />
+          </SidebarSection>
+        </div>
+      </div>
     );
   }
 });

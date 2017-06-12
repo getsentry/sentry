@@ -10,13 +10,13 @@ body {
   color: @gray-darker;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  padding-left: @sidebar-width;
+  padding-left: @sidebar-expanded-width;
   padding-top: 30px;
 
   // Fake sidebar rendering until actual sidebar is loaded
 
-  background-image: linear-gradient(@header-bg-color, @header-bg-color);
-  background-size: @sidebar-width;
+  background-image: linear-gradient(@sidebar-bg-color, @sidebar-bg-color);
+  background-size: @sidebar-expanded-width;
   background-repeat: repeat-y;
 
 }
