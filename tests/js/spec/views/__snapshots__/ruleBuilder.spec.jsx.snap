@@ -1872,8 +1872,16 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                       user={
                                         Object {
                                           "email": "janedoe@example.com",
+                                          "flags": Object {
+                                            "newsletter_consent_prompt": false,
+                                          },
+                                          "hasPasswordAuth": true,
                                           "id": "1",
+                                          "isAuthenticated": true,
                                           "name": "Jane Doe",
+                                          "options": Object {
+                                            "timezone": "UTC",
+                                          },
                                           "username": "foo@example.com",
                                         }
                                       }
@@ -1885,14 +1893,21 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                         user={
                                           Object {
                                             "email": "janedoe@example.com",
+                                            "flags": Object {
+                                              "newsletter_consent_prompt": false,
+                                            },
+                                            "hasPasswordAuth": true,
                                             "id": "1",
+                                            "isAuthenticated": true,
                                             "name": "Jane Doe",
+                                            "options": Object {
+                                              "timezone": "UTC",
+                                            },
                                             "username": "foo@example.com",
                                           }
                                         }
                                       >
                                         <BaseAvatar
-                                          gravatar={true}
                                           gravatarId="janedoe@example.com"
                                           hasTooltip={true}
                                           letterId="janedoe@example.com"
@@ -1906,7 +1921,7 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                             disabled={false}
                                             title="Jane Doe (janedoe@example.com)"
                                           >
-                                            <span
+                                            <StyledBaseAvatar
                                               className="tip avatar"
                                               style={
                                                 Object {
@@ -1916,12 +1931,23 @@ exports[`RuleBuilder renders with suggestions renders 1`] = `
                                               }
                                               title="Jane Doe (janedoe@example.com)"
                                             >
-                                              <img
-                                                onError={[Function]}
-                                                onLoad={[Function]}
-                                                src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=32"
-                                              />
-                                            </span>
+                                              <span
+                                                className="tip avatar css-15umz1j-StyledBaseAvatar e1z0ohzl0"
+                                                style={
+                                                  Object {
+                                                    "height": "28px",
+                                                    "width": "28px",
+                                                  }
+                                                }
+                                                title="Jane Doe (janedoe@example.com)"
+                                              >
+                                                <img
+                                                  onError={[Function]}
+                                                  onLoad={[Function]}
+                                                  src="undefined/avatar/e1f3994f2632af3d1c8c2dcc168a10e6?d=blank&s=32"
+                                                />
+                                              </span>
+                                            </StyledBaseAvatar>
                                           </Tooltip>
                                         </BaseAvatar>
                                       </UserAvatar>

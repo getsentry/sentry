@@ -103,7 +103,6 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
               >
                 <BaseAvatar
                   className="tip"
-                  gravatar={true}
                   gravatarId="janedoe@example.com"
                   hasTooltip={false}
                   letterId="janedoe@example.com"
@@ -121,7 +120,7 @@ exports[`SuggestedOwners render() should show owners when enable 1`] = `
                       style={Object {}}
                     >
                       <span
-                        className="avatar tip css-15umz1j-StyledBaseAvatar css-1oevwoz0"
+                        className="avatar tip css-15umz1j-StyledBaseAvatar e1z0ohzl0"
                         style={Object {}}
                       >
                         <img
