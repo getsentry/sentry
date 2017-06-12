@@ -1,0 +1,1 @@
+var djdt = {jQuery: jQuery};

@@ -58,8 +58,11 @@ def env(key, default='', type=None):
 
 env._cache = {}
 
+ENVIRONMENT = os.environ.get('SENTRY_ENVIRONMENT', 'production')
 
-DEBUG = False
+IS_DEV = ENVIRONMENT == 'development'
+
+DEBUG = IS_DEV
 TEMPLATE_DEBUG = True
 MAINTENANCE = False
 
@@ -753,6 +756,7 @@ SENTRY_FEATURES = {
     'organizations:create': True,
     'organizations:sso': True,
     'organizations:callsigns': True,
+    'organizations:group-unmerge': False,
     'projects:global-events': False,
     'projects:plugins': True,
     'projects:dsym': False,
@@ -766,7 +770,7 @@ SENTRY_FEATURES = {
 SENTRY_DEFAULT_TIME_ZONE = 'UTC'
 
 # Enable the Sentry Debugger (Beta)
-SENTRY_DEBUGGER = False
+SENTRY_DEBUGGER = DEBUG
 
 SENTRY_IGNORE_EXCEPTIONS = (
     'OperationalError',
@@ -1132,7 +1136,7 @@ SENTRY_ENCRYPTION_SCHEMES = (
 )
 
 # Delay (in ms) to induce on API responses
-SENTRY_API_RESPONSE_DELAY = 0
+SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
@@ -1163,6 +1167,7 @@ def get_raven_config():
     return {
         'release': sentry.__build__,
         'register_signals': True,
+        'environment': ENVIRONMENT,
         'include_paths': [
             'sentry',
         ],

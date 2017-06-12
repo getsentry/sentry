@@ -274,7 +274,13 @@ class Fixtures(object):
 
         repo = self.create_repo(project)
 
-        self.create_commit(project, repo, author, release)
+        commit = self.create_commit(project, repo, author, release)
+
+        release.update(
+            authors=[six.text_type(author.id)],
+            commit_count=1,
+            last_commit_id=commit.id,
+        )
 
         return release
 
