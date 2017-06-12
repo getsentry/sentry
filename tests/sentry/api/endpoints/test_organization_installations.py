@@ -54,6 +54,16 @@ class OrganizationInstallationsCreateTest(APITestCase):
         })
 
         assert response.status_code == 201, response.content
+        assert response.data == {
+            'id': 'dummy',
+            'name': 'Example',
+            'install_url': None,
+            'installations': [{
+                'installation_id': '54321',
+                'linked': True,
+                'external_organization': 'dummyorg',
+            }]
+        }
         assert OrganizationInstallation.objects.filter(
             installation_id=inst.id,
             organization_id=org.id,

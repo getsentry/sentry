@@ -48,6 +48,16 @@ const OrganizationInstallations = React.createClass({
           provider: providerId,
           installation_id: installation.installation_id
         },
+        success: data => {
+          // TODO(jess): we should sort this alphabetically
+          let installs = this.state.installationList.filter(inst => {
+            return inst.id !== data.id;
+          });
+          installs.push(data);
+          this.setState({
+            installationList: installs
+          });
+        },
         error: err => {
           this.setState({
             loading: false,
@@ -76,24 +86,28 @@ const OrganizationInstallations = React.createClass({
             </a>
           </div>
         </div>
-        {provider.installations.map(inst => {
-          return (
-            <div className="row" key={inst.installation_id}>
-              <div className="col-md-6">
-                {inst.external_organization}
-              </div>
-              <div className="col-md-6">
-                {inst.linked
-                  ? 'Linked'
-                  : <button
-                      className="btn btn-sm btn-default"
-                      onClick={this.toggleInstallation.bind(this, provider.id, inst)}>
-                      Enable
-                    </button>}
-              </div>
-            </div>
-          );
-        })}
+        {provider.installations.length
+          ? provider.installations.map(inst => {
+              return (
+                <div className="row" key={inst.installation_id}>
+                  <div className="col-md-6">
+                    {inst.external_organization}
+                  </div>
+                  <div className="col-md-6">
+                    {inst.linked
+                      ? 'Linked'
+                      : <button
+                          className="btn btn-sm btn-default"
+                          onClick={this.toggleInstallation.bind(this, provider.id, inst)}>
+                          Enable
+                        </button>}
+                  </div>
+                </div>
+              );
+            })
+          : <div className="alert alert-warning m-b-1">
+              No installations available.
+            </div>}
       </div>
     );
   },

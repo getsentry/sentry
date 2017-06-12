@@ -8,9 +8,11 @@ from django.db import IntegrityError, transaction
 from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.provider import ProviderSerializer
 from sentry.exceptions import PluginError
 from sentry.plugins import bindings
-from sentry.models import Installation, OrganizationInstallation, Repository
+from sentry.models import Installation, Repository
 
 
 class OrganizationInstallationEndpoint(OrganizationEndpoint):
@@ -31,28 +33,13 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
                         provider.installation_auth_provider or provider.auth_provider]),
                 }, status=400)
 
-            user_installations = provider.get_installations(request.user)
-            installations = list(Installation.objects.filter(
-                installation_id__in=[i['installation_id'] for i in user_installations],
-            ))
-
-            # this should go in a serializer
-            linked_installations = set(OrganizationInstallation.objects.filter(
-                organization=organization,
-            ).values_list('installation_id', flat=True))
-
-            installations = [{
-                'installation_id': i.installation_id,
-                'external_organization': i.external_organization,
-                'linked': i.id in linked_installations,
-            } for i in installations]
-
-            results.append({
-                'id': provider_id,
-                'name': provider.name,
-                'install_url': provider.get_install_url(),
-                'installations': installations,
-            })
+            results.append(
+                serialize(
+                    provider,
+                    request.user,
+                    ProviderSerializer(organization)
+                )
+            )
 
         return Response(results)
 
@@ -116,4 +103,10 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
             except IntegrityError:
                 pass
 
-        return Response(status=201)
+        return Response(
+            serialize(
+                provider,
+                request.user,
+                ProviderSerializer(organization)
+            ), status=201
+        )
