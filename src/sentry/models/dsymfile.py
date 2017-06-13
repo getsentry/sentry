@@ -8,6 +8,7 @@ sentry.models.dsymfile
 
 from __future__ import absolute_import
 
+import re
 import os
 import six
 import uuid
@@ -37,6 +38,9 @@ from sentry.reprocessing import resolve_processing_issue
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
+
+
+_proguard_file_re = re.compile(r'(?:^|/)proguard/(?:mapping-)?(.*?)\.txt$')
 
 
 class VersionDSymFile(Model):
@@ -212,7 +216,7 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
     try:
         rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
         if rv.file.checksum == checksum:
-            return rv
+            return rv, False
     except ProjectDSymFile.DoesNotExist:
         pass
     else:
@@ -247,17 +251,15 @@ def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
         object='dsym:%s' % uuid,
     )
 
-    return rv
+    return rv, True
 
 
 def _analyze_progard_filename(filename):
-    if not filename.startswith('proguard/') or \
-       not filename.endswith('.txt'):
+    match = _proguard_file_re.search(filename)
+    if match is None:
         return None
 
-    ident = filename[9:-4]
-    if ident.startswith('mapping-'):
-        ident = ident[8:]
+    ident = match.group(1)
 
     try:
         return uuid.UUID(ident)
@@ -271,7 +273,7 @@ def create_files_from_dsym_zip(fileobj, project=None):
     """
     scratchpad = tempfile.mkdtemp()
     try:
-        safe_extract_zip(fileobj, scratchpad)
+        safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
         to_create = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
@@ -309,9 +311,11 @@ def create_files_from_dsym_zip(fileobj, project=None):
         rv = []
         for dsym_type, cpu, file_uuid, filename in to_create:
             with open(filename, 'rb') as f:
-                rv.append((_create_dsym_from_uuid(
+                dsym, created = _create_dsym_from_uuid(
                     project, dsym_type, cpu, file_uuid, f,
-                    os.path.basename(filename))))
+                    os.path.basename(filename))
+                if created:
+                    rv.append(dsym)
         return rv
     finally:
         shutil.rmtree(scratchpad)
