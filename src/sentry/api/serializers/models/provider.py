@@ -16,7 +16,7 @@ class ProviderSerializer(Serializer):
 
         linked_installations = set(OrganizationInstallation.objects.filter(
             organization=self.organization,
-        ).values_list('installation_id', flat=True))
+        ).values_list('installation_id', flat=True).distinct())
 
         installations = [{
             'installationId': i.installation_id,

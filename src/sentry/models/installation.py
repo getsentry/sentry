@@ -25,8 +25,8 @@ class Installation(Model):
                                            through=OrganizationInstallation)
     provider = models.CharField(max_length=64)
     installation_id = models.CharField(max_length=64)
-    external_organization = models.CharField(max_length=64, null=True)
-    external_id = models.CharField(max_length=64, null=True)
+    external_organization = models.CharField(max_length=64)
+    external_id = models.CharField(max_length=64)
 
     class Meta:
         app_label = 'sentry'

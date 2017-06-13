@@ -63,6 +63,7 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
             return Response({
                 'errors': {'__all__': e.message},
             }, status=400)
+
         installations = {
             six.text_type(i['installation_id']): i for i in
             installations

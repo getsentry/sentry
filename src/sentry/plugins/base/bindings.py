@@ -26,7 +26,7 @@ class ProviderManager(object):
         return self._items[id]
 
     def all(self):
-        return [(k, v) for k, v in six.iteritems(self._items)]
+        return six.iteritems(self._items)
 
 
 class RepositoryProviderManager(ProviderManager):
