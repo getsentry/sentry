@@ -865,7 +865,8 @@ class EventManager(object):
             # as well as GH-5085.
             GroupHash.objects.filter(
                 id__in=[h.id for h in new_hashes],
-                state=GroupHash.State.ACTIVE,
+            ).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
             ).update(group=group)
 
             if group_is_new and len(new_hashes) == len(all_hashes):

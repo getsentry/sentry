@@ -475,7 +475,8 @@ def lock_hashes(project_id, source_id, fingerprints):
                 project_id=project_id,
                 group_id=source_id,
                 hash__in=fingerprints,
-                state=GroupHash.State.ACTIVE,
+            ).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
             ).select_for_update()
         )
 
@@ -491,7 +492,7 @@ def unlock_hashes(project_id, fingerprints):
         project_id=project_id,
         hash__in=fingerprints,
         state=GroupHash.State.LOCKED_IN_MIGRATION,
-    ).update(state=GroupHash.State.ACTIVE)
+    ).update(state=GroupHash.State.UNLOCKED)
 
 
 @instrumented_task(name='sentry.tasks.unmerge', queue='unmerge')
