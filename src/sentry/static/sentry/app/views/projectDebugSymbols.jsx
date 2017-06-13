@@ -293,8 +293,11 @@ const ProjectDebugSymbols = React.createClass({
       return (
         <tr key={key}>
           <td><code className="small">{dsym.uuid}</code></td>
-          <td>{dsym.objectName}</td>
-          <td>{dsym.cpuName} ({dsym.symbolType})</td>
+          <td>{
+            dsym.symbolType === 'proguard' && dsym.objectName === 'proguard-mapping'
+            ? '-' : dsym.objectName}</td>
+          <td>{dsym.symbolType === 'proguard' && dsym.cpuName === 'any'
+            ? 'proguard' : `${dsym.cpuName} (${dsym.symbolType})`}</td>
           <td><DateTime date={dsym.dateCreated} /></td>
           <td><FileSize bytes={dsym.size} /></td>
         </tr>
@@ -327,9 +330,9 @@ const ProjectDebugSymbols = React.createClass({
           <thead>
             <tr>
               <th>{t('UUID')}</th>
-              <th>{t('Object Name')}</th>
+              <th>{t('Object')}</th>
               <th>{t('Type')}</th>
-              <th>{t('Upload Date')}</th>
+              <th>{t('Uploaded')}</th>
               <th>{t('Size')}</th>
             </tr>
           </thead>
@@ -374,9 +377,9 @@ const ProjectDebugSymbols = React.createClass({
               <thead>
                 <tr>
                   <th>{t('UUID')}</th>
-                  <th>{t('Object Name')}</th>
+                  <th>{t('Object')}</th>
                   <th>{t('Type')}</th>
-                  <th>{t('Upload Date')}</th>
+                  <th>{t('Uploaded')}</th>
                   <th>{t('Size')}</th>
                 </tr>
               </thead>
