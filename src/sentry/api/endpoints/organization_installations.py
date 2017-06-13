@@ -46,7 +46,7 @@ class OrganizationInstallationEndpoint(OrganizationEndpoint):
     def post(self, request, organization):
         # TODO(jess): validation
         provider_id = request.DATA.get('provider')
-        installation_id = request.DATA.get('installation_id')
+        installation_id = request.DATA.get('installationId')
 
         try:
             provider_cls = bindings.get('repository.provider').get(provider_id)

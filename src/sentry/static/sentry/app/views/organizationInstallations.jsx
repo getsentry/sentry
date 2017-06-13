@@ -46,7 +46,7 @@ const OrganizationInstallations = React.createClass({
         method: 'POST',
         data: {
           provider: providerId,
-          installation_id: installation.installation_id
+          installationId: installation.installationId
         },
         success: data => {
           // TODO(jess): we should sort this alphabetically
@@ -81,7 +81,7 @@ const OrganizationInstallations = React.createClass({
             <h3>{provider.name}</h3>
           </div>
           <div className="col-md-6">
-            <a className="btn btn-primary" href={provider.install_url}>
+            <a className="btn btn-primary" href={provider.installUrl}>
               Install on Another Account
             </a>
           </div>
@@ -89,9 +89,9 @@ const OrganizationInstallations = React.createClass({
         {provider.installations.length
           ? provider.installations.map(inst => {
               return (
-                <div className="row" key={inst.installation_id}>
+                <div className="row" key={inst.installationId}>
                   <div className="col-md-6">
-                    {inst.external_organization}
+                    {inst.externalOrganization}
                   </div>
                   <div className="col-md-6">
                     {inst.linked

@@ -19,14 +19,14 @@ class ProviderSerializer(Serializer):
         ).values_list('installation_id', flat=True))
 
         installations = [{
-            'installation_id': i.installation_id,
-            'external_organization': i.external_organization,
+            'installationId': i.installation_id,
+            'externalOrganization': i.external_organization,
             'linked': i.id in linked_installations,
         } for i in installations]
 
         return {
             'id': obj.id,
             'name': obj.name,
-            'install_url': obj.get_install_url(),
+            'installUrl': obj.get_install_url(),
             'installations': installations,
         }

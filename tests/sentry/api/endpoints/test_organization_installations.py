@@ -26,11 +26,11 @@ class OrganizationInstallationsListTest(APITestCase):
         assert response.data[0] == {
             'id': 'dummy',
             'name': 'Example',
-            'install_url': None,
+            'installUrl': None,
             'installations': [{
-                'installation_id': '54321',
+                'installationId': '54321',
                 'linked': False,
-                'external_organization': 'dummyorg',
+                'externalOrganization': 'dummyorg',
             }]
         }
 
@@ -50,18 +50,18 @@ class OrganizationInstallationsCreateTest(APITestCase):
         url = reverse('sentry-api-0-organization-installations', args=[org.slug])
         response = self.client.post(url, data={
             'provider': 'dummy',
-            'installation_id': '54321',
+            'installationId': '54321',
         })
 
         assert response.status_code == 201, response.content
         assert response.data == {
             'id': 'dummy',
             'name': 'Example',
-            'install_url': None,
+            'installUrl': None,
             'installations': [{
-                'installation_id': '54321',
+                'installationId': '54321',
                 'linked': True,
-                'external_organization': 'dummyorg',
+                'externalOrganization': 'dummyorg',
             }]
         }
         assert OrganizationInstallation.objects.filter(
