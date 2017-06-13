@@ -187,8 +187,6 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint):
                     } for r in result.get('headCommits', [])
                 ]
             if refs:
-                # TODO(jess): fix this so that we don't make this a req
-                # if repo is using integration
                 if not request.user.is_authenticated():
                     return Response(
                         {
