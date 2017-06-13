@@ -112,7 +112,7 @@ const ProjectSettings = React.createClass({
               {t('Saved Searches')}
             </ListLink>
             <ListLink to={`/${orgId}/${projectId}/settings/debug-symbols/`}>
-              {t('Debug Symbols')}
+              {t('Debug Information Files')}
             </ListLink>
             <ListLink
               className="badged"
