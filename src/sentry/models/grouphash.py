@@ -18,7 +18,7 @@ class GroupHash(Model):
     __core__ = False
 
     class State:
-        UNLOCKED = 0
+        UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
 
     project = FlexibleForeignKey('sentry.Project', null=True)
@@ -26,10 +26,8 @@ class GroupHash(Model):
     group = FlexibleForeignKey('sentry.Group', null=True)
     state = BoundedPositiveIntegerField(
         choices=[
-            (State.UNLOCKED, _('Unlocked')),
             (State.LOCKED_IN_MIGRATION, _('Locked (Migration in Progress)')),
         ],
-        default=State.UNLOCKED,
         null=True,
     )
 

@@ -40,7 +40,6 @@ def get_latest_events(group_hash_list):
 class GroupHashSerializer(Serializer):
     state_text_map = {
         None: 'unlocked',
-        GroupHash.State.UNLOCKED: 'unlocked',
         GroupHash.State.LOCKED_IN_MIGRATION: 'locked',
     }
 
