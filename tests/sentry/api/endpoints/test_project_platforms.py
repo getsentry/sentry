@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-from django.core.urlresolvers import reverse
-
 from sentry.models import ProjectPlatform
 from sentry.testutils import APITestCase
 
@@ -22,6 +20,4 @@ class ProjectPlatformsTest(APITestCase):
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data[0]['platform'] == pp1.platform
-
-
-
+        assert response.data[1]['platform'] == pp2.platform
