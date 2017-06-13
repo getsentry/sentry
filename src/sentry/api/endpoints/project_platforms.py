@@ -36,5 +36,4 @@ class ProjectPlatformsEndpoint(ProjectEndpoint):
             platform=data['platform'],
             values=values
         )
-
         return Response(serialize(project_platform, request.user), status=201)
