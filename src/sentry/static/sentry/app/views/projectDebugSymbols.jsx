@@ -191,7 +191,7 @@ const ProjectDebugSymbols = React.createClass({
                           </div>
                         </div>
                         <div className="col-xs-4 event-count align-right">
-                          {t('Debug Symbol Files')}: {symbolsInVersion}
+                          {t('Debug Information Files')}: {symbolsInVersion}
                         </div>
                       </div>
                     </li>
@@ -260,7 +260,7 @@ const ProjectDebugSymbols = React.createClass({
             <div className="col-xs-4 event-details">
               <div className="event-message">
                 <span className="align-right pull-right" style={{paddingRight: 16}}>
-                  {t('Debug Symbol Files')}: {dsyms.length}
+                  {t('Debug Information Files')}: {dsyms.length}
                 </span>
               </div>
             </div>
@@ -314,11 +314,11 @@ const ProjectDebugSymbols = React.createClass({
     }
     return (
       <div>
-        <h3>{t('Unreferenced Debug Symbols')}</h3>
+        <h3>{t('Unreferenced Debug Information Files')}</h3>
         <p>
           {t(
             `
-          This list represents all Debug Symbols which are not assigned to an
+          This list represents all Debug Information Files which are not assigned to an
           app version. We will still find these debug symbols for symbolication
           but we can't tell you which versions they belong to.  This happens
           if you upload them with an old verison of sentry-cli or if sentry-cli
@@ -347,17 +347,14 @@ const ProjectDebugSymbols = React.createClass({
   render() {
     return (
       <div>
-        <h1>{t('Debug Symbols')}</h1>
-        <p>
-          {t(
-            `
+        <h1>{t('Debug Information Files')}</h1>
+        <p>{t(`
           Here you can find uploaded debug information (for instance debug
-          symbol files).  This is used to convert addresses from crash dumps
+          symbol files or proguard mappings).  This is used to convert
+          addresses and minified function names from crash dumps
           into function names and locations.  For JavaScript debug support
           look at releases instead.
-        `
-          )}
-        </p>
+        `)}</p>
         {this.renderDebugTable()}
         {this.renderUnreferencedDebugSymbols()}
         <Modal
