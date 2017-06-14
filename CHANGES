@@ -18,6 +18,9 @@ Schema Changes
 - Removed DSymSymbol
 - Removed GlobalDSymFile
 - Added GroupHash.state
+- Drop index on ``ReleaseEnvironment(project_id)``
+- Drop index on ``ReleaseCommit(project_id)``
+- Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
 
 API Changes
 ~~~~~~~~~~~
@@ -60,9 +63,6 @@ Version 8.16.1
 --------------
 
 - Fixed issue in migration 0302 that prevented upgrading
-- Drop index on ``ReleaseEnvironment(project_id)``
-- Drop index on ``ReleaseCommit(project_id)``
-- Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
 
 Version 8.16
 ------------
