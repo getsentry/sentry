@@ -17,6 +17,7 @@ Schema Changes
 - Removed DSymSDK
 - Removed DSymSymbol
 - Removed GlobalDSymFile
+- Added GroupHash.state
 
 API Changes
 ~~~~~~~~~~~

@@ -55,6 +55,8 @@ class GroupHashesEndpoint(GroupEndpoint):
             project_id=group.project_id,
             group=group.id,
             hash__in=id_list,
+        ).exclude(
+            state=GroupHash.State.LOCKED_IN_MIGRATION,
         ).values_list('hash', flat=True)
         if not hash_list:
             return Response()
