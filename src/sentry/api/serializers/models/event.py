@@ -139,10 +139,7 @@ class EventSerializer(Serializer):
             'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
-            'fingerprints': map(
-                md5_from_hash,
-                get_hashes_for_event(obj)
-            ),
+            'fingerprints': [md5_from_hash(h) for h in get_hashes_for_event(obj)],
         }
         return d
 
