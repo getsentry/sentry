@@ -57,6 +57,7 @@ class Release(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
                                       through=ReleaseProject)
+    # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
