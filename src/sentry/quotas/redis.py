@@ -86,7 +86,7 @@ class RedisQuota(Quota):
             ))
         return results
 
-    def get_usage(self, project, quotas, timestamp=None):
+    def get_usage(self, organization, quotas, timestamp=None):
         if timestamp is None:
             timestamp = time()
 
@@ -113,7 +113,7 @@ class RedisQuota(Quota):
                 functools.partial(
                     get_usage_for_quota,
                     client.target_key(
-                        six.text_type(project.organization.pk),
+                        six.text_type(organization.pk),
                     ),
                 ),
                 quotas,
