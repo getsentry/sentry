@@ -2,12 +2,12 @@
 import DocumentTitle from 'react-document-title';
 import React from 'react';
 
-import Footer from '../../components/footer';
-import Sidebar from '../../components/sidebar';
-import HookStore from '../../stores/hookStore';
-import ListLink from '../../components/listLink';
+import Footer from '../components/footer';
+import Sidebar from '../components/sidebar';
+import HookStore from '../stores/hookStore';
+import ListLink from '../components/listLink';
 
-const Admin = React.createClass({
+export default React.createClass({
   getInitialState() {
     // Allow injection via getsentry et all
     let hooksManage = [];
@@ -37,7 +37,7 @@ const Admin = React.createClass({
                   <ul className="nav nav-stacked">
                     <ListLink index={true} to="/manage/">Overview</ListLink>
                     <ListLink index={true} to="/manage/buffer/">Buffer</ListLink>
-                    <li><a href="/manage/queue/">Queue</a></li>
+                    <ListLink index={true} to="/manage/queue/">Queue</ListLink>
                     <li><a href="/manage/status/environment/">Environment</a></li>
                     <li><a href="/manage/status/packages/">Packages</a></li>
                     <li><a href="/manage/status/mail/">Mail</a></li>
@@ -65,5 +65,3 @@ const Admin = React.createClass({
     );
   }
 });
-
-export default Admin;

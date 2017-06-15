@@ -11,11 +11,12 @@ import ApiApplicationDetails from './views/apiApplicationDetails';
 import ApiLayout from './views/apiLayout';
 import ApiNewToken from './views/apiNewToken';
 import ApiTokens from './views/apiTokens';
-import Admin from './views/admin';
 import AdminBuffer from './views/adminBuffer';
+import AdminLayout from './views/adminLayout';
 import AdminOrganizations from './views/adminOrganizations';
 import AdminOverview from './views/adminOverview';
 import AdminProjects from './views/adminProjects';
+import AdminQueue from './views/adminQueue';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
 import App from './views/app';
@@ -119,11 +120,12 @@ function routes() {
 
       <Route path="/api/new-token/" component={errorHandler(ApiNewToken)} />
 
-      <Route path="/manage/" component={errorHandler(Admin)}>
+      <Route path="/manage/" component={errorHandler(AdminLayout)}>
         <IndexRoute component={errorHandler(AdminOverview)} />
         <Route path="buffer/" component={errorHandler(AdminBuffer)} />
         <Route path="organizations/" component={errorHandler(AdminOrganizations)} />
         <Route path="projects/" component={errorHandler(AdminProjects)} />
+        <Route path="queue/" component={errorHandler(AdminQueue)} />
         <Route path="settings/" component={errorHandler(AdminSettings)} />
         <Route path="users/" component={errorHandler(AdminUsers)} />
         {hooksAdminRoutes}

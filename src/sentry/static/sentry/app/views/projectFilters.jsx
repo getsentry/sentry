@@ -500,6 +500,7 @@ const ProjectFilters = React.createClass({
                     <StackedBarChart
                       points={this.state.stats}
                       height={50}
+                      label="events"
                       barClasses={['filtered']}
                       className="sparkline m-b-0"
                     />

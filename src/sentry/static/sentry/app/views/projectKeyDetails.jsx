@@ -109,6 +109,7 @@ const KeyStats = React.createClass({
                   <StackedBarChart
                     points={this.state.stats}
                     height={100}
+                    label="events"
                     barClasses={['accepted', 'rate-limited']}
                     className="sparkline m-b-0"
                     tooltip={this.renderTooltip}
