@@ -12,6 +12,4 @@ coverage:
   - src/sentry/lint/.*
   - src/.*?/migrations/.*
   - src/.*?/south_migrations/.*
-comment:
-  layout: "diff, files"
-  behavior: default
+comment: false
