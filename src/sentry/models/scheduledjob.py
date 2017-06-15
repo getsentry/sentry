@@ -8,6 +8,8 @@ from sentry.db.models import Model, sane_repr
 
 
 class ScheduledJob(Model):
+    __core__ = False
+
     name = models.CharField(max_length=128)
     payload = JSONField()
     date_added = models.DateTimeField(default=timezone.now)
