@@ -149,7 +149,7 @@ class RedisQuotaTest(TestCase):
         quotas = self.quota.get_quotas(self.project)
 
         assert self.quota.get_usage(
-            self.project,
+            self.project.organization_id,
             quotas + [
                 BasicRedisQuota(
                     key='unlimited',
