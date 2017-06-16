@@ -98,7 +98,7 @@ class Project(Model):
         'pk',
         'slug',
     ])
-    platform_chosen = models.CharField(max_length=64, null=True)
+    platform = models.CharField(max_length=64, null=True)
 
     class Meta:
         app_label = 'sentry'

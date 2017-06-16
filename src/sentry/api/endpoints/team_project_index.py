@@ -39,8 +39,7 @@ class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
-    platform_chosen = serializers.CharField(max_length=64, required=False)
-
+    platform = serializers.CharField(max_length=64, required=False)
 
 # While currently the UI suggests teams are a parent of a project, in reality
 # the project is the core component, and which team it is on is simply an
@@ -115,7 +114,7 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                         slug=result.get('slug'),
                         organization=team.organization,
                         team=team,
-                        platform_chosen=result.get('platform_chosen')
+                        platform=result.get('platform')
                     )
             except IntegrityError:
                 return Response(
@@ -125,15 +124,12 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
 
             platform = result.get('platform')
             if platform:
-                values = {
-                    'date_chosen': timezone.now(),
-                    'date_added': None,
-                    'last_seen': None
-                }
                 ProjectPlatform.objects.create(
                     project_id=project.id,
                     platform=platform,
-                    values=values
+                    date_chosen=timezone.now(),
+                    date_added=None,
+                    last_seen=None
                 )
 
             # XXX: create sample event?
