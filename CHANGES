@@ -23,6 +23,8 @@ Version 8.18
 - add Slack to supported auth backends in social auth (for plugins)
 - Expanded resolution actions (on stream) to include current release and explicit
   release.
+- Removed support for global dsyms
+- Added support for new GitHub apps
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -50,6 +52,7 @@ Schema Changes
 - Added GroupResolution.actor_id
 - Added ``ScheduledJob`` model
 - Added User.last_active
+- Added Installation, OrganizationInstallation
 
 API Changes
 ~~~~~~~~~~~
