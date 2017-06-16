@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.serializers import serialize
-from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
+from sentry.models import Project, ProjectStatus, ProjectPlatform, AuditLogEntryEvent
 from sentry.signals import project_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.samples import create_sample_event
