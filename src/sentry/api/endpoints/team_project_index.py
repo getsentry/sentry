@@ -38,6 +38,7 @@ class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
+    platform_chosen = serializers.CharField(max_length=64, required=False)
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
@@ -112,7 +113,8 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                         name=result['name'],
                         slug=result.get('slug'),
                         organization=team.organization,
-                        team=team
+                        team=team,
+                        platform_chosen=result.get('platform_chosen')
                     )
             except IntegrityError:
                 return Response(

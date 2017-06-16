@@ -98,8 +98,7 @@ class Project(Model):
         'pk',
         'slug',
     ])
-    platform = models.CharField(max_length=64, null=True)
-    date_platform_chosen = models.DateTimeField(null=True)
+    platform_chosen = models.CharField(max_length=64, null=True)
 
     class Meta:
         app_label = 'sentry'
