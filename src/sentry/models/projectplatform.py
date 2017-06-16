@@ -16,8 +16,9 @@ class ProjectPlatform(Model):
 
     project_id = BoundedBigIntegerField()
     platform = models.CharField(max_length=64)
-    date_added = models.DateTimeField(default=timezone.now)
-    last_seen = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, null=True)
+    date_chosen = models.DateTimeField(null=True)
 
     class Meta:
         app_label = 'sentry'
