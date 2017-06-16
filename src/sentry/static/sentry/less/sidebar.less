@@ -30,10 +30,68 @@
 
   &:hover {
     color: @30;
+
+    .sidebar-item-icon {
+       path, circle, rect {
+        stroke-dasharray: 6;
+        stroke-dashoffset: 6;
+        animation: offset 1s ease forwards;
+      }
+
+      .cog {
+        transform-origin: 50% 50%;
+        animation: rotateCog 3s linear infinite;
+        circle {
+          stroke-dasharray: 0;
+          stroke-dashoffset: 100;
+        }
+      }
+
+      .clock {
+        stroke-dasharray: 25;
+        stroke-dashoffset: 25;
+      }
+
+      .clock-big-hand {
+        stroke-dasharray: 0;
+        transform-origin: bottom center;
+        animation: rotate 2s linear infinite;
+      }
+
+      .clock-little-hand {
+        stroke-dasharray: 0;
+        transform-origin: top left;
+        animation: rotate 12s linear infinite;
+      }
+    }
   }
 
   &.active {
     color: @white;
+  }
+}
+
+@keyframes offset {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes rotateCog {
+  from {
+    transform: translate(1px, 1px) rotate(0deg);
+  }
+  to {
+    transform: translate(1px, 1px) rotate(360deg);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -43,6 +101,10 @@
   display: inline-block;
   width: 22px;
   height: 22px;
+
+  svg {
+    display: block;
+  }
 }
 
 // Panel

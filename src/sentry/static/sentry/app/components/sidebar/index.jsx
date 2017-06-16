@@ -18,7 +18,13 @@ import ConfigStore from '../../stores/configStore';
 import {t} from '../../locale';
 
 import IssueSidebarOverview from '../../icons/icon-sidebar-overview';
+import IssueSidebarIssues from '../../icons/icon-sidebar-issues';
+import IssueSidebarUserFeedback from '../../icons/icon-sidebar-user-feedback';
+import IssueSidebarReleases from '../../icons/icon-sidebar-releases';
+import IssueSidebarSettings from '../../icons/icon-sidebar-settings';
 import IssueSidebarUser from '../../icons/icon-sidebar-user';
+import IssueSidebarBookmarks from '../../icons/icon-sidebar-bookmarks';
+import IssueSidebarHistory from '../../icons/icon-sidebar-history';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
@@ -383,18 +389,22 @@ const Sidebar = React.createClass({
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
+              icon={<IssueSidebarIssues size={22} />}
               label={t('Issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
+              icon={<IssueSidebarUserFeedback size={22} />}
               label={t('User feedback')}
               onClick={() => this.togglePanel('history')}
             />
             <SidebarItem
+              icon={<IssueSidebarReleases size={22} />}
               label={t('Releases')}
               onClick={() => this.togglePanel('history')}
             />
             <SidebarItem
+              icon={<IssueSidebarSettings size={22} />}
               label={t('Settings')}
               onClick={() => this.togglePanel('history')}
             />
@@ -406,10 +416,12 @@ const Sidebar = React.createClass({
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
+              icon={<IssueSidebarBookmarks size={22} />}
               label={t('Starred issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
+              icon={<IssueSidebarHistory size={22} />}
               label={t('Recently viewed')}
               onClick={() => this.togglePanel('history')}
             />
