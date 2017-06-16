@@ -32,6 +32,7 @@ Schema Changes
 - Added GropuResolution.actor_id
 - Added Project.platform
 - Added GroupSnooze.actor_id
+- Added ScheduledJob
 
 API Changes
 ~~~~~~~~~~~
