@@ -15,6 +15,7 @@ default_manager.add('organizations:callsigns', OrganizationFeature)  # NOQA
 default_manager.add('organizations:repos', OrganizationFeature)  # NOQA
 default_manager.add('organizations:release-commits', OrganizationFeature)  # NOQA
 default_manager.add('organizations:group-unmerge', OrganizationFeature)  # NOQA
+default_manager.add('organizations:bitbucket-repos', OrganizationFeature)  # NOQA
 default_manager.add('projects:global-events', ProjectFeature)  # NOQA
 default_manager.add('projects:plugins', ProjectPluginFeature)  # NOQA
 default_manager.add('projects:data-forwarding', ProjectFeature)  # NOQA

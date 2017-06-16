@@ -14,7 +14,8 @@ class ReleaseEnvironment(Model):
     __core__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
-    project_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    # DEPRECATED
+    project_id = BoundedPositiveIntegerField(null=True)
     release_id = BoundedPositiveIntegerField(db_index=True)
     environment_id = BoundedPositiveIntegerField(db_index=True)
     first_seen = models.DateTimeField(default=timezone.now)
@@ -24,7 +25,6 @@ class ReleaseEnvironment(Model):
         app_label = 'sentry'
         db_table = 'sentry_environmentrelease'
         unique_together = (
-            ('project_id', 'release_id', 'environment_id'),
             ('organization_id', 'release_id', 'environment_id'),
         )
 

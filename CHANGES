@@ -17,6 +17,10 @@ Schema Changes
 - Removed DSymSDK
 - Removed DSymSymbol
 - Removed GlobalDSymFile
+- Added GroupHash.state
+- Drop index on ``ReleaseEnvironment(project_id)``
+- Drop index on ``ReleaseCommit(project_id)``
+- Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
 
 API Changes
 ~~~~~~~~~~~

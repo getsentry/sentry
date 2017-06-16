@@ -51,6 +51,9 @@ var entry = {
     'moment',
     'moment-timezone',
     'raven-js',
+    'react',
+    'react-dom',
+    'react-dom/server',
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
@@ -146,6 +149,7 @@ var config = {
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
       Raven: 'raven-js',
+      ReactDOM: 'react-dom',
       underscore: 'underscore',
       _: 'underscore'
     }),
