@@ -119,13 +119,11 @@ const OrganizationInstallations = React.createClass({
     if (error) {
       if (error.error_type === 'auth') {
         let authUrl = error.auth_url;
-        // TODO(jess): github apps are showing a redirect uri mismatch when doing
-        // this :-/ but without it, we never redirect to the right place
-        // if (authUrl.indexOf('?') === -1) {
-        //   authUrl += '?next=' + encodeURIComponent(document.location.pathname);
-        // } else {
-        //   authUrl += '&next=' + encodeURIComponent(document.location.pathname);
-        // }
+        if (authUrl.indexOf('?') === -1) {
+          authUrl += '?next=' + encodeURIComponent(document.location.pathname);
+        } else {
+          authUrl += '&next=' + encodeURIComponent(document.location.pathname);
+        }
         return (
           <div>
             <div className="alert alert-warning m-b-1">
