@@ -47,6 +47,8 @@ class ProjectSerializer(serializers.Serializer):
 # it, and because Sentry intends to remove teams as a hierarchy item, we
 # allow you to view a teams projects, as well as create a new project as long
 # as you are a member of that team and have project scoped permissions.
+
+
 class TeamProjectPermission(TeamPermission):
     scope_map = {
         'GET': ['project:read', 'project:write', 'project:admin'],
