@@ -53,8 +53,7 @@ class RedisQuota(Quota):
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
 
-    def get_redis_key(self, key, timestamp, interval):
-        # TODO: This is going to be made "private" (name mangled.)
+    def __get_redis_key(self, key, timestamp, interval):
         return '{}:{}:{}'.format(self.namespace, key, int(timestamp // interval))
 
     def get_quotas(self, project, key=None):
@@ -95,7 +94,7 @@ class RedisQuota(Quota):
                 return None
 
             return client.get(
-                self.get_redis_key(
+                self.__get_redis_key(
                     quota.key,
                     timestamp,
                     quota.window,
@@ -146,7 +145,7 @@ class RedisQuota(Quota):
         keys = []
         args = []
         for quota in quotas:
-            keys.append(self.get_redis_key(quota.key, timestamp, quota.window))
+            keys.append(self.__get_redis_key(quota.key, timestamp, quota.window))
             expiry = get_next_period_start(quota.window) + self.grace
             args.extend((quota.limit, int(expiry)))
 
