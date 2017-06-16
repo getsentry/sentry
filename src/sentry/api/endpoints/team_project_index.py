@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from django.utils import timezone
 
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
@@ -120,6 +121,19 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                 return Response(
                     {'detail': 'A project with this slug already exists.'},
                     status=409,
+                )
+
+            platform = result.get('platform')
+            if platform:
+                values = {
+                    'date_chosen': timezone.now(),
+                    'date_added': None,
+                    'last_seen': None
+                }
+                ProjectPlatform.objects.create(
+                    project_id=project.id,
+                    platform=platform,
+                    values=values
                 )
 
             # XXX: create sample event?
