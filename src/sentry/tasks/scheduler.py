@@ -7,7 +7,10 @@ from django.utils import timezone
 
 from sentry.models import ScheduledJob
 from sentry.tasks.base import instrumented_task
-from sentry.utils.cache import Lock, UnableToGetLock
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils import redis
+from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.locking.manager import LockManager
 
 logger = logging.getLogger('sentry')
 
@@ -18,7 +21,9 @@ def enqueue_scheduled_jobs(**kwargs):
 
     lock_key = 'scheduler:process'
     try:
-        with Lock(lock_key, nowait=True, timeout=60):
+        locks = LockManager(RedisLockBackend(redis.clusters.get('default')))
+        lock = locks.get(key=lock_key, duration=60)
+        with lock.acquire():
             queryset = list(ScheduledJob.objects.filter(
                 date_scheduled__lte=timezone.now(),
             )[:100])
@@ -31,5 +36,5 @@ def enqueue_scheduled_jobs(**kwargs):
             ScheduledJob.objects.filter(
                 id__in=[o.id for o in queryset],
             ).delete()
-    except UnableToGetLock:
+    except UnableToAcquireLock:
         logger.error('Failed to get scheduler lock', exc_info=True)
