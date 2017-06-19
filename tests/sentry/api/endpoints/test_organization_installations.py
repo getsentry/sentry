@@ -72,3 +72,21 @@ class OrganizationInstallationsCreateTest(APITestCase):
             organization_id=org.id,
             name='dummyorg/dummyrepo',
         ).exists()
+
+    def test_no_access(self):
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name='baz')
+        inst = Installation.objects.create(
+            provider='dummy',
+            installation_id='123',
+            external_id='987612345',
+            external_organization='dummyorg',
+        )
+        url = reverse('sentry-api-0-organization-installations', args=[org.slug])
+        response = self.client.post(url, data={
+            'provider': 'dummy',
+            'installationId': inst.id,
+        })
+
+        assert response.status_code == 400
