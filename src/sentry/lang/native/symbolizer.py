@@ -36,6 +36,7 @@ _support_framework = re.compile(r'''(?x)
 ''')
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
+MAC_OS_PATH = '.app/Contents/'
 
 _internal_function_re = re.compile(r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
 
@@ -138,7 +139,8 @@ class Symbolizer(object):
     def is_image_from_app_bundle(self, img):
         fn = img['name']
         if not (fn.startswith(APP_BUNDLE_PATHS) or
-                (SIM_PATH in fn and SIM_APP_PATH in fn)):
+                (SIM_PATH in fn and SIM_APP_PATH in fn) or
+                (MAC_OS_PATH in fn)):
             return False
         return True
 

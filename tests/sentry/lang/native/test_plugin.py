@@ -881,3 +881,118 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert not frames[4].in_app
         assert frames[5].in_app
         assert frames[6].in_app
+
+    def sym_mac_app_frame(self, instruction_addr, img):
+        object_name = (
+            "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
+            "CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/"
+            "CrashProbe.app/Contents/Frameworks/"
+            "CrashLib.framework/Versions/A/CrashLib"
+        )
+        if not (4295098384 <= parse_addr(instruction_addr) < 4295098388):
+            return [{
+                'filename': 'Foo.swift',
+                'abs_path': 'Foo.swift',
+                'lineno': 82,
+                'colno': 23,
+                'package': object_name,
+                'function': 'other_main',
+                'symbol_addr': '0x1',
+                "instruction_addr": '0x1',
+            }]
+        return [{
+            'filename': 'Foo.swift',
+            'abs_path': 'Foo.swift',
+            'lineno': 42,
+            'colno': 23,
+            'package': object_name,
+            'function': 'real_main',
+            'symbol_addr': '0x1000262a0',
+            "instruction_addr": '0x100026330',
+        }]
+
+    @patch.object(Symbolizer, '_symbolize_app_frame', sym_mac_app_frame)
+    def test_in_app_macos(self):
+        object_name = (
+            "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
+            "CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/"
+            "CrashProbe.app/Contents/Frameworks/"
+            "CrashLib.framework/Versions/A/CrashLib"
+        )
+        event_data = {
+            "sentry.interfaces.User": {
+                "ip_address": "31.172.207.97"
+            },
+            "extra": {},
+            "project": self.project.id,
+            "platform": "cocoa",
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "apple",
+                        "cpu_subtype": 0,
+                        "uuid": "C05B4DDD-69A7-3840-A649-32180D341587",
+                        "image_vmaddr": 4294967296,
+                        "image_addr": 4295098368,
+                        "cpu_type": 16777228,
+                        "image_size": 32768,
+                        "name": object_name,
+                    }
+                ]
+            },
+            "sentry.interfaces.Exception": {
+                "values": [
+                    {
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "-[CRLCrashAsyncSafeThread crash]",
+                                    "abs_path": "/Users/haza/Projects/getsentry-CrashProbe/CrashProbe/CRLCrashAsyncSafeThread.m",
+                                    "package": "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/CrashProbe.app/Contents/Frameworks/CrashLib.framework/Versions/A/CrashLib",
+                                    "image_addr": "0x110121000",
+                                    "symbol_addr": "0x110122303",
+                                    "instruction_addr": 4295098388
+                                },
+                                {
+                                    "function": "[KSCrash ]",
+                                    "abs_path": None,
+                                    "package": "/usr/lib/system/libdyld.dylib",
+                                    "filename": None,
+                                    "symbol_addr": "0x002ac28b4",
+                                    "lineno": None,
+                                    "instruction_addr": 4295098388,
+                                },
+                            ]
+                        },
+                        "type": "NSRangeException",
+                        "mechanism": {
+                            "posix_signal": {
+                                "signal": 6,
+                                "code": 0,
+                                "name": "SIGABRT",
+                                "code_name": None
+                            },
+                            "type": "cocoa",
+                            "mach_exception": {
+                                "subcode": 0,
+                                "code": 0,
+                                "exception": 10,
+                                "exception_name": "EXC_CRASH"
+                            }
+                        },
+                        "value": (
+                            "*** -[__NSArray0 objectAtIndex:]: index 3 "
+                            "beyond bounds for empty NSArray"
+                        )
+                    }
+                ]
+            }
+        }
+        resp = self._postWithHeader(event_data)
+        assert resp.status_code == 200
+
+        event = Event.objects.get()
+
+        bt = event.interfaces['sentry.interfaces.Exception'].values[0].stacktrace
+        frames = bt.frames
+        assert frames[0].in_app
