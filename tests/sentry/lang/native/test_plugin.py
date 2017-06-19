@@ -185,7 +185,7 @@ class BasicResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, instruction_addr, img):
+    def sym_app_frame(self, instruction_addr, img, sdk_info=None):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -543,7 +543,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
 
         assert len(event.interfaces['threads'].values) == 1
 
-    def sym_app_frame(self, instruction_addr, img):
+    def sym_app_frame(self, instruction_addr, img, sdk_info=None):
         object_name = (
             "/var/containers/Bundle/Application/"
             "B33C37A8-F933-4B6B-9FFA-152282BFDF13/"
@@ -882,7 +882,7 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
         assert frames[5].in_app
         assert frames[6].in_app
 
-    def sym_mac_app_frame(self, instruction_addr, img):
+    def sym_mac_app_frame(self, instruction_addr, img, sdk_info=None):
         object_name = (
             "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/"
             "CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/"
@@ -986,7 +986,39 @@ class InAppHonoringResolvingIntegrationTest(TestCase):
                         )
                     }
                 ]
-            }
+            },
+            "contexts": {
+                "device": {
+                    "family": "macOS",
+                    "type": "device",
+                    "storage_size": 498954403840,
+                    "free_memory": 415174656,
+                    "memory_size": 17179869184,
+                    "boot_time": "2017-06-18T07:10:05Z",
+                    "model": "MacBookPro13,1",
+                    "usable_memory": 15204716544,
+                    "arch": "x86"
+                },
+                "app": {
+                    "app_version": "1.0",
+                    "app_name": "CrashProbe",
+                    "device_app_hash": "75e22adcce6cb4c81db7c7e623c2f2721616d2c8",
+                    "executable_path": "/Users/haza/Library/Developer/Xcode/Archives/2017-06-19/CrashProbe 19-06-2017, 08.53.xcarchive/Products/Applications/CrashProbe.app/CrashProbe",
+                    "build_type": "unknown",
+                    "app_start_time": "2017-06-19T07:19:02Z",
+                    "app_identifier": "net.hockeyapp.CrashProbe",
+                    "type": "app",
+                    "app_build": "1"
+                },
+                "os": {
+                    "rooted": False,
+                    "kernel_version": "Darwin Kernel Version 16.6.0: Fri Apr 14 16:21:16 PDT 2017; root:xnu-3789.60.24~6/RELEASE_X86_64",
+                    "version": "10.12.5",
+                    "build": "16F73",
+                    "type": "os",
+                    "name": "macOS"
+                }
+            },
         }
         resp = self._postWithHeader(event_data)
         assert resp.status_code == 200
