@@ -111,6 +111,11 @@ class EventSerializer(Serializer):
             except TypeError:
                 received = None
 
+        from sentry.event_manager import (
+            get_hashes_for_event,
+            md5_from_hash,
+        )
+
         # TODO(dcramer): move release serialization here
         d = {
             'id': six.text_type(obj.id),
@@ -134,6 +139,7 @@ class EventSerializer(Serializer):
             'dateCreated': obj.datetime,
             'dateReceived': received,
             'errors': errors,
+            'fingerprints': [md5_from_hash(h) for h in get_hashes_for_event(obj)],
         }
         return d
 

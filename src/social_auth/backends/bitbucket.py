@@ -76,6 +76,7 @@ class BitbucketAuth(ConsumerBasedOAuth):
     AUTH_BACKEND = BitbucketBackend
     SETTINGS_KEY_NAME = 'BITBUCKET_CONSUMER_KEY'
     SETTINGS_SECRET_NAME = 'BITBUCKET_CONSUMER_SECRET'
+    DEFAULT_SCOPE = ['webhook', 'repository', 'issue']
 
     def user_data(self, access_token):
         """Return user data provided"""

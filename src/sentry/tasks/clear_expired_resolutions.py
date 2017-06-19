@@ -22,21 +22,29 @@ def clear_expired_resolutions(release_id):
     except Release.DoesNotExist:
         return
 
-    resolution_list = GroupResolution.objects.filter(
+    resolution_list = list(GroupResolution.objects.filter(
         release__projects=release.projects.all(),
         release__date_added__lt=release.date_added,
     ).exclude(
         release=release,
-    )
+    ))
 
-    resolution_list.update(status=GroupResolutionStatus.RESOLVED)
+    if not resolution_list:
+        return
+
+    GroupResolution.objects.filter(
+        id__in=[r.id for r in resolution_list]
+    ).update(status=GroupResolutionStatus.RESOLVED)
 
     for resolution in resolution_list:
-        activity = Activity.objects.filter(
-            group=resolution.group_id,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
-            ident=resolution.id,
-        ).order_by('-datetime')[0]
+        try:
+            activity = Activity.objects.filter(
+                group=resolution.group_id,
+                type=Activity.SET_RESOLVED_IN_RELEASE,
+                ident=resolution.id,
+            ).order_by('-datetime')[0]
+        except IndexError:
+            continue
 
         activity.update(data={
             'version': release.version,
