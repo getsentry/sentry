@@ -37,6 +37,8 @@ _support_framework = re.compile(r'''(?x)
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
 
+_internal_function_re = re.compile(r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
+
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
     '<redacted>',
@@ -266,3 +268,6 @@ class Symbolizer(object):
     def is_in_app(self, instruction_addr):
         img = self.image_lookup.find_image(instruction_addr)
         return img is not None and self._is_app_frame(instruction_addr, img)
+
+    def is_internal_function(self, function):
+        return _internal_function_re.search(function) is not None
