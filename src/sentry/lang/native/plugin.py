@@ -190,7 +190,7 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             # Construct a raw frame that is used by the symbolizer
             # backend.  We only assemble the bare minimum we need here.
             instruction_addr = processable_frame.data['instruction_addr']
-            in_app = self.sym.is_in_app(instruction_addr)
+            in_app = self.sym.is_in_app(instruction_addr, sdk_info=self.sdk_info)
             in_app = (in_app and not self.sym.is_internal_function(raw_frame.get('function')))
             if raw_frame.get('in_app') is None:
                 raw_frame['in_app'] = in_app
