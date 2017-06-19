@@ -1,0 +1,642 @@
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# 
+# Translators:
+# mozillazg <opensource.mozillazg@gmail.com>, 2013-2014
+msgid ""
+msgstr ""
+"Project-Id-Version: Django Debug Toolbar\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2014-04-25 21:52+0200\n"
+"PO-Revision-Date: 2014-04-25 19:53+0000\n"
+"Last-Translator: Aymeric Augustin <aymeric.augustin@m4x.org>\n"
+"Language-Team: Chinese (China) (http://www.transifex.com/projects/p/django-debug-toolbar/language/zh_CN/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: apps.py:11
+msgid "Debug Toolbar"
+msgstr ""
+
+#: views.py:14
+msgid ""
+"Data for this panel isn't available anymore. Please reload the page and "
+"retry."
+msgstr "当前面板的数据暂不可用。请刷新页面并重试。"
+
+#: panels/cache.py:191
+msgid "Cache"
+msgstr "缓存"
+
+#: panels/cache.py:196
+#, python-format
+msgid "%(cache_calls)d call in %(time).2fms"
+msgid_plural "%(cache_calls)d calls in %(time).2fms"
+msgstr[0] "%(time).2f 毫秒内 %(cache_calls)d 次调用"
+
+#: panels/cache.py:204
+#, python-format
+msgid "Cache calls from %(count)d backend"
+msgid_plural "Cache calls from %(count)d backends"
+msgstr[0] "来自 %(count)d 个后端的缓存调用"
+
+#: panels/headers.py:35
+msgid "Headers"
+msgstr "HTTP 头"
+
+#: panels/logging.py:64
+msgid "Logging"
+msgstr "日志"
+
+#: panels/logging.py:70
+#, python-format
+msgid "%(count)s message"
+msgid_plural "%(count)s messages"
+msgstr[0] "%(count)s 条消息"
+
+#: panels/logging.py:73
+msgid "Log messages"
+msgstr "日志信息"
+
+#: panels/profiling.py:127
+msgid "Profiling"
+msgstr "性能分析"
+
+#: panels/redirects.py:17
+msgid "Intercept redirects"
+msgstr "拦截重定向"
+
+#: panels/request.py:18
+msgid "Request"
+msgstr "请求"
+
+#: panels/request.py:35
+msgid "<no view>"
+msgstr "<没有 view>"
+
+#: panels/request.py:47
+msgid "<unavailable>"
+msgstr "<不可用>"
+
+#: panels/settings.py:20
+msgid "Settings"
+msgstr "设置"
+
+#: panels/settings.py:23
+#, python-format
+msgid "Settings from <code>%s</code>"
+msgstr "来自 <code>%s</code> 的设置"
+
+#: panels/signals.py:45
+#, python-format
+msgid "%(num_receivers)d receiver of 1 signal"
+msgid_plural "%(num_receivers)d receivers of 1 signal"
+msgstr[0] "1个信号 %(num_receivers)d 个接收者"
+
+#: panels/signals.py:48
+#, python-format
+msgid "%(num_receivers)d receiver of %(num_signals)d signals"
+msgid_plural "%(num_receivers)d receivers of %(num_signals)d signals"
+msgstr[0] "%(num_signals)d 个信号 %(num_receivers)d 个接收者"
+
+#: panels/signals.py:53
+msgid "Signals"
+msgstr "信号"
+
+#: panels/staticfiles.py:89
+#, python-format
+msgid "Static files (%(num_found)s found, %(num_used)s used)"
+msgstr "静态文件 (%(num_found)s 个找到，%(num_used)s 个被使用)"
+
+#: panels/staticfiles.py:107
+msgid "Static files"
+msgstr "静态文件"
+
+#: panels/staticfiles.py:112
+#, python-format
+msgid "%(num_used)s file used"
+msgid_plural "%(num_used)s files used"
+msgstr[0] "%(num_used)s 个文件被使用"
+
+#: panels/timer.py:23
+#, python-format
+msgid "CPU: %(cum)0.2fms (%(total)0.2fms)"
+msgstr "CPU: %(cum)0.2f 毫秒 (总耗时: %(total)0.2f 毫秒)"
+
+#: panels/timer.py:28
+#, python-format
+msgid "Total: %0.2fms"
+msgstr "总共：%0.2f 毫秒"
+
+#: panels/timer.py:34 templates/debug_toolbar/panels/logging.html:7
+#: templates/debug_toolbar/panels/sql_explain.html:11
+#: templates/debug_toolbar/panels/sql_profile.html:12
+#: templates/debug_toolbar/panels/sql_select.html:11
+msgid "Time"
+msgstr "时间"
+
+#: panels/timer.py:42
+msgid "User CPU time"
+msgstr "用户 CPU 时间"
+
+#: panels/timer.py:42
+#, python-format
+msgid "%(utime)0.3f msec"
+msgstr "%(utime)0.3f 毫秒"
+
+#: panels/timer.py:43
+msgid "System CPU time"
+msgstr "系统 CPU 时间"
+
+#: panels/timer.py:43
+#, python-format
+msgid "%(stime)0.3f msec"
+msgstr "%(stime)0.3f 毫秒"
+
+#: panels/timer.py:44
+msgid "Total CPU time"
+msgstr "总的 CPU 时间"
+
+#: panels/timer.py:44
+#, python-format
+msgid "%(total)0.3f msec"
+msgstr "%(total)0.3f 毫秒"
+
+#: panels/timer.py:45
+msgid "Elapsed time"
+msgstr "耗时"
+
+#: panels/timer.py:45
+#, python-format
+msgid "%(total_time)0.3f msec"
+msgstr "%(total_time)0.3f 毫秒"
+
+#: panels/timer.py:46
+msgid "Context switches"
+msgstr "上下文切换"
+
+#: panels/timer.py:46
+#, python-format
+msgid "%(vcsw)d voluntary, %(ivcsw)d involuntary"
+msgstr "%(vcsw)d 主动, %(ivcsw)d 被动"
+
+#: panels/versions.py:25
+msgid "Versions"
+msgstr "版本"
+
+#: panels/sql/panel.py:22
+msgid "Autocommit"
+msgstr "自动提交"
+
+#: panels/sql/panel.py:23
+msgid "Read uncommitted"
+msgstr "读取未提交的"
+
+#: panels/sql/panel.py:24
+msgid "Read committed"
+msgstr "读取已提交的"
+
+#: panels/sql/panel.py:25
+msgid "Repeatable read"
+msgstr "可重复读取"
+
+#: panels/sql/panel.py:26
+msgid "Serializable"
+msgstr "可序列化"
+
+#: panels/sql/panel.py:37
+msgid "Idle"
+msgstr "空闲"
+
+#: panels/sql/panel.py:38
+msgid "Active"
+msgstr "活跃"
+
+#: panels/sql/panel.py:39
+msgid "In transaction"
+msgstr "事务"
+
+#: panels/sql/panel.py:40
+msgid "In error"
+msgstr "错误"
+
+#: panels/sql/panel.py:41
+msgid "Unknown"
+msgstr "未知"
+
+#: panels/sql/panel.py:105
+msgid "SQL"
+msgstr "SQL"
+
+#: panels/templates/panel.py:141
+msgid "Templates"
+msgstr "模板"
+
+#: panels/templates/panel.py:146
+#, python-format
+msgid "Templates (%(num_templates)s rendered)"
+msgstr "模板 (%(num_templates)s 个被渲染)"
+
+#: templates/debug_toolbar/base.html:19
+msgid "Hide toolbar"
+msgstr "隐藏工具栏"
+
+#: templates/debug_toolbar/base.html:19
+msgid "Hide"
+msgstr "隐藏"
+
+#: templates/debug_toolbar/base.html:25
+msgid "Disable for next and successive requests"
+msgstr "针对下一个连续的请求禁用该功能"
+
+#: templates/debug_toolbar/base.html:25
+msgid "Enable for next and successive requests"
+msgstr "针对下一个连续的请求启用该功能"
+
+#: templates/debug_toolbar/base.html:47
+msgid "Show toolbar"
+msgstr "显示工具栏"
+
+#: templates/debug_toolbar/base.html:53
+msgid "Close"
+msgstr "关闭"
+
+#: templates/debug_toolbar/redirect.html:8
+msgid "Location:"
+msgstr "位置："
+
+#: templates/debug_toolbar/redirect.html:10
+msgid ""
+"The Django Debug Toolbar has intercepted a redirect to the above URL for "
+"debug viewing purposes. You can click the above link to continue with the "
+"redirect as normal."
+msgstr "Django Debug Toolbar 为了调试目的拦截了一个重定向到上面 URL 的请求。  您可以点击上面的链接继续执行重定向操作。"
+
+#: templates/debug_toolbar/panels/cache.html:2
+msgid "Summary"
+msgstr "摘要"
+
+#: templates/debug_toolbar/panels/cache.html:6
+msgid "Total calls"
+msgstr "总调用次数"
+
+#: templates/debug_toolbar/panels/cache.html:7
+msgid "Total time"
+msgstr "总耗时"
+
+#: templates/debug_toolbar/panels/cache.html:8
+msgid "Cache hits"
+msgstr "缓存命中"
+
+#: templates/debug_toolbar/panels/cache.html:9
+msgid "Cache misses"
+msgstr "缓存未命中"
+
+#: templates/debug_toolbar/panels/cache.html:21
+msgid "Commands"
+msgstr "命令"
+
+#: templates/debug_toolbar/panels/cache.html:39
+msgid "Calls"
+msgstr "调用"
+
+#: templates/debug_toolbar/panels/cache.html:43
+#: templates/debug_toolbar/panels/sql.html:20
+msgid "Time (ms)"
+msgstr "时间(毫秒)"
+
+#: templates/debug_toolbar/panels/cache.html:44
+msgid "Type"
+msgstr "类型"
+
+#: templates/debug_toolbar/panels/cache.html:45
+#: templates/debug_toolbar/panels/request.html:8
+msgid "Arguments"
+msgstr "参数"
+
+#: templates/debug_toolbar/panels/cache.html:46
+#: templates/debug_toolbar/panels/request.html:9
+msgid "Keyword arguments"
+msgstr "关键字参数"
+
+#: templates/debug_toolbar/panels/cache.html:47
+msgid "Backend"
+msgstr "后端"
+
+#: templates/debug_toolbar/panels/headers.html:3
+msgid "Request headers"
+msgstr "请求头"
+
+#: templates/debug_toolbar/panels/headers.html:8
+#: templates/debug_toolbar/panels/headers.html:27
+#: templates/debug_toolbar/panels/headers.html:48
+msgid "Key"
+msgstr "键"
+
+#: templates/debug_toolbar/panels/headers.html:9
+#: templates/debug_toolbar/panels/headers.html:28
+#: templates/debug_toolbar/panels/headers.html:49
+#: templates/debug_toolbar/panels/request.html:33
+#: templates/debug_toolbar/panels/request.html:59
+#: templates/debug_toolbar/panels/request.html:85
+#: templates/debug_toolbar/panels/request.html:110
+#: templates/debug_toolbar/panels/settings.html:6
+#: templates/debug_toolbar/panels/timer.html:11
+msgid "Value"
+msgstr "值"
+
+#: templates/debug_toolbar/panels/headers.html:22
+msgid "Response headers"
+msgstr "响应头"
+
+#: templates/debug_toolbar/panels/headers.html:41
+msgid "WSGI environ"
+msgstr "WSGI 环境变量"
+
+#: templates/debug_toolbar/panels/headers.html:43
+msgid ""
+"Since the WSGI environ inherits the environment of the server, only a "
+"significant subset is shown below."
+msgstr "由于 WSGI 的环境变量继承自 server，所以下面只显示了一些重要的子集。"
+
+#: templates/debug_toolbar/panels/logging.html:6
+msgid "Level"
+msgstr "级别"
+
+#: templates/debug_toolbar/panels/logging.html:8
+msgid "Channel"
+msgstr "频道"
+
+#: templates/debug_toolbar/panels/logging.html:9
+msgid "Message"
+msgstr "消息"
+
+#: templates/debug_toolbar/panels/logging.html:10
+#: templates/debug_toolbar/panels/staticfiles.html:45
+msgid "Location"
+msgstr "位置"
+
+#: templates/debug_toolbar/panels/logging.html:26
+msgid "No messages logged"
+msgstr "没有消息被记录"
+
+#: templates/debug_toolbar/panels/profiling.html:5
+msgid "Call"
+msgstr "调用"
+
+#: templates/debug_toolbar/panels/profiling.html:6
+msgid "CumTime"
+msgstr "调用该函数及其内部调用其他函数花费的总时间"
+
+#: templates/debug_toolbar/panels/profiling.html:7
+#: templates/debug_toolbar/panels/profiling.html:9
+msgid "Per"
+msgstr "平均每次调用花费的时间"
+
+#: templates/debug_toolbar/panels/profiling.html:8
+msgid "TotTime"
+msgstr "调用该函数花费的总时间"
+
+#: templates/debug_toolbar/panels/profiling.html:10
+msgid "Count"
+msgstr "总的调用次数"
+
+#: templates/debug_toolbar/panels/request.html:3
+msgid "View information"
+msgstr "View 信息"
+
+#: templates/debug_toolbar/panels/request.html:7
+msgid "View function"
+msgstr "View 函数"
+
+#: templates/debug_toolbar/panels/request.html:10
+msgid "URL name"
+msgstr "URL 名称"
+
+#: templates/debug_toolbar/panels/request.html:24
+msgid "Cookies"
+msgstr "Cookies"
+
+#: templates/debug_toolbar/panels/request.html:32
+#: templates/debug_toolbar/panels/request.html:58
+#: templates/debug_toolbar/panels/request.html:84
+#: templates/debug_toolbar/panels/request.html:109
+msgid "Variable"
+msgstr "变量"
+
+#: templates/debug_toolbar/panels/request.html:46
+msgid "No cookies"
+msgstr "没有 cookies"
+
+#: templates/debug_toolbar/panels/request.html:50
+msgid "Session data"
+msgstr "Session 数据"
+
+#: templates/debug_toolbar/panels/request.html:72
+msgid "No session data"
+msgstr "没有 session 数据"
+
+#: templates/debug_toolbar/panels/request.html:76
+msgid "GET data"
+msgstr "GET 请求数据"
+
+#: templates/debug_toolbar/panels/request.html:98
+msgid "No GET data"
+msgstr "没有 GET 请求数据"
+
+#: templates/debug_toolbar/panels/request.html:102
+msgid "POST data"
+msgstr "POST 请求数据"
+
+#: templates/debug_toolbar/panels/request.html:123
+msgid "No POST data"
+msgstr "没有 POST 请求数据"
+
+#: templates/debug_toolbar/panels/settings.html:5
+msgid "Setting"
+msgstr "设置项"
+
+#: templates/debug_toolbar/panels/signals.html:5
+msgid "Signal"
+msgstr "信号"
+
+#: templates/debug_toolbar/panels/signals.html:6
+msgid "Providing"
+msgstr "提供"
+
+#: templates/debug_toolbar/panels/signals.html:7
+msgid "Receivers"
+msgstr "接收者"
+
+#: templates/debug_toolbar/panels/sql.html:7
+#, python-format
+msgid "%(num)s query"
+msgid_plural "%(num)s queries"
+msgstr[0] "%(num)s 个查询"
+
+#: templates/debug_toolbar/panels/sql.html:18
+msgid "Query"
+msgstr "查询"
+
+#: templates/debug_toolbar/panels/sql.html:19
+#: templates/debug_toolbar/panels/timer.html:36
+msgid "Timeline"
+msgstr "时间线"
+
+#: templates/debug_toolbar/panels/sql.html:21
+msgid "Action"
+msgstr "功能"
+
+#: templates/debug_toolbar/panels/sql.html:64
+msgid "Connection:"
+msgstr "连接："
+
+#: templates/debug_toolbar/panels/sql.html:66
+msgid "Isolation level:"
+msgstr "隔离级别"
+
+#: templates/debug_toolbar/panels/sql.html:69
+msgid "Transaction status:"
+msgstr "事务状态："
+
+#: templates/debug_toolbar/panels/sql.html:83
+msgid "(unknown)"
+msgstr "(未知)"
+
+#: templates/debug_toolbar/panels/sql.html:92
+msgid "No SQL queries were recorded during this request."
+msgstr "在处理这个请求期间没有记录到 SQL 查询。"
+
+#: templates/debug_toolbar/panels/sql_explain.html:3
+#: templates/debug_toolbar/panels/sql_profile.html:3
+#: templates/debug_toolbar/panels/sql_select.html:3
+#: templates/debug_toolbar/panels/template_source.html:3
+msgid "Back"
+msgstr "返回"
+
+#: templates/debug_toolbar/panels/sql_explain.html:4
+msgid "SQL explained"
+msgstr "SQL explain 分析"
+
+#: templates/debug_toolbar/panels/sql_explain.html:9
+#: templates/debug_toolbar/panels/sql_profile.html:10
+#: templates/debug_toolbar/panels/sql_select.html:9
+msgid "Executed SQL"
+msgstr "执行的 SQL 语句"
+
+#: templates/debug_toolbar/panels/sql_explain.html:13
+#: templates/debug_toolbar/panels/sql_profile.html:14
+#: templates/debug_toolbar/panels/sql_select.html:13
+msgid "Database"
+msgstr "数据库"
+
+#: templates/debug_toolbar/panels/sql_profile.html:4
+msgid "SQL profiled"
+msgstr "SQL 性能分析"
+
+#: templates/debug_toolbar/panels/sql_profile.html:37
+msgid "Error"
+msgstr "错误"
+
+#: templates/debug_toolbar/panels/sql_select.html:4
+msgid "SQL selected"
+msgstr "选中的 SQL 语句"
+
+#: templates/debug_toolbar/panels/sql_select.html:36
+msgid "Empty set"
+msgstr "空集合"
+
+#: templates/debug_toolbar/panels/staticfiles.html:4
+msgid "Static file path"
+msgid_plural "Static file paths"
+msgstr[0] "静态文件路径"
+
+#: templates/debug_toolbar/panels/staticfiles.html:8
+#, python-format
+msgid "(prefix %(prefix)s)"
+msgstr "(前缀 %(prefix)s)"
+
+#: templates/debug_toolbar/panels/staticfiles.html:12
+#: templates/debug_toolbar/panels/staticfiles.html:23
+#: templates/debug_toolbar/panels/staticfiles.html:35
+#: templates/debug_toolbar/panels/templates.html:10
+#: templates/debug_toolbar/panels/templates.html:28
+#: templates/debug_toolbar/panels/templates.html:43
+msgid "None"
+msgstr "空"
+
+#: templates/debug_toolbar/panels/staticfiles.html:15
+msgid "Static file app"
+msgid_plural "Static file apps"
+msgstr[0] "包含静态文件的应用"
+
+#: templates/debug_toolbar/panels/staticfiles.html:26
+msgid "Static file"
+msgid_plural "Static files"
+msgstr[0] "静态文件"
+
+#: templates/debug_toolbar/panels/staticfiles.html:40
+#, python-format
+msgid "%(payload_count)s file"
+msgid_plural "%(payload_count)s files"
+msgstr[0] "%(payload_count)s 个文件"
+
+#: templates/debug_toolbar/panels/staticfiles.html:44
+msgid "Path"
+msgstr "路径"
+
+#: templates/debug_toolbar/panels/template_source.html:4
+msgid "Template source:"
+msgstr "模板源："
+
+#: templates/debug_toolbar/panels/templates.html:2
+msgid "Template path"
+msgid_plural "Template paths"
+msgstr[0] "模板路径"
+
+#: templates/debug_toolbar/panels/templates.html:13
+msgid "Template"
+msgid_plural "Templates"
+msgstr[0] "模板"
+
+#: templates/debug_toolbar/panels/templates.html:21
+#: templates/debug_toolbar/panels/templates.html:37
+msgid "Toggle context"
+msgstr "切换上下文"
+
+#: templates/debug_toolbar/panels/templates.html:31
+msgid "Context processor"
+msgid_plural "Context processors"
+msgstr[0] "Context processors"
+
+#: templates/debug_toolbar/panels/timer.html:2
+msgid "Resource usage"
+msgstr "资源使用"
+
+#: templates/debug_toolbar/panels/timer.html:10
+msgid "Resource"
+msgstr "资源"
+
+#: templates/debug_toolbar/panels/timer.html:26
+msgid "Browser timing"
+msgstr "浏览器计时"
+
+#: templates/debug_toolbar/panels/timer.html:35
+msgid "Timing attribute"
+msgstr "计时属性"
+
+#: templates/debug_toolbar/panels/timer.html:37
+msgid "Milliseconds since navigation start (+length)"
+msgstr "导航开始后的毫秒 (+长度)"
+
+#: templates/debug_toolbar/panels/versions.html:5
+msgid "Name"
+msgstr "名称"
+
+#: templates/debug_toolbar/panels/versions.html:6
+msgid "Version"
+msgstr "版本"

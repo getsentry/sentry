@@ -7,6 +7,7 @@ sentry.quotas.redis
 """
 from __future__ import absolute_import
 
+import functools
 import six
 
 from time import time
@@ -24,7 +25,7 @@ class BasicRedisQuota(object):
     def __init__(self, key, limit=0, window=60, reason_code=None,
                  enforce=True):
         self.key = key
-        # maximum number of events in the given window
+        # maximum number of events in the given window, 0 indicates "no limit"
         self.limit = limit
         # time in seconds that this quota reflects
         self.window = window
@@ -51,6 +52,9 @@ class RedisQuota(Quota):
                 client.ping()
         except Exception as e:
             raise InvalidConfiguration(six.text_type(e))
+
+    def __get_redis_key(self, key, timestamp, interval):
+        return '{}:{}:{}'.format(self.namespace, key, int(timestamp // interval))
 
     def get_quotas(self, project, key=None):
         if key:
@@ -79,13 +83,49 @@ class RedisQuota(Quota):
                 window=kquota[1],
                 reason_code='key_quota',
             ))
-        return tuple(results)
+        return results
 
-    def get_redis_key(self, key, timestamp, interval):
-        return '{}:{}:{}'.format(self.namespace, key, int(timestamp // interval))
+    def get_usage(self, organization_id, quotas, timestamp=None):
+        if timestamp is None:
+            timestamp = time()
 
-    def is_rate_limited(self, project, key=None):
-        timestamp = time()
+        def get_usage_for_quota(client, quota):
+            if quota.limit == 0:
+                return None
+
+            return client.get(
+                self.__get_redis_key(
+                    quota.key,
+                    timestamp,
+                    quota.window,
+                ),
+            )
+
+        def get_value_for_result(result):
+            if result is None:
+                return None
+
+            return int(result.value or 0)
+
+        with self.cluster.fanout() as client:
+            results = map(
+                functools.partial(
+                    get_usage_for_quota,
+                    client.target_key(
+                        six.text_type(organization_id),
+                    ),
+                ),
+                quotas,
+            )
+
+        return map(
+            get_value_for_result,
+            results,
+        )
+
+    def is_rate_limited(self, project, key=None, timestamp=None):
+        if timestamp is None:
+            timestamp = time()
 
         quotas = [
             quota
@@ -105,7 +145,7 @@ class RedisQuota(Quota):
         keys = []
         args = []
         for quota in quotas:
-            keys.append(self.get_redis_key(quota.key, timestamp, quota.window))
+            keys.append(self.__get_redis_key(quota.key, timestamp, quota.window))
             expiry = get_next_period_start(quota.window) + self.grace
             args.extend((quota.limit, int(expiry)))
 

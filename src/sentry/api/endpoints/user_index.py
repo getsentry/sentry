@@ -33,7 +33,10 @@ class UserIndexEndpoint(Endpoint):
                     )
                 elif key == 'id':
                     queryset = queryset.filter(
-                        id__in=value,
+                        id__in=[
+                            request.user.id
+                            if v == 'me' else v for v in value
+                        ],
                     )
                 elif key == 'name':
                     queryset = queryset.filter(

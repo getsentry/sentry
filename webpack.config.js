@@ -51,6 +51,9 @@ var entry = {
     'moment',
     'moment-timezone',
     'raven-js',
+    'react',
+    'react-dom',
+    'react-dom/server',
     'react-document-title',
     'react-router',
     'react-bootstrap/lib/Modal',
@@ -69,7 +72,10 @@ var entry = {
   // css
   // NOTE: this will also create an empty 'sentry.js' file
   // TODO: figure out how to not generate this
-  sentry: 'less/sentry.less'
+  sentry: 'less/sentry.less',
+
+  // debug toolbar
+  debugger: 'less/debugger.less'
 };
 
 // dynamically iterate over locale files and add to `entry` config
@@ -143,6 +149,7 @@ var config = {
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
       Raven: 'raven-js',
+      ReactDOM: 'react-dom',
       underscore: 'underscore',
       _: 'underscore'
     }),

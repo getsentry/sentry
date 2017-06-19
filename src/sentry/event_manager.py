@@ -789,6 +789,8 @@ class EventManager(object):
     def _ensure_hashes_merged(self, group, hash_list):
         # TODO(dcramer): there is a race condition with selecting/updating
         # in that another group could take ownership of the hash
+        # XXX: This function is currently unused, and hasn't been updated to
+        # take `GroupHash.state` into account.
         bad_hashes = GroupHash.objects.filter(
             id__in=[h.id for h in hash_list],
         ).exclude(
@@ -863,6 +865,8 @@ class EventManager(object):
             # as well as GH-5085.
             GroupHash.objects.filter(
                 id__in=[h.id for h in new_hashes],
+            ).exclude(
+                state=GroupHash.State.LOCKED_IN_MIGRATION,
             ).update(group=group)
 
             if group_is_new and len(new_hashes) == len(all_hashes):

@@ -31,7 +31,7 @@ SDK_INFO = {
 }
 
 
-def patched_symbolize_app_frame(self, instruction_addr, img):
+def patched_symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
     return [{
         'filename': 'Foo.swift',
         'abs_path': 'Foo.swift',

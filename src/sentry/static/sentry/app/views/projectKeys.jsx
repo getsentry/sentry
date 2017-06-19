@@ -10,6 +10,7 @@ import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import {t, tct} from '../locale';
 import OrganizationState from '../mixins/organizationState';
+import Pagination from '../components/pagination';
 
 const KeyRow = React.createClass({
   propTypes: {
@@ -288,20 +289,23 @@ export default React.createClass({
     let {orgId, projectId} = this.props.params;
     let access = this.getAccess();
     return (
-      <div className="client-key-list">
-        {this.state.keyList.map(key => {
-          return (
-            <KeyRow
-              access={access}
-              key={key.id}
-              orgId={orgId}
-              projectId={projectId}
-              data={key}
-              onToggle={this.handleToggleKey.bind(this, key)}
-              onRemove={this.handleRemoveKey.bind(this, key)}
-            />
-          );
-        })}
+      <div>
+        <div className="client-key-list">
+          {this.state.keyList.map(key => {
+            return (
+              <KeyRow
+                access={access}
+                key={key.id}
+                orgId={orgId}
+                projectId={projectId}
+                data={key}
+                onToggle={this.handleToggleKey.bind(this, key)}
+                onRemove={this.handleRemoveKey.bind(this, key)}
+              />
+            );
+          })}
+        </div>
+        <Pagination pageLinks={this.state.pageLinks} />
       </div>
     );
   },

@@ -82,6 +82,9 @@ class InputField extends FormField {
     if (this.props.error) {
       className += ' has-error';
     }
+    if (this.props.required) {
+      className += ' required';
+    }
     return (
       <div className={className}>
         <div className="controls">

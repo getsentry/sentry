@@ -20,6 +20,9 @@ from sentry.db.models import (
     ArrayField, BoundedPositiveIntegerField, FlexibleForeignKey, Model,
     sane_repr
 )
+
+from sentry.models import CommitFileChange
+
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -54,6 +57,7 @@ class Release(Model):
     organization = FlexibleForeignKey('sentry.Organization')
     projects = models.ManyToManyField('sentry.Project', related_name='releases',
                                       through=ReleaseProject)
+    # DEPRECATED
     project_id = BoundedPositiveIntegerField(null=True)
     version = models.CharField(max_length=64)
     # ref might be the branch name being released
@@ -381,6 +385,17 @@ class Release(Model):
                     key=data['id'],
                     defaults=defaults,
                 )
+
+                patch_set = data.get('patch_set', [])
+
+                for patched_file in patch_set:
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=self.organization.id,
+                        commit=commit,
+                        filename=patched_file['path'],
+                        type=patched_file['type'],
+                    )
+
                 if not created:
                     update_kwargs = {}
                     if commit.message is None and defaults['message'] is not None:
@@ -401,7 +416,10 @@ class Release(Model):
 
             self.update(
                 commit_count=len(commit_list),
-                authors=[six.text_type(a.id) for a in six.itervalues(authors)],
+                authors=[six.text_type(a_id) for a_id in ReleaseCommit.objects.filter(
+                    release=self,
+                    commit__author_id__isnull=False,
+                ).values_list('commit__author_id', flat=True).distinct()],
                 last_commit_id=latest_commit.id if latest_commit else None,
             )
 

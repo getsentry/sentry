@@ -308,3 +308,59 @@ class SetCommitsTestCase(TestCase):
         assert release.commit_count == 3
         assert release.authors == [six.text_type(author.id)]
         assert release.last_commit_id == latest_commit.id
+
+    def test_using_saved_data(self):
+        org = self.create_organization()
+        project = self.create_project(organization=org, name='foo')
+
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name='test/repo',
+        )
+
+        author = CommitAuthor.objects.create(
+            name='foo bar baz',
+            email='foo@example.com',
+            organization_id=org.id,
+        )
+
+        Commit.objects.create(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='b' * 40,
+            author=author,
+        )
+
+        release = Release.objects.create(version='abcdabc', organization=org)
+        release.add_project(project)
+        release.set_commits([{
+            'id': 'a' * 40,
+            'repository': repo.name,
+        }, {
+            'id': 'b' * 40,
+            'repository': repo.name,
+        }, {
+            'id': 'c' * 40,
+            'repository': repo.name,
+        }])
+
+        assert Commit.objects.filter(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='a' * 40,
+        ).exists()
+        assert Commit.objects.filter(
+            repository_id=repo.id,
+            organization_id=org.id,
+            key='c' * 40,
+        ).exists()
+
+        latest_commit = Commit.objects.get(
+            repository_id=repo.id,
+            key='a' * 40,
+        )
+
+        release = Release.objects.get(id=release.id)
+        assert release.commit_count == 3
+        assert release.authors == [six.text_type(author.id)]
+        assert release.last_commit_id == latest_commit.id

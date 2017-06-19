@@ -35,6 +35,9 @@ _support_framework = re.compile(r'''(?x)
 ''')
 SIM_PATH = '/Developer/CoreSimulator/Devices/'
 SIM_APP_PATH = '/Containers/Bundle/Application/'
+MAC_OS_PATH = '.app/Contents/'
+
+_internal_function_re = re.compile(r'(kscm_|kscrash_|KSCrash |SentryClient |RNSentry )')
 
 KNOWN_GARBAGE_SYMBOLS = set([
     '_mh_execute_header',
@@ -132,10 +135,13 @@ class Symbolizer(object):
 
         return frame
 
-    def is_image_from_app_bundle(self, img):
+    def is_image_from_app_bundle(self, img, sdk_info=None):
         fn = img['name']
+        is_mac_platform = (
+            sdk_info is not None and sdk_info['sdk_name'].lower() == 'macos')
         if not (fn.startswith(APP_BUNDLE_PATHS) or
-                (SIM_PATH in fn and SIM_APP_PATH in fn)):
+                (SIM_PATH in fn and SIM_APP_PATH in fn) or
+                (is_mac_platform and MAC_OS_PATH in fn)):
             return False
         return True
 
@@ -150,13 +156,13 @@ class Symbolizer(object):
         fn = img['name']
         return fn.startswith(APP_BUNDLE_PATHS) and '/Frameworks/' in fn
 
-    def _is_app_frame(self, instruction_addr, img):
+    def _is_app_frame(self, instruction_addr, img, sdk_info=None):
         """Given a frame derives the value of `in_app` by discarding the
         original value of the frame.
         """
         # Anything that is outside the app bundle is definitely not a
         # frame from out app.
-        if not self.is_image_from_app_bundle(img):
+        if not self.is_image_from_app_bundle(img, sdk_info=sdk_info):
             return False
 
         # We also do not consider known support frameworks to be part of
@@ -167,11 +173,11 @@ class Symbolizer(object):
         # Otherwise, yeah, let's just say it's in_app
         return True
 
-    def _is_optional_dsym(self, img):
+    def _is_optional_dsym(self, img, sdk_info=None):
         """Checks if this is a dsym that is optional."""
         # Frames that are not in the app are not considered optional.  In
         # theory we should never reach this anyways.
-        if not self.is_image_from_app_bundle(img):
+        if not self.is_image_from_app_bundle(img, sdk_info=sdk_info):
             return False
 
         # If we're dealing with an app bundled framework that is also
@@ -190,10 +196,10 @@ class Symbolizer(object):
     def _is_simulator_frame(self, frame, img):
         return _sim_platform_re.search(img['name']) is not None
 
-    def _symbolize_app_frame(self, instruction_addr, img):
+    def _symbolize_app_frame(self, instruction_addr, img, sdk_info=None):
         dsym_path = self.dsym_paths.get(img['uuid'])
         if dsym_path is None:
-            if self._is_optional_dsym(img):
+            if self._is_optional_dsym(img, sdk_info=sdk_info):
                 type = EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM
             else:
                 type = EventError.NATIVE_MISSING_DSYM
@@ -256,12 +262,17 @@ class Symbolizer(object):
         # If we are dealing with a frame that is not bundled with the app
         # we look at system symbols.  If that fails, we go to looking for
         # app symbols explicitly.
-        if not self.is_image_from_app_bundle(img):
+        if not self.is_image_from_app_bundle(img, sdk_info=sdk_info):
             return self._convert_symbolserver_match(instruction_addr,
                                                     symbolserver_match, img)
 
-        return self._symbolize_app_frame(instruction_addr, img)
+        return self._symbolize_app_frame(
+            instruction_addr, img, sdk_info=sdk_info)
 
-    def is_in_app(self, instruction_addr):
+    def is_in_app(self, instruction_addr, sdk_info=None):
         img = self.image_lookup.find_image(instruction_addr)
-        return img is not None and self._is_app_frame(instruction_addr, img)
+        return img is not None and self._is_app_frame(
+            instruction_addr, img, sdk_info=sdk_info)
+
+    def is_internal_function(self, function):
+        return _internal_function_re.search(function) is not None
