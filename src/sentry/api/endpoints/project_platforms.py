@@ -1,19 +1,23 @@
 from __future__ import absolute_import
 
 from rest_framework.response import Response
-from rest_framework import serializers
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import serialize
+from sentry.api.serializers import serialize, register, Serializer
 from sentry.models import ProjectPlatform
 
 
-class ProjectPlatformSerializer(serializers.Serializer):
-    platform = serializers.CharField()
+@register(ProjectPlatform)
+class ProjectPlatformSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            'platform': obj.platform,  
+            'dateCreated': obj.date_added
+        }
 
 
 class ProjectPlatformsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         queryset = ProjectPlatform.objects.filter(
             project_id=project.id
-        ).values('project_id', 'platform', 'date_added', 'last_seen')
+        )
         return Response(serialize(list(queryset), request.user))
