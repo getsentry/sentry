@@ -171,7 +171,7 @@ def record_user_context_received(project, group, event, **kwargs):
     # checking to see if only ip address is being sent (our js library does this automatically)
     # testing for this in test_no_user_tracking_for_ip_address_only
     # list(d.keys()) pattern is to make this python3 safe
-    elif isinstance(user_context, dict) and list(user_context.keys()) != ['ip_address']:
+    elif list(user_context.keys()) != ['ip_address']:
         success = OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.USER_CONTEXT,
