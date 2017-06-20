@@ -1,7 +1,5 @@
 from __future__ import absolute_import
 
-import six
-
 from libsourcemap import ProguardView
 from sentry.plugins import Plugin2
 from sentry.stacktraces import StacktraceProcessor
@@ -47,14 +45,15 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        self.dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(
+        dsym_paths = ProjectDSymFile.dsymcache.fetch_dsyms(
             self.project, self.images)
         self.mapping_views = []
 
-        for image_uuid, dsym_path in six.iteritems(self.images):
+        for image_uuid in self.images:
             error_type = None
 
-            if image_uuid not in self.dsym_paths:
+            dsym_path = dsym_paths.get(image_uuid)
+            if dsym_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
                 view = ProguardView.from_path(dsym_path)
