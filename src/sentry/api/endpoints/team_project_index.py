@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.serializers import serialize
-from sentry.models import Project, ProjectStatus, ProjectPlatform, AuditLogEntryEvent
+from sentry.models import Project, ProjectStatus, AuditLogEntryEvent
 from sentry.signals import project_created
 from sentry.utils.apidocs import scenario, attach_scenarios
 from sentry.utils.samples import create_sample_event
@@ -121,13 +121,6 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
                 return Response(
                     {'detail': 'A project with this slug already exists.'},
                     status=409,
-                )
-
-            platform = result.get('platform')
-            if platform:
-                ProjectPlatform.objects.create(
-                    project_id=project.id,
-                    platform=platform
                 )
 
             # XXX: create sample event?
