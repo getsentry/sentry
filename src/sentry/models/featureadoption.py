@@ -138,7 +138,6 @@ class FeatureAdoptionManager(BaseManager):
         try:
             with transaction.atomic():
                 self.bulk_create(features)
-                return True
         except IntegrityError as e:
             # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
             logger.exception(e)
