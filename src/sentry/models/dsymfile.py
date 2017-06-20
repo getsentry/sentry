@@ -71,6 +71,8 @@ DSYM_PLATFORMS = {
     'apple': DSymPlatform.APPLE,
     'android': DSymPlatform.ANDROID,
 }
+DSYM_PLATFORMS_REVERSE = dict(
+    (v, k) for (k, v) in six.iteritems(DSYM_PLATFORMS))
 
 
 def _auto_enrich_data(data, app_id, platform):
