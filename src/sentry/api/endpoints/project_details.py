@@ -55,6 +55,7 @@ def update_project_scenario(runner):
             data={
                 'name': 'Plane Proxy',
                 'slug': 'plane-proxy',
+                'platform': 'javascript',
                 'options': {
                     'sentry:origins': 'http://example.com\nhttp://example.invalid',
                 }
@@ -191,6 +192,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :param string name: the new name for the project.
         :param string slug: the new slug for the project.
+        :param string platform: the new platform for the project.
         :param boolean isBookmarked: in case this API call is invoked with a
                                      user context this allows changing of
                                      the bookmark flag.
