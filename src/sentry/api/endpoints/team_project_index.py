@@ -38,7 +38,7 @@ class ProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True)
     slug = serializers.RegexField(r'^[a-z0-9_\-]+$', max_length=50,
                                   required=False)
-    platform = serializers.CharField(max_length=64, required=False)
+    platform = serializers.CharField(required=False)
 
 # While currently the UI suggests teams are a parent of a project, in reality
 # the project is the core component, and which team it is on is simply an
