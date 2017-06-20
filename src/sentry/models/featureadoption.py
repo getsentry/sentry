@@ -131,23 +131,23 @@ class FeatureAdoptionManager(BaseManager):
         try:
             features = []
             incomplete_feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs]) - self.get_all_cache(organization_id)
-
-            for feature_id in incomplete_feature_ids:
-                features.append(FeatureAdoption(
-                    organization_id=organization_id,
-                    feature_id=feature_id,
-                    complete=True))
-
-            self.bulk_create(features)
-            self.bulk_set_cache(organization_id, *incomplete_feature_ids)
-
         except KeyError:
             logger.info('Invalid feature slug: %s' % feature_slugs)
             return
+
+        for feature_id in incomplete_feature_ids:
+            features.append(FeatureAdoption(
+                organization_id=organization_id,
+                feature_id=feature_id,
+                complete=True))
+        try:
+            self.bulk_create(features)
         except IntegrityError:
             # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
             logger.info('IntegrityError, cannot insert: %s' % feature_slugs)
             return
+        finally:
+            self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
     def get_by_slug(self, organization, slug):
         return self.filter(organization=organization, feature_id=manager.get_by_slug(slug).id).first()
