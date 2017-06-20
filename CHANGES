@@ -3,6 +3,7 @@ Version 8.18 (Unreleased)
 
 - Expanded resolution options to allow current and explicit versions.
 - Removed support for global dsyms
+- Added proguard support
 
 Schema Changes
 ~~~~~~~~~~~~~~
