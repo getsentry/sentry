@@ -271,6 +271,36 @@ class GroupUpdateTest(APITestCase):
             is_active=False,
         ).exists()
 
+    def test_discard(self):
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        group_hash = GroupHash.objects.create(
+            hash='x' * 32,
+            project=group.project,
+            group=group,
+        )
+
+        url = '/api/0/issues/{}/'.format(group.id)
+
+        with self.tasks():
+            resp = self.client.put(url, data={
+                'discard': True,
+            })
+
+        assert resp.status_code == 204
+        assert not Group.objects.filter(
+            id=group.id,
+        ).exists()
+        assert GroupHash.objects.filter(
+            id=group_hash.id,
+        ).exists()
+        tombstone = GroupHash.objects.get(id=group_hash.id).group_tombstone
+        assert tombstone.message == group.message
+        assert tombstone.culprit == group.culprit
+        assert tombstone.project == group.project
+        assert tombstone.type == group.get_event_type()
+
 
 class GroupDeleteTest(APITestCase):
     def test_delete(self):
