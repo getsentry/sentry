@@ -150,7 +150,7 @@ class FeatureAdoptionManager(BaseManager):
             return
 
     def get_by_slug(self, organization, slug):
-        return self.get(organization=organization, feature_id=manager.get_by_slug(slug).id)
+        return self.filter(organization=organization, feature_id=manager.get_by_slug(slug).id).first()
 
 
 class FeatureAdoption(Model):

@@ -1,5 +1,4 @@
 from __future__ import print_function, absolute_import
-from six import iterkeys
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -169,17 +168,18 @@ def record_user_context_received(project, group, event, **kwargs):
     user_context = event.data.get('sentry.interfaces.User')
     if not user_context:
         return
-    elif isinstance(user_context, dict) and iterkeys(user_context) != ['ip_address']:
-        return
-
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.USER_CONTEXT,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
-    )
-    if success:
-        check_for_onboarding_complete(project.organization_id)
+    # checking to see if only ip address is being sent (our js library does this automatically)
+    # testing for this in test_no_user_tracking_for_ip_address_only
+    # list(d.keys()) pattern is to make this python3 safe
+    elif isinstance(user_context, dict) and list(user_context.keys()) != ['ip_address']:
+        success = OrganizationOnboardingTask.objects.record(
+            organization_id=project.organization_id,
+            task=OnboardingTask.USER_CONTEXT,
+            status=OnboardingTaskStatus.COMPLETE,
+            project_id=project.id,
+        )
+        if success:
+            check_for_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)

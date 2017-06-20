@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-from six import iterkeys
 
 from sentry.adoption import manager
 from sentry.interfaces.base import get_interface
@@ -65,7 +64,9 @@ def record_event_processed(project, group, event, **kwargs):
     # We'd like them to tag with id or email.
     # Certain SDKs automatically tag with ip address.
     # Check to make sure more the ip address is being sent.
-    if user_context and isinstance(user_context, dict) and iterkeys(user_context) != ['ip_address']:
+    # testing for this in test_no_user_tracking_for_ip_address_only
+    # list(d.keys()) pattern is to make this python3 safe
+    if user_context and isinstance(user_context, dict) and list(user_context.keys()) != ['ip_address']:
         feature_slugs.append('user_tracking')
 
     # Custom Tags
