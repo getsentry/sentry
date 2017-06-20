@@ -112,6 +112,7 @@ install_requires = [
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
+    'python3-saml>=1.2.6',
     'percy>=0.4.5',
     'petname>=2.0,<2.1',
     'Pillow>=3.2.0,<3.3.0',
