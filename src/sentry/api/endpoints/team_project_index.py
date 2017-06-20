@@ -3,11 +3,13 @@ from __future__ import absolute_import
 from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django.utils import timezone
 
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
 from sentry.api.serializers import serialize
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Project, ProjectStatus, ProjectPlatform, AuditLogEntryEvent
 from sentry.signals import project_created
 from sentry.utils.apidocs import scenario, attach_scenarios
@@ -149,4 +151,23 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             create_sample_event(project, platform='javascript')
 
             return Response(serialize(project, request.user), status=201)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def put(self, request, team):
+        if not request.user.is_authenticated():
+            raise PermissionDenied(detail="Key doesn't have permission to edit Project")
+        try:
+            project = Project.objects.get(
+                slug=request.DATA['slug']
+            )
+        except Project.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        serializer = ProjectSerializer(data=request.DATA, partial=True)
+        if serializer.is_valid():
+            result = serializer.object
+            project.platform = result['platform']
+            project.save()
+
+            return Response(serialize(project, request.user), status=200)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
