@@ -1,5 +1,5 @@
 from __future__ import print_function, absolute_import
-import six
+from six import iterkeys
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -169,7 +169,7 @@ def record_user_context_received(project, group, event, **kwargs):
     user_context = event.data.get('sentry.interfaces.User')
     if not user_context:
         return
-    elif isinstance(user_context, six.string_types) and user_context[:3] == 'ip:':
+    elif isinstance(user_context, dict) and iterkeys(user_context) != ['ip_address']:
         return
 
     success = OrganizationOnboardingTask.objects.record(
