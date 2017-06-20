@@ -227,7 +227,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get('platform'):
             project.platform = result['platform']
-            changed = True            
+            changed = True
 
         if changed:
             project.save()
