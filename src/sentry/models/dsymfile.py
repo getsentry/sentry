@@ -40,7 +40,7 @@ ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
 DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
 
 
-_proguard_file_re = re.compile(r'(?:^|/)proguard/(?:mapping-)?(.*?)\.txt$')
+_proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
 
 
 class VersionDSymFile(Model):
