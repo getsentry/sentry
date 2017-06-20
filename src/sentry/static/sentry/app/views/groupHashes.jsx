@@ -1,12 +1,15 @@
 import React from 'react';
+import moment from 'moment';
 
 import ApiMixin from '../mixins/apiMixin';
+import TooltipMixin from '../mixins/tooltip';
 import GroupState from '../mixins/groupState';
 
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import Pagination from '../components/pagination';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
+import Link from '../components/link';
 
 import IndicatorStore from '../stores/indicatorStore';
 
@@ -16,8 +19,17 @@ const GroupHashRow = React.createClass({
   propTypes: {
     disabled: React.PropTypes.bool,
     hash: React.PropTypes.object.isRequired,
-    onChange: React.PropTypes.func.isRequired
+    onChange: React.PropTypes.func.isRequired,
+    orgId: React.PropTypes.string,
+    projectId: React.PropTypes.string,
+    groupId: React.PropTypes.string
   },
+
+  mixins: [
+    TooltipMixin({
+      selector: '.tip'
+    })
+  ],
 
   getInitialState() {
     return {
@@ -32,22 +44,47 @@ const GroupHashRow = React.createClass({
   },
 
   render() {
-    let {hash, disabled} = this.props;
+    let {hash, disabled, orgId, projectId, groupId} = this.props;
+
+    let locked = hash.state === 'locked';
+    let checkboxDisabled = disabled || locked;
+
+    let lockedSpanProps = {};
+    if (locked) {
+      lockedSpanProps = {
+        className: 'tip',
+        style: {textDecoration: 'line-through'},
+        title: t('This hash is currently locked (busy) and cannot be unmerged.')
+      };
+    }
+
     return (
       <tr
         key={hash.id}
         onClick={e => {
           // clicking anywhere in the row will toggle the checkbox
-          if (e.currentTarget.type !== 'input') this.toggleCheckbox();
+          if (e.currentTarget.type !== 'input' && !checkboxDisabled)
+            this.toggleCheckbox();
         }}>
         <td>
-          <h5>{hash.id}</h5>
+          <h5>
+            <span {...lockedSpanProps}>
+              {hash.id}
+            </span>
+          </h5>
+        </td>
+        <td>
+          {hash.latestEvent &&
+            <Link
+              to={`/${orgId}/${projectId}/issues/${groupId}/events/${hash.latestEvent.id}`}>
+              {moment(hash.latestEvent).fromNow()}
+            </Link>}
         </td>
         <td style={{textAlign: 'right'}}>
           <input
             type="checkbox"
             className="chk-select"
-            disabled={disabled}
+            disabled={checkboxDisabled}
             checked={this.state.checked}
             onChange={this.toggleCheckbox}
           />
@@ -153,7 +190,12 @@ const GroupHashes = React.createClass({
       },
       success: (data, _, jqXHR) => {
         this.setState({
-          hashList: this.state.hashList.filter(hash => !selectedSet.has(hash.id)),
+          hashList: this.state.hashList.map(hash => {
+            if (selectedSet.has(hash.id)) {
+              hash.state = 'locked';
+            }
+            return hash;
+          }),
           error: false
         });
         IndicatorStore.add(t('Issues successfully queued for unmerging.'), 'success', {
@@ -181,6 +223,7 @@ const GroupHashes = React.createClass({
 
   renderResults() {
     let {hashList, selectedSet} = this.state;
+    let {orgId, projectId, groupId} = this.props.params;
 
     // Need to always leave at least one hash; disable remaining checkboxes
     // if remaining count is 1
@@ -190,6 +233,7 @@ const GroupHashes = React.createClass({
     let children = hashList.map(hash => {
       return (
         <GroupHashRow
+          {...{orgId, projectId, groupId}}
           hash={hash}
           key={hash.id}
           disabled={isRemainingDisabled && !selectedSet.has(hash.id)}
@@ -210,6 +254,7 @@ const GroupHashes = React.createClass({
             <thead>
               <tr>
                 <th>{t('ID')}</th>
+                <th>{t('Last seen')}</th>
                 <th
                   className="pull-right"
                   style={{borderBottom: 'none', padding: '8px 20px'}}>

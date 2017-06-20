@@ -59,6 +59,6 @@ class GroupHashSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             'id': obj.hash,
-            'latest_event': attrs['latest_event'],
+            'latestEvent': attrs['latest_event'],
             'state': self.state_text_map[obj.state],
         }
