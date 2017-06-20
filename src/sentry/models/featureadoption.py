@@ -113,8 +113,8 @@ class FeatureAdoptionManager(BaseManager):
     def record(self, organization_id, feature_slug, **kwargs):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
-        except KeyError:
-            logger.info('Invalid feature slug: %s' % feature_slug)
+        except KeyError as e:
+            logger.exception(e)
             return
 
         if not self.in_cache(organization_id, feature_id):
@@ -131,8 +131,8 @@ class FeatureAdoptionManager(BaseManager):
         try:
             features = []
             incomplete_feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs]) - self.get_all_cache(organization_id)
-        except KeyError:
-            logger.info('Invalid feature slug: %s' % feature_slugs)
+        except KeyError as e:
+            logger.exception(e)
             return
 
         for feature_id in incomplete_feature_ids:
@@ -142,9 +142,9 @@ class FeatureAdoptionManager(BaseManager):
                 complete=True))
         try:
             self.bulk_create(features)
-        except IntegrityError:
+        except IntegrityError as e:
             # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
-            logger.info('IntegrityError, cannot insert: %s' % feature_slugs)
+            logger.exception(e)
             return
         finally:
             self.bulk_set_cache(organization_id, *incomplete_feature_ids)
