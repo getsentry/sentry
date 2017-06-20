@@ -74,6 +74,7 @@ def clean_newline_inputs(value):
 class ProjectMemberSerializer(serializers.Serializer):
     isBookmarked = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
+    platform = serializers.CharField(required=False)
 
 
 class ProjectAdminSerializer(serializers.Serializer):
@@ -85,6 +86,7 @@ class ProjectAdminSerializer(serializers.Serializer):
     digestsMaxDelay = serializers.IntegerField(min_value=60, max_value=3600)
     subjectPrefix = serializers.CharField(max_length=200)
     subjectTemplate = serializers.CharField(max_length=200)
+    platform = serializers.CharField(required=False)
 
     def validate_digestsMaxDelay(self, attrs, source):
         if attrs[source] < attrs['digestsMinDelay']:
@@ -222,6 +224,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get('name'):
             project.name = result['name']
             changed = True
+
+        if result.get('platform'):
+            project.platform = result['platform']
+            changed = True            
 
         if changed:
             project.save()
