@@ -13,6 +13,11 @@ const DebugMetaInterface = React.createClass({
   },
 
   getImageDetail(img, evt) {
+    // in particular proguard images do not have a name, skip them
+    if (img.name === null || img.type === 'proguard') {
+      return null;
+    }
+
     let name = img.name.split('/').pop();
 
     if (name == 'dyld_sim') return null; // this is only for simulator builds
