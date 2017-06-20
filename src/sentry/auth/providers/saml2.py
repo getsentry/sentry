@@ -1,65 +1,134 @@
 from __future__ import absolute_import, print_function
 
-from django.http import HttpResponse, HttpResponseServerError
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.http import (HttpResponse, HttpResponseRedirect,
+                         HttpResponseServerError)
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 
 from sentry.auth import Provider, AuthView
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.auth.exceptions import IdentityNotValid
+from sentry.models import (AuthProvider, Organization, OrganizationStatus,
+                           User, UserEmail)
 from sentry.utils.http import absolute_uri
+from sentry.utils.auth import login, get_login_redirect
+
+
+def get_provider(organization_slug):
+    try:
+        organization = Organization.objects.get(
+            slug=organization_slug
+        )
+    except Organization.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-login'))
+
+    if organization.status != OrganizationStatus.VISIBLE:
+        return HttpResponseRedirect(reverse('sentry-login'))
+
+    try:
+        auth_provider = AuthProvider.objects.get(
+            organization=organization
+        )
+        return auth_provider.get_provider()
+    except AuthProvider.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-login'))
 
 
 class SAML2LoginView(AuthView):
     def dispatch(self, request, helper):
-        if 'SAMLResponse' in request.POST.keys():
-            return helper.next_step()
-        saml_config = helper.provider.build_saml_config(helper.organization.slug)
-        auth = helper.provider.build_auth(request, saml_config)
+        provider = helper.provider
+        saml_config = provider.build_saml_config(helper.organization.slug)
+        auth = provider.build_auth(request, saml_config)
         return self.redirect(auth.login())
 
 
 class SAML2ACSView(AuthView):
-    def dispatch(self, request, helper):
-        saml_config = helper.provider.build_saml_config(helper.organization.slug)
-        auth = helper.provider.build_auth(request, saml_config)
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request, organization_slug):
+        provider = get_provider(organization_slug)
+        organization = Organization.objects.get(slug=organization_slug)
+        saml_config = provider.build_saml_config(organization_slug)
+
+        auth = provider.build_auth(request, saml_config)
         auth.process_response()
         errors = auth.get_errors()
         if errors:
             error_reason = auth.get_last_error_reason()
             raise IdentityNotValid(error_reason)
 
-        data = {
-            'attributes': auth.get_attributes(),
-            'nameid': auth.get_nameid(),
-            'session_index': auth.get_session_index()
-        }
+        attributes = auth.get_attributes()
+        nameid = auth.get_nameid()
 
-        helper.bind_state('data', data)
-        return helper.next_step()
-        #return HttpResponse("ACS endpoint")
+        email = self.retrieve_email(attributes, nameid, provider.config)
+
+        # Filter users based on the emails provided in the commits
+        user_emails = UserEmail.objects.filter(
+            email__iexact=email,
+            is_verified=True
+        ).order_by('id')
+
+        if user_emails:
+            users = User.objects.filter(
+                id__in=set((ue.user_id for ue in user_emails)),
+                is_active=True,
+                sentry_orgmember_set__organization_id=organization.id
+            )
+            if users:
+                if users.count() == 1:
+                    user = users[0]
+                    user.backend = settings.AUTHENTICATION_BACKENDS[0]
+                    if login(request,
+                             user,
+                             after_2fa=request.build_absolute_uri(),
+                             organization_id=organization.id):
+                        request.session['saml'] = {
+                            'nameid': nameid,
+                            'nameid_format': auth.get_nameid_format(),
+                            'session_index': auth.get_session_index()
+                        }
+                    return HttpResponseRedirect(get_login_redirect(request))
+                else:
+                    return HttpResponseServerError("Found several accounts related with %s on this organization" % email)
+            else:
+                return HttpResponseServerError("The user %s is not related with this organization" % email)
+        else:
+            return HttpResponseServerError("An user with a verified mail: %s does not exist" % email)
+
+    def retrieve_email(self, attributes, nameid, config):
+        possible_mail = None
+        if nameid and '@' in nameid:
+            possible_mail = nameid
+
+        if attributes and 'attribute_mapping' in config and 'attribute_mapping_email' in config['attribute_mapping']:
+            email_mapping = config['attribute_mapping']['attribute_mapping_email']
+            if email_mapping and email_mapping in attributes:
+                return attributes[email_mapping][0]
+            elif possible_mail:
+                return possible_mail
+            else:
+                raise Exception("Email was not provided by the IdP and is required in order to execute the SAML process")
+        elif possible_mail:
+            return possible_mail
+        else:
+            raise Exception("Email mapping is required in order to execute the SAML process")
+
+    def retrieve_firstname(self, attributes, config):
+        firstname = None
+        if attributes and 'attribute_mapping' in config and 'attribute_mapping_firstname' in config['attribute_mapping']:
+            firstname_mapping = config['attribute_mapping']['attribute_mapping_firstname']
+            if firstname_mapping and firstname_mapping in attributes:
+                firstname = attributes[firstname_mapping][0]
+        return firstname
 
 
 class SAML2MetadataView(AuthView):
     def dispatch(self, request, organization_slug):
-        try:
-            organization = Organization.objects.get(
-                slug=organization_slug
-            )
-        except Organization.DoesNotExist:
-            return self.redirect(reverse('sentry-login'))
+        provider = get_provider(organization_slug)
 
-        if organization.status != OrganizationStatus.VISIBLE:
-            return self.redirect(reverse('sentry-login'))
-
-        try:
-            auth_provider = AuthProvider.objects.get(
-                organization=organization
-            )
-        except AuthProvider.DoesNotExist:
-            return self.redirect(reverse('sentry-login'))
-
-        saml_config = auth_provider.get_provider().build_saml_config(organization_slug)
+        saml_config = provider.build_saml_config(organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
         metadata = saml_settings.get_sp_metadata()
         errors = saml_settings.validate_metadata(metadata)
@@ -75,22 +144,37 @@ class SAML2Provider(Provider):
 
     def get_auth_pipeline(self):
         return [
-            SAML2LoginView(),
-            SAML2ACSView()
+            SAML2LoginView()
         ]
 
     def build_config(self, state):
         data = {}
+
         if 'idp' in state.keys():
             data['idp'] = state['idp']
+
         if 'contact' in state.keys():
             data['contact'] = state['contact']
+
+        if data:
+            data['attribute_mapping'] = {
+                'attribute_mapping_email': 'email',
+                'attribute_mapping_firstname': ''
+            }
         return data
 
+    def build_identity(self, state):
+        # return None   # TODO  If I return None, then a loop after execute the config
+                        # happens from organizations/<org>/auth/ to /auth/login/  /<org>/
+        identity = {}
+        if state and 'contact' in state:
+            identity['id'] = state['contact']
+            identity['email'] = state['contact']
+        return identity
+
     def build_saml_config(self, org_slug):
-        #metadata_url = absolute_uri(reverse('sentry-auth-organization-saml-metadata', args=[org_slug]))
-        #acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org_slug]))
-        metadata_url = acs_url = absolute_uri(reverse('sentry-auth-organization', args=[org_slug]))
+        metadata_url = absolute_uri(reverse('sentry-auth-organization-saml-metadata', args=[org_slug]))
+        acs_url = absolute_uri(reverse('sentry-auth-organization-saml-acs', args=[org_slug]))
 
         saml_config = {}
         saml_config['strict'] = True
@@ -103,7 +187,6 @@ class SAML2Provider(Provider):
             }
         }
         return saml_config
-
 
     def prepare_saml_request(self, request):
         return {
@@ -118,29 +201,6 @@ class SAML2Provider(Provider):
         req = self.prepare_saml_request(request)
         return OneLogin_Saml2_Auth(req, config)
 
-    def get_saml_data(self, payload):
-        data = {}
-        if 'session_index' in payload and payload['session_index']:
-            data['session_index'] = payload['session_index']
-        return data
-
-    def build_identity(self, state):
-        identity = {}
-        # On setup we don't have the saml identity, but let's use the one stored
-        # in the contact, that is the logged user
-        # that will allow admin to sso, but what happen with the rest?
-        if state and 'contact' in state:
-            identity['id'] = state['contact']
-            identity['email'] = state['contact']
-        elif state and 'data' in state and 'attributes' in state['data']:
-            data = state['data']
-            # TODO apply attribute mapping
-            identity['id'] = data['attributes']['User.email'][0]
-            identity['email'] = data['attributes']['User.email'][0]
-            identity['name'] = data['attributes']['User.FirstName'][0]
-            identity['data'] = self.get_saml_data(data)
-        return identity
-
     @staticmethod
     def extract_idp_data_from_form(form):
         idp_data = {
@@ -151,6 +211,14 @@ class SAML2Provider(Provider):
         if form.cleaned_data['idp_slo_url']:
             idp_data['idp_slo_url'] = form.cleaned_data['idp_slo_url']
         return idp_data
+
+    @staticmethod
+    def extract_attribute_mapping_from_form(form):
+        mapping_data = {
+            'attribute_mapping_email': form.cleaned_data['attribute_mapping_email'],
+            'attribute_mapping_firstname': form.cleaned_data['attribute_mapping_firstname']
+        }
+        return mapping_data
 
     @staticmethod
     def extract_idp_data_from_parsed_data(data):
