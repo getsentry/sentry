@@ -115,6 +115,7 @@ from .endpoints.user_authenticator_details import UserAuthenticatorDetailsEndpoi
 from .endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from .endpoints.user_index import UserIndexEndpoint
 from .endpoints.user_details import UserDetailsEndpoint
+from .endpoints.user_dsns import UserDsnsEndpoint
 from .endpoints.user_organizations import UserOrganizationsEndpoint
 from .endpoints.event_file_committers import EventFileCommittersEndpoint
 
@@ -134,6 +135,9 @@ urlpatterns = patterns(
     url(r'^api-tokens/$',
         ApiTokensEndpoint.as_view(),
         name='sentry-api-0-api-tokens'),
+    url(r'^dsns/$',
+        UserDsnsEndpoint.as_view(),
+        name='sentry-api-0-user-dsns'),
 
     # Auth
     url(r'^auth/$',
