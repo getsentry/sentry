@@ -216,6 +216,31 @@ class FeatureAdoptionTest(TestCase):
             slug="environment_tracking")
         assert environment_tracking
 
+    def test_bulk_create(self):
+        group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
+        event = self.create_full_event()
+        event_processed.send(project=self.project, group=group, event=event, sender=type(self.project))
+
+        javascript = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="javascript")
+        assert javascript
+
+        environment_tracking = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="environment_tracking")
+        assert environment_tracking
+
+        release_tracking = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="release_tracking")
+        assert release_tracking
+
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="user_tracking")
+        assert feature_complete
+
     def test_user_tracking(self):
         group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
         event = self.create_full_event()

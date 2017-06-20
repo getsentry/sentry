@@ -81,6 +81,9 @@ def record_event_processed(project, group, event, **kwargs):
     if event.data.get('sentry.interfaces.Breadcrumbs'):
         feature_slugs.append('breadcrumbs')
 
+    if not feature_slugs:
+        return
+
     FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
 
 

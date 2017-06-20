@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import logging
 
-from django.db import models, IntegrityError
+from django.db import models, IntegrityError, transaction
 from django.utils import timezone
 from jsonfield import JSONField
 
@@ -136,7 +136,9 @@ class FeatureAdoptionManager(BaseManager):
                 feature_id=feature_id,
                 complete=True))
         try:
-            self.bulk_create(features)
+            with transaction.atomic():
+                self.bulk_create(features)
+                return True
         except IntegrityError as e:
             # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
             logger.exception(e)
