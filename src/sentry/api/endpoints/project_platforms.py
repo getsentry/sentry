@@ -8,7 +8,6 @@ from sentry.models import ProjectPlatform
 
 
 class ProjectPlatformSerializer(serializers.Serializer):
-    project_id = serializers.IntegerField()
     platform = serializers.CharField()
 
 
