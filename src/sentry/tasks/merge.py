@@ -257,11 +257,16 @@ def merge_objects(models, group, new_group, limit=1000,
                             )
                     elif model == GroupTagValue:
                         with transaction.atomic(using=router.db_for_write(model)):
-                            model.objects.filter(
+                            new_obj = model.objects.get(
                                 group_id=new_group.id,
                                 key=obj.key,
                                 value=obj.value,
-                            ).update(times_seen=F('times_seen') + obj.times_seen)
+                            )
+                            new_obj.update(
+                                first_seen=min(new_obj.first_seen, obj.first_seen),
+                                last_seen=max(new_obj.last_seen, obj.last_seen),
+                                times_seen=new_obj.times_seen + obj.times_seen,
+                            )
                 except DataError:
                     # it's possible to hit an out of range value for counters
                     pass
