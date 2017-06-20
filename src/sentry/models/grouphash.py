@@ -24,6 +24,7 @@ class GroupHash(Model):
     project = FlexibleForeignKey('sentry.Project', null=True)
     hash = models.CharField(max_length=32)
     group = FlexibleForeignKey('sentry.Group', null=True)
+    group_tombstone = FlexibleForeignKey('sentry.GroupTombstone', null=True)
     state = BoundedPositiveIntegerField(
         choices=[
             (State.LOCKED_IN_MIGRATION, _('Locked (Migration in Progress)')),
