@@ -16,7 +16,7 @@ class GroupHashSerializerTest(TestCase):
         )
 
         result = serialize(hash, user=user)
-        assert result['latest_event'] is None
+        assert result['latestEvent'] is None
 
     def test_missing_latest_event(self):
         user = self.create_user()
@@ -34,7 +34,7 @@ class GroupHashSerializerTest(TestCase):
         )
 
         result = serialize(hash, user=user)
-        assert result['latest_event'] is None
+        assert result['latestEvent'] is None
 
     def test_mismatched_latest_event(self):
         user = self.create_user()
@@ -53,7 +53,7 @@ class GroupHashSerializerTest(TestCase):
         )
 
         result = serialize(hash, user=user)
-        assert result['latest_event'] is None
+        assert result['latestEvent'] is None
 
     def test_valid_latest_event(self):
         user = self.create_user()
@@ -72,4 +72,4 @@ class GroupHashSerializerTest(TestCase):
         )
 
         result = serialize(hash, user=user)
-        assert result['latest_event'] == serialize(event, user=user)
+        assert result['latestEvent'] == serialize(event, user=user)
