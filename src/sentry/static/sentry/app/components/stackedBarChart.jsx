@@ -3,6 +3,7 @@ import React from 'react';
 import {intcomma, valueIsEqual} from '../utils';
 import TooltipMixin from '../mixins/tooltip';
 import ConfigStore from '../stores/configStore.jsx';
+import classNames from 'classnames';
 
 const StackedBarChart = React.createClass({
   propTypes: {
@@ -172,6 +173,11 @@ const StackedBarChart = React.createClass({
     return maxval;
   },
 
+  barColorClass(pct, idx) {
+    const colClass = this.props.barClasses[idx];
+    return pct === 0 ? classNames(colClass, 'zero-bar') : colClass;
+  },
+
   renderMarker(marker) {
     let timeLabel = moment(marker.x * 1000).format('lll');
     let title =
@@ -222,7 +228,7 @@ const StackedBarChart = React.createClass({
       let pt = (
         <span
           key={i}
-          className={this.props.barClasses[i]}
+          className={this.barColorClass(pct, i)}
           style={{height: pct + '%', bottom: prevPct + '%'}}>
           {y}
         </span>
@@ -268,7 +274,7 @@ const StackedBarChart = React.createClass({
   },
 
   render() {
-    let figureClass = [this.props.className, 'barchart'].join(' ');
+    let figureClass = classNames(this.props.className, 'barchart');
     let maxval = this.maxPointValue();
 
     return (

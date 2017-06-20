@@ -541,10 +541,18 @@
     line-height: 24px;
   }
 
+
   .event-graph {
-    .sparkline a {
+    .sparkline, .barchart, a {
       height: 24px;
     }
+    .zero-bar {
+      background-color: transparent;
+    }
+    .barchart {
+      box-shadow: inset 0 -1px 0  @gray-lightest;
+    }
+
   }
 
   .event-assignee {
