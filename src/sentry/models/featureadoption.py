@@ -79,9 +79,7 @@ manager.add(81, "data_scrubbers", "Data Scrubbers", "admin", prerequisite=["firs
 
 
 class FeatureAdoptionManager(BaseManager):
-
-    @staticmethod
-    def in_cache(organization_id, feature_id):
+    def in_cache(self, organization_id, feature_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         feature_matches = []
         with redis.clusters.get('default').map() as client:
@@ -89,14 +87,12 @@ class FeatureAdoptionManager(BaseManager):
 
         return any([p.value for p in feature_matches])
 
-    @staticmethod
-    def set_cache(organization_id, feature_id):
+    def set_cache(self, organization_id, feature_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, feature_id)
 
-    @staticmethod
-    def get_all_cache(organization_id):
+    def get_all_cache(self, organization_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         result = []
         with redis.clusters.get('default').map() as client:
@@ -104,8 +100,7 @@ class FeatureAdoptionManager(BaseManager):
 
         return {int(x) for x in set.union(*[p.value for p in result])}
 
-    @staticmethod
-    def bulk_set_cache(organization_id, *args):
+    def bulk_set_cache(self, organization_id, *args):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, *args)
