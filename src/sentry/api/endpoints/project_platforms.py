@@ -10,7 +10,7 @@ from sentry.models import ProjectPlatform
 class ProjectPlatformSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            'platform': obj.platform,  
+            'platform': obj.platform,
             'dateCreated': obj.date_added
         }
 
