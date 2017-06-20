@@ -193,9 +193,10 @@ class ProjectDSymFile(Model):
 
 def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
                            basename):
-    """This creates a mach dsym file from the given uuid and open file
-    object to a dsym file.  This will not verify the uuid.  Use
-    `create_files_from_dsym_zip` for doing everything.
+    """This creates a mach dsym file or proguard mapping from the given
+    uuid and open file object to a dsym file.  This will not verify the
+    uuid (intentionally so).  Use `create_files_from_dsym_zip` for doing
+    everything.
     """
     if dsym_type == 'proguard':
         object_name = 'proguard-mapping'
