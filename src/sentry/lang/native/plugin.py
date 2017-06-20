@@ -37,7 +37,9 @@ class NativeStacktraceProcessor(StacktraceProcessor):
             self.available = True
             self.debug_meta = debug_meta
             self.sdk_info = get_sdk_from_event(self.data)
-            self.image_lookup = ImageLookup(self.debug_meta['images'])
+            self.image_lookup = ImageLookup([
+                img for img in self.debug_meta['images']
+                if img['type'] == 'apple'])
         else:
             self.available = False
 

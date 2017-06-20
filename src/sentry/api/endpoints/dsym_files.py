@@ -8,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.content_negotiation import ConditionalContentNegotiation
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ListField
-from sentry.models import ProjectDSymFile, create_files_from_macho_zip, \
+from sentry.models import ProjectDSymFile, create_files_from_dsym_zip, \
     VersionDSymFile, DSymApp, DSYM_PLATFORMS
 
 ERR_FILE_EXISTS = 'A file matching this uuid already exists'
@@ -29,7 +29,7 @@ def upload_from_request(request, project=None):
     if 'file' not in request.FILES:
         return Response({'detail': 'Missing uploaded file'}, status=400)
     fileobj = request.FILES['file']
-    files = create_files_from_macho_zip(fileobj, project=project)
+    files = create_files_from_dsym_zip(fileobj, project=project)
     return Response(serialize(files, request.user), status=201)
 
 
