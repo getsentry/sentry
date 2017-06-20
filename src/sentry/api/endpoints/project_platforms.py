@@ -16,5 +16,5 @@ class ProjectPlatformsEndpoint(ProjectEndpoint):
     def get(self, request, project):
         queryset = ProjectPlatform.objects.filter(
             project_id=project.id
-        ).values('project_id', 'platform', 'date_added', 'last_seen', 'date_chosen')
+        ).values('project_id', 'platform', 'date_added', 'last_seen')
         return Response(serialize(list(queryset), request.user))

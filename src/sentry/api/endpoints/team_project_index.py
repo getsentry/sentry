@@ -4,7 +4,6 @@ from django.db import IntegrityError, transaction
 from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
-from django.utils import timezone
 
 from sentry.api.base import DocSection
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
@@ -130,10 +129,7 @@ class TeamProjectIndexEndpoint(TeamEndpoint):
             if platform:
                 ProjectPlatform.objects.create(
                     project_id=project.id,
-                    platform=platform,
-                    date_chosen=timezone.now(),
-                    date_added=None,
-                    last_seen=None
+                    platform=platform
                 )
 
             # XXX: create sample event?
