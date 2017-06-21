@@ -9,17 +9,17 @@ from sentry.signals import (
     alert_rule_created,
     # event_processed,
     # first_event_received,
-    # project_created,
-    # member_joined,
+    project_created,
+    member_joined,
     # plugin_enabled,
-    # user_feedback_received,
-    # issue_assigned,
-    # issue_resolved_in_release,
-    # advanced_search,
-    # save_search_created,
-    # inbound_filter_toggled,
-    # sso_enabled,
-    # data_scrubber_enabled,
+    user_feedback_received,
+    issue_assigned,
+    issue_resolved_in_release,
+    advanced_search,
+    save_search_created,
+    inbound_filter_toggled,
+    sso_enabled,
+    data_scrubber_enabled,
 )
 from sentry.receivers.rules import DEFAULT_RULE_DATA
 from sentry.testutils import TestCase
@@ -423,63 +423,63 @@ class FeatureAdoptionTest(TestCase):
 #             slug="breadcrumbs")
 #         assert breadcrumbs
 
-#     def test_user_feedback(self):
-#         user_feedback_received.send(project=self.project, sender=type(self.project))
+    def test_user_feedback(self):
+        user_feedback_received.send(project=self.project, sender=type(self.project))
 
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="user_feedback")
-#         assert feature_complete
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="user_feedback")
+        assert feature_complete
 
-#     def test_project_created(self):
-#         project_created.send(project=self.project, user=self.owner, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="first_project")
-#         assert feature_complete
+    def test_project_created(self):
+        project_created.send(project=self.project, user=self.owner, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="first_project")
+        assert feature_complete
 
-#     def test_member_joined(self):
-#         member = self.create_member(organization=self.organization, teams=[self.team], user=self.create_user())
-#         member_joined.send(member=member, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="invite_team")
-#         assert feature_complete
+    def test_member_joined(self):
+        member = self.create_member(organization=self.organization, teams=[self.team], user=self.create_user())
+        member_joined.send(member=member, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="invite_team")
+        assert feature_complete
 
-#     def test_assignment(self):
-#         issue_assigned.send(project=self.project, group=self.group, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="assignment")
-#         assert feature_complete
+    def test_assignment(self):
+        issue_assigned.send(project=self.project, group=self.group, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="assignment")
+        assert feature_complete
 
-#     def test_resolved_in_release(self):
-#         issue_resolved_in_release.send(project=self.project, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="resolved_in_release")
-#         assert feature_complete
+    def test_resolved_in_release(self):
+        issue_resolved_in_release.send(project=self.project, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="resolved_in_release")
+        assert feature_complete
 
-#     def test_advanced_search(self):
-#         advanced_search.send(project=self.project, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="advanced_search")
-#         assert feature_complete
+    def test_advanced_search(self):
+        advanced_search.send(project=self.project, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="advanced_search")
+        assert feature_complete
 
-#     def test_save_search(self):
-#         save_search_created.send(project=self.project, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="saved_search")
-#         assert feature_complete
+    def test_save_search(self):
+        save_search_created.send(project=self.project, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="saved_search")
+        assert feature_complete
 
-#     def test_inbound_filters(self):
-#         inbound_filter_toggled.send(project=self.project, sender=type(self.project))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="inbound_filters")
-#         assert feature_complete
+    def test_inbound_filters(self):
+        inbound_filter_toggled.send(project=self.project, sender=type(self.project))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="inbound_filters")
+        assert feature_complete
 
     def test_alert_rules(self):
         rule = Rule.objects.create(
@@ -507,16 +507,16 @@ class FeatureAdoptionTest(TestCase):
 #             slug="notification_integration")
 #         assert feature_complete
 
-#     def test_sso(self):
-#         sso_enabled.send(organization=self.organization, sender=type(self.organization))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="sso")
-#         assert feature_complete
+    def test_sso(self):
+        sso_enabled.send(organization=self.organization, sender=type(self.organization))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="sso")
+        assert feature_complete
 
-#     def test_data_scrubber(self):
-#         data_scrubber_enabled.send(organization=self.organization, sender=type(self.organization))
-#         feature_complete = FeatureAdoption.objects.get_by_slug(
-#             organization=self.organization,
-#             slug="data_scrubbers")
-#         assert feature_complete
+    def test_data_scrubber(self):
+        data_scrubber_enabled.send(organization=self.organization, sender=type(self.organization))
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="data_scrubbers")
+        assert feature_complete

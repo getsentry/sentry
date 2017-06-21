@@ -7,7 +7,17 @@ from sentry.models import FeatureAdoption
 # from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
 from sentry.signals import (
-    alert_rule_created
+    alert_rule_created,
+    project_created,
+    member_joined,
+    user_feedback_received,
+    issue_assigned,
+    issue_resolved_in_release,
+    advanced_search,
+    save_search_created,
+    inbound_filter_toggled,
+    sso_enabled,
+    data_scrubber_enabled,
 )
 # from sentry.utils.javascript import has_sourcemap
 
@@ -74,68 +84,68 @@ DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 's
 #     FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
 
 
-# @user_feedback_received.connect(weak=False)
-# def record_user_feedback(project, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="user_feedback",
-#         complete=True)
+@user_feedback_received.connect(weak=False)
+def record_user_feedback(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="user_feedback",
+        complete=True)
 
 
-# @project_created.connect(weak=False)
-# def record_project_created(project, user, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="first_project",
-#         complete=True)
+@project_created.connect(weak=False)
+def record_project_created(project, user, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="first_project",
+        complete=True)
 
 
-# @member_joined.connect(weak=False)
-# def record_member_joined(member, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=member.organization_id,
-#         feature_slug="invite_team",
-#         complete=True)
+@member_joined.connect(weak=False)
+def record_member_joined(member, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=member.organization_id,
+        feature_slug="invite_team",
+        complete=True)
 
 
-# @issue_assigned.connect(weak=False)
-# def record_issue_assigned(project, group, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="assignment",
-#         complete=True)
+@issue_assigned.connect(weak=False)
+def record_issue_assigned(project, group, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="assignment",
+        complete=True)
 
 
-# @issue_resolved_in_release.connect(weak=False)
-# def record_issue_resolved_in_release(project, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="resolved_in_release",
-#         complete=True)
+@issue_resolved_in_release.connect(weak=False)
+def record_issue_resolved_in_release(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="resolved_in_release",
+        complete=True)
 
 
-# @advanced_search.connect(weak=False)
-# def record_advanced_search(project, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="advanced_search",
-#         complete=True)
+@advanced_search.connect(weak=False)
+def record_advanced_search(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="advanced_search",
+        complete=True)
 
 
-# @save_search_created.connect(weak=False)
-# def record_save_search_created(project, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="saved_search",
-#         complete=True)
+@save_search_created.connect(weak=False)
+def record_save_search_created(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="saved_search",
+        complete=True)
 
 
-# @inbound_filter_toggled.connect(weak=False)
-# def record_inbound_filter_toggled(project, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="inbound_filters",
-#         complete=True)
+@inbound_filter_toggled.connect(weak=False)
+def record_inbound_filter_toggled(project, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="inbound_filters",
+        complete=True)
 
 
 @alert_rule_created.connect(weak=False)
@@ -163,17 +173,17 @@ def record_alert_rule_created(project, rule, **kwargs):
 #             complete=True)
 
 
-# @sso_enabled.connect(weak=False)
-# def record_sso_enabled(organization, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=organization.id,
-#         feature_slug="sso",
-#         complete=True)
+@sso_enabled.connect(weak=False)
+def record_sso_enabled(organization, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=organization.id,
+        feature_slug="sso",
+        complete=True)
 
 
-# @data_scrubber_enabled.connect(weak=False)
-# def record_data_scrubber_enabled(organization, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=organization.id,
-#         feature_slug="data_scrubbers",
-#         complete=True)
+@data_scrubber_enabled.connect(weak=False)
+def record_data_scrubber_enabled(organization, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=organization.id,
+        feature_slug="data_scrubbers",
+        complete=True)
