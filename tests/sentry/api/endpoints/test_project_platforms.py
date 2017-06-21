@@ -12,12 +12,7 @@ class ProjectPlatformsTest(APITestCase):
             project_id=project.id,
             platform="javascript"
         )
-        pp2 = ProjectPlatform.objects.create(
-            project_id=project.id,
-            platform="cocoa"
-        )
         url = '/api/0/projects/{}/{}/platforms/'.format(project.organization.slug, project.slug)
         response = self.client.get(url, format='json')
         assert response.status_code == 200, response.content
         assert response.data[0]['platform'] == pp1.platform
-        assert response.data[1]['platform'] == pp2.platform
