@@ -8,7 +8,7 @@ from mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.models import (
-    GroupResolution, GroupResolutionStatus, GroupSnooze, GroupSubscription,
+    GroupResolution, GroupSnooze, GroupSubscription,
     GroupStatus, Release, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
@@ -66,13 +66,14 @@ class GroupSerializerTest(TestCase):
         GroupResolution.objects.create(
             group=group,
             release=release,
+            type=GroupResolution.Type.in_next_release,
         )
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {'inRelease': 'a'}
+        assert result['statusDetails'] == {'inNextRelease': True}
 
-    def test_resolved_in_next_release_expired_resolution(self):
+    def test_resolved_in_release(self):
         release = Release.objects.create(
             organization_id=self.project.organization_id,
             version='a',
@@ -85,12 +86,12 @@ class GroupSerializerTest(TestCase):
         GroupResolution.objects.create(
             group=group,
             release=release,
-            status=GroupResolutionStatus.RESOLVED,
+            type=GroupResolution.Type.in_release,
         )
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {}
+        assert result['statusDetails'] == {'inRelease': 'a'}
 
     @patch('sentry.models.Group.is_over_resolve_age')
     def test_auto_resolved(self, mock_is_over_resolve_age):
