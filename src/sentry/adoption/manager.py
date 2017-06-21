@@ -8,6 +8,10 @@ FEATURE_LOCATION = {'language', 'integration', 'code', 'web', 'admin'}
 Feature = namedtuple('Feature', ['id', 'slug', 'name', 'location', 'prerequisite'])
 
 
+class UnknownFeature(KeyError):
+    pass
+
+
 class AdoptionManager(object):
     def __init__(self):
         self._id_registry = {}
@@ -31,10 +35,16 @@ class AdoptionManager(object):
             self._integration_slugs[prerequisite[0]].add(slug)
 
     def get_by_id(self, id):
-        return self._id_registry[id]
+        try:
+            return self._id_registry[id]
+        except KeyError:
+            raise UnknownFeature(id)
 
     def get_by_slug(self, slug):
-        return self._slug_registry[slug]
+        try:
+            return self._slug_registry[slug]
+        except KeyError:
+            raise UnknownFeature(slug)
 
     def all(self):
         return [self._id_registry[k] for k in self._id_registry]

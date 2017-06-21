@@ -7,6 +7,7 @@ from django.utils import timezone
 from jsonfield import JSONField
 
 from sentry.adoption import manager
+from sentry.adoption.manager import UnknownFeature
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -108,7 +109,7 @@ class FeatureAdoptionManager(BaseManager):
     def record(self, organization_id, feature_slug, **kwargs):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
-        except KeyError as e:
+        except UnknownFeature as e:
             logger.exception(e)
             return
 
@@ -123,12 +124,15 @@ class FeatureAdoptionManager(BaseManager):
         return False
 
     def bulk_record(self, organization_id, feature_slugs, **kwargs):
+        features = []
+
         try:
-            features = []
-            incomplete_feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs]) - self.get_all_cache(organization_id)
-        except KeyError as e:
+            feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs])
+        except UnknownFeature as e:
             logger.exception(e)
             return
+
+        incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)
 
         for feature_id in incomplete_feature_ids:
             features.append(FeatureAdoption(
