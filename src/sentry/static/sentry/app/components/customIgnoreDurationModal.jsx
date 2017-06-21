@@ -7,7 +7,14 @@ export default React.createClass({
   propTypes: {
     onSelected: React.PropTypes.func,
     onCanceled: React.PropTypes.func,
-    show: React.PropTypes.bool
+    show: React.PropTypes.bool,
+    label: React.PropTypes.string
+  },
+
+  getDefaultProps() {
+    return {
+      label: t('Ignore this issue until it occurs after ..')
+    };
   },
 
   getInitialState() {
@@ -63,7 +70,7 @@ export default React.createClass({
     return (
       <Modal show={this.props.show} animation={false} onHide={this.props.onCanceled}>
         <div className="modal-header">
-          <h4>{t('Ignore this issue until it occurs after ..')}</h4>
+          <h4>{this.props.label}</h4>
         </div>
         <div className="modal-body">
           <form className="form-horizontal">
