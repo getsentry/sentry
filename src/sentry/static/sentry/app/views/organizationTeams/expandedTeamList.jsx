@@ -144,7 +144,7 @@ const ExpandedTeamList = React.createClass({
         </td>
         <td className="align-right project-chart">
           {chartData &&
-            <LazyLoad><BarChart points={chartData} className="sparkline" /></LazyLoad>}
+            <LazyLoad><BarChart points={chartData} label="events" /></LazyLoad>}
         </td>
       </tr>
     );

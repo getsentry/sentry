@@ -4,7 +4,7 @@ import React from 'react';
 import ApiChart from './apiChart';
 import EventChart from './eventChart';
 
-const AdminOverview = React.createClass({
+export default React.createClass({
   getInitialState() {
     return {
       since: new Date().getTime() / 1000 - 3600 * 24 * 7,
@@ -41,5 +41,3 @@ const AdminOverview = React.createClass({
     );
   }
 });
-
-export default AdminOverview;

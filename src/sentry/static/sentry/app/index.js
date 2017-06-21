@@ -102,7 +102,6 @@ export default {
     Count: require('./components/count').default,
     DateTime: require('./components/dateTime').default,
     DropdownLink: require('./components/dropdownLink').default,
-    FlotChart: require('./components/flotChart').default,
     Form: require('./components/forms/form').default,
     FormState: require('./components/forms/index').FormState,
     HookStore: require('./stores/hookStore').default,
