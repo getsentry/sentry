@@ -165,17 +165,21 @@ def record_release_received(project, group, event, **kwargs):
 
 @event_processed.connect(weak=False)
 def record_user_context_received(project, group, event, **kwargs):
-    if not event.data.get('sentry.interfaces.User'):
+    user_context = event.data.get('sentry.interfaces.User')
+    if not user_context:
         return
-
-    success = OrganizationOnboardingTask.objects.record(
-        organization_id=project.organization_id,
-        task=OnboardingTask.USER_CONTEXT,
-        status=OnboardingTaskStatus.COMPLETE,
-        project_id=project.id,
-    )
-    if success:
-        check_for_onboarding_complete(project.organization_id)
+    # checking to see if only ip address is being sent (our js library does this automatically)
+    # testing for this in test_no_user_tracking_for_ip_address_only
+    # list(d.keys()) pattern is to make this python3 safe
+    elif list(user_context.keys()) != ['ip_address']:
+        success = OrganizationOnboardingTask.objects.record(
+            organization_id=project.organization_id,
+            task=OnboardingTask.USER_CONTEXT,
+            status=OnboardingTaskStatus.COMPLETE,
+            project_id=project.id,
+        )
+        if success:
+            check_for_onboarding_complete(project.organization_id)
 
 
 @event_processed.connect(weak=False)
