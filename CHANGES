@@ -16,6 +16,7 @@ Schema Changes
 - Added Release.authors
 - Added Release.total_deploys
 - Added Release.last_deploy_id
+- Added ``FeatureAdoption`` model
 - Removed DSymBundle
 - Removed DSymObject
 - Removed DSymSDK
