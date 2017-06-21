@@ -99,7 +99,7 @@ const ProjectChart = React.createClass({
 
     return (
       <div className="chart-wrapper">
-        <BarChart points={points} markers={markers} className="sparkline" />
+        <BarChart points={points} markers={markers} label="events" />
         <small className="date-legend">
           {moment(this.props.dateSince * 1000).format('LL')}
         </small>
