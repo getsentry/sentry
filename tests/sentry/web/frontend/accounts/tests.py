@@ -278,6 +278,7 @@ class ConfirmEmailSendTest(TestCase):
     @mock.patch('sentry.models.User.send_confirm_emails')
     def test_valid(self, send_confirm_email):
         self.login_as(self.user)
+        UserEmail.objects.filter(user=self.user).update(is_verified=False)
         resp = self.client.post(reverse('sentry-account-confirm-email-send'))
         self.assertRedirects(resp, reverse('sentry-account-settings-emails'), status_code=302)
         send_confirm_email.assert_called_once_with()
@@ -303,6 +304,7 @@ class ConfirmEmailTest(TestCase):
 
     def test_invalid(self):
         self.user.save()
+        UserEmail.objects.get(email=self.user.email).update(is_verified=False)
         resp = self.client.get(reverse('sentry-account-confirm-email',
                                        args=[self.user.id, '5b1f2f266efa03b721cc9ea0d4742c5e']))
         assert resp.status_code == 302
@@ -311,6 +313,7 @@ class ConfirmEmailTest(TestCase):
 
     def test_valid(self):
         self.user.save()
+        UserEmail.objects.get(email=self.user.email).update(is_verified=False)
         self.login_as(self.user)
         self.client.post(reverse('sentry-account-confirm-email-send'))
         email = self.user.emails.first()
