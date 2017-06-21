@@ -5,6 +5,7 @@
         "node_modules": true,
         "src/sentry/static/dist": true
     },
+    "files.trimTrailingWhitespace": true,
     
     "prettier.bracketSpacing": false,
     "prettier.singleQuote": true,
