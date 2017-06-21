@@ -1,0 +1,53 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ResolutionBox render() handles default 1`] = `
+<div
+  className="box"
+>
+  <span
+    className="icon icon-checkmark"
+  />
+  <p>
+    This issue has been marked as resolved.
+  </p>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inNextRelease 1`] = `
+<div
+  className="box"
+>
+  <span
+    className="icon icon-checkmark"
+  />
+  <p>
+    This issue has been marked as resolved in the upcoming release.
+  </p>
+</div>
+`;
+
+exports[`ResolutionBox render() handles inRelease 1`] = `
+<div
+  className="box"
+>
+  <span
+    className="icon icon-checkmark"
+  />
+  <p>
+    <span>
+      <span>
+        This issue has been marked as resolved as of version 
+      </span>
+      <Version
+        anchor={true}
+        orgId="org"
+        projectId="project"
+        version="1.0"
+      />
+      <span>
+        .
+      </span>
+    </span>
+  </p>
+</div>
+`;

@@ -325,7 +325,7 @@ class Release(Model):
         """
         from sentry.models import (
             Commit, CommitAuthor, Group, GroupCommitResolution, GroupResolution,
-            GroupResolutionStatus, GroupStatus, ReleaseCommit, Repository
+            GroupStatus, ReleaseCommit, Repository
         )
         from sentry.plugins.providers.repository import RepositoryProvider
 
@@ -433,7 +433,7 @@ class Release(Model):
                 group_id=group_id,
                 release=self,
                 values={
-                    'status': GroupResolutionStatus.RESOLVED,
+                    'status': GroupResolution.Status.resolved,
                 },
             )
 

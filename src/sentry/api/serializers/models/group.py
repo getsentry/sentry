@@ -13,7 +13,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
-    GroupResolutionStatus, GroupSeen, GroupSnooze, GroupStatus,
+    GroupSeen, GroupSnooze, GroupStatus,
     GroupSubscription, GroupSubscriptionReason, GroupTagKey, UserOption,
     UserOptionValue
 )
@@ -135,12 +135,14 @@ class GroupSerializer(Serializer):
             )
         }
 
-        pending_resolutions = dict(
-            GroupResolution.objects.filter(
+        resolutions = {
+            i[0]: i[1:]
+            for i in GroupResolution.objects.filter(
                 group__in=item_list,
-                status=GroupResolutionStatus.PENDING,
-            ).values_list('group', 'release__version')
-        )
+            ).values_list(
+                'group', 'type', 'release__version',
+            )
+        }
 
         result = {}
         for item in item_list:
@@ -162,7 +164,7 @@ class GroupSerializer(Serializer):
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
                 'ignore_until': ignore_items.get(item.id),
-                'pending_resolution': pending_resolutions.get(item.id),
+                'resolution': resolutions.get(item.id),
             }
         return result
 
@@ -195,8 +197,12 @@ class GroupSerializer(Serializer):
             status_details['autoResolved'] = True
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
-            if attrs['pending_resolution']:
-                status_details['inRelease'] = attrs['pending_resolution']
+            if attrs['resolution']:
+                res_type, res_version = attrs['resolution']
+                if res_type in (GroupResolution.Type.in_next_release, None):
+                    status_details['inNextRelease'] = True
+                elif res_type == GroupResolution.Type.in_release:
+                    status_details['inRelease'] = res_version
         elif status == GroupStatus.IGNORED:
             status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:

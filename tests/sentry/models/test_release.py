@@ -4,7 +4,7 @@ import six
 
 from sentry.models import (
     Commit, CommitAuthor, Group, GroupCommitResolution, GroupRelease,
-    GroupResolution, GroupResolutionStatus, GroupStatus, Release,
+    GroupResolution, GroupStatus, Release,
     ReleaseCommit, ReleaseEnvironment, ReleaseProject, Repository
 )
 
@@ -195,7 +195,7 @@ class SetCommitsTestCase(TestCase):
         assert GroupResolution.objects.get(
             group=group,
             release=release,
-        ).status == GroupResolutionStatus.RESOLVED
+        ).status == GroupResolution.Status.resolved
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         # test that backfilling works
         assert Commit.objects.filter(key='a' * 40, repository_id=repo.id).exists()
@@ -296,7 +296,7 @@ class SetCommitsTestCase(TestCase):
         assert GroupResolution.objects.get(
             group=group,
             release=release,
-        ).status == GroupResolutionStatus.RESOLVED
+        ).status == GroupResolution.Status.resolved
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
 
         latest_commit = Commit.objects.get(

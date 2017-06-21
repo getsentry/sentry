@@ -1,7 +1,9 @@
 from __future__ import absolute_import, print_function
 
+from django.db.models import Q
+
 from sentry.models import (
-    Activity, GroupResolution, GroupResolutionStatus, Release
+    Activity, GroupResolution, Release
 )
 from sentry.tasks.base import instrumented_task
 
@@ -14,6 +16,8 @@ def clear_expired_resolutions(release_id):
     This should be fired when ``release_id`` is created, and will indicate to
     the system that any pending resolutions older than the given release can now
     be safely transitioned to resolved.
+
+    This is currenlty only used for ``in_next_release`` resolutions.
     """
     try:
         release = Release.objects.get_from_cache(
@@ -23,8 +27,10 @@ def clear_expired_resolutions(release_id):
         return
 
     resolution_list = list(GroupResolution.objects.filter(
+        Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
         release__projects=release.projects.all(),
         release__date_added__lt=release.date_added,
+        status=GroupResolution.Status.pending,
     ).exclude(
         release=release,
     ))
@@ -34,7 +40,11 @@ def clear_expired_resolutions(release_id):
 
     GroupResolution.objects.filter(
         id__in=[r.id for r in resolution_list]
-    ).update(status=GroupResolutionStatus.RESOLVED)
+    ).update(
+        release=release,
+        type=GroupResolution.Type.in_release,
+        status=GroupResolution.Status.resolved,
+    )
 
     for resolution in resolution_list:
         try:

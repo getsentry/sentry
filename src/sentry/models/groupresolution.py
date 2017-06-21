@@ -8,33 +8,35 @@ from sentry.db.models import (
 )
 
 
-class GroupResolutionStatus(object):
-    PENDING = 0
-    RESOLVED = 1
-
-
 class GroupResolution(Model):
     """
-    Describes in which release a group was marked as resolved.
-
-    This is used to power the concept of "Ive fixed this in code, but its not
-    fixed in the current release".
-
-    In the future this will likely expand to have full commit references, and
-    possibly remove the tight association with a release.
+    Describes when a group was marked as resolved.
     """
     __core__ = False
+
+    class Type:
+        in_release = 0
+        in_next_release = 1
+
+    class Status:
+        pending = 0
+        resolved = 1
 
     group = FlexibleForeignKey('sentry.Group', unique=True)
     # the release in which its suggested this was resolved
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey('sentry.Release')
+    type = BoundedPositiveIntegerField(choices=(
+        (Type.in_next_release, 'in_next_release'),
+        (Type.in_release, 'in_release'),
+    ), null=True)
+    actor_id = BoundedPositiveIntegerField(null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     status = BoundedPositiveIntegerField(
-        default=GroupResolutionStatus.PENDING,
+        default=Status.pending,
         choices=(
-            (GroupResolutionStatus.PENDING, _('Pending')),
-            (GroupResolutionStatus.RESOLVED, _('Resolved')),
+            (Status.pending, _('Pending')),
+            (Status.resolved, _('Resolved')),
         ),
     )
 
@@ -43,3 +45,36 @@ class GroupResolution(Model):
         app_label = 'sentry'
 
     __repr__ = sane_repr('group_id', 'release_id')
+
+    @classmethod
+    def has_resolution(cls, group, release):
+        """
+        Determine if a resolution exists for the given group and release.
+
+        This is used to suggest if a regression has occurred.
+        """
+        try:
+            res_type, res_release, res_release_datetime = cls.objects.filter(
+                group=group,
+            ).select_related('release').values_list(
+                'type',
+                'release__id',
+                'release__date_added',
+            )[0]
+        except IndexError:
+            return False
+
+        if res_type in (None, cls.Type.in_next_release):
+            if res_release == release.id:
+                return True
+            elif res_release_datetime > release.date_added:
+                return True
+            return False
+        elif res_type == cls.Type.in_release:
+            if res_release == release.id:
+                return False
+            if res_release_datetime < release.date_added:
+                return False
+            return True
+        else:
+            raise NotImplementedError
