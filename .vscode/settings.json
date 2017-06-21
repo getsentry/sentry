@@ -1,12 +1,14 @@
 {
     "files.exclude": {
         "**/*.pyc": true,
+        "**/*.min.js": true,
+        "**/*.js.map": true,
         "static": true,
         "node_modules": true,
-        "src/sentry/static/dist": true
+        "src/sentry/static/sentry/dist/": true,
     },
     "files.trimTrailingWhitespace": true,
-    
+
     "prettier.bracketSpacing": false,
     "prettier.singleQuote": true,
     "prettier.printWidth": 90,
