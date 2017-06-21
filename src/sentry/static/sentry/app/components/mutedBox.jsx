@@ -5,7 +5,7 @@ import DateTime from './dateTime';
 import Duration from './duration';
 import {t} from '../locale';
 
-const MutedBox = React.createClass({
+export default React.createClass({
   propTypes: {
     statusDetails: React.PropTypes.object.isRequired
   },
@@ -59,5 +59,3 @@ const MutedBox = React.createClass({
     );
   }
 });
-
-export default MutedBox;
