@@ -4,7 +4,9 @@ Version 8.18 (Unreleased)
 - Expanded resolution options to allow current and explicit versions.
 - Removed support for global dsyms
 - Added proguard support
-- Added ``FeatureAdoption`` table
+- Removed support for global dsyms.
+- Moved Queue admin page to React.
+- Replaced usage of jQuery Flot library with internal graphs.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -14,6 +16,7 @@ Schema Changes
 - Added Release.authors
 - Added Release.total_deploys
 - Added Release.last_deploy_id
+- Added ``FeatureAdoption`` model
 - Removed DSymBundle
 - Removed DSymObject
 - Removed DSymSDK

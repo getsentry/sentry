@@ -60,10 +60,6 @@ var entry = {
     'react-sparklines',
     'reflux',
     'select2',
-    'flot/jquery.flot',
-    'flot/jquery.flot.stack',
-    'flot/jquery.flot.time',
-    'flot-tooltip/jquery.flot.tooltip',
     'vendor/simple-slider/simple-slider',
     'underscore',
     'ios-device-list'
@@ -149,7 +145,6 @@ var config = {
       'window.jQuery': 'jquery',
       'root.jQuery': 'jquery',
       Raven: 'raven-js',
-      ReactDOM: 'react-dom',
       underscore: 'underscore',
       _: 'underscore'
     }),
@@ -171,8 +166,6 @@ var config = {
   ],
   resolve: {
     alias: {
-      flot: path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot'),
-      'flot-tooltip': path.join(__dirname, staticPrefix, 'vendor', 'jquery-flot-tooltip'),
       'sentry-locale': path.join(__dirname, 'src', 'sentry', 'locale')
     },
     modules: [path.join(__dirname, staticPrefix), 'node_modules'],

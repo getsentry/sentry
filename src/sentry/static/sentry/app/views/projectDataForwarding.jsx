@@ -74,6 +74,7 @@ const DataForwardingStats = React.createClass({
                   <StackedBarChart
                     points={this.state.stats}
                     height={50}
+                    label="events"
                     barClasses={['accepted']}
                     className="sparkline m-b-0"
                   />
