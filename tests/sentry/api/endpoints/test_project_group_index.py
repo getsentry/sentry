@@ -294,6 +294,11 @@ class GroupUpdateTest(APITestCase):
             self.project.slug,
         )
 
+    def assertNoResolution(self, group):
+        assert not GroupResolution.objects.filter(
+            group=group,
+        ).exists()
+
     def test_global_resolve(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
         group2 = self.create_group(checksum='b' * 32, status=GroupStatus.UNRESOLVED)
@@ -521,10 +526,12 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -574,10 +581,12 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_release
+        assert resolution.status == GroupResolution.Status.resolved
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -624,10 +633,12 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -671,10 +682,12 @@ class GroupUpdateTest(APITestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
 
-        assert GroupResolution.objects.filter(
+        resolution = GroupResolution.objects.get(
             group=group,
-            release=release,
-        ).exists()
+        )
+        assert resolution.release == release
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.status == GroupResolution.Status.pending
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -689,7 +702,12 @@ class GroupUpdateTest(APITestCase):
         assert activity.data['version'] == ''
 
     def test_set_unresolved(self):
+        release = self.create_release(project=self.project, version='abc')
         group = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+        )
 
         self.login_as(user=self.user)
 
@@ -708,6 +726,8 @@ class GroupUpdateTest(APITestCase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.UNRESOLVED
+
+        self.assertNoResolution(group)
 
         assert GroupSubscription.objects.filter(
             user=self.user,
