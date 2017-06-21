@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.models import (
-    Activity, Group, GroupResolution, GroupResolutionStatus, GroupStatus,
+    Activity, Group, GroupResolution, GroupStatus,
     Release
 )
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
@@ -32,6 +32,7 @@ class ClearExpiredResolutionsTest(TestCase):
         resolution1 = GroupResolution.objects.create(
             group=group1,
             release=old_release,
+            type=GroupResolution.Type.in_next_release,
         )
         activity1 = Activity.objects.create(
             group=group1,
@@ -55,6 +56,7 @@ class ClearExpiredResolutionsTest(TestCase):
         resolution2 = GroupResolution.objects.create(
             group=group2,
             release=new_release,
+            type=GroupResolution.Type.in_next_release,
         )
         activity2 = Activity.objects.create(
             group=group2,
@@ -74,12 +76,15 @@ class ClearExpiredResolutionsTest(TestCase):
             id=group2.id,
         ).status == GroupStatus.UNRESOLVED
 
-        # rows should not get removed as it breaks regression behavior
+        # row should be updated to the in_release type, and reflect
+        # the release it was reoslved in
         resolution1 = GroupResolution.objects.get(id=resolution1.id)
-        assert resolution1.status == GroupResolutionStatus.RESOLVED
+        assert resolution1.status == GroupResolution.Status.resolved
+        assert resolution1.release == new_release
+        assert resolution1.type == GroupResolution.Type.in_release
 
         resolution2 = GroupResolution.objects.get(id=resolution2.id)
-        assert resolution2.status == GroupResolutionStatus.PENDING
+        assert resolution2.status == GroupResolution.Status.pending
 
         activity1 = Activity.objects.get(id=activity1.id)
         assert activity1.data['version'] == new_release.version

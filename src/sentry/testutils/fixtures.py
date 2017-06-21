@@ -250,7 +250,7 @@ class Fixtures(object):
         return project.key_set.get_or_create()[0]
 
     # TODO(maxbittker) make new fixtures less hardcoded
-    def create_release(self, project, user, version=None):
+    def create_release(self, project, user=None, version=None):
         if version is None:
             version = os.urandom(20).encode('hex')
 
@@ -268,19 +268,18 @@ class Fixtures(object):
             user=user,
             data={'version': version},
         )
+
         # add commits
+        if user:
+            author = self.create_commit_author(project, user)
+            repo = self.create_repo(project)
+            commit = self.create_commit(project, repo, author, release)
 
-        author = self.create_commit_author(project, user)
-
-        repo = self.create_repo(project)
-
-        commit = self.create_commit(project, repo, author, release)
-
-        release.update(
-            authors=[six.text_type(author.id)],
-            commit_count=1,
-            last_commit_id=commit.id,
-        )
+            release.update(
+                authors=[six.text_type(author.id)],
+                commit_count=1,
+                last_commit_id=commit.id,
+            )
 
         return release
 
