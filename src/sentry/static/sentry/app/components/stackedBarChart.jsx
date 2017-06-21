@@ -225,7 +225,12 @@ const StackedBarChart = React.createClass({
   },
 
   maxPointValue() {
-    return Math.max(10, ...this.state.series.map(s => Math.max(...s.data.map(p => p.y))));
+    return Math.max(
+      10,
+      this.state.series
+        .map(s => Math.max(...s.data.map(p => p.y)))
+        .reduce((a, b) => a + b)
+    );
   },
 
   renderMarker(marker) {
@@ -306,7 +311,6 @@ const StackedBarChart = React.createClass({
     let pointWidth = this.floatFormat(100.0 / totalPoints, 2) + '%';
 
     let maxval = this.maxPointValue();
-
     let markers = this.props.markers.slice();
 
     // group points, then resort
