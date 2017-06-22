@@ -23,7 +23,7 @@ from django.utils import timezone
 
 from sentry.models import (
     Activity, Event, EventError, EventMapping, Group, Organization,
-    OrganizationMember, OrganizationMemberTeam, Project, Team, User,
+    OrganizationMember, OrganizationMemberTeam, Project, Team, User, UserEmail,
     Release, Commit, ReleaseCommit, CommitAuthor, Repository, CommitFileChange
 )
 
@@ -348,6 +348,12 @@ class Fixtures(object):
         user = User(email=email, **kwargs)
         user.set_password('admin')
         user.save()
+
+        # UserEmail is created by a signal
+        UserEmail.objects.filter(
+            user=user,
+            email=email,
+        ).update(is_verified=True)
 
         return user
 
