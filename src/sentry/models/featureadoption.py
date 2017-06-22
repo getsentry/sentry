@@ -92,6 +92,7 @@ class FeatureAdoptionManager(BaseManager):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, feature_id)
+        return True
 
     def get_all_cache(self, organization_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
@@ -102,9 +103,13 @@ class FeatureAdoptionManager(BaseManager):
         return {int(x) for x in set.union(*[p.value for p in result])}
 
     def bulk_set_cache(self, organization_id, *args):
+        if not args:
+            return
+
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, *args)
+        return True
 
     def record(self, organization_id, feature_slug, **kwargs):
         try:
@@ -134,6 +139,9 @@ class FeatureAdoptionManager(BaseManager):
 
         incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)
 
+        if not incomplete_feature_ids:
+            return
+
         for feature_id in incomplete_feature_ids:
             features.append(FeatureAdoption(
                 organization_id=organization_id,
@@ -147,7 +155,7 @@ class FeatureAdoptionManager(BaseManager):
             logger.exception(e)
             return
         finally:
-            self.bulk_set_cache(organization_id, *incomplete_feature_ids)
+            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
     def get_by_slug(self, organization, slug):
         return self.filter(organization=organization, feature_id=manager.get_by_slug(slug).id).first()
