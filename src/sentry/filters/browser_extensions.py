@@ -73,6 +73,13 @@ class BrowserExtensionsFilter(Filter):
         except (LookupError, TypeError):
             return ''
 
+    def caused_by_global_code(self, data):
+        try:
+            exc = data['sentry.interfaces.Exception']['values'][0]
+            return exc['stacktrace']['frames'][0]['function'] == 'global code'
+        except (LookupError, TypeError):
+            return False
+
     def test(self, data):
         """
         Test the exception value to determine if it looks like the error is
@@ -90,5 +97,8 @@ class BrowserExtensionsFilter(Filter):
         if exc_source:
             if EXTENSION_EXC_SOURCES.search(exc_source):
                 return True
+
+        if self.caused_by_global_code(data):
+            return True
 
         return False
