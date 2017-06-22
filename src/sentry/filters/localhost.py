@@ -25,7 +25,7 @@ class LocalhostFilter(Filter):
             return ''
 
     def get_domain(self, data):
-        return urlparse(self.get_url(data)).netloc
+        return urlparse(self.get_url(data)).netloc.split(':')[0]
 
     def test(self, data):
         return self.get_ip_address(data) in LOCAL_IPS or self.get_domain(data) in LOCAL_DOMAINS
