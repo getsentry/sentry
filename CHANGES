@@ -33,6 +33,8 @@ Schema Changes
 - Added Project.platform
 - Added GroupSnooze.actor_id
 - Added ScheduledJob
+- Added GroupResolution.actor_id
+- Added ``ScheduledJob`` model
 
 API Changes
 ~~~~~~~~~~~
