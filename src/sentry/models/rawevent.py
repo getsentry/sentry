@@ -35,4 +35,15 @@ class RawEvent(Model):
         db_table = 'sentry_rawevent'
         unique_together = (('project', 'event_id'),)
 
+    def get_data(self):
+        rv = dict(self.data.data)
+        # Under some rare circumstances the project or event_id might not
+        # be correct in the data.  We have seen this in the past, most
+        # likely where processing failed so late that something pulled
+        # the data from it.  This will then fail in insert_data_to_database
+        # when reprocessing triggers.
+        rv['project'] = self.project_id
+        rv['event_id'] = self.event_id
+        return rv
+
     __repr__ = sane_repr('project_id')
