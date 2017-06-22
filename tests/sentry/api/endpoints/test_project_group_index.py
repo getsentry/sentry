@@ -473,7 +473,8 @@ class GroupUpdateTest(APITestCase):
         }
 
         new_group1 = Group.objects.get(id=group1.id)
-        assert new_group1.resolved_at is None
+        assert new_group1.resolved_at is not None
+        assert new_group1.status == GroupStatus.RESOLVED
 
         new_group2 = Group.objects.get(id=group2.id)
         assert new_group2.resolved_at is not None
@@ -516,12 +517,9 @@ class GroupUpdateTest(APITestCase):
             },
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inRelease': release.version,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inRelease'] == release.version
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -532,6 +530,7 @@ class GroupUpdateTest(APITestCase):
         assert resolution.release == release
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -571,12 +570,9 @@ class GroupUpdateTest(APITestCase):
             },
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inRelease': release.version,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inRelease'] == release.version
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -587,6 +583,7 @@ class GroupUpdateTest(APITestCase):
         assert resolution.release == release
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.status == GroupResolution.Status.resolved
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -623,12 +620,9 @@ class GroupUpdateTest(APITestCase):
             },
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inNextRelease': True,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inNextRelease']
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -639,6 +633,7 @@ class GroupUpdateTest(APITestCase):
         assert resolution.release == release
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.status == GroupResolution.Status.pending
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
@@ -672,12 +667,9 @@ class GroupUpdateTest(APITestCase):
             'status': 'resolvedInNextRelease',
         }, format='json')
         assert response.status_code == 200
-        assert response.data == {
-            'status': 'resolved',
-            'statusDetails': {
-                'inNextRelease': True,
-            },
-        }
+        assert response.data['status'] == 'resolved'
+        assert response.data['statusDetails']['inNextRelease']
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.RESOLVED
@@ -688,6 +680,7 @@ class GroupUpdateTest(APITestCase):
         assert resolution.release == release
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.status == GroupResolution.Status.pending
+        assert resolution.actor_id == self.user.id
 
         assert GroupSubscription.objects.filter(
             user=self.user,
