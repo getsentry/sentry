@@ -343,6 +343,7 @@ class Release(Model):
 
             authors = {}
             repos = {}
+            commit_author_by_commit = {}
             latest_commit = None
             for idx, data in enumerate(commit_list):
                 repo_name = data.get('repository') or 'organization-{}'.format(self.organization_id)
@@ -385,6 +386,10 @@ class Release(Model):
                     key=data['id'],
                     defaults=defaults,
                 )
+                if author is None:
+                    author = commit.author
+
+                commit_author_by_commit[commit.id] = author
 
                 patch_set = data.get('patch_set', [])
 
@@ -423,21 +428,33 @@ class Release(Model):
                 last_commit_id=latest_commit.id if latest_commit else None,
             )
 
-        group_ids = list(GroupCommitResolution.objects.filter(
+        commit_resolutions = list(GroupCommitResolution.objects.filter(
             commit_id__in=ReleaseCommit.objects.filter(
                 release=self
             ).values_list('commit_id', flat=True),
-        ).values_list('group_id', flat=True))
-        for group_id in group_ids:
-            GroupResolution.objects.create_or_update(
-                group_id=group_id,
-                release=self,
-                values={
-                    'status': GroupResolution.Status.resolved,
-                },
-            )
+        ).values_list('group_id', 'commit_id'))
+        user_by_author = {None: None}
+        for group_id, commit_id in commit_resolutions:
+            author = commit_author_by_commit.get(commit_id)
+            if author not in user_by_author:
+                try:
+                    user_by_author[author] = author.find_users()[0]
+                except IndexError:
+                    user_by_author[author] = None
+            actor = user_by_author[author]
 
-        if group_ids:
-            Group.objects.filter(
-                id__in=group_ids,
-            ).update(status=GroupStatus.RESOLVED)
+            with transaction.atomic():
+                GroupResolution.objects.create_or_update(
+                    group_id=group_id,
+                    values={
+                        'release': self,
+                        'type': GroupResolution.Type.in_release,
+                        'status': GroupResolution.Status.resolved,
+                        'actor_id': actor.id if actor else None,
+                    },
+                )
+                Group.objects.filter(
+                    id=group_id,
+                ).update(
+                    status=GroupStatus.RESOLVED
+                )
