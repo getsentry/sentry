@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+import six
+
 from datetime import timedelta
 from django.utils import timezone
 from mock import patch
@@ -9,7 +11,7 @@ from mock import patch
 from sentry.api.serializers import serialize
 from sentry.models import (
     GroupResolution, GroupSnooze, GroupSubscription,
-    GroupStatus, Release, UserOption, UserOptionValue
+    GroupStatus, UserOption, UserOptionValue
 )
 from sentry.testutils import TestCase
 
@@ -54,11 +56,7 @@ class GroupSerializerTest(TestCase):
         }
 
     def test_resolved_in_next_release(self):
-        release = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='a',
-        )
-        release.add_project(self.project)
+        release = self.create_release(project=self.project, version='a')
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,
@@ -71,14 +69,10 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {'inNextRelease': True}
+        assert result['statusDetails'] == {'inNextRelease': True, 'actor': None}
 
     def test_resolved_in_release(self):
-        release = Release.objects.create(
-            organization_id=self.project.organization_id,
-            version='a',
-        )
-        release.add_project(self.project)
+        release = self.create_release(project=self.project, version='a')
         user = self.create_user()
         group = self.create_group(
             status=GroupStatus.RESOLVED,
@@ -91,7 +85,24 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['status'] == 'resolved'
-        assert result['statusDetails'] == {'inRelease': 'a'}
+        assert result['statusDetails'] == {'inRelease': 'a', 'actor': None}
+
+    def test_resolved_with_actor(self):
+        release = self.create_release(project=self.project, version='a')
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.RESOLVED,
+        )
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            actor_id=user.id,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'resolved'
+        assert result['statusDetails']['actor']['id'] == six.text_type(user.id)
 
     @patch('sentry.models.Group.is_over_resolve_age')
     def test_auto_resolved(self, mock_is_over_resolve_age):

@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from collections import defaultdict, namedtuple
 from datetime import timedelta
+from itertools import izip
 
 import six
 from django.core.urlresolvers import reverse
@@ -14,7 +15,7 @@ from sentry.constants import LOG_LEVELS
 from sentry.models import (
     Group, GroupAssignee, GroupBookmark, GroupMeta, GroupResolution,
     GroupSeen, GroupSnooze, GroupStatus,
-    GroupSubscription, GroupSubscriptionReason, GroupTagKey, UserOption,
+    GroupSubscription, GroupSubscriptionReason, GroupTagKey, User, UserOption,
     UserOptionValue
 )
 from sentry.utils.db import attach_foreignkey
@@ -140,9 +141,20 @@ class GroupSerializer(Serializer):
             for i in GroupResolution.objects.filter(
                 group__in=item_list,
             ).values_list(
-                'group', 'type', 'release__version',
+                'group', 'type', 'release__version', 'actor_id',
             )
         }
+        actor_ids = set(r[-1] for r in six.itervalues(resolutions))
+        if actor_ids:
+            users = list(User.objects.filter(
+                id__in=actor_ids,
+                is_active=True,
+            ))
+            actors = {
+                u.id: d for u, d in izip(users, serialize(users, user))
+            }
+        else:
+            actors = {}
 
         result = {}
         for item in item_list:
@@ -156,6 +168,12 @@ class GroupSerializer(Serializer):
                 annotations.extend(safe_execute(plugin.get_annotations, group=item,
                                                 _with_transaction=False) or ())
 
+            resolution = resolutions.get(item.id)
+            if resolution:
+                resolution_actor = actors.get(resolution[-1])
+            else:
+                resolution_actor = None
+
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
@@ -164,7 +182,8 @@ class GroupSerializer(Serializer):
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
                 'ignore_until': ignore_items.get(item.id),
-                'resolution': resolutions.get(item.id),
+                'resolution': resolution,
+                'resolution_actor': resolution_actor,
             }
         return result
 
@@ -198,11 +217,12 @@ class GroupSerializer(Serializer):
         if status == GroupStatus.RESOLVED:
             status_label = 'resolved'
             if attrs['resolution']:
-                res_type, res_version = attrs['resolution']
+                res_type, res_version, _ = attrs['resolution']
                 if res_type in (GroupResolution.Type.in_next_release, None):
                     status_details['inNextRelease'] = True
                 elif res_type == GroupResolution.Type.in_release:
                     status_details['inRelease'] = res_version
+                status_details['actor'] = attrs['resolution_actor']
         elif status == GroupStatus.IGNORED:
             status_label = 'ignored'
         elif status in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]:
