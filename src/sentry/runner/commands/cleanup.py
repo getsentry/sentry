@@ -219,7 +219,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     if timed:
         duration = int(time.time() - start_time)
-        metrics.timing('cleanup.duration', duration, instance=router)
+        metrics.timing('cleanup.duration', duration, instance=router, sample_rate=1.0)
         click.echo("Clean up took %s second(s)." % duration)
 
 

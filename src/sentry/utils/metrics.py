@@ -28,24 +28,23 @@ def _get_key(key):
     return key
 
 
-def _should_sample():
-    sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-
+def _should_sample(sample_rate):
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value):
+def _sampled_value(value, sample_rate):
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
 
 
-def _incr_internal(key, instance=None, tags=None, amount=1):
+def _incr_internal(key, instance=None, tags=None, amount=1,
+        sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
     from sentry import tsdb
 
-    if _should_sample():
-        amount = _sampled_value(amount)
+    if _should_sample(sample_rate):
+        amount = _sampled_value(amount, sample_rate)
         if instance:
             full_key = '{}.{}'.format(key, instance)
         else:
@@ -58,9 +57,9 @@ def _incr_internal(key, instance=None, tags=None, amount=1):
             logger.exception('Unable to incr internal metric')
 
 
-def incr(key, amount=1, instance=None, tags=None):
-    sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
-    _incr_internal(key, instance, tags, amount)
+def incr(key, amount=1, instance=None, tags=None,
+        sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
+    _incr_internal(key, instance, tags, amount, sample_rate)
     try:
         backend.incr(key, instance, tags, amount, sample_rate)
     except Exception:
@@ -68,7 +67,8 @@ def incr(key, amount=1, instance=None, tags=None):
         logger.exception('Unable to record backend metric')
 
 
-def timing(key, value, instance=None, tags=None):
+def timing(key, value, instance=None, tags=None,
+        sample_rate=settings.SENTRY_METRICS_SAMPLE_RATE):
     # TODO(dcramer): implement timing for tsdb
     # TODO(dcramer): implement sampling for timing
     sample_rate = settings.SENTRY_METRICS_SAMPLE_RATE
