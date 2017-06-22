@@ -465,6 +465,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 }
                 status_details = {
                     'inNextRelease': True,
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_next_release
                 res_status = GroupResolution.Status.pending
@@ -477,6 +478,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 }
                 status_details = {
                     'inRelease': release.version,
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
                 res_type = GroupResolution.Type.in_release
                 res_status = GroupResolution.Status.resolved
@@ -511,8 +513,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
                     affected = Group.objects.filter(
                         id=group.id,
-                    ).exclude(
-                        status=GroupStatus.RESOLVED,
                     ).update(
                         status=GroupStatus.RESOLVED,
                         resolved_at=now,
