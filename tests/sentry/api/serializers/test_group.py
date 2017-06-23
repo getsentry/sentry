@@ -47,13 +47,29 @@ class GroupSerializerTest(TestCase):
 
         result = serialize(group, user)
         assert result['status'] == 'ignored'
-        assert result['statusDetails'] == {
-            'ignoreCount': snooze.count,
-            'ignoreUntil': snooze.until,
-            'ignoreUserCount': snooze.user_count,
-            'ignoreUserWindow': snooze.user_window,
-            'ignoreWindow': snooze.window,
-        }
+        assert result['statusDetails']['ignoreCount'] == snooze.count
+        assert result['statusDetails']['ignoreWindow'] == snooze.window
+        assert result['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert result['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert result['statusDetails']['ignoreUntil'] == snooze.until
+        assert result['statusDetails']['actor'] is None
+
+    def test_is_ignored_with_valid_snooze_and_actor(self):
+        now = timezone.now().replace(microsecond=0)
+
+        user = self.create_user()
+        group = self.create_group(
+            status=GroupStatus.IGNORED,
+        )
+        GroupSnooze.objects.create(
+            group=group,
+            until=now + timedelta(minutes=1),
+            actor_id=user.id,
+        )
+
+        result = serialize(group, user)
+        assert result['status'] == 'ignored'
+        assert result['statusDetails']['actor']['id'] == six.text_type(user.id)
 
     def test_resolved_in_next_release(self):
         release = self.create_release(project=self.project, version='a')
