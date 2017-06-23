@@ -7,7 +7,7 @@ from sentry.models import FeatureAdoption, Rule
 # from sentry.plugins import IssueTrackingPlugin2, NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
-    # event_processed,
+    event_processed,
     # first_event_received,
     project_created,
     member_joined,
@@ -36,6 +36,23 @@ class FeatureAdoptionTest(TestCase):
 
     def test_bad_feature_slug(self):
         FeatureAdoption.objects.record(self.organization.id, "xxx")
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="first_event")
+        assert feature_complete is None
+
+    def test_all_passed_feature_slugs_are_complete(self):
+        group1 = self.create_group(project=self.project, platform='javascript', message='javascript error message')
+        event1 = self.create_full_event()
+        group2 = self.create_group(project=self.project, platform='javascript', message='javascript error message')
+        event2 = self.create_full_event(event_id='b')
+        event_processed.send(project=self.project, group=group1, event=event1, sender=type(self.project))
+        event_processed.send(project=self.project, group=group2, event=event2, sender=type(self.project))
+
+        feature_complete = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization,
+            slug="environment_tracking")
+        assert feature_complete.complete
 
 #     def test_first_event(self):
 #         group = self.create_group(project=self.project, platform='javascript', message='javascript error message')
