@@ -92,6 +92,7 @@ class FeatureAdoptionManager(BaseManager):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, feature_id)
+        return True
 
     def get_all_cache(self, organization_id):
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
@@ -102,16 +103,20 @@ class FeatureAdoptionManager(BaseManager):
         return {int(x) for x in set.union(*[p.value for p in result])}
 
     def bulk_set_cache(self, organization_id, *args):
+        if not args:
+            return False
+
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
             client.sadd(org_key, *args)
+        return True
 
     def record(self, organization_id, feature_slug, **kwargs):
         try:
             feature_id = manager.get_by_slug(feature_slug).id
         except UnknownFeature as e:
             logger.exception(e)
-            return
+            return False
 
         if not self.in_cache(organization_id, feature_id):
             row, created = self.create_or_update(
@@ -130,9 +135,12 @@ class FeatureAdoptionManager(BaseManager):
             feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs])
         except UnknownFeature as e:
             logger.exception(e)
-            return
+            return False
 
         incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)
+
+        if not incomplete_feature_ids:
+            return False
 
         for feature_id in incomplete_feature_ids:
             features.append(FeatureAdoption(
@@ -142,12 +150,14 @@ class FeatureAdoptionManager(BaseManager):
         try:
             with transaction.atomic():
                 self.bulk_create(features)
+                return True
+
         except IntegrityError as e:
             # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
             logger.exception(e)
-            return
+            return False
         finally:
-            self.bulk_set_cache(organization_id, *incomplete_feature_ids)
+            return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
     def get_by_slug(self, organization, slug):
         return self.filter(organization=organization, feature_id=manager.get_by_slug(slug).id).first()
