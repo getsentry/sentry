@@ -88,6 +88,7 @@ tests_require = [
 
 
 install_requires = [
+    'botocore<1.5.71',
     'boto3>=1.4.1,<1.5',
     'celery>=3.1.8,<3.1.19',
     'click>=5.0,<7.0',
@@ -143,7 +144,7 @@ install_requires = [
     'ua-parser>=0.6.1,<0.8.0',
     'urllib3>=1.14,<1.17',
     'uwsgi>2.0.0,<2.1.0',
-    'rb>=1.6.0,<2.0.0',
+    'rb>=1.7.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
 ]

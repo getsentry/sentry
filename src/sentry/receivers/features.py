@@ -8,6 +8,7 @@ from sentry.models import FeatureAdoption
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
 from sentry.signals import (
     alert_rule_created,
+    event_processed,
     project_created,
     member_joined,
     user_feedback_received,
@@ -37,24 +38,21 @@ DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 's
 #         complete=True)
 
 
-# @event_processed.connect(weak=False)
-# def record_event_processed(project, group, event, **kwargs):
-#     feature_slugs = []
+@event_processed.connect(weak=False)
+def record_event_processed(project, group, event, **kwargs):
+    feature_slugs = []
 
 #     # Platform
 #     if group.platform in manager.location_slugs('language'):
 #         feature_slugs.append(group.platform)
 
-#     elif event.data.get(get_interface('csp')):
-#         feature_slugs.append('csp')
-
 #     # Release Tracking
 #     if event.get_tag('sentry:release'):
 #         feature_slugs.append('release_tracking')
 
-#     # Environment Tracking
-#     if event.get_tag('environment'):
-#         feature_slugs.append('environment_tracking')
+    # Environment Tracking
+    if event.get_tag('environment'):
+        feature_slugs.append('environment_tracking')
 
 #     # User Tracking
 #     user_context = event.data.get('sentry.interfaces.User')
@@ -78,10 +76,10 @@ DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 's
 #     if event.data.get('sentry.interfaces.Breadcrumbs'):
 #         feature_slugs.append('breadcrumbs')
 
-#     if not feature_slugs:
-#         return
+    if not feature_slugs:
+        return
 
-#     FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
+    FeatureAdoption.objects.bulk_record(project.organization_id, feature_slugs)
 
 
 @user_feedback_received.connect(weak=False)
