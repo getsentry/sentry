@@ -2,7 +2,9 @@ from __future__ import absolute_import
 
 from django import forms
 from sentry.web.frontend.base import BaseView
-from sentry.models import OrganizationMember, Organization
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect, Http404
+from sentry.models import OrganizationMember, Organization, Team, Project
 
 
 class AcceptProjectTransferForm(forms.Form):
@@ -27,20 +29,29 @@ class AcceptProjectTransferView(BaseView):
 
         def get_form(self, request):
             if request.method == 'POST':
-                return AcceptProjectTransferForm(request, initial=request.POST)
+                return AcceptProjectTransferForm(request, request.POST, initial=request.POST)
             return AcceptProjectTransferForm(request)
 
         def handle(self, request, *args, **kwargs):
-            # try:
-            #     project_id = request.GET['project_id']
-            #     to_email = request.GET['to']  # Validate against request.user
-            #     from_user_id = request.GET['from_id']
-            #     from_org_id = request.GET['from_org']
-            # except KeyError:
-            #     raise Http404
+            try:
+                project_id = request.GET['project_id']
+            except KeyError:
+                raise Http404
 
             form = self.get_form(request)
+            if form.is_valid():
+                # transfer the project
+                team_id = form.cleaned_data.get('team')
+                new_team = Team.objects.get(id=team_id)
+                project = Project.objects.get(id=project_id)
+                project.team = new_team
+                project.organization = new_team.organization
+                project.save()
+
+                return HttpResponseRedirect(reverse('sentry-organization-home', args=[new_team.organization.slug]))
+
             context = {
+                'project': Project.objects.get(id=project_id),
                 'form': form,
             }
             return self.respond('sentry/projects/accept_project_transfer.html', context)

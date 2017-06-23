@@ -4,6 +4,7 @@ from django import forms
 from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import roles, options
@@ -40,7 +41,8 @@ class TransferProjectView(ProjectView):
                 context = {
                     'email': email,
                     'project_name': project.name,
-                    'url': 'https://google.com',
+                    'request_time': timezone.now(),
+                    'url': 'dev.getsentry.net:8000/accept-transfer/?project_id=' + '%s' % (project.id),
                     'requester': request.user
                 }
                 MessageBuilder(
