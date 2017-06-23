@@ -36,28 +36,24 @@ const AdminBuffer = React.createClass({
           <div className="box-header">
             <h4>Updates Processed</h4>
           </div>
-          <div className="box-content with-padding">
-            <InternalStatChart
-              since={this.state.since}
-              resolution={this.state.resolution}
-              stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
-              label="Jobs"
-            />
-          </div>
+          <InternalStatChart
+            since={this.state.since}
+            resolution={this.state.resolution}
+            stat="jobs.finished.sentry.tasks.process_buffer.process_incr"
+            label="Jobs"
+          />
         </div>
 
         <div className="box">
           <div className="box-header">
             <h4>Revoked Updates</h4>
           </div>
-          <div className="box-content with-padding">
-            <InternalStatChart
-              since={this.state.since}
-              resolution={this.state.resolution}
-              stat="buffer.revoked"
-              label="Jobs"
-            />
-          </div>
+          <InternalStatChart
+            since={this.state.since}
+            resolution={this.state.resolution}
+            stat="buffer.revoked"
+            label="Jobs"
+          />
         </div>
       </div>
     );

@@ -24,18 +24,14 @@ export default React.createClass({
               <span id="rate" className="pull-right" />
             </h4>
           </div>
-          <div className="box-content with-padding">
-            <EventChart since={this.state.since} resolution={this.state.resolution} />
-          </div>
+          <EventChart since={this.state.since} resolution={this.state.resolution} />
         </div>
 
         <div className="box">
           <div className="box-header">
             <h4>API Responses</h4>
           </div>
-          <div className="box-content with-padding">
-            <ApiChart since={this.state.since} resolution={this.state.resolution} />
-          </div>
+          <ApiChart since={this.state.since} resolution={this.state.resolution} />
         </div>
       </div>
     );

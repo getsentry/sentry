@@ -263,6 +263,7 @@ const OrganizationStats = React.createClass({
                       points={this.state.orgStats}
                       height={150}
                       label="events"
+                      className="standard-barchart"
                       barClasses={['accepted', 'rate-limited', 'black-listed']}
                       tooltip={this.renderTooltip}
                     />
