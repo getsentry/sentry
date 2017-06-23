@@ -63,6 +63,7 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
+from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
@@ -302,6 +303,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/environments/$',
         ProjectEnvironmentsEndpoint.as_view(),
         name='sentry-api-0-project-environments'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/platforms/$',
+        ProjectPlatformsEndpoint.as_view(),
+        name='sentry-api-0-project-platform-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/$',
         ProjectEventsEndpoint.as_view(),
         name='sentry-api-0-project-events'),

@@ -30,6 +30,7 @@ Schema Changes
 - Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
 - Added GroupResolution.type
 - Added GropuResolution.actor_id
+- Added Project.platform
 
 API Changes
 ~~~~~~~~~~~
