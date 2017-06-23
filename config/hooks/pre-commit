@@ -52,7 +52,7 @@ def js_format(file_list=None):
     of the lint engine.
     """
     project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-    prettier_path = os.path.join(project_root, 'node_modules', '.bin', 'prettier')
+    prettier_path = os.path.join(project_root, 'bin', 'prettier')
 
     if not os.path.exists(prettier_path):
         echo('!! Skipping JavaScript formatting because prettier is not installed.', err=True)
@@ -78,10 +78,7 @@ def js_format(file_list=None):
 
     has_errors = False
     if js_file_list:
-        status = subprocess.Popen([prettier_path, '--write', '--single-quote',
-            '--bracket-spacing=false', '--print-width=90', '--jsx-bracket-same-line=true'] +
-            js_file_list
-        ).wait()
+        status = subprocess.Popen([prettier_path] + js_file_list).wait()
         has_errors = status != 0
 
         if not has_errors:
@@ -90,6 +87,7 @@ def js_format(file_list=None):
             has_errors = status != 0
 
     return has_errors
+
 
 def main():
     from flake8.hooks import run

@@ -1,0 +1,44 @@
+{
+    "folders":
+    [
+        {
+            "path": ".",
+        }
+    ],
+    "settings":
+    {
+        "tab_size": 4,
+        "folder_exclude_patterns": [
+            ".git",
+            "htmlcov",
+            ".tox",
+            "/build",
+            "/dist",
+            "/node_modules",
+            "static/CACHE",
+            "*.egg-info",
+            "*.egg",
+            "/.vagrant",
+            "/docs/html",
+        ],
+        "ensure_newline_at_eof_on_save": true,
+        "pep8_ignore": [
+            "E501"
+        ],
+        "translate_tabs_to_spaces": true,
+        "trim_trailing_white_space_on_save": true,
+
+        "js_prettier": {
+          "debug": true,
+          "prettier_cli_path": "node_modules/.bin/prettier",
+          "node_path": "",
+          "auto_format_on_save": true,
+          "allow_inline_formatting": false,
+          "prettier_options": {
+            "bracketSpacing": true,
+            "singleQuota": true,
+            "printWidth": 90,
+          }
+      }
+    }
+}
