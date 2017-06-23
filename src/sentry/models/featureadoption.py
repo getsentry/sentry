@@ -104,7 +104,7 @@ class FeatureAdoptionManager(BaseManager):
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
-            return
+            return False
 
         org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
         with redis.clusters.get('default').map() as client:
@@ -140,7 +140,7 @@ class FeatureAdoptionManager(BaseManager):
         incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)
 
         if not incomplete_feature_ids:
-            return
+            return False
 
         for feature_id in incomplete_feature_ids:
             features.append(FeatureAdoption(
