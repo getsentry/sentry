@@ -817,16 +817,13 @@ class GroupUpdateTest(APITestCase):
         # Drop microsecond value for MySQL
         response.data['statusDetails']['ignoreUntil'] = response.data['statusDetails']['ignoreUntil'].replace(microsecond=0)
 
-        assert response.data == {
-            'status': 'ignored',
-            'statusDetails': {
-                'ignoreCount': snooze.count,
-                'ignoreWindow': snooze.window,
-                'ignoreUntil': snooze.until,
-                'ignoreUserCount': snooze.user_count,
-                'ignoreUserWindow': snooze.user_window,
-            },
-        }
+        assert response.data['status'] == 'ignored'
+        assert response.data['statusDetails']['ignoreCount'] == snooze.count
+        assert response.data['statusDetails']['ignoreWindow'] == snooze.window
+        assert response.data['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert response.data['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_count(self):
         group = self.create_group(
@@ -856,16 +853,13 @@ class GroupUpdateTest(APITestCase):
         assert snooze.window is None
         assert snooze.state['times_seen'] == 1
 
-        assert response.data == {
-            'status': 'ignored',
-            'statusDetails': {
-                'ignoreCount': snooze.count,
-                'ignoreWindow': snooze.window,
-                'ignoreUntil': snooze.until,
-                'ignoreUserCount': snooze.user_count,
-                'ignoreUserWindow': snooze.user_window,
-            },
-        }
+        assert response.data['status'] == 'ignored'
+        assert response.data['statusDetails']['ignoreCount'] == snooze.count
+        assert response.data['statusDetails']['ignoreWindow'] == snooze.window
+        assert response.data['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert response.data['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_snooze_user_count(self):
         group = self.create_group(
@@ -899,16 +893,13 @@ class GroupUpdateTest(APITestCase):
         assert snooze.window is None
         assert snooze.state['users_seen'] == 100
 
-        assert response.data == {
-            'status': 'ignored',
-            'statusDetails': {
-                'ignoreCount': snooze.count,
-                'ignoreWindow': snooze.window,
-                'ignoreUntil': snooze.until,
-                'ignoreUserCount': snooze.user_count,
-                'ignoreUserWindow': snooze.user_window,
-            },
-        }
+        assert response.data['status'] == 'ignored'
+        assert response.data['statusDetails']['ignoreCount'] == snooze.count
+        assert response.data['statusDetails']['ignoreWindow'] == snooze.window
+        assert response.data['statusDetails']['ignoreUserCount'] == snooze.user_count
+        assert response.data['statusDetails']['ignoreUserWindow'] == snooze.user_window
+        assert response.data['statusDetails']['ignoreUntil'] == snooze.until
+        assert response.data['statusDetails']['actor']['id'] == six.text_type(self.user.id)
 
     def test_set_bookmarked(self):
         group1 = self.create_group(checksum='a' * 32, status=GroupStatus.RESOLVED)

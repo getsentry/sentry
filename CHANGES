@@ -31,6 +31,7 @@ Schema Changes
 - Added GroupResolution.type
 - Added GropuResolution.actor_id
 - Added Project.platform
+- Added GroupSnooze.actor_id
 
 API Changes
 ~~~~~~~~~~~

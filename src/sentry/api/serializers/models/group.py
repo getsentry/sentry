@@ -145,6 +145,7 @@ class GroupSerializer(Serializer):
             )
         }
         actor_ids = set(r[-1] for r in six.itervalues(resolutions))
+        actor_ids.update(r.actor_id for r in six.itervalues(ignore_items))
         if actor_ids:
             users = list(User.objects.filter(
                 id__in=actor_ids,
@@ -174,6 +175,12 @@ class GroupSerializer(Serializer):
             else:
                 resolution_actor = None
 
+            ignore_item = ignore_items.get(item.id)
+            if ignore_item:
+                ignore_actor = actors.get(ignore_item.actor_id)
+            else:
+                ignore_actor = None
+
             result[item] = {
                 'assigned_to': serialize(assignees.get(item.id)),
                 'is_bookmarked': item.id in bookmarks,
@@ -181,7 +188,8 @@ class GroupSerializer(Serializer):
                 'has_seen': seen_groups.get(item.id, active_date) > active_date,
                 'annotations': annotations,
                 'user_count': user_counts.get(item.id, 0),
-                'ignore_until': ignore_items.get(item.id),
+                'ignore_until': ignore_item,
+                'ignore_actor': ignore_actor,
                 'resolution': resolution,
                 'resolution_actor': resolution_actor,
             }
@@ -208,6 +216,7 @@ class GroupSerializer(Serializer):
                     ),
                     'ignoreUserWindow': snooze.user_window,
                     'ignoreWindow': snooze.window,
+                    'actor': attrs['ignore_actor'],
                 })
             else:
                 status = GroupStatus.UNRESOLVED
