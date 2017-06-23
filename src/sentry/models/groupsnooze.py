@@ -33,6 +33,7 @@ class GroupSnooze(Model):
     user_count = BoundedPositiveIntegerField(null=True)
     user_window = BoundedPositiveIntegerField(null=True)
     state = JSONField(null=True)
+    actor_id = BoundedPositiveIntegerField(null=True)
 
     objects = BaseManager(cache_fields=(
         'group',

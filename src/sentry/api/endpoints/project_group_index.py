@@ -497,7 +497,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                             'release': release,
                             'type': res_type,
                             'status': res_status,
-                            'actor_id': request.user.id if request.user else None,
+                            'actor_id': request.user.id if request.user.is_authenticated() else None,
                         }
                         resolution, created = GroupResolution.objects.get_or_create(
                             group=group,
@@ -597,6 +597,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                     'user_count': ignore_user_count,
                                     'user_window': ignore_user_window,
                                     'state': state,
+                                    'actor_id': request.user.id if request.user.is_authenticated() else None,
                                 }
                             )
                             result['statusDetails'] = {
@@ -605,6 +606,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                 'ignoreUserCount': ignore_user_count,
                                 'ignoreUserWindow': ignore_user_window,
                                 'ignoreWindow': ignore_window,
+                                'actor': serialize(extract_lazy_object(request.user), request.user),
                             }
                     else:
                         GroupSnooze.objects.filter(
