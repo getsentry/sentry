@@ -116,7 +116,7 @@ class FeatureAdoptionManager(BaseManager):
             feature_id = manager.get_by_slug(feature_slug).id
         except UnknownFeature as e:
             logger.exception(e)
-            return
+            return False
 
         if not self.in_cache(organization_id, feature_id):
             row, created = self.create_or_update(
@@ -135,7 +135,7 @@ class FeatureAdoptionManager(BaseManager):
             feature_ids = set([manager.get_by_slug(slug).id for slug in feature_slugs])
         except UnknownFeature as e:
             logger.exception(e)
-            return
+            return False
 
         incomplete_feature_ids = feature_ids - self.get_all_cache(organization_id)
 
@@ -150,10 +150,12 @@ class FeatureAdoptionManager(BaseManager):
         try:
             with transaction.atomic():
                 self.bulk_create(features)
+                return True
+
         except IntegrityError as e:
             # This can occur if redis somehow loses the set of complete features and we attempt to insert duplicate (org_id, feature_id) rows
             logger.exception(e)
-            return
+            return False
         finally:
             return self.bulk_set_cache(organization_id, *incomplete_feature_ids)
 
