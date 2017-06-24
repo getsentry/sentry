@@ -80,7 +80,7 @@ if settings.SENTRY_USE_BIG_INTS:
             elif 'sqlite' in engine:
                 return 'integer'
             else:
-                raise NotImplemented
+                raise NotImplementedError()
 
         def get_related_db_type(self, connection):
             return BoundedBigIntegerField().db_type(connection)
