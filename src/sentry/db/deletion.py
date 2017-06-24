@@ -24,7 +24,6 @@ class BulkDeleteQuery(object):
             where.append("{} < '{}'::timestamptz".format(
                 quote_name(self.dtfield),
                 (timezone.now() - timedelta(days=self.days)).isoformat(),
-                self.days,
             ))
         if self.project_id:
             where.append("project_id = {}".format(self.project_id))
