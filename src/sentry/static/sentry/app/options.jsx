@@ -135,7 +135,7 @@ const definitions = [
   }
 ];
 
-const definitionsMap = _.keyBy(definitions, 'key');
+const definitionsMap = _.keyBy(definitions, def => def.key);
 
 const disabledReasons = {
   diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',
