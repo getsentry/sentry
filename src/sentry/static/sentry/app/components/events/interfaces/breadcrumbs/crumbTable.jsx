@@ -12,13 +12,10 @@ const CrumbTable = React.createClass({
   },
 
   renderData() {
-    let {kvData} = this.props;
-    if (!kvData || _.isEmpty(kvData)) {
+    if (!this.props.kvData) {
       return null;
     }
-    let tuples = _.map(kvData, (val, key) => [val, key]);
-
-    return tuples.map(([val, key]) => {
+    return _.map(this.props.kvData, (val, key) => [val, key]).map(([val, key]) => {
       return (
         <tr key={key}>
           <td className="key">{key}</td>

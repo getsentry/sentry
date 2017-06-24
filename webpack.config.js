@@ -139,7 +139,8 @@ var config = {
   },
   plugins: [
     new LodashModuleReplacementPlugin({
-      shorthands: true
+      shorthands: true,
+      collections: true
     }),
     new webpack.optimize.CommonsChunkPlugin({
       names: localeEntries.concat(['vendor']) // 'vendor' must be last entry
