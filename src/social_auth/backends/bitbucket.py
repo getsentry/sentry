@@ -102,7 +102,6 @@ class BitbucketAuth(ConsumerBasedOAuth):
             return user_details
         except ValueError:
             return None
-        return None
 
 
 # Backend definition

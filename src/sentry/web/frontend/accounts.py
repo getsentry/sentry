@@ -83,12 +83,12 @@ def recover(request):
         'accounts:recover:{}'.format(extra['ip_address']),
         limit=5, window=60,  # 5 per minute should be enough for anyone
     ):
+        logger.warning('recover.rate-limited', extra=extra)
         return HttpResponse(
             'You have made too many password recovery attempts. Please try again later.',
             content_type='text/plain',
             status=429,
         )
-        logger.warning('recover.rate-limited', extra=extra)
 
     form = RecoverPasswordForm(request.POST or None)
     extra['user_recovered'] = form.data.get('user')
