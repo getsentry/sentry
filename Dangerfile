@@ -74,7 +74,7 @@ warn("Changes to build requirements") if checkFiles(@S_BUILD_FILES).any?
 securityMatches = checkFilesPattern(@S_SECURITY_FILE_PATTERN, @S_SECURITY_EXCLUDE_FILES) + checkContents(@S_SECURITY_CONTENT_PATTERN, @S_SECURITY_EXCLUDE_FILES)
 if securityMatches.any?
     unless github.pr_labels.include?("Security")
-        github.api.update_issue(github.pr_json["head"]["repo"]["full_name"], github.pr_json["number"], {
+        github.api.update_issue(github.pr_json["base"]["repo"]["full_name"], github.pr_json["number"], {
             :labels => github.pr_labels + ["Security"],
         })
     end
