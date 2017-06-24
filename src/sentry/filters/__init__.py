@@ -6,7 +6,7 @@ __all__ = [
 ]
 
 from .base import Filter  # NOQA
-from .manager import FilterManager  # NOQA
+from .manager import FilterManager, FilterNotRegistered  # NOQA
 
 from .localhost import LocalhostFilter
 from .browser_extensions import BrowserExtensionsFilter
