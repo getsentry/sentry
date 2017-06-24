@@ -92,7 +92,6 @@ class OrganizationMixin(object):
                 active_organization = organizations[0]
             except IndexError:
                 logger.info('User is not a member of any organizations')
-                pass
 
         if active_organization and self._is_org_member(request.user, active_organization):
             if active_organization.slug != request.session.get('activeorg'):
