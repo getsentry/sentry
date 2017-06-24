@@ -5,6 +5,7 @@
         "**/*.js.map": true,
         "static": true,
         "node_modules": true,
+        "htmlcov": true,
         "src/sentry/static/sentry/dist/": true
     },
     "files.trimTrailingWhitespace": true,
