@@ -9,7 +9,6 @@ from django.http import HttpResponseRedirect
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.cache import never_cache
 
-from sentry import features
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationStatus
@@ -55,7 +54,7 @@ class AuthLoginView(BaseView):
         )
 
     def handle_basic_auth(self, request):
-        can_register = features.has('auth:register') or request.session.get('can_register')
+        can_register = auth.has_user_registration() or request.session.get('can_register')
 
         op = request.POST.get('op')
 
