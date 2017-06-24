@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import $ from 'jquery';
 import React from 'react';
 import ApiMixin from '../../mixins/apiMixin';
 import LoadingError from '../../components/loadingError';
@@ -116,7 +116,7 @@ const OrganizationStats = React.createClass({
 
     let statEndpoint = this.getOrganizationStatsEndpoint();
 
-    _.each(this.state.rawOrgData, statName => {
+    $.each(this.state.rawOrgData, statName => {
       this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
@@ -140,7 +140,7 @@ const OrganizationStats = React.createClass({
       });
     });
 
-    _.each(this.state.rawProjectData, statName => {
+    $.each(this.state.rawProjectData, statName => {
       this.api.request(statEndpoint, {
         query: {
           since: this.state.querySince,
@@ -184,7 +184,7 @@ const OrganizationStats = React.createClass({
     let orgPoints = []; // accepted, rejected, blacklisted
     let aReceived = [0, 0]; // received, points
     let rawOrgData = this.state.rawOrgData;
-    _.each(rawOrgData.received, (idx, point) => {
+    $.each(rawOrgData.received, (idx, point) => {
       let dReceived = point[1];
       let dRejected = rawOrgData.rejected[idx][1];
       let dBlacklisted = rawOrgData.blacklisted[idx][1];
@@ -217,11 +217,11 @@ const OrganizationStats = React.createClass({
   processProjectData() {
     let rawProjectData = this.state.rawProjectData;
     let projectTotals = [];
-    _.each(rawProjectData.received, (projectId, data) => {
+    $.each(rawProjectData.received, (projectId, data) => {
       let pReceived = 0;
       let pRejected = 0;
       let pBlacklisted = 0;
-      _.each(data, (idx, point) => {
+      $.each(data, (idx, point) => {
         pReceived += point[1];
         pRejected += rawProjectData.rejected[projectId][idx][1];
         pBlacklisted += rawProjectData.blacklisted[projectId][idx][1];
