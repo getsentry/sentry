@@ -4,7 +4,7 @@ import React from 'react';
 import SelectedGroupStore from '../../stores/selectedGroupStore';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
-import _ from 'underscore';
+import _ from 'lodash';
 
 // TODO(mitsuhiko): very unclear how to translate this
 const ActionLink = React.createClass({

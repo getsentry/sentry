@@ -1,6 +1,6 @@
 import React from 'react';
 import DocumentTitle from 'react-document-title';
-import underscore from 'underscore';
+import underscore from 'lodash';
 import {browserHistory} from 'react-router';
 import idx from 'idx';
 

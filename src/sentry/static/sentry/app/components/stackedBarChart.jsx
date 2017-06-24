@@ -1,5 +1,5 @@
 import moment from 'moment';
-import underscore from 'underscore';
+import underscore from 'lodash';
 import React from 'react';
 import TooltipMixin from '../mixins/tooltip';
 import Count from './count';

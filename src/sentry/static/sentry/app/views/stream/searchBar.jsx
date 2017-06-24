@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Reflux from 'reflux';
-import _ from 'underscore';
+import _ from 'lodash';
 import classNames from 'classnames';
 
 import StreamTagStore from '../../stores/streamTagStore';

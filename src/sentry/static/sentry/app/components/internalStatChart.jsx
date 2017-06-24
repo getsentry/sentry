@@ -1,6 +1,6 @@
 /*eslint getsentry/jsx-needs-il8n:0*/
 import React from 'react';
-import underscore from 'underscore';
+import underscore from 'lodash';
 
 import ApiMixin from '../mixins/apiMixin';
 import BarChart from '../components/barChart';

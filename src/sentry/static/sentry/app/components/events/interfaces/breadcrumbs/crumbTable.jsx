@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 
 import Category from './category';
 
@@ -12,20 +12,20 @@ const CrumbTable = React.createClass({
   },
 
   renderData() {
-    if (!this.props.kvData) {
+    let {kvData} = this.props;
+    if (!kvData || _.isEmpty(kvData)) {
       return null;
     }
-    return _.chain(this.props.kvData)
-      .map((val, key) => [val, key])
-      .map(([val, key]) => {
-        return (
-          <tr key={key}>
-            <td className="key">{key}</td>
-            <td className="value"><pre>{val + ''}</pre></td>
-          </tr>
-        );
-      })
-      .value();
+    let tuples = _.map(kvData, (val, key) => [val, key]);
+
+    return tuples.map(([val, key]) => {
+      return (
+        <tr key={key}>
+          <td className="key">{key}</td>
+          <td className="value"><pre>{val + ''}</pre></td>
+        </tr>
+      );
+    });
   },
 
   render() {

@@ -1,7 +1,7 @@
 import React from 'react';
 import moment from 'moment';
 import ConfigStore from '../stores/configStore.jsx';
-import _ from 'underscore';
+import _ from 'lodash';
 
 const DateTime = React.createClass({
   propTypes: {

@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 import StreamTagFilter from './tagFilter';
 import LoadingIndicator from '../../components/loadingIndicator';
 import {queryToObj, objToQuery} from '../../utils/stream';

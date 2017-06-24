@@ -1,5 +1,5 @@
 import React from 'react';
-import _ from 'underscore';
+import _ from 'lodash';
 import ConfigStore from './stores/configStore';
 import {t} from './locale';
 import {EmailField, TextField, BooleanField} from './components/forms';
@@ -135,7 +135,7 @@ const definitions = [
   }
 ];
 
-const definitionsMap = _.indexBy(definitions, 'key');
+const definitionsMap = _.keyBy(definitions, 'key');
 
 const disabledReasons = {
   diskPriority: 'This setting is defined in config.yml and may not be changed via the web UI.',

@@ -1,5 +1,5 @@
 import React from 'react';
-import underscore from 'underscore';
+import underscore from 'lodash';
 
 import {Form, FormState} from '../../components/forms';
 import PluginComponentBase from '../../components/bases/pluginComponentBase';
