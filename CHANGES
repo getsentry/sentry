@@ -9,6 +9,8 @@ Version 8.18 (Unreleased)
 - Replaced usage of jQuery Flot library with internal graphs.
 - Expanded ignore actions to include deltas and rates for both occurances and
   users imapcted.
+- Add a new option (`auth.allow-registration`) for determining whether registration
+  is allowed on an installation.
 
 Schema Changes
 ~~~~~~~~~~~~~~
