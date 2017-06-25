@@ -14,7 +14,11 @@ from __future__ import absolute_import
 
 import os
 import sys
+import subprocess
+import json
+
 from subprocess import Popen
+from click import echo, style
 
 os.environ['PYFLAKES_NODOCTEST'] = '1'
 
@@ -98,6 +102,80 @@ def js_lint(file_list=None):
         status = Popen([eslint_path, '--config', eslint_config, '--ext', '.jsx', '--fix']
                        + js_file_list).wait()
         has_errors = status != 0
+
+    return has_errors
+
+
+PRETTIER_VERSION = "1.2.2"
+
+
+def yarn_check(file_list):
+    """
+    Checks if package.json was modified WITHOUT a corresponding change in the Yarn
+    lockfile. This can happen if a user manually edited package.json without running Yarn.
+
+    This is a user prompt right now because there ARE cases where you can touch package.json
+    without a Yarn lockfile change, e.g. Jest config changes, license changes, etc.
+    """
+    if file_list is None or os.environ.get('SKIP_YARN_CHECK'):
+        return False
+
+    if 'package.json' in file_list and 'yarn.lock' not in file_list:
+        echo(style("""
+Warning: package.json modified without accompanying yarn.lock modifications.
+
+If you updated a dependency/devDependency in package.json, you must run `yarn install` to update the lockfile.
+
+To skip this check, run:
+
+$ SKIP_YARN_CHECK=1 git commit [options]""", fg='yellow'))
+        return True
+
+    return False
+
+
+def js_format(file_list=None):
+    """
+    We only format JavaScript code as part of this pre-commit hook. It is not part
+    of the lint engine.
+    """
+    project_root = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir)
+    prettier_path = os.path.join(project_root, 'node_modules', '.bin', 'prettier')
+
+    if not os.path.exists(prettier_path):
+        echo('!! Skipping JavaScript formatting because prettier is not installed.', err=True)
+        return False
+
+    # Get Prettier version from package.json
+    package_version = None
+    package_json_path = os.path.join(project_root, 'package.json')
+    with open(package_json_path) as package_json:
+        try:
+            package_version = json.load(package_json)['devDependencies']['prettier']
+        except KeyError:
+            echo('!! Prettier missing from package.json', err=True)
+            return False
+
+    prettier_version = subprocess.check_output([prettier_path, '--version']).rstrip()
+    if prettier_version != package_version:
+        echo('!! Prettier is out of date: %s (expected %s). Please run `yarn install`.'
+            % (prettier_version, package_version), err=True)
+        return False
+
+    js_file_list = get_js_files(file_list)
+
+    has_errors = False
+    if js_file_list:
+        status = subprocess.Popen([prettier_path, '--write', '--single-quote',
+            '--bracket-spacing=false', '--print-width=90', '--jsx-bracket-same-line=true'] +
+            js_file_list
+        ).wait()
+        has_errors = status != 0
+
+        if not has_errors:
+            # Stage modifications by Prettier
+            status = subprocess.Popen(['git', 'update-index', '--add'] + file_list).wait()
+            has_errors = status != 0
 
     return has_errors
 
