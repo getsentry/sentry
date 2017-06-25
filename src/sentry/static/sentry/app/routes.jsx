@@ -20,7 +20,6 @@ import AdminQueue from './views/adminQueue';
 import AdminSettings from './views/adminSettings';
 import AdminUsers from './views/adminUsers';
 import App from './views/app';
-import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
 import GroupEventDetails from './views/groupEventDetails';
 import GroupEvents from './views/groupEvents';
@@ -86,6 +85,10 @@ function appendTrailingSlash(nextState, replaceState) {
   if (lastChar !== '/') {
     replaceState(nextState, nextState.location.pathname + '/');
   }
+}
+
+function loadRoute(cb) {
+  return module => cb(null, module.default);
 }
 
 function routes() {
@@ -265,7 +268,12 @@ function routes() {
             ignoreScrollBehavior>
             <IndexRoute component={errorHandler(GroupEventDetails)} />
 
-            <Route path="activity/" component={errorHandler(GroupActivity)} />
+            <Route
+              path="activity/"
+              getComponent={(loc, cb) => {
+                import('./views/groupActivity').then(loadRoute(cb));
+              }}
+            />
             <Route path="events/:eventId/" component={errorHandler(GroupEventDetails)} />
             <Route path="events/" component={errorHandler(GroupEvents)} />
             <Route path="hashes/" component={errorHandler(GroupHashes)} />

@@ -12,6 +12,7 @@
   ],
   "plugins": [
     "transform-object-rest-spread",
+    "syntax-dynamic-import",
     [
       "babel-plugin-transform-builtin-extend",
       {
