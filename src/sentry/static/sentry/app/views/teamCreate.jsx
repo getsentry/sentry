@@ -1,17 +1,22 @@
 import React from 'react';
 
+import AsyncView from './asyncView';
 import NarrowLayout from '../components/narrowLayout';
 import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
-export default React.createClass({
+export default class TeamCreate extends AsyncView {
   onSubmitSuccess(data) {
     let {orgId} = this.props.params;
     // redirect to project creation
     window.location.href = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
-  },
+  }
 
-  render() {
+  getTitle() {
+    return 'Create Team';
+  }
+
+  renderBody() {
     let {orgId} = this.props.params;
     return (
       <NarrowLayout>
@@ -38,4 +43,4 @@ export default React.createClass({
       </NarrowLayout>
     );
   }
-});
+}
