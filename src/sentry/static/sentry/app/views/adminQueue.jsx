@@ -87,14 +87,12 @@ export default React.createClass({
 
         <div className="box">
           <div className="box-header"><h3>Global Throughput</h3></div>
-          <div className="box-content with-padding">
-            <InternalStatChart
-              since={this.state.since}
-              resolution={this.state.resolution}
-              stat="jobs.all.started"
-              label="jobs started"
-            />
-          </div>
+          <InternalStatChart
+            since={this.state.since}
+            resolution={this.state.resolution}
+            stat="jobs.all.started"
+            label="jobs started"
+          />
         </div>
 
         <h3 className="no-border">Task Details</h3>
@@ -120,29 +118,25 @@ export default React.createClass({
                           <div className="box-header">
                             Jobs Started <small>{activeTask}</small>
                           </div>
-                          <div className="box-content with-padding">
-                            <InternalStatChart
-                              since={this.state.since}
-                              resolution={this.state.resolution}
-                              stat={`jobs.started.${this.state.activeTask}`}
-                              label="jobs"
-                              height={100}
-                            />
-                          </div>
+                          <InternalStatChart
+                            since={this.state.since}
+                            resolution={this.state.resolution}
+                            stat={`jobs.started.${this.state.activeTask}`}
+                            label="jobs"
+                            height={100}
+                          />
                         </div>
                         <div className="box box-mini" key="jobs.finished">
                           <div className="box-header">
                             Jobs Finished <small>{activeTask}</small>
                           </div>
-                          <div className="box-content with-padding">
-                            <InternalStatChart
-                              since={this.state.since}
-                              resolution={this.state.resolution}
-                              stat={`jobs.finished.${this.state.activeTask}`}
-                              label="jobs"
-                              height={100}
-                            />
-                          </div>
+                          <InternalStatChart
+                            since={this.state.since}
+                            resolution={this.state.resolution}
+                            stat={`jobs.finished.${this.state.activeTask}`}
+                            label="jobs"
+                            height={100}
+                          />
                         </div>
                       </div>
                     : null}
