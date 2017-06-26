@@ -7,9 +7,11 @@ from django.db.models import Q
 from django.db.models.aggregates import Count
 
 from sentry.api.serializers import register, serialize, Serializer
+from sentry.api.serializers.models.plugin import PluginSerializer
+from sentry.digests import backend as digests
 from sentry.models import (
     Project, ProjectBookmark, ProjectOption, ProjectPlatform, ProjectStatus,
-    Release, UserOption
+    Release, UserOption, DEFAULT_SUBJECT_TEMPLATE
 )
 
 STATUS_LABELS = {
@@ -22,6 +24,10 @@ STATUS_LABELS = {
 
 @register(Project)
 class ProjectSerializer(Serializer):
+    """
+    This is primarily used to summarize projects. We utilize it when doing bulk loads for things
+    such as "show all projects for this organization", and its attributes be kept to a minimum.
+    """
     def get_attrs(self, item_list, user):
         project_ids = [i.id for i in item_list]
         if user.is_authenticated() and item_list:
@@ -39,27 +45,120 @@ class ProjectSerializer(Serializer):
             default_subscribe = (
                 user_options.get('subscribe_by_default', '1') == '1'
             )
-
-            default_environments = {
-                o.project_id: o.value
-                for o in ProjectOption.objects.filter(
-                    key='sentry:default_environment',
-                    project__in=project_ids,
-                )
-            }
         else:
             bookmarks = set()
             user_options = {}
             default_subscribe = False
-            default_environments = {}
 
-        reviewed_callsigns = {
-            p.project_id: p.value
-            for p in ProjectOption.objects.filter(
-                project__in=item_list,
-                key='sentry:reviewed-callsign',
-            )
+        result = {}
+        for item in item_list:
+            result[item] = {
+                'is_bookmarked': item.id in bookmarks,
+                'is_subscribed': bool(user_options.get(
+                    (item.id, 'mail:alert'),
+                    default_subscribe,
+                )),
+            }
+        return result
+
+    def serialize(self, obj, attrs, user):
+        from sentry import features
+
+        feature_list = []
+        for feature in ('global-events', 'data-forwarding', 'rate-limits'):
+            if features.has('projects:' + feature, obj, actor=user):
+                feature_list.append(feature)
+
+        if obj.flags.has_releases:
+            feature_list.append('releases')
+
+        status_label = STATUS_LABELS.get(obj.status, 'unknown')
+
+        return {
+            'id': six.text_type(obj.id),
+            'slug': obj.slug,
+            'name': obj.name,
+            'isPublic': obj.public,
+            'isBookmarked': attrs['is_bookmarked'],
+            'callSign': obj.callsign,
+            'color': obj.color,
+            'dateCreated': obj.date_added,
+            'firstEvent': obj.first_event,
+            'features': feature_list,
+            'status': status_label,
         }
+
+
+class ProjectWithOrganizationSerializer(ProjectSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(
+            item_list, user
+        )
+
+        orgs = {
+            d['id']: d
+            for d in serialize(list(set(i.organization for i in item_list)), user)
+        }
+        for item in item_list:
+            attrs[item]['organization'] = orgs[six.text_type(item.organization_id)]
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        data = super(ProjectWithOrganizationSerializer, self).serialize(
+            obj, attrs, user
+        )
+        data['organization'] = attrs['organization']
+        return data
+
+
+class ProjectWithTeamSerializer(ProjectSerializer):
+    def get_attrs(self, item_list, user):
+        attrs = super(ProjectWithTeamSerializer, self).get_attrs(
+            item_list, user
+        )
+
+        teams = {
+            d['id']: d
+            for d in serialize(list(set(i.team for i in item_list)), user)
+        }
+        for item in item_list:
+            attrs[item]['team'] = teams[six.text_type(item.team_id)]
+        return attrs
+
+    def serialize(self, obj, attrs, user):
+        data = super(ProjectWithTeamSerializer, self).serialize(
+            obj, attrs, user
+        )
+        data['team'] = attrs['team']
+        return data
+
+
+class DetailedProjectSerializer(ProjectWithTeamSerializer):
+    OPTION_KEYS = frozenset([
+        'sentry:origins',
+        'sentry:resolve_age',
+        'sentry:scrub_data',
+        'sentry:scrub_defaults',
+        'sentry:safe_fields',
+        'sentry:sensitive_fields',
+        'sentry:csp_ignored_sources_defaults',
+        'sentry:csp_ignored_sources',
+        'sentry:default_environment',
+        'sentry:reprocessing_active',
+        'sentry:blacklisted_ips',
+        'feedback:branding',
+        'digests:mail:minimum_delay',
+        'digests:mail:maximum_delay',
+        'mail:subject_prefix',
+        'mail:subject_template',
+    ])
+
+    def get_attrs(self, item_list, user):
+        attrs = super(DetailedProjectSerializer, self).get_attrs(
+            item_list, user
+        )
+
+        project_ids = [i.id for i in item_list]
 
         platforms = ProjectPlatform.objects.filter(
             project_id__in=project_ids,
@@ -98,103 +197,73 @@ class ProjectSerializer(Serializer):
             ', '.join(six.text_type(i.id) for i in item_list),
         )))
 
-        latest_releases = {
-            r.actual_project_id: d
-            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
-        }
-
-        result = {}
-        for item in item_list:
-            result[item] = {
-                'is_bookmarked': item.id in bookmarks,
-                'is_subscribed': bool(user_options.get(
-                    (item.id, 'mail:alert'),
-                    default_subscribe,
-                )),
-                'latest_release': latest_releases.get(item.id),
-                'default_environment': default_environments.get(item.id),
-                'reviewed-callsign': reviewed_callsigns.get(item.id),
-                'platforms': platforms_by_project[item.id],
-                'processing_issues': processing_issues_by_project.get(item.id, 0),
-            }
-        return result
-
-    def serialize(self, obj, attrs, user):
-        from sentry import features
-
-        feature_list = []
-        for feature in ('global-events', 'data-forwarding', 'rate-limits'):
-            if features.has('projects:' + feature, obj, actor=user):
-                feature_list.append(feature)
-
-        if obj.flags.has_releases:
-            feature_list.append('releases')
-
-        status_label = STATUS_LABELS.get(obj.status, 'unknown')
-
-        return {
-            'id': six.text_type(obj.id),
-            'slug': obj.slug,
-            'name': obj.name,
-            'isPublic': obj.public,
-            'isBookmarked': attrs['is_bookmarked'],
-            'defaultEnvironment': attrs['default_environment'],
-            'callSign': obj.callsign,
-            'color': obj.color,
-            # TODO(mitsuhiko): eventually remove this when we will treat
-            # all short names as reviewed.
-            'callSignReviewed': bool(attrs['reviewed-callsign']),
-            'dateCreated': obj.date_added,
-            'firstEvent': obj.first_event,
-            'latestRelease': attrs['latest_release'],
-            'features': feature_list,
-            'status': status_label,
-            'platforms': attrs['platforms'],
-            'processingIssues': attrs['processing_issues'],
-        }
-
-
-class ProjectWithOrganizationSerializer(ProjectSerializer):
-    def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithOrganizationSerializer, self).get_attrs(
-            item_list, user
+        queryset = ProjectOption.objects.filter(
+            project__in=item_list,
+            key__in=self.OPTION_KEYS,
         )
+        options_by_project = defaultdict(dict)
+        for option in queryset.iterator():
+            options_by_project[option.project_id][option.key] = option.value
 
         orgs = {
             d['id']: d
             for d in serialize(list(set(i.organization for i in item_list)), user)
         }
-        for item in item_list:
-            attrs[item]['organization'] = orgs[six.text_type(item.organization_id)]
-        return attrs
 
-    def serialize(self, obj, attrs, user):
-        data = super(ProjectWithOrganizationSerializer, self).serialize(
-            obj, attrs, user
-        )
-        data['organization'] = attrs['organization']
-        return data
-
-
-class ProjectWithTeamSerializer(ProjectSerializer):
-    def get_attrs(self, item_list, user):
-        attrs = super(ProjectWithTeamSerializer, self).get_attrs(
-            item_list, user
-        )
-
-        orgs = {
-            d['id']: d
-            for d in serialize(list(set(i.team for i in item_list)), user)
+        latest_releases = {
+            r.actual_project_id: d
+            for r, d in zip(latest_release_list, serialize(latest_release_list, user))
         }
+
         for item in item_list:
-            attrs[item]['team'] = orgs[six.text_type(item.team_id)]
+            attrs[item].update({
+                'latest_release': latest_releases.get(item.id),
+                'org': orgs[six.text_type(item.organization_id)],
+                'options': options_by_project[item.id],
+                'platforms': platforms_by_project[item.id],
+                'processing_issues': processing_issues_by_project.get(item.id, 0),
+            })
         return attrs
 
     def serialize(self, obj, attrs, user):
-        data = super(ProjectWithTeamSerializer, self).serialize(
+        from sentry.plugins import plugins
+
+        data = super(DetailedProjectSerializer, self).serialize(
             obj, attrs, user
         )
-        data['team'] = attrs['team']
+        data.update({
+            'latestRelease': attrs['latest_release'],
+            'options': {
+                'sentry:origins': '\n'.join(attrs['options'].get('sentry:origins', ['*']) or []),
+                'sentry:resolve_age': int(attrs['options'].get('sentry:resolve_age', 0)),
+                'sentry:scrub_data': bool(attrs['options'].get('sentry:scrub_data', True)),
+                'sentry:scrub_defaults': bool(attrs['options'].get('sentry:scrub_defaults', True)),
+                'sentry:safe_fields': attrs['options'].get('sentry:safe_fields', []),
+                'sentry:sensitive_fields': attrs['options'].get('sentry:sensitive_fields', []),
+                'sentry:csp_ignored_sources_defaults': bool(attrs['options'].get('sentry:csp_ignored_sources_defaults', True)),
+                'sentry:csp_ignored_sources': '\n'.join(attrs['options'].get('sentry:csp_ignored_sources', []) or []),
+                'sentry:reprocessing_active': bool(attrs['options'].get('sentry:reprocessing_active', False)),
+                'filters:blacklisted_ips': '\n'.join(attrs['options'].get('sentry:blacklisted_ips', [])),
+                'feedback:branding': attrs['options'].get('feedback:branding', '1') == '1',
+            },
+            'digestsMinDelay': attrs['options'].get(
+                'digests:mail:minimum_delay', digests.minimum_delay,
+            ),
+            'digestsMaxDelay': attrs['options'].get(
+                'digests:mail:maximum_delay', digests.maximum_delay,
+            ),
+            'subjectPrefix': attrs['options'].get('mail:subject_prefix'),
+            'subjectTemplate': attrs['options'].get('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
+            'organization': attrs['org'],
+            'plugins': serialize([
+                plugin
+                for plugin in plugins.configurable_for_project(obj, version=None)
+                if plugin.has_project_conf()
+            ], user, PluginSerializer(obj)),
+            'platforms': attrs['platforms'],
+            'processingIssues': attrs['processing_issues'],
+            'defaultEnvironment': attrs['options'].get('default_environment'),
+        })
         return data
 
 
