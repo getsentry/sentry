@@ -32,6 +32,7 @@ import MyIssuesAssignedToMe from './views/myIssues/assignedToMe';
 import MyIssuesBookmarked from './views/myIssues/bookmarked';
 import MyIssuesViewed from './views/myIssues/viewed';
 import OrganizationAuditLog from './views/organizationAuditLog';
+import OrganizationCreate from './views/organizationCreate';
 import OrganizationDashboard from './views/organizationDashboard';
 import OrganizationDetails from './views/organizationDetails';
 import OrganizationRateLimits from './views/organizationRateLimits';
@@ -134,6 +135,7 @@ function routes() {
       <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
       <Route path="/share/issue/:shareId/" component={errorHandler(SharedGroupDetails)} />
 
+      <Route path="/organizations/new/" component={errorHandler(OrganizationCreate)} />
       <Route path="/:orgId/" component={errorHandler(OrganizationDetails)}>
         <IndexRoute component={errorHandler(OrganizationDashboard)} />
 

@@ -157,7 +157,7 @@
               {% endfor %}
               {% feature organizations:create %}
                 <li class="divider"></li>
-                <li><a href="{% url 'sentry-create-organization' %}">New Organization</a></li>
+                <li><a href="{% absolute_uri '/organizations/new/' %}">New Organization</a></li>
               {% endfeature %}
             </ul>
           </div>
