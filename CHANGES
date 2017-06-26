@@ -11,6 +11,8 @@ Version 8.18 (Unreleased)
   users imapcted.
 - Add a new option (`auth.allow-registration`) for determining whether registration
   is allowed on an installation.
+- Moved "create organization" into React.
+- Expanded React Form components (Form, ApiForm).
 
 Schema Changes
 ~~~~~~~~~~~~~~
