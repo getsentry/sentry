@@ -69,7 +69,6 @@ import ReleaseDetails from './views/releaseDetails';
 import ReleaseNewEvents from './views/releaseNewEvents';
 import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
-import Stream from './views/stream';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
@@ -215,8 +214,17 @@ function routes() {
         </Route>
 
         <Route path=":projectId/" component={errorHandler(ProjectDetails)}>
-          <IndexRoute component={errorHandler(Stream)} />
-          <Route path="searches/:searchId/" component={errorHandler(Stream)} />
+          <IndexRoute
+            getComponent={(loc, cb) => {
+              import('./views/stream').then(loadRoute(cb));
+            }}
+          />
+          <Route
+            path="searches/:searchId/"
+            getComponent={(loc, cb) => {
+              import('./views/stream').then(loadRoute(cb));
+            }}
+          />
           <Route path="dashboard/" component={errorHandler(ProjectDashboard)} />
           <Route path="events/" component={errorHandler(ProjectEvents)} />
           <Route path="releases/" component={errorHandler(ProjectReleases)} />

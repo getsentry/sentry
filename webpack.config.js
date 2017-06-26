@@ -173,7 +173,7 @@ var config = {
   },
   output: {
     path: distPath,
-    /* publicPath: "see layout.html for __webpack_public_path__" */
+    /* publicPath: "see __webpack_public_path__ in app/views/app.jsx" */
     filename: '[name].js',
     libraryTarget: 'var',
     library: 'exports',
