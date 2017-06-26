@@ -64,11 +64,14 @@ class User(BaseModel, AbstractBaseUser):
     session_nonce = models.CharField(max_length=12, null=True)
 
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+    last_active = models.DateTimeField(default=timezone.now, null=True)
 
     objects = UserManager(cache_fields=['pk'])
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
+
+
 
     class Meta:
         app_label = 'sentry'
