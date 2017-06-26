@@ -1,3 +1,4 @@
+filter_secrets: false
 sudo: false
 language: python
 rvm:
