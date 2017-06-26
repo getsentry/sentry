@@ -1,0 +1,108 @@
+.barchart {
+  position: relative;
+  display: block;
+
+  .min-y,
+  .max-y {
+    display: none;
+  }
+
+  a {
+    position: relative;
+    float: left;
+    height: 20px;
+    display: block;
+    cursor: default;
+
+    &:hover {
+      > span {
+        background: @purple;
+        border-color: transparent;
+      }
+    }
+
+    > span {
+      display: block;
+      position: absolute;
+      bottom: 0;
+      left: 1px;
+      right: 1px;
+      min-width: 1px;
+      height: 0;
+      overflow: hidden;
+      text-indent: -9999px;
+      text-align: left;
+      min-height: 1px;
+
+      background: @gray-lighter;
+    }
+  }
+
+  .chart-marker {
+    display: block;
+    position: relative;
+    float: left;
+    width: 0;
+
+    &:hover {
+      > span {
+        background-color: gray;
+        border-color: #fff;
+      }
+    }
+
+    &.first-seen > span {
+      background: @pink;
+      left: -13px;
+    }
+
+    &.last-seen > span {
+      background: @green;
+    }
+
+    > span {
+      z-index: 2;
+      position: absolute;
+      bottom: -5px;
+      left: -5px;
+      border: 2px solid #fff;
+      .square(10px);
+      background: gray;
+      border-radius: 8px;
+    }
+
+    &.first-seen > span {
+    }
+    &.last-seen > span {
+    }
+  }
+}
+
+.standard-barchart {
+  border: 1px solid @gray-lightest;
+  padding: 20px 20px 20px 30px;
+
+  .min-y,
+  .max-y {
+    position: absolute;
+    left: 0;
+    width: 25px;
+    color: @gray;
+    font-size: 10px;
+    text-align: right;
+    display: block;
+    overflow: hidden;
+  }
+
+  .min-y {
+    bottom: 10px;
+  }
+
+  .max-y {
+    top: 10px;
+  }
+}
+
+.box > .standard-barchart {
+    border: 0;
+}
