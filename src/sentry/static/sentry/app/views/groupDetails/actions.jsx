@@ -13,11 +13,13 @@ import MenuItem from '../../components/menuItem';
 import LinkWithConfirmation from '../../components/linkWithConfirmation';
 import TooltipMixin from '../../mixins/tooltip';
 import {t} from '../../locale';
+import {getShortVersion} from '../../utils';
 
 const ResolveActions = React.createClass({
   propTypes: {
     group: React.PropTypes.object.isRequired,
     hasRelease: React.PropTypes.bool.isRequired,
+    latestRelease: React.PropTypes.object,
     onUpdate: React.PropTypes.func.isRequired,
     orgId: React.PropTypes.string.isRequired,
     projectId: React.PropTypes.string.isRequired
@@ -40,7 +42,7 @@ const ResolveActions = React.createClass({
   },
 
   render() {
-    let {group, hasRelease, onUpdate} = this.props;
+    let {group, hasRelease, latestRelease, onUpdate} = this.props;
     let resolveClassName = 'group-resolve btn btn-default btn-sm';
     if (group.status === 'resolved') {
       resolveClassName += ' active';
@@ -124,14 +126,18 @@ const ResolveActions = React.createClass({
                     onUpdate({
                       status: 'resolved',
                       statusDetails: {
-                        inRelease: 'latest'
+                        inRelease: latestRelease ? latestRelease.version : 'latest'
                       }
                     })
                   );
                 }}
                 className={actionClassName}
                 title={actionTitle}>
-                {t('The current release')}
+                {latestRelease ?
+                  t('The current release (%s)', getShortVersion(latestRelease.version))
+                :
+                  t('The current release')
+                }
               </a>
               <a
                 onClick={() => hasRelease && this.setState({modal: true})}
@@ -434,6 +440,7 @@ export default React.createClass({
         <ResolveActions
           group={group}
           hasRelease={hasRelease}
+          latestRelease={project.latestRelease}
           onUpdate={this.onUpdate}
           orgId={org.slug}
           projectId={project.slug}
