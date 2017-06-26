@@ -6,10 +6,14 @@ import msgpack
 import pytest
 
 from sentry.models import Event
-from sentry.similarity import (
-    ExceptionFeature, InsufficientContext, MinHashIndex, get_exception_frames,
-    get_frame_signature, serialize_frame
+from sentry.similarity.features import (
+    ExceptionFeature,
+    InsufficientContext,
+    get_exception_frames,
+    get_frame_signature,
+    serialize_frame,
 )
+from sentry.similarity.index import MinHashIndex
 from sentry.testutils import TestCase
 from sentry.utils import redis
 
