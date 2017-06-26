@@ -6,6 +6,7 @@ import CustomIgnoreDurationModal from '../../components/customIgnoreDurationModa
 import CustomResolutionModal from '../../components/customResolutionModal';
 import DropdownLink from '../../components/dropdownLink';
 import Duration from '../../components/duration';
+import GroupActions from '../../actions/groupActions';
 import GroupState from '../../mixins/groupState';
 import IndicatorStore from '../../stores/indicatorStore';
 import IssuePluginActions from '../../components/group/issuePluginActions';
@@ -414,6 +415,31 @@ export default React.createClass({
     this.onUpdate({isBookmarked: !this.getGroup().isBookmarked});
   },
 
+  onDiscard() {
+    let group = this.getGroup();
+    let project = this.getProject();
+    let org = this.getOrganization();
+    let id = this.api.uniqueId();
+    let loadingIndicator = IndicatorStore.add(t('Discarding event..'));
+
+    GroupActions.discard(id, group.id);
+
+    this.api.request(`/issues/${group.id}/`, {
+      method: 'PUT',
+      data: {discard: true},
+      success: response => {
+        GroupActions.discardSuccess(id, group.id, response);
+        browserHistory.pushState(null, `/${org.slug}/${project.slug}/`);
+      },
+      error: error => {
+        GroupActions.discardError(id, group.id, error);
+      },
+      complete: () => {
+        IndicatorStore.remove(loadingIndicator);
+      }
+    });
+  },
+
   render() {
     let group = this.getGroup();
     let project = this.getProject();
@@ -457,6 +483,21 @@ export default React.createClass({
             )}
             onConfirm={this.onDelete}>
             <span className="icon-trash" />
+          </LinkWithConfirmation>
+        </div>
+        <div className="btn-group">
+          {/* TODO(jess): we need an icon for discard. Maybe an octogon/stop-sign like icon? */}
+          <LinkWithConfirmation
+            className="group-remove btn btn-default btn-sm"
+            title={t('Discard')}
+            message={t(
+              'Discarding this event will result in the deletion ' +
+                'of most data associated with this issue and future ' +
+                'events being discarded before reaching your stream. ' +
+                'Are you sure you wish to continue?'
+            )}
+            onConfirm={this.onDiscard}>
+            <span className="icon-stop">X</span>
           </LinkWithConfirmation>
         </div>
         {group.pluginActions.length > 1
