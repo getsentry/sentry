@@ -8,6 +8,7 @@ from django.contrib.auth.signals import user_logged_in
 from django.db.utils import DatabaseError
 
 from sentry.models import UserOption
+from sentry.signals import keep_user_logged_in
 
 
 # Set user language if set
@@ -38,6 +39,12 @@ user_logged_in.connect(
     safe_update_last_login,
     dispatch_uid="safe_update_last_login",
     weak=False,
+)
+
+keep_user_logged_in.connect(
+    safe_update_last_login,
+    dispatch_uid="safe_update_last_login",
+    weak=False
 )
 
 user_logged_in.connect(

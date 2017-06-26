@@ -19,6 +19,8 @@ from rest_framework.views import APIView
 from sentry import tsdb
 from sentry.app import raven
 from sentry.models import ApiKey, AuditLogEntry
+from sentry.signals import keep_user_logged_in
+from sentry.auth.utils import can_update_last_login
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin
@@ -191,6 +193,8 @@ class Endpoint(APIView):
         if origin:
             self.add_cors_headers(request, response)
 
+        self.update_last_login(request)
+
         self.response = self.finalize_response(request, response, *args, **kwargs)
 
         return self.response
@@ -227,6 +231,10 @@ class Endpoint(APIView):
         ])
 
         return Response(results, headers=headers)
+
+    def update_last_login(self, request):
+        if can_update_last_login(request.user):
+            keep_user_logged_in.send(sender=request, user=request.user)
 
 
 class StatsMixin(object):

@@ -417,6 +417,9 @@ AUTH_PROVIDER_LABELS = {
     'asana': 'Asana'
 }
 
+# interval time (in seconds) for updating last_login value of AUTH_USER_MODEL
+USER_LAST_LOGIN_UPDATE_INTERVAL = 60 * 60
+
 import random
 
 SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
