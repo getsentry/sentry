@@ -89,7 +89,7 @@ class AuthLoginTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
+        assert resp['Location'] == 'http://testserver/organizations/new/'
 
     def test_register_prefills_invite_email(self):
         self.session['invite_email'] = 'foo@example.com'

@@ -27,5 +27,5 @@ class CreateOrganizationMemberTest(AcceptanceTestCase):
         """
         Add by username (on-premises / by configuration only)
         """
-        self.browser.get('/organizations/{}/members/new'.format(self.org.slug))
+        self.browser.get('/organizations/{}/members/new/'.format(self.org.slug))
         self.browser.snapshot(name='invite organization member')
