@@ -1195,27 +1195,23 @@ SUDO_URL = 'sentry-sudo'
 
 # TODO(dcramer): move this to sentry.io so it can be automated
 SDK_VERSIONS = {
-    'raven-java': '8.0.0',
-    'raven-js': '3.15.0',
-    'raven-node': '1.1.4',
-    'raven-python': '6.0.0',
-    'raven-ruby': '2.4.0',
-    'sentry-laravel': '0.6.1',
-    'sentry-php': '1.6.2',
-    'sentry-swift': '2.1.2',
+    'raven-js': '3.16.0',
+    'raven-node': '2.1.0',
+    'raven-python': '6.1.0',
+    'raven-ruby': '2.5.3',
+    'sentry-cocoa': '3.1.2',
+    'sentry-java': '1.2.0',
+    'sentry-laravel': '0.7.0',
+    'sentry-php': '1.7.0',
 }
 
 SDK_URLS = {
-    'raven-java': 'https://docs.sentry.io/clients/java/',
-    'raven-java:android': 'https://docs.sentry.io/clients/java/modules/android/',
-    'raven-java:log4j': 'https://docs.sentry.io/clients/java/modules/log4j/',
-    'raven-java:log4j2': 'https://docs.sentry.io/clients/java/modules/log4j2/',
-    'raven-java:logback': 'https://docs.sentry.io/clients/java/modules/logback/',
     'raven-js': 'https://docs.sentry.io/clients/javascript/',
     'raven-node': 'https://docs.sentry.io/clients/node/',
     'raven-python': 'https://docs.sentry.io/clients/python/',
     'raven-ruby': 'https://docs.sentry.io/clients/ruby/',
     'raven-swift': 'https://docs.sentry.io/clients/cocoa/',
+    'sentry-java': 'https://docs.sentry.io/clients/java/',
     'sentry-php': 'https://docs.sentry.io/clients/php/',
     'sentry-laravel': 'https://docs.sentry.io/clients/php/integrations/laravel/',
     'sentry-swift': 'https://docs.sentry.io/clients/cocoa/',
@@ -1223,9 +1219,16 @@ SDK_URLS = {
 
 DEPRECATED_SDKS = {
     # sdk name => new sdk name
+    'raven-java': 'sentry-java',
+    'raven-java:android': 'sentry-java',
+    'raven-java:log4j': 'sentry-java',
+    'raven-java:log4j2': 'sentry-java',
+    'raven-java:logback': 'sentry-java',
     'raven-objc': 'sentry-swift',
     'raven-php': 'sentry-php',
     'sentry-android': 'raven-java',
+    'sentry-swift': 'sentry-cocoa',
+
     # The Ruby SDK used to go by the name 'sentry-raven'...
     'sentry-raven': 'raven-ruby',
 }
