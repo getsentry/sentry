@@ -1,4 +1,5 @@
 import React from 'react';
+import underscore from 'underscore';
 
 import FormState from './state';
 import {t} from '../../locale';
@@ -7,17 +8,41 @@ class Form extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      initialData: Object.assign({}, this.props.initialData),
       formData: Object.assign({}, this.props.initialData),
       errors: {}
     };
-    ['onSubmit', 'onFieldChange'].forEach(f => {
+    ['onSubmit', 'onSubmitSuccess', 'onSubmitError', 'onFieldChange'].forEach(f => {
       this[f] = this[f].bind(this);
     });
   }
 
   onSubmit(e) {
     e.preventDefault();
-    this.props.onSubmit && this.props.onSubmit(this.state.formData);
+    this.props.onSubmit(this.state.formData, this.onSubmitSuccess, this.onSubmitError);
+  }
+
+  onSubmitSuccess(data) {
+    let formData = this.state.formData;
+    let newData = {};
+    Object.keys(data).forEach(k => {
+      if (formData.hasOwnProperty(k)) newData[k] = data[k];
+    });
+
+    this.setState({
+      state: FormState.READY,
+      errors: {},
+      initialData: newData
+    });
+    this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
+  }
+
+  onSubmitError(error) {
+    this.setState({
+      state: FormState.ERROR,
+      errors: error.responseJSON
+    });
+    this.props.onSubmitError && this.props.onSubmitError(error);
   }
 
   onFieldChange(name, value) {
@@ -30,7 +55,9 @@ class Form extends React.Component {
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
-    let {formData, errors} = this.state;
+    let {initialData, formData, errors} = this.state;
+    let hasChanges =
+      Object.keys(formData).length && !underscore.isEqual(formData, initialData);
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
         {this.state.state === FormState.ERROR &&
@@ -56,7 +83,7 @@ class Form extends React.Component {
         <div className={this.props.footerClass} style={{marginTop: 25}}>
           <button
             className="btn btn-primary"
-            disabled={isSaving || this.props.submitDisabled}
+            disabled={isSaving || this.props.submitDisabled || !hasChanges}
             type="submit">
             {this.props.submitLabel}
           </button>
@@ -69,6 +96,8 @@ class Form extends React.Component {
 
 Form.propTypes = {
   onSubmit: React.PropTypes.func.isRequired,
+  onSubmitSuccess: React.PropTypes.func,
+  onSubmitError: React.PropTypes.func,
   submitDisabled: React.PropTypes.bool,
   submitLabel: React.PropTypes.string.isRequired,
   footerClass: React.PropTypes.string,

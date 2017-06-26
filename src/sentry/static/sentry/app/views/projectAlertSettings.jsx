@@ -282,7 +282,7 @@ const ProjectAlertSettings = React.createClass({
         this.setState({
           error: false,
           loading: false,
-          pluginList: data.filter(p => p.type === 'notification'),
+          pluginList: data.filter(p => p.type === 'notification')
         });
       },
       error: () => {

@@ -6,35 +6,35 @@ import {t} from '../locale';
 
 export default React.createClass({
   onSubmitSuccess(data) {
+    let {orgId} = this.props.params;
     // redirect to project creation
-    // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
-    window.location.href = `/organizations/${data.slug}/projects/new/`;
+    window.location.href = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
   },
 
   render() {
+    let {orgId} = this.props.params;
     return (
       <NarrowLayout>
-        <h3>{t('Create a New Organization')}</h3>
+        <h3>{t('Create a New Team')}</h3>
 
         <p>
           {t(
-            "Organizations represent the top level in your hierarchy. You'll be able to bundle a collection of teams within an organization as well as give organization-wide permissions to users."
+            "Teams group members' access to a specific focus, e.g. a major product or application that may have sub-projects."
           )}
         </p>
 
         <ApiForm
-          initialData={{defaultTeam: true}}
           fields={[
             {
               name: 'name',
-              label: 'Organization Name',
-              placeholder: 'e.g. My Company',
+              label: 'Team Name',
+              placeholder: 'e.g. Operations, Web, Desktop',
               required: true,
               component: TextField
             }
           ]}
-          submitLabel={t('Create Organization')}
-          apiEndpoint="/organizations/"
+          submitLabel={t('Save Changes')}
+          apiEndpoint={`/organizations/${orgId}/teams/`}
           apiMethod="POST"
           onSubmitSuccess={this.onSubmitSuccess}
         />
