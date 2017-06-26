@@ -40,6 +40,9 @@ _java_enhancer_re = re.compile(r'''
 (\$\$[\w_]+?CGLIB\$\$)[a-fA-F0-9]+(_[0-9]+)?
 ''', re.X)
 
+# Clojure anon functions are compiled down to myapp.mymodule$fn__12345
+_clojure_enhancer_re = re.compile(r'''(\$fn__)\d+''', re.X)
+
 
 def max_addr(cur, addr):
     if addr is None:
@@ -175,7 +178,8 @@ def remove_module_outliers(module):
     """Remove things that augment the module but really should not."""
     if module[:35] == 'sun.reflect.GeneratedMethodAccessor':
         return 'sun.reflect.GeneratedMethodAccessor'
-    return _java_enhancer_re.sub(r'\1<auto>', module)
+    module = _java_enhancer_re.sub(r'\1<auto>', module)
+    return _clojure_enhancer_re.sub(r'\1<auto>', module)
 
 
 def slim_frame_data(frames, frame_allowance=settings.SENTRY_MAX_STACKTRACE_FRAMES):

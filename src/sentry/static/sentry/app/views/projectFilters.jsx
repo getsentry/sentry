@@ -489,31 +489,28 @@ const ProjectFilters = React.createClass({
 
     return (
       <div>
-        <div className="panel panel-default">
-          <div className="panel-heading">
-            <h6>{t('Errors filtered in the last 30 days (by day)')}</h6>
+        <div className="box">
+          <div className="box-header">
+            <h5>{t('Errors filtered in the last 30 days (by day)')}</h5>
           </div>
-          <div className="panel-body p-a-0">
-            {!this.state.blankStats
-              ? <div className="inbound-filters-stats p-a-1">
-                  <div className="bar-chart">
-                    <StackedBarChart
-                      points={this.state.stats}
-                      height={50}
-                      barClasses={['filtered']}
-                      className="sparkline m-b-0"
-                    />
-                  </div>
-                </div>
-              : <div className="blankslate p-y-2">
+          {!this.state.blankStats
+            ? <StackedBarChart
+                points={this.state.stats}
+                height={50}
+                label="events"
+                barClasses={['filtered']}
+                className="standard-barchart"
+              />
+            : <div className="box-content">
+                <div className="blankslate p-y-2">
                   <h5>{t('Nothing filtered in the last 30 days.')}</h5>
                   <p className="m-b-0">
                     {t(
                       'Issues filtered as a result of your settings below will be shown here.'
                     )}
                   </p>
-                </div>}
-          </div>
+                </div>
+              </div>}
         </div>
         {this.state.filterList.map(filter => {
           let props = {

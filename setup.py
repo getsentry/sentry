@@ -88,6 +88,7 @@ tests_require = [
 
 
 install_requires = [
+    'botocore<1.5.71',
     'boto3>=1.4.1,<1.5',
     'celery>=3.1.8,<3.1.19',
     'click>=5.0,<7.0',
@@ -110,12 +111,12 @@ install_requires = [
     'lxml>=3.4.1',
 
     'ipaddress>=1.0.16,<1.1.0',
-    'libsourcemap>=0.7.1,<0.8.0',
+    'libsourcemap>=0.7.2,<0.8.0',
     'loremipsum>=1.0.5,<1.1.0',
     'mock>=0.8.0,<1.1',
     'mmh3>=2.3.1,<2.4',
     'oauth2>=1.5.167',
-    'percy>=0.4.4',
+    'percy>=0.4.5',
     'petname>=2.0,<2.1',
     'Pillow>=3.2.0,<3.3.0',
     'progressbar2>=3.10,<3.11',
@@ -130,7 +131,7 @@ install_requires = [
     'raven>=5.29.0,<6.0.0',
     'redis>=2.10.3,<2.11.0',
     'requests[security]>=2.9.1,<2.13.0',
-    'selenium==3.0.0b3',
+    'selenium==3.4.3',
     'simplejson>=3.2.0,<3.9.0',
     'six>=1.10.0,<1.11.0',
     'setproctitle>=1.1.7,<1.2.0',
@@ -143,7 +144,7 @@ install_requires = [
     'ua-parser>=0.6.1,<0.8.0',
     'urllib3>=1.14,<1.17',
     'uwsgi>2.0.0,<2.1.0',
-    'rb>=1.6.0,<2.0.0',
+    'rb>=1.7.0,<2.0.0',
     'qrcode>=5.2.2,<6.0.0',
     'python-u2flib-server>=4.0.1,<4.1.0',
 ]

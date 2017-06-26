@@ -7,8 +7,7 @@ import GroupState from '../mixins/groupState';
 import MutedBox from '../components/mutedBox';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
-import Version from '../components/version';
-import {t, tct} from '../locale';
+import ResolutionBox from '../components/resolutionBox';
 
 const GroupEventDetails = React.createClass({
   mixins: [ApiMixin, GroupState],
@@ -90,35 +89,7 @@ const GroupEventDetails = React.createClass({
                 {group.status === 'ignored' &&
                   <MutedBox statusDetails={group.statusDetails} />}
                 {group.status === 'resolved' &&
-                  group.statusDetails.inRelease &&
-                  <div className="box">
-                    <span className="icon icon-checkmark" />
-                    <p>
-                      {tct(
-                        'This issue has been marked as resolved as of version [version].',
-                        {
-                          version: (
-                            <Version
-                              version={group.statusDetails.inRelease}
-                              orgId={params.orgId}
-                              projectId={params.projectId}
-                            />
-                          )
-                        }
-                      )}
-                    </p>
-                  </div>}
-                {group.status === 'resolved' &&
-                  group.statusDetails.autoResolved &&
-                  <div className="box">
-                    <span className="icon icon-checkmark" />
-                    <p>
-                      {t(
-                        `This issue was automatically marked as resolved due to
-                      the Auto Resolve configuration for this project.`
-                      )}
-                    </p>
-                  </div>}
+                  <ResolutionBox statusDetails={group.statusDetails} params={params} />}
               </div>}
             {this.state.loading
               ? <LoadingIndicator />

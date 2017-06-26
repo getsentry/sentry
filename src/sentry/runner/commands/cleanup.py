@@ -39,8 +39,9 @@ def get_project(value):
 @click.option('--silent', '-q', default=False, is_flag=True, help='Run quietly. No output on success.')
 @click.option('--model', '-m', multiple=True)
 @click.option('--router', '-r', default=None, help='Database router')
+@click.option('--timed', '-t', default=False, is_flag=True, help='Send the duration of this command to internal metrics.')
 @configuration
-def cleanup(days, project, concurrency, silent, model, router):
+def cleanup(days, project, concurrency, silent, model, router, timed):
     """Delete a portion of trailing data based on creation date.
 
     All data that is older than `--days` will be deleted.  The default for
@@ -58,6 +59,11 @@ def cleanup(days, project, concurrency, silent, model, router):
     from sentry.app import nodestore
     from sentry.db.deletion import BulkDeleteQuery
     from sentry import models
+
+    if timed:
+        import time
+        from sentry.utils import metrics
+        start_time = time.time()
 
     # list of models which this query is restricted to
     model_list = {m.lower() for m in model}
@@ -194,6 +200,11 @@ def cleanup(days, project, concurrency, silent, model, router):
                     t.join()
             else:
                 query.execute_generic()
+
+    if timed:
+        duration = int(time.time() - start_time)
+        metrics.timing('cleanup.duration', duration, instance=router)
+        click.echo("Clean up took %s second(s)." % duration)
 
 
 def cleanup_unused_files(quiet=False):

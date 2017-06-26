@@ -23,7 +23,7 @@ from django.utils import timezone
 
 from sentry.models import (
     Activity, Event, EventError, EventMapping, Group, Organization,
-    OrganizationMember, OrganizationMemberTeam, Project, Team, User,
+    OrganizationMember, OrganizationMemberTeam, Project, Team, User, UserEmail,
     Release, Commit, ReleaseCommit, CommitAuthor, Repository, CommitFileChange
 )
 
@@ -250,7 +250,7 @@ class Fixtures(object):
         return project.key_set.get_or_create()[0]
 
     # TODO(maxbittker) make new fixtures less hardcoded
-    def create_release(self, project, user, version=None):
+    def create_release(self, project, user=None, version=None):
         if version is None:
             version = os.urandom(20).encode('hex')
 
@@ -268,19 +268,18 @@ class Fixtures(object):
             user=user,
             data={'version': version},
         )
+
         # add commits
+        if user:
+            author = self.create_commit_author(project, user)
+            repo = self.create_repo(project)
+            commit = self.create_commit(project, repo, author, release)
 
-        author = self.create_commit_author(project, user)
-
-        repo = self.create_repo(project)
-
-        commit = self.create_commit(project, repo, author, release)
-
-        release.update(
-            authors=[six.text_type(author.id)],
-            commit_count=1,
-            last_commit_id=commit.id,
-        )
+            release.update(
+                authors=[six.text_type(author.id)],
+                commit_count=1,
+                last_commit_id=commit.id,
+            )
 
         return release
 
@@ -349,6 +348,12 @@ class Fixtures(object):
         user = User(email=email, **kwargs)
         user.set_password('admin')
         user.save()
+
+        # UserEmail is created by a signal
+        UserEmail.objects.filter(
+            user=user,
+            email=email,
+        ).update(is_verified=True)
 
         return user
 
@@ -470,8 +475,23 @@ class Fixtures(object):
                     "id": "41656",
                     "email": "test@example.com"
                 },
-                "version": "7"
+                "version": "7",
+                "sentry.interfaces.Breadcrumbs": {
+                    "values": [
+                        {
+                            "category": "xhr",
+                            "timestamp": 1496395011.63,
+                            "type": "http",
+                            "data": {
+                                "url": "/api/path/here",
+                                "status_code": "500",
+                                "method": "POST"
+                            }
+                        }
+                    ]
+                }
             }"""
+
         return self.create_event(event_id=event_id, platform='javascript', data=json.loads(payload))
 
     def create_group(self, project=None, checksum=None, **kwargs):

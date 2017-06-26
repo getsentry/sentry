@@ -8,7 +8,12 @@ sentry.models.dsymfile
 
 from __future__ import absolute_import
 
+import re
 import os
+import six
+import uuid
+import time
+import errno
 import shutil
 import hashlib
 import tempfile
@@ -21,12 +26,21 @@ from django.utils.translation import ugettext_lazy as _
 
 from symsynd import DebugInfo, DebugInfoError
 
+from sentry import options
 from sentry.db.models import FlexibleForeignKey, Model, \
     sane_repr, BaseManager, BoundedPositiveIntegerField
 from sentry.models.file import File
 from sentry.utils.zip import safe_extract_zip
 from sentry.constants import KNOWN_DSYM_TYPES
 from sentry.reprocessing import resolve_processing_issue
+
+
+ONE_DAY = 60 * 60 * 24
+ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
+DSYM_MIMETYPES = dict((v, k) for k, v in KNOWN_DSYM_TYPES.items())
+
+
+_proguard_file_re = re.compile(r'/proguard/(?:mapping-)?(.*?)\.txt$')
 
 
 class VersionDSymFile(Model):
@@ -57,6 +71,8 @@ DSYM_PLATFORMS = {
     'apple': DSymPlatform.APPLE,
     'android': DSymPlatform.ANDROID,
 }
+DSYM_PLATFORMS_REVERSE = dict(
+    (v, k) for (k, v) in six.iteritems(DSYM_PLATFORMS))
 
 
 def _auto_enrich_data(data, app_id, platform):
@@ -160,8 +176,6 @@ class ProjectDSymFile(Model):
     file = FlexibleForeignKey('sentry.File')
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-
-    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
     project = FlexibleForeignKey('sentry.Project', null=True)
     uuid = models.CharField(max_length=36)
     objects = ProjectDSymFileManager()
@@ -171,21 +185,27 @@ class ProjectDSymFile(Model):
         db_table = 'sentry_projectdsymfile'
         app_label = 'sentry'
 
+    __repr__ = sane_repr('object_name', 'cpu_name', 'uuid')
+
     @property
     def dsym_type(self):
         ct = self.file.headers.get('Content-Type').lower()
         return KNOWN_DSYM_TYPES.get(ct, 'unknown')
 
 
-def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
-                                 object_name):
-    """This creates a mach dsym file from the given uuid and open file
-    object to a dsym file.  This will not verify the uuid.  Use
-    `create_files_from_macho_zip` for doing everything.
+def _create_dsym_from_uuid(project, dsym_type, cpu_name, uuid, fileobj,
+                           basename):
+    """This creates a mach dsym file or proguard mapping from the given
+    uuid and open file object to a dsym file.  This will not verify the
+    uuid (intentionally so).  Use `create_files_from_dsym_zip` for doing
+    everything.
     """
-    extra = {}
-    extra['project'] = project
-    file_type = 'project.dsym'
+    if dsym_type == 'proguard':
+        object_name = 'proguard-mapping'
+    elif dsym_type == 'macho':
+        object_name = basename
+    else:
+        raise TypeError('unknown dsym type %r' % (dsym_type,))
 
     h = hashlib.sha1()
     while 1:
@@ -197,9 +217,9 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
     fileobj.seek(0, 0)
 
     try:
-        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
         if rv.file.checksum == checksum:
-            return rv
+            return rv, False
     except ProjectDSymFile.DoesNotExist:
         pass
     else:
@@ -209,9 +229,9 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
 
     file = File.objects.create(
         name=uuid,
-        type=file_type,
+        type='project.dsym',
         headers={
-            'Content-Type': 'application/x-mach-binary'
+            'Content-Type': DSYM_MIMETYPES[dsym_type]
         },
     )
     file.putfile(fileobj)
@@ -222,11 +242,11 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
                 uuid=uuid,
                 cpu_name=cpu_name,
                 object_name=object_name,
-                **extra
+                project=project,
             )
     except IntegrityError:
         file.delete()
-        rv = ProjectDSymFile.objects.get(uuid=uuid, **extra)
+        rv = ProjectDSymFile.objects.get(uuid=uuid, project=project)
 
     resolve_processing_issue(
         project=project,
@@ -234,39 +254,71 @@ def _create_macho_dsym_from_uuid(project, cpu_name, uuid, fileobj,
         object='dsym:%s' % uuid,
     )
 
-    return rv
+    return rv, True
 
 
-def create_files_from_macho_zip(fileobj, project=None):
+def _analyze_progard_filename(filename):
+    match = _proguard_file_re.search(filename)
+    if match is None:
+        return None
+
+    ident = match.group(1)
+
+    try:
+        return uuid.UUID(ident)
+    except Exception:
+        pass
+
+
+def create_files_from_dsym_zip(fileobj, project=None):
     """Creates all missing dsym files from the given zip file.  This
     returns a list of all files created.
     """
     scratchpad = tempfile.mkdtemp()
     try:
-        safe_extract_zip(fileobj, scratchpad)
+        safe_extract_zip(fileobj, scratchpad, strip_toplevel=False)
         to_create = []
 
         for dirpath, dirnames, filenames in os.walk(scratchpad):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
+
+                # proguard files (proguard/UUID.txt) or
+                # (proguard/mapping-UUID.txt).
+                proguard_uuid = _analyze_progard_filename(fn)
+                if proguard_uuid is not None:
+                    to_create.append((
+                        'proguard',
+                        'any',
+                        six.text_type(proguard_uuid),
+                        fn,
+                    ))
+
+                # macho style debug symbols
                 try:
                     di = DebugInfo.open_path(fn)
                 except DebugInfoError:
                     # Whatever was contained there, was probably not a
                     # macho file.
+                    pass
+                else:
+                    for variant in di.get_variants():
+                        to_create.append((
+                            'macho',
+                            variant.cpu_name,
+                            six.text_type(variant.uuid),
+                            fn,
+                        ))
                     continue
-                for variant in di.get_variants():
-                    to_create.append((
-                        variant.cpu_name,
-                        str(variant.uuid),  # noqa: B308
-                        fn,
-                    ))
 
         rv = []
-        for cpu, uuid, filename in to_create:
+        for dsym_type, cpu, file_uuid, filename in to_create:
             with open(filename, 'rb') as f:
-                rv.append((_create_macho_dsym_from_uuid(
-                    project, cpu, uuid, f, os.path.basename(filename))))
+                dsym, created = _create_dsym_from_uuid(
+                    project, dsym_type, cpu, file_uuid, f,
+                    os.path.basename(filename))
+                if created:
+                    rv.append(dsym)
         return rv
     finally:
         shutil.rmtree(scratchpad)
@@ -282,3 +334,99 @@ def find_dsym_file(project, image_uuid):
         ).select_related('file').get()
     except ProjectDSymFile.DoesNotExist:
         pass
+
+
+class DSymCache(object):
+
+    @property
+    def dsym_cache_path(self):
+        return options.get('dsym.cache-path')
+
+    def get_project_path(self, project):
+        return os.path.join(self.dsym_cache_path, six.text_type(project.id))
+
+    def fetch_dsyms(self, project, uuids, on_dsym_file_referenced=None):
+        rv = {}
+        for image_uuid in uuids:
+            path = self.fetch_dsym(project, image_uuid,
+                on_dsym_file_referenced=on_dsym_file_referenced)
+            if path is not None:
+                rv[image_uuid] = path
+        return rv
+
+    def try_bump_timestamp(self, path, old_stat):
+        now = int(time.time())
+        if old_stat.st_ctime < now - ONE_DAY:
+            os.utime(path, (now, now))
+        return path
+
+    def fetch_dsym(self, project, image_uuid, on_dsym_file_referenced=None):
+        image_uuid = image_uuid.lower()
+        dsym_path = os.path.join(self.get_project_path(project), image_uuid)
+        try:
+            os.stat(dsym_path)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+        else:
+            return dsym_path
+
+        dsf = find_dsym_file(project, image_uuid)
+        if dsf is None:
+            return None
+
+        if on_dsym_file_referenced is not None:
+            on_dsym_file_referenced(dsf)
+
+        try:
+            os.makedirs(os.path.dirname(dsym_path))
+        except OSError:
+            pass
+
+        with dsf.file.getfile() as sf:
+            suffix = '_%s' % uuid.uuid4()
+            done = False
+            try:
+                with open(dsym_path + suffix, 'w') as df:
+                    shutil.copyfileobj(sf, df)
+                os.rename(dsym_path + suffix, dsym_path)
+                done = True
+            finally:
+                # Use finally here because it does not lie about the
+                # error on exit
+                if not done:
+                    try:
+                        os.remove(dsym_path + suffix)
+                    except Exception:
+                        pass
+
+        return dsym_path
+
+    def clear_old_entries(self):
+        try:
+            cache_folders = os.listdir(self.dsym_cache_path)
+        except OSError:
+            return
+
+        cutoff = int(time.time()) - ONE_DAY_AND_A_HALF
+
+        for cache_folder in cache_folders:
+            cache_folder = os.path.join(self.dsym_cache_path, cache_folder)
+            try:
+                items = os.listdir(cache_folder)
+            except OSError:
+                continue
+            for cached_file in items:
+                cached_file = os.path.join(cache_folder, cached_file)
+                try:
+                    mtime = os.path.getmtime(cached_file)
+                except OSError:
+                    continue
+                if mtime < cutoff:
+                    try:
+                        os.remove(cached_file)
+                    except OSError:
+                        pass
+
+
+ProjectDSymFile.dsymcache = DSymCache()

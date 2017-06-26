@@ -69,11 +69,13 @@ class ProjectUpdateTest(APITestCase):
         resp = self.client.put(url, data={
             'name': 'hello world',
             'slug': 'foobar',
+            'platform': 'cocoa',
         })
         assert resp.status_code == 200, resp.content
         project = Project.objects.get(id=project.id)
         assert project.name == 'hello world'
         assert project.slug == 'foobar'
+        assert project.platform == 'cocoa'
 
     def test_member_changes(self):
         project = self.create_project()
