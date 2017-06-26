@@ -30,9 +30,9 @@ export default class ApiForm extends Form {
       return;
     }
 
-    let {formData} = this.state;
+    let {data} = this.state;
 
-    this.props.onSubmit && this.props.onSubmit(formData);
+    this.props.onSubmit && this.props.onSubmit(data);
     this.setState(
       {
         state: FormState.SAVING
@@ -41,9 +41,9 @@ export default class ApiForm extends Form {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
-          data: formData,
-          success: data => {
-            this.onSubmitSuccess(data);
+          data: data,
+          success: result => {
+            this.onSubmitSuccess(result);
           },
           error: error => {
             this.onSubmitError(error);

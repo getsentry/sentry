@@ -24,20 +24,17 @@ export default React.createClass({
 
         <ApiForm
           initialData={{defaultTeam: true}}
-          fields={[
-            {
-              name: 'name',
-              label: 'Organization Name',
-              placeholder: 'e.g. My Company',
-              required: true,
-              component: TextField
-            }
-          ]}
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
-          onSubmitSuccess={this.onSubmitSuccess}
-        />
+          onSubmitSuccess={this.onSubmitSuccess}>
+          <TextField
+            name="name"
+            label={t('Organization Name')}
+            placeholder={t('e.g. My Company')}
+            required={true}
+          />
+        </ApiForm>
       </NarrowLayout>
     );
   }
