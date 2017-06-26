@@ -23,7 +23,7 @@ Official Sentry SDKs
 * `Node <https://github.com/getsentry/raven-node>`_
 * `PHP <https://github.com/getsentry/sentry-php>`_
 * `Go <https://github.com/getsentry/raven-go>`_
-* `Java <https://github.com/getsentry/raven-java>`_
+* `Java <https://github.com/getsentry/sentry-java>`_
 * `Swift <https://github.com/getsentry/sentry-swift>`_
 * `Objective C <https://github.com/getsentry/sentry-objc>`_
 * `C# <https://github.com/getsentry/raven-csharp>`_
