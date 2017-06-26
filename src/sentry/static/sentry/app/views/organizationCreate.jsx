@@ -1,17 +1,22 @@
 import React from 'react';
 
+import AsyncView from './asyncView';
 import NarrowLayout from '../components/narrowLayout';
 import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
-export default React.createClass({
+export default class OrganizationCreate extends AsyncView {
   onSubmitSuccess(data) {
     // redirect to project creation
     // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
     window.location.href = `/organizations/${data.slug}/projects/new/`;
-  },
+  }
 
-  render() {
+  getTitle() {
+    return 'Create Organization';
+  }
+
+  renderBody() {
     return (
       <NarrowLayout>
         <h3>{t('Create a New Organization')}</h3>
@@ -38,4 +43,4 @@ export default React.createClass({
       </NarrowLayout>
     );
   }
-});
+}
