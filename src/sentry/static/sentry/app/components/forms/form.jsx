@@ -40,7 +40,7 @@ class Form extends React.Component {
             )}
           </div>}
         <fieldset>
-          {this.props.fields.map(config => {
+          {(this.props.fields || []).map(config => {
             return (
               <config.component
                 key={`field_${config.name}`}
