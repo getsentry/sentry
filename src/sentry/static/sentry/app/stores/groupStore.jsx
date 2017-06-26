@@ -260,6 +260,25 @@ const GroupStore = Reflux.createStore({
     this.trigger(new Set(itemIds));
   },
 
+  onDiscard(changeId, itemId) {
+    this.addStatus(itemId, 'discard');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardError(changeId, itemId, response) {
+    this.clearStatus(itemId, 'discard');
+    showAlert(t('Unable to discard event. Please try again.'), 'error');
+    this.trigger(new Set([itemId]));
+  },
+
+  onDiscardSuccess(changeId, itemId, response) {
+    delete this.statuses[itemId];
+    this.clearStatus(itemId, 'discard');
+    this.items = this.items.filter(item => item.id !== itemId);
+    showAlert(t('Similar events will be filtered and discarded.'), 'success');
+    this.trigger(new Set([itemId]));
+  },
+
   onMerge(changeId, itemIds) {
     itemIds = this._itemIdsOrAll(itemIds);
 
