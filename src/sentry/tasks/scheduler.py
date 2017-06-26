@@ -21,7 +21,7 @@ def enqueue_scheduled_jobs(**kwargs):
         )
         job_count = queryset.count()
         if job_count > 100:
-            logger.info('More than 100 ScheduledJob\'s: %d jobs found.' % job_count)
+            logger.debug('More than 100 ScheduledJob\'s: %d jobs found.' % job_count)
 
         for job in queryset.all()[:100]:
             logger.debug('Sending scheduled job %s with payload %r',
