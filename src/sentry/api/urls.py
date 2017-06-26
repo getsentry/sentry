@@ -26,6 +26,7 @@ from .endpoints.group_tags import GroupTagsEndpoint
 from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
+from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
@@ -480,6 +481,9 @@ urlpatterns = patterns(
         name='sentry-api-0-shared-group-details'),
 
     # Tombstone
+    url(r'^projects/(?P<organization_id>[^\/]+)/(?P<project_id>[^\/]+)/tombstone/$',
+        GroupTombstoneEndpoint.as_view(),
+        name='sentry-api-0-group-tombstone'),
     url(r'^tombstone/(?P<tombstone_id>\d+)/$',
         GroupTombstoneDetailsEndpoint.as_view(),
         name='sentry-api-0-group-tombstone-details'),
