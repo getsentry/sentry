@@ -29,7 +29,7 @@ exports[`OrganizationCreate render() renders correctly 1`] = `
         "defaultTeam": true,
       }
     }
-    onSubmitComplete={[Function]}
+    onSubmitSuccess={[Function]}
     submitDisabled={false}
     submitLabel="Create Organization"
   />

@@ -71,8 +71,12 @@ const TeamDetails = React.createClass({
         `/organizations/${orgId}/teams/${data.slug}/settings/`
       );
     } else {
-      Object.assign({}, team, data);
-      this.setState({team: team});
+      this.setState({
+        team: {
+          ...team,
+          ...data
+        }
+      });
     }
   },
 

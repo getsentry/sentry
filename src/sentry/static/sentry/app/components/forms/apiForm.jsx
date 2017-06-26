@@ -17,11 +17,15 @@ class ApiForm extends Form {
   }
 
   onSubmit(e) {
-    super.onSubmit(e);
+    e.preventDefault();
 
     if (this.state.state == FormState.SAVING) {
       return;
     }
+
+    let {formData} = this.state;
+
+    this.props.onSubmit && this.props.onSubmit(formData);
     this.setState(
       {
         state: FormState.SAVING
@@ -30,20 +34,12 @@ class ApiForm extends Form {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
-          data: this.state.formData,
+          data: formData,
           success: data => {
-            this.setState({
-              state: FormState.READY,
-              errors: {}
-            });
-            this.props.onSubmitComplete && this.props.onSubmitComplete(data);
+            this.onSubmitSuccess(data);
           },
           error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON
-            });
-            this.props.onSubmitError && this.props.onSubmitError(error);
+            this.onSubmitError(error);
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
@@ -57,8 +53,6 @@ class ApiForm extends Form {
 ApiForm.propTypes = {
   ...Form.propTypes,
   onSubmit: React.PropTypes.func,
-  onSubmitComplete: React.PropTypes.func.isRequired,
-  onSubmitError: React.PropTypes.func,
   apiMethod: React.PropTypes.string.isRequired,
   apiEndpoint: React.PropTypes.string.isRequired
 };

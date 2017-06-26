@@ -13,6 +13,7 @@ Version 8.18 (Unreleased)
   is allowed on an installation.
 - Moved "create organization" into React.
 - Expanded React Form components (Form, ApiForm).
+- Moved "create team" into React.
 
 Schema Changes
 ~~~~~~~~~~~~~~
