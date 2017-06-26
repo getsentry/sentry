@@ -5,7 +5,7 @@ import logging
 from uuid import uuid4
 
 import six
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -465,7 +465,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 }
                 status_details = {
                     'inNextRelease': True,
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
+                res_type = GroupResolution.Type.in_next_release
+                res_status = GroupResolution.Status.pending
             elif statusDetails.get('inRelease'):
                 release = statusDetails['inRelease']
                 activity_type = Activity.SET_RESOLVED_IN_RELEASE
@@ -475,7 +478,10 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 }
                 status_details = {
                     'inRelease': release.version,
+                    'actor': serialize(extract_lazy_object(request.user), request.user),
                 }
+                res_type = GroupResolution.Type.in_release
+                res_status = GroupResolution.Status.resolved
             else:
                 release = None
                 activity_type = Activity.SET_RESOLVED
@@ -487,23 +493,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             for group in group_list:
                 with transaction.atomic():
                     if release:
-                        try:
-                            with transaction.atomic():
-                                resolution, created = GroupResolution.objects.create(
-                                    group=group,
-                                    release=release,
-                                ), True
-                        except IntegrityError:
-                            resolution, created = GroupResolution.objects.get(
-                                group=group,
-                            ), False
+                        resolution_params = {
+                            'release': release,
+                            'type': res_type,
+                            'status': res_status,
+                            'actor_id': request.user.id if request.user.is_authenticated() else None,
+                        }
+                        resolution, created = GroupResolution.objects.get_or_create(
+                            group=group,
+                            defaults=resolution_params,
+                        )
+                        if not created:
+                            resolution.update(
+                                datetime=timezone.now(),
+                                **resolution_params
+                            )
                     else:
                         resolution = None
 
                     affected = Group.objects.filter(
                         id=group.id,
-                    ).exclude(
-                        status=GroupStatus.RESOLVED,
                     ).update(
                         status=GroupStatus.RESOLVED,
                         resolved_at=now,
@@ -588,6 +597,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                     'user_count': ignore_user_count,
                                     'user_window': ignore_user_window,
                                     'state': state,
+                                    'actor_id': request.user.id if request.user.is_authenticated() else None,
                                 }
                             )
                             result['statusDetails'] = {
@@ -596,6 +606,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                                 'ignoreUserCount': ignore_user_count,
                                 'ignoreUserWindow': ignore_user_window,
                                 'ignoreWindow': ignore_window,
+                                'actor': serialize(extract_lazy_object(request.user), request.user),
                             }
                     else:
                         GroupSnooze.objects.filter(

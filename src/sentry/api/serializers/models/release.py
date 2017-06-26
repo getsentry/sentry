@@ -29,14 +29,14 @@ def get_users_for_authors(organization_id, authors, user=None):
     }
     """
     # Filter users based on the emails provided in the commits
-    user_emails = UserEmail.objects.filter(
+    user_emails = list(UserEmail.objects.filter(
         in_iexact('email', [a.email for a in authors]),
-    ).order_by('id')
+    ).order_by('id'))
 
     # Filter users belonging to the organization associated with
     # the release
     users = User.objects.filter(
-        id__in=set((ue.user_id for ue in user_emails)),
+        id__in={ue.user_id for ue in user_emails},
         is_active=True,
         sentry_orgmember_set__organization_id=organization_id
     )

@@ -1,4 +1,3 @@
-import jQuery from 'jquery';
 import Reflux from 'reflux';
 import GroupActions from '../actions/groupActions';
 import IndicatorStore from './indicatorStore';
@@ -53,7 +52,10 @@ const GroupStore = Reflux.createStore({
     // See if any existing items are updated by this new set of items
     this.items.forEach((item, idx) => {
       if (itemsById[item.id]) {
-        this.items[idx] = jQuery.extend(true, {}, item, itemsById[item.id]);
+        this.items[idx] = {
+          ...item,
+          ...itemsById[item.id]
+        };
         delete itemsById[item.id];
       }
     });
@@ -166,10 +168,13 @@ const GroupStore = Reflux.createStore({
         let rItem = this.items[i];
         if (pendingForId.length) {
           // copy the object so dirty state doesnt mutate original
-          rItem = jQuery.extend(true, {}, rItem);
+          rItem = {...rItem};
 
           for (let c = 0; c < pendingForId.length; c++) {
-            rItem = jQuery.extend(true, rItem, pendingForId[c].params);
+            rItem = {
+              ...rItem,
+              ...pendingForId[c].params
+            };
           }
         }
         return rItem;
@@ -196,9 +201,12 @@ const GroupStore = Reflux.createStore({
       let rItem = item;
       if (!_.isUndefined(pendingById[item.id])) {
         // copy the object so dirty state doesnt mutate original
-        rItem = jQuery.extend(true, {}, rItem);
+        rItem = {...rItem};
         pendingById[item.id].forEach(change => {
-          rItem = jQuery.extend(true, rItem, change.params);
+          rItem = {
+            ...rItem,
+            ...change.params
+          };
         });
       }
       return rItem;
@@ -326,7 +334,10 @@ const GroupStore = Reflux.createStore({
 
     this.items.forEach((item, idx) => {
       if (itemIds.indexOf(item.id) !== -1) {
-        this.items[idx] = jQuery.extend(true, {}, item, response);
+        this.items[idx] = {
+          ...item,
+          ...response
+        };
         this.clearStatus(item.id, 'update');
       }
     });

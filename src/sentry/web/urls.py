@@ -18,7 +18,6 @@ from sentry.web.frontend.accept_organization_invite import \
     AcceptOrganizationInviteView
 from sentry.web.frontend.account_security import AccountSecurityView
 from sentry.web.frontend.account_notification import AccountNotificationView
-from sentry.web.frontend.admin_queue import AdminQueueView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
 from sentry.web.frontend.auth_logout import AuthLogoutView
@@ -214,8 +213,6 @@ urlpatterns += patterns(
     url(r'^account/', generic_react_page_view),
 
     # Admin
-    url(r'^manage/queue/$', AdminQueueView.as_view(),
-        name='sentry-admin-queue'),
     url(r'^manage/status/environment/$', admin.status_env,
         name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages,

@@ -107,10 +107,6 @@ class DebugMiddleware(object):
         for panel in reversed(toolbar.enabled_panels):
             panel.disable_instrumentation()
 
-        # Collapse the toolbar by default if SHOW_COLLAPSED is set.
-        if 'djdt' in request.COOKIES:
-            response.delete_cookie('djdt')
-
         try:
             content = force_text(response.content, encoding='utf-8')
         except UnicodeDecodeError:

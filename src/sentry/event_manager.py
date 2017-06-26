@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 from collections import OrderedDict
 from django.conf import settings
 from django.db import connection, IntegrityError, router, transaction
-from django.db.models import Q
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from hashlib import md5
@@ -920,15 +919,8 @@ class EventManager(object):
         elif release:
             # we only mark it as a regression if the event's release is newer than
             # the release which we originally marked this as resolved
-            has_resolution = GroupResolution.objects.filter(
-                Q(release__date_added__gt=release.date_added) | Q(release=release),
-                group=group,
-            ).exists()
-            if has_resolution:
+            if GroupResolution.has_resolution(group, release):
                 return
-
-        else:
-            has_resolution = False
 
         if not plugin_is_regression(group, event):
             return

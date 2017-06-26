@@ -3,6 +3,14 @@ Version 8.18 (Unreleased)
 
 - Expanded resolution options to allow current and explicit versions.
 - Removed support for global dsyms
+- Added proguard support
+- Removed support for global dsyms.
+- Moved Queue admin page to React.
+- Replaced usage of jQuery Flot library with internal graphs.
+- Expanded ignore actions to include deltas and rates for both occurances and
+  users imapcted.
+- Add a new option (`auth.allow-registration`) for determining whether registration
+  is allowed on an installation.
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -12,6 +20,7 @@ Schema Changes
 - Added Release.authors
 - Added Release.total_deploys
 - Added Release.last_deploy_id
+- Added ``FeatureAdoption`` model
 - Removed DSymBundle
 - Removed DSymObject
 - Removed DSymSDK
@@ -21,6 +30,10 @@ Schema Changes
 - Drop index on ``ReleaseEnvironment(project_id)``
 - Drop index on ``ReleaseCommit(project_id)``
 - Drop unique constraint on ``ReleaseEnvironment(project_id, release_id, environment_id)``
+- Added GroupResolution.type
+- Added GropuResolution.actor_id
+- Added Project.platform
+- Added GroupSnooze.actor_id
 
 API Changes
 ~~~~~~~~~~~

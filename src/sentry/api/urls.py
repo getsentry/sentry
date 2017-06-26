@@ -27,6 +27,7 @@ from .endpoints.group_tagkey_details import GroupTagKeyDetailsEndpoint
 from .endpoints.group_tagkey_values import GroupTagKeyValuesEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.internal_queue_tasks import InternalQueueTasksEndpoint
 from .endpoints.internal_stats import InternalStatsEndpoint
 from .endpoints.legacy_project_redirect import LegacyProjectRedirectEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
@@ -62,6 +63,7 @@ from .endpoints.project_details import ProjectDetailsEndpoint
 from .endpoints.project_docs import ProjectDocsEndpoint
 from .endpoints.project_docs_platform import ProjectDocsPlatformEndpoint
 from .endpoints.project_environments import ProjectEnvironmentsEndpoint
+from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_events import ProjectEventsEndpoint
 from .endpoints.project_event_details import ProjectEventDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
@@ -301,6 +303,9 @@ urlpatterns = patterns(
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/environments/$',
         ProjectEnvironmentsEndpoint.as_view(),
         name='sentry-api-0-project-environments'),
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/platforms/$',
+        ProjectPlatformsEndpoint.as_view(),
+        name='sentry-api-0-project-platform-details'),
     url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/events/$',
         ProjectEventsEndpoint.as_view(),
         name='sentry-api-0-project-events'),
@@ -488,6 +493,8 @@ urlpatterns = patterns(
     url(r'^internal/options/$',
         SystemOptionsEndpoint.as_view(),
         name='sentry-api-0-system-options'),
+    url(r'^internal/queue/tasks/$',
+        InternalQueueTasksEndpoint.as_view()),
     url(r'^internal/stats/$',
         InternalStatsEndpoint.as_view(),
         name='sentry-api-0-internal-stats'),

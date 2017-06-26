@@ -228,6 +228,28 @@ class StacktraceTest(TestCase):
             '<function>',
         ])
 
+    def test_get_hash_ignores_ENHANCED_clojure_classes(self):
+        interface = Frame.to_python({
+            'module': 'sentry_clojure_example.core$_main$fn__1539',
+            'function': 'invoke'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'sentry_clojure_example.core$_main$fn__<auto>',
+            'invoke',
+        ])
+
+    def test_get_hash_ignores_extra_ENHANCED_clojure_classes(self):
+        interface = Frame.to_python({
+            'module': 'sentry_clojure_example.core$_main$fn__1539$fn__1540',
+            'function': 'invoke'
+        })
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'sentry_clojure_example.core$_main$fn__<auto>$fn__<auto>',
+            'invoke',
+        ])
+
     def test_get_hash_ignores_ENHANCED_spring_classes(self):
         interface = Frame.to_python({
             'module': 'invalid.gruml.talkytalkyhub.common.config.'

@@ -15,6 +15,7 @@ const optionsAvailable = [
   'system.support-email',
   'system.security-email',
   'system.rate-limit',
+  'auth.allow-registration',
   'auth.ip-rate-limit',
   'auth.user-rate-limit',
   'api.rate-limit.org-create'
@@ -86,6 +87,7 @@ const SettingsList = React.createClass({
         {fields['system.rate-limit']}
 
         <h4>Security & Abuse</h4>
+        {fields['auth.allow-registration']}
         {fields['auth.ip-rate-limit']}
         {fields['auth.user-rate-limit']}
         {fields['api.rate-limit.org-create']}

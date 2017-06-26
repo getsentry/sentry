@@ -51,7 +51,6 @@ email_verified = BetterSignal(providing_args=["email"])
 mocks_loaded = BetterSignal(providing_args=["project"])
 
 user_feedback_received = BetterSignal(providing_args=["project"])
-api_called = BetterSignal(providing_args=["project"])
 issue_assigned = BetterSignal(providing_args=["project", "group"])
 issue_resolved_in_release = BetterSignal(providing_args=["project"])
 advanced_search = BetterSignal(providing_args=["project"])

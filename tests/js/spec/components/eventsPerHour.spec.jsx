@@ -13,8 +13,18 @@ describe('EventsPerHour', function() {
     sinon.stub(EventsPerHour.prototype, 'fetchData');
     let eventsPerHour = shallow(<EventsPerHour />).instance();
     expect(eventsPerHour.formatData(data)).toEqual([
-      {x: 1461099600, y: [28867, 2867, 0]},
-      {x: 1461103200, y: [34048, 2742, 0]}
+      {
+        data: [{x: 1461099600, y: 31734}, {x: 1461103200, y: 36790}],
+        label: 'received'
+      },
+      {
+        data: [{x: 1461099600, y: 2867}, {x: 1461103200, y: 2742}],
+        label: 'rejected'
+      },
+      {
+        data: [{x: 1461099600, y: 0}, {x: 1461103200, y: 0}],
+        label: 'blacklisted'
+      }
     ]);
   });
 });

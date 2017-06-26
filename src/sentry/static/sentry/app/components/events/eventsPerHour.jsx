@@ -78,44 +78,14 @@ const EventsPerHour = React.createClass({
   },
 
   formatData(rawData) {
-    // Do this grossness to make sure data is zero filled
-    let allXValues = {};
-    let valueLookup = {};
-    this.STAT_OPTS.forEach(stat => {
-      valueLookup[stat] = {};
-      rawData[stat] &&
-        rawData[stat].forEach(point => {
-          allXValues[point[0]] = null;
-          valueLookup[stat][point[0]] = point[1];
-        });
+    return this.STAT_OPTS.map(stat => {
+      return {
+        data: rawData[stat].map(([x, y]) => {
+          return {x, y};
+        }),
+        label: stat
+      };
     });
-    allXValues = Object.keys(allXValues);
-
-    let chartData = [];
-    allXValues.forEach(x => {
-      let point = {x: +x, y: []};
-      // convert received --> accepted
-      let acceptedY =
-        valueLookup.received[x] - valueLookup.rejected[x] - valueLookup.blacklisted[x];
-      point.y.push(acceptedY);
-      ['rejected', 'blacklisted'].forEach(stat => {
-        let yVal = valueLookup[stat][x] || 0;
-        point.y.push(yVal);
-      });
-      chartData.push(point);
-    });
-
-    chartData.sort((a, b) => {
-      if (a.x < b.x) {
-        return -1;
-      }
-      if (a.x > b.x) {
-        return 1;
-      }
-      return 0;
-    });
-
-    return chartData;
   },
 
   render() {
@@ -135,8 +105,9 @@ const EventsPerHour = React.createClass({
         </Link>
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
         <StackedBarChart
-          points={this.state.formattedData}
-          className="sparkline dashboard-sparkline"
+          series={this.state.formattedData}
+          className="dashboard-barchart standard-barchart"
+          label="events"
           barClasses={this.STAT_OPTS}
         />
       </div>

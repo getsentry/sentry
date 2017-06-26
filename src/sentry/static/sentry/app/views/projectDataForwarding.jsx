@@ -63,29 +63,26 @@ const DataForwardingStats = React.createClass({
     else if (this.state.error) return <LoadingError onRetry={this.fetchData} />;
 
     return (
-      <div className="panel panel-default">
-        <div className="panel-heading">
-          <h6>{t('Forwarded events in the last 30 days (by day)')}</h6>
+      <div className="box">
+        <div className="box-header">
+          <h5>{t('Forwarded events in the last 30 days (by day)')}</h5>
         </div>
-        <div className="panel-body p-a-0">
-          {!this.state.emptyStats
-            ? <div className="inbound-filters-stats p-a-1">
-                <div className="bar-chart">
-                  <StackedBarChart
-                    points={this.state.stats}
-                    height={50}
-                    barClasses={['accepted']}
-                    className="sparkline m-b-0"
-                  />
-                </div>
-              </div>
-            : <div className="blankslate p-y-2">
+        {!this.state.emptyStats
+          ? <StackedBarChart
+              points={this.state.stats}
+              height={150}
+              label="events"
+              barClasses={['accepted']}
+              className="standard-barchart"
+            />
+          : <div className="box-content">
+              <div className="blankslate p-y-2">
                 <h5>{t('Nothing forwarded in the last 30 days.')}</h5>
                 <p className="m-b-0">
                   {t('Total events forwarded to third party integrations.')}
                 </p>
-              </div>}
-        </div>
+              </div>
+            </div>}
       </div>
     );
   }

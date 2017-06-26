@@ -28,7 +28,7 @@ const GroupChart = React.createClass({
 
     return (
       <LazyLoad>
-        <BarChart points={chartData} className="sparkline" />
+        <BarChart points={chartData} label="events" />
       </LazyLoad>
     );
   }
