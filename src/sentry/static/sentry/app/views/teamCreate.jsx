@@ -24,20 +24,17 @@ export default React.createClass({
         </p>
 
         <ApiForm
-          fields={[
-            {
-              name: 'name',
-              label: 'Team Name',
-              placeholder: 'e.g. Operations, Web, Desktop',
-              required: true,
-              component: TextField
-            }
-          ]}
           submitLabel={t('Save Changes')}
           apiEndpoint={`/organizations/${orgId}/teams/`}
           apiMethod="POST"
-          onSubmitSuccess={this.onSubmitSuccess}
-        />
+          onSubmitSuccess={this.onSubmitSuccess}>
+          <TextField
+            name="name"
+            label={t('Team Name')}
+            placeholder={t('e.g. Operations, Web, Desktop')}
+            required={true}
+          />
+        </ApiForm>
       </NarrowLayout>
     );
   }

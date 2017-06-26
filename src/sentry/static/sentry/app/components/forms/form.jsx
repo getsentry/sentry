@@ -32,28 +32,44 @@ export default class Form extends React.Component {
     className: 'form-stacked'
   };
 
+  static childContextTypes = {
+    form: React.PropTypes.object
+  };
+
   constructor(props) {
     super(props);
     this.state = {
-      initialData: Object.assign({}, this.props.initialData),
-      formData: Object.assign({}, this.props.initialData),
-      errors: {}
+      data: {...this.props.initialData},
+      errors: {},
+      initialData: {...this.props.initialData},
+      state: FormState.READY
     };
     ['onSubmit', 'onSubmitSuccess', 'onSubmitError', 'onFieldChange'].forEach(f => {
       this[f] = this[f].bind(this);
     });
   }
 
+  getChildContext() {
+    let {data, errors} = this.state;
+    return {
+      form: {
+        data,
+        errors,
+        onFieldChange: this.onFieldChange
+      }
+    };
+  }
+
   onSubmit(e) {
     e.preventDefault();
-    this.props.onSubmit(this.state.formData, this.onSubmitSuccess, this.onSubmitError);
+    this.props.onSubmit(this.state.data, this.onSubmitSuccess, this.onSubmitError);
   }
 
   onSubmitSuccess(data) {
-    let formData = this.state.formData;
+    let curData = this.state.data;
     let newData = {};
     Object.keys(data).forEach(k => {
-      if (formData.hasOwnProperty(k)) newData[k] = data[k];
+      if (curData.hasOwnProperty(k)) newData[k] = data[k];
     });
 
     this.setState({
@@ -73,18 +89,18 @@ export default class Form extends React.Component {
   }
 
   onFieldChange(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
     this.setState({
-      formData: formData
+      data: {
+        ...this.state.data,
+        [name]: value
+      }
     });
   }
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
-    let {initialData, formData, errors} = this.state;
-    let hasChanges =
-      Object.keys(formData).length && !underscore.isEqual(formData, initialData);
+    let {initialData, data, errors} = this.state;
+    let hasChanges = Object.keys(data).length && !underscore.isEqual(data, initialData);
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
         {this.state.state === FormState.ERROR &&
@@ -99,7 +115,7 @@ export default class Form extends React.Component {
               <config.component
                 key={`field_${config.name}`}
                 {...config}
-                value={formData[config.name]}
+                value={data[config.name]}
                 error={errors[config.name]}
                 onChange={this.onFieldChange.bind(this, config.name)}
               />
