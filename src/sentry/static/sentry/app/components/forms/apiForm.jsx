@@ -6,7 +6,14 @@ import Form from './form';
 import FormState from './state';
 import {t} from '../../locale';
 
-class ApiForm extends Form {
+export default class ApiForm extends Form {
+  static propTypes = {
+    ...Form.propTypes,
+    onSubmit: React.PropTypes.func,
+    apiMethod: React.PropTypes.string.isRequired,
+    apiEndpoint: React.PropTypes.string.isRequired
+  };
+
   constructor(props) {
     super(props);
     this.api = new Client();
@@ -49,12 +56,3 @@ class ApiForm extends Form {
     );
   }
 }
-
-ApiForm.propTypes = {
-  ...Form.propTypes,
-  onSubmit: React.PropTypes.func,
-  apiMethod: React.PropTypes.string.isRequired,
-  apiEndpoint: React.PropTypes.string.isRequired
-};
-
-export default ApiForm;

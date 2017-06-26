@@ -4,7 +4,34 @@ import underscore from 'underscore';
 import FormState from './state';
 import {t} from '../../locale';
 
-class Form extends React.Component {
+export default class Form extends React.Component {
+  static propTypes = {
+    onSubmit: React.PropTypes.func.isRequired,
+    onSubmitSuccess: React.PropTypes.func,
+    onSubmitError: React.PropTypes.func,
+    submitDisabled: React.PropTypes.bool,
+    submitLabel: React.PropTypes.string.isRequired,
+    footerClass: React.PropTypes.string,
+    extraButton: React.PropTypes.element,
+    initialData: React.PropTypes.object,
+    fields: React.PropTypes.arrayOf(
+      React.PropTypes.shape({
+        // this is a function, as its a React definition,
+        // and not an instance of an element
+        component: React.PropTypes.func.isRequired,
+        name: React.PropTypes.string.isRequired,
+        label: React.PropTypes.string.isRequired
+      })
+    )
+  };
+
+  static defaultProps = {
+    submitLabel: t('Save Changes'),
+    submitDisabled: false,
+    footerClass: 'form-actions align-right',
+    className: 'form-stacked'
+  };
+
   constructor(props) {
     super(props);
     this.state = {
@@ -93,32 +120,3 @@ class Form extends React.Component {
     );
   }
 }
-
-Form.propTypes = {
-  onSubmit: React.PropTypes.func.isRequired,
-  onSubmitSuccess: React.PropTypes.func,
-  onSubmitError: React.PropTypes.func,
-  submitDisabled: React.PropTypes.bool,
-  submitLabel: React.PropTypes.string.isRequired,
-  footerClass: React.PropTypes.string,
-  extraButton: React.PropTypes.element,
-  initialData: React.PropTypes.object,
-  fields: React.PropTypes.arrayOf(
-    React.PropTypes.shape({
-      // this is a function, as its a React definition,
-      // and not an instance of an element
-      component: React.PropTypes.func.isRequired,
-      name: React.PropTypes.string.isRequired,
-      label: React.PropTypes.string.isRequired
-    })
-  )
-};
-
-Form.defaultProps = {
-  submitLabel: t('Save Changes'),
-  submitDisabled: false,
-  footerClass: 'form-actions align-right',
-  className: 'form-stacked'
-};
-
-export default Form;
