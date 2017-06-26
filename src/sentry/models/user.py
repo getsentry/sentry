@@ -71,8 +71,6 @@ class User(BaseModel, AbstractBaseUser):
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
 
-
-
     class Meta:
         app_label = 'sentry'
         db_table = 'auth_user'
