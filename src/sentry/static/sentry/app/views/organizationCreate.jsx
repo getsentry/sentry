@@ -6,11 +6,11 @@ import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
 export default class OrganizationCreate extends AsyncView {
-  onSubmitSuccess(data) {
+  onSubmitSuccess = data => {
     // redirect to project creation
     // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
     window.location.href = `/organizations/${data.slug}/projects/new/`;
-  }
+  };
 
   getTitle() {
     return 'Create Organization';

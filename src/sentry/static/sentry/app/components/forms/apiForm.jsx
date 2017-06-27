@@ -23,7 +23,7 @@ export default class ApiForm extends Form {
     this.api.clear();
   }
 
-  onSubmit(e) {
+  onSubmit = e => {
     e.preventDefault();
 
     if (this.state.state == FormState.SAVING) {
@@ -54,5 +54,5 @@ export default class ApiForm extends Form {
         });
       }
     );
-  }
+  };
 }
