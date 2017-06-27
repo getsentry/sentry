@@ -52,4 +52,8 @@ export default class InputField extends FormField {
   getClassName() {
     return 'control-group';
   }
+
+  getType() {
+    throw new Error('Must be implemented by child.');
+  }
 }

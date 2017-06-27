@@ -1,4 +1,5 @@
 import React from 'react';
+import idx from 'idx';
 
 import {defined} from '../../utils';
 
@@ -50,8 +51,8 @@ export default class FormField extends React.Component {
     if (defined(props.value)) {
       return props.value;
     }
-    if (props.name && form && defined(form.data[props.name])) {
-      return form.data[props.name];
+    if (form) {
+      return idx(form, _ => _.data[props.name]);
     }
     return props.defaultValue || '';
   }
@@ -62,7 +63,7 @@ export default class FormField extends React.Component {
     if (defined(props.error)) {
       return props.error;
     }
-    return (props.name && form && form.errors[props.name]) || null;
+    return idx(form, _ => _.errors[props.name]) || null;
   }
 
   getId() {
@@ -80,6 +81,10 @@ export default class FormField extends React.Component {
         form && form.onFieldChange(this.props.name, this.state.value);
       }
     );
+  }
+
+  getField() {
+    throw new Error('Must be implemented by child.');
   }
 
   render() {
