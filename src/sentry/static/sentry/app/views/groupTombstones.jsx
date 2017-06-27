@@ -1,5 +1,7 @@
 import React from 'react';
 
+import AlertActions from '../actions/alertActions';
+
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 
@@ -18,6 +20,10 @@ const GroupTombstones = React.createClass({
   },
 
   componentDidMount() {
+    this.fetchData();
+  },
+
+  fetchData() {
     let {orgId, projectId} = this.props.params;
 
     let path = `/projects/${orgId}/${projectId}/tombstone/`;
@@ -36,6 +42,27 @@ const GroupTombstones = React.createClass({
         });
       }
     });
+  },
+
+  undiscard(tombstoneId) {
+    // TODO (kt): update this when you scope the API endpoint to the project
+    let path = `/tombstone/${tombstoneId}/`;
+    this.api.request(path, {
+      method: 'DELETE',
+      success: data => {
+        AlertActions.addAlert({
+          message: t('Events similar to these will no longer be filtered'),
+          type: 'success'
+        });
+      },
+      error: () => {
+        AlertActions.addAlert({
+          message: t('We were unable to discard this group'),
+          type: 'error'
+        });
+      }
+    });
+    this.fetchData();
   },
 
   renderEmpty() {
@@ -64,10 +91,19 @@ const GroupTombstones = React.createClass({
                             <span style={{marginRight: 10}}>{data.type}</span>
                             <em>{data.culprit}</em><br />
                           </h3>
+
                           <div className="event-extra">
                             <div className="event-message truncate">
                               <span className="message">{data.message}</span>
                             </div>
+                            <a
+                              className="btn btn-warning btn-xs"
+                              href="#"
+                              onClick={() => {
+                                this.undiscard(data.id);
+                              }}>
+                              <strong>{t('Undiscard')}</strong>
+                            </a>
                           </div>
                         </div>
                       </li>
