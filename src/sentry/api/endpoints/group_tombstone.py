@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
-from sentry.api.bases import Endpoint
-from sentry.api.bases.group import GroupPermission
+from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 
@@ -10,10 +9,10 @@ from sentry.models import (
 )
 
 
-class GroupTombstoneEndpoint(Endpoint):
-    permission_classes = (GroupPermission,)
+class GroupTombstoneEndpoint(ProjectEndpoint):
+    # TODO (katie): figure out correct permissions
 
-    def get(self, request, organization_id, project_id):
+    def get(self, request, project):
         """
         Retrieve a Project's GroupTombstones
         ```````````````
@@ -26,7 +25,7 @@ class GroupTombstoneEndpoint(Endpoint):
         """
         queryset = GroupTombstone.objects.filter(
             id__in=GroupHash.objects.filter(
-                project=project_id
+                project=project
             ).values_list('group_tombstone', flat=True)
         )
 

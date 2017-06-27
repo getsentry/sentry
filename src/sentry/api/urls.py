@@ -481,7 +481,7 @@ urlpatterns = patterns(
         name='sentry-api-0-shared-group-details'),
 
     # Tombstone
-    url(r'^projects/(?P<organization_id>[^\/]+)/(?P<project_id>[^\/]+)/tombstone/$',
+    url(r'^projects/(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/tombstone/$',
         GroupTombstoneEndpoint.as_view(),
         name='sentry-api-0-group-tombstone'),
     url(r'^tombstone/(?P<tombstone_id>\d+)/$',
