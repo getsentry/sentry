@@ -5,21 +5,15 @@ import {defined} from '../../utils';
 import InputField from './inputField';
 
 export default class BooleanField extends InputField {
-  valueFromProps(props) {
-    let value = super.valueFromProps(props);
+  coerceValue(props) {
+    let value = super.coerceValue(props);
     return value ? true : false;
   }
 
-  onChange(e) {
-    this.setState(
-      {
-        value: e.target.checked
-      },
-      () => {
-        this.props.onChange(this.state.value);
-      }
-    );
-  }
+  onChange = e => {
+    let value = e.target.checked;
+    this.setValue(value);
+  };
 
   getField() {
     return (
