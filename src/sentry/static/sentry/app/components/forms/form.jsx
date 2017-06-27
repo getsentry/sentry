@@ -10,7 +10,7 @@ export default class Form extends React.Component {
     onSubmitSuccess: React.PropTypes.func,
     onSubmitError: React.PropTypes.func,
     submitDisabled: React.PropTypes.bool,
-    submitLabel: React.PropTypes.string.isRequired,
+    submitLabel: React.PropTypes.string,
     footerClass: React.PropTypes.string,
     extraButton: React.PropTypes.element,
     initialData: React.PropTypes.object,
