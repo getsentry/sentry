@@ -35,9 +35,6 @@ export default class Form extends React.Component {
       initialData: {...this.props.initialData},
       state: FormState.READY
     };
-    ['onSubmit', 'onSubmitSuccess', 'onSubmitError', 'onFieldChange'].forEach(f => {
-      this[f] = this[f].bind(this);
-    });
   }
 
   getChildContext() {
@@ -51,12 +48,12 @@ export default class Form extends React.Component {
     };
   }
 
-  onSubmit(e) {
+  onSubmit = e => {
     e.preventDefault();
     this.props.onSubmit(this.state.data, this.onSubmitSuccess, this.onSubmitError);
-  }
+  };
 
-  onSubmitSuccess(data) {
+  onSubmitSuccess = data => {
     let curData = this.state.data;
     let newData = {};
     Object.keys(data).forEach(k => {
@@ -69,24 +66,24 @@ export default class Form extends React.Component {
       initialData: newData
     });
     this.props.onSubmitSuccess && this.props.onSubmitSuccess(data);
-  }
+  };
 
-  onSubmitError(error) {
+  onSubmitError = error => {
     this.setState({
       state: FormState.ERROR,
       errors: error.responseJSON
     });
     this.props.onSubmitError && this.props.onSubmitError(error);
-  }
+  };
 
-  onFieldChange(name, value) {
+  onFieldChange = (name, value) => {
     this.setState({
       data: {
         ...this.state.data,
         [name]: value
       }
     });
-  }
+  };
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;

@@ -39,10 +39,6 @@ export default class FormField extends React.Component {
     this.state = {
       value: this.getValue(props)
     };
-
-    ['onChange'].forEach(f => {
-      this[f] = this[f].bind(this);
-    });
   }
 
   getValue(props) {
@@ -70,7 +66,7 @@ export default class FormField extends React.Component {
     return `id-${this.props.name}`;
   }
 
-  onChange(e) {
+  onChange = e => {
     let form = (this.context || {}).form;
     this.setState(
       {
@@ -81,7 +77,7 @@ export default class FormField extends React.Component {
         form && form.onFieldChange(this.props.name, this.state.value);
       }
     );
-  }
+  };
 
   getField() {
     throw new Error('Must be implemented by child.');
