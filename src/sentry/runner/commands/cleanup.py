@@ -77,11 +77,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
     # these models should be safe to delete without cascades, in order
     BULK_DELETES = (
-        (models.GroupEmailThread, 'date'),
-        (models.GroupRuleStatus, 'date_added'),
-        (models.GroupTagValue, 'last_seen'),
-        (models.TagValue, 'last_seen'),
-        (models.EventTag, 'date_added'),
+        (models.GroupEmailThread, 'date', None),
+        (models.GroupRuleStatus, 'date_added', None),
+        (models.GroupTagValue, 'last_seen', None),
+        (models.TagValue, 'last_seen', None),
+        (models.EventTag, 'date_added', '-date_added'),
     )
 
     GENERIC_DELETES = (
@@ -129,7 +129,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             except NotImplementedError:
                 click.echo("NodeStore backend does not support cleanup operation", err=True)
 
-    for model, dtfield in BULK_DELETES:
+    for model, dtfield, order_by in BULK_DELETES:
         if not silent:
             click.echo("Removing {model} for days={days} project={project}".format(
                 model=model.__name__,
@@ -145,6 +145,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                 dtfield=dtfield,
                 days=days,
                 project_id=project_id,
+                order_by=order_by,
             ).execute()
     # EventMapping is fairly expensive and is special cased as it's likely you
     # won't need a reference to an event for nearly as long
