@@ -1,19 +1,11 @@
 from __future__ import absolute_import
 
 from datetime import timedelta
-
 from django.utils import timezone
-from sentry.api.authentication import TokenAuthentication
 
 
 class UserActiveMiddleware(object):
     def process_view(self, request, view_func, view_args, view_kwargs):
-        try:
-            auth = TokenAuthentication()
-            request.user = auth.authenticate(request)[0]
-        except TypeError:
-            pass
-
         if not request.user.is_authenticated():
             return
 
