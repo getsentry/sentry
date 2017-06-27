@@ -5,7 +5,6 @@ exports[`Form render() renders with children 1`] = `
   className="form-stacked"
   onSubmit={[Function]}
 >
-  <fieldset />
   <hr />
   <div
     className="form-actions align-right"

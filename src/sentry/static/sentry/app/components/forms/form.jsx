@@ -13,16 +13,7 @@ export default class Form extends React.Component {
     submitLabel: React.PropTypes.string,
     footerClass: React.PropTypes.string,
     extraButton: React.PropTypes.element,
-    initialData: React.PropTypes.object,
-    fields: React.PropTypes.arrayOf(
-      React.PropTypes.shape({
-        // this is a function, as its a React definition,
-        // and not an instance of an element
-        component: React.PropTypes.func.isRequired,
-        name: React.PropTypes.string.isRequired,
-        label: React.PropTypes.string.isRequired
-      })
-    )
+    initialData: React.PropTypes.object
   };
 
   static defaultProps = {
@@ -99,7 +90,7 @@ export default class Form extends React.Component {
 
   render() {
     let isSaving = this.state.state === FormState.SAVING;
-    let {initialData, data, errors} = this.state;
+    let {initialData, data} = this.state;
     let hasChanges = Object.keys(data).length && !underscore.isEqual(data, initialData);
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
@@ -109,19 +100,6 @@ export default class Form extends React.Component {
               'Unable to save your changes. Please ensure all fields are valid and try again.'
             )}
           </div>}
-        <fieldset>
-          {(this.props.fields || []).map(config => {
-            return (
-              <config.component
-                key={`field_${config.name}`}
-                {...config}
-                value={data[config.name]}
-                error={errors[config.name]}
-                onChange={this.onFieldChange.bind(this, config.name)}
-              />
-            );
-          })}
-        </fieldset>
         {this.props.children}
         <div className={this.props.footerClass} style={{marginTop: 25}}>
           <button
