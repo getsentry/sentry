@@ -52,6 +52,11 @@ const ProjectHeader = React.createClass({
                 {t('Releases')}
               </Link>
             </li>
+            <li className={navSection == 'tombstones' ? 'active' : ''}>
+              <Link to={`/${org.slug}/${project.slug}/tombstones/`}>
+                {t('Discarded Groups')}
+              </Link>
+            </li>
           </ul>
         </div>
 
