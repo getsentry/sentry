@@ -246,5 +246,7 @@ def origin_from_request(request):
     # Behavior is specified in RFC6454. In either case, we should
     # treat a "null" Origin as a nonexistent one and fallback to Referer.
     if rv in ('', 'null'):
-        rv = origin_from_url(request.META.get('HTTP_REFERER'))
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            rv = origin_from_url(referer)
     return rv
