@@ -143,6 +143,17 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
 
+    def test_short_version_dotted_prefix(self):
+        org = self.create_organization()
+
+        release = Release.objects.create(
+            version='foo.bar.Baz-1.0',
+            organization=org
+        )
+
+        assert release.version == 'foo.bar.Baz-1.0'
+        assert release.short_version == '1.0'
+
 
 class SetCommitsTestCase(TestCase):
     def test_simple(self):
