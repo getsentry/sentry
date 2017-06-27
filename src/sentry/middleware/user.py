@@ -1,17 +1,19 @@
 from __future__ import absolute_import
 
-from django.utils import timezone
 from datetime import timedelta
-import inspect
+
+from django.utils import timezone
+from sentry.api.authentication import TokenAuthentication
 
 
 class UserActiveMiddleware(object):
-    allowed_paths = (
-        'sentry.api.endpoints',
-        'sentry.web.frontend',
-    )
-
     def process_view(self, request, view_func, view_args, view_kwargs):
+        try:
+            auth = TokenAuthentication()
+            request.user = auth.authenticate(request)[0]
+        except TypeError:
+            pass
+
         if not request.user.is_authenticated():
             return
 
@@ -23,16 +25,4 @@ class UserActiveMiddleware(object):
             return
 
         request.user.last_active = now
-        request.user.save()
-
-        view = view_func
-        if not inspect.isfunction(view_func):
-            view = view.__class__
-
-        try:
-            path = '%s.%s' % (view.__module__, view.__name__)
-        except AttributeError:
-            return
-
-        if not path.startswith(self.allowed_paths):
-            return
+        request.user.update(last_active=now)
