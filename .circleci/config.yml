@@ -14,7 +14,6 @@ jobs:
           MYSQL_DB: sentry
       - image: redis
       - image: basho/riak-kv
-      - image: cassandra
     environment:
       SKIP_BACKEND_VALIDATION: 1
       NODE_ENV: production

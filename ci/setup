@@ -1,4 +1,32 @@
 #!/bin/bash -eu
+
+# https://discuss.circleci.com/t/making-sure-that-cassandra-starts-running-correctly/1058
+function wait_for_cassandra() {
+    echo "describe cluster;" > /tmp/dc
+    for i in 1 2 3 4 5; do
+    echo Attempt $i
+    if nodetool status | grep "^UN"; then
+        exit 0
+    else
+        sleep 10
+    fi
+    done
+    echo ""
+    echo "Cassandra failed to start!!"
+    echo ""
+    echo "------ Cassandra info -------"
+    bash -x -c "ps ax | grep -i cassandra"
+    bash -x -c "sudo lsof -i4TCP:9042"
+    echo ""
+    exit 1
+}
+
+function init_cassandra() {
+    echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
+    echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
+
+}
+
 python -m pip install pip==8.1.1
 
 make install-python install-python-tests install-yarn dev-postgres
@@ -6,9 +34,10 @@ make install-python install-python-tests install-yarn dev-postgres
 python -m pip install codecov
 
 pip install mysqlclient
-# echo 'create database sentry;' | mysql -uroot
 
+# echo 'create database sentry;' | mysql -uroot
 # psql -c 'create database sentry;' -U postgres
 
-echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
-echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
+# TODO(dcramer): we dont test cassandra, but it never changes, and we dont use it ourselfs soooooo
+# wait_for_cassandra()
+# init_cassandra()
