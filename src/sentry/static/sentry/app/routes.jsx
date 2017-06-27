@@ -73,6 +73,7 @@ import ReleaseOverview from './views/releases/releaseOverview';
 import RouteNotFound from './views/routeNotFound';
 import SharedGroupDetails from './views/sharedGroupDetails';
 import Stream from './views/stream';
+import TeamCreate from './views/teamCreate';
 import TeamDetails from './views/teamDetails';
 import TeamMembers from './views/teamMembers';
 import TeamSettings from './views/teamSettings';
@@ -154,6 +155,10 @@ function routes() {
         <Route
           path="/organizations/:orgId/teams/"
           component={errorHandler(OrganizationTeams)}
+        />
+        <Route
+          path="/organizations/:orgId/teams/new/"
+          component={errorHandler(TeamCreate)}
         />
         <Route
           path="/organizations/:orgId/teams/:teamId/"

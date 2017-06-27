@@ -6,7 +6,14 @@ import Form from './form';
 import FormState from './state';
 import {t} from '../../locale';
 
-class ApiForm extends Form {
+export default class ApiForm extends Form {
+  static propTypes = {
+    ...Form.propTypes,
+    onSubmit: React.PropTypes.func,
+    apiMethod: React.PropTypes.string.isRequired,
+    apiEndpoint: React.PropTypes.string.isRequired
+  };
+
   constructor(props) {
     super(props);
     this.api = new Client();
@@ -17,11 +24,15 @@ class ApiForm extends Form {
   }
 
   onSubmit(e) {
-    super.onSubmit(e);
+    e.preventDefault();
 
     if (this.state.state == FormState.SAVING) {
       return;
     }
+
+    let {data} = this.state;
+
+    this.props.onSubmit && this.props.onSubmit(data);
     this.setState(
       {
         state: FormState.SAVING
@@ -30,20 +41,12 @@ class ApiForm extends Form {
         let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
         this.api.request(this.props.apiEndpoint, {
           method: this.props.apiMethod,
-          data: this.state.formData,
-          success: data => {
-            this.setState({
-              state: FormState.READY,
-              errors: {}
-            });
-            this.props.onSubmitComplete && this.props.onSubmitComplete(data);
+          data: data,
+          success: result => {
+            this.onSubmitSuccess(result);
           },
           error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON
-            });
-            this.props.onSubmitError && this.props.onSubmitError(error);
+            this.onSubmitError(error);
           },
           complete: () => {
             IndicatorStore.remove(loadingIndicator);
@@ -53,14 +56,3 @@ class ApiForm extends Form {
     );
   }
 }
-
-ApiForm.propTypes = {
-  ...Form.propTypes,
-  onSubmit: React.PropTypes.func,
-  onSubmitComplete: React.PropTypes.func.isRequired,
-  onSubmitError: React.PropTypes.func,
-  apiMethod: React.PropTypes.string.isRequired,
-  apiEndpoint: React.PropTypes.string.isRequired
-};
-
-export default ApiForm;

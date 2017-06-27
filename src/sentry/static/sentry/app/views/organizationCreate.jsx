@@ -1,17 +1,22 @@
 import React from 'react';
 
+import AsyncView from './asyncView';
 import NarrowLayout from '../components/narrowLayout';
 import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
-export default React.createClass({
-  onSubmitComplete(data) {
+export default class OrganizationCreate extends AsyncView {
+  onSubmitSuccess(data) {
     // redirect to project creation
     // browserHistory.pushState(null, `/organizations/${data.slug}/projects/new/`);
     window.location.href = `/organizations/${data.slug}/projects/new/`;
-  },
+  }
 
-  render() {
+  getTitle() {
+    return 'Create Organization';
+  }
+
+  renderBody() {
     return (
       <NarrowLayout>
         <h3>{t('Create a New Organization')}</h3>
@@ -24,21 +29,18 @@ export default React.createClass({
 
         <ApiForm
           initialData={{defaultTeam: true}}
-          fields={[
-            {
-              name: 'name',
-              label: 'Organization Name',
-              placeholder: 'e.g. My Company',
-              required: true,
-              component: TextField
-            }
-          ]}
           submitLabel={t('Create Organization')}
           apiEndpoint="/organizations/"
           apiMethod="POST"
-          onSubmitComplete={this.onSubmitComplete}
-        />
+          onSubmitSuccess={this.onSubmitSuccess}>
+          <TextField
+            name="name"
+            label={t('Organization Name')}
+            placeholder={t('e.g. My Company')}
+            required={true}
+          />
+        </ApiForm>
       </NarrowLayout>
     );
   }
-});
+}
