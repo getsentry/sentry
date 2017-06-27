@@ -71,15 +71,24 @@ export default class FormField extends React.Component {
     return `id-${this.props.name}`;
   }
 
+  coerceValue(value) {
+    return value;
+  }
+
   onChange = e => {
+    let value = e.target.value;
+    this.setValue(value);
+  };
+
+  setValue = value => {
     let form = (this.context || {}).form;
     this.setState(
       {
-        value: e.target.value
+        value: value
       },
       () => {
-        this.props.onChange && this.props.onChange(this.state.value);
-        form && form.onFieldChange(this.props.name, this.state.value);
+        this.props.onChange && this.props.onChange(this.coerceValue(this.state.value));
+        form && form.onFieldChange(this.props.name, this.coerceValue(this.state.value));
       }
     );
   };
