@@ -28,7 +28,6 @@ from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.create_organization_member import \
     CreateOrganizationMemberView
 from sentry.web.frontend.create_project import CreateProjectView
-from sentry.web.frontend.create_team import CreateTeamView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -270,8 +269,7 @@ urlpatterns += patterns(
         name='sentry-organization-stats'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/(?P<team_slug>[\w_-]+)/remove/$', RemoveTeamView.as_view(),
         name='sentry-remove-team'),
-    url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', CreateTeamView.as_view(),
-        name='sentry-create-team'),
+    url(r'^organizations/(?P<organization_slug>[\w_-]+)/teams/new/$', react_page_view),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/projects/new/$', CreateProjectView.as_view(),
         name='sentry-create-project'),
     url(r'^organizations/(?P<organization_slug>[\w_-]+)/remove/$', RemoveOrganizationView.as_view(),
