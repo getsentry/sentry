@@ -236,7 +236,7 @@ class APIView(BaseView):
                 # to `Access-Control-Allow-Origin` and we don't have another
                 # value to work with, so just allow '*' since they've gotten
                 # this far.
-                response['Access-Control-Allow-Origin'] = '*'
+                response['Access-Control-Allow-Origin'] = 'null'
             else:
                 response['Access-Control-Allow-Origin'] = origin
 
