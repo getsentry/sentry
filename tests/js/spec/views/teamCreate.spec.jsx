@@ -12,7 +12,10 @@ describe('TeamCreate', function() {
           params={{
             orgId: 'org'
           }}
-        />
+        />,
+        {
+          context: {router: TestStubs.router()}
+        }
       );
       expect(toJson(wrapper)).toMatchSnapshot();
     });
