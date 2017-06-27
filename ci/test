@@ -1,0 +1,11 @@
+#!/bin/bash -eu
+
+make lint
+make test-python-coverage
+make test-js
+make test-acceptance
+
+# make travis-lint-python
+# DB=postgres make travis-test-postgres
+# DB=mysql make travis-test-mysql
+# make travis-test-acceptance

@@ -1,189 +1,138 @@
-environment: &environment
-  SKIP_BACKEND_VALIDATION: 1
-  NODE_ENV: production
-  PIP_DISABLE_PIP_VERSION_CHECK: on
-  CXX: g++-4.8
-  NVM_DIR: /tmp/nvm
-  VIRTUALENV_PATH: /tmp/virtualenv
-  USE_SOUTH: 1
-  APT_CACHE: /var/cache/apt
-  TEST_REPORTS: /tmp/test-reports
-  ARTIFACTS: /tmp/artifacts
-  APT_PACKAGES: libgeoip-dev g++-4.8 curl python-pip python-dev xvfb software-properties-common python-software-properties
-  NODE_VERSION: 4.7.0
-  SENTRY_LIGHT_BUILD: 1
-defaults: &defaults
-  working_directory: /tmp/source
-  environment:
-    <<: *environment
-  steps:
-    - run:
-        name: Setup env cache
-        command: |
-            echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> ${BASH_ENV}
-            echo 'PATH=node_modules/.bin:$PATH' >> ${BASH_ENV}
-            echo "$APT_PACKAGES" > /tmp/apt-packages
-            echo '[ -s "$VIRTUALENV_PATH/bin/activate" ] && . ${VIRTUALENV_PATH}/bin/activate' >> ${BASH_ENV}
-    - restore_cache:
-        keys:
-            - v1-sentry-pip
-    - restore_cache:
-        keys:
-            - v1-sentry-nvm-4.7.0
-    - restore_cache:
-        keys:
-            - v1-sentry-apt-{{ checksum "/tmp/apt-packages" }}
-            - v1-sentry-apt-
-    - run:
-        name: Install base packages
-        command: |
-            cd ${APT_CACHE}
-            if [[ ! -z $(find . -name *.deb | head -n1) ]]; then
-                sudo dpkg -i *.deb
-            fi
-            if [[ ! -e /usr/bin/add-apt-repository ]]; then
-                sudo apt-get -qq update
-                sudo apt-get -qq install --assume-yes software-properties-common python-software-properties
-            fi
-            sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-            sudo apt-get -qq update
-            sudo apt-get -qq install ${APT_PACKAGES}
-            sudo pip install --upgrade virtualenv
-    - save_cache:
-        key: v1-sentry-apt-{{ checksum "/tmp/apt-packages" }}
-        paths:
-            - /var/cache/apt
-            - /etc/apt
-    - run:
-        name: Install node
-        command: |
-            if [[ -z $(which nvm) ]]; then
-                curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
-                . "$NVM_DIR/nvm.sh"
-            fi
-            nvm install ${NODE_VERSION}
-    - save_cache:
-        key: v1-sentry-nvm-4.7.0
-        paths:
-            - /tmp/nvm
-    - run:
-        name: Config misc
-        command: |
-            mkdir ${TEST_REPORTS}
-            mkdir ${ARTIFACTS}
-    - checkout
-    - restore_cache:
-        keys:
-            - v1-sentry-npm-{{ checksum "package.json" }}
-            - v1-sentry-npm-
-    - restore_cache:
-        key: v1-sentry-venv-{{ checksum "setup.py" }}
-    - run: npm install -g yarn
-    - run:
-        name: Create virtualenv
-        command: |
-            if [ ! -d ${VIRTUALENV_PATH} ]; then
-            python -m virtualenv ${VIRTUALENV_PATH}
-            . ${VIRTUALENV_PATH}/bin/activate
-            fi
-    - run: make travis-install-$TEST_SUITE
-    - save_cache:
-        paths:
-            - /tmp/source/node_modules
-        key: v1-sentry-npm-{{ checksum "package.json" }}
-    - save_cache:
-        paths:
-            - /tmp/virtualenv
-        key: v1-sentry-venv-{{ checksum "setup.py" }}
-    - save_cache:
-        key: v1-sentry-pip
-        paths:
-            - ~/.cache/pip
-    - run:
-        name: Running X virtual framebuffer
-        command: Xvfb :99 -screen 0 1280x1024x24
-        background: true
-    - run:
-        name: Run tests
-        command: |
-            make travis-lint-$TEST_SUITE
-            make travis-test-$TEST_SUITE
-            # coverage run --source=sentry -m py.test \
-            #     -q \
-            #     --junit-xml=${TEST_REPORTS}/sentry.junit.xml \
-            #     --html=${ARTIFACTS}/acceptance-report.html \
-            #     $(circleci tests glob "tests/**/*.py" | circleci tests split --split-by=timings --timings-type=filename)
-    - run:
-        name: 'Collect code coverage'
-        command: codecov -e TEST_SUITE
-    - run:
-        name: Collect system debug log
-        command: dmesg | tail -n 1000
-        when: on_fail
-    - store_artifacts:
-        path: /tmp/artifacts
-    - store_test_results:
-        path: /tmp/test-reports
-
-
 version: 2
-
 jobs:
-  test-postgres:
-    <<: *defaults
+  build:
+    working_directory: /tmp/source
     docker:
       - image: buildpack-deps:trusty
       - image: circleci/postgres:9.4
         environment:
           POSTGRES_USER: root
           POSTGRES_DB: sentry
-      - image: redis
-    environment:
-      TEST_SUITE: postgres
-      DB: postgres
-      <<: *environment
-  test-mysql:
-    <<: *defaults
-    docker:
-      - image: buildpack-deps:trusty
       - image: circleci/mysql:5.7
         environment:
           MYSQL_USER: root
           MYSQL_DB: sentry
       - image: redis
-    environment:
-      TEST_SUITE: mysql
-      DB: mysql
-      <<: *environment
-  test-sqlite:
-    <<: *defaults
-    docker:
-      - image: buildpack-deps:trusty
-      - image: redis
       - image: basho/riak-kv
       - image: cassandra
     environment:
-      TEST_SUITE: sqlite
-      DB: sqlite
-      <<: *environment
-  test-acceptance:
-    <<: *defaults
-    docker:
-      - image: buildpack-deps:trusty
-      - image: circleci/postgres:9.4
-        environment:
-          POSTGRES_USER: root
-          POSTGRES_DB: sentry
-      - image: redis
-    environment:
-      TEST_SUITE: acceptance
-      <<: *environment
-
-workflows:
-  version: 2
-  test-matrix:
-    jobs:
-      - test-postgres
-      - test-mysql
-      - test-sqlite
-      - test-acceptance
+      SKIP_BACKEND_VALIDATION: 1
+      NODE_ENV: production
+      PIP_DISABLE_PIP_VERSION_CHECK: on
+      CXX: g++-4.8
+      NVM_DIR: /tmp/nvm
+      VIRTUALENV_PATH: /tmp/virtualenv
+      USE_SOUTH: 1
+      APT_CACHE: /var/cache/apt
+      TEST_REPORTS: /tmp/test-reports
+      ARTIFACTS: /tmp/artifacts
+      APT_PACKAGES: libgeoip-dev g++-4.8 curl python-pip python-dev xvfb software-properties-common python-software-properties
+      NODE_VERSION: 4.7.0
+      SENTRY_LIGHT_BUILD: 1
+    steps:
+      - run:
+          name: Setup env cache
+          command: |
+              echo '[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"' >> ${BASH_ENV}
+              echo 'PATH=node_modules/.bin:$PATH' >> ${BASH_ENV}
+              echo "$APT_PACKAGES" > /tmp/apt-packages
+              echo '[ -s "$VIRTUALENV_PATH/bin/activate" ] && . ${VIRTUALENV_PATH}/bin/activate' >> ${BASH_ENV}
+      - restore_cache:
+          keys:
+              - v1-sentry-pip
+      - restore_cache:
+          keys:
+              - v1-sentry-nvm-4.7.0
+      - restore_cache:
+          keys:
+              - v1-sentry-apt-{{ checksum "/tmp/apt-packages" }}
+              - v1-sentry-apt-
+      - run:
+          name: Install base packages
+          command: |
+              cd ${APT_CACHE}
+              if [[ ! -z $(find . -name *.deb | head -n1) ]]; then
+                  sudo dpkg -i *.deb
+              fi
+              if [[ ! -e /usr/bin/add-apt-repository ]]; then
+                  sudo apt-get -qq update
+                  sudo apt-get -qq install --assume-yes software-properties-common python-software-properties
+              fi
+              sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+              sudo apt-get -qq update
+              sudo apt-get -qq install ${APT_PACKAGES}
+              sudo pip install --upgrade virtualenv
+      - save_cache:
+          key: v1-sentry-apt-{{ checksum "/tmp/apt-packages" }}
+          paths:
+              - /var/cache/apt
+              - /etc/apt
+      - run:
+          name: Install node
+          command: |
+              if [[ -z $(which nvm) ]]; then
+                  curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
+                  . "$NVM_DIR/nvm.sh"
+              fi
+              nvm install ${NODE_VERSION}
+      - save_cache:
+          key: v1-sentry-nvm-4.7.0
+          paths:
+              - /tmp/nvm
+      - run:
+          name: Config misc
+          command: |
+              mkdir ${TEST_REPORTS}
+              mkdir ${ARTIFACTS}
+      - checkout
+      - restore_cache:
+          keys:
+              - v1-sentry-npm-{{ checksum "package.json" }}
+              - v1-sentry-npm-
+      - restore_cache:
+          key: v1-sentry-venv-{{ checksum "setup.py" }}
+      - run: npm install -g yarn
+      - run:
+          name: Create virtualenv
+          command: |
+              if [ ! -d ${VIRTUALENV_PATH} ]; then
+              python -m virtualenv ${VIRTUALENV_PATH}
+              . ${VIRTUALENV_PATH}/bin/activate
+              fi
+      - run: ci/setup
+      - save_cache:
+          paths:
+              - /tmp/source/node_modules
+          key: v1-sentry-npm-{{ checksum "package.json" }}
+      - save_cache:
+          paths:
+              - /tmp/virtualenv
+          key: v1-sentry-venv-{{ checksum "setup.py" }}
+      - save_cache:
+          key: v1-sentry-pip
+          paths:
+              - ~/.cache/pip
+      - run:
+          name: Running X virtual framebuffer
+          command: Xvfb :99 -screen 0 1280x1024x24
+          background: true
+      - run:
+          name: Run tests
+          command: |
+              ci/test
+              # coverage run --source=sentry -m py.test \
+              #     -q \
+              #     --junit-xml=${TEST_REPORTS}/sentry.junit.xml \
+              #     --html=${ARTIFACTS}/acceptance-report.html \
+              #     $(circleci tests glob "tests/**/*.py" | circleci tests split --split-by=timings --timings-type=filename)
+      - run:
+          name: 'Collect code coverage'
+          command: codecov -e TEST_SUITE
+      - run:
+          name: Collect system debug log
+          command: dmesg | tail -n 1000
+          when: on_fail
+      - store_artifacts:
+          path: /tmp/artifacts
+      - store_test_results:
+          path: /tmp/test-reports
