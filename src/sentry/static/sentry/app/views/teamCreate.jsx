@@ -6,11 +6,11 @@ import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
 export default class TeamCreate extends AsyncView {
-  onSubmitSuccess(data) {
+  onSubmitSuccess = data => {
     let {orgId} = this.props.params;
     // redirect to project creation
     window.location.href = `/organizations/${orgId}/projects/new/?team=${data.slug}`;
-  }
+  };
 
   getTitle() {
     return 'Create Team';
