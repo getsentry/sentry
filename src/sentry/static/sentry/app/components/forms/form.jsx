@@ -24,7 +24,7 @@ export default class Form extends React.Component {
   };
 
   static childContextTypes = {
-    form: React.PropTypes.object
+    form: React.PropTypes.object.isRequired
   };
 
   constructor(props) {
