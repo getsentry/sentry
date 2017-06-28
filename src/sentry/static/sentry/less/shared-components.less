@@ -1312,6 +1312,25 @@ table.integrations {
       }
     }
 
+    .empty-message {
+      font-weight: normal;
+      font-size: 1.2em;
+      text-align: center;
+      opacity: 0.7;
+      padding: 12px;
+    }
+
+    .empty-action {
+      text-align: center;
+      a {
+        color: @link-color;
+
+        &:hover {
+          color: @link-color-hover;
+        }
+      }
+    }
+
     li {
       position: relative;
       padding: 0 5px 0 15px;
@@ -1357,6 +1376,14 @@ table.integrations {
             background: @purple-light;
           }
         }
+      }
+    }
+  }
+
+  &.is-empty {
+    .dropdown-menu {
+      li {
+        padding: 0;
       }
     }
   }

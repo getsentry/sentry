@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {browserHistory} from 'react-router';
 import jQuery from 'jquery';
+import classNames from 'classnames';
 
 import ApiMixin from '../../mixins/apiMixin';
 
@@ -280,24 +281,18 @@ const ProjectSelector = React.createClass({
       // Give an actionable item when there are no projects
       return (
         <MenuItem empty noAnchor>
-          <div
-            className="plz-have-existing-css-class"
-            style={{
-              fontWeight: 'normal',
-              fontSize: '1.2em',
-              textAlign: 'center',
-              opacity: 0.7,
-              padding: '12px 0'
-            }}>
+          <div className="empty-message">
             {hasFilter && t('No projects found')}
             {!hasFilter && t('You have no projects.')}
           </div>
 
           {!hasFilter &&
             hasTeamWrite &&
-            <Link to={`/organizations/${org.slug}/projects/new/`}>
-              {t('Create project')}
-            </Link>}
+            <div className="empty-action">
+              <a href={`/organizations/${org.slug}/projects/new/`}>
+                {t('Create new project')}
+              </a>
+            </div>}
 
         </MenuItem>
       );
@@ -322,7 +317,11 @@ const ProjectSelector = React.createClass({
         this.state.currentIndex === index
       );
     });
+    const hasFilter = !!this.state.filter;
     const hasProjects = children && !!children.length;
+    const dropdownClassNames = classNames('project-dropdown', {
+      'is-empty': !hasProjects
+    });
 
     return (
       <div className="project-select" ref="container">
@@ -336,11 +335,11 @@ const ProjectSelector = React.createClass({
           <DropdownLink
             ref="dropdownLink"
             title=""
-            topLevelClasses="project-dropdown"
+            topLevelClasses={dropdownClassNames}
             onOpen={this.onOpen}
             onClose={this.onClose}>
 
-            {hasProjects &&
+            {(hasFilter || hasProjects) &&
               <li className="project-filter" key="_filter">
                 <input
                   value={this.state.filter}
