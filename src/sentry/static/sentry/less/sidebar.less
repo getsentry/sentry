@@ -23,7 +23,7 @@
   display: flex;
   align-items: center;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 36px;
 
   .transition(.15s color linear);
@@ -71,6 +71,18 @@
   }
 }
 
+.sidebar-item-icon {
+  content: "";
+  margin-right: 12px;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+
+  svg {
+    display: block;
+  }
+}
+
 @keyframes offset {
   to {
     stroke-dashoffset: 0;
@@ -92,18 +104,6 @@
   }
   to {
     transform: rotate(360deg);
-  }
-}
-
-.sidebar-item-icon {
-  content: "";
-  margin-right: 14px;
-  display: inline-block;
-  width: 22px;
-  height: 22px;
-
-  svg {
-    display: block;
   }
 }
 

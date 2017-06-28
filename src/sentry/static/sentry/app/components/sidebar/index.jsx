@@ -25,6 +25,8 @@ import IssueSidebarSettings from '../../icons/icon-sidebar-settings';
 import IssueSidebarUser from '../../icons/icon-sidebar-user';
 import IssueSidebarBookmarks from '../../icons/icon-sidebar-bookmarks';
 import IssueSidebarHistory from '../../icons/icon-sidebar-history';
+import IssueSidebarWhatsNew from '../../icons/icon-sidebar-whats-new';
+import IssueSidebarSupport from '../../icons/icon-sidebar-support';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
@@ -384,54 +386,56 @@ const Sidebar = React.createClass({
         <div className="sidebar-top">
           <SidebarSection>
             <SidebarItem
-              icon={<IssueSidebarOverview size={22} />}
+              icon={<IssueSidebarOverview size={26} />}
               label={t('Overview')}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
-              icon={<IssueSidebarIssues size={22} />}
+              icon={<IssueSidebarIssues size={26} />}
               label={t('Issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
-              icon={<IssueSidebarUserFeedback size={22} />}
+              icon={<IssueSidebarUserFeedback size={26} />}
               label={t('User feedback')}
               onClick={() => this.togglePanel('history')}
             />
             <SidebarItem
-              icon={<IssueSidebarReleases size={22} />}
+              icon={<IssueSidebarReleases size={26} />}
               label={t('Releases')}
               onClick={() => this.togglePanel('history')}
             />
             <SidebarItem
-              icon={<IssueSidebarSettings size={22} />}
+              icon={<IssueSidebarSettings size={26} />}
               label={t('Settings')}
               onClick={() => this.togglePanel('history')}
             />
           </SidebarSection>
           <SidebarSection>
             <SidebarItem
-              icon={<IssueSidebarUser size={22} />}
+              icon={<IssueSidebarUser size={26} />}
               label={t('Assigned to me')}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
-              icon={<IssueSidebarBookmarks size={22} />}
+              icon={<IssueSidebarBookmarks size={26} />}
               label={t('Starred issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
-              icon={<IssueSidebarHistory size={22} />}
+              icon={<IssueSidebarHistory size={26} />}
               label={t('Recently viewed')}
               onClick={() => this.togglePanel('history')}
             />
           </SidebarSection>
           <SidebarSection>
             <SidebarItem
+              icon={<IssueSidebarWhatsNew size={26} />}
               label={t("What's new")}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
+              icon={<IssueSidebarSupport size={26} />}
               label={t('Support')}
               onClick={() => this.togglePanel('bookmarks')}
             />

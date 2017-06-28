@@ -4,13 +4,16 @@ import Icon from 'react-icon-base';
 function IconSidebarUserFeedback(props) {
   return (
     <Icon viewBox="0 0 11 11" {...props}>
-      <g strokeWidth="1" fill="none" stroke="currentColor">
+      <g
+        strokeWidth="1"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round">
         <g
           id="user-feedback-user"
           opacity="0.3"
-          transform="translate(1.500000, 3.000000)"
-          strokeLinecap="round"
-          strokeLinejoin="round">
+          transform="translate(1.500000, 3.000000)">
           <path
             d="M1.12814393,3.66372519 C0.457427528,3.920872 0.00124096855,4.48427239 0.00124096855,5.37751973 L0.00124096855,5.99130762 C0.00124096855,6.27225066 0.216084719,6.5 0.498939752,6.5 L4.50354218,6.5 C4.77841363,6.5 5.00124097,6.28357451 5.00124097,5.99130762 L5.00124097,5.37751973 C5.00124097,4.48100829 4.53656146,3.91483073 3.85852518,3.65920942"
             id="user-feedback-user-body"
