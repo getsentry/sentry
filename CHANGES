@@ -13,6 +13,7 @@ Version 8.18 (Unreleased)
 - Moved "create organization" into React.
 - Expanded React Form components (Form, ApiForm).
 - Moved "create team" into React.
+- Hide project filter when there are no projects to list.
 
 Schema Changes
 ~~~~~~~~~~~~~~
