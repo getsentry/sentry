@@ -193,10 +193,12 @@ const ProjectSelector = React.createClass({
   },
 
   onOpen(evt) {
-    ReactDOM.findDOMNode(this.refs.filter).focus();
-    this.setState({
-      ...this.getProjectState(this.state)
-    });
+    if (this.refs.filter) {
+      ReactDOM.findDOMNode(this.refs.filter).focus();
+      this.setState({
+        ...this.getProjectState(this.state)
+      });
+    }
   },
 
   onClose() {
@@ -282,6 +284,8 @@ const ProjectSelector = React.createClass({
         this.state.currentIndex === index
       );
     });
+    const hasProjects = children && !!children.length;
+
     return (
       <div className="project-select" ref="container">
         <h3>
@@ -297,19 +301,21 @@ const ProjectSelector = React.createClass({
             topLevelClasses="project-dropdown"
             onOpen={this.onOpen}
             onClose={this.onClose}>
-            <li className="project-filter" key="_filter">
-              <input
-                value={this.state.filter}
-                type="text"
-                placeholder={t('Filter projects')}
-                onChange={this.onFilterChange}
-                onKeyUp={this.onKeyUp}
-                onKeyDown={this.onKeyDown}
-                onBlur={this.onFilterBlur}
-                ref="filter"
-              />
-            </li>
-            {children}
+
+            {hasProjects &&
+              <li className="project-filter" key="_filter">
+                <input
+                  value={this.state.filter}
+                  type="text"
+                  placeholder={t('Filter projects')}
+                  onChange={this.onFilterChange}
+                  onKeyUp={this.onKeyUp}
+                  onKeyDown={this.onKeyDown}
+                  onBlur={this.onFilterBlur}
+                  ref="filter"
+                />
+              </li>}
+
           </DropdownLink>
         </h3>
       </div>
