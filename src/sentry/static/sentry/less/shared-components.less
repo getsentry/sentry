@@ -1317,18 +1317,7 @@ table.integrations {
       font-size: 1.2em;
       text-align: center;
       opacity: 0.7;
-      padding: 12px;
-    }
-
-    .empty-action {
-      text-align: center;
-      a {
-        color: @link-color;
-
-        &:hover {
-          color: @link-color-hover;
-        }
-      }
+      padding: 5px;
     }
 
     li {
@@ -1351,7 +1340,6 @@ table.integrations {
 
       > a {
         .truncate();
-        border-radius: 2px;
         padding: 6px 0 6px 6px;
         border-radius: 0;
         line-height: 1;
@@ -1382,8 +1370,19 @@ table.integrations {
 
   &.is-empty {
     .dropdown-menu {
-      li {
-        padding: 0;
+      li.empty-projects-item {
+        padding: 0 5px;
+
+        // need to override bootstrap for <a> in dropdown-menu
+        a {
+          margin-left: 0;
+          border-radius: 3px;
+          font-weight: 600;
+          color: #ffffff;
+          &:hover {
+            background-color: darken(@purple, 5);
+          }
+        }
       }
     }
   }

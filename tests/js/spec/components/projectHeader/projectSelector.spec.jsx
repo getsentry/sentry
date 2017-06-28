@@ -28,13 +28,30 @@ describe('ProjectSelector', function() {
     access: []
   };
   describe('render()', function() {
-    it('has no filter and empty message with no projects', function() {
+    it('has no filter and empty message with no projects and has no project:write access', function() {
       let wrapper = shallow(
         <ProjectSelector
           organization={{
             id: 'org',
             teams: [],
             access: []
+          }}
+          projectId=""
+        />,
+        {
+          context: {router: TestStubs.router()}
+        }
+      );
+      expect(toJson(wrapper)).toMatchSnapshot();
+    });
+
+    it('has no filter and empty message with no projects and has project:write access', function() {
+      let wrapper = shallow(
+        <ProjectSelector
+          organization={{
+            id: 'org',
+            teams: [],
+            access: ['project:write']
           }}
           projectId=""
         />,

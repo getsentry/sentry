@@ -255,7 +255,7 @@ exports[`ProjectSelector render() can filter projects by team name/project name 
 </ProjectSelector>
 `;
 
-exports[`ProjectSelector render() has no filter and empty message with no projects 1`] = `
+exports[`ProjectSelector render() has no filter and empty message with no projects and has no project:write access 1`] = `
 <div
   className="project-select"
 >
@@ -278,7 +278,7 @@ exports[`ProjectSelector render() has no filter and empty message with no projec
       topLevelClasses="project-dropdown is-empty"
     >
       <MenuItem
-        empty={true}
+        className="empty-projects-item"
         noAnchor={true}
       >
         <div
@@ -286,6 +286,57 @@ exports[`ProjectSelector render() has no filter and empty message with no projec
         >
           You have no projects.
         </div>
+      </MenuItem>
+    </DropdownLink>
+  </h3>
+</div>
+`;
+
+exports[`ProjectSelector render() has no filter and empty message with no projects and has project:write access 1`] = `
+<div
+  className="project-select"
+>
+  <h3>
+    <Link
+      className="home-crumb"
+      to="/undefined/"
+    >
+      <span
+        className="icon-home"
+      />
+    </Link>
+    Select a project
+    <DropdownLink
+      caret={true}
+      disabled={false}
+      onClose={[Function]}
+      onOpen={[Function]}
+      title=""
+      topLevelClasses="project-dropdown is-empty"
+    >
+      <MenuItem
+        className="empty-projects-item"
+        noAnchor={true}
+      >
+        <div
+          className="empty-message"
+        >
+          You have no projects.
+        </div>
+      </MenuItem>
+      <MenuItem
+        divider={true}
+      />
+      <MenuItem
+        className="empty-projects-item"
+        noAnchor={true}
+      >
+        <a
+          className="btn btn-primary btn-block"
+          href="/organizations/undefined/projects/new/"
+        >
+          Create project
+        </a>
       </MenuItem>
     </DropdownLink>
   </h3>
@@ -432,11 +483,11 @@ exports[`ProjectSelector render() shows empty filter message when filtering has 
               />
             </li>
             <MenuItem
-              empty={true}
+              className="empty-projects-item"
               noAnchor={true}
             >
               <li
-                className=""
+                className="empty-projects-item"
                 href={null}
                 role="presentation"
                 title={null}
