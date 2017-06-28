@@ -4,6 +4,7 @@ import AlertActions from '../actions/alertActions';
 
 import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
+import LinkWithConfirmation from '../components/linkWithConfirmation';
 
 import ApiMixin from '../mixins/apiMixin';
 
@@ -96,14 +97,21 @@ const GroupTombstones = React.createClass({
                             <div className="event-message truncate">
                               <span className="message">{data.message}</span>
                             </div>
-                            <a
+                            <LinkWithConfirmation
+                              title={t('Undiscard')}
                               className="btn btn-warning btn-xs"
-                              href="#"
-                              onClick={() => {
+                              message={t(
+                                'Undiscarding this group means that ' +
+                                  'incoming events that match this will no longer be discarded. ' +
+                                  'New incoming events will count toward your event quota ' +
+                                  'and will display on your issues dashboard. ' +
+                                  'Are you sure you wish to continue?'
+                              )}
+                              onConfirm={() => {
                                 this.undiscard(data.id);
                               }}>
-                              <strong>{t('Undiscard')}</strong>
-                            </a>
+                              <span>{t('Undiscard')}</span>
+                            </LinkWithConfirmation>
                           </div>
                         </div>
                       </li>
