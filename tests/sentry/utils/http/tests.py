@@ -272,7 +272,7 @@ class OriginFromRequestTestCase(TestCase):
     def test_null_origin(self):
         request = HttpRequest()
         request.META['HTTP_ORIGIN'] = 'null'
-        assert origin_from_request(request) is 'null'
+        assert origin_from_request(request) is None
 
         request.META['HTTP_REFERER'] = 'http://example.com'
         assert origin_from_request(request) == 'http://example.com'
