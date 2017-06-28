@@ -28,8 +28,9 @@ export default class BooleanField extends InputField {
   }
 
   render() {
+    let error = this.getError();
     let className = this.getClassName();
-    if (this.props.error) {
+    if (error) {
       className += ' has-error';
     }
     return (
@@ -45,7 +46,7 @@ export default class BooleanField extends InputField {
               </span>}
           </label>
           {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {this.props.error && <p className="error">{this.props.error}</p>}
+          {error && <p className="error">{error}</p>}
         </div>
       </div>
     );
