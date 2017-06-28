@@ -77,6 +77,7 @@ ALLOWED_DIRECTIVES = frozenset((
 DISALLOWED_BLOCKED_URIS = frozenset((
     'about',
     'ms-browser-extension',
+    'data:text/html,chromewebdata',
 ))
 
 
