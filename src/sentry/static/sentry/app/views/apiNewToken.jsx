@@ -109,6 +109,7 @@ const TokenForm = React.createClass({
         <fieldset>
           <MultipleCheckboxField
             key="scopes"
+            name="scopes"
             choices={Array.from(SCOPES.keys()).map(s => [s, s])}
             label={t('Scopes')}
             value={this.state.formData.scopes}
