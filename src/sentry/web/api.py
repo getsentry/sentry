@@ -229,7 +229,16 @@ class APIView(BaseView):
             )
 
         if origin:
-            response['Access-Control-Allow-Origin'] = origin
+            if origin == 'null':
+                # If an Origin is `null`, but we got this far, that means
+                # we've gotten past our CORS check for some reason. But the
+                # problem is that we can't return "null" as a valid response
+                # to `Access-Control-Allow-Origin` and we don't have another
+                # value to work with, so just allow '*' since they've gotten
+                # this far.
+                response['Access-Control-Allow-Origin'] = '*'
+            else:
+                response['Access-Control-Allow-Origin'] = origin
 
         return response
 
