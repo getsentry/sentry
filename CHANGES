@@ -40,6 +40,7 @@ Schema Changes
 - Added ScheduledJob
 - Added GroupResolution.actor_id
 - Added ``ScheduledJob`` model
+- Added User.last_active
 
 API Changes
 ~~~~~~~~~~~
