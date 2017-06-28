@@ -56,7 +56,7 @@ const SelectInput = React.createClass({
     this.destroy();
   },
 
-  getValue() {
+  getSelect2Value() {
     return this.select2.getValue();
   },
 

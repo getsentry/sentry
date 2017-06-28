@@ -7,8 +7,8 @@ import RouteError from './routeError';
 import {Client} from '../api';
 
 class AsyncView extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     this.fetchData = AsyncView.errorHandler(this, this.fetchData.bind(this));
     this.render = AsyncView.errorHandler(this, this.render.bind(this));
