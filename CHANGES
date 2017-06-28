@@ -13,6 +13,7 @@ Version 8.18 (Unreleased)
 - Moved "create organization" into React.
 - Expanded React Form components (Form, ApiForm).
 - Moved "create team" into React.
+- add Slack to supported auth backends in social auth (for plugins)
 
 Schema Changes
 ~~~~~~~~~~~~~~
@@ -263,7 +264,6 @@ Version 8.12
 - Fixed usage (and propagation) of ``Group.first_release``.
 - The + and - datetime search helpers now work with ranges (e.g. ``<=``).
 - Added the ability to download artifacts from releases.
-- add Slack to supported auth backends in social auth (for plugins)
 
 SDKs
 ~~~~
