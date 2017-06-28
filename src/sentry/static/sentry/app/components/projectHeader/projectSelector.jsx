@@ -267,8 +267,46 @@ const ProjectSelector = React.createClass({
     };
   },
 
+  renderProjectList({organization: org, projects, filter, hasTeamWrite}) {
+    const hasFilter = !!filter;
+    const hasProjects = projects && projects.length;
+
+    if (hasProjects) {
+      return projects;
+    } else {
+      // There can be a filter and have no found results or
+      // there can simply be no projects to list
+      //
+      // Give an actionable item when there are no projects
+      return (
+        <MenuItem empty noAnchor>
+          <div
+            className="plz-have-existing-css-class"
+            style={{
+              fontWeight: 'normal',
+              fontSize: '1.2em',
+              textAlign: 'center',
+              opacity: 0.7,
+              padding: '12px 0'
+            }}>
+            {hasFilter && t('No projects found')}
+            {!hasFilter && t('You have no projects.')}
+          </div>
+
+          {!hasFilter &&
+            hasTeamWrite &&
+            <Link to={`/organizations/${org.slug}/projects/new/`}>
+              {t('Create project')}
+            </Link>}
+
+        </MenuItem>
+      );
+    }
+  },
+
   render() {
     let org = this.props.organization;
+    let access = new Set(org.access);
     let hasSingleTeam = org.teams.length === 1;
 
     let projectList = sortArray(this.state.projectList, ([team, project]) => {
@@ -316,6 +354,13 @@ const ProjectSelector = React.createClass({
                 />
               </li>}
 
+            {this.renderProjectList({
+              organization: org,
+              hasProjectWrite: access.has('project:write'),
+              hasTeamWrite: access.has('team:write'),
+              projects: children,
+              filter: this.state.filter
+            })}
           </DropdownLink>
         </h3>
       </div>
