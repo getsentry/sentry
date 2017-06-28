@@ -268,7 +268,7 @@ const ProjectSelector = React.createClass({
     };
   },
 
-  renderProjectList({organization: org, projects, filter, hasTeamWrite}) {
+  renderProjectList({organization: org, projects, filter, hasProjectWrite}) {
     const hasFilter = !!filter;
     const hasProjects = projects && projects.length;
 
@@ -279,23 +279,24 @@ const ProjectSelector = React.createClass({
       // there can simply be no projects to list
       //
       // Give an actionable item when there are no projects
-      return (
-        <MenuItem empty noAnchor>
+      return [
+        <MenuItem key="empty-message" className="empty-projects-item" noAnchor>
           <div className="empty-message">
             {hasFilter && t('No projects found')}
             {!hasFilter && t('You have no projects.')}
           </div>
-
-          {!hasFilter &&
-            hasTeamWrite &&
-            <div className="empty-action">
-              <a href={`/organizations/${org.slug}/projects/new/`}>
-                {t('Create new project')}
+        </MenuItem>,
+        !hasFilter && hasProjectWrite ? <MenuItem key="divider" divider /> : null,
+        !hasFilter && hasProjectWrite
+          ? <MenuItem key="create-project" className="empty-projects-item" noAnchor>
+              <a
+                className="btn btn-primary btn-block"
+                href={`/organizations/${org.slug}/projects/new/`}>
+                {t('Create project')}
               </a>
-            </div>}
-
-        </MenuItem>
-      );
+            </MenuItem>
+          : null
+      ];
     }
   },
 
