@@ -1,37 +1,33 @@
 import React from 'react';
 import InputField from './inputField';
-import {FormState} from '.';
+import {FormState} from './state';
 
-class PasswordField extends InputField {
-  constructor(props) {
-    super(props);
+// TODO(dcramer): im not entirely sure this is working correctly with
+// value propagation in all scenarios
+export default class PasswordField extends InputField {
+  static propTypes = {
+    ...InputField.propTypes,
+    hasSavedValue: React.PropTypes.bool,
+    prefix: React.PropTypes.string
+  };
 
-    this.startEdit = this.startEdit.bind(this);
-    this.cancelEdit = this.cancelEdit.bind(this);
+  static defaultProps = {
+    ...InputField.defaultProps,
+    hasSavedValue: false,
+    prefix: ''
+  };
+
+  constructor(props, context) {
+    super(props, context);
 
     this.state.editing = false;
   }
 
-  getType() {
-    return 'password';
-  }
-
-  cancelEdit(ev) {
-    ev.preventDefault();
-    this.setState(
-      {
-        value: '',
-        editing: false
-      },
-      () => {
-        this.props.onChange('');
-      }
-    );
-  }
-
   componentWillReceiveProps(nextProps) {
     // close edit mode after successful save
+    // TODO(dcramer): this needs to work with this.context.form
     if (
+      this.props.formState &&
       this.props.formState === FormState.SAVING &&
       nextProps.formState === FormState.READY
     ) {
@@ -41,15 +37,31 @@ class PasswordField extends InputField {
     }
   }
 
-  startEdit(ev) {
-    ev.preventDefault();
+  getType() {
+    return 'password';
+  }
+
+  cancelEdit = e => {
+    e.preventDefault();
+    this.setState(
+      {
+        editing: false
+      },
+      () => {
+        this.setValue('');
+      }
+    );
+  };
+
+  startEdit = e => {
+    e.preventDefault();
     this.setState({
       editing: true
     });
-  }
+  };
 
   getField() {
-    if (!this.props.has_saved_value) {
+    if (!this.props.hasSavedValue) {
       return super.getField();
     }
 
@@ -60,7 +72,7 @@ class PasswordField extends InputField {
             {super.getField()}
           </div>
           <div>
-            <a href="#" onClick={this.cancelEdit}>Cancel</a>
+            <a onClick={this.cancelEdit}>Cancel</a>
           </div>
         </div>
       );
@@ -70,16 +82,9 @@ class PasswordField extends InputField {
           <span>
             {this.props.prefix + new Array(21 - this.props.prefix.length).join('*')}
           </span>
-          {!this.props.disabled && <a href="#" onClick={this.startEdit}>Edit</a>}
+          {!this.props.disabled && <a onClick={this.startEdit}>Edit</a>}
         </div>
       );
     }
   }
 }
-
-PasswordField.defaultProps = Object.assign({}, InputField.defaultProps, {
-  has_saved_value: false,
-  prefix: ''
-});
-
-export default PasswordField;

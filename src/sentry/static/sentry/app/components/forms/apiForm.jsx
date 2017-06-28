@@ -14,8 +14,8 @@ export default class ApiForm extends Form {
     apiEndpoint: React.PropTypes.string.isRequired
   };
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
     this.api = new Client();
   }
 
