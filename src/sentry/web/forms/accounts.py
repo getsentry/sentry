@@ -159,10 +159,16 @@ class AuthenticationForm(forms.Form):
 
 
 class RegistrationForm(forms.ModelForm):
+    name = forms.CharField(
+        label=_('Name'), max_length=30,
+        widget=forms.TextInput(attrs={'placeholder': 'Jane Doe'}),
+        required=True)
     username = forms.EmailField(
         label=_('Email'), max_length=128,
-        widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
+        widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}),
+        required=True)
     password = forms.CharField(
+        required=True,
         widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}))
     subscribe = forms.BooleanField(
         label=_('Subscribe to product updates newsletter'),
@@ -176,7 +182,7 @@ class RegistrationForm(forms.ModelForm):
             del self.fields['subscribe']
 
     class Meta:
-        fields = ('username',)
+        fields = ('username', 'name')
         model = User
 
     def clean_username(self):

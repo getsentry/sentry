@@ -67,12 +67,14 @@ class AuthLoginTest(TestCase):
             resp = self.client.post(self.path, {
                 'username': 'test-a-really-long-email-address@example.com',
                 'password': 'foobar',
+                'name': 'Foo Bar',
                 'op': 'register',
             })
         assert resp.status_code == 302
         user = User.objects.get(username='test-a-really-long-email-address@example.com')
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
+        assert user.name == 'Foo Bar'
 
     def test_register_renders_correct_template(self):
         options.set('auth.allow-registration', True)
