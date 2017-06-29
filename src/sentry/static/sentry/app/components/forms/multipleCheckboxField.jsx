@@ -5,6 +5,7 @@ import FormField from './formField';
 
 export default class MultipleCheckboxField extends FormField {
   static propTypes = {
+    ...FormField.propTypes,
     choices: React.PropTypes.array.isRequired
   };
 
