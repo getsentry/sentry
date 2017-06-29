@@ -46,9 +46,9 @@ const InstallWizardSettings = React.createClass({
       }
       fields[key] = getOptionField(
         key,
-        this.onFieldChange.bind(this, key),
+        option.field,
         option.value,
-        option.field
+        this.onFieldChange.bind(this, key)
       );
       // options is used for submitting to the server, and we dont submit values
       // that are deleted
