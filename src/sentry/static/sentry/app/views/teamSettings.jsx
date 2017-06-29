@@ -29,7 +29,8 @@ export default class TeamSettings extends AsyncView {
               name: team.name,
               slug: team.slug
             }}
-            onSubmitSuccess={this.props.onTeamChange}>
+            onSubmitSuccess={this.props.onTeamChange}
+            requireChanges={true}>
             <TextField
               name="name"
               label={t('Name')}
