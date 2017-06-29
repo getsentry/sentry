@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.app import locks
 from sentry.models import (
     AuditLogEntry, AuditLogEntryEvent, AuthIdentity, AuthProvider, Organization,
-    OrganizationMember, OrganizationMemberTeam, User
+    OrganizationMember, OrganizationMemberTeam, User, UserEmail
 )
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth
@@ -391,6 +391,15 @@ class AuthHelper(object):
     def _get_identifier(self, identity):
         return identity.get('email') or identity.get('id')
 
+    def _find_existing_user(self, email):
+        return User.objects.filter(
+            id__in=UserEmail.objects.filter(
+                email__iexact=email,
+                is_verified=True,
+            ).values('user'),
+            is_active=True,
+        ).first()
+
     def _handle_unknown_identity(self, identity):
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
@@ -412,7 +421,7 @@ class AuthHelper(object):
             # TODO(dcramer): its possible they have multiple accounts and at
             # least one is managed (per the check below)
             try:
-                existing_user = auth.find_users(identity['email'], is_active=True)[0]
+                existing_user = self._find_existing_user(identity['email'])
             except IndexError:
                 existing_user = None
 

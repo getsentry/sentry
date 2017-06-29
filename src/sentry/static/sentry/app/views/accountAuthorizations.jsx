@@ -1,10 +1,8 @@
 import React from 'react';
-import DocumentTitle from 'react-document-title';
 
+import AsyncView from './asyncView';
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
-import LoadingError from '../components/loadingError';
-import LoadingIndicator from '../components/loadingIndicator';
 import {t} from '../locale';
 
 const AuthorizationRow = React.createClass({
@@ -81,58 +79,24 @@ const AuthorizationRow = React.createClass({
   }
 });
 
-const AccountAuthorizations = React.createClass({
-  mixins: [ApiMixin],
+class AccountAuthorizations extends AsyncView {
+  getEndpoint() {
+    return '/api-authorizations/';
+  }
 
-  getInitialState() {
-    return {
-      loading: true,
-      error: false,
-      authorizationList: []
-    };
-  },
-
-  componentWillMount() {
-    this.fetchData();
-  },
-
-  remountComponent() {
-    this.setState(this.getInitialState(), this.fetchData);
-  },
-
-  fetchData() {
-    this.setState({
-      loading: true
-    });
-
-    this.api.request('/api-authorizations/', {
-      success: (data, _, jqXHR) => {
-        this.setState({
-          loading: false,
-          error: false,
-          authorizationList: data
-        });
-      },
-      error: () => {
-        this.setState({
-          loading: false,
-          error: true
-        });
-      }
-    });
-  },
+  getTitle() {
+    return 'Approved Applications - Sentry';
+  }
 
   onRevoke(authorization) {
     this.setState({
-      authorizationList: this.state.authorizationList.filter(
-        a => a.id !== authorization.id
-      )
+      data: this.state.data.filter(a => a.id !== authorization.id)
     });
-  },
+  }
 
   renderResults() {
-    let {authorizationList} = this.state;
-    if (authorizationList.length === 0) {
+    let {data} = this.state;
+    if (data.length === 0) {
       return (
         <table className="table">
           <tbody>
@@ -151,7 +115,7 @@ const AccountAuthorizations = React.createClass({
         <h4>Approved Applications</h4>
         <table className="table">
           <tbody>
-            {authorizationList.map(authorization => {
+            {data.map(authorization => {
               return (
                 <AuthorizationRow
                   key={authorization.id}
@@ -164,33 +128,23 @@ const AccountAuthorizations = React.createClass({
         </table>
       </div>
     );
-  },
+  }
 
-  getTitle() {
-    return 'Approved Applications - Sentry';
-  },
-
-  render() {
+  renderBody() {
     return (
-      <DocumentTitle title={this.getTitle()}>
-        <div>
-          {this.state.loading
-            ? <LoadingIndicator />
-            : this.state.error
-                ? <LoadingError onRetry={this.fetchData} />
-                : this.renderResults()}
-          <p>
-            <small>
-              You can manage your own applications via the
-              {' '}
-              <a href="/api/">API dashboard</a>
-              .
-            </small>
-          </p>
-        </div>
-      </DocumentTitle>
+      <div>
+        {this.renderResults()}
+        <p>
+          <small>
+            You can manage your own applications via the
+            {' '}
+            <a href="/api/">API dashboard</a>
+            .
+          </small>
+        </p>
+      </div>
     );
   }
-});
+}
 
 export default AccountAuthorizations;

@@ -297,8 +297,6 @@ class ProjectSettingsView(ProjectView):
                 else:
                     project.update_option(key, value)
 
-            project.update_option('sentry:reviewed-callsign', True)
-
             self.create_audit_entry(
                 request,
                 organization=organization,

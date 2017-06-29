@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 _sha1_re = re.compile(r'^[a-f0-9]{40}$')
-_dotted_path_prefix_re = re.compile(r'^([a-z][a-z0-9-]+)(\.[a-z][a-z0-9-]+)+-')
+_dotted_path_prefix_re = re.compile(r'^([a-zA-Z][a-zA-Z0-9-]+)(\.[a-zA-Z][a-zA-Z0-9-]+)+-')
 BAD_RELEASE_CHARS = '\n\f\t/'
 
 
