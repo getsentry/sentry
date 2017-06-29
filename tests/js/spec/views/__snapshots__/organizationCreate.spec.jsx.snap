@@ -14,6 +14,7 @@ exports[`OrganizationCreate render() renders correctly 1`] = `
     <ApiForm
       apiEndpoint="/organizations/"
       apiMethod="POST"
+      cancelLabel="Cancel"
       className="form-stacked"
       footerClass="form-actions align-right"
       initialData={
@@ -22,6 +23,7 @@ exports[`OrganizationCreate render() renders correctly 1`] = `
         }
       }
       onSubmitSuccess={[Function]}
+      requireChanges={false}
       submitDisabled={false}
       submitLabel="Create Organization"
     >

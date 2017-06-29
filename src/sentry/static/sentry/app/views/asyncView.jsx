@@ -63,10 +63,10 @@ class AsyncView extends React.Component {
             data: data
           });
         },
-        error: () => {
+        error: error => {
           this.setState({
             loading: false,
-            error: true
+            error: error
           });
         }
       });
@@ -89,8 +89,8 @@ class AsyncView extends React.Component {
     return <LoadingIndicator />;
   }
 
-  renderError(err) {
-    return <RouteError error={err} component={this} onRetry={this.remountComponent} />;
+  renderError(error) {
+    return <RouteError error={error} component={this} onRetry={this.remountComponent} />;
   }
 
   render() {
@@ -98,7 +98,7 @@ class AsyncView extends React.Component {
       <DocumentTitle title={this.getTitle()}>
         {this.state.loading
           ? this.renderLoading()
-          : this.state.error ? this.renderError() : this.renderBody()}
+          : this.state.error ? this.renderError(this.state.error) : this.renderBody()}
       </DocumentTitle>
     );
   }

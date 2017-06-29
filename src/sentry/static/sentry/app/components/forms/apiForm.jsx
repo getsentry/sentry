@@ -43,13 +43,12 @@ export default class ApiForm extends Form {
           method: this.props.apiMethod,
           data: data,
           success: result => {
+            IndicatorStore.remove(loadingIndicator);
             this.onSubmitSuccess(result);
           },
           error: error => {
-            this.onSubmitError(error);
-          },
-          complete: () => {
             IndicatorStore.remove(loadingIndicator);
+            this.onSubmitError(error);
           }
         });
       }
