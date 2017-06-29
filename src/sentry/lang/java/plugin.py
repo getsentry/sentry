@@ -111,6 +111,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 class JavaPlugin(Plugin2):
     can_disable = False
 
+    def can_configure_for_project(self, project, **kwargs):
+        return False
+
     def get_stacktrace_processors(self, data, stacktrace_infos,
                                   platforms, **kwargs):
         if 'java' in platforms:
