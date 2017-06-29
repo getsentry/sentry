@@ -1,13 +1,19 @@
 import React from 'react';
 
+import AsyncView from './asyncView';
 import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
-export default React.createClass({
-  propTypes: {
+export default class TeamSettings extends AsyncView {
+  static propTypes = {
+    ...AsyncView.propTypes,
     team: React.PropTypes.object.isRequired,
     onTeamChange: React.PropTypes.func.isRequired
-  },
+  };
+
+  getTitle() {
+    return 'Team Settings';
+  }
 
   render() {
     let {orgId, teamId} = this.props.params;
@@ -47,4 +53,4 @@ export default React.createClass({
       </div>
     );
   }
-});
+}
