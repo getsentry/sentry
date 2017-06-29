@@ -313,59 +313,7 @@ exports[`ProjectSelector render() lists projects and has filter 1`] = `
 </div>
 `;
 
-exports[`ProjectSelector render() should show empty message with no projects message and create team buttons, when no teams, no projects, and has no project:write access 1`] = `
-<div
-  className="project-select"
->
-  <h3>
-    <Link
-      className="home-crumb"
-      to="/org-slug/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
-    Select a project
-    <DropdownLink
-      caret={true}
-      disabled={false}
-      onClose={[Function]}
-      onOpen={[Function]}
-      title=""
-      topLevelClasses="project-dropdown is-empty"
-    >
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <div
-          className="empty-message"
-        >
-          You have no projects.
-        </div>
-      </MenuItem>
-      <MenuItem
-        divider={true}
-      />
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <Link
-          className="btn btn-primary btn-block"
-          to="/organizations/org-slug/teams/new/"
-        >
-          Create team
-        </Link>
-         
-      </MenuItem>
-    </DropdownLink>
-  </h3>
-</div>
-`;
-
-exports[`ProjectSelector render() should show empty message with no projects, create project, and create team buttons, when no teams, no projects, and has project:write access 1`] = `
+exports[`ProjectSelector render() should show empty message and create project button, when no projects and has "project:write" access 1`] = `
 <div
   className="project-select"
 >
@@ -411,24 +359,12 @@ exports[`ProjectSelector render() should show empty message with no projects, cr
           Create project
         </a>
       </MenuItem>
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <Link
-          className="btn btn-primary btn-block"
-          to="/organizations/org-slug/teams/new/"
-        >
-          Create team
-        </Link>
-         
-      </MenuItem>
     </DropdownLink>
   </h3>
 </div>
 `;
 
-exports[`ProjectSelector render() should show empty message with no projects, create project, and create team buttons, when no teams, no projects, and has project:write access 2`] = `
+exports[`ProjectSelector render() should show empty message with no projects button, when no projects, and has no "project:write" access 1`] = `
 <div
   className="project-select"
 >
@@ -459,83 +395,6 @@ exports[`ProjectSelector render() should show empty message with no projects, cr
         >
           You have no projects.
         </div>
-      </MenuItem>
-      <MenuItem
-        divider={true}
-      />
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <a
-          className="btn btn-primary btn-block"
-          href="/organizations/org-slug/projects/new/"
-        >
-          Create project
-        </a>
-      </MenuItem>
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <Link
-          className="btn btn-primary btn-block"
-          to="/organizations/org-slug/teams/new/"
-        >
-          Create team
-        </Link>
-         
-      </MenuItem>
-    </DropdownLink>
-  </h3>
-</div>
-`;
-
-exports[`ProjectSelector render() shows "Join team" only when a team exists 1`] = `
-<div
-  className="project-select"
->
-  <h3>
-    <Link
-      className="home-crumb"
-      to="/org-slug/"
-    >
-      <span
-        className="icon-home"
-      />
-    </Link>
-    Select a project
-    <DropdownLink
-      caret={true}
-      disabled={false}
-      onClose={[Function]}
-      onOpen={[Function]}
-      title=""
-      topLevelClasses="project-dropdown is-empty"
-    >
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <div
-          className="empty-message"
-        >
-          You have no projects.
-        </div>
-      </MenuItem>
-      <MenuItem
-        divider={true}
-      />
-      <MenuItem
-        className="empty-projects-item"
-        noAnchor={true}
-      >
-        <Link
-          className="btn btn-primary btn-block"
-          to="/organizations/org-slug/all-teams/"
-        >
-          Join team
-        </Link>
       </MenuItem>
     </DropdownLink>
   </h3>

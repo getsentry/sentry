@@ -28,7 +28,7 @@ describe('ProjectSelector', function() {
     access: []
   };
   describe('render()', function() {
-    it('should show empty message with no projects message and create team buttons, when no teams, no projects, and has no project:write access', function() {
+    it('should show empty message with no projects button, when no projects, and has no "project:write" access', function() {
       let wrapper = shallow(
         <ProjectSelector
           organization={{
@@ -46,42 +46,7 @@ describe('ProjectSelector', function() {
       expect(toJson(wrapper)).toMatchSnapshot();
     });
 
-    it('should show empty message with no projects, create project, and create team buttons, when no teams, no projects, and has project:write access', function() {
-      let wrapper = shallow(
-        <ProjectSelector
-          organization={{
-            id: 'org',
-            slug: 'org-slug',
-            teams: [],
-            access: ['project:write']
-          }}
-          projectId=""
-        />,
-        {
-          context: {router: TestStubs.router()}
-        }
-      );
-      expect(toJson(wrapper)).toMatchSnapshot();
-    });
-
-    it('shows "Join team" only when a team exists', function() {
-      let wrapper = shallow(
-        <ProjectSelector
-          organization={{
-            id: 'org',
-            slug: 'org-slug',
-            teams: [{}]
-          }}
-          projectId=""
-        />,
-        {
-          context: {router: TestStubs.router()}
-        }
-      );
-      expect(toJson(wrapper)).toMatchSnapshot();
-    });
-
-    it('should show empty message with no projects, create project, and create team buttons, when no teams, no projects, and has project:write access', function() {
+    it('should show empty message and create project button, when no projects and has "project:write" access', function() {
       let wrapper = shallow(
         <ProjectSelector
           organization={{

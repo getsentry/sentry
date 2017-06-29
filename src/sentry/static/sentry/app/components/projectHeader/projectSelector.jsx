@@ -276,10 +276,8 @@ const ProjectSelector = React.createClass({
   renderProjectList({organization: org, projects, filter, hasProjectWrite}) {
     const hasFilter = !!filter;
     const hasProjects = projects && projects.length;
-    const teams = org && org.teams;
-    const hasTeams = teams.length > 0;
     // Will always need to show divider
-    const showDivider = !hasFilter;
+    const showDivider = !hasFilter && hasProjectWrite;
 
     if (hasProjects) {
       return projects;
@@ -303,24 +301,6 @@ const ProjectSelector = React.createClass({
                 href={`${this.urlPrefix()}/projects/new/`}>
                 {t('Create project')}
               </a>
-            </MenuItem>
-          : null,
-        !hasFilter && hasTeams
-          ? <MenuItem key="join-team" className="empty-projects-item" noAnchor>
-              <Link
-                className="btn btn-primary btn-block"
-                to={`${this.urlPrefix()}/all-teams/`}>
-                {t('Join team')}
-              </Link>
-            </MenuItem>
-          : null,
-        !hasFilter && (!hasTeams || hasProjectWrite)
-          ? <MenuItem key="create-team" className="empty-projects-item" noAnchor>
-              <Link
-                className="btn btn-primary btn-block"
-                to={`${this.urlPrefix()}/teams/new/`}>
-                {t('Create team')}
-              </Link>{' '}
             </MenuItem>
           : null
       ];
