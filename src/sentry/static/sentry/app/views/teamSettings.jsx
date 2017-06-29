@@ -15,40 +15,34 @@ export default class TeamSettings extends AsyncView {
     return 'Team Settings';
   }
 
-  render() {
+  renderBody() {
     let {orgId, teamId} = this.props.params;
     let team = this.props.team;
 
     return (
-      <div>
-        <div className="box">
-          <div className="box-content with-padding">
-            <ApiForm
-              apiMethod="PUT"
-              apiEndpoint={`/teams/${orgId}/${teamId}/`}
-              initialData={{
-                name: team.name,
-                slug: team.slug
-              }}
-              onSubmitSuccess={this.props.onTeamChange}
-              fields={[
-                {
-                  name: 'name',
-                  label: t('Name'),
-                  placeholder: t('e.g. API Team'),
-                  required: true,
-                  component: TextField
-                },
-                {
-                  name: 'slug',
-                  label: t('Short name'),
-                  placeholder: t('e.g. api-team'),
-                  required: true,
-                  component: TextField
-                }
-              ]}
+      <div className="box">
+        <div className="box-content with-padding">
+          <ApiForm
+            apiMethod="PUT"
+            apiEndpoint={`/teams/${orgId}/${teamId}/`}
+            initialData={{
+              name: team.name,
+              slug: team.slug
+            }}
+            onSubmitSuccess={this.props.onTeamChange}>
+            <TextField
+              name="name"
+              label={t('Name')}
+              placeholder={t('e.g. API Team')}
+              required={true}
             />
-          </div>
+            <TextField
+              name="slug"
+              label={t('Short name')}
+              placeholder={t('e.g. api-team')}
+              required={true}
+            />
+          </ApiForm>
         </div>
       </div>
     );
