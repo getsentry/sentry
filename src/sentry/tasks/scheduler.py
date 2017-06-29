@@ -16,12 +16,12 @@ def enqueue_scheduled_jobs(**kwargs):
     from sentry.celery import app
 
     with locks.get('scheduler.process', duration=60).acquire():
-        job_list = ScheduledJob.objects.filter(
+        job_list = list(ScheduledJob.objects.filter(
             date_scheduled__lte=timezone.now(),
-        )[:101]
+        )[:101])
 
         if len(job_list) > 100:
-            logger.debug('More than 100 ScheduledJob\'s: %r jobs found.', len(job_list))
+            logger.debug('More than 100 ScheduledJobs found.')
 
         for job in job_list:
             logger.debug('Sending scheduled job %s with payload %r',
