@@ -6,6 +6,8 @@ import {t} from '../../locale';
 
 export default class Form extends React.Component {
   static propTypes = {
+    cancelLabel: React.PropTypes.string,
+    onCancel: React.PropTypes.func,
     onSubmit: React.PropTypes.func.isRequired,
     onSubmitSuccess: React.PropTypes.func,
     onSubmitError: React.PropTypes.func,
@@ -13,14 +15,17 @@ export default class Form extends React.Component {
     submitLabel: React.PropTypes.string,
     footerClass: React.PropTypes.string,
     extraButton: React.PropTypes.element,
-    initialData: React.PropTypes.object
+    initialData: React.PropTypes.object,
+    requireChanges: React.PropTypes.bool
   };
 
   static defaultProps = {
+    cancelLabel: t('Cancel'),
     submitLabel: t('Save Changes'),
     submitDisabled: false,
     footerClass: 'form-actions align-right',
-    className: 'form-stacked'
+    className: 'form-stacked',
+    requireChanges: false
   };
 
   static childContextTypes = {
@@ -88,7 +93,10 @@ export default class Form extends React.Component {
   render() {
     let isSaving = this.state.state === FormState.SAVING;
     let {initialData, data} = this.state;
-    let hasChanges = Object.keys(data).length && !underscore.isEqual(data, initialData);
+    let {requireChanges} = this.props;
+    let hasChanges = requireChanges
+      ? Object.keys(data).length && !underscore.isEqual(data, initialData)
+      : true;
     return (
       <form onSubmit={this.onSubmit} className={this.props.className}>
         {this.state.state === FormState.ERROR &&
@@ -105,6 +113,14 @@ export default class Form extends React.Component {
             type="submit">
             {this.props.submitLabel}
           </button>
+          {this.props.onCancel &&
+            <button
+              className="btn btn-default"
+              disabled={isSaving}
+              onClick={this.props.onCancel}
+              style={{marginLeft: 5}}>
+              {this.props.cancelLabel}
+            </button>}
           {this.props.extraButton}
         </div>
       </form>
