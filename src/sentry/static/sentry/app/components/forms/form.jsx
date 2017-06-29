@@ -27,8 +27,8 @@ export default class Form extends React.Component {
     form: React.PropTypes.object.isRequired
   };
 
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
     this.state = {
       data: {...this.props.initialData},
       errors: {},

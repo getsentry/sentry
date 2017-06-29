@@ -7,8 +7,8 @@ import LoadingIndicator from '../../components/loadingIndicator';
 import {t, tct} from '../../locale';
 
 class PluginSettings extends PluginComponentBase {
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     Object.assign(this.state, {
       fieldList: null,
