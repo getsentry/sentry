@@ -103,7 +103,7 @@ warn("This change includes modification to a file that was backported from newer
 
 # Reasonable commits must update CHANGES
 if !github.pr_body.include?("#nochanges") && @S_CHANGE_LINES && git.lines_of_code > @S_CHANGE_LINES && !git.modified_files.include?("CHANGES") && checkFilesPattern(@S_CHANGES_REQUIRED_PATTERNS).any?
-    warn("You shoudl update CHANGES due to the size of this PR")
+    warn("You should update CHANGES due to the size of this PR")
 end
 
 if git.added_files.grep(@S_MIGRATIONS).any?
