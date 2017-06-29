@@ -1,0 +1,105 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ProjectAlertSettings render() renders 1`] = `
+<DocumentTitle
+  title="Project Alert Settings"
+>
+  <div>
+    <a
+      className="btn pull-right btn-primary btn-sm"
+      href="/org-slug/project-slug/settings/alerts/rules/new/"
+    >
+      <span
+        className="icon-plus"
+      />
+      New Alert Rule
+    </a>
+    <h2>
+      Alerts
+    </h2>
+    <ul
+      className="nav nav-tabs"
+      style={
+        Object {
+          "borderBottom": "1px solid #ddd",
+        }
+      }
+    >
+      <ListLink
+        activeClassName="active"
+        index={true}
+        to="/org-slug/project-slug/settings/alerts/"
+      >
+        Settings
+      </ListLink>
+      <ListLink
+        activeClassName="active"
+        index={false}
+        to="/org-slug/project-slug/settings/alerts/rules/"
+      >
+        Rules
+      </ListLink>
+    </ul>
+    <div
+      className="alert alert-block alert-info"
+    >
+      <span>
+        <span>
+          These settings cover rule-based alerts. If you're looking to change which notifications you receive you may do so from your 
+        </span>
+        <a
+          href="/account/settings/notifications/"
+        >
+          <span>
+            account settings
+          </span>
+        </a>
+        <span>
+          .
+        </span>
+      </span>
+    </div>
+    <GeneralSettings
+      initialData={
+        Object {
+          "subjectTemplate": "[$project] \${tag:level}: $title",
+        }
+      }
+      onSave={[Function]}
+      orgId="org-slug"
+      projectId="project-slug"
+    />
+    <DigestSettings
+      initialData={
+        Object {
+          "digestsMaxDelay": 60,
+          "digestsMinDelay": 5,
+        }
+      }
+      onSave={[Function]}
+      orgId="org-slug"
+      projectId="project-slug"
+    />
+    <pluginList
+      onDisablePlugin={[Function]}
+      onEnablePlugin={[Function]}
+      organization={
+        Object {
+          "name": "Organization Name",
+          "slug": "org-slug",
+        }
+      }
+      pluginList={Array []}
+      project={
+        Object {
+          "digestsMaxDelay": 60,
+          "digestsMinDelay": 5,
+          "name": "Project Name",
+          "slug": "project-slug",
+          "subjectTemplate": "[$project] \${tag:level}: $title",
+        }
+      }
+    />
+  </div>
+</DocumentTitle>
+`;

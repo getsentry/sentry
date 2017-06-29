@@ -1,3 +1,5 @@
+jest.unmock('app/api');
+
 import $ from 'jquery';
 import {Client, Request, paramsToQueryArgs} from 'app/api';
 import GroupActions from 'app/actions/groupActions';
