@@ -65,7 +65,7 @@ def repair_callsigns():
     from sentry.utils.query import RangeQuerySetWrapperWithProgressBar, \
         RangeQuerySetWrapper
     from sentry.models.counter import increment_project_counter
-    from sentry.models import Organization, Group, Project, ProjectOption
+    from sentry.models import Organization, Group, Project
 
     click.echo('Repairing callsigns')
 
@@ -80,10 +80,6 @@ def repair_callsigns():
                     pk=project.id,
                     callsign=None
                 ).update(callsign=callsigns[project.id])
-                ProjectOption.objects.filter(
-                    project=project,
-                    key='sentry:reviewed-callsign'
-                ).delete()
             q = Group.objects.filter(
                 project=project,
                 short_id=None,

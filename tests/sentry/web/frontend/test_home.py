@@ -15,7 +15,7 @@ class HomeTest(TestCase):
         resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
+        assert resp['Location'] == 'http://testserver/auth/login/'
 
     def test_redirects_to_create_org(self):
         self.login_as(self.user)
@@ -24,7 +24,7 @@ class HomeTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
+        assert resp['Location'] == 'http://testserver/organizations/new/'
 
     def test_shows_no_access(self):
         self.login_as(self.user)
@@ -43,4 +43,4 @@ class HomeTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-organization-home', args=[org.slug])
+        assert resp['Location'] == 'http://testserver/{}/'.format(org.slug)

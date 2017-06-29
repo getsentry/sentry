@@ -39,6 +39,9 @@ class LocalhostFilterTest(TestCase):
         data = self.get_mock_data(url='http://localhost/something.html')
         assert self.apply_filter(data)
 
+        data = self.get_mock_data(url='http://localhost:9000/')
+        assert self.apply_filter(data)
+
         data = self.get_mock_data(url='https://localhost')
         assert self.apply_filter(data)
 
