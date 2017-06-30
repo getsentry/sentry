@@ -14,12 +14,12 @@ from time import time
 from sentry.app import tsdb
 from sentry.constants import MAX_CULPRIT_LENGTH, DEFAULT_LOGGER_NAME
 from sentry.event_manager import (
-    EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
+    DiscardedHash, EventManager, EventUser, get_hashes_for_event, get_hashes_from_fingerprint,
     generate_culprit, md5_from_hash
 )
 from sentry.models import (
-    Activity, Event, Group, GroupRelease, GroupResolution, GroupStatus,
-    EventMapping, Release
+    Activity, Event, Group, GroupHash, GroupRelease, GroupResolution,
+    GroupStatus, GroupTombstone, EventMapping, Release
 )
 from sentry.testutils import TestCase, TransactionTestCase
 
@@ -759,6 +759,38 @@ class EventManagerTest(TransactionTestCase):
             'message': 'hello world',
             'formatted': 'world hello',
         }
+
+    def test_trows_when_matches_discarded_hash(self):
+        manager = EventManager(self.make_event(
+            message='foo', event_id='a' * 32,
+            fingerprint=['a' * 32],
+        ))
+        with self.tasks():
+            event = manager.save(1)
+
+        group = Group.objects.get(id=event.group_id)
+        tombstone = GroupTombstone.objects.create(
+            project_id=group.project_id,
+            level=group.level,
+            message=group.message,
+            culprit=group.culprit,
+            type=group.get_event_type(),
+        )
+        GroupHash.objects.filter(
+            group=group,
+        ).update(
+            group=None,
+            group_tombstone=tombstone,
+        )
+
+        manager = EventManager(self.make_event(
+            message='foo', event_id='a' * 32,
+            fingerprint=['a' * 32],
+        ))
+
+        with self.tasks():
+            with self.assertRaises(DiscardedHash):
+                event = manager.save(1)
 
 
 class GetHashesFromEventTest(TestCase):

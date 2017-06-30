@@ -104,11 +104,19 @@ class GroupManager(BaseManager):
         )
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
+        from sentry.event_manager import DiscardedHash, EventManager
 
         manager = EventManager(kwargs)
         manager.normalize()
-        return manager.save(project)
+        try:
+            return manager.save(project)
+
+        # TODO(jess): this method maybe isn't even used?
+        except DiscardedHash as exc:
+            logger.info('discarded.hash', extra={
+                'project_id': project.id,
+                'message': exc.message,
+            })
 
     def add_tags(self, group, tags):
         from sentry.models import TagValue, GroupTagValue
