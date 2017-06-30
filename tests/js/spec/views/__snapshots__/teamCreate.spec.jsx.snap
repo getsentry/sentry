@@ -18,7 +18,7 @@ exports[`TeamCreate render() renders correctly 1`] = `
       className="form-stacked"
       footerClass="form-actions align-right"
       onSubmitSuccess={[Function]}
-      requireChanges={false}
+      requireChanges={true}
       submitDisabled={false}
       submitLabel="Save Changes"
     >

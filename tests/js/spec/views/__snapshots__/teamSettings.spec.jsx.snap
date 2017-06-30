@@ -23,7 +23,7 @@ exports[`TeamSettings render() renders 1`] = `
           }
         }
         onSubmitSuccess={[Function]}
-        requireChanges={false}
+        requireChanges={true}
         submitDisabled={false}
         submitLabel="Save Changes"
       >

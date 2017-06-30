@@ -21,7 +21,6 @@ export default class RangeField extends InputField {
 
   static defaultProps = {
     ...InputField.defaultProps,
-    onChange: value => {},
     formatLabel: value => value,
     min: 0,
     max: 100,
@@ -55,7 +54,7 @@ export default class RangeField extends InputField {
       .on('slider:changed', (e, data) => {
         let value = parseInt(data.value, 10);
         $value.html(this.props.formatLabel(value));
-        this.props.onChange(value);
+        this.setValue(value);
       })
       .simpleSlider({
         value: this.props.defaultValue || this.props.value,
