@@ -101,7 +101,7 @@ const ResolveActions = React.createClass({
             caret={true}
             className={resolveClassName}
             title="">
-            <MenuItem header={true}>Resolved In</MenuItem>
+            <MenuItem header={true}>{t('Resolved In')}</MenuItem>
             <MenuItem noAnchor={true}>
               <a
                 onClick={() => {
@@ -133,11 +133,9 @@ const ResolveActions = React.createClass({
                 }}
                 className={actionClassName}
                 title={actionTitle}>
-                {latestRelease ?
-                  t('The current release (%s)', getShortVersion(latestRelease.version))
-                :
-                  t('The current release')
-                }
+                {latestRelease
+                  ? t('The current release (%s)', getShortVersion(latestRelease.version))
+                  : t('The current release')}
               </a>
               <a
                 onClick={() => hasRelease && this.setState({modal: true})}

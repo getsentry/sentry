@@ -14,6 +14,8 @@ Version 8.18 (Unreleased)
 - Expanded React Form components (Form, ApiForm).
 - Moved "create team" into React.
 - add Slack to supported auth backends in social auth (for plugins)
+- Expanded resolution actions (on stream) to include current release and explicit
+  release.
 
 Schema Changes
 ~~~~~~~~~~~~~~
