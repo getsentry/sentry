@@ -20,6 +20,7 @@ class GroupTombstone(Model):
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
     )
     type = models.TextField()
+    actor_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:
         app_label = 'sentry'
