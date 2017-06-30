@@ -23,7 +23,7 @@ exports[`OrganizationCreate render() renders correctly 1`] = `
         }
       }
       onSubmitSuccess={[Function]}
-      requireChanges={false}
+      requireChanges={true}
       submitDisabled={false}
       submitLabel="Create Organization"
     >

@@ -33,11 +33,18 @@ class AsyncView extends React.Component {
 
   // XXX: cant call this getInitialState as React whines
   getDefaultState() {
-    return {
-      data: null,
+    let endpoints = this.getEndpoints();
+    let state = {
+      // has all data finished requesting?
       loading: true,
-      error: false
+      // is there an error loading ANY data?
+      error: false,
+      errors: {}
     };
+    endpoints.forEach(([stateKey, endpoint]) => {
+      state[stateKey] = null;
+    });
+    return state;
   }
 
   remountComponent() {
@@ -46,39 +53,72 @@ class AsyncView extends React.Component {
 
   // TODO(dcramer): we'd like to support multiple initial api requests
   fetchData() {
-    let endpoint = this.getEndpoint();
-    if (!endpoint) {
+    let endpoints = this.getEndpoints();
+    if (!endpoints.length) {
       this.setState({
         loading: false,
         error: false
       });
-    } else {
+      return;
+    }
+    // TODO(dcramer): this should cancel any existing API requests
+    this.setState({
+      loading: true,
+      error: false,
+      remainingRequests: endpoints.length
+    });
+    endpoints.forEach(([stateKey, endpoint, params]) => {
       this.api.request(endpoint, {
         method: 'GET',
-        params: this.getEndpointParams(),
+        params: params,
         success: (data, _, jqXHR) => {
-          this.setState({
-            loading: false,
-            error: false,
-            data: data
+          this.setState(prevState => {
+            return {
+              [stateKey]: data,
+              remainingRequests: prevState.remainingRequests - 1,
+              loading: prevState.remainingRequests > 1
+            };
           });
         },
         error: error => {
-          this.setState({
-            loading: false,
-            error: error
+          this.setState(prevState => {
+            return {
+              [stateKey]: null,
+              errors: {
+                ...prevState.errors,
+                [stateKey]: error
+              },
+              remainingRequests: prevState.remainingRequests - 1,
+              loading: prevState.remainingRequests > 1,
+              error: true
+            };
           });
         }
       });
-    }
+    });
   }
 
+  // DEPRECATED: use getEndpoints()
   getEndpointParams() {
     return {};
   }
 
+  // DEPRECATED: use getEndpoints()
   getEndpoint() {
     return null;
+  }
+
+  /**
+   * Return a list of endpoint queries to make.
+   *
+   * return [
+   *   ['stateKeyName', '/endpoint/', {optional: 'query params'}]
+   * ]
+   */
+  getEndpoints() {
+    let endpoint = this.getEndpoint();
+    if (!endpoint) return [];
+    return [['data', endpoint, this.getEndpointParams()]];
   }
 
   getTitle() {
@@ -98,7 +138,9 @@ class AsyncView extends React.Component {
       <DocumentTitle title={this.getTitle()}>
         {this.state.loading
           ? this.renderLoading()
-          : this.state.error ? this.renderError(this.state.error) : this.renderBody()}
+          : this.state.error
+              ? this.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderBody()}
       </DocumentTitle>
     );
   }
