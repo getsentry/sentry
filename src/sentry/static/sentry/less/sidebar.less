@@ -5,7 +5,7 @@
 
 .sidebar {
   background: @sidebar-bg-color;
-  color: @50;
+  color: @40;
   line-height: 1;
   padding: 0 20px;
   width: @sidebar-expanded-width;
@@ -15,8 +15,27 @@
   bottom: 0;
 }
 
+.sidebar .user-dropdown {
+  .user-dropdown-org-name {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  .user-dropdown-user-name {
+    font-size: 14px;
+    line-height: 22px;
+  }
+}
+
 .sidebar-section {
-  padding: 15px 0;
+  margin: 20px 0;
+}
+
+.sidebar hr {
+  width: 30px;
+  border-top-color: @80;
+  margin: 0;
 }
 
 .sidebar-item {
@@ -24,46 +43,46 @@
   align-items: center;
   cursor: pointer;
   font-size: 16px;
-  line-height: 36px;
+  line-height: 32px;
 
   .transition(.15s color linear);
 
   &:hover {
     color: @30;
 
-    .sidebar-item-icon {
-       path, circle, rect {
-        stroke-dasharray: 6;
-        stroke-dashoffset: 6;
-        animation: offset 1s ease forwards;
-      }
+    // .sidebar-item-icon {
+    //    path, circle, rect {
+    //     stroke-dasharray: 6;
+    //     stroke-dashoffset: 6;
+    //     animation: offset 1s ease forwards;
+    //   }
 
-      .cog {
-        transform-origin: 50% 50%;
-        animation: rotateCog 3s linear infinite;
-        circle {
-          stroke-dasharray: 0;
-          stroke-dashoffset: 100;
-        }
-      }
+    //   .cog {
+    //     transform-origin: 50% 50%;
+    //     animation: rotateCog 3s linear infinite;
+    //     circle {
+    //       stroke-dasharray: 0;
+    //       stroke-dashoffset: 100;
+    //     }
+    //   }
 
-      .clock {
-        stroke-dasharray: 25;
-        stroke-dashoffset: 25;
-      }
+    //   .clock {
+    //     stroke-dasharray: 25;
+    //     stroke-dashoffset: 25;
+    //   }
 
-      .clock-big-hand {
-        stroke-dasharray: 0;
-        transform-origin: bottom center;
-        animation: rotate 2s linear infinite;
-      }
+    //   .clock-big-hand {
+    //     stroke-dasharray: 0;
+    //     transform-origin: bottom center;
+    //     animation: rotate 2s linear infinite;
+    //   }
 
-      .clock-little-hand {
-        stroke-dasharray: 0;
-        transform-origin: top left;
-        animation: rotate 12s linear infinite;
-      }
-    }
+    //   .clock-little-hand {
+    //     stroke-dasharray: 0;
+    //     transform-origin: top left;
+    //     animation: rotate 12s linear infinite;
+    //   }
+    // }
   }
 
   &.active {
@@ -75,11 +94,12 @@
   content: "";
   margin-right: 12px;
   display: inline-block;
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 22px;
 
   svg {
     display: block;
+    margin: 0 auto;
   }
 }
 

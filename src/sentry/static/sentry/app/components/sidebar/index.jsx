@@ -27,6 +27,8 @@ import IssueSidebarBookmarks from '../../icons/icon-sidebar-bookmarks';
 import IssueSidebarHistory from '../../icons/icon-sidebar-history';
 import IssueSidebarWhatsNew from '../../icons/icon-sidebar-whats-new';
 import IssueSidebarSupport from '../../icons/icon-sidebar-support';
+import IssueSidebarStatus from '../../icons/icon-sidebar-status';
+import IssueSidebarCollapse from '../../icons/icon-sidebar-collapse';
 
 const OnboardingStatus = React.createClass({
   propTypes: {
@@ -379,75 +381,96 @@ const SidebarItem = React.createClass({
   }
 });
 
+const UserDropdown = React.createClass({
+  render() {
+    return (
+      <div className="user-dropdown">
+        <div className="user-dropdown-org-name">Sentry</div>
+        <div className="user-dropdown-user-name">Matt Robenolt</div>
+        <ul className="user-dropdown-menu" style={{display: 'none'}}>
+          <li>WUT</li>
+        </ul>
+      </div>
+    );
+  }
+});
+
 const Sidebar = React.createClass({
   render() {
     return (
       <div className="sidebar">
         <div className="sidebar-top">
           <SidebarSection>
+            <UserDropdown />
+          </SidebarSection>
+          <hr />
+          <SidebarSection>
             <SidebarItem
-              icon={<IssueSidebarOverview size={26} />}
+              icon={<IssueSidebarOverview size={22} />}
               label={t('Overview')}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
-              icon={<IssueSidebarIssues size={26} />}
+              icon={<IssueSidebarIssues size={22} />}
               label={t('Issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
-              icon={<IssueSidebarUserFeedback size={26} />}
+              icon={<IssueSidebarUserFeedback size={22} />}
               label={t('User feedback')}
               onClick={() => this.togglePanel('history')}
             />
             <SidebarItem
-              icon={<IssueSidebarReleases size={26} />}
+              icon={<IssueSidebarReleases size={22} />}
               label={t('Releases')}
               onClick={() => this.togglePanel('history')}
             />
             <SidebarItem
-              icon={<IssueSidebarSettings size={26} />}
+              icon={<IssueSidebarSettings size={22} />}
               label={t('Settings')}
               onClick={() => this.togglePanel('history')}
             />
           </SidebarSection>
           <SidebarSection>
             <SidebarItem
-              icon={<IssueSidebarUser size={26} />}
+              icon={<IssueSidebarUser size={22} />}
               label={t('Assigned to me')}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
-              icon={<IssueSidebarBookmarks size={26} />}
+              icon={<IssueSidebarBookmarks size={22} />}
               label={t('Starred issues')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
-              icon={<IssueSidebarHistory size={26} />}
+              icon={<IssueSidebarHistory size={22} />}
               label={t('Recently viewed')}
               onClick={() => this.togglePanel('history')}
             />
           </SidebarSection>
           <SidebarSection>
             <SidebarItem
-              icon={<IssueSidebarWhatsNew size={26} />}
+              icon={<IssueSidebarWhatsNew size={22} />}
               label={t("What's new")}
               onClick={() => this.togglePanel('assigned')}
             />
             <SidebarItem
-              icon={<IssueSidebarSupport size={26} />}
+              icon={<IssueSidebarSupport size={22} />}
               label={t('Support')}
               onClick={() => this.togglePanel('bookmarks')}
             />
             <SidebarItem
+              icon={<IssueSidebarStatus size={22} />}
               label={t('Service status')}
               onClick={() => this.togglePanel('history')}
             />
           </SidebarSection>
         </div>
         <div className="sidebar-bottom">
+          <hr />
           <SidebarSection>
             <SidebarItem
+              icon={<IssueSidebarCollapse size={22} />}
               label={t('Collapse')}
               onClick={() => this.togglePanel('history')}
             />
