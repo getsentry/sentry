@@ -371,7 +371,7 @@ const SidebarSection = React.createClass({
 const SidebarItem = React.createClass({
   render() {
     return (
-      <div className="sidebar-item">
+      <div className="sidebar-item" {...this.props}>
         <span className="sidebar-item-icon">
           {this.props.icon}
         </span>
@@ -385,8 +385,12 @@ const UserDropdown = React.createClass({
   render() {
     return (
       <div className="user-dropdown">
-        <div className="user-dropdown-org-name">Sentry</div>
-        <div className="user-dropdown-user-name">Matt Robenolt</div>
+        {this.props.collapsed && <div className="user-dropdown-org-icon" />}
+        {!this.props.collapsed &&
+          <div>
+            <div className="user-dropdown-org-name">Sentry</div>
+            <div className="user-dropdown-user-name">Matt Robenolt</div>
+          </div>}
         <ul className="user-dropdown-menu" style={{display: 'none'}}>
           <li>WUT</li>
         </ul>
@@ -396,12 +400,43 @@ const UserDropdown = React.createClass({
 });
 
 const Sidebar = React.createClass({
+  getInitialState: function() {
+    return {
+      collapsed: false
+    };
+  },
+
+  componentWillMount() {
+    jQuery(document.body).addClass('body-sidebar');
+  },
+
+  componentWillUnmount() {
+    jQuery(document.body).removeClass('body-sidebar');
+  },
+
+  toggleSidebar() {
+    this.setState({
+      collapsed: !this.state.collapsed
+    });
+    if (!this.state.collapsed) {
+      jQuery(document.body).addClass('collapsed');
+    } else {
+      jQuery(document.body).removeClass('collapsed');
+    }
+  },
+
   render() {
+    let classNames = 'sidebar ';
+
+    if (this.state.collapsed) {
+      classNames += ' collapsed';
+    }
+
     return (
-      <div className="sidebar">
+      <div className={classNames}>
         <div className="sidebar-top">
           <SidebarSection>
-            <UserDropdown />
+            <UserDropdown collapsed={this.state.collapsed} />
           </SidebarSection>
           <hr />
           <SidebarSection>
@@ -472,7 +507,7 @@ const Sidebar = React.createClass({
             <SidebarItem
               icon={<IssueSidebarCollapse size={22} />}
               label={t('Collapse')}
-              onClick={() => this.togglePanel('history')}
+              onClick={() => this.toggleSidebar()}
             />
           </SidebarSection>
         </div>

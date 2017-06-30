@@ -3,8 +3,23 @@
 * ============================================================================
 */
 
+.body-sidebar {
+  padding-left: @sidebar-expanded-width;
+
+  // Fake sidebar until loaded
+  background-image: linear-gradient(@sidebar-bg-color, @sidebar-bg-color);
+  background-size: @sidebar-expanded-width;
+  background-repeat: repeat-y;
+
+  &.collapsed {
+    padding-left: @sidebar-collapsed-width;
+    background-size: @sidebar-collapsed-width;
+  }
+}
+
 .sidebar {
   background: @sidebar-bg-color;
+  overflow: hidden;
   color: @40;
   line-height: 1;
   padding: 0 20px;
@@ -13,9 +28,26 @@
   top: 0;
   left: 0;
   bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  &.collapsed {
+    width: @sidebar-collapsed-width;
+
+    .sidebar-item-label {
+      opacity: 0;
+      display: none;
+    }
+  }
 }
 
 .sidebar .user-dropdown {
+  .user-dropdown-org-icon {
+    .square(30px);
+    background: @orange;
+    border-radius: 3px;
+  }
   .user-dropdown-org-name {
     font-size: 16px;
     font-weight: bold;
@@ -25,6 +57,7 @@
   .user-dropdown-user-name {
     font-size: 14px;
     line-height: 22px;
+    margin-bottom: -8px;
   }
 }
 
@@ -44,11 +77,12 @@
   cursor: pointer;
   font-size: 16px;
   line-height: 32px;
+  height: 32px;
 
   .transition(.15s color linear);
 
   &:hover {
-    color: @30;
+    color: @20;
 
     // .sidebar-item-icon {
     //    path, circle, rect {
@@ -92,7 +126,6 @@
 
 .sidebar-item-icon {
   content: "";
-  margin-right: 12px;
   display: inline-block;
   width: 30px;
   height: 22px;
@@ -101,6 +134,13 @@
     display: block;
     margin: 0 auto;
   }
+}
+
+.sidebar-item-label {
+  margin-left: 12px;
+  white-space: nowrap;
+  transition: .15s linear all;
+  opacity: 1;
 }
 
 @keyframes offset {
