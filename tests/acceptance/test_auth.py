@@ -30,4 +30,5 @@ class AuthTest(AcceptanceTestCase):
         user.save()
 
         self.enter_auth(email, password)
+        self.browser.wait_until_not('.loading')
         self.browser.snapshot(name='login success')
