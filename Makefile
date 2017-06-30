@@ -24,7 +24,7 @@ install-python:
 
 install-python-base:
 	@echo "--> Installing Python dependencies"
-	pip install "setuptools>=0.9.8"
+	pip install "setuptools>=0.9.8" "pip>=8.0.0"
 	# order matters here, base package must install first
 	pip install -e .
 	pip install ujson
