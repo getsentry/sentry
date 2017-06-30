@@ -37,6 +37,10 @@ class Migration(DataMigration):
                     last_active=None if user.last_active < cutoff_time else user.last_active,
                 )
 
+    def backwards(self, orm):
+        pass
+
+
     models = {
         'sentry.activity': {
             'Meta': {'object_name': 'Activity'},
