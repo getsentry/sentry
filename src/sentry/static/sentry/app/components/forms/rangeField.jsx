@@ -1,9 +1,34 @@
+import React from 'react';
 import jQuery from 'jquery';
 import ReactDOM from 'react-dom';
 
 import InputField from './inputField';
 
 export default class RangeField extends InputField {
+  static formatMinutes = value => {
+    value = value / 60;
+    return `${value} minute${value != 1 ? 's' : ''}`;
+  };
+
+  static propTypes = {
+    ...InputField.propTypes,
+    min: React.PropTypes.number,
+    max: React.PropTypes.number,
+    step: React.PropTypes.number,
+    snap: React.PropTypes.bool,
+    allowedValues: React.PropTypes.arrayOf(React.PropTypes.number)
+  };
+
+  static defaultProps = {
+    ...InputField.defaultProps,
+    formatLabel: value => value,
+    min: 0,
+    max: 100,
+    step: 1,
+    snap: true,
+    allowedValues: null
+  };
+
   componentDidMount() {
     super.componentDidMount();
     this.attachSlider();
@@ -29,7 +54,7 @@ export default class RangeField extends InputField {
       .on('slider:changed', (e, data) => {
         let value = parseInt(data.value, 10);
         $value.html(this.props.formatLabel(value));
-        this.props.onChange(value);
+        this.setValue(value);
       })
       .simpleSlider({
         value: this.props.defaultValue || this.props.value,
@@ -58,18 +83,3 @@ export default class RangeField extends InputField {
     return 'range';
   }
 }
-
-RangeField.formatMinutes = value => {
-  value = value / 60;
-  return `${value} minute${value != 1 ? 's' : ''}`;
-};
-
-RangeField.defaultProps = {
-  onChange: value => {},
-  formatLabel: value => value,
-  min: 0,
-  max: 100,
-  step: 1,
-  snap: true,
-  allowedValues: null
-};

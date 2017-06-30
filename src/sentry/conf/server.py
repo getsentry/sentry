@@ -243,6 +243,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'sentry.middleware.auth.AuthenticationMiddleware',
+    'sentry.middleware.user.UserActiveMiddleware',
     'sentry.middleware.sudo.SudoMiddleware',
     'sentry.middleware.superuser.SuperuserMiddleware',
     'sentry.middleware.locale.SentryLocaleMiddleware',
@@ -344,6 +345,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -368,6 +370,7 @@ SOCIAL_AUTH_AUTHENTICATION_BACKENDS = (
     'social_auth.backends.bitbucket.BitbucketBackend',
     'social_auth.backends.trello.TrelloBackend',
     'social_auth.backends.asana.AsanaBackend',
+    'social_auth.backends.slack.SlackBackend',
 )
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
@@ -408,13 +411,15 @@ AUTH_PROVIDERS = {
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
     'asana': ('ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'),
+    'slack': ('SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'),
 }
 
 AUTH_PROVIDER_LABELS = {
     'github': 'GitHub',
     'trello': 'Trello',
     'bitbucket': 'Bitbucket',
-    'asana': 'Asana'
+    'asana': 'Asana',
+    'slack': 'Slack'
 }
 
 import random
@@ -524,6 +529,13 @@ CELERYBEAT_SCHEDULE = {
             'expires': 60,
             'queue': 'auth',
         }
+    },
+    'enqueue-scheduled-jobs': {
+        'task': 'sentry.tasks.enqueue_scheduled_jobs',
+        'schedule': timedelta(minutes=1),
+        'options': {
+            'expires': 60,
+        },
     },
     'send-beacon': {
         'task': 'sentry.tasks.send_beacon',

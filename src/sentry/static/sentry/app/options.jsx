@@ -150,7 +150,7 @@ function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
-export function getOptionField(option, onChange, value, field) {
+export function getOptionField(option, field, value, onChange) {
   let meta = {...getOption(option), ...field};
   let Field = meta.component || TextField;
   return (

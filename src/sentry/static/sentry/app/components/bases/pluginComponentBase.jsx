@@ -16,8 +16,8 @@ const callbackWithArgs = function(callback, ...args) {
 };
 
 class PluginComponentBase extends React.Component {
-  constructor(props) {
-    super(props);
+  constructor(props, context) {
+    super(props, context);
 
     [
       'onLoadSuccess',

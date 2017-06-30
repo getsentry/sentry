@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 
@@ -103,27 +102,15 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
             for project in projects:
                 env.add_project(project)
 
-            try:
-                with transaction.atomic():
-                    deploy, created = Deploy.objects.create(
-                        organization_id=organization.id,
-                        release=release,
-                        environment_id=env.id,
-                        date_finished=result.get('dateFinished', timezone.now()),
-                        date_started=result.get('dateStarted'),
-                        name=result.get('name'),
-                        url=result.get('url'),
-                    ), True
-            except IntegrityError:
-                deploy, created = Deploy.objects.get(
-                    organization_id=organization.id,
-                    release=release,
-                    environment_id=env.id,
-                ), False
-                deploy.update(
-                    date_finished=result.get('dateFinished', timezone.now()),
-                    date_started=result.get('dateStarted'),
-                )
+            deploy = Deploy.objects.create(
+                organization_id=organization.id,
+                release=release,
+                environment_id=env.id,
+                date_finished=result.get('dateFinished', timezone.now()),
+                date_started=result.get('dateStarted'),
+                name=result.get('name'),
+                url=result.get('url'),
+            )
 
             # XXX(dcramer): this has a race for most recent deploy, but
             # should be unlikely to hit in the real world
@@ -134,12 +121,6 @@ class ReleaseDeploysEndpoint(OrganizationReleasesBaseEndpoint):
 
             Deploy.notify_if_ready(deploy.id)
 
-            # This is the closest status code that makes sense, and we want
-            # a unique 2xx response code so people can understand when
-            # behavior differs.
-            #   208 Already Reported (WebDAV; RFC 5842)
-            status = 201 if created else 208
-
-            return Response(serialize(deploy, request.user), status=status)
+            return Response(serialize(deploy, request.user), status=201)
 
         return Response(serializer.errors, status=400)
