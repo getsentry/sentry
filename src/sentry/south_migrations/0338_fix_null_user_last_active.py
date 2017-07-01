@@ -27,15 +27,14 @@ class Migration(DataMigration):
 
         User = orm['sentry.User']
 
-        queryset = User.objects.all()
-        for user in RangeQuerySetWrapperWithProgressBar(queryset):
-            with transaction.atomic():
-                cutoff_time = datetime.datetime(2017, 6, 29, 23, 44)              
-                User.objects.filter(
-                    id=user.id,
-                ).select_for_update().update(
-                    last_active=None if user.last_active < cutoff_time else user.last_active,
-                )
+        queryset = User.objects.filter(last_active__isnull=False)
+        for user in RangeQuerySetWrapperWithProgressBar(queryset):          
+            User.objects.filter(
+                id=user.id,
+                last_active__isnull=False
+            ).update(
+                last_active=None,
+            )
 
     def backwards(self, orm):
         pass
