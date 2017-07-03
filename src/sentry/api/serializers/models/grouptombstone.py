@@ -4,7 +4,7 @@ import six
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import (
-    GroupTombstone
+    GroupTombstone, User
 )
 
 
@@ -16,11 +16,17 @@ class GroupTombstoneSerializer(Serializer):
             d['id']: d
             for d in serialize(set(i.project for i in item_list), user)
         }
+        user_list = list(User.objects.filter(id__in=[item.actor_id for item in item_list]))
+        users = {
+            d['id']: d
+            for d in serialize(user_list)
+        }
 
         attrs = {}
         for item in item_list:
             attrs[item] = {
-                'project': projects[six.text_type(item.project_id)]
+                'project': projects[six.text_type(item.project_id)],
+                'user': users[six.text_type(item.actor_id)],
             }
         return attrs
 
@@ -32,6 +38,8 @@ class GroupTombstoneSerializer(Serializer):
             'message': obj.message,
             'culprit': obj.culprit,
             'type': obj.type,
+            'actor': attrs.get('user', ''),
+
         }
 
         return d

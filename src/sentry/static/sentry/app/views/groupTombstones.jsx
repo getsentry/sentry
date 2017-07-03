@@ -76,6 +76,7 @@ const GroupTombstones = React.createClass({
     if (this.state.error) return <LoadingError />;
 
     let {tombstones} = this.state;
+    console.log(tombstones);
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
