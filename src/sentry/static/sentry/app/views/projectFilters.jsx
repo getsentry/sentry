@@ -342,7 +342,9 @@ const ProjectFilters = React.createClass({
       processedStats: false,
       projectOptions: {},
       blankStats: false,
-      activeSection: 'data-filters'
+      activeSection: 'data-filters',
+      tombstones: [],
+      tombstoneError: false
     };
   },
 
@@ -408,6 +410,20 @@ const ProjectFilters = React.createClass({
         this.setState({
           expected: expected,
           loading: expected > 0
+        });
+      }
+    });
+
+    this.api.request(`/projects/${orgId}/${projectId}/tombstone/`, {
+      method: 'GET',
+      success: data => {
+        this.setState({
+          tombstones: data
+        });
+      },
+      error: () => {
+        this.setState({
+          tombstoneError: true
         });
       }
     });
@@ -521,7 +537,14 @@ const ProjectFilters = React.createClass({
         </div>
       );
     } else {
-      return <GroupTombstones orgId={orgId} projectId={projectId} />;
+      return (
+        <GroupTombstones
+          orgId={orgId}
+          projectId={projectId}
+          tombstones={this.state.tombstones}
+          tombstoneError={this.state.tombstoneError}
+        />
+      );
     }
   },
 
@@ -556,12 +579,14 @@ const ProjectFilters = React.createClass({
         <div className="sub-header flex flex-container flex-vertically-centered">
           <div className="p-t-1">
             <ul className="nav nav-tabs">
-              <li className={navSection == 'data-filters' ? 'active ' : ''}>
+              <li
+                className={`col-xs-5  ${navSection == 'data-filters' ? 'active ' : ''}`}>
                 <a onClick={() => this.setProjectNavSection('data-filters')}>
                   {t('Data Filters')}
                 </a>
               </li>
-              <li className={navSection == 'discarded-groups' ? 'active ' : ''}>
+              <li
+                className={`col-xs-5 align-right ${navSection == 'discarded-groups' ? 'active ' : ''}`}>
                 <a onClick={() => this.setProjectNavSection('discarded-groups')}>
                   {t('Discarded Groups')}
                 </a>

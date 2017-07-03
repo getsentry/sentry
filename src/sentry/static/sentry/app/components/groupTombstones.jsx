@@ -2,7 +2,6 @@ import React from 'react';
 
 import AlertActions from '../actions/alertActions';
 
-import LoadingIndicator from '../components/loadingIndicator';
 import LoadingError from '../components/loadingError';
 import LinkWithConfirmation from '../components/linkWithConfirmation';
 
@@ -13,41 +12,12 @@ import {t} from '../locale';
 const GroupTombstones = React.createClass({
   propTypes: {
     orgId: React.PropTypes.string.isRequired,
-    projectId: React.PropTypes.string.isRequired
+    projectId: React.PropTypes.string.isRequired,
+    tombstones: React.PropTypes.array.isRequired,
+    tombstoneError: React.PropTypes.bool.isRequired
   },
 
   mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      loading: true,
-      tombstones: []
-    };
-  },
-
-  componentDidMount() {
-    this.fetchData();
-  },
-
-  fetchData() {
-    let {orgId, projectId} = this.props;
-
-    let path = `/projects/${orgId}/${projectId}/tombstone/`;
-    this.api.request(path, {
-      method: 'GET',
-      success: (data, _, jqXHR) => {
-        this.setState({
-          tombstones: data,
-          loading: false
-        });
-      },
-      error: () => {
-        this.setState({
-          error: true
-        });
-      }
-    });
-  },
 
   undiscard(tombstoneId) {
     // TODO (kt): update this when you scope the API endpoint to the project
@@ -75,11 +45,9 @@ const GroupTombstones = React.createClass({
   },
 
   render() {
-    if (this.state.loading) return <LoadingIndicator />;
+    if (this.props.tombstoneError) return <LoadingError />;
 
-    if (this.state.error) return <LoadingError />;
-
-    let {tombstones} = this.state;
+    let {tombstones} = this.props;
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
