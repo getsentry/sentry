@@ -293,18 +293,18 @@ const ResolveActions = React.createClass({
       disabled: !this.props.anySelected,
       selectAllActive: this.props.pageSelected,
       extraDescription: extraDescription,
-      buttonTitle: t('Ignore'),
+      buttonTitle: t('Resolve'),
       confirmationQuestion: this.state.allInQuerySelected
-        ? t('Are you sure you want to ignore all issues matching this search query?')
+        ? t('Are you sure you want to resolve all issues matching this search query?')
         : count =>
             tn(
-              'Are you sure you want to ignore this %d issue?',
-              'Are you sure you want to ignore these %d issues?',
+              'Are you sure you want to resolve this %d issue?',
+              'Are you sure you want to resolve these %d issues?',
               count
             ),
       confirmLabel: this.props.allInQuerySelected
         ? t('Ignore all issues')
-        : count => tn('Ignore %d selected issue', 'Ignore %d selected issues', count)
+        : count => tn('Resolve %d selected issue', 'Resolve %d selected issues', count)
     };
     return (
       <div style={{display: 'inline-block'}}>
