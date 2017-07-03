@@ -9,6 +9,7 @@ from sentry.testutils import TestCase
 
 class GroupTombstoneSerializerTest(TestCase):
     def test_simple(self):
+        self.user = self.create_user('foo@example.com')
         self.login_as(user=self.user)
         org = self.create_organization(
             owner=self.user,
@@ -24,6 +25,7 @@ class GroupTombstoneSerializerTest(TestCase):
             message=group.message,
             culprit=group.culprit,
             type=group.get_event_type(),
+            actor_id=self.user.id,
         )
         GroupHash.objects.create(
             project=group.project,
@@ -36,3 +38,4 @@ class GroupTombstoneSerializerTest(TestCase):
         assert result['message'] == group.message
         assert result['culprit'] == group.culprit
         assert result['project']['name'] == 'CoolProj'
+        assert result['actor']['email'] == 'foo@example.com'
