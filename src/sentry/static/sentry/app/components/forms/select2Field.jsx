@@ -27,7 +27,7 @@ class Select2Field extends InputField {
     );
   }
 
-  onChange(e) {
+  onChange = e => {
     if (this.props.multiple) {
       let options = e.target.options;
       let value = [];
@@ -36,18 +36,11 @@ class Select2Field extends InputField {
           value.push(options[i].value);
         }
       }
-      this.setState(
-        {
-          value: value
-        },
-        () => {
-          this.props.onChange(this.state.value);
-        }
-      );
-      return;
+      this.setValue(value);
+    } else {
+      this.setValue(e.target.value);
     }
-    super.onChange(e);
-  }
+  };
 
   getSelect2Options() {
     return {

@@ -1,137 +1,51 @@
 import React from 'react';
 
-import ApiMixin from '../mixins/apiMixin';
-import IndicatorStore from '../stores/indicatorStore';
-import {FormState, TextField} from '../components/forms';
+import AsyncView from './asyncView';
+import {ApiForm, TextField} from '../components/forms';
 import {t} from '../locale';
 
-const TeamSettingsForm = React.createClass({
-  propTypes: {
-    orgId: React.PropTypes.string.isRequired,
-    teamId: React.PropTypes.string.isRequired,
-    initialData: React.PropTypes.object,
-    onSave: React.PropTypes.func.isRequired
-  },
-
-  mixins: [ApiMixin],
-
-  getInitialState() {
-    return {
-      formData: Object.assign({}, this.props.initialData),
-      errors: {}
-    };
-  },
-
-  onFieldChange(name, value) {
-    let formData = this.state.formData;
-    formData[name] = value;
-    this.setState({
-      formData: formData
-    });
-  },
-
-  onSubmit(e) {
-    e.preventDefault();
-
-    if (this.state.state == FormState.SAVING) {
-      return;
-    }
-    this.setState(
-      {
-        state: FormState.SAVING
-      },
-      () => {
-        let loadingIndicator = IndicatorStore.add(t('Saving changes..'));
-        let {orgId, teamId} = this.props;
-        this.api.request(`/teams/${orgId}/${teamId}/`, {
-          method: 'PUT',
-          data: this.state.formData,
-          success: data => {
-            this.props.onSave(data);
-            this.setState({
-              state: FormState.READY,
-              errors: {}
-            });
-          },
-          error: error => {
-            this.setState({
-              state: FormState.ERROR,
-              errors: error.responseJSON
-            });
-          },
-          complete: () => {
-            IndicatorStore.remove(loadingIndicator);
-          }
-        });
-      }
-    );
-  },
-
-  render() {
-    let isSaving = this.state.state === FormState.SAVING;
-    let errors = this.state.errors;
-    return (
-      <form onSubmit={this.onSubmit} className="form-stacked">
-        {this.state.state === FormState.ERROR &&
-          <div className="alert alert-error alert-block">
-            {t(
-              'Unable to save your changes. Please ensure all fields are valid and try again.'
-            )}
-          </div>}
-        <fieldset>
-          <TextField
-            key="name"
-            label={t('Name')}
-            placeholder={t('e.g. API Team')}
-            value={this.state.formData.name}
-            required={true}
-            error={errors.name}
-            onChange={this.onFieldChange.bind(this, 'name')}
-          />
-          <TextField
-            key="slug"
-            label={t('Short name')}
-            value={this.state.formData.slug}
-            required={true}
-            error={errors.slug}
-            onChange={this.onFieldChange.bind(this, 'slug')}
-          />
-        </fieldset>
-        <fieldset className="form-actions">
-          <button type="submit" className="btn btn-primary" disabled={isSaving}>
-            {t('Save Changes')}
-          </button>
-        </fieldset>
-      </form>
-    );
-  }
-});
-
-const TeamSettings = React.createClass({
-  propTypes: {
+export default class TeamSettings extends AsyncView {
+  static propTypes = {
+    ...AsyncView.propTypes,
     team: React.PropTypes.object.isRequired,
     onTeamChange: React.PropTypes.func.isRequired
-  },
+  };
 
-  render() {
+  getTitle() {
+    return 'Team Settings';
+  }
+
+  renderBody() {
     let {orgId, teamId} = this.props.params;
     let team = this.props.team;
 
     return (
-      <div>
-        <div className="box">
-          <div className="box-content with-padding">
-            <TeamSettingsForm
-              orgId={orgId}
-              teamId={teamId}
-              initialData={team}
-              onSave={this.props.onTeamChange}
+      <div className="box">
+        <div className="box-content with-padding">
+          <ApiForm
+            apiMethod="PUT"
+            apiEndpoint={`/teams/${orgId}/${teamId}/`}
+            initialData={{
+              name: team.name,
+              slug: team.slug
+            }}
+            onSubmitSuccess={this.props.onTeamChange}
+            requireChanges={true}>
+            <TextField
+              name="name"
+              label={t('Name')}
+              placeholder={t('e.g. API Team')}
+              required={true}
             />
-          </div>
+            <TextField
+              name="slug"
+              label={t('Short name')}
+              placeholder={t('e.g. api-team')}
+              required={true}
+            />
+          </ApiForm>
         </div>
       </div>
     );
   }
-});
-
-export default TeamSettings;
+}

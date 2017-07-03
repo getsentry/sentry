@@ -16,7 +16,8 @@ import {t} from '../../locale';
 
 const ERROR_TYPES = {
   MISSING_MEMBERSHIP: 'MISSING_MEMBERSHIP',
-  PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND'
+  PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
+  UNKNOWN: 'UNKNOWN'
 };
 
 /**
@@ -142,20 +143,38 @@ const ProjectContext = React.createClass({
   },
 
   fetchData() {
-    let org = this.context.organization;
-    if (!org) {
-      return;
-    }
+    let {orgId, projectId} = this.props;
+    // we fetch core access/information from the global organization data
     let [activeTeam, activeProject] = this.identifyProject();
     let hasAccess = activeTeam && activeTeam.hasAccess;
 
     this.setState({
       loading: true,
+      // we bind project initially, but it'll rebind
       project: activeProject,
       team: activeTeam
     });
 
     if (activeProject && hasAccess) {
+      this.api.request(`/projects/${orgId}/${projectId}/`, {
+        success: data => {
+          this.setState({
+            loading: false,
+            project: data,
+            team: data.team,
+            error: false,
+            errorType: null
+          });
+        },
+        error: error => {
+          // TODO(dcramer): this should handle 404 (project not found)
+          this.setState({
+            loading: false,
+            error: false,
+            errorType: ERROR_TYPES.UNKNOWN
+          });
+        }
+      });
       // TODO(dcramer): move member list to organization level
       this.api.request(this.getMemberListEndpoint(), {
         success: data => {
@@ -170,9 +189,7 @@ const ProjectContext = React.createClass({
       });
 
       this.setState({
-        loading: false,
-        error: false,
-        errorType: null
+        loading: false
       });
     } else if (activeTeam && activeTeam.isMember) {
       this.setState({

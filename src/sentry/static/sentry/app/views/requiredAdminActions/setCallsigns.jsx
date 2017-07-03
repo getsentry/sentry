@@ -22,17 +22,13 @@ function getProjectInfoForReview(org) {
       let targetList = nonMemberProjects;
       if (team.isMember) {
         canReview = canWriteProjects;
-        if (!project.callSignReviewed) {
-          requiresReview++;
-          canReviewAnything = canReviewAnything || canReview;
-        }
         targetList = memberProjects;
       }
       targetList.push({
         projectId: project.id,
         projectName: project.name,
         isMember: team.isMember,
-        requiresReview: !project.callSignReviewed,
+        requiresReview: false,
         canReview: canReview,
         teamName: team.name,
         callSign: project.callSign || null

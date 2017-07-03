@@ -5,6 +5,7 @@ from django.utils.http import urlquote
 from django.core.urlresolvers import reverse
 from exam import fixture
 
+from sentry import options
 from sentry.testutils import TestCase
 from sentry.models import User
 
@@ -55,23 +56,28 @@ class AuthLoginTest(TestCase):
         assert resp.status_code == 302
 
     def test_registration_disabled(self):
+        options.set('auth.allow-registration', True)
         with self.feature('auth:register', False):
             resp = self.client.get(self.path)
             assert resp.context['register_form'] is None
 
     def test_registration_valid(self):
+        options.set('auth.allow-registration', True)
         with self.feature('auth:register'):
             resp = self.client.post(self.path, {
                 'username': 'test-a-really-long-email-address@example.com',
                 'password': 'foobar',
+                'name': 'Foo Bar',
                 'op': 'register',
             })
         assert resp.status_code == 302
         user = User.objects.get(username='test-a-really-long-email-address@example.com')
         assert user.email == 'test-a-really-long-email-address@example.com'
         assert user.check_password('foobar')
+        assert user.name == 'Foo Bar'
 
     def test_register_renders_correct_template(self):
+        options.set('auth.allow-registration', True)
         register_path = reverse('sentry-register')
         resp = self.client.get(register_path)
 
@@ -85,7 +91,7 @@ class AuthLoginTest(TestCase):
             resp = self.client.get(self.path)
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-create-organization')
+        assert resp['Location'] == 'http://testserver/organizations/new/'
 
     def test_register_prefills_invite_email(self):
         self.session['invite_email'] = 'foo@example.com'

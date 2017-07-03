@@ -1,16 +1,17 @@
 from __future__ import absolute_import
 
-# from sentry.adoption import manager
-# from sentry.interfaces.base import get_interface
+from sentry.adoption import manager
 from sentry.models import FeatureAdoption
-# from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
-# from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.plugins import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_DATA
 from sentry.signals import (
     alert_rule_created,
     event_processed,
+    first_event_received,
     project_created,
     member_joined,
+    plugin_enabled,
     user_feedback_received,
     issue_assigned,
     issue_resolved_in_release,
@@ -20,7 +21,7 @@ from sentry.signals import (
     sso_enabled,
     data_scrubber_enabled,
 )
-# from sentry.utils.javascript import has_sourcemap
+from sentry.utils.javascript import has_sourcemap
 
 DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 'sentry:user',
     'os', 'server_name', 'device', 'os.name', 'browser.name', 'sentry:release', 'environment',
@@ -29,52 +30,52 @@ DEFAULT_TAGS = frozenset(['level', 'logger', 'transaction', 'url', 'browser', 's
     'deviceModel', 'sentry_version'])
 
 
-# # First Event
-# @first_event_received.connect(weak=False)
-# def record_first_event(project, group, **kwargs):
-#     FeatureAdoption.objects.record(
-#         organization_id=project.organization_id,
-#         feature_slug="first_event",
-#         complete=True)
+# First Event
+@first_event_received.connect(weak=False)
+def record_first_event(project, group, **kwargs):
+    FeatureAdoption.objects.record(
+        organization_id=project.organization_id,
+        feature_slug="first_event",
+        complete=True)
 
 
 @event_processed.connect(weak=False)
 def record_event_processed(project, group, event, **kwargs):
     feature_slugs = []
 
-#     # Platform
-#     if group.platform in manager.location_slugs('language'):
-#         feature_slugs.append(group.platform)
+    # Platform
+    if group.platform in manager.location_slugs('language'):
+        feature_slugs.append(group.platform)
 
-#     # Release Tracking
-#     if event.get_tag('sentry:release'):
-#         feature_slugs.append('release_tracking')
+    # Release Tracking
+    if event.get_tag('sentry:release'):
+        feature_slugs.append('release_tracking')
 
     # Environment Tracking
     if event.get_tag('environment'):
         feature_slugs.append('environment_tracking')
 
-#     # User Tracking
-#     user_context = event.data.get('sentry.interfaces.User')
-#     # We'd like them to tag with id or email.
-#     # Certain SDKs automatically tag with ip address.
-#     # Check to make sure more the ip address is being sent.
-#     # testing for this in test_no_user_tracking_for_ip_address_only
-#     # list(d.keys()) pattern is to make this python3 safe
-#     if user_context and list(user_context.keys()) != ['ip_address']:
-#         feature_slugs.append('user_tracking')
+    # User Tracking
+    user_context = event.data.get('sentry.interfaces.User')
+    # We'd like them to tag with id or email.
+    # Certain SDKs automatically tag with ip address.
+    # Check to make sure more the ip address is being sent.
+    # testing for this in test_no_user_tracking_for_ip_address_only
+    # list(d.keys()) pattern is to make this python3 safe
+    if user_context and list(user_context.keys()) != ['ip_address']:
+        feature_slugs.append('user_tracking')
 
-#     # Custom Tags
-#     if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
-#         feature_slugs.append('custom_tags')
+    # Custom Tags
+    if set(tag[0] for tag in event.tags) - DEFAULT_TAGS:
+        feature_slugs.append('custom_tags')
 
-#     # Sourcemaps
-#     if has_sourcemap(event):
-#         feature_slugs.append('source_maps')
+    # Sourcemaps
+    if has_sourcemap(event):
+        feature_slugs.append('source_maps')
 
-#     # Breadcrumbs
-#     if event.data.get('sentry.interfaces.Breadcrumbs'):
-#         feature_slugs.append('breadcrumbs')
+    # Breadcrumbs
+    if event.data.get('sentry.interfaces.Breadcrumbs'):
+        feature_slugs.append('breadcrumbs')
 
     if not feature_slugs:
         return
@@ -157,18 +158,18 @@ def record_alert_rule_created(project, rule, **kwargs):
         complete=True)
 
 
-# @plugin_enabled.connect(weak=False)
-# def record_plugin_enabled(plugin, project, user, **kwargs):
-#     if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
-#         FeatureAdoption.objects.record(
-#             organization_id=project.organization_id,
-#             feature_slug="issue_tracker_integration",
-#             complete=True)
-#     elif isinstance(plugin, NotificationPlugin):
-#         FeatureAdoption.objects.record(
-#             organization_id=project.organization_id,
-#             feature_slug="notification_integration",
-#             complete=True)
+@plugin_enabled.connect(weak=False)
+def record_plugin_enabled(plugin, project, user, **kwargs):
+    if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
+        FeatureAdoption.objects.record(
+            organization_id=project.organization_id,
+            feature_slug="issue_tracker_integration",
+            complete=True)
+    elif isinstance(plugin, NotificationPlugin):
+        FeatureAdoption.objects.record(
+            organization_id=project.organization_id,
+            feature_slug="notification_integration",
+            complete=True)
 
 
 @sso_enabled.connect(weak=False)

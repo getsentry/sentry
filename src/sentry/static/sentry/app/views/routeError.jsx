@@ -4,7 +4,9 @@ import React from 'react';
 
 const RouteError = React.createClass({
   propTypes: {
-    error: React.PropTypes.object.isRequired
+    error: React.PropTypes.object.isRequired,
+    // not used yet, but future proofing
+    onRetry: React.PropTypes.func
   },
 
   componentWillMount() {
