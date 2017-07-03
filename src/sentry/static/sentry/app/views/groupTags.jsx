@@ -102,7 +102,7 @@ const GroupTags = React.createClass({
                     {t('More Details')}
                   </Link>
                 </span>
-                <h5>{tag.name} (<Count value={tag.uniqueValues} />)</h5>
+                <h5>{tag.name}</h5>
               </div>
               <div className="box-content with-padding">
                 <ul className="list-unstyled">

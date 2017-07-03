@@ -13,13 +13,11 @@ from sentry.api.base import DocSection
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.plugin import PluginSerializer
-from sentry.digests import backend as digests
+from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.models import (
     AuditLogEntryEvent, Group, GroupStatus, Project, ProjectBookmark,
-    ProjectStatus, UserOption, DEFAULT_SUBJECT_TEMPLATE
+    ProjectStatus, UserOption
 )
-from sentry.plugins import plugins
 from sentry.tasks.deletion import delete_project
 from sentry.utils.apidocs import scenario, attach_scenarios
 
@@ -136,39 +134,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to delete.
         :auth: required
         """
-        data = serialize(project, request.user)
-        data['options'] = {
-            'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
-            'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-            'sentry:scrub_data': bool(project.get_option('sentry:scrub_data', True)),
-            'sentry:scrub_defaults': bool(project.get_option('sentry:scrub_defaults', True)),
-            'sentry:safe_fields': project.get_option('sentry:safe_fields', []),
-            'sentry:sensitive_fields': project.get_option('sentry:sensitive_fields', []),
-            'sentry:csp_ignored_sources_defaults': bool(project.get_option('sentry:csp_ignored_sources_defaults', True)),
-            'sentry:csp_ignored_sources': '\n'.join(project.get_option('sentry:csp_ignored_sources', []) or []),
-            'sentry:default_environment': project.get_option('sentry:default_environment'),
-            'sentry:reprocessing_active': bool(project.get_option('sentry:reprocessing_active', False)),
-            'filters:blacklisted_ips': '\n'.join(project.get_option('sentry:blacklisted_ips', [])),
-            'feedback:branding': project.get_option('feedback:branding', '1') == '1',
-        }
-        data['plugins'] = serialize([
-            plugin
-            for plugin in plugins.configurable_for_project(project, version=None)
-            if plugin.has_project_conf()
-        ], request.user, PluginSerializer(project))
-        data['team'] = serialize(project.team, request.user)
-        data['organization'] = serialize(project.organization, request.user)
-
-        data.update({
-            'digestsMinDelay': project.get_option(
-                'digests:mail:minimum_delay', digests.minimum_delay,
-            ),
-            'digestsMaxDelay': project.get_option(
-                'digests:mail:maximum_delay', digests.maximum_delay,
-            ),
-            'subjectPrefix': project.get_option('mail:subject_prefix'),
-            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
-        })
+        data = serialize(project, request.user, DetailedProjectSerializer())
 
         include = set(filter(bool, request.GET.get('include', '').split(',')))
         if 'stats' in include:
@@ -320,22 +286,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 data=project.get_audit_log_data(),
             )
 
-        data = serialize(project, request.user)
-        data['options'] = {
-            'sentry:origins': '\n'.join(project.get_option('sentry:origins', ['*']) or []),
-            'sentry:resolve_age': int(project.get_option('sentry:resolve_age', 0)),
-        }
-        data.update({
-            'digestsMinDelay': project.get_option(
-                'digests:mail:minimum_delay', digests.minimum_delay,
-            ),
-            'digestsMaxDelay': project.get_option(
-                'digests:mail:maximum_delay', digests.maximum_delay,
-            ),
-            'subjectPrefix': project.get_option('mail:subject_prefix'),
-            'subjectTemplate': project.get_option('mail:subject_template') or DEFAULT_SUBJECT_TEMPLATE.template,
-        })
-
+        data = serialize(project, request.user, DetailedProjectSerializer())
         return Response(data)
 
     @attach_scenarios([delete_project_scenario])

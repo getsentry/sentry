@@ -7,7 +7,7 @@ from sentry.models import ProjectDSymFile, EventError
 from sentry.reprocessing import report_processing_issue
 
 
-FRAME_CACHE_VERSION = 1
+FRAME_CACHE_VERSION = 2
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
@@ -39,7 +39,7 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             FRAME_CACHE_VERSION,
             processable_frame.frame['module'],
             processable_frame.frame['function'],
-        ))
+        ) + tuple(sorted(self.images)))
 
     def preprocess_step(self, processing_task):
         if not self.available:
@@ -110,6 +110,9 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
 class JavaPlugin(Plugin2):
     can_disable = False
+
+    def can_configure_for_project(self, project, **kwargs):
+        return False
 
     def get_stacktrace_processors(self, data, stacktrace_infos,
                                   platforms, **kwargs):

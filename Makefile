@@ -1,13 +1,12 @@
+CPUS ?= $(shell sysctl -n hw.ncpu || echo 1)
+MAKEFLAGS += --jobs=$(CPUS)
 NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 
-install-python:
-	@echo "--> Installing Python dependencies"
-	pip install "setuptools>=0.9.8"
-	# order matters here, base package must install first
-	pip install -e .
-	pip install ujson
-	pip install "file://`pwd`#egg=sentry[dev]"
+develop: setup-git update-submodules install-python install-yarn
+	@echo ""
+
+develop-only: develop
 
 install-yarn:
 	@echo "--> Installing Node dependencies"
@@ -18,13 +17,21 @@ install-yarn:
 	# See: https://github.com/karma-runner/karma-phantomjs-launcher/issues/120#issuecomment-262634703
 	node ./node_modules/phantomjs-prebuilt/install.js
 
+install-python:
+	# must be executed serialially
+	$(MAKE) install-python-base
+	$(MAKE) install-python-tests
+
+install-python-base:
+	@echo "--> Installing Python dependencies"
+	pip install "setuptools>=0.9.8" "pip>=8.0.0"
+	# order matters here, base package must install first
+	pip install -e .
+	pip install ujson
+	pip install "file://`pwd`#egg=sentry[dev]"
+
 install-python-tests:
 	pip install "file://`pwd`#egg=sentry[dev,tests,dsym]"
-
-develop-only: update-submodules install-python install-python-tests install-yarn
-
-develop: develop-only setup-git
-	@echo ""
 
 dev-postgres: install-python
 
@@ -136,7 +143,7 @@ lint-js:
 	@echo ""
 
 coverage: develop
-	make test-python-coverage
+	$(MAKE) test-python-coverage
 	coverage html
 
 publish:
@@ -160,7 +167,9 @@ travis-upgrade-pip:
 travis-setup-cassandra:
 	echo "create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};" | cqlsh --cqlversion=3.1.7
 	echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.1.7
-travis-install-python: travis-upgrade-pip install-python install-python-tests
+travis-install-python:
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) install-python install-python
 	python -m pip install codecov
 travis-noop:
 	@echo "nothing to do here."
@@ -176,9 +185,13 @@ travis-install-mysql: travis-install-python
 	pip install mysqlclient
 	echo 'create database sentry;' | mysql -uroot
 travis-install-acceptance: install-yarn travis-install-postgres
-travis-install-js: travis-upgrade-pip install-python install-python-tests install-yarn
+travis-install-js:
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) install-python install-yarn
 travis-install-cli: travis-install-postgres
-travis-install-dist: travis-upgrade-pip install-python install-python-tests install-yarn
+travis-install-dist:
+	$(MAKE) travis-upgrade-pip
+	$(MAKE) install-python install-yarn
 travis-install-django-18: travis-install-postgres
 	pip install "Django>=1.8,<1.9"
 

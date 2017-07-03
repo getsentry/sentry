@@ -84,9 +84,9 @@ const OrganizationSelector = React.createClass({
 
               {features.has('organizations:create') &&
                 <li className="org-create">
-                  <a href="/organizations/new/" className="btn btn-default btn-block">
+                  <Link to="/organizations/new/" className="btn btn-default btn-block">
                     {t('New Organization')}
-                  </a>
+                  </Link>
                 </li>}
             </ul>
           </SidebarPanel>}

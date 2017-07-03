@@ -4,11 +4,10 @@ import ReactDOM from 'react-dom';
 import FormField from './formField';
 
 export default class MultipleCheckboxField extends FormField {
-  constructor(props) {
-    super(props);
-
-    this.state.value = new Set(props.value || []);
-  }
+  static propTypes = {
+    ...FormField.propTypes,
+    choices: React.PropTypes.array.isRequired
+  };
 
   // XXX(dcramer): this comes from TooltipMixin
   componentDidMount() {
@@ -28,22 +27,24 @@ export default class MultipleCheckboxField extends FormField {
     jQuery('.tip', ReactDOM.findDOMNode(this)).tooltip('destroy');
   }
 
-  onChange(value, e) {
-    if (e.target.checked) this.state.value.add(value);
-    else this.state.value.delete(value);
-    this.setState(
-      {
-        value: this.state.value
-      },
-      () => {
-        this.props.onChange(Array.from(this.state.value.keys()));
+  onChange = (value, e) => {
+    let allValues = this.state.value;
+    if (e.target.checked) {
+      if (allValues) {
+        allValues = [...allValues, value];
+      } else {
+        allValues = [value];
       }
-    );
-  }
+    } else {
+      allValues = allValues.filter(v => v !== value);
+    }
+    this.setValue(allValues);
+  };
 
   render() {
+    let error = this.getError();
     let className = 'control-group';
-    if (this.props.error) {
+    if (error) {
       className += ' has-error';
     }
     return (
@@ -57,18 +58,19 @@ export default class MultipleCheckboxField extends FormField {
             </span>}
         </label>
         {this.props.help && <p className="help-block">{this.props.help}</p>}
+        {error && <p className="error">{error}</p>}
         <div className="controls control-list">
-          {this.props.choices.map(choice => {
+          {this.props.choices.map(([value, label]) => {
             return (
-              <label className="checkbox" key={choice[0]}>
+              <label className="checkbox" key={value}>
                 <input
                   type="checkbox"
-                  value={choice[0]}
-                  onChange={this.onChange.bind(this, choice[0])}
+                  value={value}
+                  onChange={this.onChange.bind(this, value)}
                   disabled={this.props.disabled}
-                  checked={this.state.value.has(choice[0])}
+                  checked={this.state.value.indexOf(value) !== -1}
                 />
-                {choice[1]}
+                {label}
               </label>
             );
           })}

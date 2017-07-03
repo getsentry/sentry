@@ -220,6 +220,8 @@ class ClientApiHelper(object):
         """
         Returns either the Origin or Referer value from the request headers.
         """
+        if request.META.get('HTTP_ORIGIN') == 'null':
+            return 'null'
         return origin_from_request(request)
 
     def project_key_from_auth(self, auth):

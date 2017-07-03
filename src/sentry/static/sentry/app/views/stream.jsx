@@ -727,6 +727,7 @@ const Stream = React.createClass({
                     orgId={params.orgId}
                     projectId={params.projectId}
                     hasReleases={projectFeatures.has('releases')}
+                    latestRelease={this.context.project.latestRelease}
                     query={this.state.query}
                     onSelectStatsPeriod={this.onSelectStatsPeriod}
                     onRealtimeChange={this.onRealtimeChange}

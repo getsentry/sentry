@@ -5,21 +5,15 @@ import {defined} from '../../utils';
 import InputField from './inputField';
 
 export default class BooleanField extends InputField {
-  valueFromProps(props) {
-    let value = super.valueFromProps(props);
+  coerceValue(props) {
+    let value = super.coerceValue(props);
     return value ? true : false;
   }
 
-  onChange(e) {
-    this.setState(
-      {
-        value: e.target.checked
-      },
-      () => {
-        this.props.onChange(this.state.value);
-      }
-    );
-  }
+  onChange = e => {
+    let value = e.target.checked;
+    this.setValue(value);
+  };
 
   getField() {
     return (
@@ -34,8 +28,9 @@ export default class BooleanField extends InputField {
   }
 
   render() {
+    let error = this.getError();
     let className = this.getClassName();
-    if (this.props.error) {
+    if (error) {
       className += ' has-error';
     }
     return (
@@ -51,7 +46,7 @@ export default class BooleanField extends InputField {
               </span>}
           </label>
           {defined(this.props.help) && <p className="help-block">{this.props.help}</p>}
-          {this.props.error && <p className="error">{this.props.error}</p>}
+          {error && <p className="error">{error}</p>}
         </div>
       </div>
     );

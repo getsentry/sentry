@@ -12,6 +12,10 @@ const sections = [
   {
     key: 'mail',
     heading: t('Outbound email')
+  },
+  {
+    key: 'auth',
+    heading: t('Authentication')
   }
 ];
 
@@ -58,6 +62,13 @@ const definitions = [
     help: t(
       'The maximum number of events the system should accept per minute. A value of 0 will disable the default rate limit.'
     )
+  },
+  {
+    key: 'auth.allow-registration',
+    label: t('Allow Registration'),
+    help: t('Allow anyone to create an account and access this Sentry installation.'),
+    component: BooleanField,
+    defaultValue: () => false
   },
   {
     key: 'auth.ip-rate-limit',
@@ -139,7 +150,7 @@ function optionsForSection(section) {
   return definitions.filter(option => option.key.split('.')[0] === section.key);
 }
 
-export function getOptionField(option, onChange, value, field) {
+export function getOptionField(option, field, value, onChange) {
   let meta = {...getOption(option), ...field};
   let Field = meta.component || TextField;
   return (

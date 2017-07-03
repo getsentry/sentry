@@ -2,6 +2,7 @@ import moment from 'moment';
 import underscore from 'underscore';
 import React from 'react';
 import TooltipMixin from '../mixins/tooltip';
+import Count from './count';
 import ConfigStore from '../stores/configStore.jsx';
 
 const StackedBarChart = React.createClass({
@@ -243,11 +244,7 @@ const StackedBarChart = React.createClass({
     let key = ['m', marker.className, marker.x].join('-');
 
     return (
-      <a
-        key={key}
-        className={className}
-        style={{height: this.props.height}}
-        data-title={title}>
+      <a key={key} className={className} style={{height: '100%'}} data-title={title}>
         <span>{marker.label}</span>
       </a>
     );
@@ -299,7 +296,7 @@ const StackedBarChart = React.createClass({
         key={point.x}
         className="chart-column tip"
         data-point-index={point.x}
-        style={{width: pointWidth, height: this.props.height}}>
+        style={{width: pointWidth, height: '100%'}}>
         {pts}
       </a>
     );
@@ -349,7 +346,7 @@ const StackedBarChart = React.createClass({
       <figure
         className={figureClass}
         style={{height: this.props.height, width: this.props.width}}>
-        <span className="max-y">{maxval}</span>
+        <span className="max-y"><Count value={maxval} /></span>
         <span className="min-y">0</span>
         <span>{this.renderChart()}</span>
       </figure>

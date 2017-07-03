@@ -106,7 +106,7 @@ const EventsPerHour = React.createClass({
         <h6 className="nav-header">{t('Events Per Hour')}</h6>
         <StackedBarChart
           series={this.state.formattedData}
-          className="sparkline dashboard-sparkline"
+          className="dashboard-barchart standard-barchart"
           label="events"
           barClasses={this.STAT_OPTS}
         />
