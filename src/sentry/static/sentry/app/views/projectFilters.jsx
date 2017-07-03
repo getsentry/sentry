@@ -341,7 +341,8 @@ const ProjectFilters = React.createClass({
       rawStatsData: null,
       processedStats: false,
       projectOptions: {},
-      blankStats: false
+      blankStats: false,
+      activeSection: 'data-filters'
     };
   },
 
@@ -467,6 +468,12 @@ const ProjectFilters = React.createClass({
     });
   },
 
+  setProjectNavSection(section) {
+    this.setState({
+      activeSection: section
+    });
+  },
+
   renderBody() {
     let body;
 
@@ -485,8 +492,41 @@ const ProjectFilters = React.createClass({
     );
   },
 
-  renderResults() {
+  renderSection() {
+    let activeSection = this.state.activeSection;
     let {orgId, projectId} = this.props.params;
+    if (activeSection == 'data-filters') {
+      return (
+        <div>
+          {this.state.filterList.map(filter => {
+            let props = {
+              key: filter.id,
+              data: filter,
+              orgId: orgId,
+              projectId: projectId,
+              onToggle: this.onToggleFilter
+            };
+            return filter.id === 'legacy-browsers'
+              ? <LegacyBrowserFilterRow {...props} />
+              : <FilterRow {...props} />;
+          })}
+
+          <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
+            <ProjectFiltersSettingsForm
+              orgId={orgId}
+              projectId={projectId}
+              initialData={this.state.projectOptions}
+            />
+          </div>
+        </div>
+      );
+    } else {
+      return <GroupTombstones orgId={orgId} projectId={projectId} />;
+    }
+  },
+
+  renderResults() {
+    let navSection = this.state.activeSection;
 
     return (
       <div>
@@ -513,27 +553,23 @@ const ProjectFilters = React.createClass({
                 </div>
               </div>}
         </div>
-        {this.state.filterList.map(filter => {
-          let props = {
-            key: filter.id,
-            data: filter,
-            orgId: orgId,
-            projectId: projectId,
-            onToggle: this.onToggleFilter
-          };
-          return filter.id === 'legacy-browsers'
-            ? <LegacyBrowserFilterRow {...props} />
-            : <FilterRow {...props} />;
-        })}
-
-        <div style={{borderTop: '1px solid #f2f3f4', padding: '20px 0 0'}}>
-          <ProjectFiltersSettingsForm
-            orgId={orgId}
-            projectId={projectId}
-            initialData={this.state.projectOptions}
-          />
+        <div className="sub-header flex flex-container flex-vertically-centered">
+          <div className="p-t-1">
+            <ul className="nav nav-tabs">
+              <li className={navSection == 'data-filters' ? 'active ' : ''}>
+                <a onClick={() => this.setProjectNavSection('data-filters')}>
+                  {t('Data Filters')}
+                </a>
+              </li>
+              <li className={navSection == 'discarded-groups' ? 'active ' : ''}>
+                <a onClick={() => this.setProjectNavSection('discarded-groups')}>
+                  {t('Discarded Groups')}
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
-        <GroupTombstones orgId={orgId} projectId={projectId} />
+        {this.renderSection()}
       </div>
     );
   },
