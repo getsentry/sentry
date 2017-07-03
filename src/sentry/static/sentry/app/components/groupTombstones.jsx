@@ -11,6 +11,11 @@ import ApiMixin from '../mixins/apiMixin';
 import {t} from '../locale';
 
 const GroupTombstones = React.createClass({
+  propTypes: {
+    orgId: React.PropTypes.string.isRequired,
+    projectId: React.PropTypes.string.isRequired
+  },
+
   mixins: [ApiMixin],
 
   getInitialState() {
@@ -25,12 +30,11 @@ const GroupTombstones = React.createClass({
   },
 
   fetchData() {
-    let {orgId, projectId} = this.props.params;
+    let {orgId, projectId} = this.props;
 
     let path = `/projects/${orgId}/${projectId}/tombstone/`;
     this.api.request(path, {
       method: 'GET',
-      data: this.props.location.query,
       success: (data, _, jqXHR) => {
         this.setState({
           tombstones: data,
@@ -76,12 +80,11 @@ const GroupTombstones = React.createClass({
     if (this.state.error) return <LoadingError />;
 
     let {tombstones} = this.state;
-    console.log(tombstones);
     return (
       <div>
         <div className="row" style={{paddingTop: 10}}>
           <div className="col-sm-8">
-            <h5>{t('Groups Marked as Discarded')}</h5>
+            <h5>{t('Discarded Groups')}</h5>
             {tombstones.length
               ? <ul className="group-list">
                   {tombstones.map(data => {
@@ -115,6 +118,7 @@ const GroupTombstones = React.createClass({
                             </LinkWithConfirmation>
                           </div>
                         </div>
+                        {data.user && <span>`discarded by ${data.user.name}`</span>}
                       </li>
                     );
                   })}

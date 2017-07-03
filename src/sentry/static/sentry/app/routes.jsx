@@ -22,7 +22,6 @@ import AdminUsers from './views/adminUsers';
 import App from './views/app';
 import GroupActivity from './views/groupActivity';
 import GroupDetails from './views/groupDetails';
-import GroupTombstones from './views/groupTombstones';
 import GroupEventDetails from './views/groupEventDetails';
 import GroupEvents from './views/groupEvents';
 import GroupHashes from './views/groupHashes';
@@ -230,7 +229,6 @@ function routes() {
             <Route path="artifacts/" component={errorHandler(ReleaseArtifacts)} />
             <Route path="commits/" component={errorHandler(ReleaseCommits)} />
           </Route>
-          <Route path="tombstones/" component={errorHandler(GroupTombstones)} />
           <Route path="user-feedback/" component={errorHandler(ProjectUserReports)} />
           <Route path="settings/" component={errorHandler(ProjectSettings)}>
             <Route path="alerts/" component={errorHandler(ProjectAlertSettings)} />
