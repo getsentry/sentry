@@ -3,6 +3,7 @@ import _ from 'underscore';
 
 import ApiMixin from '../mixins/apiMixin';
 import IndicatorStore from '../stores/indicatorStore';
+import GroupTombstones from '../components/groupTombstones';
 import LoadingError from '../components/loadingError';
 import LoadingIndicator from '../components/loadingIndicator';
 import StackedBarChart from '../components/stackedBarChart';
@@ -532,6 +533,7 @@ const ProjectFilters = React.createClass({
             initialData={this.state.projectOptions}
           />
         </div>
+        <GroupTombstones orgId={orgId} projectId={projectId} />
       </div>
     );
   },
