@@ -25,20 +25,20 @@ class GroupTombstoneSerializer(Serializer):
         attrs = {}
         for item in item_list:
             attrs[item] = {
-                'project': projects[six.text_type(item.project_id)],
-                'user': users[six.text_type(item.actor_id)],
+                'project': projects.get(six.text_type(item.project_id), {}),
+                'user': users.get(six.text_type(item.actor_id), {}),
             }
         return attrs
 
     def serialize(self, obj, attrs, user):
         d = {
             'id': six.text_type(obj.id),
-            'project': attrs.get('project', ''),
+            'project': attrs.get('project'),
             'level': six.text_type(obj.level),
             'message': obj.message,
             'culprit': obj.culprit,
             'type': obj.type,
-            'actor': attrs.get('user', ''),
+            'actor': attrs.get('user'),
 
         }
 
