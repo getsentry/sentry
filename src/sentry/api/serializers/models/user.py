@@ -72,6 +72,7 @@ class UserSerializer(Serializer):
             'dateJoined': obj.date_joined,
             'lastLogin': obj.last_login,
             'has2fa': attrs['has2fa'],
+            'lastActive': obj.last_active,
         }
 
         if obj == user:
