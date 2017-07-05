@@ -238,9 +238,6 @@ def run(file_list=None, format=True, lint=True, js=True, py=True, yarn=True):
     # pep8.py uses sys.argv to find setup.cfg
     old_sysargv = sys.argv
 
-    if file_list is None:
-        file_list = get_files('.')
-
     try:
         sys.argv = [
             os.path.join(os.path.dirname(__file__),
