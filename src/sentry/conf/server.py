@@ -471,6 +471,7 @@ CELERY_IMPORTS = (
     'sentry.tasks.process_buffer',
     'sentry.tasks.reports',
     'sentry.tasks.reprocessing',
+    'sentry.tasks.scheduler',
     'sentry.tasks.store',
     'sentry.tasks.unmerge',
 )
