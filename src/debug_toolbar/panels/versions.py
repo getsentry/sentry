@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+import six
 import sys
 
 import django
@@ -67,5 +68,5 @@ class VersionsPanel(Panel):
         else:
             return
         if isinstance(version, (list, tuple)):
-            version = '.'.join(str(o) for o in version)
+            version = '.'.join(six.text_type(o) for o in version)
         return version

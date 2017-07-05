@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division, unicode_literals
 
+import six
+
 from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
 from debug_toolbar.panels import Panel
@@ -86,7 +88,8 @@ class FunctionCall(object):
                                func,
                                self.depth + 1,
                                stats=stats,
-                               id=str(self.id) + '_' + str(i),
+                               id=six.text_type(self.id) +
+                               '_' + six.text_type(i),
                                parent_ids=self.parent_ids + [self.id],
                                hsv=(h1, s1, 1))
 
@@ -140,7 +143,8 @@ class ProfilingPanel(Panel):
             for subfunc in func.subfuncs():
                 if subfunc.stats[3] >= cum_time:
                     func.has_subfuncs = True
-                    self.add_node(func_list, subfunc, max_depth, cum_time=cum_time)
+                    self.add_node(func_list, subfunc,
+                                  max_depth, cum_time=cum_time)
 
     def process_response(self, request, response):
         if not hasattr(self, 'profiler'):
