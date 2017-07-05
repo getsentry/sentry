@@ -23,7 +23,7 @@ from sentry.db.models.query import create_or_update
 from sentry.models import (
     Activity, EventMapping, Group, GroupAssignee, GroupBookmark, GroupHash,
     GroupResolution, GroupSeen, GroupSnooze, GroupStatus, GroupSubscription,
-    GroupSubscriptionReason, Release, TagKey, UserOption
+    GroupSubscriptionReason, GroupTombstone, Release, TagKey, UserOption
 )
 from sentry.models.event import Event
 from sentry.models.group import looks_like_short_id
@@ -144,6 +144,7 @@ class GroupValidator(serializers.Serializer):
     isPublic = serializers.BooleanField()
     isSubscribed = serializers.BooleanField()
     merge = serializers.BooleanField()
+    discard = serializers.BooleanField()
     ignoreDuration = serializers.IntegerField()
     ignoreCount = serializers.IntegerField()
     # in hours, max of one week
@@ -160,6 +161,15 @@ class GroupValidator(serializers.Serializer):
         value = attrs[source]
         if value and not self.context['project'].member_set.filter(user=value).exists():
             raise serializers.ValidationError('Cannot assign to non-team member')
+        return attrs
+
+    def validate(self, attrs):
+        attrs = super(GroupValidator, self).validate(attrs)
+        if 'discard' in attrs:
+            if len(attrs) > 1:
+                raise serializers.ValidationError(
+                    'Other attributes cannot be updated when discarding'
+                )
         return attrs
 
 
@@ -449,6 +459,29 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         queryset = Group.objects.filter(
             id__in=group_ids,
         )
+
+        discard = result.get('discard')
+        if discard:
+            group_list = list(queryset)
+            for group in group_list:
+                # TODO(jess): do we want a lock here to prevent
+                # multiple tombstones from being created from a group?
+                tombstone = GroupTombstone.objects.create(
+                    project_id=group.project_id,
+                    level=group.level,
+                    message=group.message,
+                    culprit=group.culprit,
+                    type=group.get_event_type(),
+                )
+                GroupHash.objects.filter(
+                    group=group,
+                ).update(
+                    group=None,
+                    group_tombstone=tombstone,
+                )
+            self._delete_groups(request, project, group_list)
+
+            return Response(status=204)
 
         statusDetails = result.pop('statusDetails', result)
         status = result.get('status')
@@ -828,14 +861,19 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                     GroupStatus.DELETION_IN_PROGRESS,
                 ]
             ))
-            # filter down group ids to only valid matches
-            group_ids = [g.id for g in group_list]
         else:
             # missing any kind of filter
             return Response('{"detail": "You must specify a list of IDs for this operation"}', status=400)
 
-        if not group_ids:
+        if not group_list:
             return Response(status=204)
+
+        self._delete_groups(request, project, group_list)
+
+        return Response(status=204)
+
+    def _delete_groups(self, request, project, group_list):
+        group_ids = [g.id for g in group_list]
 
         Group.objects.filter(
             id__in=group_ids,
@@ -870,5 +908,3 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 'transaction_id': transaction_id,
                 'model': type(group).__name__,
             })
-
-        return Response(status=204)
