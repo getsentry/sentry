@@ -1,5 +1,6 @@
 from __future__ import absolute_import, unicode_literals
 
+import six
 
 from django.core.signals import (
     request_started, request_finished, got_request_exception)
@@ -72,7 +73,7 @@ class SignalsPanel(Panel):
                     continue
 
                 receiver = getattr(receiver, '__wraps__', receiver)
-                receiver_name = getattr(receiver, '__name__', str(receiver))
+                receiver_name = getattr(receiver, '__name__', six.text_type(receiver))
                 if getattr(receiver, '__self__', None) is not None:
                     receiver_class_name = getattr(receiver.__self__, '__class__', type).__name__
                     text = "%s.%s" % (receiver_class_name, receiver_name)
