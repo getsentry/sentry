@@ -31,7 +31,6 @@ class Migration(DataMigration):
         for user in RangeQuerySetWrapperWithProgressBar(queryset):          
             User.objects.filter(
                 id=user.id,
-                last_active__isnull=False
             ).update(
                 last_active=None,
             )
