@@ -48,7 +48,7 @@ def get_option(key, project=None, user=None):
 
 def unset_option(key, project=None, user=None):
     if user:
-        result = UserOption.objects.unset_value(user, project, key)
+        result = UserOption.objects.unset_value(user, key, project=project)
     elif project:
         result = ProjectOption.objects.unset_value(project, key)
     else:

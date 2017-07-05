@@ -521,12 +521,20 @@ class NotificationDeploySettingsForm(forms.Form):
     def save(self):
         value = self.data.get('{}-notifications'.format(self.prefix), None)
         if value is not None:
-            UserOption.objects.set_value(
-                user=self.user,
-                organization=self.organization,
-                key='deploy-emails',
-                value=value,
-            )
+            #  this is the default, so we unset the value.
+            if value == UserOptionValue.committed_deploys_only:
+                UserOption.objects.unset_value(
+                    user=self.user,
+                    organization=self.organization,
+                    key='deploy-emails',
+                )
+            else:
+                UserOption.objects.set_value(
+                    user=self.user,
+                    organization=self.organization,
+                    key='deploy-emails',
+                    value=value,
+                )
 
 
 class NotificationSettingsForm(forms.Form):
@@ -692,7 +700,10 @@ class ProjectEmailOptionsForm(forms.Form):
             )
         else:
             UserOption.objects.unset_value(
-                self.user, self.project, 'mail:email')
+                self.user,
+                'mail:email',
+                project=self.project
+            )
 
 
 class TwoFactorForm(forms.Form):
