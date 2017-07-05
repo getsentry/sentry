@@ -13,6 +13,7 @@
         "src/sentry/static/sentry/dist/": true
     },
     "files.trimTrailingWhitespace": true,
+    "files.ensureSingleFinalNewline": true,
 
     "prettier.bracketSpacing": false,
     "prettier.singleQuote": true,
