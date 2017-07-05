@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.models import (
     Activity, Group, GroupHash, GroupSeen, GroupStatus, GroupTagKey,
-    GroupTombstone, Release, User, UserReport,
+    Release, User, UserReport,
 )
 from sentry.plugins import IssueTrackingPlugin2, plugins
 from sentry.utils.safe import safe_execute
@@ -150,44 +150,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             return {'version': version}
         return serialize(release, request.user)
 
-    def _delete_group(self, request, group):
-        from sentry.tasks.deletion import delete_group
-
-        updated = Group.objects.filter(
-            id=group.id,
-        ).exclude(
-            status__in=[
-                GroupStatus.PENDING_DELETION,
-                GroupStatus.DELETION_IN_PROGRESS,
-            ]
-        ).update(status=GroupStatus.PENDING_DELETION)
-        if updated:
-            GroupHash.objects.filter(group=group).delete()
-
-            transaction_id = uuid4().hex
-            project = group.project
-
-            delete_group.apply_async(
-                kwargs={
-                    'object_id': group.id,
-                    'transaction_id': transaction_id,
-                },
-                countdown=3600,
-            )
-
-            self.create_audit_entry(
-                request=request,
-                organization_id=project.organization_id if project else None,
-                target_object=group.id,
-                transaction_id=transaction_id,
-            )
-
-            delete_logger.info('object.delete.queued', extra={
-                'object_id': group.id,
-                'transaction_id': transaction_id,
-                'model': type(group).__name__,
-            })
-
     @attach_scenarios([retrieve_aggregate_scenario])
     def get(self, request, group):
         """
@@ -290,25 +252,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :auth: required
         """
         discard = request.DATA.get('discard')
-        if discard:
-            # TODO(jess): do we want a lock here to prevent
-            # multiple tombstones from being created from a group?
-            tombstone = GroupTombstone.objects.create(
-                project_id=group.project_id,
-                level=group.level,
-                message=group.message,
-                culprit=group.culprit,
-                type=group.get_event_type(),
-            )
-            GroupHash.objects.filter(
-                group=group,
-            ).update(
-                group=None,
-                group_tombstone=tombstone,
-            )
-            self._delete_group(request, group)
-
-            return Response(status=204)
 
         # TODO(dcramer): we need to implement assignedTo in the bulk mutation
         # endpoint
@@ -323,6 +266,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data=request.DATA,
             request=request,
         )
+
+        # if action was discard, there isn't a group to serialize anymore
+        if discard:
+            return response
 
         # we need to fetch the object against as the bulk mutation endpoint
         # only returns a delta, and object mutation returns a complete updated
@@ -346,6 +293,41 @@ class GroupDetailsEndpoint(GroupEndpoint):
         :pparam string issue_id: the ID of the issue to delete.
         :auth: required
         """
-        self._delete_group(request, group)
+        from sentry.tasks.deletion import delete_group
+
+        updated = Group.objects.filter(
+            id=group.id,
+        ).exclude(
+            status__in=[
+                GroupStatus.PENDING_DELETION,
+                GroupStatus.DELETION_IN_PROGRESS,
+            ]
+        ).update(status=GroupStatus.PENDING_DELETION)
+        if updated:
+            GroupHash.objects.filter(group=group).delete()
+
+            transaction_id = uuid4().hex
+            project = group.project
+
+            delete_group.apply_async(
+                kwargs={
+                    'object_id': group.id,
+                    'transaction_id': transaction_id,
+                },
+                countdown=3600,
+            )
+
+            self.create_audit_entry(
+                request=request,
+                organization_id=project.organization_id if project else None,
+                target_object=group.id,
+                transaction_id=transaction_id,
+            )
+
+            delete_logger.info('object.delete.queued', extra={
+                'object_id': group.id,
+                'transaction_id': transaction_id,
+                'model': type(group).__name__,
+            })
 
         return Response(status=202)
