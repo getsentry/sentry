@@ -1,5 +1,8 @@
-Version 8.18 (Unreleased)
+Version 8.19 (Unreleased)
 -------------------------
+
+Version 8.18
+------------
 
 - Expanded resolution options to allow current and explicit versions.
 - Added proguard support
