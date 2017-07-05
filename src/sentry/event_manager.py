@@ -398,7 +398,7 @@ class EventManager(object):
     def save(self, project, raw=False):
         from sentry.tasks.post_process import index_event_tags
 
-        project = Project.objects.get_from_cache(id=project)
+        project = Project.objects.get_from_cache(id=project, unconstrained_unsafe=True)
 
         data = self.data.copy()
 

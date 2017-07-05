@@ -65,7 +65,7 @@ def post_process_group(event, is_new, is_regression, is_sample, **kwargs):
 
     # Re-bind Project since we're pickling the whole Event object
     # which may contain a stale Project.
-    event.project = Project.objects.get_from_cache(id=project_id)
+    event.project = Project.objects.get_from_cache(id=project_id, unconstrained_unsafe=True)
 
     _capture_stats(event, is_new)
 

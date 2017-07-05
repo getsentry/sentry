@@ -193,7 +193,7 @@ def delete_project(object_id, transaction_id=None, **kwargs):
     from sentry.models import Project, ProjectStatus
 
     try:
-        instance = Project.objects.get(id=object_id)
+        instance = Project.objects.unconstrained_unsafe().get(id=object_id)
     except Project.DoesNotExist:
         return
 

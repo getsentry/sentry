@@ -166,3 +166,7 @@ def pytest_runtest_teardown(item):
 
     from celery.task.control import discard_all
     discard_all()
+
+    from sentry.app import env
+    env.request = None
+    env.tenant = None

@@ -58,7 +58,7 @@ def create_default_projects(created_models, verbosity=2, **kwargs):
 
 
 def create_default_project(id, name, slug, verbosity=2, **kwargs):
-    if Project.objects.filter(id=id).exists():
+    if Project.objects.unconstrained_unsafe().filter(id=id).exists():
         return
 
     try:

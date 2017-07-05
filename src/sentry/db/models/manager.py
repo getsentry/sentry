@@ -15,7 +15,7 @@ import weakref
 
 from django.conf import settings
 from django.db import router
-from django.db.models import Manager, Model
+from django.db.models import Manager, Model, Q
 from django.db.models.signals import (
     post_save, post_delete, post_init, class_prepared)
 from django.utils.encoding import smart_text
@@ -25,8 +25,9 @@ from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
 from .query import create_or_update
+from .queryset import BoundQuerySet
 
-__all__ = ('BaseManager',)
+__all__ = ('BaseManager', 'OrganizationBoundManager')
 
 logger = logging.getLogger('sentry')
 
@@ -222,14 +223,21 @@ class BaseManager(Manager):
         super(BaseManager, self).contribute_to_class(model, name)
         class_prepared.connect(self.__class_prepared, sender=model)
 
-    def get_from_cache(self, **kwargs):
+    # TODO(dcramer): we're hijacking this method and adding
+    # unconstrained_unsafe to avoid refactoring right now
+    def get_from_cache(self, unconstrained_unsafe=False, **kwargs):
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
         the cache key is cleared on save.
         """
+        if unconstrained_unsafe:
+            queryset = self.unconstrained_unsafe()
+        else:
+            queryset = self
+
         if not self.cache_fields or len(kwargs) > 1:
-            return self.get(**kwargs)
+            return queryset.get(**kwargs)
 
         key, value = next(six.iteritems(kwargs))
         pk_name = self.model._meta.pk.name
@@ -249,7 +257,7 @@ class BaseManager(Manager):
 
             retval = cache.get(cache_key, version=self.cache_version)
             if retval is None:
-                result = self.get(**kwargs)
+                result = queryset.get(**kwargs)
                 # Ensure we're pushing it into the cache
                 self.__post_save(instance=result)
                 return result
@@ -263,19 +271,19 @@ class BaseManager(Manager):
                 if settings.DEBUG:
                     raise ValueError('Unexpected value type returned from cache')
                 logger.error('Cache response returned invalid value %r', retval)
-                return self.get(**kwargs)
+                return queryset.get(**kwargs)
 
             if key == pk_name and int(value) != retval.pk:
                 if settings.DEBUG:
                     raise ValueError('Unexpected value returned from cache')
                 logger.error('Cache response returned invalid value %r', retval)
-                return self.get(**kwargs)
+                return queryset.get(**kwargs)
 
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
             return retval
         else:
-            return self.get(**kwargs)
+            return queryset.get(**kwargs)
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
@@ -313,3 +321,27 @@ class BaseManager(Manager):
         """
         Triggered when a model bound to this manager is deleted.
         """
+
+
+class OrganizationBoundManager(BaseManager):
+    # TODO(dcramer): its not clear to me that we actually need to
+    # use BaseManager ever on related_fields (other this changes
+    # that behavior)
+    use_for_related_fields = False
+
+    def get_queryset(self, *args, **kwargs):
+        return BoundQuerySet(
+            model=self.model,
+            using=self._db,
+            binding_criteria_fn=self.get_binding_criteria,
+        )
+
+    def unconstrained_unsafe(self):
+        return self.get_queryset().unconstrained_unsafe()
+
+    def get_binding_criteria(self):
+        from sentry.utils import tenants
+        tenant = tenants.get_current_tenant()
+        if not tenant or not tenant.organization_ids:
+            return
+        return Q(organization_id__in=tenant.organization_ids)
